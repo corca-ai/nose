@@ -261,18 +261,28 @@ impl Entry {
             return None;
         }
 
+        // Selector semantics are ALL-members (coevo series 3, packet
+        // c4-path-oversuppress): an entry describes families wholly inside
+        // its selectors. Any-member matching let `paths: ["vendor/**"]`
+        // swallow a family whose OTHER copy lives in `src/` — the first-party
+        // duplication silently passed `--fail-on any`. Suppression must never
+        // hide a member the selector does not cover.
         let matched_paths = match &self.path_matcher {
             Some(matcher) => {
-                let paths = family
+                if !family
                     .locations
                     .iter()
-                    .filter(|location| matcher.matched(&location.file, false).is_whitelist())
-                    .map(|location| location.file.clone())
-                    .collect::<BTreeSet<_>>();
-                if paths.is_empty() {
+                    .all(|location| matcher.matched(&location.file, false).is_whitelist())
+                {
                     return None;
                 }
-                paths.into_iter().collect()
+                family
+                    .locations
+                    .iter()
+                    .map(|location| location.file.clone())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect()
             }
             None => Vec::new(),
         };
@@ -280,18 +290,19 @@ impl Entry {
         let matched_languages = if self.language_set.is_empty() {
             Vec::new()
         } else {
-            let languages = family
-                .locations
-                .iter()
-                .filter_map(|location| {
-                    let language = location.lang.to_ascii_lowercase();
-                    self.language_set.contains(&language).then_some(language)
-                })
-                .collect::<BTreeSet<_>>();
-            if languages.is_empty() {
+            if !family.locations.iter().all(|location| {
+                self.language_set
+                    .contains(&location.lang.to_ascii_lowercase())
+            }) {
                 return None;
             }
-            languages.into_iter().collect()
+            family
+                .locations
+                .iter()
+                .map(|location| location.lang.to_ascii_lowercase())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect()
         };
 
         Some(IgnoreMatch {

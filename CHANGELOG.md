@@ -7,6 +7,25 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Adversarial co-evolution, series 3** (experiments §CB, issue #274; method
+  upgrades: executable self-verified packets, the bench/coevo packet ledger,
+  claim-direction slot rules):
+  - **Structured-ignore selectors are now ALL-members** (S3-C4): a
+    `paths: ["vendor/**"]` entry no longer suppresses a family whose other
+    copy lives outside the glob — first-party duplication could previously
+    pass `--fail-on any` silently. An entry describes families wholly inside
+    its selectors; partial coverage keeps the family reported. **Migration:**
+    widen entry globs to cover every member (or use `family_id`).
+  - **Declaration wiring lines validate their payloads** (S3-C1): from-clause
+    sources must be lone string literals, Python simple-form name lists and
+    Java/package dotted paths must be name-shaped —
+    `import { x } from Math.max("a", "b");` no longer classifies.
+  - Honest fences documented: baseline keys are span/path/mode-sensitive (pin
+    `--mode`, re-baseline after refactors — every drift direction is loud);
+    `is_test_loc` markers are ecosystem conventions, not a "never" guarantee.
+  - Cache/cold scan code-path asymmetry deferred with reproduction notes
+    (#275); coverage rows and caution-boundary tests adopted from the
+    informed auditor.
 - **Adversarial co-evolution, series 2** (experiments §CA, issue #272): first run
   with fresh-subagent attackers (blind/informed modes, persona rotation — now in
   the runbook). The blind grammar-lawyer found what two authored passes missed:

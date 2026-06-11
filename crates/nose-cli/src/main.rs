@@ -4296,6 +4296,10 @@ fn declaration_opens(line: &str, lang: DeclLang) -> DeclLine {
 }
 
 fn python_declaration(line: &str) -> DeclLine {
+    // A trailing `# comment` is inert on a declaration line (the corpus
+    // re-price caught the validated form dropping real `import x  # noqa`
+    // and single-line parenthesized imports — 18 families).
+    let line = line.split('#').next().unwrap_or(line).trim_end();
     if let Some(rest) = line.strip_prefix("import ") {
         return if is_module_list(rest) {
             DeclLine::Complete
@@ -4304,10 +4308,28 @@ fn python_declaration(line: &str) -> DeclLine {
         };
     }
     if let Some(rest) = line.strip_prefix("from ") {
-        if rest.contains(" import ") {
-            return if line.ends_with('(') {
-                DeclLine::Opens
-            } else if semicolon_free(line) {
+        if let Some((module, names)) = rest.split_once(" import ") {
+            // S3-C1: the imported NAMES must be a name list (or `*`) — the
+            // simple form accepted `from x import max("a", "b")` unchecked
+            // while the parenthesized form validated its interior.
+            if !is_module_list(module) {
+                return DeclLine::No;
+            }
+            if line.ends_with('(') && names == "(" {
+                return DeclLine::Opens;
+            }
+            if !semicolon_free(line) {
+                return DeclLine::No;
+            }
+            // A single-line parenthesized list is the same wiring:
+            // `from x import (a, b)`.
+            let names = names.trim();
+            let names = names
+                .strip_prefix('(')
+                .and_then(|n| n.strip_suffix(')'))
+                .map(str::trim)
+                .unwrap_or(names);
+            return if names == "*" || is_module_list(names) {
                 DeclLine::Complete
             } else {
                 DeclLine::No
@@ -4322,7 +4344,11 @@ fn jsts_declaration(line: &str) -> DeclLine {
     let single = lone_terminal_semicolon(line);
     if line.starts_with("import ") || line.starts_with("import{") {
         return if stmt_done && single {
-            DeclLine::Complete
+            if jsts_wiring_line_valid(line, "import") {
+                DeclLine::Complete
+            } else {
+                DeclLine::No
+            }
         } else if !stmt_done && single {
             DeclLine::Opens
         } else {
@@ -4332,7 +4358,11 @@ fn jsts_declaration(line: &str) -> DeclLine {
     // Re-exports are declaration wiring only with a `from` source (a barrel
     // line); `export const …` is code and must fail.
     if line.starts_with("export ") && line.contains(" from ") && stmt_done && single {
-        return DeclLine::Complete;
+        return if jsts_wiring_line_valid(line, "export") {
+            DeclLine::Complete
+        } else {
+            DeclLine::No
+        };
     }
     if (line.starts_with("export {") || line.starts_with("export *")) && !stmt_done && single {
         return DeclLine::Opens;
@@ -4345,6 +4375,26 @@ fn jsts_declaration(line: &str) -> DeclLine {
         }
     }
     DeclLine::No
+}
+
+/// A single-line `import`/`export … from` must be PURE wiring (S3-C1):
+/// `import { x } from Math.max("a", "b");` smuggles a call into the from
+/// clause, so the source must be a lone string literal and the specifier
+/// section must hold only specifier tokens.
+fn jsts_wiring_line_valid(line: &str, keyword: &str) -> bool {
+    let body = line.strip_suffix(';').unwrap_or(line);
+    match body.rfind(" from ") {
+        Some(i) => {
+            let specifiers = &body[keyword.len()..i];
+            let source = body[i + " from ".len()..].trim();
+            lone_string_argument(source)
+                && specifiers.chars().all(|c| {
+                    c.is_alphanumeric() || matches!(c, '_' | '$' | ',' | ' ' | '{' | '}' | '*')
+                })
+        }
+        // Side-effect import: `import './polyfill';`
+        None => keyword == "import" && lone_string_argument(body[keyword.len()..].trim()),
+    }
 }
 
 fn go_declaration(line: &str) -> DeclLine {
@@ -4395,11 +4445,25 @@ fn rust_declaration(line: &str) -> DeclLine {
 }
 
 fn java_declaration(line: &str) -> DeclLine {
-    if (line.starts_with("import ") || line.starts_with("package "))
-        && line.ends_with(';')
-        && lone_terminal_semicolon(line)
-    {
-        return DeclLine::Complete;
+    // S3-C1: the path must BE a dotted name (optionally `static`, trailing
+    // `*`) — shape checks alone accepted `import java.util.x + y;`.
+    for head in ["import ", "package "] {
+        if let Some(rest) = line.strip_prefix(head) {
+            if !line.ends_with(';') || !lone_terminal_semicolon(line) {
+                return DeclLine::No;
+            }
+            let body = rest[..rest.len() - 1].trim();
+            let body = body.strip_prefix("static ").unwrap_or(body);
+            return if !body.is_empty()
+                && body
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || matches!(c, '.' | '_' | '*'))
+            {
+                DeclLine::Complete
+            } else {
+                DeclLine::No
+            };
+        }
     }
     DeclLine::No
 }
@@ -5929,6 +5993,23 @@ mod tests {
     }
 
     #[test]
+    fn high_parameter_caution_boundary_is_six() {
+        // S3-C5 gap: the >= boundary itself was untested.
+        let mut f = fam(1, 1, &[None, None]);
+        f.shared_lines = 30;
+        f.params = 5;
+        assert!(
+            !family_hint(&f).contains("high-parameter"),
+            "five spots is below the caution boundary"
+        );
+        f.params = 6;
+        assert!(
+            family_hint(&f).contains("high-parameter (6 varying spots)"),
+            "six spots is the boundary and must carry the caution"
+        );
+    }
+
+    #[test]
     fn helper_hint_carries_the_high_parameter_caution() {
         // S2-C2: the early return must not bypass the params caution — six
         // varying spots mean the inline copies diverge from the helper.
@@ -6051,6 +6132,22 @@ mod tests {
                 DeclLang::Python,
                 "from typing import (\n    Any,\n    Mapping)",
             ),
+            // S3-C5 coverage adoptions.
+            (
+                DeclLang::Go,
+                "import (\n\t. \"fmt\"\n\t_ \"encoding/json\"\n)",
+            ),
+            (DeclLang::Rust, "use std::{\n    io::{self, Read},\n};"),
+            (DeclLang::JsTs, "import {\n  $ref,\n} from './x';"),
+            (DeclLang::JsTs, "export {\n  a,\n  b,\n} from './lib';"),
+            (DeclLang::JsTs, "const $lib = require('lib');"),
+            (DeclLang::Python, "from typing import (\n    Dict as D,\n)"),
+            (DeclLang::Python, "from x import *"),
+            // Corpus re-price regressions (series 3): inert trailing comments
+            // and single-line parenthesized name lists are real wiring.
+            (DeclLang::Python, "import os  # noqa"),
+            (DeclLang::Python, "from os import path  # comment"),
+            (DeclLang::Python, "from x import (a, b)"),
         ];
         for (lang, src) in yes {
             assert!(
@@ -6058,6 +6155,10 @@ mod tests {
                 "should classify as declarations: {src}"
             );
         }
+    }
+
+    #[test]
+    fn declaration_spans_fail_open_per_language() {
         // Fail-open: anything not provably a declaration keeps the family on
         // its ranked surface — misclassifying a real finding is the error
         // class this filter must never make.
@@ -6096,6 +6197,16 @@ mod tests {
             (DeclLang::JsTs, "import {\n  a,\n} || x();"),
             (DeclLang::Go, "import (\n\t\"fmt\"\n\tos.Exit(1))"),
             (DeclLang::Rust, "use std::{\ninvalid;\n};"),
+            // S3-C1 blind-attacker packets: from-clause sources, Python name
+            // lists, and Java paths smuggled expressions through shape checks.
+            (DeclLang::JsTs, "import { x } from Math.max(\"a\", \"b\");"),
+            (DeclLang::JsTs, "export { x } from path.join(\"c\", \"d\");"),
+            (DeclLang::Python, "from x import max(\"a\", \"b\")"),
+            (DeclLang::Java, "import java.util.x + y;"),
+            (DeclLang::Java, "package com.example.x + y;"),
+            // S3-C5 boundary re-attacks on the strict closers.
+            (DeclLang::Rust, "use std::{\n  A,\n}x;"),
+            (DeclLang::Go, "import (\n\tfunc() \"x\"\n)"),
         ];
         for (lang, src) in no {
             assert!(

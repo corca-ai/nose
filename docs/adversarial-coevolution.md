@@ -54,6 +54,9 @@ exactly that bias.
   performance attacker, soundness skeptic, language specialist, docs-vs-code auditor —
   and record in the ledger which persona found what, so the rotation itself can be
   tuned on evidence.
+- **Capability requirement** (series 3): the executable-packet contract needs a
+  write-capable attacker (scratch space under `/tmp`, permission to run the built
+  binary) — a read-only agent type will refuse the contract and waste its slot.
 - **The limit, unchanged**: subagents share the base model's priors. Isolation removes
   *authoring-context* bias, not *model* blind spots — the mechanical generator
   ([design §4b](design.md)) and the distribution adversary ([design §2c](design.md)
@@ -99,7 +102,7 @@ Rotate campaigns across these; each entry names what to read and what claim to a
    breakdown); fixture-generation note: vary token *shape* in synthetic filler, or
    Type-2 identifier abstraction bridges your blocks into one run.
 
-## Target packet format
+## Target packet format — executable, self-verified (series 3)
 
 Reuse the [frontier platform](frontier-platform.md) evidence shape
 (`real_frontier.v1.json`) and the task-card style of
@@ -107,17 +110,43 @@ Reuse the [frontier platform](frontier-platform.md) evidence shape
 
 - `case_id`, `surface` (one of the list above), `claim` (the exact sentence/invariant
   attacked, with code/doc pointer);
-- `construction` — minimal pair/fixture, plus the equivalence/behavior evidence
-  (constructed ground truth where the axis is formal; oracle run where applicable);
+- `construction` — **verbatim fixture content plus the command that reproduces**, not a
+  prose trace. The attacker must RUN its reproducer (write fixtures under `/tmp`, invoke
+  the built `nose` binary) and report `expected` vs `observed` — a packet whose observed
+  behavior already matches the claim is a self-refuted packet and is not submitted.
+  Series 2 measured the cost of prose packets: attack generation took ~8 minutes,
+  assessment ~30, because the assessor had to build and run every reproducer; the
+  executable contract moves the mechanical half of assessment into the attack.
 - `hard_negative_siblings` — the adjacent forms that must NOT change behavior under any
   defense (the soundness guard travels with the attack);
 - `realism` — corpus instances if mined (file/line), else `synthetic`;
 - `tags` — e.g. `compositional`, `judgment-axis`.
 
+## The packet ledger
+
+Every packet and its verdict accumulates in **`bench/coevo/packets.v1.json`**
+(machine-readable; the experiments.md sections stay the narrative). Three uses:
+
+- **No resubmission**: attacker prompts include the ledger's refuted/green case
+  summaries for their surface — re-arguing a settled packet wastes the assessor.
+- **Persona precision is measured**: each packet records its persona and verdict, so
+  rotation is tuned on evidence (series 2: grammar-lawyer 5/8 priced, adversarial
+  reviewer 1/8, gate-skeptic 0/10 — informative greens, but slot-expensive).
+- **Verdict vocabulary**: `violation-fixed`, `refuted`, `recorded-low-prevalence`,
+  `deferred-issue`, `green-confirmed`.
+
 ## Campaign protocol
 
-1. **Scope.** Open a tracking issue; pick 3–5 surfaces (rotate from the last campaign's
-   closeout). Record the commit attacked.
+1. **Scope.** Open a tracking issue; pick 3–5 surfaces. Record the commit attacked.
+   **Slot rules** (series 3, priced on two series of yield data):
+   - **Claim-direction by default.** Recall-direction attack slots are retired until
+     the measuring instruments change (oracle widening, new channels): two series
+     produced zero priced recall packets, consistent with the measured-small frontier
+     ([§BJ/§BS](experiments.md)), while claim surfaces yielded 5–6 violations per
+     series.
+   - **Rotate by freshness.** Prefer surfaces whose code changed since their last
+     attack (every series-2 violation was in code under a week old) and surfaces never
+     attacked. A surface that came back green rotates OUT until its code changes.
 2. **Attack.** Per surface, an agent reads the code + docs and emits target packets.
    Synthetic constructions are acceptable for formal axes (ground truth comes free);
    judgment-axis packets should prefer mined real instances.

@@ -1929,3 +1929,80 @@ produced complementary coverage, not duplicates (keep the modes separate); the
 docs-vs-code persona returned green at near-zero cost (cheap to keep in rotation).
 Series wall-clock ~50 min: 5 parallel attackers ~8 min, assessment+defense ~30 min,
 recording ~10 min.
+
+## CB. Adversarial co-evolution, series 3 — executable packets, the ledger, and slot rules pay out
+
+Third runbook execution (#274), first under the series-3 method upgrades: the
+executable-packet contract (attackers run their own reproducers and submit
+expected-vs-observed), the `bench/coevo/packets.v1.json` ledger with
+no-resubmission lists, and slot rules (claim-direction only; freshness rotation —
+series-2 green surfaces rotated out, never-attacked surfaces rotated in).
+
+**S3-C1 (blind grammar-lawyer → the series-2 NEW matcher code).** Six
+self-verified violations, every one carrying a reproducing family id: the
+from-clause of single-line `import`/`export … from` accepted ANY source
+(`import { x } from Math.max("a", "b");` classified as a declaration run), the
+Python simple form accepted any names (`from x import max("a", "b")`), and Java
+accepted any path text (`import java.util.x + y;`). Fourth wave of the
+single-statement discipline: from-sources must be lone string literals,
+specifier sections must hold specifier tokens, Python name lists and Java dotted
+paths must validate. The wave count itself is now evidence for the deferred
+generalization-level escalation (AST facts over text grammar — see the series-2
+evaluation; not picked up this series).
+
+**S3-C2 (blind cache-skeptic → `--cache-dir` equivalence).** The attacker found
+a real code-path asymmetry — the cached path skips the corpus-level
+`resolve_imported_immutable_bindings` pass the cold path runs — but eight
+executable probes (six attacker, two assessor) could not expose an output
+divergence. Deferred as #275 with the construction notes: the claim is
+unfalsified but rests on an unproven invariant. The executable contract worked
+exactly as intended here — a code-smell report without a reproducer stayed a
+lead, not a "violation".
+
+**S3-C3 (blind boundary-skeptic → `is_test_loc` / `--scope`).** Two reproduced
+counterexamples to the doc's "production is NEVER misclassified" claim: a prod
+validator named `test_data_loader.py` and an OpenAPI `spec/` directory tag as
+test. Assessor verdict: the markers are ecosystem conventions and stay (removing
+`spec/` breaks RSpec; pytest WOULD collect `test_*.py`); the violated artifact
+was the **claim wording** — softened to "conventions win; scope is display
+context". `--scope` itself verified green across formats and exit codes.
+
+**S3-C4 (blind baseline/ignore attacker, re-spawned write-capable).** The
+series' gem: `paths: ["vendor/**"]` suppressed a family whose OTHER copy lives
+in `src/` — first-party duplication silently passed `--fail-on any`, and
+any-member matching was even documented. Defense: **all-members selector
+semantics** (an entry describes families wholly inside its selectors) for both
+`paths` and `languages`, doc updated, gate-firing test locked. Five further
+packets (span drift above a clone, renames, `--mode` switches re-keying
+baselined families; `family_id` ignores drifting with the same key) assessed
+as deliberate key-shape behavior in the LOUD direction — defended with honest
+doc fences (pin `--mode` with baselines; re-baseline after refactors) rather
+than key surgery. Expiry, third-copy detection, unchanged-rerun suppression:
+green.
+
+**S3-C5 (informed coverage auditor → series-2 helpers).** Twelve gaps, seven
+adopted as fixture rows (Go `.`/`_` aliases, Rust nested-brace interiors, JsTs
+`$`-identifiers, multi-line `export … from` closers, `require('lib')`,
+`from x import *`, `Dict as D`) plus the `params == 6/5` caution boundary and
+two strict-closer rejection rows.
+
+**Method results.** The executable contract cut assessment to verification of
+expected-vs-observed plus judgment (the attacker-reported family ids reproduced
+on first check); one Explore-type attacker refused the contract (read-only
+self-interpretation) and was re-spawned write-capable — the runbook now names
+the capability requirement. The ledger absorbed series 1–2 as condensed
+backfill plus nine series-3 entries (24 total). Slot rules held: zero recall
+slots spent, both refreshed surfaces and three never-attacked surfaces yielded.
+Corpus price after the fourth tightening wave: re-priced below. Series
+wall-clock ~75 min: 5 attackers ~10 min parallel (one re-spawn), assessment +
+defense ~45 min, recording ~20 min.
+
+**Corpus price, series 3.** The assessor instrument fired twice on the
+defender: the first re-price after the name-list validation came back 2,247
+(py 254 → 236) — `import os  # noqa` and single-line `from x import (a, b)`
+are real wiring the validator rejected. Inert trailing comments are now
+stripped and single-line parenthesized lists accepted, both locked as fixture
+rows. Final price: **2,265 declaration families, 43 repos, 1 worthy
+span-overlap, zero reclassification** — identical through four hardening
+waves. The label-join re-price has now caught a fail-open regression in two
+consecutive series; it is a regression gate in fact, not just in name.

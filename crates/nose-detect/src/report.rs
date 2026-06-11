@@ -360,8 +360,12 @@ fn spread(files: usize, modules: usize, languages: usize) -> f64 {
         + 0.50 * (languages as f64 - 1.0).max(0.0)
 }
 
-/// Is this site test code, by the usual path / unit-name conventions? Conservative:
-/// only well-known markers, so production code is never misclassified as a test.
+/// Is this site test code, by the usual path / unit-name conventions? The markers
+/// are well-known ecosystem conventions (pytest `test_*`, RSpec `spec/`, Go
+/// `_test.go`); production code that adopts a test-naming convention against its
+/// ecosystem (a prod validator named `test_data_loader.py`, an OpenAPI `spec/`
+/// directory) WILL be tagged test — the conventions win (coevo S3-C3). Scope is
+/// display context plus the opt-in `--scope` filter, never a worthiness input.
 /// Public so presentation layers can scope-guard per-location advice (e.g. never
 /// recommend calling a test helper from production copies).
 pub fn is_test_loc(l: &Loc) -> bool {

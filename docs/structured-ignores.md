@@ -84,15 +84,15 @@ Each entry must have:
 |---|---:|---|
 | `reason` | yes | Short rationale category, such as `generated-code`, `framework-required`, or `accepted-risk`. |
 | `family_id` | one selector required | Stable family ID printed by nose. Best for one exact finding. |
-| `paths` | one selector required | Gitignore-style path globs (positive patterns only; a leading `!` negation is rejected as an error) matched against the paths shown in the report. Best for generated directories or templates. |
+| `paths` | one selector required | Gitignore-style path globs (positive patterns only; a leading `!` negation is rejected as an error). **Every member of the family must match** — an entry covering only one copy must not hide the others from the report or the `--fail-on` gate (a `vendor/**` entry cannot silently excuse the first-party copy of a vendor clone). Best for generated directories or templates. |
 | `languages` | one selector required | Language names such as `python`, `typescript`, or `rust`. Best as a broad guard combined with another selector. |
 | `note` | no | Human review context. Explain where the real refactoring point is. |
 | `owner` | no | Team or person responsible for revisiting the decision. |
 | `expires_at` | no | `YYYY-MM-DD`. The entry applies through that date; after it, nose reports it as expired and does not apply it. The date is evaluated against the current **UTC** day (deterministic across machines), so near a boundary an entry may expire up to one local day earlier or later than local midnight. |
 
 When an entry has multiple selectors, all of them must match. For example, an
-entry with both `paths` and `languages` suppresses only families that touch one
-of those paths and one of those languages. If several entries match the same
+entry with both `paths` and `languages` suppresses only families whose every
+member matches one of those paths and one of those languages. If several entries match the same
 family, the first active entry supplies the metadata.
 
 ## Family IDs

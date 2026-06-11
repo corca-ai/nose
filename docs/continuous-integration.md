@@ -123,7 +123,14 @@ anything is reported after the active filters."
 
 Commit `.nose-baseline.json`. Families are keyed by their sorted reported member
 locations: displayed path, language, span, unit kind, symbol name, and fragment
-metadata. New baselines also record those member identities next to the reviewable
+metadata. **The key is deliberately span- and path-sensitive**, which has three
+honest consequences (measured in [experiments §CB](experiments.md)): editing lines
+*above* an accepted clone re-keys it (it resurfaces as `new`/`changed`); renaming
+its file re-keys it; and the key embeds the detecting channel's unit shape, so a
+baseline is only valid for the `--mode` it was written under — pin the mode in CI
+and re-baseline after refactors that move accepted clones. Every drift direction
+is loud (the gate fires; nothing is silently hidden). New baselines also record
+those member identities next to the reviewable
 note, which lets later scans classify exact matches as `unchanged`, overlapping
 but re-keyed families as `changed`, missing accepted families as `resolved`, and
 unmatched current families as `new`. Regenerate the baseline deliberately (re-run

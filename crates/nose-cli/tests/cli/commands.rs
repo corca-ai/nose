@@ -1064,7 +1064,7 @@ fn explicit_config_ignore_file_resolves_from_config_directory() {
     let dir = make_project("ignore_explicit_cfg");
     fs::write(
         dir.join("nose.ignore.json"),
-        "{\"ignores\":[{\"paths\":[\"**/a/**\"],\"reason\":\"template-copy\"}]}\n",
+        "{\"ignores\":[{\"paths\":[\"**/a/**\",\"**/b/**\",\"**/tests/**\"],\"reason\":\"template-copy\"}]}\n",
     )
     .unwrap();
     let config = dir.join("nose.toml");
@@ -1196,12 +1196,53 @@ fn structured_ignore_suppresses_family_id_with_metadata() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// Coevo S3-C4 packet c4-path-oversuppress: an entry covering only ONE member
+/// must not hide the family — the other copies are first-party duplication the
+/// `--fail-on` gate exists to catch. Selector semantics are ALL-members.
+#[test]
+fn partial_path_ignore_must_not_suppress_the_family() {
+    let dir = make_project("ignore_partial_paths");
+    fs::write(
+        dir.join("nose.ignore.json"),
+        "{\"ignores\":[{\"paths\":[\"a/**\"],\"reason\":\"vendored\"}]}\n",
+    )
+    .unwrap();
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            ".",
+            "--mode",
+            "semantic",
+            "--min-size",
+            "12",
+            "--format",
+            "json",
+            "--top",
+            "0",
+            "--fail-on",
+            "any",
+        ])
+        .current_dir(&dir)
+        .output()
+        .expect("run");
+    assert!(
+        !out.status.success(),
+        "the gate must still fire: a partially-covered family is not suppressed"
+    );
+    let json = scan_json(&String::from_utf8(out.stdout).unwrap());
+    assert!(
+        !scan_families(&json).is_empty(),
+        "family with uncovered members stays reported: {json}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn default_structured_ignore_file_matches_paths() {
     let dir = make_project("structured_ignore_paths");
     fs::write(
         dir.join("nose.ignore.json"),
-        "{\"ignores\":[{\"paths\":[\"a/**\"],\"reason\":\"template-copy\",\"note\":\"a/ is generated.\"}]}\n",
+        "{\"ignores\":[{\"paths\":[\"a/**\",\"b/**\",\"tests/**\"],\"reason\":\"template-copy\",\"note\":\"a/ is generated.\"}]}\n",
     )
     .unwrap();
     let out = Command::new(bin())
