@@ -6829,3 +6829,34 @@ fn symbolic_condition_paths_fail_closed_past_the_cap() {
         "the bail is reported as a path-cap bail for the census"
     );
 }
+
+#[test]
+fn effectful_commutative_operands_do_not_reorder() {
+    // coevo §CE / #283-A: `print(a) + print(b)` commutes by VALUE but the
+    // interpreter observes effect order, so reordering it to `print(b) + print(a)`
+    // is a false merge. Effect-bearing operands must hold their position; only
+    // effect-free numeric operands reorder.
+    let i = Interner::new();
+    let fwd = "def f(a, b):\n    return print(a) + print(b)\n";
+    let rev = "def g(a, b):\n    return print(b) + print(a)\n";
+    assert_ne!(
+        value_fp(&i, fwd, Lang::Python),
+        value_fp(&i, rev, Lang::Python),
+        "effectful commutative operands must not reorder into one fingerprint"
+    );
+    let chain_fwd = "def f(a, b, c):\n    return print(a) + print(b) + print(c)\n";
+    let chain_rev = "def g(a, b, c):\n    return print(c) + print(b) + print(a)\n";
+    assert_ne!(
+        value_fp(&i, chain_fwd, Lang::Python),
+        value_fp(&i, chain_rev, Lang::Python),
+        "effectful AC chains must not sort into one fingerprint"
+    );
+    // Effect-FREE numeric operands still converge (the common case is unaffected).
+    let pure_fwd = "def f(a, b):\n    return a + b + 1\n";
+    let pure_rev = "def g(a, b):\n    return 1 + b + a\n";
+    assert_eq!(
+        value_fp(&i, pure_fwd, Lang::Python),
+        value_fp(&i, pure_rev, Lang::Python),
+        "effect-free numeric commutative operands must still converge"
+    );
+}

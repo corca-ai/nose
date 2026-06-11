@@ -142,3 +142,15 @@ extractable duplication, and merging the two would conflate unrelated responsibi
 of the recognizer logic was introduced — the new recognizer mirrors the value graph's existing
 admission check rather than re-implementing it. The gate budget is therefore re-baselined to 23
 while continuing to ratchet against new avoidable duplication.
+
+## Budget 24 → 25 and the effect-free-reorder soundness guard
+
+The #283-A fix (coevo §CE) stops the value-graph canonicalizer from sorting the operands of a
+commutative/AC operator when any operand carries an observable effect — `print(a) + print(b)` must
+not converge with `print(b) + print(a)`. Holding effectful operands in source order shifts a few of
+nose's own value-graph fingerprints, which nudges one **pre-existing** large-span dispatch
+near-family — `interp.rs` ↔ `value_graph/eval.rs` ↔ `value_graph/control.rs`, sharing ~12 of ~1082
+lines — past the substantial (value ≥ 40) line. That is a spurious whole-function-span match (three
+big match-dispatch bodies that share a sliver of control shape), not extractable duplication and not
+new code. The gate budget is re-baselined to 25 while continuing to ratchet against new avoidable
+duplication.

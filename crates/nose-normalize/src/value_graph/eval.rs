@@ -254,9 +254,14 @@ impl<'a> Builder<'a> {
         let mut operands = Vec::new();
         self.flatten_into(a, Op::Add as u32, &mut operands);
         self.flatten_into(neg_b, Op::Add as u32, &mut operands);
-        // Sort unless an operand is proven concat (string/list); otherwise the
-        // operands Err in the oracle regardless of order, so sorting is safe.
-        if self.add_values_not_concat(ValueLaw::AddAssociativity, &operands) {
+        // Sort unless an operand is proven concat (string/list), OR carries an
+        // observable effect — `f() - g()` reordered to `g() - f()` keeps the
+        // value but swaps the effect trace, a false merge the interpreter
+        // catches (coevo §CE / §AS). Effect-free numeric operands Err in the
+        // oracle regardless of order, so sorting them is safe.
+        if self.add_values_not_concat(ValueLaw::AddAssociativity, &operands)
+            && operands.iter().all(|&v| self.reorder_safe(v))
+        {
             operands.sort_by_key(|&v| self.vhash[v as usize]);
         }
         let mut acc = operands[0];
@@ -293,8 +298,9 @@ impl<'a> Builder<'a> {
             if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
                 return v;
             }
-            let do_sort = op != Op::Add as u32
-                || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands);
+            let do_sort = (op != Op::Add as u32
+                || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands))
+                && operands.iter().all(|&v| self.reorder_safe(v));
             if do_sort {
                 operands.sort_by_key(|&v| self.vhash[v as usize]);
             }
@@ -309,8 +315,9 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
             return v;
         }
-        let do_sort = op != Op::Add as u32
-            || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands);
+        let do_sort = (op != Op::Add as u32
+            || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands))
+            && operands.iter().all(|&v| self.reorder_safe(v));
         if do_sort {
             operands.sort_by_key(|&v| self.vhash[v as usize]);
         }

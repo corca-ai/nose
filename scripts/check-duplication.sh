@@ -40,7 +40,11 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # stores, loop-effect keying) made one PRE-EXISTING cross-crate near-family visible —
 # the assignment-name counting loops in value_graph/context.rs::seed_module_value_bindings
 # and module_imports.rs::collect_statement_exports (small, cross-crate; reviewed, kept).
-BUDGET=24      # accepted substantial families today (see docs/dogfooding.md)
+# Re-baselined 24 -> 25 in the #283-A fix: the effect-free-reorder guard shifts a few
+# self-source value-graph fingerprints, nudging one PRE-EXISTING large-span dispatch
+# near-family (interp.rs / value_graph/eval.rs / control.rs, sharing ~12 of ~1082 lines)
+# past the value >= 40 line — a spurious whole-function span, not new duplication.
+BUDGET=25      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 
