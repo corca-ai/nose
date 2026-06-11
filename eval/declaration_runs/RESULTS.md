@@ -27,3 +27,12 @@ number in [experiments §BY](../../docs/experiments.md).
 - The classifier under test is the shipped one (`declaration_run_ids` in
   `crates/nose-cli/src/main.rs`), exercised through `nose scan --format json
   --top 0`.
+
+## Re-price after the C1/C5 single-statement discipline (coevo series 1)
+
+The §BZ campaign tightened every matcher (terminal-semicolon rule, strict
+require shape, `#include` delimiter, Ruby modifier-conditional rejection).
+Re-running this sweep afterwards is byte-for-byte identical: 2,265 families,
+43 repos, same per-extension split, same single worthy overlap. The
+violations the discipline closes exist in the corpus as *lines* but not as
+all-declaration family spans — the fix is free at corpus scale.

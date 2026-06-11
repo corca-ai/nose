@@ -1787,3 +1787,77 @@ twin whose every line differs textually: that is not mechanically decidable,
 so per §2b it stays with ranking (extractability already sinks these) and the
 upstream fix — keeping import declarations out of module-unit fingerprints —
 is a detector change to price separately.
+
+## BZ. Adversarial co-evolution, series 1 — five campaigns, the runbook's first execution
+
+First execution of the [adversarial-coevolution runbook](adversarial-coevolution.md)
+(#268): five bounded campaigns rotating the attack surfaces, run end-to-end by an
+agent in one session. The attacked commit is the #267 merge; defenses landed on the
+`coevo/series-1` branch with the full gate battery.
+
+**C1 — declaration filter, claim-violation direction.** White-box reading of the
+§BY matchers found the recognizers matched a declaration *prefix*, not a
+declaration *line*: `import pdb;pdb.post_mortem()`, `require 'x'; File.open(…)`,
+and jekyll's multi-declarator `_ref = require('./protocol'), Parser = _ref.Parser…`
+all classify — and all three shapes exist verbatim in the pinned corpus. Eight
+violation packets (py/js/go/ruby/java/rust/c) locked as fail-open tests; the
+generalized defense is the **single-statement discipline** (a lone terminal
+semicolon for `;`-grammars, none for the rest, strict `NAME = require('lit')`
+shape, `#include` delimiter check) — one rule family, not eight patches.
+Corpus re-price after tightening: **identical** (2,265 declaration families,
+43 repos, worthy overlaps unchanged) — the fix is free.
+
+**C2 — grouping/hints.** Two violations of the "call the existing helper is safe
+advice" claim: a helper living in test code recommended to production copies
+(wrong direction), and a helper in a generated file (not the maintainer's API).
+Both guarded (`is_test_loc` exported from nose-detect; `looks_generated` check)
+and locked with direction tests — the inverse (test copies → prod helper) stays
+recommended. Union-find chaining (A∩B, B∩C ⟹ one group without A∩C) was attacked
+and **accepted**: a chain of ≥50%-overlaps is one connected region.
+
+**C3 — performance & determinism (new surface).** Pathological input: two ~4.8k-line
+Python files, 240 import blocks + 7.2k tiny units. Measured: **3.1 s wall vs 0.63 s
+for a 1,364-file real repo** — `NOSE_TIME` attributes 2.46 s to `normalize+extract`
+at ~1 core (per-file parallelism serializes on few-huge-files inputs; the §BH class
+in structural form — filed #269, defense deferred to core work). The CLI-layer
+share (~0.1 s) was the declaration classifier's per-member full-file reads —
+defended by routing the classification pass through one `FileLineCache` (246 reads
+→ 2 on the fixture). Determinism: byte-identical JSON across repeated runs and
+`RAYON_NUM_THREADS=1/4/default`. A failed fixture iteration was itself a finding:
+uniform-shaped filler lines (`CONST_A_i = n`) token-match across files as Type-2
+runs and bridge import blocks — synthetic-input design must vary token *shape*,
+not just names.
+
+**C4 — exact gates / oracle, price-only.** Six probes: `+=` vs `= +`, ternary vs
+if/else, `not(a==b)` vs `!=`, guard-return vs nested-if, index- vs
+element-iteration all **converge** (the last is stronger than documented). The
+clamp-law probe escalated five levels and was **refuted by a sound gate at every
+level**: untyped forms differ under NaN (type gate); unproven bounds differ when
+`lo > hi` (bound-order gate); and the realistic `raise ValueError()` guard leaves
+value fingerprints *equal* (the law fires — verified) but the opaque constructor
+call disqualifies the unit from strict-exact eligibility (sound: shadowed
+`ValueError` = different behavior). Only the test-fixture shape `raise 0` passes
+all three gates and emits `value-graph.clamp.integer-ordered-minmax` provenance.
+This **explains the LawPack field audit's zero-provenance mystery** (10,967
+families, 0 laws): provenance requires (int evidence) ∧ (bound proof) ∧
+(strict-exact-safe unit), and the third conjunct has ~zero field probability.
+Filed #270 with directions (pairwise-identical-opaque-effect admission,
+call-target evidence for builtin constructors, or re-pricing LawPack investment).
+
+**C5 — limit-claim freshness + boundary re-attack.** clone-types spot-checked
+fresh (index-iteration convergence is within the documented index-assignment
+modeling). Re-attacking the C1 defense found one more hit: Ruby modifier
+conditionals (`require 'x' if expensive_check()`) ride an expression on the
+declaration — tightened and locked. The C2 guard's intended direction locked by
+test.
+
+**Series learnings folded into the runbook**: the claim-violation asymmetry
+(pricing gates *recall* attacks; violations of a "provably…" claim are
+soundness-class and fixed at any prevalence — all of C1/C2/C5's hits were these);
+defense-deferral as a first-class verdict (C3 core finding → #269, C4 structural
+finding → #270); a performance/determinism attack surface with the §BH-class
+serialization shape; series-level tracking (one issue, five campaigns); and
+measured campaign costs. Series wall-clock: ~70 minutes of agent time for five
+campaigns (C1 ~12, C2 ~8, C3 ~15, C4 ~20, C5 ~6, recording ~10), plus ~3 min per
+corpus re-price sweep and 23 s per full e2e suite run — cheap enough to run per
+release.

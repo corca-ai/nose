@@ -362,7 +362,9 @@ fn spread(files: usize, modules: usize, languages: usize) -> f64 {
 
 /// Is this site test code, by the usual path / unit-name conventions? Conservative:
 /// only well-known markers, so production code is never misclassified as a test.
-fn is_test_loc(l: &Loc) -> bool {
+/// Public so presentation layers can scope-guard per-location advice (e.g. never
+/// recommend calling a test helper from production copies).
+pub fn is_test_loc(l: &Loc) -> bool {
     let p = l.file.to_ascii_lowercase();
     let path_test = p.contains("/test/")
         || p.contains("/tests/")
