@@ -3,6 +3,8 @@
 How nose chooses its **next** Type-4 expansion target by corpus evidence rather than by
 language/API habit or raw hit count. It sits beside the [Type-4 benchmark factory](type4-benchmark.md);
 the substrate that fragment work migrates onto is [fragment contracts](fragment-contracts.md).
+Its evidence shape (`real_frontier.v1.json` target packets) and pricing stance are reused
+by the [adversarial co-evolution runbook](adversarial-coevolution.md).
 
 The platform is `bench/type4/frontier_platform.py`, a companion to the prevalence ranker
 `prioritize_frontier.py` (which is left byte-stable so its

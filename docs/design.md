@@ -252,6 +252,12 @@ asymmetry** (recursion / builder loops / java stream-reduce admitted to the exac
 some languages but not others — [bench/type4/coverage_leads.md](../bench/type4/coverage_leads.md)),
 the concrete next implementation queue for *even* cross-language coverage.
 
+The generalization of this paradigm beyond the Type-4 axes — a white-box attacker over
+*every* claim nose makes, an assessor that prices attacks against the corpus, and a
+defender bounded to the largest **sound** generalization — is the
+[adversarial co-evolution runbook](adversarial-coevolution.md). Its `compositional`-tagged
+packet ledger is also the measuring instrument for §4's e-graph revisit conditions.
+
 ## 5. Decisive measurements (run before betting heavily)
 
 Cheap experiments that turn direction into data:
