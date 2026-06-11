@@ -1954,3 +1954,116 @@ fn scan_human_report_ends_with_show_hint() {
     );
     let _ = fs::remove_dir_all(&dir);
 }
+
+/// The field shape (craken-agents audit, family b2d89110599bb1dd): an
+/// imports-only module and the same import block at a different offset inside
+/// a larger module form a clone family whose every member span is pure
+/// declarations — it must leave the default surface (mechanically
+/// non-actionable, design.md §2b) while a real function family stays.
+#[test]
+fn declaration_runs_leave_the_default_surface() {
+    let dir = std::env::temp_dir().join(format!("nose_decl_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    let imports = "import { aleph } from './aleph';\nimport { beth } from './beth';\nimport { gimel } from './gimel';\nimport { dalet } from './dalet';\nimport { hewav } from './hewav';\nimport { zayin } from './zayin';\nimport { hethx } from './hethx';\nimport { tethy } from './tethy';\n";
+    let shared_fn = "export function totalPositive(items: number[]): number {\n    let total = 0;\n    for (const x of items) {\n        if (x > 0) {\n            total = total + x * x;\n        }\n    }\n    return total;\n}\n";
+    for sub in ["a", "b", "c", "d"] {
+        fs::create_dir_all(dir.join(sub)).unwrap();
+    }
+    fs::write(dir.join("a/index.ts"), imports).unwrap();
+    fs::write(
+        dir.join("b/index.ts"),
+        format!(
+            "export const seedB = 7;\nexport const labelB = 'b';\n\n{imports}\nconst namedB = new Map();\nnamedB.set('gimel', gimel);\n"
+        ),
+    )
+    .unwrap();
+    fs::write(
+        dir.join("c/f.ts"),
+        format!("import {{ qoph }} from './qoph';\n\n{shared_fn}"),
+    )
+    .unwrap();
+    fs::write(
+        dir.join("d/f.ts"),
+        format!("import {{ resh }} from './resh';\n\n{shared_fn}"),
+    )
+    .unwrap();
+    let p = dir.to_str().unwrap();
+
+    let human = run(&["scan", p, "--min-size", "8", "--min-lines", "3"]);
+    assert!(
+        human.contains("declaration-run"),
+        "omission note names the declaration run: {human}"
+    );
+    assert!(
+        !human.contains("a/index.ts"),
+        "the import block is not a default finding: {human}"
+    );
+    assert!(
+        human.contains("totalPositive"),
+        "the real function family still reports: {human}"
+    );
+
+    let json = run(&[
+        "scan",
+        p,
+        "--min-size",
+        "8",
+        "--min-lines",
+        "3",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let v = scan_json(&json);
+    let decl: Vec<_> = scan_families(&v)
+        .iter()
+        .filter(|f| f["recommended_surface"] == "declaration")
+        .cloned()
+        .collect();
+    assert!(
+        !decl.is_empty(),
+        "JSON keeps the declaration family for diagnostics: {json}"
+    );
+    assert!(
+        v["ranking"]["surface_counts"]["declaration"].as_u64() >= Some(1),
+        "surface_counts reports the declaration class: {json}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Fail-open guard: a span that mixes imports with one real statement is NOT a
+/// declaration run — misclassifying a real finding is the error class the
+/// filter must never make.
+#[test]
+fn mixed_import_and_code_span_stays_on_the_default_surface() {
+    let dir = std::env::temp_dir().join(format!("nose_declmix_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    let block = "import { aleph } from './aleph';\nimport { beth } from './beth';\nimport { gimel } from './gimel';\nexport const registry = { aleph, beth, gimel };\n";
+    fs::create_dir_all(dir.join("a")).unwrap();
+    fs::create_dir_all(dir.join("b")).unwrap();
+    fs::write(dir.join("a/f.ts"), block).unwrap();
+    fs::write(dir.join("b/f.ts"), block).unwrap();
+    let p = dir.to_str().unwrap();
+
+    let json = run(&[
+        "scan",
+        p,
+        "--min-size",
+        "8",
+        "--min-lines",
+        "3",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let v = scan_json(&json);
+    assert!(
+        scan_families(&v)
+            .iter()
+            .all(|f| f["recommended_surface"] != "declaration"),
+        "a span with real code must not be classified declaration: {json}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}

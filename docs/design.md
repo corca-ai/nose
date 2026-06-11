@@ -102,6 +102,44 @@ diff — is a natural high-precision, actionable gate trigger.
 
 Both ride the same sound core. They differ only in operating point and output contract.
 
+### 2b. The decidability boundary — who answers which question
+
+A reported family makes **two claims**: *these are alike* (similarity) and *there is an
+extraction here* (actionability — the report is named "refactoring candidates"). Similarity
+is held to proof discipline (§1). Actionability splits by **decidability, not convenience**:
+
+- **Judgment-deep non-action** (parallel-by-design, intentional variants, "is this worth
+  coupling?") — the *consumer's* LLM decides; nose carries the evidence (equivalence
+  witness, varying spots, scope), never the verdict. Re-deriving that judgment internally
+  is redundant (§2, consumer 1).
+- **Mechanically decidable non-action** — generated code, declaration runs
+  (imports/includes/`use`/re-export barrels: real duplication the language mandates per
+  file, with no extraction to perform), sub-threshold trivia, behavior-free type shapes —
+  **the detector decides**, deterministically, with a reason. This is the **dual** of the
+  consumer-1 implication: pushing a decidable question to the consumer wastes their
+  attention and tokens exactly like answering a judgment question internally wastes ours.
+  The boundary between "detector's job" and "judge's job" is drawn at decidability.
+- Every such filter is a **classification, never a deletion**: omitted families stay in
+  `--format json --top 0` under an honest surface name (`generated`, `declaration`,
+  `hidden`, …) with a count line in the human report — recall-first consumers and audits
+  can always opt back in.
+
+### 2c. The bare default is the product
+
+`nose scan <path>` with **no flags** is the first-user experience and the calling agent's
+default invocation; the top of that report is nose's one chance to demonstrate value.
+Two consequences:
+
+- The default surface must be **dominated by actionable findings**. A finding class leaves
+  the default surface only when its non-actionability is *decidable* (§2b) or *measured*
+  (the labelset / a field audit); a class enters the default only with measured precision
+  (e.g. the §BM-priced `near` flip).
+- The benchmark measures the distribution it sampled — noise classes surface in the
+  **head of the ranking on fresh repos**. Periodic fresh-repo head-of-ranking audits
+  (field evaluation on unseen neighbours) are the standing instrument for finding what
+  the corpus missed; each find routes per §2b (decidable → detector filter with a reason
+  code; judgment-deep → rubric category + evidence field).
+
 ---
 
 ## 3. What this means for priorities
@@ -119,6 +157,9 @@ Both ride the same sound core. They differ only in operating point and output co
   is mandatory before any default-on gate; half the noise is one mechanical bucket
   (span-level overlap), the first policy lever.*
 - **Determinism** as a sacred invariant — now wanted by *both* consumers.
+- **Default-surface honesty (§2b/§2c).** Decidable non-action classes are filtered
+  detector-side with a reason code and JSON preservation; fresh-repo head-of-ranking
+  audits are the recurring instrument that feeds this queue.
 
 **Keep / conditional:**
 

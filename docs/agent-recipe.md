@@ -24,7 +24,9 @@ Read the fields in this order — each step either decides or narrows:
 
 1. **Surface filter.** Act on `recommended_surface == "default"` only;
    `review`/`hidden` are diagnostic surfaces, `generated` means every member sits
-   in generated output.
+   in generated output, and `declaration` means every member span is only
+   import/include/use/re-export declarations (real duplication, but the language
+   mandates it per file — there is nothing to extract).
 2. **Generated/vendored.** Drop the family if every location has
    `looks_generated: true` or the paths are vendored (`vendor/`, `.min.`,
    `*.pb.go`, lockfiles). A *partly* generated family is a real leak — keep it.

@@ -1058,6 +1058,10 @@ struct ScanJsonSurfaceCounts {
     /// Families whose every location sits in a generated-header source — the
     /// ones the human report omits from default output (#224).
     generated: usize,
+    /// Families whose every member span is only import/include/use/re-export
+    /// declarations — real duplication with no extraction action (the human
+    /// report omits these from default output too).
+    declaration: usize,
     fragments: ScanJsonFragmentSurfaceCounts,
 }
 
@@ -1074,11 +1078,11 @@ struct ScanJsonFragmentSurfaceCounts {
 impl ScanJsonSurfaceCounts {
     fn from_families(
         families: &[nose_detect::RefactorFamily],
-        generated_sources: &std::collections::HashSet<String>,
+        overrides: &SurfaceOverrides,
     ) -> Self {
         let mut counts = Self::default();
         for family in families {
-            let surface = effective_surface(family, generated_sources);
+            let surface = effective_surface(family, overrides);
             counts.bump(surface);
             if family.locations.iter().any(|loc| loc.is_fragment) {
                 counts.fragments.total += 1;
@@ -1095,6 +1099,7 @@ impl ScanJsonSurfaceCounts {
             "hidden" => self.hidden += 1,
             "debug" => self.debug += 1,
             "generated" => self.generated += 1,
+            "declaration" => self.declaration += 1,
             _ => self.debug += 1,
         }
     }
@@ -1143,7 +1148,7 @@ struct ScanJsonInput<'a> {
     ignore_set: Option<&'a ignores::IgnoreSet>,
     ignored_families: &'a [IgnoredFamily],
     semantic_packs: &'a nose_semantics::SemanticPackSet,
-    generated_sources: &'a std::collections::HashSet<String>,
+    overrides: &'a SurfaceOverrides,
 }
 
 impl<'a> ScanJsonReport<'a> {
@@ -1202,7 +1207,7 @@ impl<'a> ScanJsonReport<'a> {
                 limit: (input.top != 0).then_some(input.top),
                 surface_counts: ScanJsonSurfaceCounts::from_families(
                     input.families,
-                    input.generated_sources,
+                    input.overrides,
                 ),
             },
             baseline: input.baseline.map(|b| &b.summary),
@@ -1215,7 +1220,7 @@ impl<'a> ScanJsonReport<'a> {
                 .map(|family| ScanJsonFamily {
                     family_id: baseline::family_id(family),
                     family,
-                    recommended_surface: effective_surface(family, input.generated_sources),
+                    recommended_surface: effective_surface(family, input.overrides),
                     baseline_status: statuses
                         .and_then(|s| s.get(&baseline::family_key(family)))
                         .map(BaselineStatus::as_str),
@@ -3436,21 +3441,8 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         None
     };
     let (families, ignored_families) = partition_ignored(families, settings.ignore_set.as_ref());
-    // Computed for EVERY output format: the JSON path used to skip this index,
-    // so generated-header families reached agents as `recommended_surface:
-    // "default"` while the human report hid them (#224 — the #216 audit's re2c
-    // case). One head-read per discovered file, only when families exist.
     let mut families = families;
-    let generated_sources = if !families.is_empty() {
-        generated_source_index(&refs, &settings.exclude)
-    } else {
-        std::collections::HashSet::new()
-    };
-    for f in &mut families {
-        for l in &mut f.locations {
-            l.looks_generated = generated_sources.contains(&l.file);
-        }
-    }
+    let overrides = classify_surface_overrides(&mut families, &refs, &settings.exclude);
     let families = families;
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
@@ -3462,14 +3454,14 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let shown = families.iter().take(limit).collect::<Vec<_>>();
     let reportable_families = families
         .iter()
-        .filter(|f| is_default_report_family(f, &generated_sources))
+        .filter(|f| is_default_report_family(f, &overrides))
         .collect::<Vec<_>>();
     let shown_reportable = reportable_families
         .iter()
         .take(limit)
         .copied()
         .collect::<Vec<_>>();
-    let omitted_note = surface_omission_note(&families, &generated_sources);
+    let omitted_note = surface_omission_note(&families, &overrides);
 
     render_scan_report(
         &args,
@@ -3483,7 +3475,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             baseline: baseline_comparison.as_ref(),
             ignored_families: &ignored_families,
             omitted_note: omitted_note.as_deref(),
-            generated_sources: &generated_sources,
+            overrides: &overrides,
         },
     )?;
     if args.show.contains(&ShowView::Hotspots)
@@ -3680,7 +3672,7 @@ struct ScanReportView<'a> {
     baseline: Option<&'a BaselineComparison>,
     ignored_families: &'a [IgnoredFamily],
     omitted_note: Option<&'a str>,
-    generated_sources: &'a std::collections::HashSet<String>,
+    overrides: &'a SurfaceOverrides,
 }
 
 fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
@@ -3697,7 +3689,7 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
                 ignore_set: settings.ignore_set.as_ref(),
                 ignored_families: view.ignored_families,
                 semantic_packs: &settings.semantic_packs,
-                generated_sources: view.generated_sources,
+                overrides: view.overrides,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
@@ -3837,16 +3829,57 @@ fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
     fs.iter().map(|f| f.dup_lines).sum()
 }
 
+/// Compute the surface overrides for EVERY output format and flag generated
+/// locations. The generated index is one head-read per discovered file (#224
+/// — the #216 audit's re2c case) and the declaration scan is one span-read
+/// per family; both run only when families exist.
+fn classify_surface_overrides(
+    families: &mut [nose_detect::RefactorFamily],
+    refs: &[&std::path::Path],
+    exclude: &[String],
+) -> SurfaceOverrides {
+    let generated_sources = if families.is_empty() {
+        std::collections::HashSet::new()
+    } else {
+        generated_source_index(refs, exclude)
+    };
+    for f in families.iter_mut() {
+        for l in &mut f.locations {
+            l.looks_generated = generated_sources.contains(&l.file);
+        }
+    }
+    SurfaceOverrides {
+        generated_sources,
+        declaration_run_ids: declaration_run_ids(families),
+    }
+}
+
+/// The mechanically-decidable non-actionable classes (design.md §2b: the
+/// decidability boundary). Both are *classifications, not deletions*: the
+/// families stay in `--format json --top 0` under an honest surface name; only
+/// the action-oriented surfaces (human/markdown/SARIF/`--fail-on`) omit them.
+struct SurfaceOverrides {
+    /// Files whose head carries a generated-content marker (#224).
+    generated_sources: std::collections::HashSet<String>,
+    /// Family ids whose every member span is provably only import/include/
+    /// use/re-export declarations — duplication the language mandates per
+    /// file, with no extraction action to take.
+    declaration_run_ids: std::collections::HashSet<String>,
+}
+
 /// The surface an integration should treat this family as: the ranked
 /// `recommended_surface`, except that a family whose every location sits in a
-/// generated-header source reports as `generated` — the same families the
-/// human report already omits from default output.
+/// generated-header source reports as `generated`, and a family whose every
+/// member is a declaration run reports as `declaration` — the same families
+/// the human report omits from default output.
 fn effective_surface(
     family: &nose_detect::RefactorFamily,
-    generated_sources: &std::collections::HashSet<String>,
+    overrides: &SurfaceOverrides,
 ) -> &'static str {
-    if family_all_generated_source(family, generated_sources) {
+    if family_all_generated_source(family, &overrides.generated_sources) {
         "generated"
+    } else if family_declaration_run(family, overrides) {
+        "declaration"
     } else {
         family.recommended_surface()
     }
@@ -3854,10 +3887,284 @@ fn effective_surface(
 
 fn is_default_report_family(
     family: &nose_detect::RefactorFamily,
-    generated_sources: &std::collections::HashSet<String>,
+    overrides: &SurfaceOverrides,
 ) -> bool {
     family.recommended_surface() == "default"
-        && !family_all_generated_source(family, generated_sources)
+        && !family_all_generated_source(family, &overrides.generated_sources)
+        && !family_declaration_run(family, overrides)
+}
+
+fn family_declaration_run(
+    family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> bool {
+    overrides
+        .declaration_run_ids
+        .contains(&baseline::family_id(family))
+}
+
+/// Classify the mechanically-decidable declaration runs in `families`.
+///
+/// A *declaration run* is a family whose every member span consists solely of
+/// import/include/use/re-export declarations (plus blank lines and full-line
+/// comments). The duplication is real — the syntax channel is right that the
+/// lines match — but the language mandates these declarations per file, so no
+/// extraction exists and no judgment is owed (design.md: provable
+/// non-actionability is the detector's job, not the consumer's).
+///
+/// Fail-open by construction: any line not provably part of a declaration, an
+/// unsupported extension, an unreadable span, or an unclosed multi-line
+/// statement keeps the family on its ranked surface. Misclassifying a real
+/// finding is the error class this guards against; missing an import run is
+/// only a ranking nuisance.
+fn declaration_run_ids(
+    families: &[nose_detect::RefactorFamily],
+) -> std::collections::HashSet<String> {
+    families
+        .iter()
+        .filter(|f| !f.locations.is_empty() && f.locations.iter().all(declaration_run_span))
+        .map(baseline::family_id)
+        .collect()
+}
+
+/// An import run longer than this is implausible; skip the read and fail open.
+const DECLARATION_SPAN_CAP: u32 = 80;
+
+fn declaration_run_span(loc: &nose_detect::Loc) -> bool {
+    if loc.end_line.saturating_sub(loc.start_line) > DECLARATION_SPAN_CAP {
+        return false;
+    }
+    let Some(lang) = declaration_lang(&loc.file) else {
+        return false;
+    };
+    let Some(lines) = read_lines(&loc.file, loc.start_line, loc.end_line) else {
+        return false;
+    };
+    span_is_only_declarations(&lines, lang)
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum DeclLang {
+    Python,
+    JsTs,
+    Go,
+    Rust,
+    Java,
+    C,
+    Ruby,
+}
+
+fn declaration_lang(file: &str) -> Option<DeclLang> {
+    let ext = std::path::Path::new(file).extension()?.to_str()?;
+    Some(match ext {
+        "py" | "pyi" => DeclLang::Python,
+        // Embedded-script containers carry JS/TS inside; clone spans sit in
+        // the script body, so the JS/TS line grammar applies.
+        "js" | "jsx" | "mjs" | "cjs" | "ts" | "tsx" | "mts" | "cts" | "vue" | "svelte" | "html"
+        | "htm" => DeclLang::JsTs,
+        "go" => DeclLang::Go,
+        "rs" => DeclLang::Rust,
+        "java" => DeclLang::Java,
+        "c" | "h" => DeclLang::C,
+        "rb" => DeclLang::Ruby,
+        _ => return None,
+    })
+}
+
+/// What one trimmed source line contributes to a declaration run.
+enum DeclLine {
+    /// Not provably a declaration — the span fails (fail-open).
+    No,
+    /// A complete single-line declaration.
+    Complete,
+    /// Opens a multi-line declaration; consumed until its closing line.
+    Opens,
+}
+
+fn span_is_only_declarations(lines: &[String], lang: DeclLang) -> bool {
+    let mut open = false;
+    let mut any = false;
+    for raw in lines {
+        let line = raw.trim();
+        if line.is_empty() || is_full_line_comment(line, lang) {
+            continue;
+        }
+        if open {
+            // Inside a multi-line declaration only specifier lines can occur
+            // in code that parsed; consume until the statement closes.
+            if declaration_closes(line, lang) {
+                open = false;
+            }
+            continue;
+        }
+        match declaration_opens(line, lang) {
+            DeclLine::No => return false,
+            DeclLine::Complete => any = true,
+            DeclLine::Opens => {
+                any = true;
+                open = true;
+            }
+        }
+    }
+    // An unclosed statement means the span cut through code we did not prove.
+    !open && any
+}
+
+fn is_full_line_comment(line: &str, lang: DeclLang) -> bool {
+    match lang {
+        DeclLang::Python | DeclLang::Ruby => line.starts_with('#'),
+        _ => line.starts_with("//") || (line.starts_with("/*") && line.ends_with("*/")),
+    }
+}
+
+fn declaration_opens(line: &str, lang: DeclLang) -> DeclLine {
+    match lang {
+        DeclLang::Python => python_declaration(line),
+        DeclLang::JsTs => jsts_declaration(line),
+        DeclLang::Go => go_declaration(line),
+        DeclLang::Rust => rust_declaration(line),
+        DeclLang::Java => java_declaration(line),
+        DeclLang::C => c_declaration(line),
+        DeclLang::Ruby => ruby_declaration(line),
+    }
+}
+
+fn python_declaration(line: &str) -> DeclLine {
+    if let Some(rest) = line.strip_prefix("import ") {
+        return if is_module_list(rest) {
+            DeclLine::Complete
+        } else {
+            DeclLine::No
+        };
+    }
+    if let Some(rest) = line.strip_prefix("from ") {
+        if rest.contains(" import ") {
+            return if line.ends_with('(') {
+                DeclLine::Opens
+            } else {
+                DeclLine::Complete
+            };
+        }
+    }
+    DeclLine::No
+}
+
+fn jsts_declaration(line: &str) -> DeclLine {
+    let stmt_done = line.ends_with(';') || line.ends_with('\'') || line.ends_with('"');
+    if line.starts_with("import ") || line.starts_with("import{") {
+        return if stmt_done {
+            DeclLine::Complete
+        } else {
+            DeclLine::Opens
+        };
+    }
+    // Re-exports are declaration wiring only with a `from` source (a barrel
+    // line); `export const …` is code and must fail.
+    if line.starts_with("export ") && line.contains(" from ") && stmt_done {
+        return DeclLine::Complete;
+    }
+    if (line.starts_with("export {") || line.starts_with("export *")) && !stmt_done {
+        return DeclLine::Opens;
+    }
+    for head in ["const ", "let ", "var "] {
+        if let Some(rest) = line.strip_prefix(head) {
+            if rest.contains("= require(") && stmt_done {
+                return DeclLine::Complete;
+            }
+        }
+    }
+    DeclLine::No
+}
+
+fn go_declaration(line: &str) -> DeclLine {
+    if line == "import (" {
+        return DeclLine::Opens;
+    }
+    if let Some(rest) = line.strip_prefix("import ") {
+        return if rest.contains('"') {
+            DeclLine::Complete
+        } else {
+            DeclLine::No
+        };
+    }
+    if let Some(rest) = line.strip_prefix("package ") {
+        return if is_module_list(rest) {
+            DeclLine::Complete
+        } else {
+            DeclLine::No
+        };
+    }
+    DeclLine::No
+}
+
+fn rust_declaration(line: &str) -> DeclLine {
+    let body = line
+        .strip_prefix("pub ")
+        .or_else(|| {
+            line.starts_with("pub(")
+                .then(|| line.split_once(") ").map(|(_, b)| b))
+                .flatten()
+        })
+        .unwrap_or(line);
+    if body.starts_with("use ") || body.starts_with("extern crate ") {
+        return if body.ends_with(';') {
+            DeclLine::Complete
+        } else if body.ends_with('{') {
+            DeclLine::Opens
+        } else {
+            DeclLine::No
+        };
+    }
+    if let Some(rest) = body.strip_prefix("mod ") {
+        if rest.ends_with(';') && is_module_list(&rest[..rest.len() - 1]) {
+            return DeclLine::Complete;
+        }
+    }
+    DeclLine::No
+}
+
+fn java_declaration(line: &str) -> DeclLine {
+    if (line.starts_with("import ") || line.starts_with("package ")) && line.ends_with(';') {
+        return DeclLine::Complete;
+    }
+    DeclLine::No
+}
+
+fn c_declaration(line: &str) -> DeclLine {
+    if line.starts_with("#include") || line == "#pragma once" {
+        return DeclLine::Complete;
+    }
+    DeclLine::No
+}
+
+fn ruby_declaration(line: &str) -> DeclLine {
+    for head in ["require ", "require_relative ", "require("] {
+        if line.starts_with(head) {
+            return DeclLine::Complete;
+        }
+    }
+    DeclLine::No
+}
+
+fn declaration_closes(line: &str, lang: DeclLang) -> bool {
+    match lang {
+        DeclLang::Python | DeclLang::Go => line.ends_with(')'),
+        DeclLang::JsTs => {
+            line.starts_with('}')
+                && (line.ends_with(';') || line.ends_with('\'') || line.ends_with('"'))
+        }
+        DeclLang::Rust => line.ends_with("};"),
+        // Java/C/Ruby declarations are single-line; nothing opens.
+        DeclLang::Java | DeclLang::C | DeclLang::Ruby => false,
+    }
+}
+
+/// Bare module-path lists: identifiers, dots, commas, spaces, and `as`
+/// aliases only — anything else (operators, parens, strings) is code.
+fn is_module_list(s: &str) -> bool {
+    !s.is_empty()
+        && s.chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ',' | ' '))
 }
 
 fn family_all_generated_source(
@@ -3873,13 +4180,21 @@ fn family_all_generated_source(
 
 fn surface_omission_note(
     families: &[nose_detect::RefactorFamily],
-    generated_sources: &std::collections::HashSet<String>,
+    overrides: &SurfaceOverrides,
 ) -> Option<String> {
     let generated = families
         .iter()
         .filter(|f| {
             f.recommended_surface() == "default"
-                && family_all_generated_source(f, generated_sources)
+                && family_all_generated_source(f, &overrides.generated_sources)
+        })
+        .count();
+    let declaration = families
+        .iter()
+        .filter(|f| {
+            f.recommended_surface() == "default"
+                && !family_all_generated_source(f, &overrides.generated_sources)
+                && family_declaration_run(f, overrides)
         })
         .count();
     let review = families
@@ -3894,16 +4209,19 @@ fn surface_omission_note(
         .iter()
         .filter(|f| f.recommended_surface() == "debug")
         .count();
-    let omitted = generated + review + hidden + debug;
+    let omitted = generated + declaration + review + hidden + debug;
     if omitted == 0 {
         return None;
     }
-    if generated == 0 && review == 0 && hidden == 1 && debug == 0 {
+    if generated == 0 && declaration == 0 && review == 0 && hidden == 1 && debug == 0 {
         return Some("omitted 1 hidden proof-only family from default output".to_string());
     }
     let mut parts = Vec::new();
     if generated > 0 {
         parts.push(format!("{generated} generated-code"));
+    }
+    if declaration > 0 {
+        parts.push(format!("{declaration} declaration-run"));
     }
     if review > 0 {
         parts.push(format!("{review} review"));
@@ -5046,5 +5364,75 @@ mod tests {
             family_hint(&f),
             "local duplication — extract a method from the repeated block"
         );
+    }
+
+    fn decl_lines(src: &str) -> Vec<String> {
+        src.lines().map(str::to_string).collect()
+    }
+
+    #[test]
+    fn declaration_spans_classify_per_language() {
+        let yes: &[(DeclLang, &str)] = &[
+            (
+                DeclLang::JsTs,
+                "import { a } from './a';\nimport { b } from './b';",
+            ),
+            (DeclLang::JsTs, "import {\n  a,\n  b,\n} from './ab';"),
+            (
+                DeclLang::JsTs,
+                "export { a } from './a';\nexport * from './b';",
+            ),
+            (DeclLang::JsTs, "const fs = require('fs');"),
+            (
+                DeclLang::Python,
+                "import os\nfrom typing import (\n    Any,\n)",
+            ),
+            (
+                DeclLang::Go,
+                "package main\n\nimport (\n\t\"fmt\"\n\talias \"net/http\"\n)",
+            ),
+            (
+                DeclLang::Rust,
+                "use std::fmt;\npub use crate::x::{\n    A,\n};\nmod wiring;",
+            ),
+            (
+                DeclLang::Java,
+                "package com.x;\nimport java.util.List;\nimport static java.util.Map.entry;",
+            ),
+            (
+                DeclLang::C,
+                "#include <stdio.h>\n#include \"x.h\"\n#pragma once",
+            ),
+            (DeclLang::Ruby, "require 'json'\nrequire_relative 'x'"),
+        ];
+        for (lang, src) in yes {
+            assert!(
+                span_is_only_declarations(&decl_lines(src), *lang),
+                "should classify as declarations: {src}"
+            );
+        }
+        // Fail-open: anything not provably a declaration keeps the family on
+        // its ranked surface — misclassifying a real finding is the error
+        // class this filter must never make.
+        let no: &[(DeclLang, &str)] = &[
+            (
+                DeclLang::JsTs,
+                "import { a } from './a';\nexport const x = a;",
+            ),
+            (DeclLang::JsTs, "import {\n  a,"),
+            (DeclLang::Python, "import os\nx = os.environ"),
+            (DeclLang::Go, "import (\n\t\"fmt\""),
+            (DeclLang::Rust, "use std::fmt;\nfn main() {}"),
+            (DeclLang::Java, "import java.util.List;\nclass X {}"),
+            (DeclLang::C, "#include <stdio.h>\n#define MAX 4"),
+            (DeclLang::Ruby, "require 'json'\nputs 'hi'"),
+            (DeclLang::Python, ""),
+        ];
+        for (lang, src) in no {
+            assert!(
+                !span_is_only_declarations(&decl_lines(src), *lang),
+                "must fail open on: {src:?}"
+            );
+        }
     }
 }

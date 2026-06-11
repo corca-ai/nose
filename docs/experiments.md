@@ -1740,3 +1740,50 @@ read: the JSON surface is sufficient for the protocol (no decision needed source
 access), the recipe's failure modes are *calibration* failures fixable in the
 document, and the residual is the same judgment frontier the scanner itself
 deliberately leaves to the caller.
+
+## BY. Declaration runs — the first decidability-boundary filter, priced on the corpus
+
+A fresh-repo head-of-ranking audit (three sibling projects: a 1,351-file TS app,
+two small Go CLIs) found an import-statement block ranked #5 on a default scan —
+seven textually-identical `import … from` lines across two modules. The
+detection is correct and the duplication real, but the language *mandates* those
+declarations per file: no extraction exists, so no judgment is owed. That is a
+class boundary, not a one-off: [design.md §2b](design.md) now names it — a
+reported family claims both *similarity* (held to proof discipline) and
+*actionability*, and actionability splits by **decidability**. Judgment-deep
+non-action (parallel-by-design) stays with the consumer; mechanically-decidable
+non-action is the detector's job, with the same fail-closed posture as the
+equivalence channel.
+
+The filter: a family whose **every member span** consists solely of
+import/include/`use`/re-export declarations (plus blanks and full-line comments,
+per-language line grammar, multi-line statements tracked to their close) is
+reclassified `recommended_surface: "declaration"` — off the human/markdown/
+SARIF/`--fail-on` surfaces, counted in the omitted line, kept in
+`--format json --top 0` (classification, never deletion). Fail-open by
+construction: an unsupported extension, an unreadable span, an unclosed
+multi-line statement, or any line not provably a declaration keeps the family
+on its ranked surface. The mixed-span shape (imports + one real statement) is
+locked as a fixture.
+
+**Corpus price** (105 pinned repos, artifacts in `eval/declaration_runs/`, 2026-06-11): 2,265 families across 43 repos leave the default surface — java 1,850
+(import blocks above parallel command classes), python 254, ts 90, js 30,
+rs 30, tsx 11. Joined against the v5 labels by span overlap: 419 overlaps,
+**1** with a worthy label — nushell's polars-command module headers
+(`6094823c2d64a432`, extract-base, medium confidence, "imports + struct decl
+shared via base/macro"). Inspected: the declaration family is the
+imports-only 8–14 sub-span; the label's actionable content (the whole
+near-identical command module) still reports via two default-surface families
+(the 3–15 near pair and the whole-file 1–186 family). Zero worthy families
+were themselves reclassified.
+
+Two residuals, deliberately left: (1) spans that *start inside* a multi-line
+`use {`/`import (` statement fail open and stay default (conservative by
+design); (2) small same-import modules can pair at module granularity ("8 of
+58 lines shared" with the 8 being the import block) — the shared-lines
+generalization ("classify when the *invariant* lines are all declarations")
+was rejected because at text level it cannot be distinguished from a renamed
+twin whose every line differs textually: that is not mechanically decidable,
+so per §2b it stays with ranking (extractability already sinks these) and the
+upstream fix — keeping import declarations out of module-unit fingerprints —
+is a detector change to price separately.

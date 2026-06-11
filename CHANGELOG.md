@@ -6,6 +6,25 @@ break.
 
 ## [Unreleased]
 
+### Changed
+- **Declaration runs leave the default surface** (experiments §BY, design §2b):
+  a family whose every member span is only import/include/`use`/re-export
+  declarations is real duplication the language mandates per file — there is
+  nothing to extract, so it no longer occupies the default report,
+  `--fail-on`, markdown, or SARIF surfaces. It stays in `--format json
+  --top 0` as `recommended_surface: "declaration"` (a classification, not a
+  deletion), is counted in the human report's omitted line
+  (`N declaration-run`), and `ranking.surface_counts` gains a `declaration`
+  field. Priced on the 105-repo corpus: 2,265 families across 43 repos leave
+  the default surface with zero worthy-labeled families reclassified. The
+  filter is fail-open: any span not provably all-declarations stays on its
+  ranked surface.
+- **design.md gains §2b (the decidability boundary) and §2c (the bare default
+  is the product)**: mechanically-decidable non-actionability is the
+  detector's job (the dual of "judgment-deep worthiness belongs to the
+  calling agent"), and the no-flags `nose scan` report is the first-user
+  surface that evidence-based filters defend.
+
 ## [0.6.0] - 2026-06-11
 
 ### Changed
