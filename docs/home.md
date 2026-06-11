@@ -43,6 +43,7 @@ of nose's machine-readable output.
 
 - [capabilities](capabilities.md) — the `nose capabilities` JSON contract: what an installed binary supports, so a wrapper never has to scrape `--help`.
 - [scan-json](scan-json.md) — the versioned `nose scan --format json` contract for downstream tooling.
+- [agent-recipe](agent-recipe.md) — the validated protocol for an LLM agent triaging scan JSON: which fields to read, in what order, and what to do with each verdict.
 
 ## Contributing
 

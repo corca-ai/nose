@@ -1,0 +1,304 @@
+{
+ "schema_version": 1,
+ "method": "#227-style, two rounds: 3 repos x top-10 default families; judge agent follows docs/agent-recipe.md with family JSON only (no source); span-matched to v5 labels. Round 1 = initial recipe; round 2 = after adding the two step-6 calibration bullets the round-1 errors indicated.",
+ "sampled": 30,
+ "labeled": 19,
+ "round1": {
+  "agreement": 12,
+  "confusion": {
+   "tp": 7,
+   "tn": 5,
+   "fp": 1,
+   "fn": 6
+  }
+ },
+ "round2": {
+  "agreement": 14,
+  "confusion": {
+   "tp": 12,
+   "tn": 2,
+   "fp": 4,
+   "fn": 1
+  }
+ },
+ "rows": [
+  {
+   "vid": "ar-clap-00",
+   "repo": "clap",
+   "rank": 0,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "20 token-identical 4-line fn main copies (mean_score 1.0, value_jaccard 1.0, params 0) across tests/derive_ui fixtures; per calibration, fixture location never excuses duplication.",
+   "label_worthy": true,
+   "label_reason": "extract-helper"
+  },
+  {
+   "vid": "ar-clap-01",
+   "repo": "clap",
+   "rank": 1,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "7 per-shell Generator::generate wrappers with identical bodies (value and shape jaccard 1.0, params 0) \u2014 near-identical per-variant siblings are the textbook default-trait-method hoist, not parallel-by-design.",
+   "label_worthy": false,
+   "label_reason": "parallel-by-design"
+  },
+  {
+   "vid": "ar-clap-02",
+   "repo": "clap",
+   "rank": 2,
+   "agent_worthy": true,
+   "agent_reason": "parameterize",
+   "note": "7 flatten_* tests share 26 of 33 lines with only 2 varying spots (test name plus the builder setting under test), shape_jaccard 0.924 \u2014 a cheap table/parameter extraction.",
+   "label_worthy": true,
+   "label_reason": "extract-helper"
+  },
+  {
+   "vid": "ar-clap-03",
+   "repo": "clap",
+   "rank": 3,
+   "agent_worthy": true,
+   "agent_reason": "parameterize",
+   "note": "11 default_values_if tests share 16 of 18 lines with 2 spots (name plus try_get_matches_from input vector) \u2014 input/expected pairs over one shared skeleton.",
+   "label_worthy": true,
+   "label_reason": "parameterize"
+  },
+  {
+   "vid": "ar-clap-04",
+   "repo": "clap",
+   "rank": 4,
+   "agent_worthy": false,
+   "agent_reason": "trivial",
+   "note": "5 copies of the 6-line idiomatic Display-via-ValueEnum fmt impl spread over three crates plus examples; Rust trait coherence forces a per-type impl, so the abstraction saves almost nothing (dup_lines 24)."
+  },
+  {
+   "vid": "ar-clap-05",
+   "repo": "clap",
+   "rank": 5,
+   "agent_worthy": false,
+   "agent_reason": "parallel-by-design",
+   "note": "mean_value_jaccard 0.262 vs shape 0.934 (surface likeness, skeptical per step 3): each arg! macro-grammar test asserts different expected semantics behind the shared skeleton.",
+   "label_worthy": true,
+   "label_reason": "parameterize"
+  },
+  {
+   "vid": "ar-clap-06",
+   "repo": "clap",
+   "rank": 6,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "copy-paste-run witness over an 85-line block (shared_lines 59) duplicated between clap_complete and clap_complete_nushell test support files \u2014 classic copy-paste; a shared test util is the refactor.",
+   "label_worthy": true,
+   "label_reason": "extract-helper"
+  },
+  {
+   "vid": "ar-clap-07",
+   "repo": "clap",
+   "rank": 7,
+   "agent_worthy": true,
+   "agent_reason": "parameterize",
+   "note": "5 req_delimiter tests share 23 of 35 lines with 2 spots (name plus the argv literal under test) \u2014 same assertion skeleton parameterized by input form.",
+   "label_worthy": true,
+   "label_reason": "parameterize"
+  },
+  {
+   "vid": "ar-clap-08",
+   "repo": "clap",
+   "rank": 8,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "5 identical 12-token fn main copies (value_jaccard 1.0, params 0) in examples/tutorial_derive; per calibration, example location does not excuse identical handlers."
+  },
+  {
+   "vid": "ar-clap-09",
+   "repo": "clap",
+   "rank": 9,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "copy-paste-run witness: 4 token-identical 10-line blocks inside one test file (params 0) \u2014 direct copy-paste a small test helper removes."
+  },
+  {
+   "vid": "ar-sympy-00",
+   "repo": "sympy",
+   "rank": 0,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "8 per-language printer _print_Assignment/_print_Relational methods with value_jaccard 0.92 / shape 0.979 \u2014 near-identical per-backend siblings belong on the shared CodePrinter base, not parallel-by-design.",
+   "label_worthy": false,
+   "label_reason": "trivial"
+  },
+  {
+   "vid": "ar-sympy-01",
+   "repo": "sympy",
+   "rank": 1,
+   "agent_worthy": false,
+   "agent_reason": "trivial",
+   "note": "19 two-line __hash__ = super().__hash__() dunders (shared_lines 2); Python resets __hash__ whenever __eq__ is defined, so this boilerplate must be restated per class and no abstraction can absorb it."
+  },
+  {
+   "vid": "ar-sympy-02",
+   "repo": "sympy",
+   "rank": 2,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "copy-paste-run witness on a 79-line token-identical block (params 0) duplicated between test_matrices.py and test_reductions.py \u2014 pure redundant copy."
+  },
+  {
+   "vid": "ar-sympy-03",
+   "repo": "sympy",
+   "rank": 3,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "copy-paste-run witness on a 179-line token-identical block (params 0) duplicated between test_matrixbase.py and test_matrices.py \u2014 the largest pure copy in the set."
+  },
+  {
+   "vid": "ar-sympy-04",
+   "repo": "sympy",
+   "rank": 4,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "16 identical 2-line _eval_conjugate methods (value and shape jaccard 1.0) concentrated in hyperbolic/trigonometric siblings \u2014 identical per-variant bodies hoist into the shared function base class."
+  },
+  {
+   "vid": "ar-sympy-05",
+   "repo": "sympy",
+   "rank": 5,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "the same test_issue_4564 body (11 of 12 lines shared, score 0.832, shared-sub-dag witness) is copied into three different test files \u2014 a shared regression test/helper removes it."
+  },
+  {
+   "vid": "ar-sympy-06",
+   "repo": "sympy",
+   "rank": 6,
+   "agent_worthy": true,
+   "agent_reason": "parameterize",
+   "note": "2 copies of test_diag_make sharing 69 of 77 lines where both varying spots are only the matrix class name (SpecialOnlyMatrix vs Matrix) \u2014 class-name-only spots are the textbook parameterize case per calibration.",
+   "label_worthy": false,
+   "label_reason": "coincidental-shape"
+  },
+  {
+   "vid": "ar-sympy-07",
+   "repo": "sympy",
+   "rank": 7,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "6 identical 5-line _construct_body classmethods (value and shape jaccard 1.0, params 0) across codegen ast/cnodes/fnodes \u2014 one shared constructor function serves all Token classes."
+  },
+  {
+   "vid": "ar-sympy-08",
+   "repo": "sympy",
+   "rank": 8,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "copy-paste-run witness across 4 stats test files sharing 11 of 13 lines with a single spot (the sampled distribution) \u2014 a sample-consistency assertion helper absorbs it."
+  },
+  {
+   "vid": "ar-sympy-09",
+   "repo": "sympy",
+   "rank": 9,
+   "agent_worthy": false,
+   "agent_reason": "trivial",
+   "note": "exact-value-graph but only 6 value nodes: a 2-line _eval_is_zero with dup_lines 12 scattered over 3 unrelated modules \u2014 the smallest family here; a cross-module mixin would cost more than it saves."
+  },
+  {
+   "vid": "ar-netty-00",
+   "repo": "netty",
+   "rank": 0,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "exact-value-graph proof for 43 identical 5-line exceptionCaught handlers, almost all under example/ \u2014 the calibration's literal case that example location never excuses a worthy extract.",
+   "label_worthy": true,
+   "label_reason": "extract-base"
+  },
+  {
+   "vid": "ar-netty-01",
+   "repo": "netty",
+   "rank": 1,
+   "agent_worthy": false,
+   "agent_reason": "coincidental-shape",
+   "note": "shared_lines 0 with mean_value_jaccard 0.448 / shape 0.552 over 79 heterogeneous members (assorted constructors, a class, even a C function across 2 languages) \u2014 fuzzy shape likeness with nothing extractable.",
+   "label_worthy": false,
+   "label_reason": "coincidental-shape"
+  },
+  {
+   "vid": "ar-netty-02",
+   "repo": "netty",
+   "rank": 2,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "9 identical 8-line toString methods (value and shape jaccard 1.0, params 0) across sibling protocol-constant classes (DnsOpCode, Socks4/5 types) \u2014 identical bodies hoist into a shared constant base.",
+   "label_worthy": false,
+   "label_reason": "trivial"
+  },
+  {
+   "vid": "ar-netty-03",
+   "repo": "netty",
+   "rank": 3,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "copy-paste-run over 26 test classes sharing 15 lines where the single varying spot is the class-declaration line (name plus superclass) \u2014 name-only variation is textbook extract-base, not parallel-by-design.",
+   "label_worthy": true,
+   "label_reason": "extract-helper"
+  },
+  {
+   "vid": "ar-netty-04",
+   "repo": "netty",
+   "rank": 4,
+   "agent_worthy": true,
+   "agent_reason": "extract-helper",
+   "note": "20 identical 6-line configure overrides (value and shape jaccard 1.0, params 0) across the IoUringBufferRing test classes \u2014 one shared buffer-ring configuration helper removes all of them.",
+   "label_worthy": true,
+   "label_reason": "extract-helper"
+  },
+  {
+   "vid": "ar-netty-05",
+   "repo": "netty",
+   "rank": 5,
+   "agent_worthy": false,
+   "agent_reason": "parallel-by-design",
+   "note": "whole example server classes match only fuzzily (value_jaccard 0.445, shape 0.549, shared 13 of 29 lines): each demo genuinely encodes a different protocol pipeline behind the common bootstrap skeleton.",
+   "label_worthy": false,
+   "label_reason": "parallel-by-design"
+  },
+  {
+   "vid": "ar-netty-06",
+   "repo": "netty",
+   "rank": 6,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "6 identical 13-line shutdownOutputDone methods (value and shape jaccard 1.0) across epoll/kqueue/io_uring/nio/oio channel variants \u2014 identical per-transport bodies are the textbook base-class hoist.",
+   "label_worthy": true,
+   "label_reason": "extract-helper"
+  },
+  {
+   "vid": "ar-netty-07",
+   "repo": "netty",
+   "rank": 7,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "33 identical setMaxMessagesPerRead overrides whose only varying spot is the covariant return type (value and shape jaccard 1.0) \u2014 the calibration's named covariant-return case, extract-base not parallel-by-design.",
+   "label_worthy": true,
+   "label_reason": "extract-base"
+  },
+  {
+   "vid": "ar-netty-08",
+   "repo": "netty",
+   "rank": 8,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "31 identical setWriteBufferHighWaterMark overrides differing only in the declared config class in the signature spot (jaccard 1.0, shared_lines 5) \u2014 covariant-return boilerplate for a self-typed base.",
+   "label_worthy": true,
+   "label_reason": "extract-base"
+  },
+  {
+   "vid": "ar-netty-09",
+   "repo": "netty",
+   "rank": 9,
+   "agent_worthy": true,
+   "agent_reason": "extract-base",
+   "note": "31 identical setWriteBufferLowWaterMark overrides with a single class-name spot (value and shape jaccard 1.0) \u2014 same covariant-return family; textbook extract-base per calibration.",
+   "label_worthy": true,
+   "label_reason": "extract-base"
+  }
+ ]
+}
