@@ -4,6 +4,7 @@
 
 mod c;
 mod coverage;
+mod declaration_facts;
 mod embedded;
 mod go;
 mod java;
@@ -16,6 +17,7 @@ mod rust;
 mod type_domain_aliases;
 
 pub use coverage::{coverage, CoverageReport};
+pub use declaration_facts::{declaration_facts, DeclarationFacts};
 
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;

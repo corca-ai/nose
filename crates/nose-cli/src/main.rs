@@ -4104,17 +4104,17 @@ fn family_declaration_run(
 fn declaration_run_ids(
     families: &[nose_detect::RefactorFamily],
 ) -> std::collections::HashSet<String> {
-    // One classification pass, one cache: members of different families share
-    // files, and a per-member full read made this O(families × file size)
-    // (coevo C3 measured it on a 123-family / 2-file pathological input).
+    // One classification pass, one cache pair: members of different families
+    // share files (coevo C3), and the AST facts parse each file once.
     let mut lines = FileLineCache::default();
+    let mut facts = std::collections::HashMap::new();
     families
         .iter()
         .filter(|f| {
             !f.locations.is_empty()
                 && f.locations
                     .iter()
-                    .all(|l| declaration_run_span(l, &mut lines))
+                    .all(|l| declaration_run_span(l, &mut lines, &mut facts))
         })
         .map(baseline::family_id)
         .collect()
@@ -4123,478 +4123,61 @@ fn declaration_run_ids(
 /// An import run longer than this is implausible; skip the read and fail open.
 const DECLARATION_SPAN_CAP: u32 = 80;
 
-fn declaration_run_span(loc: &nose_detect::Loc, lines: &mut FileLineCache) -> bool {
+fn declaration_run_span(
+    loc: &nose_detect::Loc,
+    lines: &mut FileLineCache,
+    facts: &mut std::collections::HashMap<String, Option<nose_frontend::DeclarationFacts>>,
+) -> bool {
     if loc.end_line.saturating_sub(loc.start_line) > DECLARATION_SPAN_CAP {
         return false;
     }
-    let Some(lang) = declaration_lang(&loc.file) else {
+    let facts = facts.entry(loc.file.clone()).or_insert_with(|| {
+        let ext = std::path::Path::new(&loc.file)
+            .extension()
+            .and_then(|e| e.to_str())?;
+        let src = std::fs::read_to_string(&loc.file).ok()?;
+        nose_frontend::declaration_facts(ext, &src)
+    });
+    let Some(facts) = facts else {
         return false;
     };
     let Some(all) = lines.whole(&loc.file) else {
         return false;
     };
-    let s = loc.start_line.saturating_sub(1) as usize;
-    let e = (loc.end_line as usize).min(all.len());
-    if s >= e {
+    span_is_declarations(facts, all, loc.start_line, loc.end_line)
+}
+
+/// The line rule over AST facts: every line in the span must be blank, a
+/// comment, or part of a declaration statement; a single code-poisoned line
+/// (any named leaf outside declarations/comments — `import os; evil()` puts
+/// `evil()`'s leaves on the import's line) disqualifies the span; and at
+/// least one declaration line must be present.
+fn span_is_declarations(
+    facts: &nose_frontend::DeclarationFacts,
+    all: &[String],
+    start: u32,
+    end: u32,
+) -> bool {
+    let end = (end as usize).min(all.len()) as u32;
+    if start == 0 || start > end {
         return false;
     }
-    span_is_only_declarations(&all[s..e], lang)
-}
-
-#[derive(Clone, Copy, PartialEq)]
-enum DeclLang {
-    Python,
-    JsTs,
-    Go,
-    Rust,
-    Java,
-    C,
-    Ruby,
-}
-
-fn declaration_lang(file: &str) -> Option<DeclLang> {
-    let ext = std::path::Path::new(file).extension()?.to_str()?;
-    Some(match ext {
-        "py" | "pyi" => DeclLang::Python,
-        // Embedded-script containers carry JS/TS inside; clone spans sit in
-        // the script body, so the JS/TS line grammar applies.
-        "js" | "jsx" | "mjs" | "cjs" | "ts" | "tsx" | "mts" | "cts" | "vue" | "svelte" | "html"
-        | "htm" => DeclLang::JsTs,
-        "go" => DeclLang::Go,
-        "rs" => DeclLang::Rust,
-        "java" => DeclLang::Java,
-        "c" | "h" => DeclLang::C,
-        "rb" => DeclLang::Ruby,
-        _ => return None,
-    })
-}
-
-/// What one trimmed source line contributes to a declaration run.
-enum DeclLine {
-    /// Not provably a declaration — the span fails (fail-open).
-    No,
-    /// A complete single-line declaration.
-    Complete,
-    /// Opens a multi-line declaration; consumed until its closing line.
-    Opens,
-}
-
-fn span_is_only_declarations(lines: &[String], lang: DeclLang) -> bool {
-    let mut open = false;
     let mut any = false;
-    for raw in lines {
-        let line = raw.trim();
-        if line.is_empty() || is_full_line_comment(line, lang) {
+    for line_no in start..=end {
+        if facts.is_code_line(line_no) {
+            return false;
+        }
+        if facts.is_declaration_line(line_no) {
+            any = true;
             continue;
         }
-        if open {
-            // Series-2 hardening: tree-sitter is error-tolerant, so "the file
-            // parsed" does NOT guarantee the interior of an open declaration
-            // holds only specifiers. Every interior line must itself be a
-            // valid specifier, and the close must be the strict closer shape
-            // (`os.Exit(1))` is not `)`; `} || x();` is not `};`).
-            if declaration_closes(line, lang) {
-                open = false;
-            } else if !declaration_interior(line, lang) {
-                return false;
-            }
+        if facts.is_comment_line(line_no) || all[line_no as usize - 1].trim().is_empty() {
             continue;
         }
-        match declaration_opens(line, lang) {
-            DeclLine::No => return false,
-            DeclLine::Complete => any = true,
-            DeclLine::Opens => {
-                any = true;
-                open = true;
-            }
-        }
-    }
-    // An unclosed statement means the span cut through code we did not prove.
-    !open && any
-}
-
-/// A line INSIDE an open multi-line declaration: import/use specifiers only.
-fn declaration_interior(line: &str, lang: DeclLang) -> bool {
-    match lang {
-        // `from x import (` interiors: names, commas, `as` aliases.
-        DeclLang::Python => is_module_list(line),
-        // `import {` / `export {` interiors: specifiers incl. `$`, `as`, `type`.
-        DeclLang::JsTs => {
-            !line.is_empty()
-                && line
-                    .chars()
-                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '$' | ',' | ' '))
-        }
-        // `import (` interiors: optional alias (`name`, `_`, `.`) + quoted path.
-        DeclLang::Go => go_import_spec(line),
-        // `use x::{` interiors: path segments, nested groups, `*`, `as`.
-        DeclLang::Rust => {
-            !line.is_empty()
-                && line.chars().all(|c| {
-                    c.is_alphanumeric() || matches!(c, '_' | ':' | ',' | ' ' | '{' | '}' | '*')
-                })
-        }
-        // No multi-line declarations open for these.
-        DeclLang::Java | DeclLang::C | DeclLang::Ruby => false,
-    }
-}
-
-/// `[alias ]"path"` with nothing after the closing quote.
-fn go_import_spec(line: &str) -> bool {
-    let rest = match line.find('"') {
-        Some(0) => line,
-        Some(i) => {
-            let alias = &line[..i];
-            let alias = alias.trim();
-            if !alias.is_empty()
-                && !alias
-                    .chars()
-                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.'))
-            {
-                return false;
-            }
-            &line[i..]
-        }
-        None => return false,
-    };
-    let inner = rest.strip_prefix('"').and_then(|r| r.strip_suffix('"'));
-    matches!(inner, Some(path) if !path.contains('"'))
-}
-
-/// A bare string-literal argument (`'lit'` / `"lit"`, optionally parenthesized)
-/// with nothing riding after it — `require 'fs' + 1` is arithmetic, not wiring.
-fn lone_string_argument(arg: &str) -> bool {
-    let arg = arg.trim();
-    let arg = arg
-        .strip_prefix('(')
-        .and_then(|a| a.strip_suffix(')'))
-        .map(str::trim)
-        .unwrap_or(arg);
-    arg.len() >= 2
-        && ((arg.starts_with('\'') && arg.ends_with('\''))
-            || (arg.starts_with('"') && arg.ends_with('"')))
-        && !arg[1..arg.len() - 1].contains(['\'', '"'])
-}
-
-fn is_full_line_comment(line: &str, lang: DeclLang) -> bool {
-    match lang {
-        DeclLang::Python | DeclLang::Ruby => line.starts_with('#'),
-        _ => line.starts_with("//") || (line.starts_with("/*") && line.ends_with("*/")),
-    }
-}
-
-fn declaration_opens(line: &str, lang: DeclLang) -> DeclLine {
-    match lang {
-        DeclLang::Python => python_declaration(line),
-        DeclLang::JsTs => jsts_declaration(line),
-        DeclLang::Go => go_declaration(line),
-        DeclLang::Rust => rust_declaration(line),
-        DeclLang::Java => java_declaration(line),
-        DeclLang::C => c_declaration(line),
-        DeclLang::Ruby => ruby_declaration(line),
-    }
-}
-
-fn python_declaration(line: &str) -> DeclLine {
-    // A trailing `# comment` is inert on a declaration line (the corpus
-    // re-price caught the validated form dropping real `import x  # noqa`
-    // and single-line parenthesized imports — 18 families).
-    let line = line.split('#').next().unwrap_or(line).trim_end();
-    if let Some(rest) = line.strip_prefix("import ") {
-        return if is_module_list(rest) {
-            DeclLine::Complete
-        } else {
-            DeclLine::No
-        };
-    }
-    if let Some(rest) = line.strip_prefix("from ") {
-        if let Some((module, names)) = rest.split_once(" import ") {
-            // S3-C1: the imported NAMES must be a name list (or `*`) — the
-            // simple form accepted `from x import max("a", "b")` unchecked
-            // while the parenthesized form validated its interior.
-            if !is_module_list(module) {
-                return DeclLine::No;
-            }
-            if line.ends_with('(') && names == "(" {
-                return DeclLine::Opens;
-            }
-            if !semicolon_free(line) {
-                return DeclLine::No;
-            }
-            // A single-line parenthesized list is the same wiring:
-            // `from x import (a, b)`.
-            let names = names.trim();
-            let names = names
-                .strip_prefix('(')
-                .and_then(|n| n.strip_suffix(')'))
-                .map(str::trim)
-                .unwrap_or(names);
-            return if names == "*" || is_module_list(names) {
-                DeclLine::Complete
-            } else {
-                DeclLine::No
-            };
-        }
-    }
-    DeclLine::No
-}
-
-fn jsts_declaration(line: &str) -> DeclLine {
-    let stmt_done = line.ends_with(';') || line.ends_with('\'') || line.ends_with('"');
-    let single = lone_terminal_semicolon(line);
-    if line.starts_with("import ") || line.starts_with("import{") {
-        return if stmt_done && single {
-            if jsts_wiring_line_valid(line, "import") {
-                DeclLine::Complete
-            } else {
-                DeclLine::No
-            }
-        } else if !stmt_done && single {
-            DeclLine::Opens
-        } else {
-            DeclLine::No
-        };
-    }
-    // Re-exports are declaration wiring only with a `from` source (a barrel
-    // line); `export const …` is code and must fail.
-    if line.starts_with("export ") && line.contains(" from ") && stmt_done && single {
-        return if jsts_wiring_line_valid(line, "export") {
-            DeclLine::Complete
-        } else {
-            DeclLine::No
-        };
-    }
-    if (line.starts_with("export {") || line.starts_with("export *")) && !stmt_done && single {
-        return DeclLine::Opens;
-    }
-    for head in ["const ", "let ", "var "] {
-        if let Some(rest) = line.strip_prefix(head) {
-            if is_require_line(rest) && single {
-                return DeclLine::Complete;
-            }
-        }
-    }
-    DeclLine::No
-}
-
-/// A single-line `import`/`export … from` must be PURE wiring (S3-C1):
-/// `import { x } from Math.max("a", "b");` smuggles a call into the from
-/// clause, so the source must be a lone string literal and the specifier
-/// section must hold only specifier tokens.
-fn jsts_wiring_line_valid(line: &str, keyword: &str) -> bool {
-    let body = line.strip_suffix(';').unwrap_or(line);
-    match body.rfind(" from ") {
-        Some(i) => {
-            let specifiers = &body[keyword.len()..i];
-            let source = body[i + " from ".len()..].trim();
-            lone_string_argument(source)
-                && specifiers.chars().all(|c| {
-                    c.is_alphanumeric() || matches!(c, '_' | '$' | ',' | ' ' | '{' | '}' | '*')
-                })
-        }
-        // Side-effect import: `import './polyfill';`
-        None => keyword == "import" && lone_string_argument(body[keyword.len()..].trim()),
-    }
-}
-
-fn go_declaration(line: &str) -> DeclLine {
-    if line == "import (" {
-        return DeclLine::Opens;
-    }
-    if let Some(rest) = line.strip_prefix("import ") {
-        return if rest.contains('"') && rest.trim_end().ends_with('"') && semicolon_free(line) {
-            DeclLine::Complete
-        } else {
-            DeclLine::No
-        };
-    }
-    if let Some(rest) = line.strip_prefix("package ") {
-        return if is_module_list(rest) {
-            DeclLine::Complete
-        } else {
-            DeclLine::No
-        };
-    }
-    DeclLine::No
-}
-
-fn rust_declaration(line: &str) -> DeclLine {
-    let body = line
-        .strip_prefix("pub ")
-        .or_else(|| {
-            line.starts_with("pub(")
-                .then(|| line.split_once(") ").map(|(_, b)| b))
-                .flatten()
-        })
-        .unwrap_or(line);
-    if body.starts_with("use ") || body.starts_with("extern crate ") {
-        return if body.ends_with(';') && lone_terminal_semicolon(body) {
-            DeclLine::Complete
-        } else if body.ends_with('{') && semicolon_free(body) {
-            DeclLine::Opens
-        } else {
-            DeclLine::No
-        };
-    }
-    if let Some(rest) = body.strip_prefix("mod ") {
-        if rest.ends_with(';') && is_module_list(&rest[..rest.len() - 1]) {
-            return DeclLine::Complete;
-        }
-    }
-    DeclLine::No
-}
-
-fn java_declaration(line: &str) -> DeclLine {
-    // S3-C1: the path must BE a dotted name (optionally `static`, trailing
-    // `*`) — shape checks alone accepted `import java.util.x + y;`.
-    for head in ["import ", "package "] {
-        if let Some(rest) = line.strip_prefix(head) {
-            if !line.ends_with(';') || !lone_terminal_semicolon(line) {
-                return DeclLine::No;
-            }
-            let body = rest[..rest.len() - 1].trim();
-            let body = body.strip_prefix("static ").unwrap_or(body);
-            return if !body.is_empty()
-                && body
-                    .chars()
-                    .all(|c| c.is_alphanumeric() || matches!(c, '.' | '_' | '*'))
-            {
-                DeclLine::Complete
-            } else {
-                DeclLine::No
-            };
-        }
-    }
-    DeclLine::No
-}
-
-fn c_declaration(line: &str) -> DeclLine {
-    if let Some(rest) = line.strip_prefix("#include") {
-        if !rest.starts_with([' ', '<', '"']) {
-            return DeclLine::No;
-        }
-        let arg = rest.trim();
-        let angle = arg.starts_with('<')
-            && arg.ends_with('>')
-            && !arg[1..arg.len() - 1].contains(['<', '>']);
-        return if angle || lone_string_argument(arg) {
-            DeclLine::Complete
-        } else {
-            // `#include <stdio.h> int x = 1;` rides code on the directive.
-            DeclLine::No
-        };
-    }
-    if line == "#pragma once" {
-        return DeclLine::Complete;
-    }
-    DeclLine::No
-}
-
-fn ruby_declaration(line: &str) -> DeclLine {
-    // A modifier conditional (`require 'x' if cond`) rides an expression on
-    // the declaration — more than a bare require, so it fails open (C5).
-    // Series 2: the argument must be a lone string literal — `require 'fs' + 1`
-    // is arithmetic on the require's return value, not wiring.
-    let conditional = line.contains(" if ") || line.contains(" unless ");
-    if conditional || !semicolon_free(line) {
-        return DeclLine::No;
-    }
-    for head in ["require_relative", "require"] {
-        if let Some(rest) = line.strip_prefix(head) {
-            return if (rest.starts_with(' ') || rest.starts_with('(')) && lone_string_argument(rest)
-            {
-                DeclLine::Complete
-            } else {
-                DeclLine::No
-            };
-        }
-    }
-    DeclLine::No
-}
-
-fn declaration_closes(line: &str, lang: DeclLang) -> bool {
-    match lang {
-        // The strict closer shapes (series 2): `os.Exit(1))` is not `)`,
-        // `} || x();` is not `};` or `} from 'lit';`. Python's closer may
-        // carry the final import names (`    b)`) — the corpus re-price
-        // caught the bare-`)` rule leaking 4 real parenthesized imports.
-        DeclLang::Python => match line.strip_suffix(')') {
-            Some(body) => {
-                let body = body.trim();
-                body.is_empty() || is_module_list(body)
-            }
-            None => false,
-        },
-        DeclLang::Go => line == ")",
-        DeclLang::JsTs => {
-            let Some(rest) = line.strip_prefix('}') else {
-                return false;
-            };
-            let rest = rest.trim();
-            if rest == ";" || rest.is_empty() {
-                return true;
-            }
-            let Some(src) = rest.strip_prefix("from ") else {
-                return false;
-            };
-            let src = src.strip_suffix(';').unwrap_or(src);
-            lone_string_argument(src)
-        }
-        DeclLang::Rust => line == "};",
-        // Java/C/Ruby declarations are single-line; nothing opens.
-        DeclLang::Java | DeclLang::C | DeclLang::Ruby => false,
-    }
-}
-
-/// The single-statement discipline (coevo series 1, C1): a declaration line
-/// must BE one declaration, not merely *start* with one — `import x; evil()`
-/// rides real code on a recognized prefix, and classifying it would break the
-/// "provably no extraction exists" claim. For `;`-terminated grammars the
-/// only `;` may be the final character; for grammars whose declarations carry
-/// no `;` at all, any `;` means a second statement and the line fails open.
-fn lone_terminal_semicolon(line: &str) -> bool {
-    match line.find(';') {
-        None => true,
-        Some(i) => i == line.len() - 1,
-    }
-}
-
-fn semicolon_free(line: &str) -> bool {
-    !line.contains(';')
-}
-
-/// Strict `NAME = require('literal')` shape for the CommonJS arm: a single
-/// identifier, a single string-literal argument, nothing after the call. A
-/// multi-declarator line (`…, b = compute();`) must fail open.
-fn is_require_line(rest: &str) -> bool {
-    let Some((name, call)) = rest.split_once("= require(") else {
-        return false;
-    };
-    let name = name.trim();
-    if name.is_empty()
-        || !name
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '_' || c == '$')
-    {
+        // Uncovered non-blank content (stray tokens, mid-statement cuts).
         return false;
     }
-    let call = call.trim_end();
-    let Some(arg) = call.strip_suffix(");").or_else(|| call.strip_suffix(')')) else {
-        return false;
-    };
-    let arg = arg.trim();
-    arg.len() >= 2
-        && ((arg.starts_with('\'') && arg.ends_with('\''))
-            || (arg.starts_with('"') && arg.ends_with('"')))
-        && !arg[1..arg.len() - 1].contains(['\'', '"'])
-}
-
-/// Bare module-path lists: identifiers, dots, commas, spaces, and `as`
-/// aliases only — anything else (operators, parens, strings) is code.
-fn is_module_list(s: &str) -> bool {
-    !s.is_empty()
-        && s.chars()
-            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ',' | ' '))
+    any
 }
 
 fn family_all_generated_source(
@@ -6079,79 +5662,68 @@ mod tests {
         );
     }
 
-    fn decl_lines(src: &str) -> Vec<String> {
-        src.lines().map(str::to_string).collect()
+    /// Run the whole-source span through the AST-facts classifier — the same
+    /// path `declaration_run_span` takes, minus the file I/O.
+    fn ast_classifies(ext: &str, src: &str) -> bool {
+        let Some(facts) = nose_frontend::declaration_facts(ext, src) else {
+            return false;
+        };
+        let all: Vec<String> = src.lines().map(str::to_string).collect();
+        let end = all.len().max(1) as u32;
+        span_is_declarations(&facts, &all, 1, end)
     }
 
     #[test]
     fn declaration_spans_classify_per_language() {
-        let yes: &[(DeclLang, &str)] = &[
+        let yes: &[(&str, &str)] = &[
+            ("ts", "import { a } from './a';\nimport { b } from './b';"),
+            ("ts", "import {\n  a,\n  b,\n} from './ab';"),
+            ("ts", "export { a } from './a';\nexport * from './b';"),
+            ("ts", "const fs = require('fs');"),
+            ("py", "import os\nfrom typing import (\n    Any,\n)"),
             (
-                DeclLang::JsTs,
-                "import { a } from './a';\nimport { b } from './b';",
-            ),
-            (DeclLang::JsTs, "import {\n  a,\n  b,\n} from './ab';"),
-            (
-                DeclLang::JsTs,
-                "export { a } from './a';\nexport * from './b';",
-            ),
-            (DeclLang::JsTs, "const fs = require('fs');"),
-            (
-                DeclLang::Python,
-                "import os\nfrom typing import (\n    Any,\n)",
-            ),
-            (
-                DeclLang::Go,
+                "go",
                 "package main\n\nimport (\n\t\"fmt\"\n\talias \"net/http\"\n)",
             ),
             (
-                DeclLang::Rust,
+                "rs",
                 "use std::fmt;\npub use crate::x::{\n    A,\n};\nmod wiring;",
             ),
             (
-                DeclLang::Java,
+                "java",
                 "package com.x;\nimport java.util.List;\nimport static java.util.Map.entry;",
             ),
-            (
-                DeclLang::C,
-                "#include <stdio.h>\n#include \"x.h\"\n#pragma once",
-            ),
-            (DeclLang::Ruby, "require 'json'\nrequire_relative 'x'"),
+            ("c", "#include <stdio.h>\n#include \"x.h\"\n#pragma once"),
+            ("rb", "require 'json'\nrequire_relative 'x'"),
             // S2-C3 coverage rows: shapes the code supports but no test locked.
-            (DeclLang::Rust, "pub(crate) use crate::x::Y;"),
-            (DeclLang::Go, "import http \"net/http\""),
-            (DeclLang::Python, "from os import path"),
-            (DeclLang::Ruby, "require('json')"),
-            (DeclLang::C, "#include<stdio.h>"),
-            (DeclLang::JsTs, "import{a} from './a';"),
+            ("rs", "pub(crate) use crate::x::Y;"),
+            ("go", "import http \"net/http\""),
+            ("py", "from os import path"),
+            ("rb", "require('json')"),
+            ("c", "#include<stdio.h>"),
+            ("ts", "import{a} from './a';"),
             // ASI: a multi-line import may close without a semicolon.
-            (DeclLang::JsTs, "import {\n  a,\n} from './ab'"),
+            ("ts", "import {\n  a,\n} from './ab'"),
             // The closer may carry the final import names (corpus re-price
             // regression in series 2: bare-`)` leaked real Python imports).
-            (
-                DeclLang::Python,
-                "from typing import (\n    Any,\n    Mapping)",
-            ),
+            ("py", "from typing import (\n    Any,\n    Mapping)"),
             // S3-C5 coverage adoptions.
-            (
-                DeclLang::Go,
-                "import (\n\t. \"fmt\"\n\t_ \"encoding/json\"\n)",
-            ),
-            (DeclLang::Rust, "use std::{\n    io::{self, Read},\n};"),
-            (DeclLang::JsTs, "import {\n  $ref,\n} from './x';"),
-            (DeclLang::JsTs, "export {\n  a,\n  b,\n} from './lib';"),
-            (DeclLang::JsTs, "const $lib = require('lib');"),
-            (DeclLang::Python, "from typing import (\n    Dict as D,\n)"),
-            (DeclLang::Python, "from x import *"),
+            ("go", "import (\n\t. \"fmt\"\n\t_ \"encoding/json\"\n)"),
+            ("rs", "use std::{\n    io::{self, Read},\n};"),
+            ("ts", "import {\n  $ref,\n} from './x';"),
+            ("ts", "export {\n  a,\n  b,\n} from './lib';"),
+            ("ts", "const $lib = require('lib');"),
+            ("py", "from typing import (\n    Dict as D,\n)"),
+            ("py", "from x import *"),
             // Corpus re-price regressions (series 3): inert trailing comments
             // and single-line parenthesized name lists are real wiring.
-            (DeclLang::Python, "import os  # noqa"),
-            (DeclLang::Python, "from os import path  # comment"),
-            (DeclLang::Python, "from x import (a, b)"),
+            ("py", "import os  # noqa"),
+            ("py", "from os import path  # comment"),
+            ("py", "from x import (a, b)"),
         ];
-        for (lang, src) in yes {
+        for (ext, src) in yes {
             assert!(
-                span_is_only_declarations(&decl_lines(src), *lang),
+                ast_classifies(ext, src),
                 "should classify as declarations: {src}"
             );
         }
@@ -6162,57 +5734,51 @@ mod tests {
         // Fail-open: anything not provably a declaration keeps the family on
         // its ranked surface — misclassifying a real finding is the error
         // class this filter must never make.
-        let no: &[(DeclLang, &str)] = &[
-            (
-                DeclLang::JsTs,
-                "import { a } from './a';\nexport const x = a;",
-            ),
-            (DeclLang::JsTs, "import {\n  a,"),
-            (DeclLang::Python, "import os\nx = os.environ"),
-            (DeclLang::Go, "import (\n\t\"fmt\""),
-            (DeclLang::Rust, "use std::fmt;\nfn main() {}"),
-            (DeclLang::Java, "import java.util.List;\nclass X {}"),
-            (DeclLang::C, "#include <stdio.h>\n#define MAX 4"),
-            (DeclLang::Ruby, "require 'json'\nputs 'hi'"),
-            (DeclLang::Python, ""),
+        let no: &[(&str, &str)] = &[
+            ("ts", "import { a } from './a';\nexport const x = a;"),
+            ("ts", "import {\n  a,"),
+            ("py", "import os\nx = os.environ"),
+            ("go", "import (\n\t\"fmt\""),
+            ("rs", "use std::fmt;\nfn main() {}"),
+            ("java", "import java.util.List;\nclass X {}"),
+            ("c", "#include <stdio.h>\n#define MAX 4"),
+            ("rb", "require 'json'\nputs 'hi'"),
+            ("py", ""),
             // C1 claim-violation packets: a single LINE mixing a declaration
             // with executable code must never classify (the "provably no
             // extraction exists" claim breaks if real code rides along).
-            (DeclLang::JsTs, "import { a } from './a'; doEvil();"),
-            (DeclLang::JsTs, "var a = require('a'), b = compute();"),
-            (DeclLang::Go, "import \"fmt\"; func main() { hack() }"),
-            (DeclLang::Ruby, "require 'json'; system('x')"),
-            (DeclLang::Python, "from x import y; z = 1"),
-            (DeclLang::Java, "import java.util.List; int x = 1;"),
-            (DeclLang::Rust, "use std::fmt; let x = 1;"),
-            (DeclLang::C, "#includeevil <x.h>"),
+            ("ts", "import { a } from './a'; doEvil();"),
+            ("ts", "var a = require('a'), b = compute();"),
+            ("go", "import \"fmt\"; func main() { hack() }"),
+            ("rb", "require 'json'; system('x')"),
+            ("py", "from x import y; z = 1"),
+            ("java", "import java.util.List; int x = 1;"),
+            ("rs", "use std::fmt; let x = 1;"),
+            ("c", "#includeevil <x.h>"),
             // C5 boundary re-attack on the C1 defense itself.
-            (DeclLang::JsTs, "import { a } from './a';;"),
-            (DeclLang::Ruby, "require 'x' if expensive_check()"),
+            ("ts", "import { a } from './a';;"),
+            ("rb", "require 'x' if expensive_check()"),
             // S2-C1 blind-attacker packets: open-block interiors and closers
             // were unvalidated (tree-sitter error tolerance voids any "the
             // file parsed, so interiors are specifiers" assumption).
-            (DeclLang::Ruby, "require 'fs' + 1"),
-            (DeclLang::C, "#include <stdio.h> int x = 1;"),
-            (DeclLang::JsTs, "import {\n  a,\n} || x();"),
-            (DeclLang::Go, "import (\n\t\"fmt\"\n\tos.Exit(1))"),
-            (DeclLang::Rust, "use std::{\ninvalid;\n};"),
+            ("rb", "require 'fs' + 1"),
+            ("c", "#include <stdio.h> int x = 1;"),
+            ("ts", "import {\n  a,\n} || x();"),
+            ("go", "import (\n\t\"fmt\"\n\tos.Exit(1))"),
+            ("rs", "use std::{\ninvalid;\n};"),
             // S3-C1 blind-attacker packets: from-clause sources, Python name
             // lists, and Java paths smuggled expressions through shape checks.
-            (DeclLang::JsTs, "import { x } from Math.max(\"a\", \"b\");"),
-            (DeclLang::JsTs, "export { x } from path.join(\"c\", \"d\");"),
-            (DeclLang::Python, "from x import max(\"a\", \"b\")"),
-            (DeclLang::Java, "import java.util.x + y;"),
-            (DeclLang::Java, "package com.example.x + y;"),
+            ("ts", "import { x } from Math.max(\"a\", \"b\");"),
+            ("ts", "export { x } from path.join(\"c\", \"d\");"),
+            ("py", "from x import max(\"a\", \"b\")"),
+            ("java", "import java.util.x + y;"),
+            ("java", "package com.example.x + y;"),
             // S3-C5 boundary re-attacks on the strict closers.
-            (DeclLang::Rust, "use std::{\n  A,\n}x;"),
-            (DeclLang::Go, "import (\n\tfunc() \"x\"\n)"),
+            ("rs", "use std::{\n  A,\n}x;"),
+            ("go", "import (\n\tfunc() \"x\"\n)"),
         ];
-        for (lang, src) in no {
-            assert!(
-                !span_is_only_declarations(&decl_lines(src), *lang),
-                "must fail open on: {src:?}"
-            );
+        for (ext, src) in no {
+            assert!(!ast_classifies(ext, src), "must fail open on: {src:?}");
         }
     }
 }

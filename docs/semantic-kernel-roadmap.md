@@ -853,6 +853,15 @@ Remaining after the #109 closeout:
 
 ## Phase 3: first-party packs
 
+**Entry gate (2026-06-12, #270 disposition):** further LawPack/pack expansion is
+gated on a *priced consumer case* — a measured situation where pack-fed
+exact-channel evidence changes a real report. The clamp-law escalation
+([experiments §BZ](experiments.md), #270) showed exact-channel law provenance is
+structurally measure-zero in the field (typed evidence ∧ bound proof ∧
+strict-exact eligibility ≈ never co-occur in real code); the laws' product role
+today is `near`-channel influence plus proof discipline. Breadth alone no longer
+justifies a tranche ([design §2c](design.md)).
+
 - Convert Python, JavaScript/TypeScript, Go, Rust, Java, C, Ruby, and embedded
   JS/TS containers into first-party compiled packs.
 - Split stdlib knowledge, including dependency-backed type-domain alias rows,

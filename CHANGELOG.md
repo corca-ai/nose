@@ -6,6 +6,21 @@ break.
 
 ## [Unreleased]
 
+### Changed
+- **Declaration classification now rests on AST facts** (experiments §CC):
+  `nose_frontend::declaration_facts` derives per-line declaration/comment/code
+  facts from the tree-sitter AST (ERROR subtrees never count as declarations;
+  stray code on a declaration line poisons it), replacing the four-times-
+  hardened text line grammar (−351 lines net). The 47-row adversarial battery
+  transferred unchanged. Corpus effect: +14 families correctly classify
+  (recovered fail-open leaks: multi-line imports with trailing comments,
+  star-imports, mid-file `use` blocks); zero worthy-label cost.
+- Deferred-queue dispositions: #269 closed (synthetic-only, revisit condition
+  recorded), #270 closed (Phase-3 entry gate added to the semantic-kernel
+  roadmap: pack expansion requires a priced consumer case), #275 escalated to
+  a reproduced `--cache-dir` equivalence violation (imported-literal
+  convergence disappears under the cache; reproducer on the issue).
+
 ### Fixed
 - **Adversarial co-evolution, series 3** (experiments §CB, issue #274; method
   upgrades: executable self-verified packets, the bench/coevo packet ledger,

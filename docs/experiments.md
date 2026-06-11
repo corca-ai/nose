@@ -2006,3 +2006,50 @@ rows. Final price: **2,265 declaration families, 43 repos, 1 worthy
 span-overlap, zero reclassification** — identical through four hardening
 waves. The label-join re-price has now caught a fail-open regression in two
 consecutive series; it is a regression gate in fact, not just in name.
+
+## CC. The AST-facts migration + the deferred-queue dispositions
+
+The series-3 evaluation set three preconditions for series 4; this section
+records all three.
+
+**Wave counting cashes out: declaration classification moves onto AST facts.**
+Four hardening waves of the text line-grammar (§BY → §BZ → §CA → §CB) kept
+leaking payload-validation holes because line text approximates what the parser
+already knows. `nose_frontend::declaration_facts(ext, src)` now exposes
+per-line facts from the tree-sitter AST — declaration statements (per-language
+node kinds incl. validated CJS `require` and Ruby `require` calls), comment
+lines, and a **code-poison pass** (any named leaf outside declarations/comments
+poisons its lines, which kills `import os; evil()` shapes structurally). ERROR
+subtrees are never marked declarations, so tree-sitter's error tolerance — the
+root cause behind §CA's interior-smuggling packets — now works FOR the
+classifier instead of against it. The CLI's four-wave matcher stack (474 lines:
+seven per-language line grammars, interior/closer validation, string-argument
+helpers) is deleted; net −351 lines. **The 47-row adversarial battery carried
+over unchanged** and caught two migration bugs before any corpus run (EOF
+newline = MISSING token; node-end at column 0 over-covering the next line).
+
+**The accept-distribution pre-gate, first scheduled run.** The corpus re-price
+under the AST engine: **2,279 declaration families (+14 vs the text engine's
+2,265: py +12, java +1, rs +1), 43+ repos, worthy overlaps unchanged, zero
+worthy reclassification.** Sampled spans confirm the +14 are genuine
+recoveries of recorded-low fail-open leaks the line grammar could not express
+(multi-line imports with trailing comments and star-imports, mid-file `use`
+blocks). Verdict: pass — recall-direction diff, zero cost.
+
+**Deferred-queue dispositions.**
+- **#269 (few-huge-files serialization): closed, no-prevalence.** Synthetic-only;
+  real corpus worst cases run seconds at healthy parallelism; revisit condition
+  recorded (a real repo > 10 s in `normalize+extract` at < 200% CPU).
+- **#270 (law-provenance gating): closed, re-priced.** The three gates are each
+  sound (refuted five-for-five in §BZ); the product conclusion is a Phase-3
+  **entry gate** in the semantic-kernel roadmap: pack expansion now requires a
+  priced consumer case, not axis breadth.
+- **#275 (cache equivalence): ESCALATED from lead to reproduced violation.**
+  The discriminating input that eight black-box probes missed came from mining
+  the equivalence-test suite for a guaranteed-convergence shape: imported
+  literal binding (`from tables import LOOKUP`) vs inline literal. Cold
+  `--mode semantic`: 1 family, witness exact-value-graph; with `--cache-dir`:
+  0 families — the cached path skips `resolve_imported_immutable_bindings`.
+  Silent-miss direction; sound fix needs cross-file cache invalidation (core
+  work, reproducer attached to the issue). Method note: **the test suite is a
+  discriminating-input arsenal** — informed attackers should mine it.

@@ -203,7 +203,7 @@
    "claim": "--cache-dir scans behave identically to non-cached scans",
    "summary": "build_units_cached skips the corpus-level resolve_imported_immutable_bindings pass (frontend lib.rs:195); 6 attacker probes + 2 assessor probes (imported-binding vs literal, default and semantic modes) could NOT expose an output divergence",
    "verdict": "deferred-issue",
-   "defense": "#275 structural asymmetry, no discriminating input found"
+   "defense": "#275 ESCALATED: reproduced (cold 1 exact family vs cached 0) via a converging shape mined from equivalence.rs \u2014 the test suite as discriminating-input arsenal"
   },
   {
    "packet_id": "s3-c3-test-naming-conventions",
@@ -288,6 +288,42 @@
    "summary": "an Explore-type attacker refused the executable contract (read-only self-interpretation); re-spawned as general-purpose with /tmp-only write scope \u2014 runbook should name the agent capability requirement",
    "verdict": "violation-fixed",
    "defense": "runbook attacker-modes note (series-3 PR)"
+  },
+  {
+   "packet_id": "s4-ast-facts-migration",
+   "series": 4,
+   "campaign": "disposition",
+   "persona": "defender",
+   "mode": "escalation",
+   "surface": "decidability-filters",
+   "claim": "wave counting: a 3rd+ hardening wave demands a generalization-level escalation",
+   "summary": "four text-grammar waves replaced by nose_frontend::declaration_facts (tree-sitter node facts + code-poison pass); 474 lines of matchers deleted; the 47-row battery carried over unchanged; EOF-newline and end-column-0 over-cover caught by the battery during migration",
+   "verdict": "violation-fixed",
+   "defense": "AST-facts migration (this PR)"
+  },
+  {
+   "packet_id": "s4-disposition-269",
+   "series": 4,
+   "campaign": "disposition",
+   "persona": "assessor",
+   "mode": "re-price",
+   "surface": "performance-determinism",
+   "claim": "few-huge-files serialization is worth core work",
+   "summary": "synthetic-only; real corpus worst cases run seconds at healthy parallelism; revisit condition recorded (real repo >10s at <200% CPU)",
+   "verdict": "refuted",
+   "defense": "#269 closed with condition"
+  },
+  {
+   "packet_id": "s4-disposition-270",
+   "series": 4,
+   "campaign": "disposition",
+   "persona": "assessor",
+   "mode": "re-price",
+   "surface": "exact-channel-gates",
+   "claim": "LawPack expansion is justified by axis breadth",
+   "summary": "exact-channel law provenance is structurally measure-zero; product role = near influence + proof discipline; Phase 3+ gated on a priced consumer case (roadmap entry gate added)",
+   "verdict": "refuted",
+   "defense": "#270 closed; semantic-kernel-roadmap Phase-3 entry gate"
   }
  ]
 }

@@ -169,6 +169,20 @@ Every packet and its verdict accumulates in **`bench/coevo/packets.v1.json`**
    [eval/declaration_runs](../eval/declaration_runs/RESULTS.md) precedent); the
    zero-false-merge and determinism gates ([CONTRIBUTING](../CONTRIBUTING.md)).
 
+   **The accept-distribution pre-gate** (promoted after two consecutive catches,
+   §CA/§CB): a defense that tightens a filter ships only after the corpus
+   re-price diffs CLEAN against the currently-classified family set — the
+   defender writes validators from attack shapes and systematically under-sees
+   the accept distribution (series 2's bare-`)` closer, series 3's
+   `# noqa`/parenthesized-import drops). The 3-minute sweep runs BEFORE the
+   merge, not after it.
+
+   **Wave counting**: a surface taking its third hardening wave needs a
+   generalization-level escalation, not another wave — four waves of the
+   declaration text grammar ended in the AST-facts migration
+   (`nose_frontend::declaration_facts`), which deleted the matcher class and
+   carried the entire 47-row battery over unchanged.
+
    **Defense-deferral is a first-class verdict**: a priced packet whose sound defense
    exceeds the campaign's scope (detector-core work, new proof obligations) closes as
    `deferred: #issue` with the packet and measurement attached — series 1 produced
