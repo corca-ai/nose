@@ -321,6 +321,79 @@ fn cache_output_matches_uncached_cold_and_warm() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// #275: the cached path must reproduce cross-file imported-immutable-literal
+/// convergence. An inline `{…}.get(k)` and an `imported LOOKUP.get(k)` resolving
+/// to the same literal form one family; the old source-content cache key skipped
+/// the corpus resolve pass and under-merged. Editing the provider's literal must
+/// also bust the importer's cached entry.
+#[test]
+fn cache_reproduces_cross_file_imported_literal_resolution() {
+    let dir = std::env::temp_dir().join(format!("nose_c275_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("a")).unwrap();
+    fs::create_dir_all(dir.join("b")).unwrap();
+    fs::write(
+        dir.join("a/local.py"),
+        "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("tables.py"),
+        "LOOKUP = {\"red\": 1, \"blue\": 2}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("b/imported.py"),
+        "from tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+    let p = dir.to_str().unwrap();
+    let cache = dir.join(".cache");
+    let cd = cache.to_str().unwrap();
+    let args = |extra: &[&str]| {
+        let mut v = vec![
+            "scan",
+            p,
+            "--mode",
+            "semantic",
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "--format",
+            "json",
+            "--top",
+            "0",
+        ];
+        v.extend_from_slice(extra);
+        run(&v)
+    };
+    let fams = |out: &str| scan_families(&scan_json(out)).len();
+
+    let uncached = args(&[]);
+    let cold = args(&["--cache-dir", cd]);
+    let warm = args(&["--cache-dir", cd]);
+    assert_eq!(fams(&uncached), 1, "uncached: imported literal converges");
+    assert_eq!(uncached, cold, "cold cache must match uncached (#275)");
+    assert_eq!(cold, warm, "warm cache must match cold (#275)");
+
+    // Edit the provider's literal — the importer now resolves to a different
+    // literal and must no longer merge; the cached entry must invalidate.
+    fs::write(
+        dir.join("tables.py"),
+        "LOOKUP = {\"red\": 9, \"blue\": 2}\n",
+    )
+    .unwrap();
+    let edited_uncached = args(&[]);
+    let edited_cached = args(&["--cache-dir", cd]);
+    assert_eq!(fams(&edited_uncached), 0, "edited: literals now differ");
+    assert_eq!(
+        edited_uncached, edited_cached,
+        "cache must invalidate on provider literal change (#275)"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn fail_flag_sets_exit_code_as_ci_gate() {
     let dir = make_project("fail");

@@ -3618,19 +3618,21 @@ fn scan_report(
     detector: &dyn nose_detect::Detector,
 ) -> (nose_detect::Report, ScanScope) {
     if let Some(dir) = &args.cache_dir {
+        // Lower AND cross-file-resolve the corpus every run (the smaller half of
+        // the work, §BQ), then cache only the dominant normalize+extract step
+        // keyed on the post-resolve IL. This makes the cached scan identical to
+        // the non-cached path including imported-immutable-literal convergence
+        // (#275), which the old per-file source-content cache skipped.
+        let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
+        warn_if_empty(&corpus, &args.paths);
+        let scope = ScanScope::from_corpus(&corpus);
         let cache::CachedUnits {
             units,
             streams,
             files,
-            langs,
-        } = time_lower(|| cache::build_units_cached(refs, exclude, opts, dir));
-        if files == 0 {
-            warn_no_files(&args.paths);
-        }
-        // The cache path supplies both cached unit features and syntax streams, so every
-        // selected scan channel behaves the same as the non-cached path.
+        } = cache::build_units_cached(&corpus, opts, dir);
         let report = nose_detect::detect_from_units(units, files, &streams, opts, detector).0;
-        (report, ScanScope { files, langs })
+        (report, scope)
     } else {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
         warn_if_empty(&corpus, &args.paths);

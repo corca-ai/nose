@@ -31,7 +31,7 @@ pub mod module_facts;
 mod recursion;
 mod value_graph;
 
-pub use commutative::{node_tag, node_tag_valued, subtree_hashes};
+pub use commutative::{node_tag, node_tag_valued, subtree_hashes, valued_tree_hash};
 pub use interp::{
     behavior_has_sym, run_unit, run_unit_paths, Behavior, Value, MAX_SYM_BRANCH_SITES,
 };

@@ -12,21 +12,41 @@ use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 /// reproducible across runs despite parallel interning; canonical ids are
 /// alpha-invariant after the `alpha` pass has run.
 pub fn subtree_hashes(il: &Il, interner: &Interner) -> Vec<u64> {
+    per_node_hashes(il, interner, node_tag)
+}
+
+/// An interner-INDEPENDENT content hash of `il`'s whole tree that RETAINS literal
+/// values (via [`node_tag_valued`], unlike [`subtree_hashes`] whose `node_tag`
+/// erases them). The detection-unit cache keys on this: it is stable across runs
+/// (no interner-relative symbol ids leak in — names/literals resolve to content
+/// hashes) yet distinguishes `{…: 1}` from `{…: 9}`, so a file whose post-resolve
+/// IL changed (an inlined imported literal differs) gets a different key.
+pub fn valued_tree_hash(il: &Il, interner: &Interner) -> u64 {
+    per_node_hashes(il, interner, node_tag_valued)
+        .into_iter()
+        .fold(crate::SEED, combine)
+}
+
+/// Per-node structural hashes under a chosen `(kind, payload)` tagger. The arena
+/// is post-order (children precede parents), so one forward pass interns each
+/// node's hash from its already-computed children — the shared core of
+/// [`subtree_hashes`] (shape, value-blind) and [`valued_tree_hash`] (value-keeping).
+fn per_node_hashes(
+    il: &Il,
+    interner: &Interner,
+    tag: fn(NodeKind, Payload, &Interner) -> u64,
+) -> Vec<u64> {
     let n = il.nodes.len();
     let mut hashes = vec![0u64; n];
     for i in 0..n {
-        hashes[i] = hash_node(il, NodeId(i as u32), &hashes, interner);
+        let node = il.node(NodeId(i as u32));
+        let mut h = tag(node.kind, node.payload, interner);
+        for &c in il.children(NodeId(i as u32)) {
+            h = combine(h, hashes[c.0 as usize]);
+        }
+        hashes[i] = h;
     }
     hashes
-}
-
-fn hash_node(il: &Il, id: NodeId, hashes: &[u64], interner: &Interner) -> u64 {
-    let node = il.node(id);
-    let mut h = node_tag(node.kind, node.payload, interner);
-    for &c in il.children(id) {
-        h = combine(h, hashes[c.0 as usize]);
-    }
-    h
 }
 
 /// A discriminant for `(kind, payload)`. Canonical ids (`Cid`) contribute their

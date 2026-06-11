@@ -7,6 +7,17 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **`--cache-dir` now reproduces cross-file imported-literal convergence** (#275).
+  The cache keyed each file's units on its source bytes and lowered files
+  independently, skipping the corpus-level `resolve_imported_immutable_bindings`
+  pass — so a cached scan under-merged an `imported LOOKUP.get(k)` with an inline
+  `{…}.get(k)` that the non-cached scan converges. The cached path now lowers and
+  resolves the whole corpus every run (the smaller half of the work, §BQ) and
+  caches only the dominant normalize+extract step, keyed on an interner-independent
+  value-retaining hash of each file's **post-resolve** IL. Cached output is now
+  byte-identical to non-cached (incl. imported-literal families); editing a
+  provider's literal invalidates dependents' entries; warm-cache speedup is
+  retained (~2.2× on sympy). Cache schema bumped v7 → v8.
 - **Soundness: effectful operands of a commutative operator no longer false-merge**
   (#283 sub-finding A, experiments §CE). The value-graph canonicalizer sorted a
   commutative/AC operator's operands by structural hash, so `print(a) + print(b)`
