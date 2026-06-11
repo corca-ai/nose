@@ -52,6 +52,11 @@ decide whether the edit belongs there too, or whether the divergence is intentio
 
 This is a **candidate surfacer, not a proof**: nose tells you a sibling exists and wasn't
 touched, not that the change definitely belongs there. Review each flagged sibling.
+Measured on replayed merged PRs ([experiments §BR](experiments.md)), review fires on
+roughly a third of real changes and the top finding is a genuine missed propagation in
+~4% of fires — real catches exist (including one later fixed upstream for exactly the
+flagged reason), but treat `--fail` as an explicitly-opted, policy-tuned gate, not a
+default-on blocker, until the conservative fire policy lands.
 
 ## Flags
 

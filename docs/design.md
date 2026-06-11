@@ -113,7 +113,11 @@ Both ride the same sound core. They differ only in operating point and output co
 - **scan-json evidence richness.** The real lever for consumer 1 — make equivalence
   *explainable and actionable* in machine-readable form.
 - **`review`-as-gate.** The natural high-precision bottom-line for consumer 2; harden it past
-  v1 and define a conservative fire policy.
+  v1 and define a conservative fire policy. *Measured 2026-06-11
+  ([experiments §BR](experiments.md)): on replayed merged PRs the default arm fires on 33%
+  of changes at ~4% top-1 strict precision — real catches exist but the fire policy work
+  is mandatory before any default-on gate; half the noise is one mechanical bucket
+  (span-level overlap), the first policy lever.*
 - **Determinism** as a sacred invariant — now wanted by *both* consumers.
 
 **Keep / conditional:**
