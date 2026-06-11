@@ -6,6 +6,17 @@ break.
 
 ## [Unreleased]
 
+### Added
+- **Three sound recall rules from coevo §CE / #284** — behaviorally-equal forms
+  the exact channel now converges, each sound for ALL inputs (no type gate)
+  because the error behavior is preserved on both sides (unlike the §BA identity
+  rewrites): `abs(abs x) ≡ abs x` (idempotence), `~(a&b) ≡ ~a|~b` / `~(a|b) ≡
+  ~a&~b` (bitwise De Morgan, the bitwise twin of the algebra pass's logical
+  one), and `max(max(a,b),c) ≡ max(a,max(b,c))` (MIN/MAX flattening — they were
+  per-level commutative, now associative-flatten-eligible too; associative on
+  the ternary semantics, total even for NaN). Corpus verify unchanged (zero new
+  false merges); hard negatives lock min≠max and `~(a&b)`≠`~(a|b)`.
+
 ### Fixed
 - **Embedded `<script>` extraction (Vue/Svelte/HTML) is now context-aware** (#280,
   coevo §CE). The byte-scanner was naive `find_ci`, so five real shapes broke it:

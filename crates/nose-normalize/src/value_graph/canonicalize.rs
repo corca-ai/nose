@@ -115,6 +115,45 @@ impl<'a> Builder<'a> {
 
     fn unary_canon(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
         let ValOp::Un(o) = *op else { return None };
+        // ABS IDEMPOTENCE: `abs(abs x) → abs x` (#284). `abs` is always ≥ 0 so the
+        // outer is a no-op; on a non-orderable input both sides Err identically
+        // (the inner `abs` Errs, propagating), so it is sound for ALL inputs — no
+        // type gate. `ABS_CODE` is synthesized from a ternary by `minmax_pattern`.
+        if o == ABS_CODE && !args.is_empty() {
+            if let ValOp::Un(io) = self.nodes[args[0] as usize].op {
+                if io == ABS_CODE {
+                    return Some(args[0]);
+                }
+            }
+        }
+        // BITWISE DE MORGAN: `~(a & b) → ~a | ~b`, `~(a | b) → ~a & ~b` (#284).
+        // Two's-complement identity for all integers; on a non-integer operand
+        // `~`/`&`/`|` Err on both the original and the distributed form, so it is
+        // sound for ALL inputs. Pushing `~` inward gives a canonical form that
+        // converges `~(a&b)` with an explicit `~a | ~b`. (The LOGICAL De Morgan,
+        // over `Not`/`And`/`Or`, is handled by the `algebra` IL pass; this is its
+        // bitwise twin, which that pass never reaches.)
+        if o == Op::BitNot as u32 && !args.is_empty() {
+            if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
+                let flip = if bo == Op::BitAnd as u32 {
+                    Some(Op::BitOr as u32)
+                } else if bo == Op::BitOr as u32 {
+                    Some(Op::BitAnd as u32)
+                } else {
+                    None
+                };
+                if let Some(out_op) = flip {
+                    let inner = self.nodes[args[0] as usize].args.clone();
+                    let negated: Vec<ValueId> = inner
+                        .iter()
+                        .map(|&t| self.mk(ValOp::Un(Op::BitNot as u32), vec![t]))
+                        .collect();
+                    if negated.len() == 2 {
+                        return Some(self.mk(ValOp::Bin(out_op), negated));
+                    }
+                }
+            }
+        }
         // NEGATED COMPARISON: `!(a<=b) → a>b`, `!(a<b) → a>=b`, `!(a==b) → a!=b`, etc.
         // Sound for a total order, and on non-numeric operands both sides Err
         // (`!(Err)` propagates — see interp `un`), so the rewrite preserves behavior.

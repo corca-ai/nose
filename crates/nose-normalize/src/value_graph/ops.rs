@@ -212,11 +212,7 @@ pub(super) fn op_from_code(opc: u32) -> Option<Op> {
 }
 
 pub(super) fn is_commutative(opc: u32) -> bool {
-    is_assoc_comm_code(opc)
-        || opc == Op::Eq as u32
-        || opc == Op::Ne as u32
-        || opc == MIN_CODE
-        || opc == MAX_CODE
+    is_assoc_comm_code(opc) || opc == Op::Eq as u32 || opc == Op::Ne as u32
 }
 
 /// Coarse type of a `Const` value node from its key range (mirrors the `eval` Lit keys):
@@ -246,6 +242,14 @@ pub(super) fn is_assoc_comm_code(opc: u32) -> bool {
         || opc == Op::BitAnd as u32
         || opc == Op::BitOr as u32
         || opc == Op::BitXor as u32
+        // MIN/MAX (synthesized from ternaries by `minmax_pattern`) are
+        // associative AND commutative on the ternary semantics — for ALL inputs,
+        // including floats/NaN, because `x if x<y else y` is total (coevo §CE /
+        // #284). Flattening nested min/max converges `max(max(a,b),c)` with
+        // `max(a,max(b,c))`. They were already in `is_commutative` (per-level
+        // operand sorting); this lets the chain flatten across levels too.
+        || opc == MIN_CODE
+        || opc == MAX_CODE
 }
 
 /// `Reduce` op codes for the selection reductions (min/max). Kept clear of the small
