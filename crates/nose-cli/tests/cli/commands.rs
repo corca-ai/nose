@@ -1122,7 +1122,7 @@ fn inline_nose_ignore_suppresses_a_site() {
     fs::write(dir.join("b/f.py"), format!("# nose-ignore\n{body}")).unwrap();
     let p = dir.to_str().unwrap();
     assert!(
-        run(&["scan", p, "--min-size", "12"]).contains("0 clone"),
+        run(&["scan", p, "--min-size", "12"]).contains("no clone families found"),
         "the marked copy must be suppressed, leaving no family"
     );
     let _ = fs::remove_dir_all(&dir);
@@ -1916,6 +1916,41 @@ fn top_zero_shows_all_families() {
     assert!(
         all >= 6,
         "--top 0 should include every distinct family (expected >=6, got {all})"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_errors_on_nonexistent_path() {
+    // A typo'd path in a CI gate must fail loudly, not pass on an empty report.
+    let out = Command::new(bin())
+        .args(["scan", "/nonexistent/nose-test-path"])
+        .output()
+        .expect("run nose");
+    assert!(
+        !out.status.success(),
+        "scan on a missing path must exit non-zero"
+    );
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(
+        err.contains("path does not exist"),
+        "stderr names the problem: {err}"
+    );
+}
+
+#[test]
+fn scan_human_report_ends_with_show_hint() {
+    let dir = make_project("hint");
+    let p = dir.to_str().unwrap();
+    let plain = run(&["scan", p, "--min-size", "12"]);
+    assert!(
+        plain.contains("hint: `--show diff`"),
+        "default report points at the next step: {plain}"
+    );
+    let with_diff = run(&["scan", p, "--min-size", "12", "--show", "diff"]);
+    assert!(
+        !with_diff.contains("hint: `--show diff`"),
+        "hint disappears once a view is requested: {with_diff}"
     );
     let _ = fs::remove_dir_all(&dir);
 }

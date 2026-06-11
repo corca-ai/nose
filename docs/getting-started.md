@@ -110,10 +110,27 @@ exact same-logic clones, and fuzzy near-duplicates). Passing `--mode` replaces
 that default with exactly the channels you list — see
 [clone-types](clone-types.md) for what each one finds.
 
+## The second command: `nose review`
+
+Once a codebase has clones, the risky moment is editing one of them: a fix
+applied to one copy and missed in its siblings ships a half-fixed bug.
+`nose review` compares the working tree to a git ref and flags exactly that
+situation in your diff:
+
+```sh
+nose review                      # review uncommitted local changes (vs HEAD)
+nose review --base origin/main   # review a PR branch, e.g. in CI
+```
+
+See [review](review.md) for how findings are ranked, the conservative `--fail`
+gate policy, and CI wiring.
+
 ## Where to go next
 
 - **[usage](usage.md)** — every command and flag, the ranking keys, and the scan
   modes in full.
+- **[review](review.md)** — the git-aware companion command: catch a clone
+  changed in one copy but not its siblings.
 - **[configuration](configuration.md)** — commit a `nose.toml` so CI and teammates
   don't retype long flag lists.
 - **[continuous-integration](continuous-integration.md)** — turn a scan into a

@@ -7,6 +7,20 @@ break.
 ## [Unreleased]
 
 ### Changed
+- **CLI usability pass for first-time users.** `nose scan`, `nose review`, and
+  `nose stats` now **error on a named path that doesn't exist** (a typo'd path
+  in a CI gate must fail loudly) instead of warning and exiting 0; a path that
+  exists but contains no supported files still warns and reports an empty scan.
+  Top-level help and command descriptions were rewritten to match the current
+  default channel mix (`syntax,semantic,near`, stale since the #241 flip) and
+  mention `nose review`; the command list is ordered by user journey (`scan`,
+  `review` first) with one-line summaries (details live in each command's
+  `--help`). The human scan report prints a friendly line instead of
+  `0 clone families … (showing 0)` when nothing is found, and ends with a
+  one-line hint pointing at `--show diff`, `--show proposal`, and `--top 0`
+  when extra views weren't already requested. README and getting-started were
+  refreshed to match (quick-start sample output, `nose review` introduction).
+
 - **`nose review --fail` now fires on the conservative gate tier by default**
   (#245, experiments §BV): only findings where the diff provably touches lines
   the changed copy shares with its un-updated sibling (by the family's own

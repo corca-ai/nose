@@ -546,7 +546,7 @@ fn scan_human_hides_generated_header_families() {
         "12",
     ]);
     assert!(
-        out.contains("0 semantic clone families"),
+        out.contains("no semantic clone families found"),
         "generated-header families should not be top-level human findings: {out}"
     );
     assert!(

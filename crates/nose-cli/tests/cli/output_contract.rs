@@ -99,7 +99,7 @@ fn scan_human_hides_hidden_exact_fragments() {
         "1",
     ]);
     assert!(
-        out.contains("0 semantic clone families"),
+        out.contains("no semantic clone families found"),
         "hidden proof fragments should not be top-level human findings: {out}"
     );
     assert!(

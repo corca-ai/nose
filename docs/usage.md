@@ -55,6 +55,11 @@ families wholly inside files with generated-code headers are omitted with a shor
 count line; `--format json --top 0` keeps the post-ranking diagnostic families that
 survive rank-time pruning.
 
+A named path that doesn't exist is an error (exit non-zero) — a typo'd path in a
+CI gate must fail loudly. A path that exists but contains no supported source
+files warns on stderr and reports an empty scan. The same rule applies to
+`nose review` and `nose stats`.
+
 ### Flags
 
 Grouped by what they do. Config-backed scan defaults are listed in

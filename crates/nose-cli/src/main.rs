@@ -19,13 +19,15 @@ use std::path::PathBuf;
 #[command(
     name = "nose",
     version,
-    about = "Find code clone families across syntax, semantic, and near-duplicate channels",
-    long_about = "nose lowers each language into one normalized IL and finds duplicated code.\n\
-                  • `nose scan <paths>` — default: syntax + semantic clone families\n\
-                  • `nose scan <paths> --mode near` — opt into Type-3 near-duplicates\n\
-                  • `nose stats <paths>`    — IL lowering coverage\n\
-                  • `nose il <file>`        — inspect the IL\n\
-                  • `nose capabilities`     — machine-readable integration contract"
+    about = "Find duplicated code worth refactoring — exact, semantic (Type-4), and near-duplicate clone families",
+    long_about = "nose lowers each language into one normalized IL, groups duplicated code into\n\
+                  clone families, and ranks them by how cleanly each folds into one shared helper.\n\
+                  • `nose scan <paths>`                — find refactoring candidates (copy-paste + exact semantic + near-duplicates)\n\
+                  • `nose scan <paths> --show diff`    — also show exactly what differs inside each family\n\
+                  • `nose review --base origin/main`   — flag a change applied to one clone copy but not its siblings\n\
+                  • `nose stats <paths>`               — IL lowering coverage per language\n\
+                  • `nose il <file>`                   — inspect the IL (why two snippets do/don't converge)\n\
+                  • `nose capabilities`                — machine-readable integration contract"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -34,28 +36,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Emit the machine-readable capability contract for integrations.
-    Capabilities,
-    /// Dump the IL for a source file (inspection / debugging the transpiler).
-    Il {
-        /// Path to a source file.
-        path: PathBuf,
-        /// Output format.
-        #[arg(long, default_value = "sexpr")]
-        format: Format,
-        /// Show normalized (canonical) IL instead of raw.
-        #[arg(long)]
-        normalized: bool,
-        /// Disable control-flow normalization (ablation).
-        #[arg(long)]
-        no_cfg_norm: bool,
-    },
-    /// Validate semantic-pack v0 manifests and declared conformance fixtures.
-    #[command(name = "semantic-pack")]
-    SemanticPack {
-        #[command(subcommand)]
-        cmd: SemanticPackCmd,
-    },
     /// Research interface for raw unit clone pairs/groups.
     /// Hidden: `scan` is the user-facing command; `detect` is the strict/research
     /// and benchmark interface (`--bench-schema`, `--dump`, …).
@@ -116,8 +96,13 @@ enum Cmd {
         #[arg(long)]
         dump: Option<PathBuf>,
     },
-    /// Find clone families. Default: syntax (CPD) + exact semantic. Passing --mode
-    /// replaces that default with exactly the channels listed.
+    /// Find duplicated code and rank refactoring candidates (the everyday command).
+    ///
+    /// Scans files/directories (respecting .gitignore), groups duplicated code into
+    /// clone families, and ranks them by extractability — how cleanly each family
+    /// folds into one shared helper. Default channels: `syntax,semantic,near`
+    /// (copy-paste runs + exact semantic Type-4 + fuzzy near-duplicates). Passing
+    /// --mode replaces that default with exactly the channels listed.
     Scan {
         /// Paths to source files or directories (recursively scanned).
         #[arg(required = true)]
@@ -202,9 +187,12 @@ enum Cmd {
         #[arg(long, hide = true)]
         min_lines: Option<u32>,
     },
-    /// Flag clone families changed inconsistently in a diff: a copy was edited but its
-    /// sibling clones were not — a likely un-propagated change. Needs a git repository.
-    /// e.g. `nose review --base origin/main` in CI, or `nose review` for local changes.
+    /// Flag a change applied to one clone copy but not its siblings (PR/CI check).
+    ///
+    /// Compares the working tree to a git ref and reports clone families changed
+    /// inconsistently in that diff: a copy was edited but its sibling clones were
+    /// not — a likely un-propagated change. Needs a git repository. e.g.
+    /// `nose review --base origin/main` in CI, or `nose review` for local changes.
     Review {
         /// Paths to scan (recursively). Defaults to the current directory.
         paths: Vec<PathBuf>,
@@ -297,6 +285,28 @@ enum Cmd {
         #[arg(long)]
         json: bool,
     },
+    /// Dump the IL for a source file — debug why two snippets do or don't converge.
+    Il {
+        /// Path to a source file.
+        path: PathBuf,
+        /// Output format.
+        #[arg(long, default_value = "sexpr")]
+        format: Format,
+        /// Show normalized (canonical) IL instead of raw.
+        #[arg(long)]
+        normalized: bool,
+        /// Disable control-flow normalization (ablation).
+        #[arg(long)]
+        no_cfg_norm: bool,
+    },
+    /// Emit the machine-readable capability contract for integrations.
+    Capabilities,
+    /// Validate semantic-pack v0 manifests and declared conformance fixtures.
+    #[command(name = "semantic-pack")]
+    SemanticPack {
+        #[command(subcommand)]
+        cmd: SemanticPackCmd,
+    },
     /// Dump per-unit detection features (value-graph / shape / return fingerprints)
     /// as JSON — the raw signal, before candidate generation or thresholding. Lets a
     /// convergence evaluator measure representation-convergence and behavioral-separation
@@ -358,12 +368,13 @@ enum Cmd {
         #[arg(long)]
         exclusion_census: Option<PathBuf>,
     },
-    /// EXPERIMENT (leaps 2+3): measure a behavioral-equivalence ACCEPTANCE gate — group
-    /// interpretable units by their behavior on an input battery (two units are
-    /// "accepted" iff identical on every input) and, against a Type-4 manifest, report
-    /// the recall it recovers BEYOND exact-fingerprint matching and the hard-negative
-    /// false merges it would introduce. `--battery wide` is the leap-3 bounded checker
-    /// (a much larger structured input domain — does more checking kill the false merges?).
+    /// EXPERIMENTAL Type-4 benchmark harness (research tool, not a stable interface).
+    ///
+    /// Measures a behavioral-equivalence ACCEPTANCE gate: groups interpretable units
+    /// by their behavior on an input battery (two units are "accepted" iff identical
+    /// on every input) and, against a Type-4 manifest, reports the recall it recovers
+    /// BEYOND exact-fingerprint matching and the hard-negative false merges it would
+    /// introduce. `--battery wide` is the larger bounded input domain.
     BehavioralGate {
         /// Path to the generated Type-4 corpus `sources/` directory.
         #[arg(required = true)]
@@ -1620,6 +1631,7 @@ fn run_scan_cmd(cmd: Cmd) -> Result<()> {
     else {
         unreachable!("run_scan_cmd requires Cmd::Scan")
     };
+    require_paths_exist(&paths)?;
     cmd_scan(ScanArgs {
         paths,
         top,
@@ -1665,6 +1677,7 @@ fn run_review_cmd(cmd: Cmd) -> Result<()> {
     } else {
         paths
     };
+    require_paths_exist(&paths)?;
     review::cmd_review(review::ReviewArgs {
         paths,
         base,
@@ -3109,6 +3122,7 @@ fn cmd_eval(
 }
 
 fn cmd_stats(paths: Vec<PathBuf>, top: usize, json: bool) -> Result<()> {
+    require_paths_exist(&paths)?;
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
@@ -3321,6 +3335,21 @@ fn relativize_loc(loc: &mut nose_detect::Loc, cwd: &std::path::Path) {
 
 /// Stderr notice that discovery found nothing — so a mistyped path or unsupported
 /// tree doesn't masquerade as "no duplication found".
+/// A named path that doesn't exist is a usage error, not an empty scan: a typo'd
+/// path in a CI gate must fail loudly instead of passing on a 0-file report.
+/// "Exists but contains no supported files" stays a warning (`warn_no_files`).
+fn require_paths_exist(paths: &[PathBuf]) -> Result<()> {
+    let missing: Vec<String> = paths
+        .iter()
+        .filter(|p| !p.exists())
+        .map(|p| p.display().to_string())
+        .collect();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    anyhow::bail!("path does not exist: {}", missing.join(", "))
+}
+
 fn warn_no_files(paths: &[PathBuf]) {
     let joined = paths
         .iter()
@@ -4073,6 +4102,16 @@ fn print_refactor_human(
     proposal: bool,
     omitted_note: Option<&str>,
 ) {
+    if all.is_empty() {
+        println!(
+            "no {} found — nothing above the reporting thresholds",
+            mode.report_label(0)
+        );
+        if let Some(note) = omitted_note {
+            println!("{note}");
+        }
+        return;
+    }
     println!(
         "{} {}, ranked by {}  ·  ~{} duplicated lines  (showing {})",
         all.len(),
@@ -4128,6 +4167,14 @@ fn print_refactor_human(
         if proposal && f.locations.len() >= 2 {
             print_member_proposal(&f.locations[0], &f.locations[1], f.locations.len());
         }
+    }
+    // Discoverability: the report's natural next steps, shown once a real report
+    // exists and only when no extra view was already requested.
+    if !shown.is_empty() && !diff && !proposal {
+        println!(
+            "\nhint: `--show diff` shows what differs inside each family · `--show proposal` \
+             drafts the extraction · `--top 0` lists every family"
+        );
     }
 }
 
