@@ -1861,3 +1861,71 @@ measured campaign costs. Series wall-clock: ~70 minutes of agent time for five
 campaigns (C1 ~12, C2 ~8, C3 ~15, C4 ~20, C5 ~6, recording ~10), plus ~3 min per
 corpus re-price sweep and 23 s per full e2e suite run — cheap enough to run per
 release.
+
+## CA. Adversarial co-evolution, series 2 — fresh subagent attackers (blind/informed/personas)
+
+Second runbook execution (#272), first under the series-2 **attacker modes**: five
+fresh-context subagents — no authoring history, blind ones denied the test suite —
+with persona rotation (grammar lawyer, adversarial reviewer, coverage auditor,
+CI-gate skeptic, docs-vs-code auditor). The author stayed assessor/defender only.
+The mode change paid for itself in round one.
+
+**S2-C1 (blind, grammar lawyer → declaration matchers).** The fresh attacker found
+the class the author's two passes missed: **open multi-line declarations consumed
+interior lines unvalidated**, and closers were suffix checks (`os.Exit(1))` "closes"
+a Go import block; `} || x();` "closes" a JS import; `require 'fs' + 1` rides
+arithmetic on a Ruby require; `#include <stdio.h> int x = 1;` rides a definition on
+a directive). The author's series-1 assumption — "in code that parsed, only
+specifiers can occur inside an open declaration" — is void because tree-sitter is
+error-tolerant: parse success does not certify interior content. Defense, third
+wave of the same generalization: **interior lines must validate as specifiers
+per-language, closers must match strict shapes exactly, and trailing arguments
+(C includes, Ruby requires) must be lone string literals**. Five new violation
+packets locked as fail-open tests. Two fail-open leaks (Python docstrings,
+multi-line block comments inside spans) priced LOW — they require *identical*
+comments in both members — and recorded, not defended.
+
+**S2-C2 (blind, adversarial reviewer → grouping/hints).** One priced hit: the
+"call the existing helper" early return **bypassed the high-parameter caution** —
+a copy diverging from the helper at 8 spots got unqualified advice. Fixed; caution
+now rides the helper hint. Refuted/recorded: identical-span double families and
+repeated in-family locations (upstream invariants), transitive chaining (accepted
+in §BZ), helper visibility (judgment-axis → consumer), witness-kind future-proofing
+(closed set, verified by S2-C5).
+
+**S2-C3 (informed, coverage auditor → the declaration battery).** 15 gaps ranked;
+7 adopted as fixture rows the code supported but no test locked: `pub(crate) use`,
+single-line aliased Go import, single-line `from X import Y`, `require('json')`,
+`#include<no-space>`, `import{` no-space, and the ASI multi-line import closing
+without a semicolon. The informed attacker also confirmed the `no`-table's
+asymmetries were intentional. (Multilingual e2e flagged as the one structural gap;
+deferred — unit rows cover matcher logic, one e2e covers the pipeline.)
+
+**S2-C4 (blind, CI-gate skeptic → review --fail).** Ten packets, **zero
+violations**: every aggressive configuration traced to a sound fail-closed branch
+(capped varying-spot lists refuse to prove; first-sibling selection can only
+under-fire; insertion boundary arithmetic correct at the edges). Two
+conservative-direction notes recorded (sibling-selection incompleteness, spot-cap
+misses) — both consistent with "fires on proof, never on absence of one".
+
+**S2-C5 (blind, docs-vs-code → scan JSON contract).** Contract verified exhaustively
+in both directions: zero undocumented emissions, zero documented-but-missing fields,
+invariants hold (counts sum, `overlap_primary_id` slices-only, witness kinds exact).
+One stale artifact: the checked-in v1 example fixture lacked `declaration: 0` and
+the contract checker didn't require it — fixture refreshed, checker now asserts
+`generated` and `declaration` keys.
+
+**Corpus price** — and the assessor catching the defender: the first re-price
+after tightening came back 2,261 (py 254 → 250). The bare-`)` strict closer had
+broken a real Python idiom — parenthesized imports whose final names share the
+closing line (`    Mapping)`) — a fail-open regression the synthetic battery
+missed and the corpus instrument caught. Closer refined to "module-list + `)`"
+and locked as a fixture row; final price: **2,265 declaration families, 43
+repos, 1 worthy span-overlap, zero reclassification** — identical to series 1.
+Three waves of hardening, zero recall cost, and one demonstration that the
+label-join re-price is a regression gate, not a formality. **Mode verdict**: blind subagents found
+a class two authored passes missed (the isolation works); the informed auditor
+produced complementary coverage, not duplicates (keep the modes separate); the
+docs-vs-code persona returned green at near-zero cost (cheap to keep in rotation).
+Series wall-clock ~50 min: 5 parallel attackers ~8 min, assessment+defense ~30 min,
+recording ~10 min.
