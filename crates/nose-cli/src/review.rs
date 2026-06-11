@@ -71,7 +71,13 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
     )?;
     let changed = git_changed_ranges(&root, &args.base, &args.paths)?;
     if changed.is_empty() {
-        println!("no changes vs `{}` — nothing to review.", args.base);
+        // Nothing reviewable (e.g. an adds-only diff), but the machine formats
+        // must still emit their contract — a JSON consumer parses stdout.
+        match args.format {
+            ReportFormat::Json => println!("{}", review_json(&[], &args.base, 0)?),
+            ReportFormat::Sarif => println!("{}", review_sarif(&[])?),
+            _ => println!("no changes vs `{}` — nothing to review.", args.base),
+        }
         return Ok(());
     }
 

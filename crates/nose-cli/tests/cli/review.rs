@@ -262,3 +262,25 @@ fn c_u16_byte_pack_recognized_in_either_operand_order() {
     );
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn review_machine_formats_emit_json_when_nothing_to_review() {
+    let dir = make_project("review_empty_json");
+    init_git_repo(&dir);
+    // No working-tree changes vs HEAD: review has nothing to flag, but the
+    // machine formats must still print their contract, not a human sentence.
+    let out = nose_review(&dir, &["--format", "json"]);
+    assert!(out.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout)
+        .expect("--format json must emit JSON even with no reviewable changes");
+    assert_eq!(json["inconsistent_families"], 0);
+    assert_eq!(json["findings"].as_array().map(Vec::len), Some(0));
+    assert_eq!(json["changed_files"], 0);
+
+    let sarif = nose_review(&dir, &["--format", "sarif"]);
+    assert!(sarif.status.success());
+    let doc: serde_json::Value = serde_json::from_slice(&sarif.stdout)
+        .expect("--format sarif must emit JSON even with no reviewable changes");
+    assert!(doc["runs"].is_array(), "sarif keeps its runs envelope");
+    let _ = fs::remove_dir_all(&dir);
+}

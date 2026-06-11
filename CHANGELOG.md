@@ -36,6 +36,10 @@ break.
   `ValueFingerprintContext`.
 
 ### Fixed
+- `nose review --format json|sarif` now emits its machine contract (an empty
+  findings envelope) instead of a human sentence when the diff has nothing
+  reviewable — e.g. an adds-only change. Found by the #243 fire-precision
+  replay: a JSON consumer parsing review stdout broke on exactly those PRs.
 - Rust units inside an inline `#[cfg(test)] mod tests` now classify as test
   scope (the path+name heuristic tagged them `prod`, distorting triage — the
   #216 audit's alacritty family). Locations carry `in_test_module` in scan
