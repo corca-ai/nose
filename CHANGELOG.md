@@ -7,6 +7,19 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **JS int32 bitwise no longer false-merges with arbitrary-precision bitwise** (#283-D).
+  JS-family languages coerce every bitwise operand to int32 (`a & b` is
+  `ToInt32(a) & ToInt32(b)`, the result an int32); Python/Ruby bitwise is
+  arbitrary-precision. They differ outside int32 range (`2^40 & 2^40` is `0` in JS,
+  `2^40` in Python), so one `Bin(BitAnd)` for both was a confirmed active false merge
+  the i64 oracle was blind to. The value graph now wraps the **leaf** operands of a JS
+  `& | ^ ~` expression in a `ToInt32` narrowing node: the fingerprint differs from
+  arbitrary-precision bitwise (merge closed), while wrapping only leaves keeps the op
+  structure intact so the De Morgan (#284) and idempotence (#283-B) canons still fire
+  over int32. Within JS, `a&b` still commutes with `b&a`. Zero corpus recall change
+  (4294 → 4294 families); `nose verify` SOUND. Shifts (`<< >> >>>`) and the IL-interpreter
+  int32 modeling (restoring the oracle's safety net) are deferred follow-ups; see
+  `docs/oracle-value-model.md` §3.2.
 - **Untyped `a + b` no longer false-merges with `b + a`** (#283-C). `+` *commutes* only
   for numbers — for strings/lists it is *ordered* concat (`"x"+"y" ≠ "y"+"x"`). The
   detector reordered `+` operands whenever neither was *proven* a string/list, which for

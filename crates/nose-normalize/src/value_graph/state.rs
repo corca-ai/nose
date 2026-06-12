@@ -98,6 +98,9 @@ impl<'a> Builder<'a> {
             // A unary op whose result is numeric ONLY when its operand is (`Neg`, `~`,
             // `abs`): recurse so the proof bottoms out at a genuine leaf, never at an
             // optimistic param domain.
+            // `ToInt32` ALWAYS yields a number (it coerces, never Errs), regardless of its
+            // operand; `abs`/`Neg`/`~` are numeric only when their operand is.
+            ValOp::Un(o) if o == TO_INT32_CODE => true,
             ValOp::Un(o) => {
                 (o == ABS_CODE || matches!(op_from_code(o), Some(Op::Neg | Op::BitNot)))
                     && self.nodes[v as usize]
@@ -106,6 +109,31 @@ impl<'a> Builder<'a> {
                         .is_some_and(|&a| self.proven_numeric(a))
             }
             _ => false,
+        }
+    }
+
+    /// Whether `v` is already an int32-valued node — a JS-family bitwise result (its result
+    /// is int32) or an existing `ToInt32`. Such a value needs no further narrowing when it
+    /// feeds another bitwise op, which keeps the wrap to the LEAF operands only (#283-D).
+    pub(super) fn is_int32_valued(&self, v: ValueId) -> bool {
+        match self.nodes[v as usize].op {
+            ValOp::Un(o) => o == TO_INT32_CODE || matches!(op_from_code(o), Some(Op::BitNot)),
+            ValOp::Bin(o) => matches!(
+                op_from_code(o),
+                Some(Op::BitAnd | Op::BitOr | Op::BitXor | Op::Shl | Op::Shr)
+            ),
+            _ => false,
+        }
+    }
+
+    /// Wrap a JS-family bitwise operand in `ToInt32` (the coercion every JS bitwise operator
+    /// applies), unless it is already int32-valued. A no-op for non-JS languages, whose
+    /// bitwise ops are arbitrary-precision (`Python`/`Ruby`) or type-width. #283-D.
+    pub(super) fn js_int32_narrow(&mut self, v: ValueId) -> ValueId {
+        if self.is_js_like_lang() && !self.is_int32_valued(v) {
+            self.mk(ValOp::Un(TO_INT32_CODE), vec![v])
+        } else {
+            v
         }
     }
 
@@ -193,7 +221,7 @@ impl<'a> Builder<'a> {
                 }
             }
             ValOp::Un(o) => {
-                if *o == ABS_CODE {
+                if *o == ABS_CODE || *o == TO_INT32_CODE {
                     ValueDomain::Number
                 } else if let Some(op) = op_from_code(*o) {
                     operators.unary_result_domain(op)
