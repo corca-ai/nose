@@ -348,6 +348,7 @@ existing pure helper inline instead of calling it. One entry per finding:
 | `container_start_line` / `container_end_line` | integer | The container's source range. |
 | `site_start_line` / `site_end_line` | integer | Lines INSIDE the container where the helper's computation lives (falls back to the container range when the matched node carries no span). |
 | `site_approximate` | boolean | The site is the whole-container fallback (the match is a synthesized loop fold with no precise span); the helper's computation is a sub-part of those lines, so do not mechanically replace the exact range. |
+| `container_in_test` | boolean | The container is a test file. Such findings are judgment-deep (a test asserting the helper's value as a literal is circular to "fix") and are excluded from the bare-default human surface, but kept here and under `--show reinvented`. |
 | `weight` | integer | Value-graph size of the matched computation — the ranking key. |
 
 The claim is exact-grade (both units pass the strict exact gate; the match is a

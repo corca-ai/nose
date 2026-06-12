@@ -33,7 +33,8 @@ You want to *run* nose on a codebase and act on what it finds.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, modes, ranking, thresholds, and structured-ignore defaults.
 - [continuous-integration](continuous-integration.md) — the `--fail-on any` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
 - [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.
-- [reinvented-helpers](reinvented-helpers.md) — the experimental containment channel: code that reimplements an existing pure helper inline instead of calling it.
+- [reinvented-helpers](reinvented-helpers.md) — the containment channel: code that reimplements an existing pure helper inline instead of calling it.
+- [reinvented-helper-audit-2026-06-13](reinvented-helper-audit-2026-06-13.md) — the hand-labeled field audit that promoted the reinvented-helper channel to the default surface.
 - [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
 - [languages](languages.md) — the supported languages and the embedded `<script>` extraction for Vue/Svelte/HTML.
 

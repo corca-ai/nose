@@ -6,6 +6,15 @@ break.
 
 ## [Unreleased]
 
+### Changed
+- **The reinvented-helper channel is promoted to the default surface.** A hand-labeled
+  [field audit](docs/reinvented-helper-audit-2026-06-13.md) of all 17 corpus findings
+  measured 94% genuine value-duplications and 71% directly actionable (non-test); the
+  bare `nose scan` report now LISTS the non-test findings instead of a one-line count.
+  Test-container findings (`container_in_test` — where "calling the helper" would make a
+  test circular) are a decidable judgment-deep class (§2b), excluded from the default but
+  kept under `--show reinvented` and in the additive JSON.
+
 ### Fixed
 - **String-literal `+` no longer commutes** (#308). A string literal's value-graph `Const`
   key carried its content hash via `0x2000_0000.wrapping_add(h)`, which for a high-bit hash

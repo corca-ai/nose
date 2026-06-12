@@ -3849,29 +3849,27 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
     Ok(())
 }
 
-/// The reinvented-helper section of the human report. The default surface stays a
-/// one-line count (the finding class is new and its field precision is still being
-/// measured — design §2c); `--show reinvented` lists every finding.
+/// How many reinvented-helper findings the bare default surface lists before collapsing
+/// the rest into a "+N more" line — kept short so the section stays a focused aid.
+const REINVENTED_DEFAULT_LIMIT: usize = 5;
+
+/// The reinvented-helper section of the human report. Promoted to the bare-default
+/// surface after a field audit (docs/reinvented-helper-audit-2026-06-13.md): of 17 corpus
+/// findings, ~13/14 non-test ones were genuine value-duplications and ~10 directly
+/// actionable, while the non-actionable noise was dominated by TEST-container findings
+/// (a test asserts the helper's value as a literal — calling it would be circular). So
+/// the default lists the non-test findings (top by weight) and excludes test-container
+/// ones (§2b decidable classification); `--show reinvented` lists EVERY finding.
 fn print_reinvented_helpers(reinvented: &[nose_detect::ReinventedHelper], show: bool) {
     if reinvented.is_empty() {
         return;
     }
-    if !show {
-        println!(
-            "\n{} reinvented-helper finding{} (code that reimplements an existing pure helper inline) · `--show reinvented` lists them",
-            reinvented.len(),
-            if reinvented.len() == 1 { "" } else { "s" },
-        );
-        return;
-    }
-    println!(
-        "\nreinvented helpers — call the existing helper instead (exact matches, experimental):"
-    );
-    for r in reinvented {
+    let print_one = |r: &nose_detect::ReinventedHelper| {
         let helper_name = r.helper_name.as_deref().unwrap_or("-");
         let container_name = r.container_name.as_deref().unwrap_or("-");
+        let approx = if r.site_approximate { " ~approx" } else { "" };
         println!(
-            "  {}:{}-{}  {}  reimplements  {}:{}-{}  {}  (lines {}-{}, ~{} value nodes)",
+            "  {}:{}-{}  {}  reimplements  {}:{}-{}  {}  (lines {}-{}{}, ~{} value nodes)",
             r.container_file,
             r.container_start_line,
             r.container_end_line,
@@ -3882,8 +3880,44 @@ fn print_reinvented_helpers(reinvented: &[nose_detect::ReinventedHelper], show: 
             helper_name,
             r.site_start_line,
             r.site_end_line,
+            approx,
             r.weight,
         );
+    };
+    if show {
+        println!(
+            "\nreinvented helpers — call the existing helper instead (exact matches, experimental):"
+        );
+        for r in reinvented {
+            print_one(r);
+        }
+        return;
+    }
+    // Default surface: non-test findings only, top by weight (already sorted).
+    let shown: Vec<&nose_detect::ReinventedHelper> =
+        reinvented.iter().filter(|r| !r.container_in_test).collect();
+    let test_count = reinvented.len() - shown.len();
+    if shown.is_empty() {
+        println!(
+            "\n{test_count} reinvented-helper finding{} in test code · `--show reinvented` lists them",
+            if test_count == 1 { "" } else { "s" },
+        );
+        return;
+    }
+    println!("\nreinvented helpers — code that reimplements an existing helper; call it instead:");
+    for r in shown.iter().take(REINVENTED_DEFAULT_LIMIT) {
+        print_one(r);
+    }
+    let hidden = shown.len().saturating_sub(REINVENTED_DEFAULT_LIMIT);
+    if hidden > 0 || test_count > 0 {
+        let mut parts = Vec::new();
+        if hidden > 0 {
+            parts.push(format!("{hidden} more"));
+        }
+        if test_count > 0 {
+            parts.push(format!("{test_count} in test code"));
+        }
+        println!("  … {} · `--show reinvented` lists all", parts.join(", "));
     }
 }
 

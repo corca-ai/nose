@@ -734,6 +734,12 @@ pub struct ReinventedHelper {
     /// computation beyond the helper's. Consumers must not mechanically replace these
     /// exact lines (coevo series 6, S3-1).
     pub site_approximate: bool,
+    /// The container is a TEST file. Such findings are judgment-deep (§2b): the
+    /// "reinvention" is often intentional — a test asserts the helper's expected value as
+    /// a literal (calling it would be circular), or duplicates fixture setup. Kept in
+    /// `--show reinvented` / JSON, excluded from the bare-default surface; a field audit
+    /// (2026-06-13) measured them as the dominant non-actionable class.
+    pub container_in_test: bool,
     /// Value-graph size of the reinvented computation — the ranking key.
     pub weight: u32,
 }
@@ -842,6 +848,7 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
                 site_start_line: site_start,
                 site_end_line: site_end,
                 site_approximate,
+                container_in_test: report::is_test_path(&c.path),
                 weight: anchor.weight,
             });
         }

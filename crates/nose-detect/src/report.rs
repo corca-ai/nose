@@ -368,9 +368,13 @@ fn spread(files: usize, modules: usize, languages: usize) -> f64 {
 /// display context plus the opt-in `--scope` filter, never a worthiness input.
 /// Public so presentation layers can scope-guard per-location advice (e.g. never
 /// recommend calling a test helper from production copies).
-pub fn is_test_loc(l: &Loc) -> bool {
-    let p = l.file.to_ascii_lowercase();
-    let path_test = p.contains("/test/")
+/// Whether a file PATH is test code, by the well-known conventions (a `/test(s)/` or
+/// `/spec/` or `/__tests__/` directory, a `_test.go` / `conftest.py` / `.test.` /
+/// `.spec.` file, or a `test_`-prefixed stem). Path-only — the [`is_test_loc`] superset
+/// also consults the unit name and the inline-test-module flag.
+pub(crate) fn is_test_path(file: &str) -> bool {
+    let p = file.to_ascii_lowercase();
+    p.contains("/test/")
         || p.contains("/tests/")
         || p.contains("/__tests__/")
         || p.contains("/spec/")
@@ -381,12 +385,15 @@ pub fn is_test_loc(l: &Loc) -> bool {
         || ["_test.", ".test.", ".spec.", "_spec."]
             .iter()
             .any(|m| p.contains(m))
-        || file_stem(&p).starts_with("test_");
+        || file_stem(&p).starts_with("test_")
+}
+
+pub fn is_test_loc(l: &Loc) -> bool {
     let name_test = l
         .name
         .as_deref()
         .is_some_and(|n| n.starts_with("Test") || n.starts_with("test_"));
-    path_test || name_test || l.in_test_module
+    is_test_path(&l.file) || name_test || l.in_test_module
 }
 
 fn file_stem(path: &str) -> &str {

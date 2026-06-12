@@ -7663,3 +7663,52 @@ fn string_literal_plus_does_not_commute_issue_308() {
         "numeric `+` still commutes — the string fix must not regress it",
     );
 }
+
+#[test]
+fn reinvented_helper_flags_test_container_for_default_exclusion() {
+    // The promotion field audit (2026-06-13) excludes test-container findings from the
+    // bare-default surface (a test asserting the helper's value as a literal is circular
+    // to "fix"). The `container_in_test` flag drives that — set when the container file
+    // is a test path, regardless of the helper's location.
+    let i = Interner::new();
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    let helper = "function big(x, y) {\n    return ((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))\n}\n";
+    let reinventor = "function manual(x, y) {\n    return (((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))) * 7\n}\n";
+    let run = |container_path: &str| -> Option<bool> {
+        let il0 = nose_frontend::lower_source(
+            FileId(0),
+            "helper.js",
+            helper.as_bytes(),
+            Lang::JavaScript,
+            &i,
+        )
+        .unwrap();
+        let il1 = nose_frontend::lower_source(
+            FileId(1),
+            container_path,
+            reinventor.as_bytes(),
+            Lang::JavaScript,
+            &i,
+        )
+        .unwrap();
+        let mut units = nose_detect::units_of_file(&il0, &i, &opts);
+        units.extend(nose_detect::units_of_file(&il1, &i, &opts));
+        nose_detect::reinvented_helpers(&units)
+            .first()
+            .map(|f| f.container_in_test)
+    };
+    assert_eq!(
+        run("src/math.js"),
+        Some(false),
+        "a prod-path container is not flagged in_test"
+    );
+    assert_eq!(
+        run("test/math.test.js"),
+        Some(true),
+        "a test-path container is flagged in_test"
+    );
+}

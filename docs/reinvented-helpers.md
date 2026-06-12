@@ -49,10 +49,13 @@ Two exclusions keep the surface honest:
 
 ## Surface
 
-- **Human report**: a one-line count after the family report; `--show reinvented`
-  lists every finding. The default surface stays a count because the class is new and
-  its field precision is freshly measured, per
-  [design §2c](design.md) — promotion follows the labelset discipline.
+- **Human report**: the default report LISTS the non-test findings (top by weight) —
+  promoted from a one-line count after a [field audit](reinvented-helper-audit-2026-06-13.md)
+  measured them at 94% genuine value-duplications / 71% directly actionable (design §2c).
+  Findings whose CONTAINER is a test file (`container_in_test`) are a decidable
+  judgment-deep class (§2b) — a test asserting the helper's value as a literal would be
+  circular to "fix" — so they are excluded from the default and shown only by
+  `--show reinvented`, which lists every finding.
 - **Scan JSON**: an additive `reinvented_helpers` array (omitted when empty) — see
   [scan-json](scan-json.md#reinvented-helpers).
 - The container being a test file or vendored code is *judgment-deep* non-action
