@@ -9,6 +9,7 @@ use super::*;
 
 impl<'a> Builder<'a> {
     pub(super) fn mk(&mut self, mut op: ValOp, mut args: Vec<ValueId>) -> ValueId {
+        self.commute_numeric_reduce_contrib(&op, &mut args);
         self.order_bin_operands(&mut op, &mut args);
         if let Some(v) = self.u16_byte_pack(&op, &args) {
             return v;
@@ -363,20 +364,78 @@ impl<'a> Builder<'a> {
     // synthesized here). Sound: any operand permutation of an AC chain is denotation-
     // preserving (`normalize.value_graph.algebra`). String/list `+` is NOT reordered
     // (it is ordered concat); `* & | ^` Err on non-numeric regardless of order.
+    /// A `Reduce(Add)` (a `sum`) forces its elements numeric — `sum` of non-numbers Errs
+    /// in EVERY order — so the per-element contribution's top-level `+` is numeric here and
+    /// may be commuted even when its operands are not context-free provable as non-concat:
+    /// `sum(x+y for …)` equals `sum(y+x for …)` (numeric-equal, or both Err). Sorting the
+    /// contribution's `+` operands at the point the reduction is built recovers the
+    /// generator ≡ loop ≡ `reduce` cross-form convergence (a core Type-4 case) that the
+    /// context-free `+` gate (#283-C) would otherwise split. Sound by the Reduce(Add)
+    /// numeric context, not a context-free claim — so it lives here, not in `proven_non_concat`.
+    fn commute_numeric_reduce_contrib(&mut self, op: &ValOp, args: &mut [ValueId]) {
+        let ValOp::Reduce(o) = *op else { return };
+        if o != Op::Add as u32 || args.is_empty() {
+            return;
+        }
+        // The element contribution is the last arg (`[init, contrib]` or `[contrib]`); the
+        // optional seed in slot 0 is left alone.
+        let idx = args.len() - 1;
+        args[idx] = self.commute_add_in_numeric_context(args[idx]);
+    }
+
+    /// Sort the operands of a top-level `+` known numeric by its enclosing `Reduce(Add)`,
+    /// recursing through the `Phi(cond, contrib, identity)` a FILTERED reduction builds
+    /// (`sum(x+y for … if g)`) so the guarded `x+y` is reached too. The guard condition
+    /// (slot 0) is untouched.
+    fn commute_add_in_numeric_context(&mut self, v: ValueId) -> ValueId {
+        match self.nodes[v as usize].op {
+            ValOp::Bin(b) if b == Op::Add as u32 => {
+                let mut leaves = Vec::new();
+                self.flatten_into(v, b, &mut leaves);
+                if leaves.len() >= 2 && leaves.iter().all(|&l| self.reorder_safe(l)) {
+                    leaves.sort_unstable_by_key(|&l| self.vhash[l as usize]);
+                    self.intern_ac_chain(b, &leaves)
+                } else {
+                    v
+                }
+            }
+            ValOp::Phi => {
+                let a = self.nodes[v as usize].args.clone();
+                if a.len() == 3 {
+                    let then_branch = self.commute_add_in_numeric_context(a[1]);
+                    let else_branch = self.commute_add_in_numeric_context(a[2]);
+                    if then_branch != a[1] || else_branch != a[2] {
+                        return self.mk(ValOp::Phi, vec![a[0], then_branch, else_branch]);
+                    }
+                }
+                v
+            }
+            _ => v,
+        }
+    }
+
     fn ac_chain_canon(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
         let ValOp::Bin(o) = *op else { return None };
         if is_assoc_comm_code(o) && args.len() == 2 {
-            let concat = o == Op::Add as u32
-                && !self.add_values_not_concat(ValueLaw::AddAssociativity, args);
-            if !concat {
-                let mut leaves = Vec::new();
-                for &a in args {
-                    self.flatten_into(a, o, &mut leaves);
-                }
-                if leaves.len() > 2 && leaves.iter().all(|&v| self.reorder_safe(v)) {
+            let mut leaves = Vec::new();
+            for &a in args {
+                self.flatten_into(a, o, &mut leaves);
+            }
+            if leaves.len() > 2 && leaves.iter().all(|&v| self.reorder_safe(v)) {
+                // ASSOCIATIVITY — re-grouping a flat chain into one canonical left-leaning
+                // shape — is sound for ALL types, string/list concat included
+                // (`"a"+"b"+"c"` is `"abc"` however parenthesized). So ALWAYS flatten and
+                // rebuild, converging `(a+b)+c` with `a+(b+c)` even for untyped params.
+                // COMMUTATIVITY — sorting the operands — is the part gated on non-concat
+                // (#283-C): apply it for every AC op except a concat-possible `+`, so
+                // `c+(a+b)` (a reorder) stays distinct from `(a+b)+c` for untyped operands
+                // while numeric/typed sums still fully canonicalize.
+                let commute = o != Op::Add as u32
+                    || self.add_values_not_concat(ValueLaw::AddCommutativity, &leaves);
+                if commute {
                     leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
-                    return Some(self.intern_ac_chain(o, &leaves));
                 }
+                return Some(self.intern_ac_chain(o, &leaves));
             }
         }
         None

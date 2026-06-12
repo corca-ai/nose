@@ -7,6 +7,31 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Untyped `a + b` no longer false-merges with `b + a`** (#283-C). `+` *commutes* only
+  for numbers — for strings/lists it is *ordered* concat (`"x"+"y" ≠ "y"+"x"`). The
+  detector reordered `+` operands whenever neither was *proven* a string/list, which for
+  an untyped param is optimistic. The fix, in three precise pieces:
+  - The verify oracle already models strings as an order-sensitive free monoid, but its
+    input battery never fed two distinct strings to two params at once, so it read SOUND
+    while the merge was live — the battery now has order-sensitivity rows (#294) and the
+    oracle witnesses it.
+  - The `+`-COMMUTATIVITY gate (`add_values_not_concat`) now requires **at least one**
+    operand to be `proven_non_concat` (genuine evidence it is never a string/list — never
+    the optimistic inference, the #283-B channel). That is the exact sound condition: if
+    one operand is numeric then any other either commutes or hits `num + str → Err` in
+    every order. So `x + 4`, `x*x + y*y`, and any sum touching a number still commute;
+    only `a + b` with two concat-possible operands stays ordered.
+  - `+`-ASSOCIATIVITY (`(a+b)+c ≡ a+(b+c)`) is sound for ALL types (concat is associative),
+    so the AC canon still *flattens* untyped `+` — only the operand *sort* (commutativity)
+    is gated. And a `Reduce(Add)` (a `sum`) forces its elements numeric, so the per-element
+    `+` of `sum(x+y for …)` is commuted in that context, keeping generator ≡ loop ≡ `reduce`
+    cross-form convergence.
+
+  Zero corpus recall change (4294 → 4294 families on `bench/repos`); `nose verify` SOUND.
+  The audit surfaced ~15 latent false merges encoded in the test suite's own fixtures
+  (untyped `+` commutation as a "clone" vehicle), now corrected. The `(a+b)+c ≡ a+(b+c)`
+  *float* non-associativity half of C stays open — it needs the `Float` value kind (D-div);
+  see `docs/oracle-value-model.md`.
 - **`-(-a)` and `a & a` / `a | a` no longer false-merge with a bare `a` on untyped
   params** (#283-B). These identities hold only for numbers — on a list/string the
   inner op Errs, so `-(-a)` Errs while `a` does not. Two layers conspired to merge

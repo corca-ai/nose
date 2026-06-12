@@ -224,7 +224,7 @@ fn semantic_scan_reports_exact_safe_return_fragments_under_opaque_functions() {
         ),
         (
             "product_b.py",
-            "def product_right(ys):\n    return (4 + ys[2]) * (ys[1] + ys[0])\n    trace(ys)\n",
+            "def product_right(ys):\n    return (4 + ys[2]) * (ys[0] + ys[1])\n    trace(ys)\n",
         ),
         (
             "product_neg.py",
@@ -309,7 +309,7 @@ fn semantic_scan_reports_exact_safe_conditional_return_fragments_under_opaque_fu
         ),
         (
             "sum_guard_b.py",
-            "def sum_guard_right(ys):\n    if 10 < ys[1] + ys[0]:\n        return ys[1] + ys[0]\n    trace(ys)\n",
+            "def sum_guard_right(ys):\n    if 10 < ys[0] + ys[1]:\n        return ys[0] + ys[1]\n    trace(ys)\n",
         ),
         (
             "sum_guard_neg.py",
@@ -321,7 +321,7 @@ fn semantic_scan_reports_exact_safe_conditional_return_fragments_under_opaque_fu
         ),
         (
             "both_guard_b.py",
-            "def both_guard_right(ys):\n    if ys[1] > 0 and ys[0] > 0:\n        return ys[1] + ys[0]\n    trace(ys)\n",
+            "def both_guard_right(ys):\n    if ys[1] > 0 and ys[0] > 0:\n        return ys[0] + ys[1]\n    trace(ys)\n",
         ),
         (
             "both_guard_mutated.py",
@@ -409,7 +409,7 @@ fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_fun
         ),
         (
             "sum_throw_guard_b.js",
-            "function sumThrowRight(ys) {\n  if (10 < ys[1] + ys[0]) {\n    throw ys[1] + ys[0];\n  }\n  trace(ys);\n}\n",
+            "function sumThrowRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
         ),
         (
             "sum_throw_guard_neg.js",
@@ -421,7 +421,7 @@ fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_fun
         ),
         (
             "both_throw_guard_b.js",
-            "function bothThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    throw ys[1] + ys[0];\n  }\n  trace(ys);\n}\n",
+            "function bothThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
         ),
         (
             "both_throw_guard_mutated.js",
@@ -487,7 +487,7 @@ fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_unde
         ),
         (
             "empty_else_throw_b.js",
-            "function emptyElseThrowRight(ys) {\n  if (10 < ys[1] + ys[0]) {\n    throw ys[1] + ys[0];\n  } else {\n  }\n  trace(ys);\n}\n",
+            "function emptyElseThrowRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  } else {\n  }\n  trace(ys);\n}\n",
         ),
         (
             "empty_else_throw_neg.js",
@@ -499,7 +499,7 @@ fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_unde
         ),
         (
             "empty_then_throw_b.js",
-            "function emptyThenThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    throw ys[1] + ys[0];\n  }\n  trace(ys);\n}\n",
+            "function emptyThenThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
         ),
         (
             "empty_then_throw_mutated.js",
@@ -571,7 +571,7 @@ fn semantic_scan_reports_exact_safe_conditional_bare_return_fragments_under_opaq
         ),
         (
             "bare_sum_b.js",
-            "function bareSumRight(ys) {\n  if (10 < ys[1] + ys[0]) {\n    return;\n  }\n  trace(ys);\n}\n",
+            "function bareSumRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    return;\n  }\n  trace(ys);\n}\n",
         ),
         (
             "bare_sum_mutated.js",
@@ -670,7 +670,7 @@ fn semantic_scan_reports_exact_safe_conditional_expr_effect_fragments_under_opaq
         ),
         (
             "push_sum_b.js",
-            "function pushSumRight(ys, dst) {\n  if (10 < ys[1] + ys[0]) {\n    dst.push(ys[1] + ys[0]);\n  }\n  trace(ys);\n}\n",
+            "function pushSumRight(ys, dst) {\n  if (10 < ys[0] + ys[1]) {\n    dst.push(ys[0] + ys[1]);\n  }\n  trace(ys);\n}\n",
         ),
         (
             "push_sum_neg.js",
@@ -682,7 +682,7 @@ fn semantic_scan_reports_exact_safe_conditional_expr_effect_fragments_under_opaq
         ),
         (
             "push_else_b.js",
-            "function pushElseRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    dst.push(ys[1] + ys[0]);\n  }\n  trace(ys);\n}\n",
+            "function pushElseRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    dst.push(ys[0] + ys[1]);\n  }\n  trace(ys);\n}\n",
         ),
         (
             "push_else_mutated.js",
@@ -780,7 +780,7 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
         ),
         (
             "temp_throw_b.js",
-            "function tempThrowRight(ys) {\n  if (10 < ys[1] + ys[0]) {\n    throw ys[1] + ys[0];\n  }\n  trace(ys);\n}\n",
+            "function tempThrowRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
         ),
         (
             "temp_throw_neg.js",
@@ -1011,7 +1011,7 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
         ),
         (
             "nested_push_b.js",
-            "function nestedPushRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    dst.push(ys[1] + ys[0]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+            "function nestedPushRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    dst.push(ys[0] + ys[1]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
         ),
         (
             "nested_push_mutated.js",
@@ -1023,7 +1023,7 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
         ),
         (
             "nested_push_sum_b.js",
-            "function nestedPushSumRight(ys, dst) {\n  if (10 < ys[1] + ys[0]) {\n    dst.push(ys[1] + ys[0]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+            "function nestedPushSumRight(ys, dst) {\n  if (10 < ys[0] + ys[1]) {\n    dst.push(ys[0] + ys[1]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
         ),
         (
             "nested_push_sum_neg.js",
@@ -1035,7 +1035,7 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
         ),
         (
             "nested_push_product_b.js",
-            "function nestedPushProductRight(ys, dst) {\n  if (10 < (1 + ys[0])) {\n    dst.push(2 * (1 + ys[0]));\n  } else {\n    if (ys[2] + ys[1] > 0) {\n      dst.push(ys[2] + ys[1]);\n    }\n  }\n  trace(ys);\n}\n",
+            "function nestedPushProductRight(ys, dst) {\n  if (10 < (1 + ys[0])) {\n    dst.push(2 * (1 + ys[0]));\n  } else {\n    if (ys[1] + ys[2] > 0) {\n      dst.push(ys[1] + ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
         ),
         (
             "nested_push_product_neg.js",
@@ -3970,7 +3970,7 @@ fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
         ),
         (
             "throw_product_b.js",
-            "function throwProductRight(ys) {\n  throw (4 + ys[2]) * (ys[1] + ys[0]);\n  trace(ys);\n}\n",
+            "function throwProductRight(ys) {\n  throw (4 + ys[2]) * (ys[0] + ys[1]);\n  trace(ys);\n}\n",
         ),
         (
             "throw_product_mutated.js",
