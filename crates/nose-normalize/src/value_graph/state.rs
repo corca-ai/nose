@@ -60,8 +60,19 @@ impl<'a> Builder<'a> {
             })
     }
 
+    /// Whether a `+` chain may be treated as commutative (so its operands can be reordered)
+    /// rather than as ordered string/list concat. `value_law_satisfied` alone accepts an
+    /// UNKNOWN operand optimistically — which false-merges `a+b` with `b+a` for two untyped
+    /// params that are actually strings (`"x"+"y" != "y"+"x"`, now witnessed by the oracle,
+    /// #283-C). The exact condition is that AT LEAST ONE operand is PROVEN non-concat (never
+    /// a string/list): if one operand is numeric, then for any other operand the sum either
+    /// stays numeric (commutes) or hits `num + str` → `Err` in EVERY order (Err propagates
+    /// symmetrically), so the chain is permutation-invariant. Only when NO operand is proven
+    /// non-concat could they all be strings/lists, where order matters. So `x + 4`,
+    /// `x*x + y*y`, and any sum touching a number still commute; only `a + b` with two
+    /// concat-possible operands stays ordered.
     pub(super) fn add_values_not_concat(&self, law: ValueLaw, values: &[ValueId]) -> bool {
-        self.value_law_satisfied(law, values)
+        self.value_law_satisfied(law, values) && values.iter().any(|&v| self.proven_non_concat(v))
     }
 
     /// Whether `v` provably evaluates to a Number on every input it does not Err on, using
@@ -93,6 +104,59 @@ impl<'a> Builder<'a> {
                         .args
                         .first()
                         .is_some_and(|&a| self.proven_numeric(a))
+            }
+            _ => false,
+        }
+    }
+
+    /// Whether `v` provably never evaluates to a String or Sequence — the condition `+`
+    /// COMMUTATIVITY actually needs (concat is the only non-commutative `+`, #283-C). This
+    /// is WEAKER than `proven_numeric`: it admits values that are numeric-OR-error but never
+    /// a string/list, so a sound reorder is not lost just because an operand's numeric-ness
+    /// is unprovable. The key fact: among the modeled ops only `Add` (string concat) and
+    /// `Mul` (string repetition, `"ab"*3`) can yield a string/list; every other op
+    /// (`Sub`/`Div`/`Mod`/`Pow`/bitwise/shift/comparison and all unary) ERRORS on a
+    /// string/list operand, so its result is never one. Fails closed: an untyped param,
+    /// index, field, call, or `Phi` could be a string, so it is NOT proven non-concat.
+    pub(super) fn proven_non_concat(&self, v: ValueId) -> bool {
+        match self.nodes[v as usize].op {
+            // Non-string literals (Number / Boolean / Null). A String const is concat.
+            ValOp::Const(k) => !matches!(const_value_domain(k), ValueDomain::String),
+            // Only a GENUINELY non-string-typed param (numeric/boolean evidence) qualifies;
+            // an untyped param could be a string.
+            ValOp::Input(cid) => self
+                .param_domain
+                .get(&cid)
+                .is_some_and(|d| d.is_integer_or_number() || d.is_boolean()),
+            ValOp::Clamp => true,
+            // Every unary op (`Neg`/`~`/`!`/`abs`/int32-narrow) errors or returns a
+            // bool/number on a string operand — never a string.
+            ValOp::Un(_) => true,
+            ValOp::Bin(o) => {
+                let args = &self.nodes[v as usize].args;
+                if let Some(op) = op_from_code(o) {
+                    match op {
+                        // Concat / repetition: result is a string/list only when an operand
+                        // is — so non-concat iff every operand is. `Mul(x, x)` is special:
+                        // `str * str` errors (you cannot repeat by a string), so a squared
+                        // value is never a string regardless of `x`.
+                        Op::Add => args.iter().all(|&a| self.proven_non_concat(a)),
+                        Op::Mul => {
+                            (args.len() == 2 && args[0] == args[1])
+                                || args.iter().all(|&a| self.proven_non_concat(a))
+                        }
+                        // Short-circuit `&&`/`||` yield an operand's VALUE, so non-concat iff
+                        // both operands are.
+                        Op::And | Op::Or => args.iter().all(|&a| self.proven_non_concat(a)),
+                        // Everything else (`Sub`/`Div`/`Mod`/`Pow`/`FloorDiv`/`FloorMod`/
+                        // bitwise/shift/comparisons) errors on a string/list → never one.
+                        _ => true,
+                    }
+                } else {
+                    // MIN/MAX of the modeled ternary are numeric; other synthesized codes
+                    // (byte-pack, etc.) are numeric too.
+                    o == MIN_CODE || o == MAX_CODE
+                }
             }
             _ => false,
         }

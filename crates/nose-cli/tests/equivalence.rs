@@ -241,7 +241,14 @@ fn large_generated_ac_formula_stays_compact_and_distinct() {
     let forward = params.join(" + ");
     let reverse = params.iter().rev().cloned().collect::<Vec<_>>().join(" + ");
     let changed = format!("{} + x0 * x0", params[1..].join(" + "));
-    let src = |expr: &str| format!("def f({}):\n    return {expr}\n", params.join(", "));
+    // Annotate the params `: int` so the long `+` chain is PROVEN numeric and commutes
+    // (#283-C gates untyped `+` reorder; this test is about AC compaction, not the gate).
+    let typed_params = params
+        .iter()
+        .map(|p| format!("{p}: int"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let src = |expr: &str| format!("def f({typed_params}):\n    return {expr}\n");
 
     let fp = value_fp(&i, &src(&forward), Lang::Python);
     assert_eq!(
@@ -1659,10 +1666,23 @@ fn reduction_keeps_behavior_distinct() {
 #[test]
 fn commutative_reconcile() {
     let i = Interner::new();
-    let a = "def f(a, b):\n    return a + b\n";
-    let b = "def g(a, b):\n    return b + a\n";
-    // Numeric `+` commutativity is reconciled by the value graph (gated on non-concat).
-    assert_eq!(value_fp(&i, a, Lang::Python), value_fp(&i, b, Lang::Python));
+    // `+` commutativity is reconciled by the value graph ONLY when an operand is proven
+    // non-concat (#283-C): untyped `a + b` could be string concat (`"x"+"y" != "y"+"x"`),
+    // so it stays ordered; an int-annotated `+` is provably numeric and still commutes.
+    let untyped_a = "def f(a, b):\n    return a + b\n";
+    let untyped_b = "def g(a, b):\n    return b + a\n";
+    assert_ne!(
+        value_fp(&i, untyped_a, Lang::Python),
+        value_fp(&i, untyped_b, Lang::Python),
+        "untyped a + b must not merge with b + a (string concat is ordered)"
+    );
+    let typed_a = "def f(a: int, b: int):\n    return a + b\n";
+    let typed_b = "def g(a: int, b: int):\n    return b + a\n";
+    assert_eq!(
+        value_fp(&i, typed_a, Lang::Python),
+        value_fp(&i, typed_b, Lang::Python),
+        "int-annotated a + b is provably numeric — must still commute"
+    );
 }
 
 #[test]
@@ -2354,14 +2374,36 @@ fn cfg_continue_guard_equals_nested() {
 #[test]
 fn algebra_associativity() {
     let i = Interner::new();
+    // ASSOCIATIVITY (`(a+b)+c` ≡ `a+(b+c)`) is sound for ALL types — string concat is
+    // associative — so the value graph reconciles it even for UNTYPED params. COMMUTATIVITY
+    // (`(a+b)+c` ≡ `c+(a+b)`) is gated on non-concat (#283-C): untyped stays distinct, an
+    // int-annotated chain still fully canonicalizes. (Reconciled by the value graph, not the
+    // algebra IL pass — so check the fingerprint, not the IL hash.)
     let left = "def f(a, b, c):\n    return (a + b) + c\n";
     let right = "def g(a, b, c):\n    return a + (b + c)\n";
     let mixed = "def h(a, b, c):\n    return c + (a + b)\n";
-    // `+` commutativity/associativity is reconciled by the value graph (type-GATED on
-    // concat), not the algebra IL pass — so check the fingerprint, not the IL hash.
     let hl = value_fp(&i, left, Lang::Python);
-    assert_eq!(hl, value_fp(&i, right, Lang::Python));
-    assert_eq!(hl, value_fp(&i, mixed, Lang::Python));
+    assert_eq!(
+        hl,
+        value_fp(&i, right, Lang::Python),
+        "associativity is sound untyped"
+    );
+    assert_ne!(
+        hl,
+        value_fp(&i, mixed, Lang::Python),
+        "untyped commutativity stays gated (operands could be strings)"
+    );
+    let t = |src: &str| value_fp(&i, src, Lang::Python);
+    let tl = t("def f(a: int, b: int, c: int):\n    return (a + b) + c\n");
+    assert_eq!(
+        tl,
+        t("def g(a: int, b: int, c: int):\n    return a + (b + c)\n")
+    );
+    assert_eq!(
+        tl,
+        t("def h(a: int, b: int, c: int):\n    return c + (a + b)\n"),
+        "int-annotated + fully commutes and associates"
+    );
 }
 
 #[test]
@@ -6987,5 +7029,29 @@ fn bitwise_self_idempotence_gates_on_proven_numeric() {
         value_fp(&i, typed_and, Lang::Python),
         value_fp(&i, typed_id, Lang::Python),
         "int-annotated a & a is provably numeric — must still fold to a"
+    );
+}
+
+#[test]
+fn untyped_add_commute_gates_on_proven_numeric() {
+    // #283-C: `a + b → b + a` (commuting the operands of `+`) is sound only when both are
+    // numbers — for strings/lists `+` is ORDERED concat (`"x"+"y" != "y"+"x"`). The detector
+    // reordered untyped `+` optimistically. Now the reorder gates on proven-numeric operands:
+    // an untyped `a+b` stays distinct from `b+a`, while an int-annotated one still converges.
+    let i = Interner::new();
+    let fwd_untyped = "def f(a, b):\n    return a + b\n";
+    let rev_untyped = "def f(a, b):\n    return b + a\n";
+    let fwd_typed = "def f(a: int, b: int):\n    return a + b\n";
+    let rev_typed = "def f(a: int, b: int):\n    return b + a\n";
+
+    assert_ne!(
+        value_fp(&i, fwd_untyped, Lang::Python),
+        value_fp(&i, rev_untyped, Lang::Python),
+        "untyped a + b must NOT merge with b + a (string concat is ordered)"
+    );
+    assert_eq!(
+        value_fp(&i, fwd_typed, Lang::Python),
+        value_fp(&i, rev_typed, Lang::Python),
+        "int-annotated a + b is provably numeric — commuting to b + a must still converge"
     );
 }
