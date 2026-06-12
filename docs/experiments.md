@@ -2194,3 +2194,20 @@ obligation and dev/heldout corpus pricing (defense-deferral is a first-class
 verdict, and a rushed soundness patch that misidentifies the mechanism — as the
 first reorder-guard attempt did — is worse than an honest P0). The deliverables
 are the confirmed-reproducer battery, P0 #283, recall #284, and this ledger.
+
+**Remediation (post-series-5, each priced separately).** The deferred fixes then
+shipped as deliberate moat work, every one recall-neutral on `bench/repos`:
+- **A — effectful AC operands (#286).** `reorder_safe` holds any subtree carrying a
+  call/HOF/lambda/opaque (an observable effect the interpreter orders) in place at
+  every operand-sort site; `print(a)+print(b)` no longer merges with its swap.
+- **B — optimistic-Number rewrites (#283-B).** The `algebra` pass stopped cancelling
+  `-(-x)` unconditionally (it has no operand type — same reason `!!x` was already
+  deferred), and `-(-a)→a` / `a&a→a` now gate on `proven_numeric` (genuine evidence,
+  never the self-referential "param is Num because `-`/`&` was applied to it"
+  inference). Untyped stays split; annotated still folds. C4's `abs`/De-Morgan
+  recall and MIN/MAX AC-flatten shipped together as #284.
+- **D (mod) — language-blind `%` (#290).** A distinct `Op::FloorMod` for Python/Ruby
+  floored `%` (interpreted with floor semantics) vs C-family truncated `Op::Mod`;
+  the oracle is no longer blind here. The `/`-division three-way split and JS int32
+  narrowing parts of D, plus C (untyped `+` commutativity — still oracle-blind), stay
+  open in #283.

@@ -7,6 +7,21 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **`-(-a)` and `a & a` / `a | a` no longer false-merge with a bare `a` on untyped
+  params** (#283-B). These identities hold only for numbers — on a list/string the
+  inner op Errs, so `-(-a)` Errs while `a` does not. Two layers conspired to merge
+  them anyway: the value-independent `algebra` pass cancelled `-(-x) → x`
+  unconditionally (it has no operand type), and the value graph's `Num` gate trusted
+  an OPTIMISTIC param domain that infers `a: Num` *from the very `-`/`&` being
+  rewritten* — circular, since the canonical `a` then carries no numeric constraint.
+  Fix: the algebra pass now preserves `-(-x)` (mirroring the `!!x → x` it already
+  defers), and the cancellations gate on `proven_numeric` — genuine evidence only
+  (numeric literals, annotated / pack-typed params), never the self-referential
+  inference. An untyped `-(-a)` stays distinct from `a`; an annotated `a: int` still
+  cancels. Zero corpus recall change (4294 → 4294 families on `bench/repos`); the
+  pinned corpus held no untyped occurrences, so the merges it removed were all latent
+  false merges (the §AS scenario). Remaining #283 sub-findings: C (untyped `+`
+  commutativity, oracle-blind) and the `/`-division / int32 parts of D.
 - **Floored vs truncated `%` no longer false-merges across languages** (#283-D).
   Python/Ruby `%` is floored (remainder takes the divisor's sign); JS/Go/Java/
   Rust/C `%` is truncated (dividend's sign) — they differ on sign-disagreeing

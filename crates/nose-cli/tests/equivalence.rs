@@ -6941,3 +6941,51 @@ fn floored_mod_distinguishes_python_ruby_from_c_family() {
         "JS and Go % are both truncated — must converge"
     );
 }
+
+#[test]
+fn double_negation_cancels_only_for_proven_numeric() {
+    // #283-B: `-(-a) → a` is sound ONLY when `a` is a number — on a list `-a` Errs, so
+    // `-(-a)` Errs while `a` does not. The value graph used to infer `a: Num` from the very
+    // `-` it was about to delete (optimistic), and the algebra pass cancelled `-(-x)`
+    // unconditionally. Both are fixed: an UNTYPED param keeps `-(-a)` distinct from `a`; a
+    // genuinely-typed (annotated) param still cancels, preserving sound recall.
+    let i = Interner::new();
+    let negneg_untyped = "def f(a):\n    return -(-a)\n";
+    let ident_untyped = "def f(a):\n    return a\n";
+    let negneg_typed = "def f(a: int):\n    return -(-a)\n";
+    let ident_typed = "def f(a: int):\n    return a\n";
+
+    assert_ne!(
+        value_fp(&i, negneg_untyped, Lang::Python),
+        value_fp(&i, ident_untyped, Lang::Python),
+        "untyped -(-a) must NOT merge with a (it Errs on a list; a does not)"
+    );
+    assert_eq!(
+        value_fp(&i, negneg_typed, Lang::Python),
+        value_fp(&i, ident_typed, Lang::Python),
+        "int-annotated -(-a) is provably numeric — must still cancel to a"
+    );
+}
+
+#[test]
+fn bitwise_self_idempotence_gates_on_proven_numeric() {
+    // #283-B: `a & a → a` / `a | a → a` is sound only for integers (`[1] & [1]` Errs in
+    // Python while `[1]` does not). The optimistic value domain inferred `a: Num` from the
+    // `&`/`|` itself; now an untyped param stays distinct, an annotated one still folds.
+    let i = Interner::new();
+    let untyped_and = "def f(a):\n    return a & a\n";
+    let untyped_id = "def f(a):\n    return a\n";
+    let typed_and = "def f(a: int):\n    return a & a\n";
+    let typed_id = "def f(a: int):\n    return a\n";
+
+    assert_ne!(
+        value_fp(&i, untyped_and, Lang::Python),
+        value_fp(&i, untyped_id, Lang::Python),
+        "untyped a & a must NOT merge with a"
+    );
+    assert_eq!(
+        value_fp(&i, typed_and, Lang::Python),
+        value_fp(&i, typed_id, Lang::Python),
+        "int-annotated a & a is provably numeric — must still fold to a"
+    );
+}

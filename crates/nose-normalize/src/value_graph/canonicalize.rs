@@ -176,6 +176,7 @@ impl<'a> Builder<'a> {
                 let inner = self.nodes[args[0] as usize].args[0];
                 if io == Op::Neg as u32
                     && self.value_law_satisfied(ValueLaw::NumericNegationInvolution, &[inner])
+                    && self.proven_numeric(inner)
                 {
                     return Some(inner);
                 }
@@ -208,7 +209,8 @@ impl<'a> Builder<'a> {
             let bitwise = o == Op::BitAnd as u32 || o == Op::BitOr as u32;
             let logical = o == Op::And as u32 || o == Op::Or as u32;
             if (bitwise
-                && self.value_law_satisfied(ValueLaw::NumericBitwiseIdempotence, &[args[0]]))
+                && self.value_law_satisfied(ValueLaw::NumericBitwiseIdempotence, &[args[0]])
+                && self.proven_numeric(args[0]))
                 || (logical && self.value_law_satisfied(ValueLaw::BooleanIdempotence, &[args[0]]))
             {
                 return Some(args[0]);

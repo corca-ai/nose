@@ -9,8 +9,10 @@
 //!   grouping/ordering of `a + b + c` converges.
 //! - **comparison direction**: `a > b` → `b < a`, `a >= b` → `b <= a`, so only
 //!   `<`/`<=`/`==`/`!=` remain.
-//! - **negation / De Morgan**: `!!x` → `x`, `!(a && b)` → `!a || !b`,
-//!   `!(a == b)` → `a != b`, `!(a < b)` → `b <= a`, `-(-x)` → `x`.
+//! - **negation / De Morgan**: `!(a && b)` → `!a || !b`, `!(a == b)` → `a != b`,
+//!   `!(a < b)` → `b <= a`. The value-DEPENDENT cancellations `!!x → x` (bool
+//!   coercion) and `-(-x) → x` (numeric only) are NOT done here — this pass has no
+//!   operand type, so they are deferred to the value graph's proof-gated canon.
 //!
 //! Value-dependent identities (`x + 0` → `x`) are deferred — they need literal
 //! values, which are abstracted to classes. Full distribution (where the
@@ -93,16 +95,15 @@ impl Rewriter<'_> {
                     self.rewrite_negated(c)
                 }
                 Payload::Op(Op::Neg) => {
-                    // double negation: -(-x) → x
-                    let c = self.old.children(old_id)[0];
-                    if self.old.kind(c) == NodeKind::UnOp
-                        && self.old.node(c).payload == Payload::Op(Op::Neg)
-                    {
-                        let g = self.old.children(c)[0];
-                        self.rewrite(g)
-                    } else {
-                        self.generic(old_id, node.span)
-                    }
+                    // `-(-x)` is `x` ONLY for numbers — on a list/string `-x` Errs, so
+                    // `-(-x)` Errs while `x` does not. Cancelling it HERE is unsound: this
+                    // pass is value-INDEPENDENT and has no operand type, so it would merge a
+                    // `return -(-a)` with an identity `return a` for an untyped param (#283-B,
+                    // exactly the `!!x → x` hazard handled just above). Preserve the double
+                    // negation; the value graph cancels `-(-x) → x` ONLY when `x` is provably
+                    // numeric (`proven_numeric`, genuine evidence — never the optimistic
+                    // "param is Num because `-` was applied to it" inference).
+                    self.generic(old_id, node.span)
                 }
                 _ => self.generic(old_id, node.span),
             },

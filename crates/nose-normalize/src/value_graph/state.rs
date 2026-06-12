@@ -64,6 +64,40 @@ impl<'a> Builder<'a> {
         self.value_law_satisfied(law, values)
     }
 
+    /// Whether `v` provably evaluates to a Number on every input it does not Err on, using
+    /// ONLY genuine domain evidence — numeric literals and annotated / pack-typed params —
+    /// never the OPTIMISTIC "this param is Num because a numeric op was applied to it"
+    /// inference that `vty` (via `infer_param_value_domains`) folds into a param's domain.
+    ///
+    /// A type-gated rewrite that ERASES the very operation it inferred the domain from —
+    /// `-(-a) → a`, `a & a → a` — cannot trust `vty`: the only thing proving `a: Num` was
+    /// the `-`/`&` being deleted, so the canonical `a` would carry no numeric constraint
+    /// and merge with a bare `def ident(a): a` (differ on a list: `-(-a)` Errs, `a` does
+    /// not). That is #283-B, a confirmed false merge. Such rewrites gate on THIS instead of
+    /// `value_law_satisfied` alone. Fails closed: an untyped param leaf is NOT proven, so
+    /// the rewrite simply does not fire — typed/annotated operands still converge.
+    pub(super) fn proven_numeric(&self, v: ValueId) -> bool {
+        match self.nodes[v as usize].op {
+            ValOp::Const(k) => const_value_domain(k) == ValueDomain::Number,
+            ValOp::Input(cid) => self
+                .param_domain
+                .get(&cid)
+                .is_some_and(|d| d.is_integer_or_number()),
+            ValOp::Clamp => true,
+            // A unary op whose result is numeric ONLY when its operand is (`Neg`, `~`,
+            // `abs`): recurse so the proof bottoms out at a genuine leaf, never at an
+            // optimistic param domain.
+            ValOp::Un(o) => {
+                (o == ABS_CODE || matches!(op_from_code(o), Some(Op::Neg | Op::BitNot)))
+                    && self.nodes[v as usize]
+                        .args
+                        .first()
+                        .is_some_and(|&a| self.proven_numeric(a))
+            }
+            _ => false,
+        }
+    }
+
     pub(super) fn record_value_law(&mut self, law: ValueLaw) {
         if nose_semantics::pack_facing_value_law(law).is_some() {
             self.value_laws.push(law);
