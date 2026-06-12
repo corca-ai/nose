@@ -3,9 +3,9 @@ use nose_il::{
     CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
     EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
     GuardEvidenceKind, IlBuilder, ImportEvidenceKind, JsRecordGuardComparison,
-    JsRecordGuardNullCheck, Lang, LibraryApiEvidenceKind, LitClass, ParamSemantic,
-    SequenceSurfaceKind, SourceCallKind, SourceComprehensionKind, SourceFactKind, Span,
-    SymbolEvidenceKind, Unit, UnitKind,
+    JsRecordGuardNullCheck, Lang, LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind,
+    SourceCallKind, SourceComprehensionKind, SourceFactKind, Span, SymbolEvidenceKind, Unit,
+    UnitKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -342,7 +342,13 @@ fn nullish_global_value_requires_symbol_evidence() {
     let mut builder = Builder::new(&il, &interner);
     let raw = builder.eval(var, &FxHashMap::default());
     assert!(
-        !matches!(builder.nodes[raw as usize].op, ValOp::Const(k) if k == LitClass::Null as u32),
+        !matches!(
+            builder.nodes[raw as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        ),
         "raw undefined spelling must not prove the nullish constant"
     );
 
@@ -356,7 +362,13 @@ fn nullish_global_value_requires_symbol_evidence() {
     let mut builder = Builder::new(&il, &interner);
     let proven = builder.eval(var, &FxHashMap::default());
     assert!(
-        matches!(builder.nodes[proven as usize].op, ValOp::Const(k) if k == LitClass::Null as u32),
+        matches!(
+            builder.nodes[proven as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        ),
         "symbol evidence should admit the nullish constant"
     );
 }
@@ -1185,9 +1197,13 @@ fn rust_some_wildcard_pattern_value_graph_requires_library_api_and_source_patter
     let node = &builder.nodes[proven as usize];
     assert!(matches!(node.op, ValOp::Bin(op) if op == Op::Ne as u32));
     assert!(
-        node.args
-            .iter()
-            .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
+        node.args.iter().any(|&arg| matches!(
+            builder.nodes[arg as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        )),
         "admitted Rust Some wildcard pattern should evaluate as non-null Option presence"
     );
 }
@@ -1226,10 +1242,13 @@ fn rust_option_none_pattern_value_graph_requires_library_api_evidence() {
     let raw = builder.eval(if_expr, &FxHashMap::default());
     let raw_node = &builder.nodes[raw as usize];
     assert!(
-        !raw_node
-            .args
-            .iter()
-            .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
+        !raw_node.args.iter().any(|&arg| matches!(
+            builder.nodes[arg as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        )),
         "raw None selector must not become a null predicate"
     );
 
@@ -1257,9 +1276,13 @@ fn rust_option_none_pattern_value_graph_requires_library_api_evidence() {
     let node = &builder.nodes[proven as usize];
     assert!(matches!(node.op, ValOp::Bin(op) if op == Op::Eq as u32));
     assert!(
-        node.args
-            .iter()
-            .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
+        node.args.iter().any(|&arg| matches!(
+            builder.nodes[arg as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        )),
         "admitted Rust None occurrence should evaluate as the null sentinel"
     );
 }
@@ -2249,7 +2272,13 @@ fn inline_capture_poisons_in_loop_returns() {
         poisoned: false,
         returns: Vec::new(),
     });
-    let v = builder.mk(ValOp::Const(1), vec![]);
+    let v = builder.mk(
+        ValOp::Const {
+            kind: ConstKind::Int,
+            bits: 1,
+        },
+        vec![],
+    );
     builder.loop_depth = 1;
     builder.emit_return(v);
     let frame = builder.inline_capture.last().expect("frame");

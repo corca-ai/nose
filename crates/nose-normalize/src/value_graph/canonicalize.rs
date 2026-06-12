@@ -713,7 +713,15 @@ impl<'a> Builder<'a> {
         if cn.args.len() != 2 {
             return None;
         }
-        let is_zero = |s: &Self, id: ValueId| matches!(s.nodes[id as usize].op, ValOp::Const(c) if c == 0x1000_0000);
+        let is_zero = |s: &Self, id: ValueId| {
+            matches!(
+                s.nodes[id as usize].op,
+                ValOp::Const {
+                    kind: ConstKind::Int,
+                    bits: 0
+                }
+            )
+        };
         let (nonneg, neg) = if cn.args[0] == v && is_zero(self, cn.args[1]) {
             (
                 opc == Op::Ge as u32 || opc == Op::Gt as u32,
@@ -1049,33 +1057,46 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn int_const_value(&self, value: ValueId) -> Option<i64> {
-        let ValOp::Const(key) = self.nodes[value as usize].op else {
-            return None;
-        };
-        // `LitInt(v)` is keyed as `0x1000_0000 + v as u32`, so retained
-        // negative integers sit below the positive range. Exclude only the
-        // small `LitClass` discriminants; strings/floats/bools live in their
-        // own higher ranges and must never count as integer-bound proofs.
-        if !(0x0000_0006..=0x1FFF_FFFF).contains(&key) {
-            return None;
+        match self.nodes[value as usize].op {
+            ValOp::Const {
+                kind: ConstKind::Int,
+                bits,
+            } => Some(bits as i64),
+            _ => None,
         }
-        Some(key.wrapping_sub(0x1000_0000) as i32 as i64)
     }
 
     /// An integer-literal value, keyed identically to `eval`'s `LitInt` path so a
-    /// builtin's implicit init (`sum` → 0) matches a loop's explicit `acc = 0`.
+    /// builtin's implicit init (`sum` → 0) matches a loop's explicit `acc = 0`. `v` is a
+    /// synthesized non-negative count; the FULL i64 is retained so it can never collide
+    /// with a literal differing by a multiple of 2^32 (coevo series 8).
     pub(super) fn int_const(&mut self, v: u32) -> ValueId {
-        self.mk(ValOp::Const(0x1000_0000u32.wrapping_add(v)), vec![])
+        self.mk_const(ConstKind::Int, v as u64)
     }
 
     pub(super) fn null_const(&mut self) -> ValueId {
-        self.mk(ValOp::Const(nose_il::LitClass::Null as u32), vec![])
+        self.mk_const(ConstKind::Null, 0)
+    }
+
+    pub(super) fn bool_const_value(&mut self, b: bool) -> ValueId {
+        self.mk_const(ConstKind::Bool, b as u64)
+    }
+
+    /// Construct a `Const` node of the given kind and full-width payload.
+    pub(super) fn mk_const(&mut self, kind: ConstKind, bits: u64) -> ValueId {
+        self.mk(ValOp::Const { kind, bits }, vec![])
+    }
+
+    pub(super) fn sentinel_const(&mut self, tag: u64) -> ValueId {
+        self.mk_const(ConstKind::Sentinel, tag)
     }
 
     pub(super) fn bool_const(&self, id: ValueId) -> Option<bool> {
         match self.nodes[id as usize].op {
-            ValOp::Const(0x3000_0001) => Some(false),
-            ValOp::Const(0x3000_0002) => Some(true),
+            ValOp::Const {
+                kind: ConstKind::Bool,
+                bits,
+            } => Some(bits != 0),
             _ => None,
         }
     }
@@ -1174,18 +1195,18 @@ impl<'a> Builder<'a> {
     pub(super) fn static_membership_literal_value(&self, value: ValueId) -> bool {
         matches!(
             self.nodes[value as usize].op,
-            ValOp::Const(key) if key != 0x3000_0000
+            ValOp::Const { kind, bits } if !(matches!(kind, ConstKind::Sentinel) && bits == sentinel::BOTTOM)
         )
     }
 
     pub(super) fn empty_string_value(&mut self) -> ValueId {
-        self.mk(ValOp::Const(stable_string_const_key("")), vec![])
+        self.mk_const(ConstKind::Str, stable_string_const_bits(""))
     }
 
     pub(super) fn is_empty_string_value(&self, value: ValueId) -> bool {
         matches!(
             self.nodes[value as usize].op,
-            ValOp::Const(key) if key == stable_string_const_key("")
+            ValOp::Const { kind: ConstKind::Str, bits } if bits == stable_string_const_bits("")
         )
     }
 

@@ -2403,3 +2403,46 @@ recovered splat coverage), determinism byte-identical, dup gate 25/25, recall pr
 over-fire). The recurring theme across series 6–7 holds: every soundness miss was the
 frontend discarding a binding-discriminating token (keyword names, `global` declarations,
 splats), and every fix preserves it in the IL.
+
+## CI. Adversarial co-evolution, series 8 — the value-model literal/numeric keying (post-#308)
+
+One protocol pass ([adversarial-coevolution](adversarial-coevolution.md)) aimed by the
+freshness slot rule at the literal-keying / value-domain classification just changed in
+#308 — the string-`+`-commute fix that masked string `Const` keys. Two blind attackers
+(numeric-domain skeptic, value-model skeptic); ledger `s8-*`; tracking issue #311.
+**The #308 fix's own author claim — "ints/floats are fail-closed when their key wraps" —
+was attacked and refuted**: the same self-attack discipline as series 7, one merge later.
+
+**Three confirmed false merges, all in the packed-key encoding (S1+S2, fixed).** The
+value-graph `Const(u32)` tagged the literal kind in the top nibble and packed the
+value/hash into the low 28 bits — fundamentally too few bits, so:
+- an **int wrapped its kind nibble**: `536870914` (`0x2000_0002`) keyed to `0x3000_0002`,
+  byte-identical to `LitBool(true)`, so `x + 536870914` ≡ `x + True`;
+- an **int truncated to 32 bits**: `v as u32` collapsed `0 ≡ 2^32` and `5 ≡ 4294967301`
+  (2^32 is a plausible real constant);
+- a **string collided in 28 bits**: #308's mask `0x2000_0000 | (h & 0x0FFF_FFFF)` kept
+  only 28 of the 64 hash bits, so brute-forced `"geU"`/`"aaha"` collapsed to one key —
+  #308 had *traded* the out-of-range bug for a collision bug.
+
+**Fix (#313): carry the kind, not infer it from a range.** `ValOp::Const(u32)` became
+`ValOp::Const { kind: ConstKind, bits: u64 }` — the kind is explicit and `bits` holds the
+FULL i64 value (Int), the full 64-bit content hash (Str/Float), the boolean, or a sentinel
+discriminant. With the kind separated there is no range for a value to escape and no
+truncation; all three false merges are closed by construction, the #308 mask is removed,
+and the string-`+`-commute fix it was protecting still holds (the kind is read directly).
+Corpus: small POSITIVE family deltas (sympy +6, redis +4) — the false-merge-separating
+direction — soundness clean on sympy + guava (49k interpretable units), determinism
+byte-identical.
+
+**S2 green — the algebraic canon held.** Distribution `a·c+b·c≡(a+b)·c` on strings (gated
+tight via the no-`Mul`-numeric-inference rule), `a + "literal"` commutativity (held
+ordered), loose-vs-strict equality (unwitnessable — the oracle has no coercion model), and
+De Morgan / abs idempotence (sound for all integers) all survived. The exploitable surface
+was purely the literal-key hashing, not the canonicalizations — and floats are
+structurally un-attackable for now (the interpreter has no `LitFloat` arm, so a float
+behavioral difference can't be witnessed; a latent gap recorded, not a confirmed merge).
+
+**Verdict.** A core value-model fix closing three false merges — one of them introduced by
+#308 the same session. The series 6–8 theme completes its shape: every soundness miss was
+a kind/identity token lost in an encoding (keyword names, `global`, splats, then literal
+kinds), and every fix preserves it explicitly rather than inferring it from a lossy pack.

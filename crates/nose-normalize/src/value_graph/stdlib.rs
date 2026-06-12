@@ -696,11 +696,11 @@ impl<'a> Builder<'a> {
         match kind {
             GoZeroMapDefaultKind::Int => self.int_const(0),
             GoZeroMapDefaultKind::String => {
-                self.mk(ValOp::Const(stable_string_const_key("")), vec![])
+                self.mk_const(ConstKind::Str, stable_string_const_bits(""))
             }
-            GoZeroMapDefaultKind::Bool => self.mk(ValOp::Const(0x3000_0001), vec![]),
+            GoZeroMapDefaultKind::Bool => self.bool_const_value(false),
             GoZeroMapDefaultKind::Float => {
-                self.mk(ValOp::Const(stable_float_const_key("0.0")), vec![])
+                self.mk_const(ConstKind::Float, stable_float_const_bits("0.0"))
             }
             GoZeroMapDefaultKind::Null => self.null_const(),
         }

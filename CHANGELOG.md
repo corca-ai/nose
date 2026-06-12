@@ -16,6 +16,16 @@ break.
   kept under `--show reinvented` and in the additive JSON.
 
 ### Fixed
+- **Three value-model false merges from the packed `Const` key** (#313). The value-graph
+  `Const(u32)` packed a literal's kind tag and its value/hash into one u32, with too few
+  bits — so an int could wrap its kind nibble into the boolean range (`x + 536870914` ≡
+  `x + True`), truncate to 32 bits (`0` ≡ `2^32`), or a string collide in #308's 28-bit
+  mask (`"geU"` ≡ `"aaha"`). `ValOp::Const` now carries the kind explicitly
+  (`ConstKind`) plus the FULL i64 value / 64-bit hash, so nothing wraps or truncates; the
+  #308 string mask is removed. Found by adversarial co-evolution series 8
+  ([experiments §CI](docs/experiments.md)); one of the merges was introduced by #308.
+
+### Fixed
 - **String-literal `+` no longer commutes** (#308). A string literal's value-graph `Const`
   key carried its content hash via `0x2000_0000.wrapping_add(h)`, which for a high-bit hash
   wrapped OUT of the `String` class range — so `const_value_domain` misread the kind and

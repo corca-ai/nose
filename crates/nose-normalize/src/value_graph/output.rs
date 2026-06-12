@@ -46,7 +46,7 @@ impl<'a> Builder<'a> {
                 && weight[i] >= min_weight
                 && !matches!(
                     self.nodes[i].op,
-                    ValOp::Const(_)
+                    ValOp::Const { .. }
                         | ValOp::Input(_)
                         | ValOp::Elem(_)
                         | ValOp::ImportNamespace { .. }
@@ -128,7 +128,7 @@ impl<'a> Builder<'a> {
         for i in 0..self.nodes.len() {
             if reachable[i] {
                 out.push(h[i]);
-                if matches!(self.nodes[i].op, ValOp::Const(_)) {
+                if matches!(self.nodes[i].op, ValOp::Const { .. }) {
                     lits.push(h[i]);
                 }
             }

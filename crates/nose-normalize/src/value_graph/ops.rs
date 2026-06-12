@@ -2,7 +2,7 @@
 //!
 //! proof-obligation: normalize.value_graph.compare
 
-use super::ValOp;
+use super::{ConstKind, ValOp};
 use crate::combine;
 use nose_il::{stable_symbol_hash, Il, Lang, NodeId, NodeKind, Op, Payload};
 use nose_semantics::{semantics, ValueDomain};
@@ -217,19 +217,15 @@ pub(super) fn is_commutative(opc: u32) -> bool {
     is_assoc_comm_code(opc) || opc == Op::Eq as u32 || opc == Op::Ne as u32
 }
 
-/// Coarse type of a `Const` value node from its key range (mirrors the `eval` Lit keys):
-/// int range -> Num, string range -> Str, bool range -> Bool, small `LitClass` codes -> their
-/// type; sentinels (bottom, void-return, break) -> Unknown.
-pub(super) fn const_value_domain(k: u32) -> ValueDomain {
-    match k {
-        0x1000_0000..=0x1FFF_FFFF => ValueDomain::Number,
-        0x2000_0000..=0x2FFF_FFFF => ValueDomain::String,
-        0x3000_0001 | 0x3000_0002 => ValueDomain::Boolean,
-        0x4000_0000..=0x4FFF_FFFF => ValueDomain::Number,
-        0 | 1 => ValueDomain::Number,
-        2 => ValueDomain::String,
-        3 => ValueDomain::Boolean,
-        _ => ValueDomain::Unknown,
+/// Coarse value domain of a `Const`, read directly from its explicit [`ConstKind`] (no
+/// numeric-range inference — that packing was the source of the #308/series-8 kind
+/// misclassifications). `Null` and sentinels are behaviorally `Unknown`.
+pub(super) fn const_value_domain(kind: ConstKind) -> ValueDomain {
+    match kind {
+        ConstKind::Int | ConstKind::Float => ValueDomain::Number,
+        ConstKind::Str => ValueDomain::String,
+        ConstKind::Bool => ValueDomain::Boolean,
+        ConstKind::Null | ConstKind::Sentinel => ValueDomain::Unknown,
     }
 }
 
@@ -310,7 +306,9 @@ pub(super) fn identity_of(opc: u32) -> Option<u32> {
 pub(super) fn op_tag(op: &ValOp) -> u64 {
     let (k, p): (u64, u64) = match op {
         ValOp::Input(c) => (1, *c as u64),
-        ValOp::Const(c) => (2, *c as u64),
+        // Fold the kind into the discriminant so two Consts of different kinds with the
+        // same `bits` (e.g. Int 1 vs Bool true) never share a hash.
+        ValOp::Const { kind, bits } => (2 ^ ((*kind as u64) << 8), *bits),
         ValOp::Bin(o) => (3, *o as u64),
         ValOp::Un(o) => (4, *o as u64),
         ValOp::Field(n) => (5, *n),
@@ -342,25 +340,16 @@ pub(super) fn op_tag(op: &ValOp) -> u64 {
 }
 
 /// The low-bit mask for a literal's content hash inside its class-tagged `Const` key
-/// range. The class tag occupies the top nibble (`0x2…` = String); the hash MUST be
-/// masked into the low 28 bits, never `wrapping_add`ed, or a high-bit hash carries the
-/// key OUT of the class range — where `const_value_domain` misreads the kind and (for a
-/// string) `proven_non_concat` wrongly admits the `+` commute, false-merging `"p"+"q"`
-/// with `"q"+"p"` (#308). All string keys go through [`string_const_key`] so the
-/// frontend's `LitStr` and the synthesized empty string agree.
-pub(super) const LIT_HASH_MASK: u32 = 0x0FFF_FFFF;
-
-/// The `Const` key for a string literal whose content hash is `h`: the `String` class
-/// tag with the hash masked into range (see [`LIT_HASH_MASK`]).
-pub(super) fn string_const_key(h: u64) -> u32 {
-    0x2000_0000u32 | (h as u32 & LIT_HASH_MASK)
+/// The `Const` `bits` for a string literal: the FULL content hash. The kind
+/// (`ConstKind::Str`) is carried separately, so unlike the old packed key there is no
+/// range to escape and no truncation — the #308 mask and its 28-bit collision are gone
+/// (coevo series 8). The frontend's `LitStr` and the synthesized empty string both go
+/// through `stable_symbol_hash`, so they agree.
+pub(super) fn stable_string_const_bits(value: &str) -> u64 {
+    stable_symbol_hash(value)
 }
 
-pub(super) fn stable_string_const_key(value: &str) -> u32 {
-    string_const_key(stable_symbol_hash(value))
-}
-
-pub(super) fn stable_float_const_key(value: &str) -> u32 {
+pub(super) fn stable_float_const_bits(value: &str) -> u64 {
     let normalized = value.trim().trim_end_matches(['f', 'F', 'd', 'D']);
-    0x4000_0000u32.wrapping_add(stable_symbol_hash(normalized) as u32)
+    stable_symbol_hash(normalized)
 }

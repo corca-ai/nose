@@ -201,23 +201,24 @@ impl<'a> Builder<'a> {
     }
 
     fn eval_lit_expr(&mut self, payload: Payload) -> ValueId {
-        // Behavior-defining constants must be distinct values: `0` ≠ `1`
-        // (else `x % 2 == 0` and `x % 2 == 1` collapse). Retained small ints
-        // key by value (offset clear of the class range); others by class.
-        let key = match payload {
-            Payload::LitInt(v) => 0x1000_0000u32.wrapping_add(v as u32),
-            // strings in a separate key range from ints; the hash is masked into range
-            // (NOT `wrapping_add`ed) so the `String` class tag survives — shared with the
-            // synthesized empty string via `string_const_key` (#308).
-            Payload::LitStr(h) => string_const_key(h),
-            // floats keyed by source-text hash, in their own range (so `3.14`≠`2.71`)
-            Payload::LitFloat(h) => 0x4000_0000u32.wrapping_add(h as u32),
-            // true/false are behavior-defining and must be distinct (own range)
-            Payload::LitBool(b) => 0x3000_0001u32 + b as u32,
-            Payload::Lit(c) => c as u32,
-            _ => 0,
+        // Behavior-defining constants are distinct values: `0` ≠ `1`, `"p"` ≠ `"q"`,
+        // `true` ≠ `false`, `3.14` ≠ `2.71`. The kind is carried EXPLICITLY and `bits`
+        // holds the FULL value/hash, so nothing wraps a class boundary or truncates
+        // (coevo series 8). An abstract `Lit(class)` (value not retained) collapses to
+        // `bits = 0` of its kind — all such literals of one class converge, by design.
+        let (kind, bits) = match payload {
+            Payload::LitInt(v) => (ConstKind::Int, v as u64),
+            Payload::LitStr(h) => (ConstKind::Str, h),
+            Payload::LitFloat(h) => (ConstKind::Float, h),
+            Payload::LitBool(b) => (ConstKind::Bool, b as u64),
+            Payload::Lit(LitClass::Int) => (ConstKind::Int, 0),
+            Payload::Lit(LitClass::Float) => (ConstKind::Float, 0),
+            Payload::Lit(LitClass::Str) => (ConstKind::Str, 0),
+            Payload::Lit(LitClass::Bool) => (ConstKind::Bool, 0),
+            Payload::Lit(LitClass::Null) => (ConstKind::Null, 0),
+            _ => (ConstKind::Sentinel, 0),
         };
-        self.mk(ValOp::Const(key), vec![])
+        self.mk_const(kind, bits)
     }
 
     fn eval_binop_expr(

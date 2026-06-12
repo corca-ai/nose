@@ -648,6 +648,54 @@
    "summary": "`\"p\"+\"q\"` \u2261 `\"q\"+\"p\"` false-merges: a string literal's Const key `0x2000_0000.wrapping_add(h)` wraps OUT of the String range when h's high bits are set, so const_value_domain misreads it as non-String \u2192 proven_non_concat wrongly admits the `+` commute. nose verify catches it as a hard violation.",
    "verdict": "violation-fixed",
    "defense": "#308 \u2014 a string literal's Const key kept the `String` class tag but the content hash wrapped out of range. Fixed by masking the hash into the low 28 bits (`string_const_key`), shared by the frontend's LitStr and the synthesized empty string so they agree (the py-`.get(k,\"\")` vs go-zero-value convergence). Verify clean on sympy+guava (49k interpretable units, no collision-induced merges); corpus family deltas small and in the false-merge-separating direction."
+  },
+  {
+   "packet_id": "s8-s1-int-bool-wrap",
+   "series": 8,
+   "campaign": "S1",
+   "persona": "numeric-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "an int/float Const-key wrap is always fail-closed; no int key wrap causes a false merge",
+   "summary": "The int literal 536870914 (=0x2000_0002) keyed to 0x3000_0002 via 0x1000_0000.wrapping_add(v as u32), byte-identical to LitBool(true)'s key \u2014 so x+536870914 false-merged with x+True. The #308 author's 'ints are fail-closed' claim was false.",
+   "verdict": "violation-fixed",
+   "defense": "#313 \u2014 ValOp::Const restructured to carry the kind explicitly (ConstKind) plus the full value/hash, so no value can wrap a class boundary."
+  },
+  {
+   "packet_id": "s8-s1-int-truncation",
+   "series": 8,
+   "campaign": "S1",
+   "persona": "numeric-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "int literals are keyed by value distinctly",
+   "summary": "eval keyed LitInt(v) as v as u32, truncating i64 to 32 bits, so 0 \u2261 2^32 and 5 \u2261 4294967301 false-merged. 2^32 is a plausible real constant.",
+   "verdict": "violation-fixed",
+   "defense": "#313 \u2014 Const{kind:Int, bits} retains the FULL i64."
+  },
+  {
+   "packet_id": "s8-s2-string-28bit-collision",
+   "series": 8,
+   "campaign": "S2",
+   "persona": "value-model-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "#308's string-key mask discriminates distinct strings",
+   "summary": "The #308 mask 0x2000_0000 | (h & 0x0FFF_FFFF) kept only 28 bits, so brute-forced strings 'geU'/'aaha' (sharing low-28-bits) collapsed to one Const and false-merged. #308 traded the out-of-range bug for a collision bug.",
+   "verdict": "violation-fixed",
+   "defense": "#313 \u2014 Const{kind:Str, bits} retains the FULL 64-bit hash; the 28-bit mask is removed."
+  },
+  {
+   "packet_id": "s8-value-model-canon-green",
+   "series": 8,
+   "campaign": "S2",
+   "persona": "value-model-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "the AC/distribution/min-max/De-Morgan canonicalizations gate literals soundly",
+   "summary": "Green on the algebraic canon: string-repetition distribution (gated tight), a+'literal' commutativity (held ordered), loose-vs-strict equality (unwitnessable, oracle has no coercion), De Morgan / abs idempotence (sound for all integers). The only exploitable surface was the literal-key hashing, not the canonicalizations.",
+   "verdict": "green-confirmed",
+   "defense": "None needed."
   }
  ]
 }

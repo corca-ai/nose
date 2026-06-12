@@ -5,10 +5,51 @@ use super::*;
 
 pub(super) type ValueId = u32;
 
+/// Sentinel `Const` discriminants — opaque markers that must stay distinct from each
+/// other and from every real literal. Preserved verbatim from the old packed-key magics
+/// so their structural hashes (and thus cross-version fingerprints) are unchanged.
+pub(super) mod sentinel {
+    /// `⊥` — "not on this path" (the `Phi` placeholder / guard bottom).
+    pub(crate) const BOTTOM: u64 = 0x3000_0000;
+    /// A bare `return;` (void return).
+    pub(crate) const VOID_RETURN: u64 = 0xF00D_0000;
+    /// A bare `throw;` / `raise`.
+    pub(crate) const THROW: u64 = 0xE22E_0000;
+    /// An exception-path guard marker.
+    pub(crate) const EXC: u64 = 0xCA7C_4A4D;
+    /// An early `break`'s path marker.
+    pub(crate) const BREAK: u64 = 0xB2EA_C0DE;
+}
+
+/// The kind of a [`ValOp::Const`], carried EXPLICITLY rather than inferred from the
+/// numeric range of a single packed key. The old `Const(u32)` packed a 4-bit class tag
+/// into the top nibble and the value/hash into the low 28 — but an integer value or a
+/// string hash with high bits set wrapped the key out of its class range (misreading the
+/// kind) or collided after truncation, both producing false merges (coevo series 8;
+/// #308's mask only narrowed the string case). Separating the kind removes the packing
+/// entirely: `bits` holds the FULL i64 value (Int), the full 64-bit content hash
+/// (Str/Float), the boolean (Bool), or a sentinel discriminant — with no range to escape.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) enum ConstKind {
+    /// An opaque marker (bottom/⊥, void-return, throw, break, exception-guard, …) —
+    /// behaviorally `Unknown`, distinguished from every other sentinel by `bits`.
+    Sentinel,
+    Int,
+    Str,
+    Bool,
+    Float,
+    Null,
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(super) enum ValOp {
     Input(u32), // a parameter or free variable, keyed by canonical id
-    Const(u32), // literal class
+    /// A literal/constant. `kind` classifies it; `bits` is the full i64 value (Int), the
+    /// full content hash (Str/Float), the boolean (Bool, 0/1), or a sentinel tag.
+    Const {
+        kind: ConstKind,
+        bits: u64,
+    },
     Bin(u32),   // binary operator
     Un(u32),    // unary operator
     Field(u64), // field access, keyed by content hash of the name

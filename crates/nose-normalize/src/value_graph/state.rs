@@ -92,7 +92,7 @@ impl<'a> Builder<'a> {
     /// the rewrite simply does not fire — typed/annotated operands still converge.
     pub(super) fn proven_numeric(&self, v: ValueId) -> bool {
         match self.nodes[v as usize].op {
-            ValOp::Const(k) => const_value_domain(k) == ValueDomain::Number,
+            ValOp::Const { kind, .. } => const_value_domain(kind) == ValueDomain::Number,
             ValOp::Input(cid) => self
                 .param_domain
                 .get(&cid)
@@ -152,7 +152,7 @@ impl<'a> Builder<'a> {
     pub(super) fn proven_non_concat(&self, v: ValueId) -> bool {
         match self.nodes[v as usize].op {
             // Non-string literals (Number / Boolean / Null). A String const is concat.
-            ValOp::Const(k) => !matches!(const_value_domain(k), ValueDomain::String),
+            ValOp::Const { kind, .. } => !matches!(const_value_domain(kind), ValueDomain::String),
             // Only a GENUINELY non-string-typed param (numeric/boolean evidence) qualifies;
             // an untyped param could be a string.
             ValOp::Input(cid) => self
@@ -208,7 +208,7 @@ impl<'a> Builder<'a> {
         };
         let operators = semantics(self.il.meta.lang).operators();
         match op {
-            ValOp::Const(k) => const_value_domain(*k),
+            ValOp::Const { kind, .. } => const_value_domain(*kind),
             ValOp::Input(k) => self
                 .param_ty
                 .get(*k as usize)

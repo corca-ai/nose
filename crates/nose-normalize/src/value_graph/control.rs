@@ -104,9 +104,9 @@ impl<'a> Builder<'a> {
         }
         let r0 = self.sinks[0].value;
         let r1 = self.sinks[1].value;
-        let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
-        let tru = self.mk(ValOp::Const(0x3000_0002), vec![]);
-        let fls = self.mk(ValOp::Const(0x3000_0001), vec![]);
+        let bot = self.sentinel_const(sentinel::BOTTOM);
+        let tru = self.bool_const_value(true);
+        let fls = self.bool_const_value(false);
         let int_one = self.int_const(1);
         let int_zero = self.int_const(0);
         for &(guarded, plain) in &[(r0, r1), (r1, r0)] {
@@ -327,7 +327,7 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn is_bottom_value(&self, value: ValueId) -> bool {
-        matches!(self.nodes[value as usize].op, ValOp::Const(k) if k == 0x3000_0000)
+        matches!(self.nodes[value as usize].op, ValOp::Const { kind: ConstKind::Sentinel, bits } if bits == sentinel::BOTTOM)
     }
 
     /// The conjunction of the current branch path (`c₁ ∧ c₂ ∧ …`), or `None` at top level.
@@ -1069,14 +1069,14 @@ impl<'a> Builder<'a> {
                 // conditional early `return;` collapsed — cf. the break sink, §AS).
                 let v = match self.il.children(stmt).first() {
                     Some(&e) => self.eval(e, env),
-                    None => self.mk(ValOp::Const(0xF00D_0000), vec![]),
+                    None => self.sentinel_const(sentinel::VOID_RETURN),
                 };
                 self.emit_return(v);
             }
             NodeKind::Throw => {
                 let v = match self.il.children(stmt).first() {
                     Some(&e) => self.eval(e, env),
-                    None => self.mk(ValOp::Const(0xE22E_0000), vec![]),
+                    None => self.sentinel_const(sentinel::THROW),
                 };
                 self.emit_throw(v);
             }
@@ -1119,7 +1119,7 @@ impl<'a> Builder<'a> {
                     // no longer fingerprints as the bare `return x+1` (#210). The env
                     // clone keeps exceptional bindings out of the normal path.
                     if !self.branch_returns_throw_free(kids[0]) {
-                        let exc = self.mk(ValOp::Const(0xCA7C_4A4D), vec![]);
+                        let exc = self.sentinel_const(sentinel::EXC);
                         self.path.push(exc);
                         let mut handler_env = env.clone();
                         self.process_stmt(kids[1], &mut handler_env);
@@ -1143,7 +1143,7 @@ impl<'a> Builder<'a> {
                 // distinct. (`continue` needs no handling: desugaring already hoists the
                 // remainder of the body into the negated guard, so its filtering effect
                 // is captured by the normal path-guard machinery.)
-                let marker = self.mk(ValOp::Const(0xB2EA_C0DE), vec![]);
+                let marker = self.sentinel_const(sentinel::BREAK);
                 let g = self.guarded(marker);
                 self.sinks.push(Sink::new(SinkKind::Break, g));
             }
@@ -1286,7 +1286,7 @@ impl<'a> Builder<'a> {
             (kind != LoopKind::ForEach && kids.len() >= 2).then(|| self.eval(kids[0], env))
         });
         let Some(guard) = guard else { return };
-        let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+        let bot = self.sentinel_const(sentinel::BOTTOM);
         for i in sink_start..self.sinks.len() {
             let sink = self.sinks[i];
             if !matches!(sink.kind, SinkKind::Effect) || self.refs_elem(sink.value) {

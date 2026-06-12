@@ -59,7 +59,7 @@ impl<'a> Builder<'a> {
         if let ValOp::Phi = self.nodes[v as usize].op {
             let args = self.nodes[v as usize].args.clone();
             if args.len() == 3 {
-                let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+                let bot = self.sentinel_const(sentinel::BOTTOM);
                 let (cond, then_v, else_v) = (args[0], args[1], args[2]);
                 if then_v != bot && else_v != bot {
                     self.path.push(cond);
@@ -81,7 +81,7 @@ impl<'a> Builder<'a> {
         match self.path_cond() {
             None => v,
             Some(pc) => {
-                let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+                let bot = self.sentinel_const(sentinel::BOTTOM);
                 self.mk(ValOp::Phi, vec![pc, v, bot])
             }
         }

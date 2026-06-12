@@ -60,15 +60,16 @@ use crate::module_facts::{
     top_level_statements_for,
 };
 use field_state::FieldStateKey;
+use model::sentinel;
 use model::{
-    Builder, BuilderCandidate, BuilderKind, FilterMapResult, HofAdmission, InlineCaptureFrame,
-    InlineFunction, LoopRecurrenceScope, ReductionCache, SignedExprOperand, Sink, SinkKind,
-    ValNode, ValOp, ValueId,
+    Builder, BuilderCandidate, BuilderKind, ConstKind, FilterMapResult, HofAdmission,
+    InlineCaptureFrame, InlineFunction, LoopRecurrenceScope, ReductionCache, SignedExprOperand,
+    Sink, SinkKind, ValNode, ValOp, ValueId,
 };
 use nose_il::{
-    stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LoopKind, NodeId,
-    NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind, SourceFactKind,
-    SourcePatternKind, SourceRangeKind, Span, Symbol,
+    stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LitClass,
+    LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind,
+    SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol,
 };
 use nose_semantics::{
     admitted_builder_append_method_call_args, admitted_builtin_semantics_at_call,

@@ -395,7 +395,7 @@ impl<'a> Builder<'a> {
                     | Payload::LitBool(_)
                     | Payload::LitStr(_)
                     | Payload::LitFloat(_)
-                    | Payload::Lit(nose_il::LitClass::Null)
+                    | Payload::Lit(LitClass::Null)
             ),
             _ => self
                 .il

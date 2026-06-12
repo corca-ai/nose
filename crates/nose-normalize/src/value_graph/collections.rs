@@ -326,7 +326,7 @@ impl<'a> Builder<'a> {
                 }
             }
             if let Some(carried_guard) = carried_guard {
-                let ident = self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
+                let ident = self.bool_const_value(code != REDUCE_ANY);
                 self.mk(ValOp::Phi, vec![carried_guard, pred, ident])
             } else {
                 pred
@@ -341,7 +341,7 @@ impl<'a> Builder<'a> {
             let av = self.eval(*kids.first()?, env);
             let (contrib, predicate) = self.collection_elem_with_pred(av);
             if let Some(predicate) = predicate {
-                let ident = self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
+                let ident = self.bool_const_value(code != REDUCE_ANY);
                 self.mk(ValOp::Phi, vec![predicate, contrib, ident])
             } else {
                 contrib
@@ -841,7 +841,13 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn is_null_value(&self, value: ValueId) -> bool {
-        matches!(self.nodes[value as usize].op, ValOp::Const(k) if k == nose_il::LitClass::Null as u32)
+        matches!(
+            self.nodes[value as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        )
     }
 
     pub(super) fn membership_condition(&self, cond: ValueId) -> Option<(ValueId, ValueId, bool)> {
@@ -1045,7 +1051,7 @@ impl<'a> Builder<'a> {
                         Payload::LitInt(_)
                             | Payload::LitBool(_)
                             | Payload::LitStr(_)
-                            | Payload::Lit(nose_il::LitClass::Null)
+                            | Payload::Lit(LitClass::Null)
                     )
             })
     }
@@ -1754,7 +1760,7 @@ impl<'a> Builder<'a> {
     pub(super) fn is_null_literal(&self, node: NodeId) -> bool {
         matches!(
             (self.il.kind(node), self.il.node(node).payload),
-            (NodeKind::Lit, Payload::Lit(nose_il::LitClass::Null))
+            (NodeKind::Lit, Payload::Lit(LitClass::Null))
         )
     }
 }
