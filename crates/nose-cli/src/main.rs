@@ -1787,6 +1787,24 @@ fn verify_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::V
             battery.push(row);
         }
     }
+    // Part 3: ORDER-SENSITIVITY rows for non-commutative `+` (string / list CONCAT).
+    // The combinatorial pool is int/list-only and the probes inject ONE string at a
+    // time, so two DISTINCT strings (or two distinct lists) are never bound to two
+    // params at once — the only input on which `a+b` and `b+a` differ under concat.
+    // Without these rows the order-sensitive `Str`/`List` model (interp.rs) is starved,
+    // and the oracle reads SOUND while the detector reorders untyped `+` (#283-C). Each
+    // slot gets a distinct token so every adjacent operand pair differs.
+    let s = |t: u64| Value::Str(vec![t]);
+    let distinct: [[Value; VERIFY_WIDTH]; 2] = [
+        [s(0xC0DE01), s(0xC0DE02), s(0xC0DE03), s(0xC0DE04)],
+        [l(&[1, 1]), l(&[2, 2]), l(&[3, 3]), l(&[4, 4])],
+    ];
+    for row in &distinct {
+        battery.push(row.to_vec());
+        let mut rev = row.to_vec();
+        rev.reverse();
+        battery.push(rev);
+    }
     battery
 }
 

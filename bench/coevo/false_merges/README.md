@@ -16,8 +16,8 @@ moved into the permanent regression battery.
 | effect_commute.py | commutative `+` reorders observable effects | yes | FIXED #286 (A) — `reorder_safe` |
 | effect_acchain.py | AC-chain sorts effectful leaves | yes | FIXED #286 (A) — `reorder_safe` |
 | neg_involution.py | `-(-x)→x` on optimistically-Num param | yes (canon-preservation) | FIXED #283-B — `proven_numeric` |
-| untyped_add_commute.py | `a+b≡b+a` for untyped (string/list concat) | NO — oracle blind | OPEN (C) |
-| float_assoc.py | `(a+b)+c≡a+(b+c)` for floats | NO — oracle blind | OPEN (C/float) |
+| untyped_add_commute.py | `a+b≡b+a` for untyped (string/list concat) | **yes** (battery floor) | OPEN (C) — oracle now witnesses it; detector gate pending |
+| float_assoc.py | `(a+b)+c≡a+(b+c)` for floats | NO — oracle blind | OPEN (C/float) — needs the `Float` value kind (D-div) |
 
 FIXED rows are now covered by permanent regression tests (effect cases in the
 value-graph suite; `-(-a)`/`a&a` in `crates/nose-cli/tests/equivalence.rs`,
