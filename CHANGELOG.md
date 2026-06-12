@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-12
+
 ### Fixed
 - **Three-way `/` division no longer false-merges across languages** (#283-D). `/` is
   *true-float* in Python 3 / JS (`7/2 == 3.5`), *floored-int* in Ruby (`7/2 == 3`, like
