@@ -258,6 +258,13 @@ defender bounded to the largest **sound** generalization — is the
 [adversarial co-evolution runbook](adversarial-coevolution.md). Its `compositional`-tagged
 packet ledger is also the measuring instrument for §4's e-graph revisit conditions.
 
+A worked instance of "strengthen the oracle as part of the loop" is
+[oracle-value-model](oracle-value-model.md): the go/no-go scoping for the
+remaining #283 false-merge sub-findings, which separates an input-battery gap
+(C), a canonicalization-width problem (D-int32), and the single genuine `Float`
+value-kind gap (D-div) — each with a sound fail-closed floor and a recall-pricing
+protocol, rather than one monolithic "extend the value model" bet.
+
 ## 5. Decisive measurements (run before betting heavily)
 
 Cheap experiments that turn direction into data:

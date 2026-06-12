@@ -65,6 +65,7 @@ You want to *change* nose or understand how it works inside.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
 - [lawpack-provenance-audit-2026-06-10](lawpack-provenance-audit-2026-06-10.md) — full-corpus and targeted real-repo audit of `nose.value_graph.laws` provenance.
 - [fragment-contracts](fragment-contracts.md) — how exact sub-function fragments are modeled: classification, contract, the wrapper-synthesis behavior oracle, the effect algebra, and fail-closed receiver identity.
+- [oracle-value-model](oracle-value-model.md) — the verify oracle's value model (Int/Bool/Str-monoid/List/Sym), what it can and cannot witness, and the go/no-go plan to close #283's remaining false-merge sub-findings (C battery gap, D-int32 width, D-div float).
 - [formal-soundness](formal-soundness.md) — Lean 4 proof-obligation registry for proof-sensitive IL, normalization, fragment, and oracle contracts.
 - [hazard-ranking](hazard-ranking.md) — the evidence base for the experimental `--sort hazard` (a divergence-*propensity* signal; **not** a validated harm ranker — it ranks actual harm near chance) and the honest evaluation trail.
 - [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset hazard is measured against (repo selection, graded labels, quantitative sufficiency).

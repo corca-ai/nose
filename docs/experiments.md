@@ -2211,3 +2211,10 @@ shipped as deliberate moat work, every one recall-neutral on `bench/repos`:
   the oracle is no longer blind here. The `/`-division three-way split and JS int32
   narrowing parts of D, plus C (untyped `+` commutativity — still oracle-blind), stay
   open in #283.
+
+The remaining three (C, D-int32, D-div) are scoped in
+[oracle-value-model](oracle-value-model.md) — which re-frames them as *three
+independent* fixes (an input-battery gap, a canon-width problem, and the one
+genuine `Float`-value gap), each with a sound fail-closed floor, rather than one
+shared value-model extension. That document is the go/no-go gate before any of
+the three is implemented.
