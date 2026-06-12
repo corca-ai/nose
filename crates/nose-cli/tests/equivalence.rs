@@ -7494,3 +7494,39 @@ fn keyword_argument_oracle_binds_by_name_issue_301() {
         "the oracle must bind helper(b=p, a=q) by name: a=q=2, b=p=1",
     );
 }
+
+#[test]
+fn global_reassigned_function_fails_closed_issue_302() {
+    // #302: a module function reassigned via `global name; name = ...` from inside another
+    // function no longer binds its `def` body, so its callers must NOT inline that body
+    // (they would false-merge across files that reassign it differently). A LOCAL
+    // assignment to the same name (no `global`) is a different binding and must NOT gate
+    // the function — the precise distinction the series-6 reassigned-anywhere predicate
+    // could not draw (it over-fired). Measured via exact-safety: an inlined caller is
+    // exact-safe; an opaque (un-inlined) one is not.
+    let i = Interner::new();
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    let caller_exact_safe = |src: &str| -> bool {
+        let il = nose_frontend::lower_source(FileId(0), "t.py", src.as_bytes(), Lang::Python, &i)
+            .unwrap();
+        nose_detect::units_of_file(&il, &i, &opts)
+            .iter()
+            .find(|u| u.name.as_deref() == Some("caller"))
+            .expect("caller unit")
+            .exact_safe
+    };
+    let reassigned = "def helper(x):\n    return x * 5 + 1\n\ndef setup():\n    global helper\n    helper = other\n\ndef caller(a):\n    return helper(a) * 10 + a\n";
+    let local_shadow = "def helper(x):\n    return x * 5 + 1\n\ndef elsewhere():\n    helper = 5\n    return helper + 1\n\ndef caller(a):\n    return helper(a) * 10 + a\n";
+    assert!(
+        !caller_exact_safe(reassigned),
+        "a caller of a `global`-reassigned function must not be exact-safe (fail closed)",
+    );
+    assert!(
+        caller_exact_safe(local_shadow),
+        "a local `helper = 5` (no `global`) must NOT gate the function — caller still inlines",
+    );
+}

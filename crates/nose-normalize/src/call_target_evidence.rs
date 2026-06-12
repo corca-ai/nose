@@ -96,6 +96,11 @@ fn unique_direct_function_targets(
     let parents = parent_map(il);
     let mut targets = FxHashMap::default();
     let mut ambiguous = FxHashSet::default();
+    // Names rebound at module scope from inside another function (`global name; name =
+    // ...`): the runtime binding is no longer the `def` body, so the name is not a
+    // DirectFunction target. Precise — a local `name = x` (no `global`) carries no fact
+    // and stays a valid target (#302). Empty for non-Python and the common case.
+    let rebound = nose_semantics::module_rebound_symbols(il);
     for unit in &il.units {
         if unit.kind != UnitKind::Function || !is_top_level_function_root(il, &parents, unit.root) {
             continue;
@@ -104,15 +109,11 @@ fn unique_direct_function_targets(
         if ambiguous.contains(&name) {
             continue;
         }
-        // A decorated `def` binds `decorator(f)`, not the lowered body — fail closed:
-        // no DirectFunction evidence, so the inline, the content-keyed exact admission,
-        // and the behavioral oracle all stay opaque (coevo series 6, S2-A). Out-of-scope
-        // REASSIGNMENT (`global name; name = ...`) is a separate, deferred gap: the
-        // frontend drops `global`/`nonlocal`, so a non-top-level `name = x` is
-        // indistinguishable from a local declaration — gating on it fails OPEN-the-
-        // wrong-way (kills valid inlines of clean helpers whose name a local shadows;
-        // measured 37-repo recall loss). It needs frontend global-binding tracking (#302).
-        if nose_semantics::decorated_definition_at_node(il, unit.root) {
+        // A decorated `def` binds `decorator(f)`, not the lowered body (coevo series 6,
+        // S2-A); a `global`-reassigned name binds whatever was last assigned, not its
+        // `def` body (#302). Both fail closed: no DirectFunction evidence, so the inline,
+        // the content-keyed exact admission, and the behavioral oracle all stay opaque.
+        if nose_semantics::decorated_definition_at_node(il, unit.root) || rebound.contains(&name) {
             continue;
         }
         let target = DirectFunctionTarget {

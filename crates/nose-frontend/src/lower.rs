@@ -60,6 +60,11 @@ pub(crate) struct Lowering<'a> {
     pub evidence: Vec<EvidenceRecord>,
     pub type_domain_aliases: TypeDomainAliases,
     pub unsigned_32_aliases: Vec<Unsigned32Alias>,
+    /// Stack of `global`-declared names per enclosing function scope (Python). An
+    /// assignment to a name on the top frame REBINDS the module binding, not a local —
+    /// the frontend records that as a `ModuleRebind` source fact so the (otherwise
+    /// information-losing) IL can distinguish it from a local declaration (#302).
+    pub global_decls: Vec<rustc_hash::FxHashSet<Symbol>>,
 }
 
 impl<'a> Lowering<'a> {
@@ -73,7 +78,15 @@ impl<'a> Lowering<'a> {
             evidence: Vec::new(),
             type_domain_aliases: TypeDomainAliases::default(),
             unsigned_32_aliases: Vec::new(),
+            global_decls: Vec::new(),
         }
+    }
+
+    /// Whether `name` is `global`-declared in the current (innermost) function scope.
+    pub(crate) fn name_is_global_declared(&self, name: Symbol) -> bool {
+        self.global_decls
+            .last()
+            .is_some_and(|frame| frame.contains(&name))
     }
 
     /// Source text covered by a CST node.

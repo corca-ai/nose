@@ -11,7 +11,8 @@ use crate::lower::Lowering;
 use nose_il::{
     stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, FileId, HoFKind, Il,
     ImportEvidenceKind, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    SourceBindingKind, SourceComprehensionKind, SourceFactKind, SourceOperatorKind, Span, UnitKind,
+    SourceBindingKind, SourceComprehensionKind, SourceFactKind, SourceOperatorKind, Span, Symbol,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -247,9 +248,46 @@ fn contains_interpolation(node: TsNode) -> bool {
 }
 
 fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
-    crate::lower::function_unit(lo, node, method, lower_params, |lo, b| {
+    // Collect this function's `global` declarations BEFORE lowering its body, so an
+    // assignment to a global-declared name can be recorded as a module rebind (#302).
+    // The frame is scoped to this function — nested functions get their own.
+    let globals = collect_global_declarations(lo, node);
+    lo.global_decls.push(globals);
+    let func = crate::lower::function_unit(lo, node, method, lower_params, |lo, b| {
         lower_docstring_block(lo, b, false)
-    })
+    });
+    lo.global_decls.pop();
+    func
+}
+
+/// The names declared `global` anywhere in a function body, excluding nested function /
+/// lambda scopes (Python `global` is function-scoped). `nonlocal` rebinds an enclosing
+/// *local*, never a module function, so it is not collected.
+fn collect_global_declarations(lo: &Lowering, func: TsNode) -> rustc_hash::FxHashSet<Symbol> {
+    let mut out = rustc_hash::FxHashSet::default();
+    let Some(body) = func.child_by_field_name("body") else {
+        return out;
+    };
+    let mut stack = vec![body];
+    while let Some(n) = stack.pop() {
+        match n.kind() {
+            // Do not descend into nested function/lambda scopes — they have their own
+            // `global` frame.
+            "function_definition" | "lambda" => continue,
+            "global_statement" => {
+                for child in Lowering::named_children(n) {
+                    if child.kind() == "identifier" {
+                        out.insert(lo.sym(lo.text(child)));
+                    }
+                }
+            }
+            _ => {}
+        }
+        for child in Lowering::named_children(n) {
+            stack.push(child);
+        }
+    }
+    out
 }
 
 fn lower_class(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -304,7 +342,19 @@ fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
         Some(r) => lower_expr(lo, r),
         None => lo.empty_block(span),
     };
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+    let assign = lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+    // `global name; name = value` rebinds the MODULE binding — record it so the IL can
+    // tell this from a local declaration, which it otherwise cannot (the frontend drops
+    // `global`). Gated on a single-identifier target declared `global` in this scope.
+    if let Some(left) = node.child_by_field_name("left") {
+        if left.kind() == "identifier" && lo.name_is_global_declared(lo.sym(lo.text(left))) {
+            lo.record_source_fact(
+                span,
+                SourceFactKind::Binding(SourceBindingKind::ModuleRebind),
+            );
+        }
+    }
+    assign
 }
 
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {

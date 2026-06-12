@@ -7,6 +7,19 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **A `global`-reassigned function no longer false-merges its callers** (#302). A
+  module function rebound from inside another scope (`def setup(): global helper;
+  helper = ...`) does not bind its `def` body at call time, but its callers were given
+  `DirectFunction` evidence and inlined that body — so two files reassigning `helper`
+  to different things false-merged their callers (`helper(a)*10` ≡ `helper(a)*10`
+  though `helper` differs). The frontend now records a `ModuleRebind` source fact on a
+  `global`-declared assignment (the `global`/`nonlocal` keyword is otherwise dropped at
+  lowering), and call-target evidence + content-keyed seeding withhold the name. Precise
+  where the [series-6](https://github.com/corca-ai/nose/pull/303) reassigned-anywhere
+  predicate over-fired: a local `helper = 5` (no `global`) carries no fact and stays a
+  valid target — measured recall-neutral across all 36 Python-bearing corpus repos.
+
+### Fixed
 - **Keyword arguments now bind by name, not position** (#301). A Python call
   `helper(b=p, a=q)` lowered to byte-identical IL as `helper(a=p, b=q)` — the keyword
   names were dropped — so two callers passing different `(name → value)` mappings
