@@ -947,6 +947,7 @@ mod tests {
             version: "test",
             detector: "structural".into(),
             duplicates: vec![],
+            reinvented: vec![],
             groups,
             metrics: Metrics {
                 files: 0,

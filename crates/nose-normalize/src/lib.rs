@@ -36,12 +36,13 @@ pub use interp::{
     behavior_has_sym, run_unit, run_unit_paths, Behavior, Value, MAX_SYM_BRANCH_SITES,
 };
 pub use value_graph::{
-    anchor_min_weight, value_anchors, value_fingerprint, value_fingerprint_and_contracts,
-    value_fingerprint_and_contracts_with_context, value_fingerprint_contracts,
-    value_fingerprint_lits, value_fingerprint_lits_anchors, value_fingerprint_lits_anchors_laws,
-    value_fingerprint_lits_anchors_laws_with_context, value_fingerprint_lits_anchors_with_context,
-    value_fingerprint_lits_with_context, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
-    ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
+    anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,
+    value_fingerprint_and_contracts, value_fingerprint_and_contracts_with_context,
+    value_fingerprint_contracts, value_fingerprint_lits, value_fingerprint_lits_anchors,
+    value_fingerprint_lits_anchors_laws, value_fingerprint_lits_anchors_laws_with_context,
+    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context, Anchor,
+    Anchors, FingerprintBundle, FingerprintLawBundle, ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
+    CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Payload, Symbol, Unit};

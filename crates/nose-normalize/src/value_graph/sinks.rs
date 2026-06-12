@@ -37,6 +37,25 @@ impl<'a> Builder<'a> {
     /// `Abs`/`Min`/`Max` return is NOT a bare `Phi` here and stays atomic. Only genuine
     /// ternaries (both arms real values, not the `bot` placeholder) are decomposed.
     pub(super) fn emit_return(&mut self, v: ValueId) {
+        // An active inline capture intercepts the callee's returns BEFORE ternary
+        // decomposition: the raw value plus its inline-relative guard is exactly what
+        // the post-body `Phi` fold needs (decomposition happens again, in caller
+        // context, when the folded value reaches a real return). A return executing
+        // inside a callee loop has first-match-wins semantics across iterations that a
+        // single value cannot express — poison the frame so the inline fails closed.
+        if let Some(frame) = self.inline_capture.last_mut() {
+            if self.loop_depth > frame.loop_depth_base {
+                frame.poisoned = true;
+                return;
+            }
+            let base = frame.path_base;
+            let guard = self.path_cond_from(base);
+            // Re-borrow: `path_cond_from` needed `&mut self` to intern `And` nodes.
+            if let Some(frame) = self.inline_capture.last_mut() {
+                frame.returns.push((guard, v));
+            }
+            return;
+        }
         if let ValOp::Phi = self.nodes[v as usize].op {
             let args = self.nodes[v as usize].args.clone();
             if args.len() == 3 {

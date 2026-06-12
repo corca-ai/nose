@@ -759,6 +759,9 @@ enum ShowView {
     Proposal,
     /// After the report, directories/modules ranked by total duplicated lines.
     Hotspots,
+    /// Reinvented-helper containment findings: code that reimplements an existing pure
+    /// helper inline instead of calling it (exact-grade; experimental surface).
+    Reinvented,
 }
 
 /// What `scan` actually looked at: the file count and per-language breakdown, shown as
@@ -999,6 +1002,10 @@ struct ScanJsonReport<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     ignore: Option<ignores::IgnoreSummary<'a>>,
     families: Vec<ScanJsonFamily<'a>>,
+    /// Reinvented-helper containment findings (additive, experimental): a unit that
+    /// reimplements an existing pure single-return helper inline instead of calling it.
+    #[serde(skip_serializing_if = "<[_]>::is_empty")]
+    reinvented_helpers: &'a [nose_detect::ReinventedHelper],
     #[serde(skip_serializing_if = "Vec::is_empty")]
     ignored_families: Vec<ScanJsonIgnoredFamily<'a>>,
 }
@@ -1150,6 +1157,7 @@ struct ScanJsonIgnoredFamily<'a> {
 
 struct ScanJsonInput<'a> {
     scope: &'a ScanScope,
+    reinvented: &'a [nose_detect::ReinventedHelper],
     sort: SortKey,
     top: usize,
     families: &'a [nose_detect::RefactorFamily],
@@ -1241,6 +1249,7 @@ impl<'a> ScanJsonReport<'a> {
                     }
                 })
                 .collect(),
+            reinvented_helpers: input.reinvented,
             ignored_families: input
                 .ignored_families
                 .iter()
@@ -3475,7 +3484,8 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let settings = resolve_scan_settings(&args)?;
     let opts = scan_detect_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = scan_detector(settings.channels, &opts);
-    let (report, scope) = scan_report(&args, &refs, &settings.exclude, &opts, detector.as_ref());
+    let (mut report, scope) =
+        scan_report(&args, &refs, &settings.exclude, &opts, detector.as_ref());
 
     let mut families = nose_detect::rank_families(&report);
     if settings.channels.abstraction_only() {
@@ -3485,11 +3495,16 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     families.retain(|f| args.scope.keeps(f));
     // Show paths relative to the working directory — absolute paths are unreadable
     // in CI logs and reviews, and relative ones are clickable and portable.
+    let mut reinvented = std::mem::take(&mut report.reinvented);
     if let Ok(cwd) = std::env::current_dir() {
         for f in &mut families {
             for l in &mut f.locations {
                 relativize_loc(l, &cwd);
             }
+        }
+        for r in &mut reinvented {
+            r.helper_file = relativize(&r.helper_file, &cwd);
+            r.container_file = relativize(&r.container_file, &cwd);
         }
     }
     weight_shared_lines(&mut families, &refs, &settings.exclude);
@@ -3549,6 +3564,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         &ScanReportView {
             scope: &scope,
             settings: &settings,
+            reinvented: &reinvented,
             families: &families,
             shown: &shown,
             reportable: &reportable_families,
@@ -3753,6 +3769,7 @@ fn partition_ignored(
 struct ScanReportView<'a> {
     scope: &'a ScanScope,
     settings: &'a ScanSettings,
+    reinvented: &'a [nose_detect::ReinventedHelper],
     families: &'a [nose_detect::RefactorFamily],
     shown: &'a [&'a nose_detect::RefactorFamily],
     reportable: &'a [&'a nose_detect::RefactorFamily],
@@ -3770,6 +3787,7 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
         ReportFormat::Json => {
             let json = ScanJsonReport::new(ScanJsonInput {
                 scope: view.scope,
+                reinvented: view.reinvented,
                 sort: settings.sort,
                 top: settings.top,
                 families: view.families,
@@ -3820,7 +3838,8 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
                 args.show.contains(&ShowView::Proposal),
                 view.omitted_note,
                 view.opportunities,
-            )
+            );
+            print_reinvented_helpers(view.reinvented, args.show.contains(&ShowView::Reinvented));
         }
         ReportFormat::Sarif => println!(
             "{}",
@@ -3828,6 +3847,44 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
         ),
     }
     Ok(())
+}
+
+/// The reinvented-helper section of the human report. The default surface stays a
+/// one-line count (the finding class is new and its field precision is still being
+/// measured — design §2c); `--show reinvented` lists every finding.
+fn print_reinvented_helpers(reinvented: &[nose_detect::ReinventedHelper], show: bool) {
+    if reinvented.is_empty() {
+        return;
+    }
+    if !show {
+        println!(
+            "\n{} reinvented-helper finding{} (code that reimplements an existing pure helper inline) · `--show reinvented` lists them",
+            reinvented.len(),
+            if reinvented.len() == 1 { "" } else { "s" },
+        );
+        return;
+    }
+    println!(
+        "\nreinvented helpers — call the existing helper instead (exact matches, experimental):"
+    );
+    for r in reinvented {
+        let helper_name = r.helper_name.as_deref().unwrap_or("-");
+        let container_name = r.container_name.as_deref().unwrap_or("-");
+        println!(
+            "  {}:{}-{}  {}  reimplements  {}:{}-{}  {}  (lines {}-{}, ~{} value nodes)",
+            r.container_file,
+            r.container_start_line,
+            r.container_end_line,
+            container_name,
+            r.helper_file,
+            r.helper_start_line,
+            r.helper_end_line,
+            helper_name,
+            r.site_start_line,
+            r.site_end_line,
+            r.weight,
+        );
+    }
 }
 
 fn enforce_scan_fail_on(

@@ -6,6 +6,30 @@ break.
 
 ## [Unreleased]
 
+### Added
+- **Reinvented-helper containment findings** (experimental). A new exact-grade finding
+  class: a function that reimplements an existing pure single-return helper inline
+  instead of calling it, matched by the helper's whole-body value-graph hash appearing
+  as an interior sub-DAG of the container. Callers of the helper (or of a
+  behaviorally-equal twin) are excluded — calling is the fix, not the smell — and
+  idiom-sized helpers are floored out (≥ 20 source tokens, ≥ 8 value nodes). Surfaces
+  as a one-line count in the human report (`--show reinvented` lists findings) and an
+  additive `reinvented_helpers` array in scan JSON. Measured on the 105-repo corpus:
+  16 findings, 16/16 value-exact on hand-labeling, including a real upstream bug
+  (h2database's `getGarbageCollectionCount()` still calls `getCollectionTime()`).
+
+### Changed
+- **Interprocedural pure inlining generalized** beyond straight-line helper bodies.
+  Loop accumulators, builder loops, guard clauses, exhaustive if/else tails, and
+  nested proven calls now inline into caller fingerprints behind an evaluation-time
+  sink fence (any effect/throw/break/field-write or in-loop return fails closed to the
+  opaque content-keyed call), with a recursion cycle guard and a body-size ceiling.
+  Callers of a loop helper now converge with the hand-inlined form, and callers of
+  body-identical helpers converge regardless of helper name — in the `near` channel;
+  exact-channel admission of such calls is deliberately deferred until its precision
+  is measured. Soundness re-verified: `nose verify` clean on the corpus stress repos,
+  byte-identical output across thread counts, sympy scan cost +2.4%.
+
 ## [0.7.0] - 2026-06-12
 
 ### Fixed

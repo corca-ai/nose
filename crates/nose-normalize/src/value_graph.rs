@@ -43,12 +43,13 @@ mod state;
 mod stdlib;
 
 pub use api::{
-    anchor_min_weight, value_anchors, value_fingerprint, value_fingerprint_and_contracts,
-    value_fingerprint_and_contracts_with_context, value_fingerprint_contracts,
-    value_fingerprint_lits, value_fingerprint_lits_anchors, value_fingerprint_lits_anchors_laws,
-    value_fingerprint_lits_anchors_laws_with_context, value_fingerprint_lits_anchors_with_context,
-    value_fingerprint_lits_with_context, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
-    ANCHOR_MIN_WEIGHT,
+    anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,
+    value_fingerprint_and_contracts, value_fingerprint_and_contracts_with_context,
+    value_fingerprint_contracts, value_fingerprint_lits, value_fingerprint_lits_anchors,
+    value_fingerprint_lits_anchors_laws, value_fingerprint_lits_anchors_laws_with_context,
+    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context, Anchor,
+    Anchors, FingerprintBundle, FingerprintLawBundle, ANCHOR_MIN_WEIGHT,
+    CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use context::ValueFingerprintContext;
 
@@ -61,9 +62,9 @@ use crate::module_facts::{
 };
 use field_state::FieldStateKey;
 use model::{
-    Builder, BuilderCandidate, BuilderKind, FilterMapResult, HofAdmission, InlineFunction,
-    LoopRecurrenceScope, ReductionCache, SignedExprOperand, Sink, SinkKind, ValNode, ValOp,
-    ValueId,
+    Builder, BuilderCandidate, BuilderKind, FilterMapResult, HofAdmission, InlineCaptureFrame,
+    InlineFunction, LoopRecurrenceScope, ReductionCache, SignedExprOperand, Sink, SinkKind,
+    ValNode, ValOp, ValueId,
 };
 use nose_il::{
     stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LoopKind, NodeId,

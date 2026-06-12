@@ -2218,3 +2218,56 @@ independent* fixes (an input-battery gap, a canon-width problem, and the one
 genuine `Float`-value gap), each with a sound fail-closed floor, rather than one
 shared value-model extension. That document is the go/no-go gate before any of
 the three is implemented.
+
+## CF. Generalized pure inlining + the reinvented-helper containment channel
+
+**Question.** §BJ priced *whole-unit pair* recovery from interprocedural inlining at
+0.3% and demoted it. Does the mechanism pay for itself when the question changes —
+(a) as a fingerprint-level substrate (callers of behaviorally-equal helpers converge in
+`near`; call-form and inline-form converge), and (b) as the substrate for a NEW finding
+class, [reinvented helpers](reinvented-helpers.md) (containment: a unit reimplements an
+existing helper inline), which §BJ never measured?
+
+**What shipped.** The straight-line-only inline whitelist became a generalized
+admission (loops, branches, builder appends, nested proven calls) with an
+evaluation-time sink fence, in-loop-return poisoning, return capture with `Phi`
+folding, and a cycle guard ([normalization](normalization.md)); the containment join
+matches a pure single-return helper's whole-body hash against other units' sub-DAG
+anchors, excluding callers (their fingerprints contain the helper BY inlining) and
+idiom-sized helpers. The exact-channel admission of calls (strict gate widening) is
+deliberately NOT shipped — callers stay `near`-grade until that precision is measured
+separately (the oracle-value-model floor-first discipline).
+
+**Calibration.** On sympy the raw containment join fired 108 times; 77 were one
+weight-7 delegation idiom (`self._print(expr.args[0])`, 12 source tokens) matched into
+printer methods. Value-graph weight cannot separate a compressed accumulator loop
+(`Reduce`, ~4 nodes, semantically rich) from a re-typeable one-liner, so the helper
+floor is SOURCE size (≥ 20 tokens; noise band ≤ 12, real helpers ≥ 25) plus ≥ 8 value
+nodes. After: 2 findings on sympy, both hand-verified true.
+
+**Measured (2026-06-12, 105-repo corpus).**
+- **Soundness:** `nose verify --max-violations 0` clean on sympy (37,564 units, 14,075
+  interpretable — the largest single-repo surface) and axios+asciidoctor; the full
+  workspace battery (973 tests) green. Zero false merges with generalized inlining live.
+- **Determinism:** byte-identical scan JSON across 2/13/default thread counts (redis).
+- **Performance:** sympy normalize+extract +2.4% median (interleaved A/B, 4 pairs) —
+  the cost of evaluating helper bodies at call sites.
+- **Default-surface stability:** family counts moved 0–3 per repo (axios 218→218,
+  redis 1135→1138, jsoup 382→382, delve 740→737, sympy 30→30 default surface).
+- **The new channel:** 16 findings / 105 repos across 8 repos. Hand-labeled: 16/16
+  value-exact; ~13/16 directly actionable (call the existing helper); 3 judgment-deep
+  containers (test files, vendored miniaudio). One finding is a real upstream BUG:
+  h2database's `getGarbageCollectionCount()` copy-pasted the time variant and still
+  calls `getCollectionTime()` — it exactly contains the time helper's computation,
+  which is precisely what the channel claims.
+- **Dogfooding:** the duplication gate caught THIS change's own first draft duplicating
+  the existing `branch_returns` walk (26 > budget 25); fixed by reuse, gate back to
+  25/25. The convergence tests: call-form ≡ inline-form for loop accumulators (the §BJ
+  flagship shape), builder loops ≡ comprehension callers, guard-clause helpers ≡
+  ternaries, two-hop helper chains, and name-independent congruence between callers of
+  body-identical helpers.
+
+**Verdict.** The §BJ "0.3%, don't chase pair recall" call stands — and the same
+mechanism, pointed at containment instead of pair recovery, yields a small,
+high-precision, novel finding surface at +2.4% scan cost. Floor-first shipped; exact
+admission and default-surface promotion follow the labelset discipline.

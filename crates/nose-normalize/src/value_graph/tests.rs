@@ -2231,3 +2231,40 @@ fn js_constructor_value_graph_requires_library_api_evidence() {
         ValOp::Seq(SEQ_VALUE_COLLECTION)
     ));
 }
+
+#[test]
+fn inline_capture_poisons_in_loop_returns() {
+    // A `return` reached while the loop depth is above the capture frame's base has
+    // first-match-wins iteration semantics no single value can express — the frame must
+    // poison (failing the inline closed) instead of capturing a bogus return value.
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let module = b.add(NodeKind::Module, Payload::None, sp(1), &[]);
+    let il = finish_test_il(b, module, Lang::Python);
+    let mut builder = Builder::new(&il, &interner);
+
+    builder.inline_capture.push(InlineCaptureFrame {
+        path_base: 0,
+        loop_depth_base: 0,
+        poisoned: false,
+        returns: Vec::new(),
+    });
+    let v = builder.mk(ValOp::Const(1), vec![]);
+    builder.loop_depth = 1;
+    builder.emit_return(v);
+    let frame = builder.inline_capture.last().expect("frame");
+    assert!(
+        frame.poisoned && frame.returns.is_empty(),
+        "an in-loop return must poison the capture frame, not record a value"
+    );
+
+    // At the frame's own loop depth the same return is an ordinary capture.
+    builder.loop_depth = 0;
+    builder.inline_capture.last_mut().expect("frame").poisoned = false;
+    builder.emit_return(v);
+    let frame = builder.inline_capture.last().expect("frame");
+    assert!(
+        !frame.poisoned && frame.returns == vec![(None, v)],
+        "a return outside any callee loop is captured with no guard"
+    );
+}

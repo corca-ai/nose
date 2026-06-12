@@ -74,6 +74,28 @@ impl<'a> Builder<'a> {
         out
     }
 
+    /// The unit's sink profile for the containment channel: whether the build emitted
+    /// exactly one `Return` and nothing irreversible (no ordered effects, throws, or
+    /// breaks — `flush_fields` has already run, so flushed field state would show up as
+    /// `Effect` sinks here), plus the sorted guard-value hashes of its `Cond` sinks
+    /// (loop iteration guards — value-relevant bookkeeping a containment match must
+    /// also find in the container).
+    pub(super) fn sink_profile(&self) -> (bool, Vec<u64>) {
+        let mut returns = 0usize;
+        let mut conds: Vec<u64> = Vec::new();
+        let mut other = false;
+        for s in &self.sinks {
+            match s.kind {
+                SinkKind::Return => returns += 1,
+                SinkKind::Cond => conds.push(self.vhash[s.value as usize]),
+                _ => other = true,
+            }
+        }
+        conds.sort_unstable();
+        conds.dedup();
+        (!other && returns == 1, conds)
+    }
+
     pub(super) fn fingerprint_lits(&self) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
         let h = &self.vhash; // structural hashes, maintained during construction
                              // reachable from sinks
