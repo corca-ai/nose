@@ -232,6 +232,23 @@ downstream value-graph.
   unit. The callee spelling is not a proof channel; missing, ambiguous, or
   conflicting target evidence leaves the call opaque.
 
+  Admission is *generalized*, not whitelisted: the callee body may contain loops,
+  branches, builder appends, and nested proven calls — it is evaluated through the
+  ordinary statement processor in the caller's builder, so a loop-accumulator
+  helper canonicalizes to the same `Reduce` its hand-inlined form produces, and a
+  guard-clause helper's captured returns fold to the same `Phi` a ternary builds.
+  Purity is enforced at evaluation time by a **sink fence**: any ordered effect,
+  throw, break, exact field write, or return reached *inside* a callee loop
+  poisons the attempt, the fence rolls back, and the call falls back to the
+  opaque content-keyed path (fail-closed; loop-guard `Cond` sinks pass through —
+  the hand-inlined form emits them identically). Bodies that can fall off the
+  end, `try`/`throw`/`break`/`Raw` statements, recursion (a cycle guard on the
+  inline stack), arity mismatches, and bodies past a size ceiling never inline.
+  Helpers that pass the shape walk but never inline are still seeded with a
+  content-keyed identity, so two same-named helpers with different bodies keep
+  distinct fingerprints at their call sites. This substrate also powers the
+  [reinvented-helper containment channel](reinvented-helpers.md).
+
 ## Track 2 — Algebraic expression canonicalization (E-graph)
 
 Generalize the current commutative-operand sort into a principled canonicalizer

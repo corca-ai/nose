@@ -334,6 +334,25 @@ Each `holes[]` item has:
 `proof_facts` are not part of the stable scan JSON contract. They remain internal
 diagnostic facts unless a future schema explicitly adds an unstable diagnostics namespace.
 
+## Reinvented helpers
+
+An additive, experimental top-level array `reinvented_helpers` — omitted when empty —
+carrying the [containment findings](reinvented-helpers.md): a unit that reimplements an
+existing pure helper inline instead of calling it. One entry per finding:
+
+| field | type | meaning |
+| --- | --- | --- |
+| `helper_file` / `helper_name` | string / string? | The existing helper being reinvented. |
+| `helper_start_line` / `helper_end_line` | integer | The helper's source range. |
+| `container_file` / `container_name` | string / string? | The unit containing the reimplementation. |
+| `container_start_line` / `container_end_line` | integer | The container's source range. |
+| `site_start_line` / `site_end_line` | integer | Lines INSIDE the container where the helper's computation lives (falls back to the container range when the matched node carries no span). |
+| `weight` | integer | Value-graph size of the matched computation — the ranking key. |
+
+The claim is exact-grade (both units pass the strict exact gate; the match is a
+hash-consed value-graph equality, not similarity). Whether a test or vendored container
+is worth changing is the consumer's judgment call — filter by path.
+
 ## Compatibility
 
 Consumers should branch on `schema_version` before parsing. In version 1, new

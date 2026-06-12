@@ -21,9 +21,9 @@ use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v8: keyed by
-/// the post-resolve IL hash, not the source-content hash — fixes #275.)
-const SCHEMA: u32 = 8;
+/// cache entries then live under a different directory and are ignored. (v9: generalized
+/// pure interprocedural inlining changes value fingerprints of helper callers.)
+const SCHEMA: u32 = 9;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,

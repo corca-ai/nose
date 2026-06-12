@@ -332,9 +332,16 @@ impl<'a> Builder<'a> {
 
     /// The conjunction of the current branch path (`c₁ ∧ c₂ ∧ …`), or `None` at top level.
     pub(super) fn path_cond(&mut self) -> Option<ValueId> {
+        self.path_cond_from(0)
+    }
+
+    /// The conjunction of path conditions from `base` (an earlier `path.len()`) to the
+    /// top — the path suffix relative to a marked entry point, used by inline return
+    /// capture to express a callee-internal guard without the caller's own conditions.
+    pub(super) fn path_cond_from(&mut self, base: usize) -> Option<ValueId> {
         let mut pc: Option<ValueId> = None;
         // Indexed loop: `mk` needs `&mut self` and never touches `path`.
-        for i in 0..self.path.len() {
+        for i in base..self.path.len() {
             let c = self.path[i];
             pc = Some(match pc {
                 None => c,
@@ -1052,44 +1059,7 @@ impl<'a> Builder<'a> {
     pub(super) fn process_stmt(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
         match self.il.kind(stmt) {
             NodeKind::Block => self.process_block(stmt, env),
-            NodeKind::Assign => {
-                let kids = self.il.children(stmt).to_vec();
-                if kids.len() == 2 {
-                    // Go-style functional append `r = append(r, item)` to an ACTIVE builder var
-                    // IS the per-element build (the reassignment is the append), exactly like
-                    // the effect-form `r.append(item)`. Record the contribution so the loop
-                    // becomes `Map(elem, contrib)` instead of an opaque reassign.
-                    if self.try_record_reassign_append(kids[0], kids[1], env) {
-                        return;
-                    }
-                    let rhs = self.eval(kids[1], env);
-                    if self.il.kind(kids[0]) == NodeKind::Var {
-                        if let Payload::Cid(c) = self.il.node(kids[0]).payload {
-                            let rhs = self.compact_coupled_recurrence(c, rhs);
-                            env.insert(c, rhs);
-                            return;
-                        }
-                    }
-                    // An evidence-backed exact field write updates per-place state
-                    // (last-write-wins), flushed as a (receiver, field, final-value)
-                    // sink later — order-insensitive across distinct places, correct
-                    // for same-place overwrites.
-                    if let Some(key) = self.exact_field_write_state_key(stmt, kids[0]) {
-                        let g = self.guarded(rhs);
-                        self.field_env.insert(key, g);
-                        return;
-                    }
-                    // `d[k] = v` to an ACTIVE dict-builder records a `DictEntry` contribution
-                    // (so the loop becomes a `Map` of entries, converging with `{k:v for x}`).
-                    if self.try_record_index_assign(stmt, rhs, env) {
-                        return;
-                    }
-                    // store into an index / computed target → an ordered effect
-                    let target = self.eval(kids[0], env);
-                    let st = self.mk(ValOp::Call(0), vec![target, rhs]);
-                    self.push_effect(st);
-                }
-            }
+            NodeKind::Assign => self.process_assign_stmt(stmt, env),
             NodeKind::Return => {
                 // A bare `return;` (no value) is still behaviorally significant: as an
                 // *early* exit inside a loop/branch it changes which later code runs, and
@@ -1184,6 +1154,52 @@ impl<'a> Builder<'a> {
                 self.push_effect(v);
             }
         }
+    }
+
+    fn process_assign_stmt(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        let kids = self.il.children(stmt).to_vec();
+        if kids.len() != 2 {
+            return;
+        }
+        // Go-style functional append `r = append(r, item)` to an ACTIVE builder var
+        // IS the per-element build (the reassignment is the append), exactly like
+        // the effect-form `r.append(item)`. Record the contribution so the loop
+        // becomes `Map(elem, contrib)` instead of an opaque reassign.
+        if self.try_record_reassign_append(kids[0], kids[1], env) {
+            return;
+        }
+        let rhs = self.eval(kids[1], env);
+        if self.il.kind(kids[0]) == NodeKind::Var {
+            if let Payload::Cid(c) = self.il.node(kids[0]).payload {
+                let rhs = self.compact_coupled_recurrence(c, rhs);
+                env.insert(c, rhs);
+                return;
+            }
+        }
+        // An evidence-backed exact field write updates per-place state
+        // (last-write-wins), flushed as a (receiver, field, final-value)
+        // sink later — order-insensitive across distinct places, correct
+        // for same-place overwrites.
+        if let Some(key) = self.exact_field_write_state_key(stmt, kids[0]) {
+            // A field write is an observable effect a value-only inline
+            // would drop — poison the active capture instead of recording.
+            if let Some(frame) = self.inline_capture.last_mut() {
+                frame.poisoned = true;
+                return;
+            }
+            let g = self.guarded(rhs);
+            self.field_env.insert(key, g);
+            return;
+        }
+        // `d[k] = v` to an ACTIVE dict-builder records a `DictEntry` contribution
+        // (so the loop becomes a `Map` of entries, converging with `{k:v for x}`).
+        if self.try_record_index_assign(stmt, rhs, env) {
+            return;
+        }
+        // store into an index / computed target → an ordered effect
+        let target = self.eval(kids[0], env);
+        let st = self.mk(ValOp::Call(0), vec![target, rhs]);
+        self.push_effect(st);
     }
 
     pub(super) fn process_if(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
@@ -1281,6 +1297,15 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn process_loop(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        // Bracket the whole loop processing in a depth counter so an inline return
+        // capture can tell a return executed *inside* a callee loop (poison) from one
+        // merely written after it (fine).
+        self.loop_depth += 1;
+        self.process_loop_inner(stmt, env);
+        self.loop_depth -= 1;
+    }
+
+    fn process_loop_inner(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
         let kids = self.il.children(stmt).to_vec();
         let kind = match self.il.node(stmt).payload {
             Payload::Loop(k) => k,

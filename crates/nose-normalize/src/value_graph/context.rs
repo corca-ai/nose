@@ -300,7 +300,13 @@ impl<'a> Builder<'a> {
             let Some(name) = unit.name else {
                 continue;
             };
-            if self.function_binding_safe(unit.root, unit.root) {
+            // Content-keyed identity covers both the straight-line binding-safe set and
+            // the generalized pure-shape set: a call whose inline attempt fails the
+            // runtime fence still falls back to a content hash (never a bare name), so
+            // two same-named helpers with different bodies stay distinct.
+            if self.function_binding_safe(unit.root, unit.root)
+                || self.pure_callable_shape(unit.root)
+            {
                 let hash = self.valued_subtree_hash(unit.root);
                 bindings.push((name, hash));
             }

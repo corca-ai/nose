@@ -33,7 +33,7 @@ pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
     contiguous::stream(il, interner)
 }
 
-use nose_il::{Corpus, Il, Interner, NodeKind};
+use nose_il::{Corpus, Il, Interner, NodeKind, UnitKind};
 use nose_normalize::NormalizeOptions;
 use nose_semantics::ValueLaw;
 use rayon::prelude::*;
@@ -431,7 +431,7 @@ pub struct EnclosingUnit {
     pub file: String,
     pub start_line: u32,
     pub end_line: u32,
-    pub kind: nose_il::UnitKind,
+    pub kind: UnitKind,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub unit_key: String,
@@ -457,7 +457,7 @@ pub struct Loc {
     pub lang: String,
     /// What kind of syntactic unit this site is (function/method/class/block) —
     /// lets the report suggest the right refactor (helper vs base class).
-    pub kind: nose_il::UnitKind,
+    pub kind: UnitKind,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Size of this unit's value graph (number of distinct computed values). A
@@ -535,7 +535,7 @@ pub struct LocInit {
     /// Normalized language name.
     pub lang: String,
     /// Syntactic unit kind at this location.
-    pub kind: nose_il::UnitKind,
+    pub kind: UnitKind,
     /// Optional function/method/class name.
     pub name: Option<String>,
     /// Value-graph size for this location.
@@ -700,7 +700,142 @@ pub struct Report {
     pub detector: String,
     pub duplicates: Vec<DupPair>,
     pub groups: Vec<Group>,
+    /// Reinvented-helper containment findings — see [`ReinventedHelper`].
+    pub reinvented: Vec<ReinventedHelper>,
     pub metrics: Metrics,
+}
+
+/// One reinvented-helper containment finding: `container` computes, as an interior
+/// sub-DAG, exactly the whole body of the pure single-return `helper` — WITHOUT calling
+/// it. The actionable fix is the inverse of extract-method: replace the matched lines
+/// with a call to the existing helper.
+///
+/// The claim is exact-grade and one-sided: both units pass the strict exact gate, and
+/// an equal value-graph node hash is the same hash-consed canonical-structure guarantee
+/// the exact channel rides — the container's sub-computation and the helper's body are
+/// the same computation, not merely similar. Units that *call* a helper with this
+/// behavior (directly, or via a behaviorally-equal twin) are excluded — calling is the
+/// fix, not the smell.
+#[derive(Serialize, Clone)]
+pub struct ReinventedHelper {
+    pub helper_file: String,
+    pub helper_name: Option<String>,
+    pub helper_start_line: u32,
+    pub helper_end_line: u32,
+    pub container_file: String,
+    pub container_name: Option<String>,
+    pub container_start_line: u32,
+    pub container_end_line: u32,
+    /// Source lines INSIDE the container where the helper's computation lives.
+    pub site_start_line: u32,
+    pub site_end_line: u32,
+    /// Value-graph size of the reinvented computation — the ranking key.
+    pub weight: u32,
+}
+
+/// Minimum value-graph size for a helper to participate in containment matching —
+/// below this, "reinventing" it is idiom-sized noise (`x + 1` helpers), not a finding.
+const REINVENTED_HELPER_MIN_NODES: usize = 8;
+
+/// Minimum SOURCE size (pre-normalization tokens) for a containment helper. Value-graph
+/// weight alone cannot tell a compressed loop (a whole accumulator loop canonicalizes to
+/// a ~4-node `Reduce` — semantically rich) from a one-line delegation idiom
+/// (`self._print(expr.args[0])` — w7 but trivial to re-type); the helper's source size
+/// is the honest "is calling it actually better than writing it" proxy. Measured on
+/// sympy: the delegation-idiom noise band sits at ≤12 tokens, real helpers at ≥25.
+const REINVENTED_HELPER_MIN_TOKENS: usize = 20;
+
+/// Compute the reinvented-helper containment findings over the extracted units: join
+/// each eligible helper's single return-sink hash against every other unit's sub-DAG
+/// anchors (which carry interior source spans). Deterministic: helpers bucket by hash
+/// with a path/line-ordered representative, and the output is sorted by weight then
+/// location.
+pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
+    let mut by_hash: HashMap<u64, Vec<usize>> = HashMap::new();
+    for (i, u) in units.iter().enumerate() {
+        if matches!(u.kind, UnitKind::Function | UnitKind::Method)
+            && u.fragment_kind.is_none()
+            && u.exact_safe
+            && u.pure_single_return
+            && u.returns.len() == 1
+            && u.value.len() >= REINVENTED_HELPER_MIN_NODES
+            && u.token_count >= REINVENTED_HELPER_MIN_TOKENS
+        {
+            by_hash.entry(u.returns[0]).or_default().push(i);
+        }
+    }
+    if by_hash.is_empty() {
+        return Vec::new();
+    }
+    let mut out: Vec<ReinventedHelper> = Vec::new();
+    for (ci, c) in units.iter().enumerate() {
+        if !matches!(c.kind, UnitKind::Function | UnitKind::Method)
+            || c.fragment_kind.is_some()
+            || !c.exact_safe
+        {
+            continue;
+        }
+        for anchor in &c.anchors {
+            let Some(helpers) = by_hash.get(&anchor.hash) else {
+                continue;
+            };
+            // The container already obtains this computation BY CALLING a helper.
+            if c.called_helper_returns.binary_search(&anchor.hash).is_ok() {
+                continue;
+            }
+            // The container must also carry the helper's loop guards (same iteration
+            // scheme) — matching a fold while iterating differently is not containment.
+            let guards_present = |h: &UnitFeat| {
+                h.cond_sinks
+                    .iter()
+                    .all(|g| c.value.binary_search(g).is_ok())
+            };
+            // Deterministic representative among behaviorally-equal helpers; the
+            // container must be strictly bigger than the helper (an equal-size match
+            // is the exact channel's whole-unit clone, not a containment).
+            let rep = helpers
+                .iter()
+                .copied()
+                .filter(|&h| {
+                    h != ci && c.value.len() > units[h].value.len() && guards_present(&units[h])
+                })
+                .min_by_key(|&h| (&units[h].path, units[h].start_line));
+            let Some(h) = rep else { continue };
+            let h = &units[h];
+            // Loop-exit nodes (a synthesized `Reduce`) may carry no source span; fall
+            // back to the container's own range rather than reporting line 0.
+            let (site_start, site_end) = if anchor.line_start == 0 {
+                (c.start_line, c.end_line)
+            } else {
+                (anchor.line_start, anchor.line_end)
+            };
+            out.push(ReinventedHelper {
+                helper_file: h.path.clone(),
+                helper_name: h.name.clone(),
+                helper_start_line: h.start_line,
+                helper_end_line: h.end_line,
+                container_file: c.path.clone(),
+                container_name: c.name.clone(),
+                container_start_line: c.start_line,
+                container_end_line: c.end_line,
+                site_start_line: site_start,
+                site_end_line: site_end,
+                weight: anchor.weight,
+            });
+        }
+    }
+    out.sort_by(|a, b| {
+        b.weight
+            .cmp(&a.weight)
+            .then_with(|| {
+                (&a.container_file, a.container_start_line)
+                    .cmp(&(&b.container_file, b.container_start_line))
+            })
+            .then_with(|| {
+                (&a.helper_file, a.helper_start_line).cmp(&(&b.helper_file, b.helper_start_line))
+            })
+    });
+    out
 }
 
 fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
@@ -722,18 +857,18 @@ fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
     loc
 }
 
-fn unit_kind_name(kind: nose_il::UnitKind) -> &'static str {
+fn unit_kind_name(kind: UnitKind) -> &'static str {
     match kind {
-        nose_il::UnitKind::Function => "Function",
-        nose_il::UnitKind::Method => "Method",
-        nose_il::UnitKind::Class => "Class",
-        nose_il::UnitKind::Block => "Block",
+        UnitKind::Function => "Function",
+        UnitKind::Method => "Method",
+        UnitKind::Class => "Class",
+        UnitKind::Block => "Block",
     }
 }
 
 fn unit_key(
     file: &str,
-    kind: nose_il::UnitKind,
+    kind: UnitKind,
     name: Option<&str>,
     start_line: u32,
     end_line: u32,
@@ -752,7 +887,7 @@ fn can_enclose_fragment(u: &UnitFeat) -> bool {
     u.fragment_kind.is_none()
         && matches!(
             u.kind,
-            nose_il::UnitKind::Function | nose_il::UnitKind::Method | nose_il::UnitKind::Class
+            UnitKind::Function | UnitKind::Method | UnitKind::Class
         )
 }
 
@@ -862,7 +997,7 @@ fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
             // function/method recovered — an agent cannot even NAME the region
             // of a block family without it (#225: every sampled block location
             // had `name: null`). Whole function/method/class units need none.
-            if units[idx].fragment_kind.is_none() && units[idx].kind != nose_il::UnitKind::Block {
+            if units[idx].fragment_kind.is_none() && units[idx].kind != UnitKind::Block {
                 continue;
             }
             if let Some(parent) = parents
@@ -1110,6 +1245,11 @@ pub fn detect_from_units(
     let groups = build_groups(&units, &accepted, &mut uf, &raw_groups, &enclosing, opts);
     clk.lap("groups");
 
+    let reinvented = if opts.structural {
+        reinvented_helpers(&units)
+    } else {
+        Vec::new()
+    };
     let mut report = Report {
         tool: "nose",
         version: env!("CARGO_PKG_VERSION"),
@@ -1123,6 +1263,7 @@ pub fn detect_from_units(
         },
         duplicates,
         groups,
+        reinvented,
     };
 
     // Copy-paste channel over the (raw-IL) token streams. Runs here, after the
@@ -1304,9 +1445,15 @@ const ANCHOR_PAIR_CAP: usize = 64;
 /// present in `2..=anchor_max_df` units, emit their pairs (capped per bucket). Common anchors
 /// (boilerplate above the df ceiling) are skipped so this stays specific.
 fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
+    // Anchors are COLLECTED at the finer containment floor; the near channel keeps its
+    // own coarser floor at every consumption point, so its behavior is unchanged.
+    let floor = nose_normalize::anchor_min_weight();
     let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
     for (idx, unit) in units.iter().enumerate() {
         for a in &unit.anchors {
+            if a.weight < floor {
+                continue;
+            }
             buckets.entry(a.hash).or_default().push(idx);
         }
     }
@@ -1337,13 +1484,15 @@ fn shared_subdag_hash(members: &[usize], units: &[UnitFeat]) -> Option<u64> {
     if members.len() < 2 {
         return None;
     }
+    let floor = nose_normalize::anchor_min_weight();
     units[members[0]]
         .anchors
         .iter()
         .filter(|a| {
-            members[1..]
-                .iter()
-                .all(|&m| units[m].anchors.iter().any(|b| b.hash == a.hash))
+            a.weight >= floor
+                && members[1..]
+                    .iter()
+                    .all(|&m| units[m].anchors.iter().any(|b| b.hash == a.hash))
         })
         .max_by_key(|a| a.weight)
         .map(|a| a.hash)
@@ -1353,13 +1502,17 @@ fn shared_subdag_hash(members: &[usize], units: &[UnitFeat]) -> Option<u64> {
 /// shared extractable sub-computation, and a bigger one is a stronger partial-clone signal.
 /// Both anchor lists are sorted by hash, so this is a linear merge.
 fn shared_anchor_weight(a: &[nose_normalize::Anchor], b: &[nose_normalize::Anchor]) -> u32 {
+    // Near-channel floor (collection runs at the finer containment floor).
+    let floor = nose_normalize::anchor_min_weight();
     let (mut i, mut j, mut best) = (0, 0, 0);
     while i < a.len() && j < b.len() {
         match a[i].hash.cmp(&b[j].hash) {
             std::cmp::Ordering::Less => i += 1,
             std::cmp::Ordering::Greater => j += 1,
             std::cmp::Ordering::Equal => {
-                best = best.max(a[i].weight.min(b[j].weight));
+                if a[i].weight >= floor && b[j].weight >= floor {
+                    best = best.max(a[i].weight.min(b[j].weight));
+                }
                 i += 1;
                 j += 1;
             }

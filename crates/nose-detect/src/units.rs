@@ -72,6 +72,23 @@ pub struct UnitFeat {
     /// clones return the same computed values; used to demote near-identical units
     /// that differ only in their result (`<` vs `<=`, an extra effect).
     pub returns: Vec<u64>,
+    /// The unit's value-graph build produced exactly one `Return` sink and nothing
+    /// irreversible (no effects, throws, or breaks; loop iteration `Cond` guards are
+    /// allowed and listed in [`cond_sinks`](Self::cond_sinks)) — the unit computes ONE
+    /// value, so `returns[0]` plus the guards is its entire behavior. The
+    /// reinvented-helper containment channel keys on this.
+    #[serde(default)]
+    pub pure_single_return: bool,
+    /// Sorted guard-value hashes of the unit's loop `Cond` sinks. A containment match
+    /// against this unit as a helper must find every one of these in the container too
+    /// (same iteration scheme), not just the return value.
+    #[serde(default)]
+    pub cond_sinks: Vec<u64>,
+    /// Return-sink hashes of every SAME-FILE function this unit provably calls
+    /// (`CallTarget::DirectFunction` evidence), sorted+deduped. A containment match on
+    /// one of these hashes is the unit *using* a helper, not reinventing it.
+    #[serde(default)]
+    pub called_helper_returns: Vec<u64>,
     /// The unit's heavy sub-DAG ANCHORS (sub-computations of ≥ `ANCHOR_MIN_WEIGHT` value-nodes),
     /// sorted/deduped by hash. Two units sharing a rare anchor share an extractable common
     /// sub-computation — a partial / sub-DAG clone that whole-unit Jaccard misses. Each carries
@@ -420,6 +437,8 @@ struct GatedUnit {
     value: Vec<u64>,
     lits: Vec<u64>,
     returns: Vec<u64>,
+    pure_single_return: bool,
+    cond_sinks: Vec<u64>,
     anchors: Vec<nose_normalize::Anchor>,
     semantic_laws: Vec<ValueLaw>,
     unit_start: Option<Instant>,
@@ -481,16 +500,61 @@ pub(crate) fn extract(
     let mut unit_timer = UnitTimer::new();
     let test_module_spans = inline_test_module_spans(il, interner);
     let mut out = Vec::new();
+    let mut emitted_roots: Vec<NodeId> = Vec::new();
     for unit_root in roots {
+        let root = unit_root.root;
         if let Some(mut unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
             unit.in_test_module = test_module_spans
                 .iter()
                 .any(|&(s, e)| s <= unit.start_line && unit.end_line <= e);
             out.push(unit);
+            emitted_roots.push(root);
         }
     }
+    fill_called_helper_returns(il, &mut out, &emitted_roots);
     unit_timer.report_summary(&il.meta.path);
     out
+}
+
+/// Record, on every unit that could be a containment CONTAINER (it has anchors), the
+/// return-sink hashes of each SAME-FILE function it provably calls
+/// (`CallTarget::DirectFunction` evidence). A containment match on one of these hashes
+/// is the unit *using* a helper — generalized inlining splices the callee's value graph
+/// into the caller's fingerprint, so without this record every well-behaved caller of a
+/// helper would read as "reinventing" it.
+fn fill_called_helper_returns(il: &Il, units: &mut [UnitFeat], roots: &[NodeId]) {
+    use nose_semantics::direct_function_call_target_span_at_call;
+    use rustc_hash::FxHashMap;
+    // DirectFunction target spans are function ROOT spans; within one file the line
+    // pair identifies the target unit.
+    let by_span: FxHashMap<(u32, u32), Vec<u64>> = units
+        .iter()
+        .filter(|u| matches!(u.kind, UnitKind::Function | UnitKind::Method))
+        .map(|u| ((u.start_line, u.end_line), u.returns.clone()))
+        .collect();
+    if by_span.is_empty() {
+        return;
+    }
+    for (unit, &root) in units.iter_mut().zip(roots) {
+        if unit.anchors.is_empty() {
+            continue;
+        }
+        let mut called: Vec<u64> = Vec::new();
+        let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            if il.kind(node) == NodeKind::Call {
+                if let Some(span) = direct_function_call_target_span_at_call(il, node) {
+                    if let Some(returns) = by_span.get(&(span.start_line, span.end_line)) {
+                        called.extend_from_slice(returns);
+                    }
+                }
+            }
+            stack.extend(il.children(node).iter().copied());
+        }
+        called.sort_unstable();
+        called.dedup();
+        unit.called_helper_returns = called;
+    }
 }
 
 /// Source-line spans of inline test modules (`mod tests` / `mod test`) — the Rust
@@ -584,16 +648,17 @@ fn gate_unit(
     // literal-only multiset for data-table detection. Computed before the size
     // gate so the gate can consult semantic richness (below).
     let value_start = unit_timer.start();
-    let (value, lits, returns, anchors, semantic_laws) = if let Some(context) = ctx.value_context {
-        nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
-            ctx.il,
-            root,
-            ctx.interner,
-            context,
-        )
-    } else {
-        nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
-    };
+    let (value, lits, returns, anchors, semantic_laws, (pure_single_return, cond_sinks)) =
+        if let Some(context) = ctx.value_context {
+            nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
+                ctx.il,
+                root,
+                ctx.interner,
+                context,
+            )
+        } else {
+            nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
+        };
     let value_ms = UnitTimer::elapsed(value_start);
 
     // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a
@@ -627,6 +692,8 @@ fn gate_unit(
         value,
         lits,
         returns,
+        pure_single_return,
+        cond_sinks,
         anchors,
         semantic_laws,
         unit_start,
@@ -654,6 +721,8 @@ fn extract_unit(
         value,
         lits,
         returns,
+        pure_single_return,
+        cond_sinks,
         anchors,
         semantic_laws,
         unit_start,
@@ -707,6 +776,9 @@ fn extract_unit(
         abstraction_tokens,
         lits,
         returns,
+        pure_single_return,
+        cond_sinks,
+        called_helper_returns: Vec::new(),
         anchors,
         semantic_laws,
         exact_safe,

@@ -17,7 +17,19 @@ pub type Anchors = Vec<Anchor>;
 /// One value-graph build's fingerprints: `(value, literal, return)` hash multisets plus the
 /// heavy sub-DAG [`Anchors`].
 pub type FingerprintBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors);
-pub type FingerprintLawBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors, Vec<ValueLaw>);
+/// [`FingerprintBundle`] plus value-law provenance and the unit's containment sink
+/// profile — the final pair is `(pure single return, cond guard hashes)`: whether the
+/// build's sinks are exactly one `Return` plus iteration `Cond` guards (no effects,
+/// throws, or breaks), and the sorted guard-value hashes of those `Cond` sinks. The
+/// reinvented-helper containment channel keys on both.
+pub type FingerprintLawBundle = (
+    Vec<u64>,
+    Vec<u64>,
+    Vec<u64>,
+    Anchors,
+    Vec<ValueLaw>,
+    (bool, Vec<u64>),
+);
 
 /// Public entry: the value-graph fingerprint of the unit rooted at `root`
 /// (sorted multiset of `u64` value hashes). Equivalent computations → equal
@@ -77,7 +89,7 @@ pub fn value_fingerprint_lits_anchors(
     root: NodeId,
     interner: &Interner,
 ) -> FingerprintBundle {
-    let (v, l, r, a, _) = value_fingerprint_lits_anchors_laws(il, root, interner);
+    let (v, l, r, a, _, _) = value_fingerprint_lits_anchors_laws(il, root, interner);
     (v, l, r, a)
 }
 
@@ -100,7 +112,7 @@ pub fn value_fingerprint_lits_anchors_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> FingerprintBundle {
-    let (v, l, r, a, _) =
+    let (v, l, r, a, _, _) =
         value_fingerprint_lits_anchors_laws_with_context(il, root, interner, context);
     (v, l, r, a)
 }
@@ -117,12 +129,34 @@ pub fn value_fingerprint_lits_anchors_laws_with_context(
     finish_fingerprint_law_bundle(b)
 }
 
+/// The default minimum sub-DAG weight for a CONTAINMENT anchor — the granularity the
+/// reinvented-helper channel matches helper bodies at. Much smaller than the
+/// near-channel [`ANCHOR_MIN_WEIGHT`]: loop canonicalization COMPRESSES a whole
+/// accumulator loop to a ~4-node `Reduce`, so a meaningful helper body can be tiny in
+/// value nodes; the helper side is independently floored on unit size. The near channel
+/// re-filters to its own floor at consumption.
+pub const CONTAINMENT_ANCHOR_MIN_WEIGHT: u32 = 4;
+
+/// The effective anchor COLLECTION floor: anchors are gathered once per unit at the
+/// finer of the two consumer floors (`NOSE_REINVENTED_MIN_WEIGHT` overrides the
+/// containment floor for research sweeps).
+pub fn containment_anchor_min_weight() -> u32 {
+    static V: OnceLock<u32> = OnceLock::new();
+    *V.get_or_init(|| {
+        std::env::var("NOSE_REINVENTED_MIN_WEIGHT")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(CONTAINMENT_ANCHOR_MIN_WEIGHT)
+    })
+}
+
 fn finish_fingerprint_law_bundle(mut b: Builder<'_>) -> FingerprintLawBundle {
     let (v, l, r) = b.fingerprint_lits();
-    let a = b.anchors(anchor_min_weight());
+    let a = b.anchors(containment_anchor_min_weight().min(anchor_min_weight()));
     b.value_laws.sort_unstable();
     b.value_laws.dedup();
-    (v, l, r, a, b.value_laws)
+    let sink_profile = b.sink_profile();
+    (v, l, r, a, b.value_laws, sink_profile)
 }
 
 pub fn value_fingerprint_lits_with_context(

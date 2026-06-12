@@ -727,6 +727,132 @@ fn interprocedural_pure_inline_converges_extract_method() {
 }
 
 #[test]
+fn generalized_inline_loop_accumulator_helper_converges() {
+    // The flagship interprocedural case: `foo` calling a LOOP-ACCUMULATOR helper must
+    // converge with `foo` written with the loop inline. The straight-line-only inline
+    // whitelist could never admit `bar`; the generalized admission evaluates the body
+    // through the ordinary statement processor (the loop becomes the same `Reduce`)
+    // behind the sink fence.
+    let i = Interner::new();
+    let helper = "function foo(values) {\n    const total = bar(values)\n    return total / values.length\n}\n\nfunction bar(values) {\n    let result = 0\n    for(let i = 0; i < values.length; i++) {\n        result += values[i]\n    }\n    return result\n}\n";
+    let inline = "function foo(values) {\n    let total = 0\n    for(let i = 0; i < values.length; i++) {\n        total += values[i]\n    }\n    return total / values.length\n}\n";
+    assert_eq!(
+        value_fp_named(&i, helper, Lang::JavaScript, "foo"),
+        value_fp_named(&i, inline, Lang::JavaScript, "foo"),
+        "a pure loop-accumulator helper must inline and converge with the inline form",
+    );
+}
+
+#[test]
+fn generalized_inline_builder_loop_helper_converges_with_comprehension_caller() {
+    // A helper whose body is a pure list-BUILDER loop inlines into its caller and
+    // converges with a caller using the comprehension form directly — composing the
+    // interprocedural axis with the loop↔comprehension Type-4 axis.
+    let i = Interner::new();
+    let helper = "def squares(xs):\n    out = []\n    for x in xs:\n        out.append(x * x)\n    return out\n\ndef use(xs):\n    return len(squares(xs))\n";
+    let comp = "def use(xs):\n    return len([x * x for x in xs])\n";
+    assert_eq!(
+        value_fp_named(&i, helper, Lang::Python, "use"),
+        value_fp_named(&i, comp, Lang::Python, "use"),
+        "a pure builder-loop helper must inline and converge with the comprehension",
+    );
+}
+
+#[test]
+fn generalized_inline_guard_clause_helper_converges_with_ternary() {
+    // A guard-clause helper (`if c: return a` then an unconditional return) folds its
+    // captured returns to the same `Phi` a ternary builds, so the caller converges with
+    // the ternary form written inline.
+    let i = Interner::new();
+    let helper = "def clamp0(x):\n    if x < 0:\n        return 0\n    return x\n\ndef use(x):\n    return clamp0(x) * 2\n";
+    let ternary = "def use(x):\n    return (0 if x < 0 else x) * 2\n";
+    assert_eq!(
+        value_fp_named(&i, helper, Lang::Python, "use"),
+        value_fp_named(&i, ternary, Lang::Python, "use"),
+        "a guard-clause helper must fold to the ternary's Phi and converge",
+    );
+}
+
+#[test]
+fn generalized_inline_exhaustive_if_else_tail_converges() {
+    // A body ending in an exhaustive `if/else` (both arms return) is admitted: the two
+    // captured guarded returns are complementary and fold to one `Phi`.
+    let i = Interner::new();
+    let helper = "def pick(a, b, flag):\n    if flag:\n        return a\n    else:\n        return b\n\ndef use(a, b, flag):\n    return pick(a, b, flag) + 1\n";
+    let ternary = "def use(a, b, flag):\n    return (a if flag else b) + 1\n";
+    assert_eq!(
+        value_fp_named(&i, helper, Lang::Python, "use"),
+        value_fp_named(&i, ternary, Lang::Python, "use"),
+        "an exhaustive if/else tail must fold to the ternary's Phi and converge",
+    );
+}
+
+#[test]
+fn generalized_inline_nested_pure_helpers_converge() {
+    // Pure helpers calling pure helpers inline transitively (bounded by the inline
+    // stack), so a two-hop composition converges with the flat form.
+    let i = Interner::new();
+    let nested = "def double(x):\n    return x * 2\n\ndef double_sum(xs):\n    t = 0\n    for x in xs:\n        t += double(x)\n    return t\n\ndef use(xs):\n    return double_sum(xs) + 1\n";
+    let flat = "def use(xs):\n    t = 0\n    for x in xs:\n        t += x * 2\n    return t + 1\n";
+    assert_eq!(
+        value_fp_named(&i, nested, Lang::Python, "use"),
+        value_fp_named(&i, flat, Lang::Python, "use"),
+        "nested pure helpers must inline transitively",
+    );
+}
+
+#[test]
+fn generalized_inline_congruence_callers_of_equal_helpers_converge() {
+    // Two callers of two DIFFERENT-NAMED but body-identical pure loop helpers converge:
+    // inlining keys the call by the callee's semantics, never its name.
+    let i = Interner::new();
+    let src = "def sum_a(xs):\n    t = 0\n    for x in xs:\n        t += x\n    return t\n\ndef sum_b(ys):\n    t = 0\n    for y in ys:\n        t += y\n    return t\n\ndef use_a(xs):\n    return sum_a(xs) / len(xs)\n\ndef use_b(xs):\n    return sum_b(xs) / len(xs)\n";
+    assert_eq!(
+        value_fp_named(&i, src, Lang::Python, "use_a"),
+        value_fp_named(&i, src, Lang::Python, "use_b"),
+        "callers of behaviorally-equal helpers must converge regardless of helper name",
+    );
+}
+
+#[test]
+fn generalized_inline_rejects_effectful_loop_helper() {
+    // A loop helper that ALSO appends to a caller-supplied list is NOT pure — inlining
+    // it value-only would drop the append. The sink fence rejects it, so the caller must
+    // NOT converge with the pure loop written inline (which is exactly the fingerprint a
+    // broken fence would produce).
+    let i = Interner::new();
+    let eff = "def log_sum(xs, log):\n    t = 0\n    for x in xs:\n        log.append(x)\n        t += x\n    return t\n\ndef use(xs, log):\n    return log_sum(xs, log) / len(xs)\n";
+    let pure_inline =
+        "def use(xs, log):\n    t = 0\n    for x in xs:\n        t += x\n    return t / len(xs)\n";
+    assert_ne!(
+        value_fp_named(&i, eff, Lang::Python, "use"),
+        value_fp_named(&i, pure_inline, Lang::Python, "use"),
+        "an effectful loop helper must not inline — dropping its append is a false merge",
+    );
+}
+
+#[test]
+fn generalized_inline_rejects_recursive_helpers_without_hanging() {
+    // Self- and mutual recursion fail closed (the inline stack excludes re-entry) and
+    // must neither hang nor panic; the recursive caller stays distinct from a
+    // non-recursive one.
+    let i = Interner::new();
+    let self_rec = "def fact(n):\n    if n <= 1:\n        return 1\n    return fact(n - 1) * n\n\ndef use(n):\n    return fact(n) + 1\n";
+    let mutual = "def even(n):\n    if n == 0:\n        return True\n    return odd(n - 1)\n\ndef odd(n):\n    if n == 0:\n        return False\n    return even(n - 1)\n\ndef use(n):\n    return even(n)\n";
+    let trivial = "def use(n):\n    return n + 1\n";
+    assert_ne!(
+        value_fp_named(&i, self_rec, Lang::Python, "use"),
+        value_fp_named(&i, trivial, Lang::Python, "use"),
+        "a self-recursive helper caller stays distinct (fail-closed, no hang)",
+    );
+    assert_ne!(
+        value_fp_named(&i, mutual, Lang::Python, "use"),
+        value_fp_named(&i, trivial, Lang::Python, "use"),
+        "a mutually-recursive helper caller stays distinct (fail-closed, no hang)",
+    );
+}
+
+#[test]
 fn sub_dag_anchor_shared_when_units_share_a_heavy_computation() {
     // Two functions that share a large sub-computation (subtotal/tax/shipping/grand) but differ
     // elsewhere are a PARTIAL / sub-DAG clone — they share a heavy anchor (an extractable common
@@ -7126,5 +7252,96 @@ fn true_div_distinguishes_three_way_division() {
         value_fp(&i, rb, Lang::Ruby),
         value_fp(&i, py_floor, Lang::Python),
         "Ruby / and Python // are both floored — must converge"
+    );
+}
+
+#[test]
+fn reinvented_helper_containment_fires_and_excludes_callers() {
+    // The containment channel: a function that REIMPLEMENTS an existing pure helper
+    // inline (without calling it) is reported, with the helper's whole-body value hash
+    // matched as an interior sub-DAG anchor of the container. A function that CALLS the
+    // helper — whose fingerprint contains the same hash via interprocedural inlining —
+    // must NOT be reported: calling is the fix, not the smell.
+    let i = Interner::new();
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    // File 0: a straight-line pure helper big enough for the helper floor, plus a
+    // caller of it (inlined → contains the helper's value graph → must be excluded).
+    let helper_and_caller = "function big(x, y) {\n    return ((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))\n}\n\nfunction use(x, y) {\n    return big(x, y) + 1\n}\n";
+    // File 1: a function that reimplements `big`'s computation inline and does more.
+    let reinventor = "function manual(x, y) {\n    return (((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))) * 7\n}\n";
+    let il0 = nose_frontend::lower_source(
+        FileId(0),
+        "a.js",
+        helper_and_caller.as_bytes(),
+        Lang::JavaScript,
+        &i,
+    )
+    .unwrap();
+    let il1 = nose_frontend::lower_source(
+        FileId(1),
+        "b.js",
+        reinventor.as_bytes(),
+        Lang::JavaScript,
+        &i,
+    )
+    .unwrap();
+    let mut units = nose_detect::units_of_file(&il0, &i, &opts);
+    units.extend(nose_detect::units_of_file(&il1, &i, &opts));
+    let findings = nose_detect::reinvented_helpers(&units);
+    assert_eq!(
+        findings.len(),
+        1,
+        "exactly the reimplementation (not the caller) must be reported",
+    );
+    let f = &findings[0];
+    assert_eq!(
+        (f.container_file.as_str(), f.container_name.as_deref()),
+        ("b.js", Some("manual")),
+        "the container is the function reimplementing the helper",
+    );
+    assert_eq!(
+        (f.helper_file.as_str(), f.helper_name.as_deref()),
+        ("a.js", Some("big")),
+        "the helper is the existing function being reinvented",
+    );
+}
+
+#[test]
+fn reinvented_helper_skips_effectful_and_guard_mismatched_helpers() {
+    // An effectful helper (its sink profile is not pure-single-return) never becomes a
+    // containment helper — replacing inline code with a call would ADD its effect.
+    let i = Interner::new();
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    let eff_helper = "function bigLog(x, y, log) {\n    log.push(x)\n    return ((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))\n}\n";
+    let reinventor = "function manual(x, y) {\n    return (((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))) * 7\n}\n";
+    let il0 = nose_frontend::lower_source(
+        FileId(0),
+        "a.js",
+        eff_helper.as_bytes(),
+        Lang::JavaScript,
+        &i,
+    )
+    .unwrap();
+    let il1 = nose_frontend::lower_source(
+        FileId(1),
+        "b.js",
+        reinventor.as_bytes(),
+        Lang::JavaScript,
+        &i,
+    )
+    .unwrap();
+    let mut units = nose_detect::units_of_file(&il0, &i, &opts);
+    units.extend(nose_detect::units_of_file(&il1, &i, &opts));
+    assert!(
+        nose_detect::reinvented_helpers(&units).is_empty(),
+        "an effectful helper must not produce containment findings",
     );
 }

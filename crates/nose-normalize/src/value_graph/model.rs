@@ -95,6 +95,22 @@ pub(super) struct InlineFunction {
     pub(super) body: NodeId,
 }
 
+/// One in-flight inline body evaluation. `emit_return` routes the callee's returns here
+/// (with their inline-relative path guard) instead of pushing unit `Return` sinks; any
+/// construct the value-only inline cannot represent faithfully marks the frame poisoned,
+/// and the whole inline falls back to the opaque-call path (fail-closed).
+pub(super) struct InlineCaptureFrame {
+    /// `path.len()` at inline entry — captured guards are the conjunction of the path
+    /// suffix above this base (conditions internal to the callee body).
+    pub(super) path_base: usize,
+    /// `loop_depth` at inline entry. A `return` reached while inside a callee loop has
+    /// first-match-wins iteration semantics that a single `Phi` fold cannot express.
+    pub(super) loop_depth_base: u32,
+    pub(super) poisoned: bool,
+    /// Captured `(guard, value)` returns in source order; `None` guard = unconditional.
+    pub(super) returns: Vec<(Option<ValueId>, ValueId)>,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum HofAdmission {
     SourceComprehension,
@@ -186,6 +202,14 @@ pub(super) struct Builder<'a> {
     /// (post-seed, pre-process), so inline admission cannot drift with module
     /// statements processed later in the same unit.
     pub(super) inline_env_keys: FxHashSet<Symbol>,
+    /// Roots of inline bodies currently being evaluated — the cycle/depth guard for
+    /// nested pure inlining (`a` calling `b` calling `a` fails closed to opaque).
+    pub(super) inline_stack: Vec<NodeId>,
+    /// Active inline return-capture frames, innermost last (see [`InlineCaptureFrame`]).
+    pub(super) inline_capture: Vec<InlineCaptureFrame>,
+    /// Loop-statement processing depth; lets an inline capture detect returns that
+    /// execute inside a callee loop (not representable as a value, so poison).
+    pub(super) loop_depth: u32,
     /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
     /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
     pub(super) local_scope_nodes: Cow<'a, [bool]>,
