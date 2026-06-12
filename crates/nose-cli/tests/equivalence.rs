@@ -7631,3 +7631,35 @@ fn effectful_keyword_reorder_stays_distinct_coevo_s7_s3() {
         "reordered PURE keyword values still converge (no observable order)",
     );
 }
+
+#[test]
+fn string_literal_plus_does_not_commute_issue_308() {
+    // #308: a string literal's value-graph `Const` key must stay inside the `String`
+    // class range so `proven_non_concat` classifies it correctly. The old
+    // `0x2000_0000.wrapping_add(hash)` carried a high-bit hash OUT of range, where the
+    // string read as non-concat and `"p" + "q"` wrongly commuted with `"q" + "p"`
+    // (different values "pq" vs "qp"). The masked key keeps strings in range.
+    let i = Interner::new();
+    let pq = "def f():\n    return \"p\" + \"q\"\n";
+    let qp = "def f():\n    return \"q\" + \"p\"\n";
+    assert_ne!(
+        value_fp(&i, pq, Lang::Python),
+        value_fp(&i, qp, Lang::Python),
+        "string concatenation is ordered — `\"p\"+\"q\"` must not merge with `\"q\"+\"p\"`",
+    );
+    // The masked key still discriminates distinct strings (no class collision).
+    let pr = "def f():\n    return \"p\" + \"r\"\n";
+    assert_ne!(
+        value_fp(&i, pq, Lang::Python),
+        value_fp(&i, pr, Lang::Python),
+        "distinct string literals must stay distinct under the masked key",
+    );
+    // And numeric `+` still commutes (the fix is string-specific, recall preserved).
+    let ab = "def f(a, b):\n    return a + b + 1\n";
+    let ba = "def f(a, b):\n    return b + a + 1\n";
+    assert_eq!(
+        value_fp(&i, ab, Lang::Python),
+        value_fp(&i, ba, Lang::Python),
+        "numeric `+` still commutes — the string fix must not regress it",
+    );
+}

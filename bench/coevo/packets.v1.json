@@ -646,8 +646,8 @@
    "surface": "canonicalizer",
    "claim": "`+` commutes only when an operand is proven non-concat (#283-C)",
    "summary": "`\"p\"+\"q\"` \u2261 `\"q\"+\"p\"` false-merges: a string literal's Const key `0x2000_0000.wrapping_add(h)` wraps OUT of the String range when h's high bits are set, so const_value_domain misreads it as non-String \u2192 proven_non_concat wrongly admits the `+` commute. nose verify catches it as a hard violation.",
-   "verdict": "deferred-issue",
-   "defense": "#308 \u2014 separate canonicalizer/literal-keying subsystem. Masking the hash into range breaks Go-literal-map tests (py/ruby keying interaction); the clean fix carries the literal KIND separately from the content hash. Pre-existing, not from #304/#305."
+   "verdict": "violation-fixed",
+   "defense": "#308 \u2014 a string literal's Const key kept the `String` class tag but the content hash wrapped out of range. Fixed by masking the hash into the low 28 bits (`string_const_key`), shared by the frontend's LitStr and the synthesized empty string so they agree (the py-`.get(k,\"\")` vs go-zero-value convergence). Verify clean on sympy+guava (49k interpretable units, no collision-induced merges); corpus family deltas small and in the false-merge-separating direction."
   }
  ]
 }

@@ -7,6 +7,17 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **String-literal `+` no longer commutes** (#308). A string literal's value-graph `Const`
+  key carried its content hash via `0x2000_0000.wrapping_add(h)`, which for a high-bit hash
+  wrapped OUT of the `String` class range — so `const_value_domain` misread the kind and
+  `proven_non_concat` wrongly admitted the operands to `+` commutativity, false-merging
+  `"p" + "q"` with `"q" + "p"`. String keys now mask the hash into range
+  (`string_const_key`), shared between the frontend's `LitStr` and the synthesized empty
+  string so cross-language map-default lookups still converge. Surfaced as a residual by
+  adversarial co-evolution series 7 ([experiments §CH](docs/experiments.md)); `nose verify`
+  flagged it as a hard violation.
+
+### Fixed
 - **Three keyword/argument false merges, found by attacking the just-shipped #304/#305
   binding code** (adversarial co-evolution series 7, [experiments §CH](docs/experiments.md)):
   - **Spread arguments** (`f(*args)`, `f(**d)`) were stripped at lowering, so `stats(*xs)`

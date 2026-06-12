@@ -206,8 +206,10 @@ impl<'a> Builder<'a> {
         // key by value (offset clear of the class range); others by class.
         let key = match payload {
             Payload::LitInt(v) => 0x1000_0000u32.wrapping_add(v as u32),
-            // strings in a separate key range from ints to avoid collision
-            Payload::LitStr(h) => 0x2000_0000u32.wrapping_add(h as u32),
+            // strings in a separate key range from ints; the hash is masked into range
+            // (NOT `wrapping_add`ed) so the `String` class tag survives — shared with the
+            // synthesized empty string via `string_const_key` (#308).
+            Payload::LitStr(h) => string_const_key(h),
             // floats keyed by source-text hash, in their own range (so `3.14`≠`2.71`)
             Payload::LitFloat(h) => 0x4000_0000u32.wrapping_add(h as u32),
             // true/false are behavior-defining and must be distinct (own range)
