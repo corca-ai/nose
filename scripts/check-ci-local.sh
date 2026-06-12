@@ -108,6 +108,9 @@ cargo build --release
 step "test (release)"
 cargo test --release
 
+# In CI this is a POST-MERGE gate (runs on push to main, not on PRs — it is the
+# slowest job and is a quality ratchet, not a soundness gate). Kept here so --full
+# stays a complete local mirror; run it before merging if you touched test coverage.
 step "coverage gate (cargo-llvm-cov, >= 86% lines)"
 need_cmd cargo-llvm-cov "install it with: cargo install cargo-llvm-cov"
 cargo llvm-cov --workspace --summary-only --fail-under-lines 86

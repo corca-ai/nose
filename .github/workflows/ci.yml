@@ -39,6 +39,14 @@ jobs:
 
   coverage:
     name: test coverage (llvm-cov)
+    # Coverage is a QUALITY ratchet, not a soundness gate, and its instrumented
+    # rebuild + re-run of the whole suite is by far the slowest job (~13 min vs the
+    # ~5 min `test` job — it was the entire PR wall-clock). Run it on the trunk only
+    # (post-merge `push` to main), keeping it OFF the PR critical path. Every
+    # soundness gate (test, dup-gate, lean proofs, MSRV, nightly corpus-verify)
+    # still blocks each PR; a coverage dip is caught here on main and fixed forward.
+    # `pull_request` events skip this job (it shows as neutral, never pending).
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
