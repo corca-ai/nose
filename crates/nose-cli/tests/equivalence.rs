@@ -7530,3 +7530,104 @@ fn global_reassigned_function_fails_closed_issue_302() {
         "a local `helper = 5` (no `global`) must NOT gate the function — caller still inlines",
     );
 }
+
+#[test]
+fn splat_argument_is_distinct_from_plain_argument_coevo_s7_s1() {
+    // coevo series 7, S1: `f(*args)` unpacks an iterable into positional params and
+    // `f(**d)` unpacks a mapping into keywords — neither is `f(arg)`. The frontend used
+    // to strip the splat, so `stats(*xs)` lowered identically to `stats(xs)` and the two
+    // false-merged (different on `[[1,2,3]]`: len 3 vs 1). A `Splat` node now keeps them
+    // distinct.
+    let i = Interner::new();
+    let helper = "def stats(a):\n    total = len(a)\n    return total * total + total\n";
+    let via_splat = "def via(xs):\n    return stats(*xs)\n";
+    let via_plain = "def via(xs):\n    return stats(xs)\n";
+    let fp = |c: &str| value_fp_named(&i, &format!("{helper}\n{c}"), Lang::Python, "via");
+    assert_ne!(
+        fp(via_splat),
+        fp(via_plain),
+        "a `*args` spread must not fingerprint as a plain positional argument",
+    );
+    let via_kwsplat = "def via(d):\n    return stats(**d)\n";
+    assert_ne!(
+        fp(via_kwsplat),
+        fp(via_plain),
+        "a `**kwargs` spread must not fingerprint as a plain positional argument",
+    );
+    assert_ne!(
+        fp(via_splat),
+        fp(via_kwsplat),
+        "`*args` and `**kwargs` spreads must stay distinct from each other",
+    );
+}
+
+#[test]
+fn global_rebind_recorded_for_all_assignment_forms_coevo_s7_s2() {
+    // coevo series 7, S2: the #302 fix recorded `ModuleRebind` only for a plain
+    // single-identifier `global helper; helper = x`. Tuple-unpack, aug-assign, and walrus
+    // all lower to an `Assign` too and must also withhold the rebound function. Measured
+    // via exact-safety: a caller of a rebound function is opaque (not exact-safe).
+    let i = Interner::new();
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    let caller_exact_safe = |src: &str| -> bool {
+        let il = nose_frontend::lower_source(FileId(0), "t.py", src.as_bytes(), Lang::Python, &i)
+            .unwrap();
+        nose_detect::units_of_file(&il, &i, &opts)
+            .iter()
+            .find(|u| u.name.as_deref() == Some("caller"))
+            .expect("caller unit")
+            .exact_safe
+    };
+    let helper = "def helper(x):\n    return x * 5 + 1\n";
+    let caller = "def caller(a):\n    return helper(a) * 10 + a\n";
+    let tuple = format!(
+        "{helper}\ndef setup():\n    global helper\n    helper, spare = other, 0\n\n{caller}"
+    );
+    let aug = format!("{helper}\ndef setup():\n    global helper\n    helper += 1\n\n{caller}");
+    let walrus =
+        format!("{helper}\ndef setup():\n    global helper\n    (helper := other)\n\n{caller}");
+    for (label, src) in [
+        ("tuple-unpack", &tuple),
+        ("aug-assign", &aug),
+        ("walrus", &walrus),
+    ] {
+        assert!(
+            !caller_exact_safe(src),
+            "a caller of a `global`-rebound function ({label}) must not be exact-safe",
+        );
+    }
+    // Precise: a LOCAL `helper = 5` (no `global`) still leaves the function inlinable.
+    let local =
+        format!("{helper}\ndef elsewhere():\n    helper = 5\n    return helper + 1\n\n{caller}");
+    assert!(
+        caller_exact_safe(&local),
+        "a local shadow (no `global`) must NOT withhold the function",
+    );
+}
+
+#[test]
+fn effectful_keyword_reorder_stays_distinct_coevo_s7_s3() {
+    // coevo series 7, S3: the keyword name-sort (#304) is sound only for effect-free
+    // values — Python evaluates args in SOURCE order, so reordering effectful keyword
+    // values changes the effect/exception order. With a call-valued keyword the two
+    // orderings must stay distinct; with pure values they still converge.
+    let i = Interner::new();
+    let eff_a = "def use(x, y):\n    return combine(a=sideA(x), b=sideB(y))\n";
+    let eff_b = "def use(x, y):\n    return combine(b=sideB(y), a=sideA(x))\n";
+    assert_ne!(
+        value_fp_named(&i, eff_a, Lang::Python, "use"),
+        value_fp_named(&i, eff_b, Lang::Python, "use"),
+        "reordered EFFECTFUL keyword values must not converge (eval order differs)",
+    );
+    let pure_a = "def use(p, q):\n    return combine(a=p, b=q)\n";
+    let pure_b = "def use(p, q):\n    return combine(b=q, a=p)\n";
+    assert_eq!(
+        value_fp_named(&i, pure_a, Lang::Python, "use"),
+        value_fp_named(&i, pure_b, Lang::Python, "use"),
+        "reordered PURE keyword values still converge (no observable order)",
+    );
+}

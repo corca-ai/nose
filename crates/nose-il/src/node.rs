@@ -93,6 +93,16 @@ pub enum NodeKind {
     /// not converge with positional ones). Declared LAST so adding it does not shift the
     /// discriminants (and thus the shape hashes) of the existing kinds.
     KwArg,
+
+    /// An unpacked argument: `*iterable` (positional spread) or `**mapping` (keyword
+    /// spread). Payload: `Name` (`"*"` or `"**"`) to distinguish the two. Children:
+    /// `[inner]`. Without this, the frontend stripped `*expr`/`**expr` to the bare
+    /// `expr`, so `f(*args)` lowered identically to `f(args)` — a false merge, since a
+    /// spread changes the calling convention (`stats(*[[1,2,3]])` ≠ `stats([[1,2,3]])`).
+    /// Carrying it keeps the call distinct; the inline binding plan and the oracle fail
+    /// closed on a spread (the arity is dynamic). Declared LAST, like `KwArg`, so the
+    /// discriminants stay stable.
+    Splat,
 }
 
 /// Per-node data. Most nodes carry [`Payload::None`]; the variant in use is

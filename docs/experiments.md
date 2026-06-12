@@ -2345,3 +2345,61 @@ otherwise neutral, soundness and determinism re-verified. The campaign's sharpes
 is S2-B: a false merge whose only available defense is an unprovable guess is a
 *deferred* finding, not a shipped guess — the 37-repo over-fire is exactly the §BA "17
 false merges" failure mode in the recall direction.
+
+## CH. Adversarial co-evolution, series 7 — the binding-provenance machinery (#304 kwargs, #305 global-rebind)
+
+One protocol pass ([adversarial-coevolution](adversarial-coevolution.md)) aimed by the
+freshness slot rule at the code merged the same session in #304 (keyword-argument
+by-name binding) and #305 (global-rebind detection) — commit `6a20b84`. Four blind-mode,
+persona-rotated attackers; ledger cases `s7-*` in `bench/coevo/packets.v1.json`. Tracking
+issue #306. **The session's own fresh code, attacked immediately — three of the four
+attackers found real false merges in it.** This is the §AS lesson applied to one's own
+work: do not assume a just-shipped fix is correct; craft against it.
+
+**S1 — splat erasure (Python arg specialist). Two violations, fixed.** The frontend
+stripped `*expr`/`**expr` to the bare expression, so `f(*args)` lowered identically to
+`f(args)` and `f(**d)` to `f(d)`. `stats(*xs)` false-merged with `stats(xs)` (len 3 vs 1
+on `[[1,2,3]]`), and `nose verify` read SOUND because both the value graph and the oracle
+used the stripped IL — the §AS "green corpus, latent false merge" scenario. Fix: a new
+`NodeKind::Splat` (declared last, so discriminants/shape-hashes are unchanged) carries the
+`*`/`**` marker; the call stays fingerprint-distinct, the inline binding plan fails closed
+on a spread (dynamic arity), and the oracle evaluates a spread to its inner value only for
+opaque calls (where the fingerprint already separates the forms).
+
+**S2 — rebind forms (Python scoping lawyer). Four soundness misses, three fixed + one
+deferred.** #305 recorded the `ModuleRebind` fact in one place — a single-identifier
+`global helper; helper = x`. Tuple-unpack (`helper, x = ...`), aug-assign (`helper += 1`),
+and walrus (`(helper := ...)`) all lower to an `Assign` via different paths and escaped.
+Fix: a post-lowering pass over each function records `ModuleRebind` on every `Assign`
+whose target (a `Var`, or a `Seq` of them) names a `global`-declared symbol — uniform
+across forms. `globals()['helper'] = ...` (a dynamic write with no `global` statement)
+is a distinct mechanism, deferred as #307. The attacker's two recall probes self-refuted:
+the gate stays precise (a local `helper = 5` carries no fact), so — unlike series-6's
+reassigned-anywhere predicate — there is no over-fire (measured: small mixed family
+deltas, the signature of false merges *separating*, not recall loss).
+
+**S3 — effectful keyword reorder (interaction hunter). Two violations, fixed.** The #304
+keyword name-sort converged `combine(a=sideA(x), b=sideB(y))` with the reordered
+`combine(b=sideB(y), a=sideA(x))`. But Python evaluates arguments in SOURCE order, so when
+the keyword values are effectful (a call that raises or has side effects) the two orders
+observably differ. This is the §CE/#286 lesson again — reordering operands is sound only
+when they are effect-free. Fix: gate the keyword name-sort on `reorder_safe`; pure
+reorders still converge, effectful ones stay in source order.
+
+**S4 — oracle parity (oracle attacker). Green.** No oracle blind spot: by-name binding is
+shared through `keyword_arg_binding_plan`, source order is preserved, rebinds are opaque
+to both layers, and unbindable kwargs fail closed (excluded). The oracle stayed
+lockstep-or-stricter — it WITNESSED the S3 effectful reorder (advisory) and surfaced a
+residual **string-literal `+` commute** (`"p"+"q"` ≡ `"q"+"p"`, a hard violation) caused
+by a string `Const` key wrapping out of its domain range — a pre-existing canonicalizer
+bug in a different subsystem, deferred as #308.
+
+**Verdict.** Three ships (S1 splat, S2 rebind forms, S3 effectful reorder) and three
+defers/greens (S2-4 globals #307, S4 green, S4-residual string-+ #308). Every shipped fix
+is a false merge the just-merged #304/#305 introduced or left — the campaign's value is
+exactly that it attacked fresh code instead of trusting it. Soundness re-verified
+(`nose verify --max-violations 0` clean on sympy, 13,928 interpretable after the oracle
+recovered splat coverage), determinism byte-identical, dup gate 25/25, recall precise (no
+over-fire). The recurring theme across series 6–7 holds: every soundness miss was the
+frontend discarding a binding-discriminating token (keyword names, `global` declarations,
+splats), and every fix preserves it in the IL.

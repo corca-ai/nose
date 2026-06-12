@@ -139,13 +139,30 @@ pub fn module_rebound_symbols(il: &Il) -> rustc_hash::FxHashSet<Symbol> {
         {
             continue;
         }
-        if let Some((lhs, _)) = il.assignment_var_parts(node) {
-            if let Some(name) = il.var_name(lhs) {
-                out.insert(name);
-            }
+        // The target is a `Var` (`helper = `, `helper += `, `(helper := )`) or a `Seq`
+        // of targets from a tuple/list unpack (`helper, y = `). Collect every name
+        // written — each global-declared one is a module rebind (coevo series 7, S2).
+        if let Some(&lhs) = il.children(node).first() {
+            collect_target_names(il, lhs, &mut out);
         }
     }
     out
+}
+
+fn collect_target_names(il: &Il, target: NodeId, out: &mut rustc_hash::FxHashSet<Symbol>) {
+    match il.kind(target) {
+        NodeKind::Var => {
+            if let Some(name) = il.var_name(target) {
+                out.insert(name);
+            }
+        }
+        NodeKind::Seq => {
+            for &c in il.children(target) {
+                collect_target_names(il, c, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKind> {

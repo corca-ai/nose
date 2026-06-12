@@ -498,10 +498,16 @@ impl<'a> Builder<'a> {
                 positional.push(v);
             }
         }
-        if !keyword.is_empty() {
+        // The name-sort is sound only when EVERY keyword value is effect-free: Python
+        // evaluates arguments in SOURCE order, so `f(a=g(), b=h())` and `f(b=h(), a=g())`
+        // run `g`/`h` in different orders — observably different if they raise or have
+        // side effects. Reordering them would false-merge the two (coevo series 7, S3;
+        // the same `reorder_safe` discipline as effectful AC operands, §CE/#286). With an
+        // effectful keyword value, keep source order, so the two stay distinct.
+        if !keyword.is_empty() && keyword.iter().all(|&v| self.reorder_safe(v)) {
             keyword.sort_unstable_by_key(|&v| self.vhash[v as usize]);
-            positional.extend(keyword);
         }
+        positional.extend(keyword);
         let tag = match payload {
             Payload::Builtin(b) => builtin_tag(b),
             _ => 0,

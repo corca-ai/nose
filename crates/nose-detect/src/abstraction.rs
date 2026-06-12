@@ -313,6 +313,7 @@ fn token_label(token: &WitnessToken) -> &'static str {
             NodeKind::Seq => "Seq",
             NodeKind::HoF => "HoF",
             NodeKind::KwArg => "KwArg",
+            NodeKind::Splat => "Splat",
             NodeKind::Raw => "Raw",
         },
     }

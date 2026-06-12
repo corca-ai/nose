@@ -226,12 +226,18 @@ downstream value-graph.
   values take `-1`, and the branch split avoids overflow at both signed extremes.
   It deliberately does not apply to overloadable or coercive operator surfaces.
 
+  **Spread arguments are kept distinct.** `*iterable` / `**mapping` lower to a `Splat`
+  node, not the bare inner expression, so `f(*args)` does not fingerprint as `f(args)`
+  (a spread changes the calling convention). A call carrying a spread has dynamic arity:
+  the inline binding plan and the oracle fail closed on it (coevo series 7, S1).
+
   **Keyword arguments bind by name, not position.** A Python `f(name=value)` lowers to
   a `KwArg` node carrying the keyword (the Ruby frontend already keeps the key in its
   pair form). The value graph evaluates a call's positional args in order but its keyword
   args as a name-sorted suffix, and interprocedural inlining binds each keyword to the
   parameter whose name matches (via `cid_names`). So `f(a=p, b=q)` ≡ `f(b=q, a=p)` (same
-  mapping, reordered) but ≠ `f(a=q, b=p)` (different mapping) — the call's identity is the
+  mapping, reordered — only when the keyword VALUES are effect-free, since Python
+  evaluates arguments in source order) but ≠ `f(a=q, b=p)` (different mapping) — the call's identity is the
   `(name → value)` mapping. An unrecognized keyword (one naming no parameter, or one a
   builtin recognizer does not model) fails closed to the opaque path. The behavioral
   oracle binds keywords by the same plan, so the merges it reports are genuinely verified

@@ -81,6 +81,7 @@ fn kind_name(k: NodeKind) -> &'static str {
         Seq => "seq",
         HoF => "hof",
         KwArg => "kwarg",
+        Splat => "splat",
         Raw => "raw",
     }
 }

@@ -82,13 +82,6 @@ impl<'a> Lowering<'a> {
         }
     }
 
-    /// Whether `name` is `global`-declared in the current (innermost) function scope.
-    pub(crate) fn name_is_global_declared(&self, name: Symbol) -> bool {
-        self.global_decls
-            .last()
-            .is_some_and(|frame| frame.contains(&name))
-    }
-
     /// Source text covered by a CST node.
     pub(crate) fn text(&self, n: TsNode) -> &'a str {
         n.utf8_text(self.src).unwrap_or("")

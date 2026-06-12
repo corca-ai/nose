@@ -576,6 +576,78 @@
    "summary": "Boundary re-attack: decorated-METHOD callers (self.helper(a)) still merge across @double/@triple. Root cause is the PRE-EXISTING opaque method-name identity (self.helper keyed by name 'helper'); a no-decorator control with different method bodies merges identically. Not the content-keying mechanism the S2 fix covers, and predates #299.",
    "verdict": "deferred-issue",
    "defense": "Documented opaque-method-identity boundary (clone-types.md: unproven methods are name-keyed). A sound fix needs method receiver-type resolution \u2014 separate from this campaign. The S2 fix's content-keying/evidence paths DO correctly gate decorated methods; only the orthogonal opaque-method-name path remains."
+  },
+  {
+   "packet_id": "s7-s1-splat-erasure",
+   "series": 7,
+   "campaign": "S1",
+   "persona": "py-arg-specialist",
+   "mode": "blind",
+   "surface": "keyword-arg-identity",
+   "claim": "a call's argument identity matches its (name->value) structure; equal fingerprint \u27f9 equal behavior",
+   "summary": "The frontend stripped `*expr`/`**expr` to the bare expr, so `f(*args)` lowered identically to `f(args)` and `f(**d)` to `f(d)`. `stats(*xs)` false-merged with `stats(xs)` (len 3 vs 1 on [[1,2,3]]); the oracle read SOUND (both layers used the stripped IL).",
+   "verdict": "violation-fixed",
+   "defense": "New NodeKind::Splat (declared last) carries `*`/`**`; the call stays fingerprint-distinct from a plain arg. keyword_arg_binding_plan fails closed on a Splat (dynamic arity \u2192 no inline), and the interpreter evaluates a Splat to its inner value only for opaque calls (where the fingerprint already separates them)."
+  },
+  {
+   "packet_id": "s7-s2-rebind-forms",
+   "series": 7,
+   "campaign": "S2",
+   "persona": "py-scoping-lawyer",
+   "mode": "blind",
+   "surface": "global-rebind",
+   "claim": "a `global name; name = ...` function is withheld from DirectFunction evidence / content keying",
+   "summary": "#302 recorded ModuleRebind only for a single-identifier `global helper; helper = x`. Tuple-unpack (`helper, x = ...`), aug-assign (`helper += 1`), and walrus (`(helper := ...)`) all escaped, so the rebound function kept its evidence and callers false-merged.",
+   "verdict": "violation-fixed",
+   "defense": "A post-lowering pass over each function records ModuleRebind on every Assign whose target (Var or Seq-of-Var) names a global-declared symbol, regardless of which lowering path built it. module_rebound_symbols collects names from both Var and Seq LHS. Recall-precise: a local `helper = 5` (no global) carries no fact."
+  },
+  {
+   "packet_id": "s7-s2-4-globals-dynamic",
+   "series": 7,
+   "campaign": "S2",
+   "persona": "py-scoping-lawyer",
+   "mode": "blind",
+   "surface": "global-rebind",
+   "claim": "a module function reassigned anywhere is withheld",
+   "summary": "`globals()['helper'] = other` is a dynamic module rebind with no `global` statement, so the global-frame detection misses it; callers false-merge.",
+   "verdict": "deferred-issue",
+   "defense": "#307 \u2014 a distinct dynamic-write mechanism (no `global` to key off); needs `globals()[<str>] =`/`setattr` subscript recognition + string-literal-to-symbol resolution. Exotic; separate focused fix."
+  },
+  {
+   "packet_id": "s7-s3-effectful-kwarg-reorder",
+   "series": 7,
+   "campaign": "S3",
+   "persona": "interaction-hunter",
+   "mode": "blind",
+   "surface": "keyword-arg-identity",
+   "claim": "reordered same-mapping keyword calls converge soundly",
+   "summary": "The #304 keyword name-sort merged `combine(a=sideA(x), b=sideB(y))` with the reordered `combine(b=sideB(y), a=sideA(x))`. Python evaluates args in SOURCE order, so with effectful values the effect/exception order differs \u2014 a false merge (the oracle witnessed it as advisory; the canonical sort hid it from the hard gate).",
+   "verdict": "violation-fixed",
+   "defense": "Gate the keyword name-sort on `reorder_safe` (the same effect-free predicate as AC operands, \u00a7CE/#286): sort only when every keyword value is effect-free; otherwise keep source order. Pure reorders still converge; effectful ones stay distinct."
+  },
+  {
+   "packet_id": "s7-s4-oracle-parity",
+   "series": 7,
+   "campaign": "S4",
+   "persona": "oracle-attacker",
+   "mode": "blind",
+   "surface": "oracle",
+   "claim": "the oracle binds kwargs/rebinds in lockstep with the value graph; SOUND covers what it reports",
+   "summary": "No oracle blind spot. By-name binding is shared via keyword_arg_binding_plan; source order preserved; rebinds opaque to both; unbindable kwargs fail closed. The oracle stays lockstep-or-stricter \u2014 it WITNESSED the S3 effectful-reorder (advisory) and a string-+ commute (hard violation) rather than silently reading SOUND.",
+   "verdict": "green-confirmed",
+   "defense": "None needed."
+  },
+  {
+   "packet_id": "s7-s4-string-plus-commute",
+   "series": 7,
+   "campaign": "S4",
+   "persona": "oracle-attacker",
+   "mode": "blind",
+   "surface": "canonicalizer",
+   "claim": "`+` commutes only when an operand is proven non-concat (#283-C)",
+   "summary": "`\"p\"+\"q\"` \u2261 `\"q\"+\"p\"` false-merges: a string literal's Const key `0x2000_0000.wrapping_add(h)` wraps OUT of the String range when h's high bits are set, so const_value_domain misreads it as non-String \u2192 proven_non_concat wrongly admits the `+` commute. nose verify catches it as a hard violation.",
+   "verdict": "deferred-issue",
+   "defense": "#308 \u2014 separate canonicalizer/literal-keying subsystem. Masking the hash into range breaks Go-literal-map tests (py/ruby keying interaction); the clean fix carries the literal KIND separately from the content hash. Pre-existing, not from #304/#305."
   }
  ]
 }

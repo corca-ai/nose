@@ -256,8 +256,71 @@ fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     let func = crate::lower::function_unit(lo, node, method, lower_params, |lo, b| {
         lower_docstring_block(lo, b, false)
     });
+    record_global_rebinds(lo, func);
     lo.global_decls.pop();
     func
+}
+
+/// Mark every assignment in this function whose target rebinds a `global`-declared name
+/// with a `ModuleRebind` fact, regardless of which lowering path built it — a plain
+/// `helper = x`, a tuple unpack `helper, y = ...` (Seq target), an aug-assign
+/// `helper += 1`, or a walrus `(helper := x)` all lower to an `Assign` with a `Var` or
+/// `Seq`-of-`Var` target. Operating on the LOWERED IL (post-body) catches all forms
+/// uniformly, where the original per-`lower_assignment` hook missed every form but the
+/// first (coevo series 7, S2). Nested function/lambda scopes are skipped — they carry
+/// their own `global` frame.
+fn record_global_rebinds(lo: &mut Lowering, func: NodeId) {
+    let Some(frame) = lo.global_decls.last() else {
+        return;
+    };
+    if frame.is_empty() {
+        return;
+    }
+    let frame = frame.clone();
+    let mut rebind_spans: Vec<Span> = Vec::new();
+    let mut stack: Vec<NodeId> = lo.b.children(func).to_vec();
+    while let Some(n) = stack.pop() {
+        match lo.b.kind(n) {
+            NodeKind::Func | NodeKind::Lambda => continue,
+            NodeKind::Assign => {
+                if let Some(&lhs) = lo.b.children(n).first() {
+                    if assign_target_rebinds_global(lo, lhs, &frame) {
+                        rebind_spans.push(lo.b.node(n).span);
+                    }
+                }
+            }
+            _ => {}
+        }
+        stack.extend(lo.b.children(n).iter().copied());
+    }
+    for span in rebind_spans {
+        lo.record_source_fact(
+            span,
+            SourceFactKind::Binding(SourceBindingKind::ModuleRebind),
+        );
+    }
+}
+
+/// Whether a lowered assignment target (a `Var`, or a `Seq` of targets from a tuple/list
+/// unpack) names a `global`-declared symbol. Attribute/index targets (`obj.x = `,
+/// `d[k] = `) are NOT name rebinds and are ignored.
+fn assign_target_rebinds_global(
+    lo: &Lowering,
+    target: NodeId,
+    frame: &rustc_hash::FxHashSet<Symbol>,
+) -> bool {
+    match lo.b.kind(target) {
+        NodeKind::Var => {
+            matches!(lo.b.node(target).payload, Payload::Name(s) if frame.contains(&s))
+        }
+        NodeKind::Seq => {
+            lo.b.children(target)
+                .to_vec()
+                .iter()
+                .any(|&c| assign_target_rebinds_global(lo, c, frame))
+        }
+        _ => false,
+    }
 }
 
 /// The names declared `global` anywhere in a function body, excluding nested function /
@@ -342,19 +405,7 @@ fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
         Some(r) => lower_expr(lo, r),
         None => lo.empty_block(span),
     };
-    let assign = lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
-    // `global name; name = value` rebinds the MODULE binding — record it so the IL can
-    // tell this from a local declaration, which it otherwise cannot (the frontend drops
-    // `global`). Gated on a single-identifier target declared `global` in this scope.
-    if let Some(left) = node.child_by_field_name("left") {
-        if left.kind() == "identifier" && lo.name_is_global_declared(lo.sym(lo.text(left))) {
-            lo.record_source_fact(
-                span,
-                SourceFactKind::Binding(SourceBindingKind::ModuleRebind),
-            );
-        }
-    }
-    assign
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
 
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -711,12 +762,15 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.add(NodeKind::Seq, Payload::None, span, &kids)
         }
         "dictionary" => lower_dictionary(lo, node),
-        // splats / unpacking: strip to the inner expression
-        "list_splat" | "dictionary_splat" | "list_splat_pattern" | "dictionary_splat_pattern" => {
-            node.named_child(0)
-                .map(|c| lower_expr(lo, c))
-                .unwrap_or_else(|| lo.empty_block(span))
-        }
+        // `*expr` / `**expr` spread: keep a `Splat` marker so a spread argument is
+        // distinct from a plain one (`f(*args)` ≠ `f(args)`); coevo series 7, S1.
+        "list_splat" | "dictionary_splat" => lower_splat(lo, node),
+        // Splat PATTERNS (assignment targets like `a, *rest = xs`) strip to the inner
+        // expression — they are bind sites, not call arguments.
+        "list_splat_pattern" | "dictionary_splat_pattern" => node
+            .named_child(0)
+            .map(|c| lower_expr(lo, c))
+            .unwrap_or_else(|| lo.empty_block(span)),
         // A standalone dict-comprehension `pair` (`{k: v for ...}`) is the loop
         // contribution `DictEntry(k, v)`. Plain dict literals use
         // `lower_dictionary_pair` instead so cross-language map literals retain a
@@ -951,6 +1005,23 @@ fn lower_dictionary_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
 /// not source position (`f(a=p,b=q)` must not equal `f(b=p,a=q)`). The value graph keys
 /// a call's keyword args by name; an unhandled consumer treats `KwArg` opaquely (fail
 /// closed). A keyword arg with no resolvable name falls back to the bare value.
+/// `*expr` / `**expr` spread argument → a `Splat` marker over the inner expression so a
+/// spread is fingerprint-distinct from a plain argument and the inline/oracle fail closed
+/// on its dynamic arity (coevo series 7, S1).
+fn lower_splat(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let inner = node
+        .named_child(0)
+        .map(|c| lower_expr(lo, c))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let mark = lo.sym(if node.kind() == "list_splat" {
+        "*"
+    } else {
+        "**"
+    });
+    lo.add(NodeKind::Splat, Payload::Name(mark), span, &[inner])
+}
+
 fn lower_keyword_argument(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let value = node

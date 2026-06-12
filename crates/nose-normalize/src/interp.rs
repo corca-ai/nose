@@ -812,6 +812,17 @@ impl<'a> Interp<'a> {
                 .first()
                 .ok_or(Unsupported)
                 .and_then(|&v| self.eval(v, env)),
+            // A spread argument reached in an opaque/library call: evaluate its inner
+            // value. A spread to a PROVEN target already bailed (`keyword_arg_binding_plan`
+            // rejects it), so this only feeds an opaque `Sym` — where the value graph also
+            // keeps the spread fingerprint-distinct, so the two never share a checked group
+            // (coevo series 7, S1).
+            NodeKind::Splat => self
+                .il
+                .children(node)
+                .first()
+                .ok_or(Unsupported)
+                .and_then(|&v| self.eval(v, env)),
             _ => Err(Unsupported),
         }
     }

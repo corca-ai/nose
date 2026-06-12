@@ -7,6 +7,22 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Three keyword/argument false merges, found by attacking the just-shipped #304/#305
+  binding code** (adversarial co-evolution series 7, [experiments §CH](docs/experiments.md)):
+  - **Spread arguments** (`f(*args)`, `f(**d)`) were stripped at lowering, so `stats(*xs)`
+    false-merged with `stats(xs)`. A new `Splat` IL node keeps a spread distinct; the
+    inline/oracle fail closed on its dynamic arity.
+  - **`global`-rebind via tuple-unpack / aug-assign / walrus** (`global helper; helper,_=...`
+    / `helper += 1` / `(helper := ...)`) escaped the #302 single-identifier check, so the
+    rebound function's callers still false-merged. A post-lowering pass now records the
+    rebind for every assignment form; recall stays precise (a local `helper = 5` is not
+    gated).
+  - **Reordered effectful keyword arguments** (`f(a=g(), b=h())` vs `f(b=h(), a=g())`) were
+    merged by the #304 name-sort, though Python evaluates arguments in source order. The
+    sort is now gated on `reorder_safe` — pure reorders still converge, effectful ones stay
+    distinct.
+
+### Fixed
 - **A `global`-reassigned function no longer false-merges its callers** (#302). A
   module function rebound from inside another scope (`def setup(): global helper;
   helper = ...`) does not bind its `def` body at call time, but its callers were given

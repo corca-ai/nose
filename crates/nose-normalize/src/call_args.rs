@@ -24,6 +24,11 @@ pub(crate) fn keyword_arg_binding_plan(
     call_args: &[NodeId],
 ) -> Option<Vec<(u32, NodeId)>> {
     let param_name = |cid: u32| -> Option<Symbol> { il.cid_names.get(cid as usize).copied() };
+    // A spread argument (`*args`/`**kwargs`) has dynamic arity — it cannot bind to fixed
+    // parameters, so any call carrying one fails closed (no inline; the oracle bails).
+    if call_args.iter().any(|&a| il.kind(a) == NodeKind::Splat) {
+        return None;
+    }
     let mut plan: Vec<(u32, NodeId)> = Vec::with_capacity(param_cids.len());
     let mut bound = vec![false; param_cids.len()];
     let mut pos = 0usize;
