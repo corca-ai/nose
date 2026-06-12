@@ -341,8 +341,23 @@ pub(super) fn op_tag(op: &ValOp) -> u64 {
     combine(k.wrapping_mul(0xF00D), p)
 }
 
+/// The low-bit mask for a literal's content hash inside its class-tagged `Const` key
+/// range. The class tag occupies the top nibble (`0x2…` = String); the hash MUST be
+/// masked into the low 28 bits, never `wrapping_add`ed, or a high-bit hash carries the
+/// key OUT of the class range — where `const_value_domain` misreads the kind and (for a
+/// string) `proven_non_concat` wrongly admits the `+` commute, false-merging `"p"+"q"`
+/// with `"q"+"p"` (#308). All string keys go through [`string_const_key`] so the
+/// frontend's `LitStr` and the synthesized empty string agree.
+pub(super) const LIT_HASH_MASK: u32 = 0x0FFF_FFFF;
+
+/// The `Const` key for a string literal whose content hash is `h`: the `String` class
+/// tag with the hash masked into range (see [`LIT_HASH_MASK`]).
+pub(super) fn string_const_key(h: u64) -> u32 {
+    0x2000_0000u32 | (h as u32 & LIT_HASH_MASK)
+}
+
 pub(super) fn stable_string_const_key(value: &str) -> u32 {
-    0x2000_0000u32.wrapping_add(stable_symbol_hash(value) as u32)
+    string_const_key(stable_symbol_hash(value))
 }
 
 pub(super) fn stable_float_const_key(value: &str) -> u32 {
