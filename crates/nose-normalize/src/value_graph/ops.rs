@@ -271,6 +271,15 @@ pub(super) const ABS_CODE: u32 = 0xAB5;
 pub(super) const MIN_CODE: u32 = 0x319;
 pub(super) const MAX_CODE: u32 = 0x32A;
 pub(super) const JS_PROTOTYPE_IN_CODE: u32 = 0x4A53_494E;
+/// `Un` op code for the JS `ToInt32` coercion that every JS bitwise operator applies to
+/// its operands (`a & b` is `ToInt32(a) & ToInt32(b)`, the result an int32). Wrapping the
+/// LEAF operands of a JS-family bitwise expression in this gives JS bitwise a fingerprint
+/// distinct from arbitrary-precision (`Python`/`Ruby`) bitwise — closing the cross-language
+/// false merge (`2^40 & 2^40` is `0` in JS, `2^40` in Python; #283-D). The bitwise op
+/// STRUCTURE is preserved (only leaves are wrapped, intermediate results are already
+/// int32), so the De Morgan / idempotence / byte-pack canons keep matching. Clear of the
+/// `Op` discriminants and the other synthesized `Un` codes.
+pub(super) const TO_INT32_CODE: u32 = 0x132;
 /// Salt for a strict (`===`/`!==`) comparison against a null-ish operand — a shape
 /// the null/undefined-conflating value model cannot express as `Bin(Eq)` without
 /// merging it with the loose check (see `eval`'s strict-null handling).

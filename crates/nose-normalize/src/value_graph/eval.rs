@@ -113,8 +113,15 @@ impl<'a> Builder<'a> {
             NodeKind::BinOp => self.eval_binop_expr(expr, node.payload, env),
             NodeKind::UnOp => {
                 let kids = self.il.children(expr).to_vec();
-                let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                let mut a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                 let op = op_code(node.payload);
+                // JS `~x` is `~ToInt32(x)`, an int32 — narrow the operand so it fingerprints
+                // distinctly from arbitrary-precision `~` (#283-D).
+                if op == Op::BitNot as u32 {
+                    for v in a.iter_mut() {
+                        *v = self.js_int32_narrow(*v);
+                    }
+                }
                 self.mk(ValOp::Un(op), a)
             }
             NodeKind::Field => self.eval_field_expr(expr, node.payload, env),
@@ -298,6 +305,7 @@ impl<'a> Builder<'a> {
             if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
                 return v;
             }
+            self.narrow_js_bitwise_leaves(op, &mut operands);
             let do_sort = (op != Op::Add as u32
                 || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands))
                 && operands.iter().all(|&v| self.reorder_safe(v));
@@ -315,6 +323,7 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
             return v;
         }
+        self.narrow_js_bitwise_leaves(op, &mut operands);
         let do_sort = (op != Op::Add as u32
             || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands))
             && operands.iter().all(|&v| self.reorder_safe(v));
@@ -326,6 +335,20 @@ impl<'a> Builder<'a> {
             acc = self.mk(ValOp::Bin(op), vec![acc, o]);
         }
         acc
+    }
+
+    /// Wrap each LEAF operand of a JS-family `&`/`|`/`^` chain in `ToInt32` (a no-op for
+    /// other ops and non-JS languages). Done after flattening so the wrap lands on the
+    /// chain's leaves, not its intermediate (already int32) results — giving JS bitwise a
+    /// fingerprint distinct from arbitrary-precision bitwise while keeping the op structure
+    /// intact for the De Morgan / idempotence canons (#283-D). Shifts and `~` are narrowed
+    /// at their own build sites.
+    fn narrow_js_bitwise_leaves(&mut self, op: u32, operands: &mut [ValueId]) {
+        if op == Op::BitAnd as u32 || op == Op::BitOr as u32 || op == Op::BitXor as u32 {
+            for v in operands.iter_mut() {
+                *v = self.js_int32_narrow(*v);
+            }
+        }
     }
 
     fn eval_field_expr(

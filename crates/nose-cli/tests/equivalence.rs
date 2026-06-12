@@ -7055,3 +7055,34 @@ fn untyped_add_commute_gates_on_proven_numeric() {
         "int-annotated a + b is provably numeric — commuting to b + a must still converge"
     );
 }
+
+#[test]
+fn js_int32_bitwise_distinguished_from_arbitrary_precision() {
+    // #283-D: JS bitwise coerces operands to int32 (`a & b` is `ToInt32(a) & ToInt32(b)`),
+    // while Python/Ruby bitwise is arbitrary-precision. They differ for operands outside
+    // int32 range (`2^40 & 2^40` is `0` in JS, `2^40` in Python), so one `Bin(BitAnd)` for
+    // both was a false merge. JS bitwise leaves now carry a `ToInt32` wrap → distinct
+    // fingerprint; within-JS `&` still commutes; the De Morgan canon still fires.
+    let i = Interner::new();
+    let js = "function f(a, b){ return a & b; }";
+    let py = "def f(a, b):\n    return a & b\n";
+    let js_swapped = "function g(a, b){ return b & a; }";
+    let js_demorgan_a = "function f(a, b){ return ~(a & b); }";
+    let js_demorgan_b = "function g(a, b){ return (~a) | (~b); }";
+
+    assert_ne!(
+        value_fp(&i, js, Lang::JavaScript),
+        value_fp(&i, py, Lang::Python),
+        "JS int32 `&` must not merge with Python arbitrary-precision `&`"
+    );
+    assert_eq!(
+        value_fp(&i, js, Lang::JavaScript),
+        value_fp(&i, js_swapped, Lang::JavaScript),
+        "within JS, `a & b` still commutes with `b & a`"
+    );
+    assert_eq!(
+        value_fp(&i, js_demorgan_a, Lang::JavaScript),
+        value_fp(&i, js_demorgan_b, Lang::JavaScript),
+        "De Morgan `~(a&b) ≡ ~a|~b` still holds for JS int32 bitwise"
+    );
+}
