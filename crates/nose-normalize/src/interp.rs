@@ -1610,6 +1610,18 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
                     Int(x.wrapping_div(*y))
                 }
             }
+            // True (float) division. The i64 model cannot represent `3.5`, so it is
+            // modeled like truncated `Div` here — BLIND to the float result but CONSISTENT
+            // within `TrueDiv`, which only ever compares with itself (a distinct op from
+            // `Div`/`FloorDiv`), so no false merge. An honest float result needs the `Float`
+            // value kind (#283-D, deferred). Div-by-zero still Errs.
+            Op::TrueDiv => {
+                if *y == 0 {
+                    Value::Err
+                } else {
+                    Int(x.wrapping_div(*y))
+                }
+            }
             Op::Mod => {
                 if *y == 0 {
                     Value::Err

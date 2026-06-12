@@ -1214,7 +1214,9 @@ fn py_bin_op(text: &str) -> Option<Op> {
         "*" => Op::Mul,
         // True division and floor division are distinct operations (`5 / 2 == 2.5`
         // vs `5 // 2 == 2`); each gets its own op so they never share a fingerprint.
-        "/" => Op::Div,
+        // Python `/` is TRUE (float) division — distinct from C-family truncated
+        // `Op::Div` and Ruby/Python-`//` floored `Op::FloorDiv` (#283-D).
+        "/" => Op::TrueDiv,
         "//" => Op::FloorDiv,
         "%" => Op::FloorMod,
         "**" => Op::Pow,

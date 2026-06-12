@@ -703,6 +703,14 @@ pub enum Op {
     /// (as a single `Op::Mod` for all languages did) is a false merge the verify
     /// interpreter was blind to (#283-D).
     FloorMod,
+    /// True (real) division — the quotient is a float, NOT truncated: Python 3 / JS
+    /// `/` (`7 / 2 == 3.5`). DISTINCT from [`Op::Div`] (C/Go/Java/Rust truncated-int,
+    /// `7 / 2 == 3`) and [`Op::FloorDiv`] (Ruby `/` and Python `//`, floored-int) —
+    /// the three disagree (`7/2` is `3.5`, `3`, `3`; `-7/2` is `-3.5`, `-3`, `-4`), so
+    /// one `Op::Div` for all of them is a false merge (#283-D). The i64 interpreter
+    /// cannot represent the float result, so it stays blind here (consistent within
+    /// the op — no cross-language merge); modeling it needs the `Float` value kind.
+    TrueDiv,
 }
 
 impl Op {

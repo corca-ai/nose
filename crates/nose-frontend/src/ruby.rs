@@ -452,6 +452,10 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
             // Ruby `%` is FLOORED (remainder takes the divisor's sign), unlike the
             // C-family truncated `%` in `common_bin_op` (#283-D).
             "%" => Some(Op::FloorMod),
+            // Ruby integer `/` is FLOORED (`-7 / 2 == -4`), like Python `//` — distinct
+            // from C-family truncated `Op::Div` and Python/JS true-float `Op::TrueDiv`
+            // (#283-D).
+            "/" => Some(Op::FloorDiv),
             other => common_bin_op(other),
         });
     match (l, r, op) {

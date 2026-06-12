@@ -7086,3 +7086,45 @@ fn js_int32_bitwise_distinguished_from_arbitrary_precision() {
         "De Morgan `~(a&b) ≡ ~a|~b` still holds for JS int32 bitwise"
     );
 }
+
+#[test]
+fn true_div_distinguishes_three_way_division() {
+    // #283-D: `/` is three-way — TRUE-float in Python/JS (`7/2 == 3.5`), FLOORED-int in
+    // Ruby (`7/2 == 3`, like Python `//`), TRUNCATED-int in C/Go/Java/Rust (`-7/2 == -3`).
+    // One `Op::Div` for all was a false merge; Python/JS `/` now lower to `Op::TrueDiv`,
+    // Ruby `/` to `Op::FloorDiv`, C-family stays `Op::Div`.
+    let i = Interner::new();
+    let py = "def f(a, b):\n    return a / b\n";
+    let js = "function f(a, b){ return a / b; }";
+    let rb = "def f(a, b)\n  a / b\nend\n";
+    let c = "int f(int a, int b) { return a / b; }";
+    let py_floor = "def f(a, b):\n    return a // b\n";
+
+    // True-float (py/js) ≠ truncated (c) ≠ floored (ruby).
+    assert_ne!(
+        value_fp(&i, py, Lang::Python),
+        value_fp(&i, c, Lang::C),
+        "Python true-float / must not merge with C truncated /"
+    );
+    assert_ne!(
+        value_fp(&i, py, Lang::Python),
+        value_fp(&i, rb, Lang::Ruby),
+        "Python true-float / must not merge with Ruby floored /"
+    );
+    assert_ne!(
+        value_fp(&i, rb, Lang::Ruby),
+        value_fp(&i, c, Lang::C),
+        "Ruby floored / must not merge with C truncated /"
+    );
+    // Same semantics still converge: Python ≡ JS (true-float); Ruby ≡ Python `//` (floored).
+    assert_eq!(
+        value_fp(&i, py, Lang::Python),
+        value_fp(&i, js, Lang::JavaScript),
+        "Python and JS / are both true-float — must converge"
+    );
+    assert_eq!(
+        value_fp(&i, rb, Lang::Ruby),
+        value_fp(&i, py_floor, Lang::Python),
+        "Ruby / and Python // are both floored — must converge"
+    );
+}

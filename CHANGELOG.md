@@ -7,6 +7,16 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Three-way `/` division no longer false-merges across languages** (#283-D). `/` is
+  *true-float* in Python 3 / JS (`7/2 == 3.5`), *floored-int* in Ruby (`7/2 == 3`, like
+  Python `//`), and *truncated-int* in C/Go/Java/Rust (`-7/2 == -3`). A single `Op::Div`
+  for all merged Python `a/b` with C `a/b` (and Ruby `a/b`) though they differ. A distinct
+  `Op::TrueDiv` (Python/JS) vs `Op::FloorDiv` (Ruby, like Python `//`) vs `Op::Div`
+  (C-family) fingerprints them apart: Python `/` ↮ C `/` ↮ Ruby `/`, while Python `/` ≡
+  JS `/` and Ruby `/` ≡ Python `//` still converge. The i64 interpreter models `TrueDiv`
+  like truncated `Div` — blind to the float result but consistent within the op (which only
+  compares with itself), so no false merge; an honest float result needs the `Float` value
+  kind (deferred). Zero corpus recall change (4294 → 4294 families); `nose verify` SOUND.
 - **JS int32 bitwise no longer false-merges with arbitrary-precision bitwise** (#283-D).
   JS-family languages coerce every bitwise operand to int32 (`a & b` is
   `ToInt32(a) & ToInt32(b)`, the result an int32); Python/Ruby bitwise is

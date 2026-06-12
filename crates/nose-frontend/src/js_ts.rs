@@ -1942,6 +1942,12 @@ fn is_ts_type(k: &str) -> bool {
 }
 
 fn js_bin_op(text: &str) -> Option<Op> {
+    // JS `/` is TRUE (float) division (`7 / 2 == 3.5`) — distinct from the C-family
+    // truncated `Op::Div` that `common_bin_op` returns and from floored `Op::FloorDiv`,
+    // so it never shares a fingerprint with them (#283-D).
+    if text == "/" {
+        return Some(Op::TrueDiv);
+    }
     // shared C-family set, plus JS's strict-equality, exponent, and type-test
     // operators. `>>>` (zero-fill shift) is deliberately UNMAPPED: collapsing it
     // onto `Shr` merged `-5 >> 1` (sign-extending, `-3`) with `-5 >>> 1`
