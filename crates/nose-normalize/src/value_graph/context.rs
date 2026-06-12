@@ -300,6 +300,12 @@ impl<'a> Builder<'a> {
             let Some(name) = unit.name else {
                 continue;
             };
+            // A decorated definition's runtime binding is `decorator(f)`, not the
+            // lowered body, so it must not be content-keyed (coevo series 6, S2-A
+            // false merge: `@double` vs `@triple` callers).
+            if nose_semantics::decorated_definition_at_node(self.il, unit.root) {
+                continue;
+            }
             // Content-keyed identity covers both the straight-line binding-safe set and
             // the generalized pure-shape set: a call whose inline attempt fails the
             // runtime fence still falls back to a content hash (never a bare name), so
@@ -334,56 +340,13 @@ impl<'a> Builder<'a> {
 
     pub(super) fn module_binding_mutated(&self, name: Symbol) -> bool {
         let top_level = self.top_level_statements();
-        let shadowed = shadowed_js_like_module_binding_nodes_for_symbol_in_scope(
+        crate::module_facts::module_binding_mutated_in_file(
             self.il,
+            self.interner,
             name,
             &self.local_scope_nodes,
-        );
-        self.il.nodes.iter().enumerate().any(|(idx, node)| {
-            let node_id = NodeId(idx as u32);
-            if shadowed.contains(&node_id) {
-                return false;
-            }
-            match node.kind {
-                NodeKind::Call => self.call_mutates_binding(node_id, name).unwrap_or(false),
-                NodeKind::Assign if !top_level.contains(&node_id) => self
-                    .assignment_mutates_binding(node_id, name)
-                    .unwrap_or(false),
-                _ => false,
-            }
-        })
-    }
-
-    fn assignment_mutates_binding(&self, assign: NodeId, name: Symbol) -> Option<bool> {
-        let lhs = binding_write_target(self.il, assign)?;
-        Some(self.node_contains_symbol(lhs, name))
-    }
-
-    fn call_mutates_binding(&self, call: NodeId, name: Symbol) -> Option<bool> {
-        if let Some(receiver) = receiver_mutation_call_receiver(self.il, self.interner, call) {
-            return Some(self.node_refers_to_symbol(receiver, name));
-        }
-        if let Some(args) = opaque_argument_escape_args(self.il, call) {
-            return Some(args.iter().any(|&arg| self.node_contains_symbol(arg, name)));
-        }
-        Some(false)
-    }
-
-    fn node_refers_to_symbol(&self, node: NodeId, name: Symbol) -> bool {
-        self.node_symbol(node).is_some_and(|symbol| symbol == name)
-    }
-
-    fn node_symbol(&self, node: NodeId) -> Option<Symbol> {
-        node_symbol_in_scope(self.il, node, &self.local_scope_nodes)
-    }
-
-    fn node_contains_symbol(&self, node: NodeId, name: Symbol) -> bool {
-        self.node_refers_to_symbol(node, name)
-            || self
-                .il
-                .children(node)
-                .iter()
-                .any(|&child| self.node_contains_symbol(child, name))
+            &top_level,
+        )
     }
 
     pub(super) fn node_refers_to_cid(&self, node: NodeId, cid: u32) -> bool {

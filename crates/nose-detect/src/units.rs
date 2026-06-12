@@ -84,6 +84,12 @@ pub struct UnitFeat {
     /// (same iteration scheme), not just the return value.
     #[serde(default)]
     pub cond_sinks: Vec<u64>,
+    /// The build relied on a pointer-length contract (a free-param loop bound assumed to
+    /// be `len(array)`), which drops the bound from the value hash — so the return hash
+    /// does not faithfully determine the value. Makes the unit ineligible as a
+    /// containment helper (coevo series 6, S3-3).
+    #[serde(default)]
+    pub used_length_contract: bool,
     /// Return-sink hashes of every SAME-FILE function this unit provably calls
     /// (`CallTarget::DirectFunction` evidence), sorted+deduped. A containment match on
     /// one of these hashes is the unit *using* a helper, not reinventing it.
@@ -439,6 +445,7 @@ struct GatedUnit {
     returns: Vec<u64>,
     pure_single_return: bool,
     cond_sinks: Vec<u64>,
+    used_length_contract: bool,
     anchors: Vec<nose_normalize::Anchor>,
     semantic_laws: Vec<ValueLaw>,
     unit_start: Option<Instant>,
@@ -648,17 +655,23 @@ fn gate_unit(
     // literal-only multiset for data-table detection. Computed before the size
     // gate so the gate can consult semantic richness (below).
     let value_start = unit_timer.start();
-    let (value, lits, returns, anchors, semantic_laws, (pure_single_return, cond_sinks)) =
-        if let Some(context) = ctx.value_context {
-            nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
-                ctx.il,
-                root,
-                ctx.interner,
-                context,
-            )
-        } else {
-            nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
-        };
+    let (
+        value,
+        lits,
+        returns,
+        anchors,
+        semantic_laws,
+        (pure_single_return, cond_sinks, used_length_contract),
+    ) = if let Some(context) = ctx.value_context {
+        nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
+            ctx.il,
+            root,
+            ctx.interner,
+            context,
+        )
+    } else {
+        nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
+    };
     let value_ms = UnitTimer::elapsed(value_start);
 
     // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a
@@ -694,6 +707,7 @@ fn gate_unit(
         returns,
         pure_single_return,
         cond_sinks,
+        used_length_contract,
         anchors,
         semantic_laws,
         unit_start,
@@ -723,6 +737,7 @@ fn extract_unit(
         returns,
         pure_single_return,
         cond_sinks,
+        used_length_contract,
         anchors,
         semantic_laws,
         unit_start,
@@ -778,6 +793,7 @@ fn extract_unit(
         returns,
         pure_single_return,
         cond_sinks,
+        used_length_contract,
         called_helper_returns: Vec::new(),
         anchors,
         semantic_laws,

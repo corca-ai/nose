@@ -2271,3 +2271,77 @@ nodes. After: 2 findings on sympy, both hand-verified true.
 mechanism, pointed at containment instead of pair recovery, yields a small,
 high-precision, novel finding surface at +2.4% scan cost. Floor-first shipped; exact
 admission and default-surface promotion follow the labelset discipline.
+
+## CG. Adversarial co-evolution, series 6 — the #299 surfaces (generalized inline, content keying, containment, oracle)
+
+One protocol pass ([adversarial-coevolution](adversarial-coevolution.md)) aimed by the
+freshness slot rule at the code merged in #299 (commit `fa35de2`). Four blind-mode
+attackers, persona-rotated, executable packets, on the four claims #299 introduced.
+Tracking issue #300; ledger `bench/coevo/packets.v1.json` (cases `s6-*`).
+
+**S1 — generalized inline soundness (soundness-skeptic).** One violation: Python
+keyword arguments lower to their value in source order, dropping the name, so
+`helper(b=p, a=q)` is byte-identical IL to `helper(a=p, b=q)` and the two callers
+false-merge as "exact behavior match" (−2 vs 5 on p=1,q=2). **Pre-existing** (occurs on
+the opaque-call path; inline not load-bearing) and cross-language; the sound fix needs
+IL Call keyword identity (a representational change). **Deferred #301.** The fence,
+fold, in-loop-return poison, and Cond-passthrough all held against direct attack.
+
+**S2 — content-keyed callee identity (binding-lawyer).** Two violations, split on
+fixability:
+- **S2-A (decorators) — fixed.** Python decorators are dropped in lowering, so `@double`
+  vs `@triple` callers false-merged (caller(1)=40 vs 60). Fix: a new
+  `SourceFactKind::Binding(DecoratedDefinition)` recorded at lowering; `DirectFunction`
+  evidence and content-keyed seeding both skip decorated definitions. Precise, no
+  over-fire; corpus effect is 4 Python repos (poetry, click, sqlalchemy, sympy), net −2
+  families — genuine decorator-driven false merges removed.
+- **S2-B (out-of-scope reassignment) — deferred #302.** `global helper; helper = x`
+  inside another function inlines the original body (callers 1000 vs 2000). The natural
+  gate ("name reassigned anywhere?") **cannot be made precise**: the frontend drops
+  `global`/`nonlocal`, so a non-top-level `name = x` is indistinguishable from a local
+  shadow. The broad predicate **over-fired — 37 corpus repos of recall loss** (netty −26,
+  raylib −11) for zero soundness gain there — so it was reverted per *the defender's
+  ceiling is provability*. Needs frontend global-binding tracking (same class as S1).
+
+**S3 — reinvented-helper containment (claims-auditor).** Four packets; two false
+findings fixed in code, two over-strong claims fixed in docs:
+- **S3-2 (caller via inlined-callee span) — fixed.** A pure caller of a function that
+  inline-reinvents the helper was itself reported (the called-helper record is one call
+  level deep). Fix: reject a finding whose matched anchor carries a REAL source span
+  outside the container's own line range — that span belongs to the inlined callee.
+- **S3-3 (bound-blind Reduce) — fixed.** An indexed `while i < n` absorbs the bound into
+  a pointer-length contract, dropping it from `cond_sinks` AND the `Reduce` hash, so a
+  fold over `i < n-1` value-exactly "contained" a fold over `i < n` (11 vs 22 on
+  xs=[1,1]). Fix: `sink_profile` now reports `used_length_contract`; contract-bound
+  helpers are ineligible (their return hash doesn't determine their value). Conservative
+  — also drops the same-bound true positive (S3-1's shape), a sound recall loss, since
+  the bound is unrecoverable from the hash. Genuine length iteration is unaffected.
+- **S3-1 (approximate site) / S3-4 (type-erased fix) — docs honesty.** A loop-fold match
+  has no precise span, so the site is the whole container (`site_approximate` flag
+  added); and field access hashes by name, so a Go container can value-exactly contain a
+  helper of a different struct type whose call would not compile. Both are TRUE findings
+  with an over-strong *fix* claim — reframed as advisory (call the helper for the matched
+  part; type-check the suggested call), not mechanical line replacement.
+
+**S4 — oracle completeness (oracle-attacker). Green.** No violation. The inline
+admission and the oracle's callee-execution gate resolve the same `DirectFunction`
+target from the same evidence, so the oracle is at least as general as the inline.
+Census: ~43% of the inline-created merge mass is oracle-opaque — all in the fail-closed
+`uninterpretable` bucket (free module globals, floats, JS C-style for-loops), exclusion
+mass, not silent SOUND.
+
+**Boundary re-attack.** One round on the new gates. Decorated *methods* still merge
+across `@double`/`@triple` — but a no-decorator control with different method bodies
+merges identically, so the cause is the **pre-existing opaque method-name identity**
+(`self.helper` keyed by name), not the S2 content path, and predates #299. Recorded as a
+known boundary (clone-types: unproven methods are name-keyed). Conditional reassignment
+and length-contract-vs-`for` boundaries held.
+
+**Verdict.** Two ships (S2-A decorator fact, S3 containment gates), four defers/greens
+(S1 #301, S2-B #302, S3-1/S3-4 docs, S4 green). Net corpus: **16 reinvented findings
+preserved** (the S3 gates removed only synthetic adversarial cases, zero real-finding
+recall), **−2 false merges** removed from 4 Python repos by the decorator fact, recall
+otherwise neutral, soundness and determinism re-verified. The campaign's sharpest lesson
+is S2-B: a false merge whose only available defense is an unprovable guess is a
+*deferred* finding, not a shipped guess — the 37-repo over-fire is exactly the §BA "17
+false merges" failure mode in the recall direction.

@@ -729,6 +729,11 @@ pub struct ReinventedHelper {
     /// Source lines INSIDE the container where the helper's computation lives.
     pub site_start_line: u32,
     pub site_end_line: u32,
+    /// The site is APPROXIMATE — the matched computation is a synthesized loop fold with
+    /// no precise source span, so the site is the whole container range and includes
+    /// computation beyond the helper's. Consumers must not mechanically replace these
+    /// exact lines (coevo series 6, S3-1).
+    pub site_approximate: bool,
     /// Value-graph size of the reinvented computation — the ranking key.
     pub weight: u32,
 }
@@ -757,6 +762,7 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
             && u.fragment_kind.is_none()
             && u.exact_safe
             && u.pure_single_return
+            && !u.used_length_contract
             && u.returns.len() == 1
             && u.value.len() >= REINVENTED_HELPER_MIN_NODES
             && u.token_count >= REINVENTED_HELPER_MIN_TOKENS
@@ -802,12 +808,27 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
                 .min_by_key(|&h| (&units[h].path, units[h].start_line));
             let Some(h) = rep else { continue };
             let h = &units[h];
+            // A matched anchor with a REAL (non-zero) source span must lie inside the
+            // container's own line range. A span outside it means the shared computation
+            // textually lives in a DIFFERENT function that this unit merely inlined
+            // (generalized inlining splices a callee's value graph in) — the unit is a
+            // transitive CALLER, not a reinventor, and `called_helper_returns` (one call
+            // level deep) does not catch a two-hop chain. Reject (coevo series 6, S3-2).
+            // A synthesized loop-fold anchor carries no span (line 0); it falls back to
+            // the container range and is the faithful flagship case, so it is allowed.
+            let real_span = anchor.line_start != 0;
+            let inside = anchor.line_start >= c.start_line && anchor.line_end <= c.end_line;
+            if real_span && !inside {
+                continue;
+            }
             // Loop-exit nodes (a synthesized `Reduce`) may carry no source span; fall
-            // back to the container's own range rather than reporting line 0.
-            let (site_start, site_end) = if anchor.line_start == 0 {
-                (c.start_line, c.end_line)
+            // back to the container's own range rather than reporting line 0. When this
+            // fallback fires the site is the WHOLE container (approximate — the matched
+            // computation is a sub-part), flagged for honest consumer reporting.
+            let (site_start, site_end, site_approximate) = if anchor.line_start == 0 {
+                (c.start_line, c.end_line, true)
             } else {
-                (anchor.line_start, anchor.line_end)
+                (anchor.line_start, anchor.line_end, false)
             };
             out.push(ReinventedHelper {
                 helper_file: h.path.clone(),
@@ -820,6 +841,7 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
                 container_end_line: c.end_line,
                 site_start_line: site_start,
                 site_end_line: site_end,
+                site_approximate,
                 weight: anchor.weight,
             });
         }

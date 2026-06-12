@@ -77,10 +77,20 @@ impl<'a> Builder<'a> {
     /// The unit's sink profile for the containment channel: whether the build emitted
     /// exactly one `Return` and nothing irreversible (no ordered effects, throws, or
     /// breaks — `flush_fields` has already run, so flushed field state would show up as
-    /// `Effect` sinks here), plus the sorted guard-value hashes of its `Cond` sinks
-    /// (loop iteration guards — value-relevant bookkeeping a containment match must
-    /// also find in the container).
-    pub(super) fn sink_profile(&self) -> (bool, Vec<u64>) {
+    /// `Effect` sinks here); the sorted guard-value hashes of its `Cond` sinks (loop
+    /// iteration guards a containment match must also find in the container); and whether
+    /// the build RELIED ON a pointer-length contract.
+    ///
+    /// The last flag is a containment soundness gate (coevo series 6, S3-3): an indexed
+    /// `while i < n` loop where `n` is a free param assumed to be `len(array)` records a
+    /// `(array, n)` contract and drops the bound from BOTH the `Cond` sinks and the
+    /// `Reduce` value hash. Two such folds with DIFFERENT bounds (`i < n` vs `i < n-1`)
+    /// then share a return hash though they compute different values — the guard-
+    /// inclusion check is vacuous because `cond_sinks` is empty. Such a helper's value
+    /// is not faithfully determined by its return hash, so it is ineligible as a
+    /// containment helper. Genuine length iteration (`for x in xs`, `while i < len(xs)`)
+    /// records no contract and stays eligible — the flagship case is unaffected.
+    pub(super) fn sink_profile(&self) -> (bool, Vec<u64>, bool) {
         let mut returns = 0usize;
         let mut conds: Vec<u64> = Vec::new();
         let mut other = false;
@@ -93,7 +103,7 @@ impl<'a> Builder<'a> {
         }
         conds.sort_unstable();
         conds.dedup();
-        (!other && returns == 1, conds)
+        (!other && returns == 1, conds, !self.contracts.is_empty())
     }
 
     pub(super) fn fingerprint_lits(&self) -> (Vec<u64>, Vec<u64>, Vec<u64>) {

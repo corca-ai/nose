@@ -101,7 +101,27 @@ pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool 
         }
         SourceFactKind::Range(range) => source_range_at_node(il, node) == Some(range),
         SourceFactKind::Pattern(pattern) => source_pattern_at_node(il, node) == Some(pattern),
+        SourceFactKind::Binding(binding) => source_binding_at_node(il, node) == Some(binding),
     }
+}
+
+pub fn source_binding_at_node(il: &Il, node: NodeId) -> Option<SourceBindingKind> {
+    let span = il.node(node).span;
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Binding(binding)) => Some(binding),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(binding) => Some(binding),
+        _ => None,
+    }
+}
+
+/// The definition rooted at `node` was DECORATED in source: its runtime binding is the
+/// decorator's result, not the lowered body. Consumers that attribute the body to the
+/// function's NAME (call-target evidence, content-keyed seeding, inlining) must treat
+/// such a binding as unprovable and fail closed.
+pub fn decorated_definition_at_node(il: &Il, node: NodeId) -> bool {
+    source_binding_at_node(il, node) == Some(SourceBindingKind::DecoratedDefinition)
 }
 
 pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKind> {

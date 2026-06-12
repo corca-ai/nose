@@ -579,6 +579,17 @@ pub enum SourceFactKind {
     Comprehension(SourceComprehensionKind),
     Range(SourceRangeKind),
     Pattern(SourcePatternKind),
+    Binding(SourceBindingKind),
+}
+
+/// Source facts about how a definition BINDS, not what its body computes. A decorated
+/// definition's runtime binding is `decorator(f)`, not `f` — lowering keeps only the
+/// inner body (sound for unit-shape analysis), so any consumer that treats the body as
+/// the NAME's content (call-target evidence, content-keyed seeding, inlining) must see
+/// this fact and fail closed (coevo series 6, S2-A).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceBindingKind {
+    DecoratedDefinition,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

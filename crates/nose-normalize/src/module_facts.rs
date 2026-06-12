@@ -5,6 +5,53 @@ use nose_semantics::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
+/// Whether the module-level binding `name` is mutated ANYWHERE in the file — a
+/// non-top-level assignment (e.g. `global name; name = other` inside a function, a bare
+/// reassignment in a JS function), a receiver-mutation call, or an opaque argument
+/// escape — excluding occurrences that are locally shadowed. The check the call-target
+/// evidence and content-keyed seeding layers gate on: a mutated binding's content is
+/// not the `def`'s body (coevo series 6, S2-B).
+pub fn module_binding_mutated_in_file(
+    il: &Il,
+    interner: &Interner,
+    name: Symbol,
+    local_scope_nodes: &[bool],
+    top_level: &[NodeId],
+) -> bool {
+    let shadowed =
+        shadowed_js_like_module_binding_nodes_for_symbol_in_scope(il, name, local_scope_nodes);
+    let refers = |node: NodeId| -> bool {
+        node_symbol_in_scope(il, node, local_scope_nodes).is_some_and(|symbol| symbol == name)
+    };
+    fn contains(il: &Il, node: NodeId, refers: &dyn Fn(NodeId) -> bool) -> bool {
+        refers(node) || il.children(node).iter().any(|&c| contains(il, c, refers))
+    }
+    il.nodes.iter().enumerate().any(|(idx, node)| {
+        let node_id = NodeId(idx as u32);
+        if shadowed.contains(&node_id) {
+            return false;
+        }
+        match node.kind {
+            NodeKind::Call => {
+                if let Some(receiver) = receiver_mutation_call_receiver(il, interner, node_id) {
+                    return refers(receiver);
+                }
+                if let Some(args) = opaque_argument_escape_args(il, node_id) {
+                    return args.iter().any(|&arg| contains(il, arg, &refers));
+                }
+                false
+            }
+            NodeKind::Assign if !top_level.contains(&node_id) => {
+                match binding_write_target(il, node_id) {
+                    Some(lhs) => contains(il, lhs, &refers),
+                    None => false,
+                }
+            }
+            _ => false,
+        }
+    })
+}
+
 pub fn top_level_statements_for(il: &Il) -> Vec<NodeId> {
     let mut out = Vec::new();
     for &stmt in il.children(il.root) {

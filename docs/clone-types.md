@@ -103,6 +103,15 @@ core canonicalizations, but not a per-scan or whole-pipeline proof. See
 - **Name-only library semantics** are not accepted. A method named `map`, `then`,
   `collect`, or `contains` is exact only when the language, symbol/receiver,
   shadowing/import, arity, and effect/demand obligations for that API are proven.
+- **Unproven method calls share an opaque identity keyed by the method name.** An
+  unresolved `obj.foo(x)` is modeled as one opaque operation keyed by `foo`, so two
+  callers of same-named methods on *different* receiver types — or whose `foo` bodies
+  differ but nose cannot resolve which is called — converge. Resolving them needs
+  receiver-type analysis the value model erases. A consequence: a behavior-changing
+  decorator on a method (`@cached`, `@retry`) is invisible to its callers' fingerprints
+  (the decorator is dropped in lowering and the call is name-keyed) — see
+  [experiments §CG](experiments.md). Free-function calls do NOT share this hazard:
+  decorated function definitions fail closed (no `DirectFunction` evidence).
 - **Recursion ↔ iteration** is partially modeled — a bounded subset converges (see
   [normalization](normalization.md)); general recursion↔iteration remains out of scope.
 - The behavioral *proof* (`nose verify`) covers only interpretable (≈ pure) units; detection

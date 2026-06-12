@@ -468,6 +468,114 @@
    "summary": "15 gaps: byte-pack u16/u32 + low-bit-toggle have NO Lean proof (positive-only tests); many type-gated rules (abs, minmax, idempotence, negation-distrib) have positive tests but NO hard-negative proving the gate holds \u2014 the AC-chain hard-negative gap is highest risk and overlaps the #283 cardinal-sin cluster",
    "verdict": "recorded-low-prevalence",
    "defense": "#283 hard-negative + Lean backlog"
+  },
+  {
+   "packet_id": "s6-s2a-decorator-content-key",
+   "series": 6,
+   "campaign": "S2",
+   "persona": "binding-lawyer",
+   "mode": "blind",
+   "surface": "content-keyed-callee-identity",
+   "claim": "a reassigned/shadowed/decorated callee binding fails closed to opaque, never inheriting a function's content",
+   "summary": "Python decorators are dropped in lowering, so @double vs @triple (and decorated-vs-plain) callers false-merged as 'exact behavior match' (caller(1)=40 vs 60). DirectFunction evidence + content-keyed seeding both attributed the bare body to the name.",
+   "verdict": "violation-fixed",
+   "defense": "New SourceFactKind::Binding(DecoratedDefinition) recorded at decorated_definition lowering; call_target_evidence and content-keyed seeding both skip decorated definitions (decorated_definition_at_node). Fail-closed: decorated callers stay opaque."
+  },
+  {
+   "packet_id": "s6-s2b-out-of-scope-reassignment",
+   "series": 6,
+   "campaign": "S2",
+   "persona": "binding-lawyer",
+   "mode": "blind",
+   "surface": "content-keyed-callee-identity",
+   "claim": "a module function reassigned anywhere in the file is not provably its def body",
+   "summary": "`global helper; helper = special_a` inside another function (Python) / bare module reassignment from a function (JS) was invisible to scope_bound (which only checks the call site's lexical enclosing scopes) and to collect_function_binding_hashes (no mutation check). Raw body inlined; callers false-merged (caller(1)=1000 vs 2000). Cross-language.",
+   "verdict": "deferred-issue",
+   "defense": "#302 \u2014 the natural gate (reassigned-anywhere) cannot be made precise: the frontend drops global/nonlocal, so a non-top-level `name = x` is indistinguishable from a local shadow. The broad predicate over-fired, killing legitimate inlines at 37 corpus repos (netty -26, raylib -11) for zero soundness gain there \u2014 reverted per 'the defender's ceiling is provability'. Needs frontend global-binding tracking. Only the precise decorator fact (S2-A) shipped."
+  },
+  {
+   "packet_id": "s6-s3-2-caller-via-inline-span",
+   "series": 6,
+   "campaign": "S3",
+   "persona": "claims-auditor",
+   "mode": "blind",
+   "surface": "reinvented-helpers",
+   "claim": "Callers are never findings; the site is INSIDE the container",
+   "summary": "A pure caller of a function that inline-reinvents the helper was itself reported (called_helper_returns is one call level deep, keyed on the direct callee's own return hash), with a site line outside its own range.",
+   "verdict": "violation-fixed",
+   "defense": "Reject a finding whose matched anchor carries a REAL (non-zero) source span outside [container_start,container_end] \u2014 that span belongs to the inlined callee, so the unit is a transitive caller. Zero-span loop-fold anchors (the flagship) fall back to container range and stay."
+  },
+  {
+   "packet_id": "s6-s3-3-bound-blind-reduce",
+   "series": 6,
+   "campaign": "S3",
+   "persona": "claims-auditor",
+   "mode": "blind",
+   "surface": "reinvented-helpers",
+   "claim": "the matched sub-computation is the SAME computation, never merely similar; matching a fold while iterating differently is not containment",
+   "summary": "For indexed while loops the bound is absorbed into a pointer-length contract and dropped from cond_sinks AND the Reduce hash, so a fold over i<n-1 (or an unrelated bound m) value-exactly 'contained' a fold over i<n though they differ on almost every input (11 vs 22 on xs=[1,1],n=2). The documented guard-inclusion check was vacuous (cond_sinks empty).",
+   "verdict": "violation-fixed",
+   "defense": "sink_profile now reports used_length_contract; a helper that relied on a pointer-length contract is ineligible (its return hash does not faithfully determine its value). Conservative: also drops the same-bound true-positive shape (S3-1) since the bound is unrecoverable from the hash \u2014 sound recall loss. Genuine length iteration records no contract and stays eligible."
+  },
+  {
+   "packet_id": "s6-s3-1-approximate-site",
+   "series": 6,
+   "campaign": "S3",
+   "persona": "claims-auditor",
+   "mode": "blind",
+   "surface": "reinvented-helpers",
+   "claim": "replace the matched lines with a call (the site is the helper's computation)",
+   "summary": "For a loop-fold helper the matched node has no span, so the site falls back to the whole container, which includes computation beyond the helper (e.g. total*extra+9). Mechanically replacing those lines deletes the extra computation.",
+   "verdict": "violation-fixed",
+   "defense": "Honesty, not suppression: a site_approximate flag (JSON + struct) marks whole-container fallbacks; docs reframe the fix as advisory ('call the helper for the matched part'), not a mechanical line replacement. The finding is TRUE; only the fix wording was over-strong."
+  },
+  {
+   "packet_id": "s6-s3-4-type-erasure-fix",
+   "series": 6,
+   "campaign": "S3",
+   "persona": "claims-auditor",
+   "mode": "blind",
+   "surface": "reinvented-helpers",
+   "claim": "replace the matched lines with a call to the helper that already exists (the fix compiles)",
+   "summary": "Field access hashes by name only, so a Go container over struct Span value-exactly 'contains' a helper taking Vec2; the suggested NormBlend(s) is a compile error under Go nominal typing \u2014 the helper cannot be called with the container's operand.",
+   "verdict": "recorded-low-prevalence",
+   "defense": "Routes to consumer judgment (the value model erases types by design, clone-types.md). Docs add the type-erasure caveat: in statically-typed languages the suggested call must be type-checked by the consumer. Not suppressed \u2014 the computation IS structurally identical; only callability is undecidable here. No corpus instance observed."
+  },
+  {
+   "packet_id": "s6-s1-keyword-arg-order",
+   "series": 6,
+   "campaign": "S1",
+   "persona": "soundness-skeptic",
+   "mode": "blind",
+   "surface": "canonicalizer",
+   "claim": "interprocedural inlining is behavior-preserving; equal fingerprint implies equal behavior",
+   "summary": "Python keyword arguments lower to their value in source order, dropping the name, so helper(b=p,a=q) is byte-identical IL to helper(a=p,b=q) and the two callers false-merge as 'exact behavior match' (-2 vs 5 on p=1,q=2). Pre-existing frontend gap; occurs on the opaque-call path too (inline not load-bearing).",
+   "verdict": "deferred-issue",
+   "defense": "#301 \u2014 sound fix needs IL Call keyword identity (new node/metadata) canonicalized by name + threaded through the value graph and inline binding + cross-language battery; exceeds the series-6 (#299-surfaces) scope. Reproducer attached."
+  },
+  {
+   "packet_id": "s6-s4-oracle-lockstep",
+   "series": 6,
+   "campaign": "S4",
+   "persona": "oracle-attacker",
+   "mode": "blind",
+   "surface": "oracle",
+   "claim": "nose verify witnesses or fail-closed excludes every inline-created merge; SOUND covers the exact-claim surface",
+   "summary": "No violation. Inline admission and the oracle's callee-execution gate resolve the same DirectFunction target from the same evidence, so the oracle is at least as general as the inline. Census: ~43% of inline-created merge mass is oracle-opaque, all in the fail-closed uninterpretable bucket (free module globals, floats, JS C-style for-loops) \u2014 exclusion mass, not silent SOUND.",
+   "verdict": "green-confirmed",
+   "defense": "None needed. Minor cosmetic note: verify labels the bucket 'uninterpretable' while --exclusion-census JSON says 'battery-bail'."
+  },
+  {
+   "packet_id": "s6-boundary-decorated-method",
+   "series": 6,
+   "campaign": "S2",
+   "persona": "author",
+   "mode": "boundary-reattack",
+   "surface": "content-keyed-callee-identity",
+   "claim": "decorated callers fail closed (boundary edge: methods, not functions)",
+   "summary": "Boundary re-attack: decorated-METHOD callers (self.helper(a)) still merge across @double/@triple. Root cause is the PRE-EXISTING opaque method-name identity (self.helper keyed by name 'helper'); a no-decorator control with different method bodies merges identically. Not the content-keying mechanism the S2 fix covers, and predates #299.",
+   "verdict": "deferred-issue",
+   "defense": "Documented opaque-method-identity boundary (clone-types.md: unproven methods are name-keyed). A sound fix needs method receiver-type resolution \u2014 separate from this campaign. The S2 fix's content-keying/evidence paths DO correctly gate decorated methods; only the orthogonal opaque-method-name path remains."
   }
  ]
 }

@@ -11,9 +11,10 @@ use nose_il::{
     EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord,
     EvidenceStatus, GuardEvidenceKind, HoFKind, Il, ImportEvidenceKind, Interner, Lang,
     LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    SequenceSurfaceKind, SourceCallKind, SourceCastKind, SourceComprehensionKind, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, SourcePatternKind, SourceProtocolKind, SourceRangeKind,
-    Span, Symbol, SymbolEvidenceKind, TypeEvidenceKind,
+    SequenceSurfaceKind, SourceBindingKind, SourceCallKind, SourceCastKind,
+    SourceComprehensionKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    SourcePatternKind, SourceProtocolKind, SourceRangeKind, Span, Symbol, SymbolEvidenceKind,
+    TypeEvidenceKind,
 };
 use rustc_hash::FxHashMap;
 

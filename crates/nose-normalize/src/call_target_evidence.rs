@@ -104,6 +104,17 @@ fn unique_direct_function_targets(
         if ambiguous.contains(&name) {
             continue;
         }
+        // A decorated `def` binds `decorator(f)`, not the lowered body — fail closed:
+        // no DirectFunction evidence, so the inline, the content-keyed exact admission,
+        // and the behavioral oracle all stay opaque (coevo series 6, S2-A). Out-of-scope
+        // REASSIGNMENT (`global name; name = ...`) is a separate, deferred gap: the
+        // frontend drops `global`/`nonlocal`, so a non-top-level `name = x` is
+        // indistinguishable from a local declaration — gating on it fails OPEN-the-
+        // wrong-way (kills valid inlines of clean helpers whose name a local shadows;
+        // measured 37-repo recall loss). It needs frontend global-binding tracking (#302).
+        if nose_semantics::decorated_definition_at_node(il, unit.root) {
+            continue;
+        }
         let target = DirectFunctionTarget {
             root: unit.root,
             name_hash: interner.symbol_hash(name),

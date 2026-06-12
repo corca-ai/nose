@@ -19,16 +19,26 @@ For a finding `container ⟵ helper`:
   rides, so the matched sub-computation and the helper body are *the same
   computation*, never merely similar;
 - every loop-guard (`Cond`) hash of the helper is also present in the container's
-  fingerprint — matching a fold while iterating differently is not containment.
+  fingerprint — matching a fold while iterating differently is not containment;
+- the helper did **not** rely on a pointer-length contract (a free-param loop bound
+  `while i < n` assumed to be `len(array)`). Such a bound is dropped from BOTH the
+  guard set and the value hash, so two folds with different bounds (`i < n` vs `i < n-1`)
+  would share a return hash though they compute different values — and the guard-
+  inclusion check above is then vacuous. Contract-bound helpers are excluded fail-closed;
+  genuine length iteration (`for x in xs`, `while i < len(xs)`) records no contract and
+  stays eligible (coevo series 6, S3-3).
 
 Two exclusions keep the surface honest:
 
 - **Callers are never findings.** [Generalized pure inlining](normalization.md) splices
   a callee's value graph into its caller's fingerprint, so every well-behaved caller
-  would otherwise "contain" its helper. A unit's provable same-file call targets
-  (`CallTarget::DirectFunction`) are recorded, and a match on a called helper's return
-  hash — directly or via a behaviorally-equal twin — is skipped: calling is the fix,
-  not the smell.
+  would otherwise "contain" its helper. Two guards exclude callers: a unit's provable
+  same-file call targets (`CallTarget::DirectFunction`) are recorded and a match on a
+  called helper's return hash — directly or via a behaviorally-equal twin — is skipped;
+  and a matched anchor carrying a REAL source span OUTSIDE the container's own line
+  range is rejected, since that span belongs to a different (inlined) function the unit
+  merely calls — the case a one-level call-target record misses on a two-hop chain
+  (coevo series 6, S3-2). Calling is the fix, not the smell.
 - **Idiom-sized helpers are never matched.** The helper must clear both a value-graph
   floor (≥ 8 nodes) and a source floor (≥ 20 tokens). Value-graph weight alone cannot
   tell a compressed accumulator loop (a whole loop canonicalizes to a ~4-node `Reduce`
@@ -47,6 +57,25 @@ Two exclusions keep the surface honest:
   [scan-json](scan-json.md#reinvented-helpers).
 - The container being a test file or vendored code is *judgment-deep* non-action
   ([design §2b](design.md)): the consumer decides; nose carries the locations.
+
+## The suggested fix is advisory, not mechanical
+
+The finding says *this computation already exists as a helper* — it does **not** promise
+that mechanically replacing the reported lines compiles or preserves behavior. Two
+boundaries the consumer must check (coevo series 6, S3-1/S3-4):
+
+- **Approximate site.** When the matched computation is a synthesized loop fold (a
+  `Reduce` with no precise source span), the site falls back to the WHOLE container range
+  and `site_approximate` is `true` in the JSON. The helper's computation is then a
+  *sub-part* of those lines (the container does more — e.g. `total * extra + 9` around
+  the fold), so the fix is "call the helper for the matched part", not "delete these
+  lines". The flagship `mean = sum(xs) / len(xs)` is exactly this shape: `sum` is the
+  reinvented helper; `/ len` stays.
+- **Types are erased.** The value model abstracts away nominal types
+  ([clone-types](clone-types.md)), so a container over one struct type can value-exactly
+  contain a helper taking a *different* struct type with same-named fields. In a
+  statically-typed language (Go/Java/Rust/C) the suggested call may not type-check — the
+  consumer must confirm the helper is callable with the container's operands.
 
 ## Measured (2026-06-12, the 105-repo corpus)
 

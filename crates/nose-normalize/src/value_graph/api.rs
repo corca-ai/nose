@@ -18,17 +18,18 @@ pub type Anchors = Vec<Anchor>;
 /// heavy sub-DAG [`Anchors`].
 pub type FingerprintBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors);
 /// [`FingerprintBundle`] plus value-law provenance and the unit's containment sink
-/// profile — the final pair is `(pure single return, cond guard hashes)`: whether the
-/// build's sinks are exactly one `Return` plus iteration `Cond` guards (no effects,
-/// throws, or breaks), and the sorted guard-value hashes of those `Cond` sinks. The
-/// reinvented-helper containment channel keys on both.
+/// profile — the final triple is `(pure single return, cond guard hashes, used length
+/// contract)`: whether the build's sinks are exactly one `Return` plus iteration `Cond`
+/// guards (no effects, throws, or breaks), the sorted guard-value hashes of those `Cond`
+/// sinks, and whether the build relied on a pointer-length contract (which drops a loop
+/// bound from the value hash). The reinvented-helper containment channel keys on all three.
 pub type FingerprintLawBundle = (
     Vec<u64>,
     Vec<u64>,
     Vec<u64>,
     Anchors,
     Vec<ValueLaw>,
-    (bool, Vec<u64>),
+    (bool, Vec<u64>, bool),
 );
 
 /// Public entry: the value-graph fingerprint of the unit rooted at `root`

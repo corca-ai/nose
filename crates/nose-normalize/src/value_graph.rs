@@ -57,7 +57,6 @@ use crate::combine;
 use crate::module_facts::{
     assignment_name_in_scope, collect_all_node_symbols_in_scope,
     collect_module_mutations_in_scope_with_direct_definitions, local_scope_nodes,
-    node_symbol_in_scope, shadowed_js_like_module_binding_nodes_for_symbol_in_scope,
     top_level_statements_for,
 };
 use field_state::FieldStateKey;
@@ -95,20 +94,19 @@ use nose_semantics::{
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_literal_producer_evidence_for_node, imported_namespace_symbol,
-    map_builder_index_write_contract, nullish_global_contract, opaque_argument_escape_args,
-    own_property_guard_for_node, receiver_mutation_call_receiver, record_shape_guard_for_node,
-    reduction_builtin_contract, ruby_shovel_append_parts, semantics, seq_surface_contract_for_node,
-    source_comprehension_at_node, source_operator_at_node, source_pattern_at_node,
-    source_range_at_node, unproven_membership_like_method_contract, BuiltinArgContract,
-    CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IndexWriteReceiverContract, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiSpanCall,
-    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION,
-    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD,
-    SEQ_VALUE_UNTAGGED,
+    map_builder_index_write_contract, nullish_global_contract, own_property_guard_for_node,
+    record_shape_guard_for_node, reduction_builtin_contract, ruby_shovel_append_parts, semantics,
+    seq_surface_contract_for_node, source_comprehension_at_node, source_operator_at_node,
+    source_pattern_at_node, source_range_at_node, unproven_membership_like_method_contract,
+    BuiltinArgContract, CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw,
+    DomainEvidence, DomainRequirement, GoZeroMapDefaultKind, ImportFactKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IndexWriteReceiverContract,
+    IteratorAdapterReceiverContract, JavaMapFactoryKind, LibraryApiCalleeContract,
+    LibraryApiSpanCall, LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
+    ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw,
+    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
+    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_UNTAGGED,
 };
 use ops::*;
 use rustc_hash::{FxHashMap, FxHashSet};

@@ -11,7 +11,7 @@ use crate::lower::Lowering;
 use nose_il::{
     stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, FileId, HoFKind, Il,
     ImportEvidenceKind, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    SourceComprehensionKind, SourceFactKind, SourceOperatorKind, Span, UnitKind,
+    SourceBindingKind, SourceComprehensionKind, SourceFactKind, SourceOperatorKind, Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -48,9 +48,19 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
             Some(out)
         }
         "decorated_definition" => {
-            // Ignore decorators; lower the wrapped definition.
+            // Lower only the wrapped definition — but RECORD the decoration as a
+            // binding source fact: the runtime binding is `decorator(f)`, not `f`,
+            // so call-target evidence / content-keyed seeding / inlining must not
+            // attribute the bare body to the name (coevo series 6, S2-A: `@double`
+            // vs `@triple` callers false-merged as "exact behavior match").
             let def = node.child_by_field_name("definition")?;
-            lower_stmt(lo, def, in_class)
+            let def_span = lo.span(def);
+            let lowered = lower_stmt(lo, def, in_class)?;
+            lo.record_source_fact(
+                def_span,
+                SourceFactKind::Binding(SourceBindingKind::DecoratedDefinition),
+            );
+            Some(lowered)
         }
         "class_definition" => {
             let out = lower_class(lo, node);
