@@ -1157,7 +1157,30 @@ impl<'a> Builder<'a> {
         let contract = occurrence.contract;
         let ImportedNamespaceFunctionSemantic::ProductReduction { op, identity } =
             contract.result.semantic;
-        let coll = self.eval(*kids.get(1)?, env);
+        // Split args into the positional iterable and an optional `start=` seed: the
+        // seed may be positional (`prod(xs, 1)`) or keyword (`prod(xs, start=1)`). An
+        // unrecognized keyword is an arg shape this recognizer does not model — bail to
+        // the opaque path (sound) rather than guess (#301).
+        let mut iterable = None;
+        let mut seed_node = None;
+        for &a in &kids[1..] {
+            if self.il.kind(a) == NodeKind::KwArg {
+                let Payload::Name(name) = self.il.node(a).payload else {
+                    return None;
+                };
+                if self.interner.resolve(name) != "start" {
+                    return None;
+                }
+                seed_node = Some(*self.il.children(a).first()?);
+            } else if iterable.is_none() {
+                iterable = Some(a);
+            } else if seed_node.is_none() {
+                seed_node = Some(a);
+            } else {
+                return None;
+            }
+        }
+        let coll = self.eval(iterable?, env);
         let (coll_op, args) = {
             let n = &self.nodes[coll as usize];
             (n.op.clone(), n.args.clone())
@@ -1170,9 +1193,8 @@ impl<'a> Builder<'a> {
             ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
             _ => self.elem(coll),
         };
-        let init = kids
-            .get(2)
-            .map(|&i| self.eval(i, env))
+        let init = seed_node
+            .map(|i| self.eval(i, env))
             .unwrap_or_else(|| self.int_const(identity));
         Some(self.mk(ValOp::Reduce(op as u32), vec![init, contrib]))
     }

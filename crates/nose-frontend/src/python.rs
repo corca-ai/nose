@@ -689,10 +689,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.await_boundary(span, value)
         }
         "named_expression" => lower_named_expr(lo, node),
-        "keyword_argument" => node
-            .child_by_field_name("value")
-            .map(|v| lower_expr(lo, v))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "keyword_argument" => lower_keyword_argument(lo, node),
         "assignment" => lower_assignment(lo, node),
         "augmented_assignment" => lower_aug_assignment(lo, node),
         // comprehension clauses, if ever reached directly: lower the meaningful part
@@ -898,6 +895,25 @@ fn lower_dictionary_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
         .collect();
     let tag = lo.sym("pair");
     lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+}
+
+/// `f(name=value)` — keep the keyword NAME so the call's argument identity is by name,
+/// not source position (`f(a=p,b=q)` must not equal `f(b=p,a=q)`). The value graph keys
+/// a call's keyword args by name; an unhandled consumer treats `KwArg` opaquely (fail
+/// closed). A keyword arg with no resolvable name falls back to the bare value.
+fn lower_keyword_argument(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let value = node
+        .child_by_field_name("value")
+        .map(|v| lower_expr(lo, v))
+        .unwrap_or_else(|| lo.empty_block(span));
+    match node.child_by_field_name("name") {
+        Some(name) => {
+            let sym = lo.sym(lo.text(name));
+            lo.add(NodeKind::KwArg, Payload::Name(sym), span, &[value])
+        }
+        None => value,
+    }
 }
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -7443,3 +7443,54 @@ fn reinvented_helper_rejects_bound_blind_fold_coevo_s6_s3() {
         "a fold whose bound the value hash drops must not match a different-bound fold",
     );
 }
+
+#[test]
+fn keyword_argument_mapping_is_by_name_not_position_issue_301() {
+    // #301 (coevo series 6, S1): Python keyword arguments lower to a KwArg node carrying
+    // the name, so a call's argument identity is BY NAME. Two callers passing the SAME
+    // (name -> value) mapping in different orders converge; two passing DIFFERENT
+    // mappings do not — the inline binds `helper(b=p, a=q)` to the right parameters.
+    let i = Interner::new();
+    let helper = "def helper(a, b):\n    base = a - b\n    return base * 3 + a\n";
+    let call_ab = "def run(p, q):\n    return helper(a=p, b=q)\n";
+    let call_ba_same = "def run(p, q):\n    return helper(b=q, a=p)\n"; // same mapping, reordered
+    let call_ba_diff = "def run(p, q):\n    return helper(b=p, a=q)\n"; // different mapping
+    let fp = |c: &str| value_fp_named(&i, &format!("{helper}\n{c}"), Lang::Python, "run");
+    assert_eq!(
+        fp(call_ab),
+        fp(call_ba_same),
+        "same keyword->value mapping in different order must converge",
+    );
+    assert_ne!(
+        fp(call_ab),
+        fp(call_ba_diff),
+        "different keyword->value mapping must NOT converge (the #301 false merge)",
+    );
+}
+
+#[test]
+fn keyword_argument_oracle_binds_by_name_issue_301() {
+    // The verify oracle must bind keyword args by name too, so it neither mis-binds a
+    // reordered keyword call (a silent false merge) nor needlessly excludes it. The
+    // differently-mapped callers compute different values on the same inputs.
+    use nose_normalize::{run_unit, Value};
+    let i = Interner::new();
+    let src_diff = "def helper(a, b):\n    return (a - b) * 3 + a\n\ndef run(p, q):\n    return helper(b=p, a=q)\n";
+    let il = nose_frontend::lower_source(FileId(0), "t.py", src_diff.as_bytes(), Lang::Python, &i)
+        .unwrap();
+    let n = normalize(&il, &i, &NormalizeOptions::default());
+    let run = n
+        .units
+        .iter()
+        .find(|u| u.name.is_some_and(|s| i.resolve(s) == "run"))
+        .map(|u| u.root)
+        .expect("run unit");
+    // run(p=1, q=2) calls helper(b=1, a=2) → (a-b)*3+a = (2-1)*3+2 = 5.
+    assert_eq!(
+        run_unit(&n, &i, run, &[Value::Int(1), Value::Int(2)])
+            .expect("interpretable")
+            .ret,
+        Value::Int(5),
+        "the oracle must bind helper(b=p, a=q) by name: a=q=2, b=p=1",
+    );
+}

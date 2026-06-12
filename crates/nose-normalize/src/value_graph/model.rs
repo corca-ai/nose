@@ -14,6 +14,7 @@ pub(super) enum ValOp {
     Field(u64), // field access, keyed by content hash of the name
     Index,      // base[index]
     Call(u32),  // 0 = opaque callee; otherwise builtin discriminant + 1
+    KwArg(u64), // a named call argument, keyed by the keyword-name hash; args = [value]
     Hof(u32),   // higher-order op kind
     Clamp,      // numeric clamp over proven integer bounds: args = [x, lo, hi]
     Seq(u64),   // aggregate literal, keyed by lowered sequence kind

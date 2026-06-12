@@ -801,6 +801,17 @@ impl<'a> Interp<'a> {
             }
             NodeKind::Call => self.eval_call(node, env),
             NodeKind::HoF => self.eval_hof(node, env),
+            // A keyword argument reached outside a resolved call's own by-name binding
+            // (e.g. inside an opaque/library call): evaluate its value. The keyword name
+            // is not needed here — fingerprint-equal units share identical keyword
+            // structure, so the name never distinguishes members of a checked group, and
+            // `eval_user_call` does its own by-name binding for proven targets (#301).
+            NodeKind::KwArg => self
+                .il
+                .children(node)
+                .first()
+                .ok_or(Unsupported)
+                .and_then(|&v| self.eval(v, env)),
             _ => Err(Unsupported),
         }
     }
@@ -1083,28 +1094,28 @@ impl<'a> Interp<'a> {
             let ident = subtree_sig(self.il, self.interner, callee);
             return self.opaque_call(ident, &kids[1..], env);
         };
-        // Evaluate the arguments in the CURRENT frame (call-by-value), left to right.
-        let mut argv = Vec::with_capacity(kids.len().saturating_sub(1));
-        for &a in &kids[1..] {
-            let value = self.eval(a, env)?;
+        // Bind arguments to the CALLEE's parameters in a fresh environment by the shared
+        // plan (matching the value graph): positional left-to-right, keyword by name. An
+        // unresolvable mapping bails the unit (Unsupported) so the oracle never mis-binds
+        // a reordered keyword call (#301). Locals start empty; the effect trace, field
+        // state, and step budget are shared.
+        let params = self.il.children(target).to_vec();
+        let param_cids: Vec<u32> = params
+            .iter()
+            .filter_map(|&p| match (self.il.kind(p), self.il.node(p).payload) {
+                (NodeKind::Param, Payload::Cid(c)) => Some(c),
+                _ => None,
+            })
+            .collect();
+        let plan = crate::call_args::keyword_arg_binding_plan(self.il, &param_cids, &kids[1..])
+            .ok_or(Unsupported)?;
+        let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
+        for (cid, value_node) in plan {
+            let value = self.eval(value_node, env)?;
             if matches!(value, Value::Err) {
                 return Ok(Value::Err);
             }
-            argv.push(value);
-        }
-        // Bind them positionally to the CALLEE's parameters in a fresh environment; locals
-        // start empty, exactly like a real call. The effect trace, field state, and step budget
-        // are shared with the caller (so effects stay ordered and runaway recursion terminates).
-        let params = self.il.children(target).to_vec();
-        let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
-        let mut pi = 0;
-        for &p in &params {
-            if self.il.kind(p) == NodeKind::Param {
-                if let Payload::Cid(c) = self.il.node(p).payload {
-                    fenv.insert(c, argv.get(pi).cloned().unwrap_or(Value::Null));
-                    pi += 1;
-                }
-            }
+            fenv.insert(cid, value);
         }
         let body = *params.last().ok_or(Unsupported)?;
         let result = self.exec(body, &mut fenv);

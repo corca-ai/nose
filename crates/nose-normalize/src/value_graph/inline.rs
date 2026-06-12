@@ -189,10 +189,15 @@ impl<'a> Builder<'a> {
         if self.inline_stack.len() >= INLINE_MAX_DEPTH || self.inline_stack.contains(&root) {
             return None;
         }
+        // Bind arguments to parameters by the shared plan: positional left-to-right,
+        // keyword (`name=value`) by name. A keyword naming no param, a double-bind, or
+        // any param left unbound fails closed to the opaque path — so `helper(b=p, a=q)`
+        // substitutes the RIGHT operands, never the positional ones (#301).
+        let plan = crate::call_args::keyword_arg_binding_plan(self.il, &target.params, &kids[1..])?;
         let mut fenv: FxHashMap<u32, ValueId> = FxHashMap::default();
-        for (pi, &pc) in target.params.iter().enumerate() {
-            let av = self.eval(kids[pi + 1], env);
-            fenv.insert(pc, av);
+        for (pc, arg) in plan {
+            let v = self.eval(arg, env);
+            fenv.insert(pc, v);
         }
         self.inline_stack.push(root);
         let value = self.inline_eval_pure_body(target.body, &mut fenv);

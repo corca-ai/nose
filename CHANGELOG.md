@@ -6,6 +6,17 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Keyword arguments now bind by name, not position** (#301). A Python call
+  `helper(b=p, a=q)` lowered to byte-identical IL as `helper(a=p, b=q)` — the keyword
+  names were dropped — so two callers passing different `(name → value)` mappings
+  false-merged as an "exact behavior match" (e.g. `(p-q)*3+p` vs `(q-p)*3+q`). Keyword
+  arguments now lower to a `KwArg` node carrying the name; the value graph keys a call's
+  keyword args by name (so `f(a=p, b=q)` ≡ `f(b=q, a=p)` but ≠ `f(a=q, b=p)`), and both
+  interprocedural inlining and the behavioral oracle bind keywords by the same plan. A
+  recall *gain* as well as a soundness fix: same-mapping reordered keyword calls now
+  converge. Ruby was already sound (it keeps keyword keys as distinct literals).
+
 ### Added
 - **Reinvented-helper containment findings** (experimental). A new exact-grade finding
   class: a function that reimplements an existing pure single-return helper inline

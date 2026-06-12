@@ -80,6 +80,7 @@ fn kind_name(k: NodeKind) -> &'static str {
         Lambda => "lambda",
         Seq => "seq",
         HoF => "hof",
+        KwArg => "kwarg",
         Raw => "raw",
     }
 }

@@ -316,6 +316,7 @@ pub(super) fn op_tag(op: &ValOp) -> u64 {
         ValOp::Field(n) => (5, *n),
         ValOp::Index => (6, 0),
         ValOp::Call(t) => (7, *t as u64),
+        ValOp::KwArg(n) => (23, *n),
         ValOp::Hof(h) => (8, *h as u64),
         ValOp::Clamp => (20, 0),
         ValOp::Seq(t) => (9, *t),

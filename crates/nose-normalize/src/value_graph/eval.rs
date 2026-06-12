@@ -134,6 +134,22 @@ impl<'a> Builder<'a> {
                 let hash = self.valued_subtree_hash(expr);
                 self.mk(ValOp::Lambda(hash), vec![])
             }
+            // A keyword call argument `name=value` evaluated outside a call's own
+            // kwarg handling (e.g. a kwarg that survived into an opaque position): key
+            // it by the keyword name so `a=p` ≠ `b=p` and ≠ positional `p`.
+            NodeKind::KwArg => {
+                let name_hash = match node.payload {
+                    Payload::Name(s) => self.interner.symbol_hash(s),
+                    _ => 0,
+                };
+                let value = self
+                    .il
+                    .children(expr)
+                    .first()
+                    .map(|&v| self.eval(v, env))
+                    .unwrap_or_else(|| self.mk(ValOp::Opaque(0), vec![]));
+                self.mk(ValOp::KwArg(name_hash), vec![value])
+            }
             // Any unlowered / unhandled construct — notably `Raw`, which wraps a
             // macro, C compound literal, `#ifdef`, parse-ERROR, etc. Key it by its full
             // subtree hash (surface kind + lowered children), exactly like `Lambda`, so
@@ -467,12 +483,30 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.eval_inlined_call(expr, &kids, env) {
             return v;
         }
-        let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+        // Keyword arguments are order-independent BY NAME, so evaluate positional args
+        // in source order but the keyword args as a name-sorted suffix: `f(a=p, b=q)`
+        // and `f(b=q, a=p)` converge, while `f(a=p, b=q)` and `f(a=q, b=p)` (different
+        // mapping) stay distinct. The first child is the callee (or, for a builtin, the
+        // first arg) and is never a keyword.
+        let mut positional: Vec<ValueId> = Vec::new();
+        let mut keyword: Vec<ValueId> = Vec::new();
+        for &k in &kids {
+            let v = self.eval(k, env);
+            if self.il.kind(k) == NodeKind::KwArg {
+                keyword.push(v);
+            } else {
+                positional.push(v);
+            }
+        }
+        if !keyword.is_empty() {
+            keyword.sort_unstable_by_key(|&v| self.vhash[v as usize]);
+            positional.extend(keyword);
+        }
         let tag = match payload {
             Payload::Builtin(b) => builtin_tag(b),
             _ => 0,
         };
-        self.mk(ValOp::Call(tag), a)
+        self.mk(ValOp::Call(tag), positional)
     }
 
     fn eval_builtin_predicate_call(

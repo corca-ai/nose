@@ -83,6 +83,16 @@ pub enum NodeKind {
     /// `Name` holds the original tree-sitter node kind for debugging. Children:
     /// whatever sub-IL was produced. Detection treats these opaquely.
     Raw,
+
+    /// A keyword/named call argument `name=value`. Payload: `Name` (the keyword,
+    /// content-hashed, never alpha-renamed — it labels a parameter, not a binding).
+    /// Children: `[value]`. Appears only as a child of `Call`. Keyword arguments are
+    /// order-independent BY NAME, so the value graph keys a call's keyword args by their
+    /// names (not positions): `f(a=p, b=q)` ≡ `f(b=q, a=p)` but ≠ `f(a=q, b=p)`. An
+    /// unhandled consumer treats it opaquely (fail closed: keyword calls then simply do
+    /// not converge with positional ones). Declared LAST so adding it does not shift the
+    /// discriminants (and thus the shape hashes) of the existing kinds.
+    KwArg,
 }
 
 /// Per-node data. Most nodes carry [`Payload::None`]; the variant in use is
