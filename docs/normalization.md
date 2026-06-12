@@ -241,7 +241,16 @@ downstream value-graph.
   a pure in-file helper can beta-substitute the helper body only when the call
   occurrence carries `CallTarget::DirectFunction` evidence for the exact target
   unit. The callee spelling is not a proof channel; missing, ambiguous, or
-  conflicting target evidence leaves the call opaque.
+  conflicting target evidence leaves the call opaque. Two binding facts withhold
+  that evidence even for a unique same-file definition, because the name's runtime
+  binding is then NOT its `def` body: a **decorated** definition (`@d def f` binds
+  `d(f)`), and a name **rebound at module scope** from inside another function
+  (`global f; f = ...`). The frontend drops `global`/`nonlocal`, so the rebind is
+  recorded as a `ModuleRebind` source fact on the assignment — without it a
+  non-top-level `f = x` is indistinguishable from a local declaration, which is why
+  a coarse reassigned-anywhere predicate over-fires (it kills valid inlines whose
+  name a local merely shadows). A local `f = 5` carries no fact and stays a valid
+  target (#302).
 
   Admission is *generalized*, not whitelisted: the callee body may contain loops,
   branches, builder appends, and nested proven calls — it is evaluated through the

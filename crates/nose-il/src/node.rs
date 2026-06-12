@@ -592,14 +592,21 @@ pub enum SourceFactKind {
     Binding(SourceBindingKind),
 }
 
-/// Source facts about how a definition BINDS, not what its body computes. A decorated
-/// definition's runtime binding is `decorator(f)`, not `f` — lowering keeps only the
-/// inner body (sound for unit-shape analysis), so any consumer that treats the body as
-/// the NAME's content (call-target evidence, content-keyed seeding, inlining) must see
-/// this fact and fail closed (coevo series 6, S2-A).
+/// Source facts about how a definition BINDS, not what its body computes. Consumers that
+/// treat a `def`'s body as the NAME's content (call-target evidence, content-keyed
+/// seeding, inlining) must see these and fail closed.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SourceBindingKind {
+    /// A decorated definition's runtime binding is `decorator(f)`, not `f` — lowering
+    /// keeps only the inner body (sound for unit-shape analysis) (coevo series 6, S2-A).
     DecoratedDefinition,
+    /// An assignment that REBINDS a module-scope name from inside another scope — a
+    /// Python `global name; name = ...`. The frontend drops `global`/`nonlocal`, so this
+    /// fact (anchored on the assignment, identifying the binding by its target name) is
+    /// the only signal that `name`'s runtime binding is no longer its `def` body. Without
+    /// it a non-top-level `name = x` is indistinguishable from a local declaration, which
+    /// is why the series-6 reassigned-anywhere predicate over-fired (#302).
+    ModuleRebind,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

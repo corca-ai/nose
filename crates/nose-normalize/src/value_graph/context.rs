@@ -291,6 +291,10 @@ impl<'a> Builder<'a> {
 
     fn collect_function_binding_hashes(&mut self) -> Vec<(Symbol, u64)> {
         let mut bindings = Vec::new();
+        // Names rebound at module scope (`global name; name = ...`) — not content-keyable
+        // for the same reason as decorated defs: the name's runtime value is not its `def`
+        // body (#302).
+        let rebound = nose_semantics::module_rebound_symbols(self.il);
         // Indexed loop: the body needs `&mut self` but never mutates `units`.
         for i in 0..self.il.units.len() {
             let unit = self.il.units[i];
@@ -300,10 +304,12 @@ impl<'a> Builder<'a> {
             let Some(name) = unit.name else {
                 continue;
             };
-            // A decorated definition's runtime binding is `decorator(f)`, not the
-            // lowered body, so it must not be content-keyed (coevo series 6, S2-A
-            // false merge: `@double` vs `@triple` callers).
-            if nose_semantics::decorated_definition_at_node(self.il, unit.root) {
+            // A decorated definition's runtime binding is `decorator(f)` (coevo series 6,
+            // S2-A); a `global`-reassigned name binds whatever was last assigned (#302).
+            // Neither may be content-keyed (their callers would inherit the wrong body).
+            if nose_semantics::decorated_definition_at_node(self.il, unit.root)
+                || rebound.contains(&name)
+            {
                 continue;
             }
             // Content-keyed identity covers both the straight-line binding-safe set and

@@ -124,6 +124,30 @@ pub fn decorated_definition_at_node(il: &Il, node: NodeId) -> bool {
     source_binding_at_node(il, node) == Some(SourceBindingKind::DecoratedDefinition)
 }
 
+/// The module-scope names a `ModuleRebind` fact reports as reassigned from inside another
+/// scope (a Python `global name; name = ...`). A top-level function with such a name is
+/// not provably its `def` body — its callers must not inline it, and it must not be
+/// content-keyed or admitted to the exact channel (#302). Precise where the series-6
+/// reassigned-anywhere predicate over-fired: a local `name = x` (no `global`) carries no
+/// fact, so the function stays a valid target.
+pub fn module_rebound_symbols(il: &Il) -> rustc_hash::FxHashSet<Symbol> {
+    let mut out = rustc_hash::FxHashSet::default();
+    for idx in 0..il.nodes.len() {
+        let node = NodeId(idx as u32);
+        if il.kind(node) != NodeKind::Assign
+            || source_binding_at_node(il, node) != Some(SourceBindingKind::ModuleRebind)
+        {
+            continue;
+        }
+        if let Some((lhs, _)) = il.assignment_var_parts(node) {
+            if let Some(name) = il.var_name(lhs) {
+                out.insert(name);
+            }
+        }
+    }
+    out
+}
+
 pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKind> {
     let span = il.node(node).span;
     match evidence_at_span(il, span, |evidence| match evidence {
