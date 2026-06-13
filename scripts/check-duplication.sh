@@ -57,7 +57,15 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # the asserted direction). The series-9 dataflow inline-soundness fix shifted enough
 # structure to push the pair over the near threshold. Benign test scaffolding, nothing to
 # extract; the production change it rode in on is fingerprint-neutral (family delta ≈ 0).
-BUDGET=27      # accepted substantial families today (see docs/dogfooding.md)
+#
+# +1 (semantic false-merge boundaries): the value-graph order-orientation soundness fix shifts
+# canonicalized value fingerprints enough for this branch's binary to report the same 28-family
+# count even when scanning an unmodified origin/main tree. The extra counted family is the
+# pre-existing high-parameter overlap slice
+# `body_depends_on_iter` / `foreach_effect_body_depends_on_iter` / `single_branch_statement`,
+# folded under the loop-effect family in human output. It is tracked design debt, not code
+# introduced here.
+BUDGET=28      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 

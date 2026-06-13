@@ -176,3 +176,19 @@ tests in nose-cli's inline `tests` module, `declaration_spans_fail_open_per_lang
 `declaration_spans_classify_per_language`. They are near-identical by construction — a
 `&[(&str, &str)]` case table plus an `assert!(…ast_classifies…)` loop, differing only in the asserted
 direction — benign test scaffolding with nothing extractable. The budget is re-baselined to 27.
+
+## Budget 27 → 28 and semantic false-merge boundaries
+
+The semantic false-merge boundary fix moves order-comparison orientation behind integer-domain
+evidence and keeps NaN/signed-zero-sensitive APIs fail-closed. That changes canonicalized value
+fingerprints enough that this branch's release binary reports the same 28 substantial families even
+when pointed at an unmodified `origin/main` worktree: the count increase is detector behavior, not
+new copy-paste in the PR tree.
+
+The extra counted family is the pre-existing overlap slice
+`body_depends_on_iter` ↔ `foreach_effect_body_depends_on_iter` ↔ `single_branch_statement`, folded
+under the broader loop-effect family in the human report. It shares the recursive "recognized
+statement body" skeleton, but the two loop-effect paths deliberately differ in their effect-site
+recording and recognizer contracts while `single_branch_statement` belongs to conditional-guard
+summarization. Extracting it would be a high-parameter helper that couples separate detector
+responsibilities, so the family is recorded as design debt and the budget is re-baselined to 28.
