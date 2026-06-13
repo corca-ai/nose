@@ -41,6 +41,7 @@ mod rules;
 mod sinks;
 mod state;
 mod stdlib;
+mod value_dag;
 
 pub use api::{
     anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,
@@ -52,6 +53,10 @@ pub use api::{
     CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use context::ValueFingerprintContext;
+pub use value_dag::{
+    bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,
+    VgSinkKind,
+};
 
 use crate::combine;
 use crate::module_facts::{

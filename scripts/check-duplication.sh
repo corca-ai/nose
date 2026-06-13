@@ -44,7 +44,12 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # self-source value-graph fingerprints, nudging one PRE-EXISTING large-span dispatch
 # near-family (interp.rs / value_graph/eval.rs / control.rs, sharing ~12 of ~1082 lines)
 # past the value >= 40 line — a spurious whole-function span, not new duplication.
-BUDGET=25      # accepted substantial families today (see docs/dogfooding.md)
+# Re-baselined 25 -> 26 in the #315 graded-witness PR: the new value_dag.rs's
+# `impl FileReferents` whole-span (~270 lines) incidentally shares ~7 boilerplate lines
+# (the `impl<'a>` header + a `for u in &il.units { def_*.entry(..) }` skeleton) with
+# value_graph/builders.rs's `impl Builder` — 8 varying spots, nothing extractable (the
+# two impls do unrelated work). A spurious whole-impl span, not new duplication.
+BUDGET=26      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 

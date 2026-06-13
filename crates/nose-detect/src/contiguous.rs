@@ -241,6 +241,7 @@ pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> V
                 value_nodes: None,
                 mean_value_jaccard: None,
                 mean_shape_jaccard: None,
+                graded: None,
             }),
         });
     }

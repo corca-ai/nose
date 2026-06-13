@@ -68,7 +68,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    `syntax` emits duplicated runs above the line/token floors. Experimental
    `abstraction` then checks same-language near-style families for one shared
    supported literal-leaf hole position and attaches a weak witness instead of an
-   exact claim.
+   exact claim. Same-language `near` families are additionally graded by anti-unifying
+   their two representative copies' value graphs — "equal except *k* holes", each a
+   candidate parameter, with a soundness-relevant referent check
+   ([graded-witness](graded-witness.md)).
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-module/-file/-language spread). See [usage](usage.md) for how the

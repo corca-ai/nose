@@ -523,6 +523,68 @@ pub(crate) fn extract(
     out
 }
 
+/// Above this many normalized nodes a file is treated as pathological for witness
+/// purposes (generated/minified): the graded witness is best-effort enrichment, so it
+/// is skipped rather than paying an outsized cost on a file no one refactors by hand.
+const WITNESS_MAX_FILE_NODES: usize = 60_000;
+
+/// Export the value DAGs of the units at the given `(start_line, end_line)` spans, for
+/// the #315 graded witness. `il` is the file's RAW IL (this normalizes it the same way
+/// detection does), and the result is aligned with `wanted`: `Some((dag, exact_safe))`
+/// when a unit root matches the span, `None` otherwise (no match, or a pathological
+/// file skipped wholesale). The per-file resolution context (referents, inline/global
+/// context) is built once and shared across the requested roots.
+pub fn unit_dags_at(
+    il: &Il,
+    interner: &Interner,
+    opts: &crate::DetectOptions,
+    wanted: &[(u32, u32)],
+) -> Vec<Option<(nose_normalize::ValueDag, bool)>> {
+    let norm_opts = nose_normalize::NormalizeOptions {
+        cfg_norm: opts.cfg_norm,
+        dce: opts.dce,
+        ..Default::default()
+    };
+    let n = nose_normalize::normalize(il, interner, &norm_opts);
+    if n.nodes.len() > WITNESS_MAX_FILE_NODES {
+        return vec![None; wanted.len()];
+    }
+    let mut roots: Vec<UnitRoot> = n
+        .units
+        .iter()
+        .map(|u| UnitRoot {
+            root: u.root,
+            kind: u.kind,
+            name: u.name,
+            fragment_kind: None,
+        })
+        .collect();
+    if opts.block_units {
+        collect_block_units(&n, n.root, &mut roots);
+        let parents = build_parent_index(&n);
+        collect_exact_statement_fragment_units(&n, n.root, &parents, interner, &mut roots);
+    }
+    let facts = StrictFacts::collect(&n, interner);
+    let context =
+        (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(&n, interner));
+    let referents = nose_normalize::FileReferents::new(&n, interner);
+    // Span -> root (first wins, matching extraction order).
+    let mut by_lines: rustc_hash::FxHashMap<(u32, u32), NodeId> = rustc_hash::FxHashMap::default();
+    for r in &roots {
+        let s = n.node(r.root).span;
+        by_lines.entry((s.start_line, s.end_line)).or_insert(r.root);
+    }
+    wanted
+        .iter()
+        .map(|&span| {
+            let root = *by_lines.get(&span)?;
+            let exact_safe = strict_exact_safe_tree(&n, interner, &facts, root);
+            let dag = nose_normalize::value_dag(&n, root, interner, context.as_ref(), &referents);
+            Some((dag, exact_safe))
+        })
+        .collect()
+}
+
 /// Record, on every unit that could be a containment CONTAINER (it has anchors), the
 /// return-sink hashes of each SAME-FILE function it provably calls
 /// (`CallTarget::DirectFunction` evidence). A containment match on one of these hashes

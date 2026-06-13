@@ -45,6 +45,10 @@ pub use value_graph::{
     Anchors, FingerprintBundle, FingerprintLawBundle, ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
     CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
+pub use value_graph::{
+    bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,
+    VgSinkKind,
+};
 
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Payload, Symbol, Unit};
 use rustc_hash::{FxHashMap, FxHashSet};

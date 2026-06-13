@@ -17,6 +17,7 @@ mod minhash;
 mod report;
 mod strict_exact;
 mod units;
+mod witness;
 
 pub use contiguous::Stream;
 pub use fragment::{
@@ -24,7 +25,8 @@ pub use fragment::{
     FragmentContract, FragmentKind, Place, ProofFacts,
 };
 pub use report::{is_test_loc, rank_families, RefactorFamily, VaryingSpot};
-pub use units::UnitFeat;
+pub use units::{unit_dags_at, UnitFeat};
+pub use witness::{graded_witness, GradedWitness, WitnessHole};
 
 /// Build one file's syntax-channel token stream from its (raw) IL. Exposed so the
 /// CLI's `--cache-dir` can cache it per file and pass it to [`detect_from_units`] — the
@@ -645,6 +647,12 @@ pub struct EquivalenceWitness {
     /// For `structural-similarity`: mean shape Jaccard vs the first member.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mean_shape_jaccard: Option<f64>,
+    /// For `structural-similarity` (near) families: the anti-unification grade of the
+    /// two representative copies — "equal except these k holes", with each hole's value
+    /// class and a referent check (#315). Computed by the presentation layer, which has
+    /// source access; `None` for non-near witnesses and until that layer runs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub graded: Option<GradedWitness>,
 }
 
 /// Derive a group's witness from its members' own features (star against the
@@ -660,6 +668,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
             value_nodes: Some(first.value.len()),
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
+            graded: None,
         };
     }
     if members.len() >= 2 && shared_subdag_hash(members, units).is_some() {
@@ -668,6 +677,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
             value_nodes: None,
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
+            graded: None,
         };
     }
     let (mut vj, mut sj) = (0.0, 0.0);
@@ -681,6 +691,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
         value_nodes: None,
         mean_value_jaccard: Some(round3(vj / n)),
         mean_shape_jaccard: Some(round3(sj / n)),
+        graded: None,
     }
 }
 

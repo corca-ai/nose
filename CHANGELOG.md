@@ -6,6 +6,24 @@ break.
 
 ## [Unreleased]
 
+### Added
+- **Graded equivalence witness for near families** (#315). Same-language `near`
+  (`structural-similarity`) families now carry a `witness.graded` object that
+  anti-unifies their two representative copies' value graphs into "equal except *k*
+  holes" — each hole classified (`literal`/`input`/`field`/`call`/… are clean
+  parameters; `shape`/`arity`/`unmodeled`/`extra-sink` are structural divergence) with
+  its differing source text per side, recognized divergence `patterns`
+  (`effects-reordered`, `sink-superset-*`, `fragment-containment`, `low-substance`),
+  and a soundness-relevant referent check: a name both copies consume that resolves to
+  *different* definitions fires `referent_mismatches` and demotes the claim
+  (fail-closed), while an unresolved name becomes a scoped `caveat_names` entry. The
+  `equal_modulo_holes` grade is the near-channel counterpart to the exact channel's
+  proof — evidence, not a Lean-backed theorem, scoped to the modeled unit *body*
+  (definition-site decorators/annotations and signatures are out of scope; tracked
+  follow-up). Validated full-corpus (104 repos: 86% of near pairs at *k* ≤ 3, exact
+  control 100% *k* = 0) and by independent qualitative review. See
+  [graded-witness](docs/graded-witness.md) and [scan JSON](docs/scan-json.md).
+
 ### Changed
 - **The reinvented-helper channel is promoted to the default surface.** A hand-labeled
   [field audit](docs/reinvented-helper-audit-2026-06-13.md) of all 17 corpus findings

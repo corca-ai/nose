@@ -154,3 +154,14 @@ lines — past the substantial (value ≥ 40) line. That is a spurious whole-fun
 big match-dispatch bodies that share a sliver of control shape), not extractable duplication and not
 new code. The gate budget is re-baselined to 25 while continuing to ratchet against new avoidable
 duplication.
+
+## Budget 25 → 26 and the graded-witness module
+
+The [graded-witness](graded-witness.md) PR (#315) adds `value_graph/value_dag.rs`. Its
+`impl<'a> FileReferents<'a>` block (~270 lines) incidentally shares ~7 boilerplate lines — the
+`impl<'a>` header plus a `for u in &il.units { def_*.entry(..).or_insert(..) }` skeleton — with the
+`impl<'a> Builder<'a>` block in `value_graph/builders.rs`. nose's own near channel matches them at
+the whole-impl span (8 varying spots, ~7 of ~270 lines shared), but the two impls do unrelated work
+(value-DAG referent resolution vs the value-graph builder's dict-entry/index-write methods) — there
+is nothing extractable. Another spurious whole-impl-span match, not new avoidable duplication; the
+budget is re-baselined to 26.
