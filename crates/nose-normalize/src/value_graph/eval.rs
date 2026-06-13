@@ -427,6 +427,23 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
             return v;
         }
+        // Float `+`/`*` is NON-ASSOCIATIVE (`(a+b)+c != a+(b+c)`, #283 C-float). When the
+        // chain bears a proven-float operand, do NOT flatten/reassociate it — rebuild the
+        // SOURCE grouping from the original operands so the two groupings fingerprint
+        // distinctly (`ac_chain_canon` is gated to not re-flatten a float chain either). The
+        // 2-operand commute (`order_bin_operands`) still applies — float `+`/`*` IS
+        // commutative. Untyped chains stay optimistically reassociated (the i64 oracle is
+        // blind; closing that is the Float value kind, oracle-value-model §3.3).
+        if (op == Op::Add as u32 || op == Op::Mul as u32)
+            && operands.iter().any(|&v| self.proven_float(v))
+        {
+            let mut acc = self.eval(kids[0], env);
+            for &k in &kids[1..] {
+                let v = self.eval(k, env);
+                acc = self.mk(ValOp::Bin(op), vec![acc, v]);
+            }
+            return acc;
+        }
         self.narrow_js_bitwise_leaves(op, &mut operands);
         let do_sort = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
             && operands.iter().all(|&v| self.reorder_safe(v));

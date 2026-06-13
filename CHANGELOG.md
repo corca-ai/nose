@@ -17,6 +17,17 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **False merge closed: syntactic-float `+`/`*` is no longer reassociated (#283 C-float).**
+  Float `+`/`*` is non-associative (`(1.0 + a) + b ≠ 1.0 + (a + b)`), so a chain with a
+  syntactically-float leaf — a float literal or a `/` (true-division) result — now keeps its
+  source grouping in BOTH the `algebra` IL pass (`chain_has_syntactic_float` → leave the tree
+  intact) and the value graph (`proven_float` → don't flatten the AC chain), so the two
+  groupings fingerprint distinctly. Closes the documented `(a+b)+c ≡ a+(b+c)` float-literal /
+  division cases. Integer reassociation and same-grouping float clones still converge; corpus
+  family delta ≈ 0 (sympy −1, all others 0), verify clean. (The earlier note that this needed
+  the full Float value kind was a misdiagnosis — the fingerprint is structure-sensitive; the
+  grouping was lost at `algebra` reassociation, which is gateable. The float-**typed-param**
+  case with no syntactic marker still flattens — that is the remaining Float-kind work, §3.3.)
 - **False merge closed: float subtraction is no longer reassociated (#283 C-float, partial).**
   A `-` carrying a proven-float operand (a float literal, a `/` true-division result, or a
   float-typed param) is now kept as a literal `Sub` rather than routed through the
