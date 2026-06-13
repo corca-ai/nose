@@ -440,13 +440,13 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.c_u32_be_byte_pack_pattern(&operands) {
             return v;
         }
-        // Float `+`/`*` is NON-ASSOCIATIVE (`(a+b)+c != a+(b+c)`, #283 C-float). When the
-        // chain bears a proven-float operand, do NOT flatten/reassociate it — rebuild the
-        // SOURCE grouping from the original operands so the two groupings fingerprint
-        // distinctly (`ac_chain_canon` is gated to not re-flatten a float chain either). The
-        // 2-operand commute (`order_bin_operands`) still applies — float `+`/`*` IS
-        // commutative. Untyped chains stay optimistically reassociated (the i64 oracle is
-        // blind; closing that is the Float value kind, oracle-value-model §3.3).
+        // Float `+`/`*` is NON-ASSOCIATIVE (`(a+b)+c != a+(b+c)`, #283 C-float). When the chain
+        // bears a POSSIBLY-float operand — proven float, OR (in a dynamically-typed language) a
+        // truly-untyped param that could be float at runtime (#342) — do NOT flatten/reassociate
+        // it; rebuild the SOURCE grouping so the two groupings fingerprint distinctly
+        // (`ac_chain_canon` is gated to not re-flatten such a chain either). Commutativity is
+        // preserved (the rebuild below sorts non-concat operands), and `: int`-typed chains stay
+        // associative — only their float-possible siblings are held.
         if (op == Op::Add as u32 || op == Op::Mul as u32)
             && operands.iter().any(|&v| self.possibly_float(v))
         {

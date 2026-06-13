@@ -259,11 +259,11 @@ defender bounded to the largest **sound** generalization — is the
 packet ledger is also the measuring instrument for §4's e-graph revisit conditions.
 
 A worked instance of "strengthen the oracle as part of the loop" is
-[oracle-value-model](oracle-value-model.md): the go/no-go scoping for the
-remaining #283 false-merge sub-findings, which separates an input-battery gap
-(C), a canonicalization-width problem (D-int32), and the single genuine `Float`
-value-kind gap (D-div) — each with a sound fail-closed floor and a recall-pricing
-protocol, rather than one monolithic "extend the value model" bet.
+[oracle-value-model](oracle-value-model.md): it scoped the #283 false-merge cluster
+into an input-battery gap (C), a canonicalization-width problem (D-int32), and the
+single genuine `Float` value-kind gap (D-div), each with a sound fail-closed floor and
+a recall-pricing protocol — rather than one monolithic "extend the value model" bet.
+All three are now closed (each priced at ~0 recall on the pinned corpus).
 
 ## 5. Decisive measurements (run before betting heavily)
 
