@@ -1849,6 +1849,18 @@ fn verify_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::V
     let f = |x: f64| Value::Float(nose_normalize::F64(x));
     battery.push(vec![f(1e16), f(-1e16), f(1.0), f(2.0)]);
     battery.push(vec![f(1.0), f(1e16), f(-1e16), f(2.0)]);
+    // Part 6: int32-WRAP rows (#344). The pool is all small ints (`int32(x) == x`), so a JS
+    // bitwise `a & b` is indistinguishable from an arbitrary-precision one. These rows carry
+    // values whose HIGH bits (≥ 2^32) overlap, so `a & b` differs between int32 (JS) and i64
+    // (Python/etc): `0xF_0000_0003 & 0xF_0000_0005` is `1` under int32 but `0xF_0000_0001` as
+    // bigint. With the oracle now executing JS bitwise as int32, this WITNESSES the split the
+    // `ToInt32` floor fingerprints (#283-D).
+    battery.push(vec![
+        Value::Int(0xF_0000_0003),
+        Value::Int(0xF_0000_0005),
+        Value::Int(0xA_0000_00FF),
+        Value::Int(7),
+    ]);
     battery
 }
 

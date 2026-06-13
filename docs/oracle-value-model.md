@@ -19,8 +19,9 @@ finding that opened #283 is [experiments §CE](experiments.md).
 > extension. They decompose into three independent pieces of very different cost:
 > **C's detector-side string/mixed-coercion floor has shipped** (remaining work:
 > oracle input/model coverage and float non-associativity), **D-int32's
-> detector/value-graph floor has shipped** (remaining work: oracle int32 execution
-> plus any full fixed-width recall recovery), and **D-div's fingerprint floor has
+> detector/value-graph floor AND oracle int32 execution have shipped** (#344; the full
+> fixed-width recall recovery was measured unnecessary — 0 family delta on the corpus),
+> and **D-div's fingerprint floor has
 > shipped** while the full `Float` value kind remains deferred. The remaining work
 > is now oracle/model enrichment and priced recall recovery, not one shared
 > foundational rewrite.
@@ -107,7 +108,7 @@ numeric-only rewrites.
 - **Cheapest of the three.** The detector floor is in place; the remaining work
   is oracle coverage/modeling plus recall pricing on larger corpora.
 
-### D-int32 — JS bitwise width *(detector floor shipped; oracle width gap remains)*
+### D-int32 — JS bitwise width *(floor + oracle int32 execution shipped, #344)*
 
 JS bitwise ops coerce operands to int32 (`ToInt32`); Python/Ruby are
 arbitrary-precision. Historically the detector merged JS `a&b` with Python
@@ -180,12 +181,21 @@ first; promote to the full model only if the priced recall loss justifies it.
   distinct `ToInt32` narrowing wrapper, so it stops merging with
   arbitrary-precision bitwise. De Morgan and same-language bitwise recall remain
   green because the wrap lands on leaves rather than replacing the whole operator.
-- **Full model:** a first-class fixed-width bitwise semantics (int32 for JS,
-  type-width for C/Java/Go/Rust) that the whole bitwise canon understands — so
-  JS `a&b` ≡ Java-`int` `a&b` ≡ C-`int32_t` `a&b` reconverge correctly while
-  staying split from bigint and 64-bit. Largest of the three canon surfaces.
-- **Cost:** floor paid; remaining Medium-High for oracle int32 execution and full
-  fixed-width recall recovery.
+- **Oracle int32 execution (shipped, #344):** the interpreter now evaluates a JS-family
+  bitwise `& | ^` / `~` under int32 operand coercion (`to_int32`, gated on the same JS-like
+  predicate as the narrowing), so `nose verify` WITNESSES the int32-vs-bigint difference
+  (`0xF_0000_0003 & 0xF_0000_0005` is `1` under int32, `0xF_0000_0001` as bigint) instead of
+  being blind to it. A `verify_battery` row carries high-bit-overlapping ints so the wrap is
+  observable. Scan fingerprint unchanged (family delta 0); verify clean across type4/coevo and
+  the JS-heavy repos — the oracle agrees with the floor.
+- **Full fixed-width recall recovery — measured NOT needed (#344).** The would-be win is
+  reconverging JS `a&b` ≡ Java-`int` `a&b` ≡ C-`int32_t` `a&b`. But the §6 "promote only if the
+  loss is material" gate is answered: disabling the int32 narrowing changes **0 families on the
+  full 105-repo pinned corpus** (4309 → 4309) — cross-language bitwise clones are too rare to
+  matter — so the floor is the correct stopping point and the full per-type-width canon (the
+  largest canon surface, and risky for platform-dependent C int width) is not built.
+- **Cost:** floor + oracle int32 execution paid (0 recall, scan unchanged). Full fixed-width
+  recall recovery: measured unnecessary.
 
 ### 3.3 D-div — Float value kind
 
@@ -277,7 +287,7 @@ oracle-caught)":
 |---|---|---|
 | C — string/mixed-coercive `+` ordering | `untyped_add_commute.py` (`a+b` vs `b+a`) and JS/TS/Java-style `x+4` / `x+(2+3)` / `x-3` / `-(x+2)` | detector keeps them **split**; oracle witnesses pure string now only after battery enrichment, and mixed string/number after coercion modeling |
 | C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | detector keeps them **split** AND oracle witnesses — CLOSED (#342, the `Value::Float` kind, §3.3); guarded by `float_addition_is_non_associative_in_the_oracle` + `algebra_associativity` + `float_typed_param_addition_is_held_unassociated` |
-| D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split**; oracle int32 execution remains follow-up |
+| D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split** AND oracle witnesses (int32 execution shipped, #344); guarded by `js_bitwise_and_wraps_to_int32_in_the_oracle`; full fixed-width recall recovery measured-unneeded |
 | D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; real Float oracle remains follow-up |
 | in-place element mutation | `array_element_mutation.py` (`swap` vs `clobber`) | detector keeps them **split** AND oracle witnesses — CLOSED (#337, §7.3); guarded by `array_element_swap_does_not_merge_with_clobber` + `index_store_is_observed_by_later_read` |
 
@@ -301,10 +311,11 @@ coarse). Recommended sequence, cheapest-and-highest-confidence first:
    alone (the floor) is worth shipping immediately — it strengthens the oracle for
    *every* future finding and tells us how big the untyped-`+` problem actually
    is before we price the gate.
-2. **D-int32 — floor shipped; defer the full width model.** The distinct
-   narrowing fingerprint is in place. Next work is int32 oracle execution plus
-   measured JS↔C/Java-int recall recovery. Promote to the full fixed-width canon
-   only if that loss is material.
+2. **D-int32 — floor + oracle int32 execution shipped; full width model measured-unneeded
+   (#344).** The narrowing fingerprint splits JS bitwise from bigint, and the interpreter now
+   executes JS bitwise as int32 so the oracle witnesses it. The "promote the full fixed-width
+   canon only if the loss is material" gate is answered: the narrowing changes **0 families on
+   the full 105-repo corpus**, so the recall recovery is not built.
 3. **D-div (Float) — CLOSED.** The true/floored/truncated fingerprints are split, and float
    `+`/`*` non-associativity is held for syntactic-float, float-typed-param (#339/#340) AND
    fully-untyped (#342) chains. The full `Value::Float` model shipped: the interpreter models
