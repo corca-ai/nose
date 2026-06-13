@@ -1,8 +1,16 @@
 id = "detect.graded_witness"
-status = "empirical-only"
-kind = "soundness-boundary"
-summary = "The near-channel graded witness's `equal_modulo_holes` grade asserts the two copies' value graphs are equal modulo the reported holes, scoped to the modeled unit body (not definition-site decorators/annotations or signature). It is near-channel evidence, defended by the referent check, the decorator/attribute source comparison, and the witness soundness battery — NOT a machine-checked theorem. Recorded empirical-only so the Lean proof is a tracked gap; a name resolving to different referents, a differing decorator, an unaligned sink, or an over-deep/large pair all fail closed."
+status = "proven"
+kind = "soundness"
+summary = "The graded witness's `equal_modulo_holes` grade asserts the two copies' value graphs are equal modulo the reported holes. Its STRUCTURAL core — anti-unification soundness — is machine-checked: both inputs match their least general generalization (it is a real generalization; holes are the only freedom), and a hole-free anti-unification means the terms are equal (the k=0 case). Like `factor_distribute`'s Num gate, one precondition stays empirical and is NOT part of the proof: that names both copies consume resolve to the same referent (`compare_referents`), plus the decorator/sink checks — these fail the family closed when violated and are defended by the witness soundness battery, not by Lean."
 
 [rust]
 files = ["crates/nose-detect/src/witness.rs"]
 symbols = ["graded_witness", "equal_modulo_holes", "compare_referents"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseGradedWitness.au_matches_left",
+  "NoseGradedWitness.au_matches_right",
+  "NoseGradedWitness.holefree_au_eq",
+]

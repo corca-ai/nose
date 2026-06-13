@@ -101,12 +101,16 @@ not folded into nose's deterministic order on a neutral signal.
   parameter **signature** — a differing *unused* parameter is invisible (a used one
   surfaces as a value-graph hole). Treat `equal_modulo_holes` as "equal within the
   modeled body and matching decorators".
-- The witness is **evidence, not a proof.** Unlike the exact channel it carries no Lean
-  theorem; its soundness is recorded as the `empirical-only` obligation
-  `detect.graded_witness` (see [formal soundness](formal-soundness.md)), defended by the
-  referent check, the decorator comparison, and the witness soundness battery rather than
-  machine-checked. Treat `referent_mismatches`/`caveat_names` as the honest boundary of
-  the claim.
+- **The structural core is machine-checked; the referent gate is not.** The
+  anti-unification core is now a `proven` Lean obligation, `detect.graded_witness` (see
+  [formal soundness](formal-soundness.md)): both copies match their least general
+  generalization (holes are the only freedom) and a hole-free generalization means the
+  terms are equal. Like [`factor_distribute`](formal-soundness.md)'s Num gate, one
+  precondition stays *empirical* and outside the proof — that names both copies consume
+  resolve to the same referent (`compare_referents`), plus the decorator/sink checks.
+  Those fail the family closed when violated and are defended by the witness soundness
+  battery, not by Lean; treat `referent_mismatches`/`caveat_names` as the honest boundary
+  of the claim.
 - It is **best-effort enrichment**, computed at the presentation layer (which has
   source access), exactly like the line-level [`varying_spots`](scan-json.md) — the two
   describe the same divergence at the value-graph and source-line granularities
