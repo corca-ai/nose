@@ -2606,6 +2606,31 @@ fn algebra_associativity() {
 }
 
 #[test]
+fn float_subtraction_is_not_reassociated_while_integer_subtraction_is() {
+    // #283 C-float: a `-` carrying a PROVEN-float operand is kept as a literal `Sub` rather
+    // than routed through the AC `+` normalization (`a - b` ≡ `a + (-b)`), because that
+    // reassociation is float-unsound — `(1e100 + x) - 1e100` (= 0.0, the large term swallows
+    // x) must not converge with the regrouped `(1e100 - 1e100) + x` (= x). Integer `-` still
+    // normalizes and converges (two's-complement subtraction is associative). The pure-`+`
+    // float case (`(a+b)+c ≡ a+(b+c)` for untyped a,b,c) is NOT closed here — the fingerprint
+    // flattens AC chains, so it needs the `Float` value kind (oracle-value-model §3.3).
+    let i = Interner::new();
+    let t = |src: &str| value_fp(&i, src, Lang::Python);
+    // Float literal: the two groupings compute different floats and must NOT merge.
+    assert_ne!(
+        t("def f(x):\n    return (1e100 + x) - 1e100\n"),
+        t("def g(x):\n    return (1e100 - 1e100) + x\n"),
+        "float-literal subtraction must not reassociate across groupings"
+    );
+    // Control — the same shape with an integer literal is sound and still converges.
+    assert_eq!(
+        t("def f(x):\n    return (5 + x) - 5\n"),
+        t("def g(x):\n    return (5 - 5) + x\n"),
+        "integer subtraction must still reassociate (sound)"
+    );
+}
+
+#[test]
 fn algebra_comparison_direction() {
     let i = Interner::new();
     let gt = "def f(a, b):\n    return a > b\n";

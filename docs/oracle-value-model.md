@@ -193,6 +193,19 @@ first; promote to the full model only if the priced recall loss justifies it.
   `TrueDiv`, distinct from C-family truncated `Div` and Ruby/Python `FloorDiv`.
   Same-semantics surfaces still converge (`Python /` with JS `/`, Ruby `/` with
   Python `//`).
+- **Subtraction slice (shipped, series-9 follow-up):** a `-` carrying a proven-float
+  operand (float literal / `TrueDiv` result / float-typed param) is kept as a literal
+  `Sub` instead of being routed through the AC `+` normalization (`a - b` ≡ `a + (-b)`),
+  so `(1e100 + x) - 1e100` no longer false-merges with the regrouped `(1e100 - 1e100) + x`
+  (`proven_float` + the `eval_sub_chain` gate; corpus family delta 0). This works only
+  because `Sub` and `Add` are distinct fingerprint nodes.
+- **Why the pure `+`/`*` case still needs the full model (the finding):** gating the
+  *canonicalizer* CANNOT close `(a+b)+c ≡ a+(b+c)` for floats — the exact fingerprint
+  flattens an associative-commutative chain to its **leaf sequence** (grouping-insensitive
+  by design, so loop≡sum and regrouped sums converge), so holding the source tree grouping
+  leaves the leaves identical and the fingerprint unchanged. Closing it requires the
+  fingerprint itself to be **grouping-sensitive for float chains** — i.e. the Float value
+  kind, not a canon gate.
 - **Full model:** add `Value::Float` with IEEE-754 semantics, the per-language
   Int↔Float coercion lattice, and the float half of C (`+`/`*` non-associativity,
   `(a+b)+c ≠ a+(b+c)`). Recovers the recall the floor gives up. **Largest single

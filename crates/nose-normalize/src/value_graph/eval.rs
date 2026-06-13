@@ -334,7 +334,14 @@ impl<'a> Builder<'a> {
     fn eval_sub_chain(&mut self, kids: &[NodeId], env: &FxHashMap<u32, ValueId>) -> ValueId {
         let a = self.eval(kids[0], env);
         let b = self.eval(kids[1], env);
-        if self.plus_has_mixed_string_coercion() && !self.proven_non_concat(a) {
+        // Routing `a - b` through the AC `+` chain (`a + (-b)`) reassociates it; that is
+        // unsound for a string-coercion `+` (JS/TS/Java) and for float arithmetic
+        // (`(x + a) - x != a` when x is a large float). Keep the literal `Sub` in those
+        // cases so it is not flattened into a reassociated sum (#283 C-float).
+        if (self.plus_has_mixed_string_coercion() && !self.proven_non_concat(a))
+            || self.proven_float(a)
+            || self.proven_float(b)
+        {
             return self.mk(ValOp::Bin(Op::Sub as u32), vec![a, b]);
         }
         let neg_b = self.mk(ValOp::Un(Op::Neg as u32), vec![b]);

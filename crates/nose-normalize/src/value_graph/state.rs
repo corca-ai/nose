@@ -179,6 +179,32 @@ impl<'a> Builder<'a> {
         }
     }
 
+    /// Whether `v` provably evaluates to a FLOAT (so subtraction over it must not be routed
+    /// through the AC `+` normalization, #283 C-float). Genuine evidence only — a float
+    /// literal, a true-division result (`a / b` is float even of integers, the value-blind
+    /// i64 model notwithstanding), a float-typed parameter, or a sign-flip of one. Fails
+    /// closed: an untyped param is NOT proven float. NOTE: this gates only `eval_sub_chain`
+    /// (subtraction), the one place where the source grouping survives into the fingerprint
+    /// — `Sub` and `Add` are distinct nodes. Pure `+`/`*` associativity (`(a+b)+c ≡ a+(b+c)`)
+    /// CANNOT be gated this way: the fingerprint flattens an AC chain to its leaf sequence,
+    /// so holding the source tree leaves the leaves identical. Closing that needs the `Float`
+    /// value kind (a grouping-sensitive fingerprint for float chains, oracle-value-model §3.3).
+    pub(super) fn proven_float(&self, v: ValueId) -> bool {
+        match self.nodes[v as usize].op {
+            ValOp::Const { kind, .. } => kind == ConstKind::Float,
+            ValOp::Input(cid) => self.param_domain.get(&cid).is_some_and(|d| d.is_float()),
+            ValOp::Bin(o) => op_from_code(o) == Some(Op::TrueDiv),
+            ValOp::Un(o) => {
+                matches!(op_from_code(o), Some(Op::Neg | Op::Pos))
+                    && self.nodes[v as usize]
+                        .args
+                        .first()
+                        .is_some_and(|&a| self.proven_float(a))
+            }
+            _ => false,
+        }
+    }
+
     /// Whether `v` is already an int32-valued node — a JS-family bitwise result (its result
     /// is int32) or an existing `ToInt32`. Such a value needs no further narrowing when it
     /// feeds another bitwise op, which keeps the wrap to the LEAF operands only (#283-D).

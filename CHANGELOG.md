@@ -17,6 +17,16 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **False merge closed: float subtraction is no longer reassociated (#283 C-float, partial).**
+  A `-` carrying a proven-float operand (a float literal, a `/` true-division result, or a
+  float-typed param) is now kept as a literal `Sub` rather than routed through the
+  associative `+` normalization (`a - b` ≡ `a + (-b)`) — so `(1e100 + x) - 1e100` (≈ 0.0, the
+  large term swallows `x`) no longer shares an `exact-value-graph` fingerprint with the
+  regrouped `(1e100 - 1e100) + x` (= x). Integer subtraction still normalizes and converges;
+  corpus family delta is 0. The pure-`+`/`*` float case (`(a+b)+c ≡ a+(b+c)`) is NOT closed:
+  the fingerprint flattens AC chains to a leaf sequence, so it is grouping-insensitive by
+  design and needs the Float value kind, not a canon gate (the finding, recorded in
+  [oracle-value-model §3.3](docs/oracle-value-model.md)).
 - **False merge closed: dynamic module rebind via `globals()['f'] = …` / `setattr` (#307).**
   Reassigning a module function without a `global` declaration — `globals()['helper'] =
   other` or `setattr(<module>, 'helper', other)` — left `helper` looking like its `def`
