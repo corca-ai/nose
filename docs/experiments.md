@@ -2446,3 +2446,55 @@ behavioral difference can't be witnessed; a latent gap recorded, not a confirmed
 #308 the same session. The series 6–8 theme completes its shape: every soundness miss was
 a kind/identity token lost in an encoding (keyword names, `global`, splats, then literal
 kinds), and every fix preserves it explicitly rather than inferring it from a lossy pack.
+
+## CJ. Scan performance — profiler-first extraction hotspots (2026-06-13)
+
+Performance pass against `origin/main` (`6f61fb3`) using `NOSE_TIME=1`,
+`NOSE_TIME_NORMALIZE=1`, `NOSE_TIME_UNIT_SUMMARY=1`, and macOS `sample` on the pinned
+local bench repos. The profiling target was the semantic scan `normalize+extract` path,
+not candidate scoring: on sympy, the instrumented baseline spent `2726.2ms` in
+`normalize+extract` after lowering, with cumulative unit timing dominated by value graph
+builds for units that were later skipped (`Block value=4837.6ms`, `Function
+value=2270.3ms`). The hottest skipped block file was
+`sympy/physics/quantum/tests/test_spin.py` (`1326` block candidates, `1325` skipped,
+`739.8ms` value time).
+
+Five profiler-backed hotspots were removed without changing scan output:
+
+1. Context-backed value graph builders now borrow the file-level `local_scope_nodes`
+   bitmap directly. The old `Builder::new(...).with_context(...)` path built a fresh
+   bitmap before replacing it with the shared one.
+2. Exact fragments that fail the exact-safety gate return before value fingerprinting.
+   The later dense gate already required `exact_safe && value.len() >= EXACT_VALUE_MIN`,
+   so this only removes dead work.
+3. Exact-fragment recognition is called only for node kinds any migrated recognizer can
+   accept (`Return`, `Throw`, `Assign`, `ExprStmt`, `If`, `Loop`, `Block`).
+4. Block-unit collection and exact-fragment candidate collection share one DFS while
+   preserving the old output order: block roots first, exact-only roots appended, and
+   lambda bodies still excluded from exact-fragment collection.
+5. Module-seed required bindings memoize module-scoped symbols per subtree. Repeated
+   overlapping `collect_all_node_symbols_in_scope` walks across many per-file roots now
+   reuse the cached subtree symbol sets.
+
+The local fast gate exposed one adjacent verify-only hotspot while validating the
+change: `verify` asked `units_of_file` for the exact claim surface before applying the
+node-row battery budget, so a 4,908-token C function that was ultimately reported as
+`battery-bail` still spent `71.55s` in release value-graph canonicalization. Verify now
+computes exact-safety only for functions under the battery budget and combines that with
+the fingerprint it already builds (`exact_claim_eligible_parts`), avoiding duplicate unit
+extraction for excluded functions.
+
+Measured output was byte-identical (`cmp`) for sympy, rubocop, and prettier semantic
+scans. The instrumented sympy run dropped `normalize+extract` from `2726.2ms` to
+`2082.2ms` (about `-23.6%`). A lower-overhead warm reverse-order sympy pair dropped
+`normalize+extract` from `3176.9ms` to `2211.3ms` (about `-30.4%`). Smaller repo checks
+kept the same direction after repeat/reverse runs: rubocop repeated pairs moved from
+`234.1/271.5ms` to `157.2/185.1ms`, and prettier moved from `343.4ms` to `83.2ms`.
+
+Regression coverage: `cargo test -p nose-detect`, `cargo test -p nose-normalize`, and
+`cargo test -p nose-cli --test cli exact_fragments`. Two unit tests pin the collector
+semantics most likely to regress: lambda-local returns stay excluded, and Java
+`SelfFieldBody` fragments rooted at `Block` still collect. The verify battery-bail
+regression test now completes in `0.93s` in the debug CLI test harness; the release
+reproducer above drops from `71.55s` to `0.56s`; and `./scripts/check-ci-local.sh
+--fast` passes.

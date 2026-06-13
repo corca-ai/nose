@@ -515,13 +515,11 @@ pub fn value_dag(
     context: Option<&ValueFingerprintContext>,
     referents: &FileReferents<'_>,
 ) -> ValueDag {
-    let mut b = Builder::new(il, interner);
-    if let Some(ctx) = context {
-        b = b.with_context(ctx);
-        b.build_unit_with_context(root, Some(ctx));
-    } else {
-        b.build_unit(root);
-    }
+    let mut b = match context {
+        Some(ctx) => Builder::new_with_context(il, interner, ctx),
+        None => Builder::new(il, interner),
+    };
+    b.build_unit_with_context(root, context);
     let nodes = b
         .nodes
         .iter()

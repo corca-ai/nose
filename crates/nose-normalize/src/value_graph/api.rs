@@ -125,7 +125,7 @@ pub fn value_fingerprint_lits_anchors_laws_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> FingerprintLawBundle {
-    let mut b = Builder::new(il, interner).with_context(context);
+    let mut b = Builder::new_with_context(il, interner, context);
     b.build_unit_with_context(root, Some(context));
     finish_fingerprint_law_bundle(b)
 }
@@ -166,7 +166,7 @@ pub fn value_fingerprint_lits_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
-    let mut b = Builder::new(il, interner).with_context(context);
+    let mut b = Builder::new_with_context(il, interner, context);
     b.build_unit_with_context(root, Some(context));
     b.fingerprint_lits()
 }
@@ -199,7 +199,7 @@ pub fn value_fingerprint_and_contracts_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> (Vec<u64>, Vec<(u32, u32)>) {
-    let mut b = Builder::new(il, interner).with_context(context);
+    let mut b = Builder::new_with_context(il, interner, context);
     b.build_unit_with_context(root, Some(context));
     finish_fingerprint_contracts(b)
 }

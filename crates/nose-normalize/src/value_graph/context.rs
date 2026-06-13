@@ -28,9 +28,12 @@ impl ValueFingerprintContext {
         let module = ModuleSeedContext::new(il, interner);
         let subtree_hashes = OnceLock::new();
         let (function_bindings, inline_candidates) = {
-            let mut b = Builder::new(il, interner)
-                .with_shared_subtree_hashes(&subtree_hashes)
-                .with_local_scope_nodes(&module.local_scope);
+            let mut b = Builder::new_with_local_scope_nodes(
+                il,
+                interner,
+                Cow::Borrowed(&module.local_scope),
+            )
+            .with_shared_subtree_hashes(&subtree_hashes);
             b.seed_module_value_bindings_from_context(&module, None);
             (
                 b.collect_function_binding_hashes(),
@@ -53,6 +56,7 @@ struct ModuleSeedContext {
     assignment_deps: FxHashMap<Symbol, FxHashSet<Symbol>>,
     mutated_bindings: FxHashSet<Symbol>,
     unit_symbols: FxHashSet<Symbol>,
+    subtree_symbols: Vec<OnceLock<Vec<Symbol>>>,
 }
 
 impl ModuleSeedContext {
@@ -105,6 +109,7 @@ impl ModuleSeedContext {
             &local_scope,
             &direct_definitions,
         );
+        let subtree_symbols = (0..il.nodes.len()).map(|_| OnceLock::new()).collect();
 
         Self {
             local_scope,
@@ -113,12 +118,13 @@ impl ModuleSeedContext {
             assignment_deps,
             mutated_bindings,
             unit_symbols,
+            subtree_symbols,
         }
     }
 
     fn required_bindings_for(&self, il: &Il, root: NodeId) -> FxHashSet<Symbol> {
         let mut required = FxHashSet::default();
-        collect_all_node_symbols_in_scope(il, root, &self.local_scope, &mut required);
+        required.extend(self.symbols_in_subtree(il, root).iter().copied());
         let mut stack: Vec<Symbol> = required.iter().copied().collect();
         while let Some(name) = stack.pop() {
             let Some(deps) = self.assignment_deps.get(&name) else {
@@ -131,6 +137,27 @@ impl ModuleSeedContext {
             }
         }
         required
+    }
+
+    fn symbols_in_subtree(&self, il: &Il, node: NodeId) -> &[Symbol] {
+        self.subtree_symbols
+            .get(node.0 as usize)
+            .map(|slot| slot.get_or_init(|| self.collect_symbols_in_subtree(il, node)))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    fn collect_symbols_in_subtree(&self, il: &Il, node: NodeId) -> Vec<Symbol> {
+        let mut symbols = Vec::new();
+        if let Some(symbol) = node_symbol_in_scope(il, node, &self.local_scope) {
+            symbols.push(symbol);
+        }
+        for &child in il.children(node) {
+            symbols.extend_from_slice(self.symbols_in_subtree(il, child));
+        }
+        symbols.sort_unstable();
+        symbols.dedup();
+        symbols
     }
 }
 
@@ -158,19 +185,22 @@ impl ValueFingerprintContext {
 }
 
 impl<'a> Builder<'a> {
+    pub(super) fn new_with_context(
+        il: &'a Il,
+        interner: &'a Interner,
+        context: &'a ValueFingerprintContext,
+    ) -> Self {
+        Builder::new_with_local_scope_nodes(
+            il,
+            interner,
+            Cow::Borrowed(&context.module.local_scope),
+        )
+        .with_shared_subtree_hashes(&context.subtree_hashes)
+    }
+
     pub(super) fn with_shared_subtree_hashes(mut self, hashes: &'a OnceLock<Vec<u64>>) -> Self {
         self.shared_subtree_hashes = Some(hashes);
         self
-    }
-
-    pub(super) fn with_local_scope_nodes(mut self, local_scope_nodes: &'a [bool]) -> Self {
-        self.local_scope_nodes = Cow::Borrowed(local_scope_nodes);
-        self
-    }
-
-    pub(super) fn with_context(self, context: &'a ValueFingerprintContext) -> Self {
-        self.with_shared_subtree_hashes(&context.subtree_hashes)
-            .with_local_scope_nodes(&context.module.local_scope)
     }
 }
 
