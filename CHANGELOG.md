@@ -17,6 +17,17 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **`nose verify` interpreter propagates `Err` from either operand (coevo series 9 oracle
+  follow-up).** A comparison whose erroring operand sat on the *right* (`0 == b[s]` after
+  the sound `==`/`!=` operand-ordering canon) read as a concrete `Bool` instead of raising,
+  because `eval_bin_op` short-circuited `Err` only on the left and `bin`'s fallthrough took
+  `0 == Err` as `Bool(false)`. That made the canon look like a behavior change on
+  type-incoherent battery rows — a spurious canon-preservation false positive. `bin` now
+  propagates `Err` symmetrically (the twin of `un`'s `Not`-of-`Err`); the left short-circuit
+  stays for laziness. Verify-only (`interp.rs`), so scan output is byte-identical. Closes the
+  equality-over-`Err` false-positive class: **sympy 20 → 2 canon-preservation violations,
+  netty 3 → 2**, no false merges. The narrower effect-trace and comprehension-context residue
+  is scoped in [oracle-value-model §7](docs/oracle-value-model.md).
 - **Two cross-/intra-language false merges closed (adversarial co-evolution series 9).**
   - **JS bitwise *shifts* are now int32.** #283-D narrowed JS `& | ^` (and `~`) to int32 so
     they fingerprint distinctly from arbitrary-precision Python/Ruby bitwise, but `<<`/`>>`
