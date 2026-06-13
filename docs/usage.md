@@ -123,7 +123,7 @@ chance** — see [hazard-ranking](hazard-ranking.md) for the full, honest evalua
 | `--show diff` | show each family inline as a unified diff between its two representative copies — both versions and exactly what differs |
 | `--show proposal` | show an extraction skeleton per family — the shared structure with the differing parts marked as parameters |
 | `--show hotspots` | after the report, rank directories/modules by total duplicated lines (architecture view) |
-| `--show reinvented` | list the [reinvented-helper](reinvented-helpers.md) containment findings (code that reimplements an existing pure helper inline; experimental — the default surface is a one-line count) |
+| `--show reinvented` | list **every** [reinvented-helper](reinvented-helpers.md) containment finding (code that reimplements an existing pure helper inline), including the test-container ones the default report excludes — the bare default already lists the non-test findings |
 | `--format human\|json\|markdown\|sarif` | output format (default `human`) |
 
 `--format json` emits a versioned object with `schema_version`, `tool_version`,
