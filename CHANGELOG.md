@@ -6,6 +6,20 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Graded witness now sees definition-site decorators** (#315 follow-up). A decorator's
+  arguments are dropped at lowering, so `@click.argument("x")` and
+  `@click.argument("x", metavar="m")` produce the same value graph — the witness used to
+  grade such a pair `equal_modulo_holes` while their configuration differed (the gap the
+  PR #319 qualitative review found). The witness now compares the two copies'
+  decorator/attribute **source lines**: a difference becomes a `decorator` hole, fires the
+  `decorator-differs` pattern, and demotes the claim. Language-aware — a leading `@` is a
+  decorator in Python/Java/JS/TS and an *instance variable* in Ruby (ignored); Rust uses
+  `#[…]`. The witness's soundness is now recorded as the `empirical-only` Lean obligation
+  `detect.graded_witness`. Anti-unification re-ranking was also measured on the gold set
+  and left unadopted (within-noise: dev +2pp / held-out −1pp P@10); the default ranking is
+  unchanged. See [graded-witness](docs/graded-witness.md).
+
 ### Added
 - **Graded equivalence witness for near families** (#315). Same-language `near`
   (`structural-similarity`) families now carry a `witness.graded` object that

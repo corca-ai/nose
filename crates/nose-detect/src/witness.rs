@@ -14,6 +14,8 @@
 //! yields no witness at all (`None`) rather than a guessed one. Recognized divergence
 //! shapes (reordered effects, one-sided supersets, fragment containment) are reported
 //! as patterns instead of noisy positional holes.
+//!
+//! proof-obligation: detect.graded_witness
 
 use nose_normalize::{bin_is_commutative, ValueDag, VgOp, VgSinkKind};
 use rustc_hash::{FxHashMap, FxHashSet};

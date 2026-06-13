@@ -65,30 +65,48 @@ marker) and compares:
   past it (a reviewer should confirm it denotes the same thing) rather than silently
   trusted; `modeled_caveat` flags the broader case where a copy passed lossy lowering,
   so "equal" means equal in the modeled fraction.
+- **Definition-site modifiers.** A decorator/annotation/attribute (`@click.command(…)`,
+  `@Test`, `#[inline]`) modifies behavior at the definition site, but its *arguments* are
+  dropped at lowering — `@click.argument("x")` and `@click.argument("x", metavar="m")`
+  produce the same value graph. Because the graph cannot see this, the witness compares
+  the two copies' decorator/attribute **source lines** directly: any difference becomes a
+  `decorator` hole (with the differing text), fires the `decorator-differs` pattern, and
+  demotes `equal_modulo_holes`. (Language-aware: a leading `@` is a decorator in
+  Python/Java/JS/TS and an *instance variable* in Ruby, where it is correctly ignored;
+  Rust uses `#[…]`.)
 
 A pair too large or too deep to align soundly yields **no** witness rather than a
 guessed one.
+
+## Ranking
+
+The witness's hole count is, in principle, a more semantically-grounded "number of
+parameters the helper would need" than the source-line [`varying_spots`](scan-json.md)
+count the default [extractability](usage.md) ranking uses. Re-ranking by it was measured
+on the gold set (`bench/labels/eval_by_language.py`, anti-unification re-rank vs the
+extractability baseline): the effect is **within noise overall** (dev +2pp, held-out
+−1pp P@10, CIs overlapping; it helps Java/Ruby/Rust and hurts Python/TypeScript). Per
+the measure-before-betting discipline, the **default ranking is left unchanged** — the
+witness is carried as machine-readable evidence so a consumer's own re-ranker can use it,
+not folded into nose's deterministic order on a neutral signal.
 
 ## Scope and limits
 
 - **Same-language near families only.** Cross-language copies share no value-DAG
   structure by construction; the witness is absent for them, as it is for sub-function
   fragments and pathological (generated/minified) files.
-- **The unit body, not its definition site.** The witness compares the two units'
-  *value graphs* — the behavior the fingerprint models. Differences at the definition
-  site that are *outside* that body are not seen: decorators/annotations and their
-  arguments (`@click.command()` vs `@click.command(context_settings=…)`,
-  `@option(show_default=True)` vs `show_default="…"`), and the parameter signature.
-  So `equal_modulo_holes` is "equal within the modeled body"; a decorated pair whose
-  decorators differ can read as equal-modulo-the-body-holes while their configuration
-  diverges. Treat the grade accordingly, and prefer a quick check of the definition
-  site for decorated/annotated units. (Surfacing definition-site modifiers as holes is
-  tracked follow-up work.)
+- **The unit body, plus decorators by source — not the full signature.** The witness
+  compares the two units' *value graphs* (the modeled body), augmented by the
+  source-level decorator/attribute check above. What it still does not model: the
+  parameter **signature** — a differing *unused* parameter is invisible (a used one
+  surfaces as a value-graph hole). Treat `equal_modulo_holes` as "equal within the
+  modeled body and matching decorators".
 - The witness is **evidence, not a proof.** Unlike the exact channel it carries no Lean
-  obligation yet; the `equal_modulo_holes` grade is a checked claim over the modeled
-  fraction, defended by the referent check and the [verify oracle](design.md), not a
-  machine-checked theorem. Treat `referent_mismatches`/`caveat_names` as the honest
-  boundary of the claim.
+  theorem; its soundness is recorded as the `empirical-only` obligation
+  `detect.graded_witness` (see [formal soundness](formal-soundness.md)), defended by the
+  referent check, the decorator comparison, and the witness soundness battery rather than
+  machine-checked. Treat `referent_mismatches`/`caveat_names` as the honest boundary of
+  the claim.
 - It is **best-effort enrichment**, computed at the presentation layer (which has
   source access), exactly like the line-level [`varying_spots`](scan-json.md) — the two
   describe the same divergence at the value-graph and source-line granularities

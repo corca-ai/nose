@@ -3810,9 +3810,104 @@ fn enrich_graded_witnesses(
                 hole.b_text = witness_spot_text(&mut lines, &b_file, s, e);
             }
         }
+        // Definition-site modifiers (decorators/attributes) are erased at lowering, so
+        // the value graph cannot see a `@deco(x)` vs `@deco(y)` difference. Compare them
+        // from source here: if the two copies' decorator/attribute lines differ, the
+        // bodies being equal-modulo-holes is NOT the whole story — record the difference
+        // as a hole and demote the claim (fail-closed). Identical decorators leave the
+        // witness untouched.
+        let lang = f.locations[0].lang.as_str();
+        let a_decos = decorator_lines(&mut lines, lang, &a_file, a_lines.0, a_lines.1);
+        let b_decos = decorator_lines(&mut lines, lang, &b_file, b_lines.0, b_lines.1);
+        if let Some((a_only, b_only)) = decorator_difference(&a_decos, &b_decos) {
+            witness.spots.push(nose_detect::WitnessHole {
+                class: "decorator",
+                a_lines: None,
+                b_lines: None,
+                effect: false,
+                a_text: cap_join(&a_only),
+                b_text: cap_join(&b_only),
+            });
+            witness.holes += 1;
+            witness.equal_modulo_holes = false;
+            if !witness.patterns.contains(&"decorator-differs") {
+                witness.patterns.push("decorator-differs");
+            }
+        }
         if let Some(w) = f.witness.as_mut() {
             w.graded = Some(witness);
         }
+    }
+}
+
+/// The line prefix that marks a definition-site modifier in `lang`: `@` for the
+/// decorator/annotation languages, `#[` for Rust attributes. `None` for languages with
+/// no such syntax — crucially Ruby, where a leading `@` is an *instance variable*
+/// (`@token = …`), not a decorator, so it must NOT be treated as one.
+fn decorator_prefix(lang: &str) -> Option<&'static str> {
+    match lang {
+        "python" | "java" | "javascript" | "typescript" => Some("@"),
+        "rust" => Some("#["),
+        _ => None,
+    }
+}
+
+/// The sorted decorator/attribute lines inside a unit's source span. These modify
+/// behavior at the definition site but their arguments are dropped at lowering, so the
+/// value graph is blind to them (a nested `@click.argument("x")` vs
+/// `@click.argument("x", metavar="m")` produces the same IL). Comparing the source text
+/// is the only place the difference is visible.
+fn decorator_lines(
+    lines: &mut FileLineCache,
+    lang: &str,
+    file: &str,
+    start: u32,
+    end: u32,
+) -> Vec<String> {
+    let Some(prefix) = decorator_prefix(lang) else {
+        return Vec::new();
+    };
+    let Some(slice) = lines.slice(file, start, end) else {
+        return Vec::new();
+    };
+    let mut out: Vec<String> = slice
+        .iter()
+        .map(|l| l.trim())
+        .filter(|l| l.starts_with(prefix))
+        .map(str::to_string)
+        .collect();
+    out.sort();
+    out
+}
+
+/// Multiset difference of two decorator-line lists: `Some((a_only, b_only))` when they
+/// differ, `None` when identical.
+fn decorator_difference(a: &[String], b: &[String]) -> Option<(Vec<String>, Vec<String>)> {
+    let mut b_remaining: Vec<&String> = b.iter().collect();
+    let mut a_only = Vec::new();
+    for d in a {
+        if let Some(pos) = b_remaining.iter().position(|x| *x == d) {
+            b_remaining.remove(pos);
+        } else {
+            a_only.push(d.clone());
+        }
+    }
+    let b_only: Vec<String> = b_remaining.into_iter().cloned().collect();
+    (!a_only.is_empty() || !b_only.is_empty()).then_some((a_only, b_only))
+}
+
+/// Join lines with a visible separator, capped on a char boundary (witness hole text).
+fn cap_join(lines: &[String]) -> String {
+    const CAP: usize = 160;
+    let joined = lines.join(" ⏎ ");
+    if joined.len() > CAP {
+        let mut end = CAP;
+        while !joined.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}…", &joined[..end])
+    } else {
+        joined
     }
 }
 
@@ -5631,6 +5726,41 @@ fn cmd_il(path: PathBuf, format: Format, normalized: bool, no_cfg_norm: bool) ->
 mod tests {
     use super::*;
     use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
+
+    #[test]
+    fn decorator_prefix_is_language_aware() {
+        // `@` is a decorator in these languages...
+        assert_eq!(decorator_prefix("python"), Some("@"));
+        assert_eq!(decorator_prefix("typescript"), Some("@"));
+        assert_eq!(decorator_prefix("java"), Some("@"));
+        assert_eq!(decorator_prefix("rust"), Some("#["));
+        // ...but in Ruby a leading `@` is an INSTANCE VARIABLE, not a decorator, and
+        // Go/C have no such syntax — these must report none, or `@token = …` would be
+        // misread as a decorator and falsely split equal families.
+        assert_eq!(decorator_prefix("ruby"), None);
+        assert_eq!(decorator_prefix("go"), None);
+        assert_eq!(decorator_prefix("c"), None);
+    }
+
+    #[test]
+    fn decorator_difference_detects_arg_changes() {
+        let a = vec![r#"@click.argument("arg")"#.to_string()];
+        let b = vec![r#"@click.argument("arg", metavar="m")"#.to_string()];
+        let (a_only, b_only) = decorator_difference(&a, &b).expect("differs");
+        assert_eq!(a_only, vec![r#"@click.argument("arg")"#.to_string()]);
+        assert_eq!(
+            b_only,
+            vec![r#"@click.argument("arg", metavar="m")"#.to_string()]
+        );
+        // Identical decorator sets do not differ (the legit equal-modulo-holes case).
+        assert!(decorator_difference(&a, &a).is_none());
+        // Extra decorator on one side only.
+        let c = vec!["@a".to_string(), "@b".to_string()];
+        let d = vec!["@a".to_string()];
+        let (c_only, d_only) = decorator_difference(&c, &d).expect("differs");
+        assert_eq!(c_only, vec!["@b".to_string()]);
+        assert!(d_only.is_empty());
+    }
 
     fn fam(langs: usize, modules: usize, names: &[Option<&str>]) -> RefactorFamily {
         fam_kind(langs, modules, names, nose_il::UnitKind::Function)
