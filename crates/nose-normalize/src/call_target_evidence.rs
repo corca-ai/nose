@@ -100,7 +100,7 @@ fn unique_direct_function_targets(
     // ...`): the runtime binding is no longer the `def` body, so the name is not a
     // DirectFunction target. Precise — a local `name = x` (no `global`) carries no fact
     // and stays a valid target (#302). Empty for non-Python and the common case.
-    let rebound = nose_semantics::module_rebound_symbols(il);
+    let rebound = nose_semantics::module_rebound_symbols(il, interner);
     for unit in &il.units {
         if unit.kind != UnitKind::Function || !is_top_level_function_root(il, &parents, unit.root) {
             continue;

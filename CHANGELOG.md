@@ -17,6 +17,15 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **False merge closed: dynamic module rebind via `globals()['f'] = …` / `setattr` (#307).**
+  Reassigning a module function without a `global` declaration — `globals()['helper'] =
+  other` or `setattr(<module>, 'helper', other)` — left `helper` looking like its `def`
+  body, so callers of `helper()` across files that rebind it differently false-merged. Such
+  rebinds are now recognized structurally and the string-literal key resolved (by content
+  hash) to the module function it names, which then joins the `ModuleRebind` exclusion (no
+  inlining / content-keying / exact channel) the lexical `global f; f = …` form already got.
+  Conservative — it can only split fingerprints, never merge; corpus family delta = 0 (the
+  pattern is absent from the pinned corpus).
 - **Dataflow copy-propagation no longer makes two real-semantics-unsound moves (coevo
   series 9 oracle residue).** The single-use temp inliner (1) moved a temp's read past an
   indexed store that clobbers it — `t = a[i]; a[i] = a[j]; a[j] = t` became `a[i] = a[j];

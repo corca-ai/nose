@@ -1405,6 +1405,33 @@ mod tests {
     use nose_semantics::source_comprehension_at_node;
 
     #[test]
+    fn dynamic_module_rebind_via_globals_and_setattr_marks_the_named_function() {
+        // #307: `globals()['helper'] = …` and `setattr(<module>, 'other', …)` reassign a
+        // module function with NO `global` declaration to key off. The named function's
+        // runtime binding is no longer its `def`, so it must be excluded from inlining /
+        // content-keying (else callers false-merge across files reassigning it differently).
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def helper(x):\n    return x + 1\ndef other(x):\n    return x * 100\nglobals()['helper'] = other\nsetattr(m, 'other', helper)\n",
+            &interner,
+        )
+        .expect("lower");
+        let rebound = nose_semantics::module_rebound_symbols(&il, &interner);
+        let names: std::collections::HashSet<&str> =
+            rebound.iter().map(|&s| interner.resolve(s)).collect();
+        assert!(
+            names.contains("helper"),
+            "globals()['helper'] = … must mark helper as rebound: {names:?}"
+        );
+        assert!(
+            names.contains("other"),
+            "setattr(m, 'other', …) must mark other as rebound: {names:?}"
+        );
+    }
+
+    #[test]
     fn literal_match_lowers_without_raw_case_nodes() {
         let interner = Interner::new();
         let il = lower(

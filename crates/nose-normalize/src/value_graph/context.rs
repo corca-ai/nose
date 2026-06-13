@@ -324,7 +324,7 @@ impl<'a> Builder<'a> {
         // Names rebound at module scope (`global name; name = ...`) — not content-keyable
         // for the same reason as decorated defs: the name's runtime value is not its `def`
         // body (#302).
-        let rebound = nose_semantics::module_rebound_symbols(self.il);
+        let rebound = nose_semantics::module_rebound_symbols(self.il, self.interner);
         // Indexed loop: the body needs `&mut self` but never mutates `units`.
         for i in 0..self.il.units.len() {
             let unit = self.il.units[i];

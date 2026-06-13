@@ -273,7 +273,10 @@ downstream value-graph.
   non-top-level `f = x` is indistinguishable from a local declaration, which is why
   a coarse reassigned-anywhere predicate over-fires (it kills valid inlines whose
   name a local merely shadows). A local `f = 5` carries no fact and stays a valid
-  target (#302).
+  target (#302). The same exclusion covers two **dynamic** rebinds that carry no
+  `global` declaration — `globals()['f'] = ...` and `setattr(<module>, 'f', ...)` —
+  recognized structurally and resolved by matching the string-literal key's content
+  hash to the module function it names (#307).
 
   Admission is *generalized*, not whitelisted: the callee body may contain loops,
   branches, builder appends, and nested proven calls — it is evaluated through the

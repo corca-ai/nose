@@ -130,7 +130,7 @@ pub fn decorated_definition_at_node(il: &Il, node: NodeId) -> bool {
 /// content-keyed or admitted to the exact channel (#302). Precise where the series-6
 /// reassigned-anywhere predicate over-fired: a local `name = x` (no `global`) carries no
 /// fact, so the function stays a valid target.
-pub fn module_rebound_symbols(il: &Il) -> rustc_hash::FxHashSet<Symbol> {
+pub fn module_rebound_symbols(il: &Il, interner: &Interner) -> rustc_hash::FxHashSet<Symbol> {
     let mut out = rustc_hash::FxHashSet::default();
     for idx in 0..il.nodes.len() {
         let node = NodeId(idx as u32);
@@ -146,7 +146,69 @@ pub fn module_rebound_symbols(il: &Il) -> rustc_hash::FxHashSet<Symbol> {
             collect_target_names(il, lhs, &mut out);
         }
     }
+    collect_dynamic_module_rebinds(il, interner, &mut out);
     out
+}
+
+/// Dynamic module rebinds with NO `global` declaration to key off: `globals()['name'] = …`
+/// and `setattr(<module>, 'name', …)`. The reassigned name is a STRING LITERAL, so detect
+/// the shape structurally and resolve the key to the module function it names — a `LitStr`
+/// holds `stable_symbol_hash(content)`, the same hash a `Symbol` has, so a function whose
+/// `symbol_hash` matches the key is the rebound target. Closes #307: a caller of `helper()`
+/// must not inline its `def` body once `globals()['helper']` reassigns it. Fail-open — a key
+/// that names no module function adds nothing.
+fn collect_dynamic_module_rebinds(
+    il: &Il,
+    interner: &Interner,
+    out: &mut rustc_hash::FxHashSet<Symbol>,
+) {
+    let by_hash: FxHashMap<u64, Symbol> = il
+        .units
+        .iter()
+        .filter_map(|u| u.name)
+        .map(|s| (interner.symbol_hash(s), s))
+        .collect();
+    if by_hash.is_empty() {
+        return;
+    }
+    let str_lit_hash = |n: NodeId| match il.node(n).payload {
+        Payload::LitStr(h) => Some(h),
+        _ => None,
+    };
+    // A `Call` whose callee is the free name `want` (`globals` / `setattr`).
+    let callee_named = |call: NodeId, want: &str| {
+        il.kind(call) == NodeKind::Call
+            && il
+                .children(call)
+                .first()
+                .and_then(|&c| il.var_name(c))
+                .is_some_and(|s| interner.resolve(s) == want)
+    };
+    for idx in 0..il.nodes.len() {
+        let node = NodeId(idx as u32);
+        let key_hash = match il.kind(node) {
+            // `globals()['name'] = …` → Assign( Index( Call(globals), LitStr ), value )
+            NodeKind::Assign => il.children(node).first().and_then(|&lhs| {
+                if il.kind(lhs) != NodeKind::Index {
+                    return None;
+                }
+                let kids = il.children(lhs);
+                let base = *kids.first()?;
+                let key = *kids.get(1)?;
+                callee_named(base, "globals")
+                    .then(|| str_lit_hash(key))
+                    .flatten()
+            }),
+            // `setattr(<module>, 'name', …)` → Call[callee, module, LitStr, value]
+            NodeKind::Call if callee_named(node, "setattr") => {
+                il.children(node).get(2).copied().and_then(str_lit_hash)
+            }
+            _ => None,
+        };
+        if let Some(sym) = key_hash.and_then(|h| by_hash.get(&h).copied()) {
+            out.insert(sym);
+        }
+    }
 }
 
 fn collect_target_names(il: &Il, target: NodeId, out: &mut rustc_hash::FxHashSet<Symbol>) {
