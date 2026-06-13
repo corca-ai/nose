@@ -339,8 +339,8 @@ impl<'a> Builder<'a> {
         // (`(x + a) - x != a` when x is a large float). Keep the literal `Sub` in those
         // cases so it is not flattened into a reassociated sum (#283 C-float).
         if (self.plus_has_mixed_string_coercion() && !self.proven_non_concat(a))
-            || self.proven_float(a)
-            || self.proven_float(b)
+            || self.possibly_float(a)
+            || self.possibly_float(b)
         {
             return self.mk(ValOp::Bin(Op::Sub as u32), vec![a, b]);
         }
@@ -391,7 +391,7 @@ impl<'a> Builder<'a> {
             // C-float). Hold the SOURCE grouping by rebuilding from the original binop kids,
             // exactly as the general (non-coercion) path does. Each kid was recursively
             // eval'd, so any nested float subchain already preserved its own grouping.
-            if leaves.iter().any(|&v| self.proven_float(v)) {
+            if leaves.iter().any(|&v| self.possibly_float(v)) {
                 let mut acc = direct[0];
                 for &v in &direct[1..] {
                     acc = self.mk(ValOp::Bin(op), vec![acc, v]);
@@ -448,14 +448,17 @@ impl<'a> Builder<'a> {
         // commutative. Untyped chains stay optimistically reassociated (the i64 oracle is
         // blind; closing that is the Float value kind, oracle-value-model §3.3).
         if (op == Op::Add as u32 || op == Op::Mul as u32)
-            && operands.iter().any(|&v| self.proven_float(v))
+            && operands.iter().any(|&v| self.possibly_float(v))
         {
-            let mut acc = self.eval(kids[0], env);
-            for &k in &kids[1..] {
-                let v = self.eval(k, env);
-                acc = self.mk(ValOp::Bin(op), vec![acc, v]);
-            }
-            return acc;
+            // Rebuild the SOURCE grouping (no reassociation), but still COMMUTE operands at each
+            // binary node when the whole chain is commutable — float `+`/`*` is commutative, so
+            // `(a+b)+1` and `(b+a)+1` must still converge; only the GROUPING is held. Commutability
+            // is the chain-wide non-concat verdict (a literal/non-concat leaf licenses sorting the
+            // whole chain), so it must be computed over the flattened leaves and pushed DOWN —
+            // the per-node `order_bin_operands` gate alone would miss it for an inner pair (#342).
+            let commutable = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
+                && operands.iter().all(|&v| self.reorder_safe(v));
+            return self.rebuild_grouped_float_chain(op, kids, env, commutable);
         }
         self.narrow_js_bitwise_leaves(op, &mut operands);
         let do_sort = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
@@ -468,6 +471,47 @@ impl<'a> Builder<'a> {
             acc = self.mk(ValOp::Bin(op), vec![acc, o]);
         }
         acc
+    }
+
+    /// Rebuild a possibly-float `+`/`*` chain PRESERVING its source grouping (no reassociation —
+    /// float `+`/`*` is non-associative, #342), combining the source operands left-to-right.
+    /// When `commutable` (the chain-wide non-concat verdict), the two operands at each binary
+    /// node are sorted by structural hash, so commuted-but-same-grouping chains (`(a+b)+1` vs
+    /// `(b+a)+1`) still CONVERGE while differently-grouped ones (`(a+b)+1` vs `(1+a)+b`) stay
+    /// distinct. The commutability is pushed DOWN from the whole chain because an inner pair
+    /// (`a+b`) lacks the literal that licenses sorting — the flatten that used to supply it is
+    /// exactly what the grouping hold suppresses. `mk` will not re-flatten (its `ac_chain_canon`
+    /// is `possibly_float`-gated), so the held grouping survives interning.
+    fn rebuild_grouped_float_chain(
+        &mut self,
+        op: u32,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+        commutable: bool,
+    ) -> ValueId {
+        let mut acc: Option<ValueId> = None;
+        for &k in kids {
+            let v = if self.il.kind(k) == NodeKind::BinOp
+                && matches!(self.il.node(k).payload, Payload::Op(o) if o as u32 == op)
+            {
+                let sub = self.il.children(k).to_vec();
+                self.rebuild_grouped_float_chain(op, &sub, env, commutable)
+            } else {
+                self.eval(k, env)
+            };
+            acc = Some(match acc {
+                None => v,
+                Some(a) => {
+                    let (l, r) = if commutable && self.vhash[a as usize] > self.vhash[v as usize] {
+                        (v, a)
+                    } else {
+                        (a, v)
+                    };
+                    self.mk(ValOp::Bin(op), vec![l, r])
+                }
+            });
+        }
+        acc.unwrap_or_else(|| self.eval(kids[0], env))
     }
 
     /// Wrap each LEAF operand of a JS-family `&`/`|`/`^` chain in `ToInt32` (a no-op for

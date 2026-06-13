@@ -26,11 +26,47 @@ use nose_semantics::{
     EagerBuiltinContract, HofDemandProfile,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::hash::{Hash, Hasher};
+
+/// An IEEE-754 double that participates in `Value`'s `Eq`/`Hash` (which `f64` cannot, #342).
+/// Two floats are equal here iff their CANONICAL bit patterns match — all NaNs collapse to one
+/// (so a unit returning NaN equals another returning NaN, the behavior-comparison invariant),
+/// and `-0.0` is normalized to `+0.0` (`-0.0 == +0.0` in every source language). This keeps
+/// the oracle's "self-consistent, deterministic" contract while modeling float non-associativity.
+#[derive(Clone, Copy, Debug)]
+pub struct F64(pub f64);
+
+impl F64 {
+    fn canonical_bits(self) -> u64 {
+        if self.0.is_nan() {
+            0x7ff8_0000_0000_0000 // one canonical quiet NaN
+        } else if self.0 == 0.0 {
+            0 // +0.0 and -0.0 both normalize to +0.0
+        } else {
+            self.0.to_bits()
+        }
+    }
+}
+
+impl PartialEq for F64 {
+    fn eq(&self, other: &Self) -> bool {
+        self.canonical_bits() == other.canonical_bits()
+    }
+}
+impl Eq for F64 {}
+impl Hash for F64 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.canonical_bits().hash(state);
+    }
+}
 
 /// A runtime value. `List` is nested so `zip`/`enumerate` can yield pairs.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Value {
     Int(i64),
+    /// An IEEE-754 double (#342). Distinct from `Int` so float `+`/`*` non-associativity is
+    /// observable: `(a+b)+c` and `a+(b+c)` compute different `Float`s on adversarial inputs.
+    Float(F64),
     Bool(bool),
     /// A string/builder value modeled as the FREE MONOID over its appended pieces: an
     /// ordered sequence of opaque token hashes. A literal is one token; `+`/concat
@@ -119,7 +155,6 @@ fn subtree_sig(il: &Il, interner: &Interner, root: NodeId) -> u64 {
 
 /// Fold a tagged sequence of operand hashes into one symbolic identity.
 fn sym_id(tag: u64, parts: &[u64]) -> u64 {
-    use std::hash::{Hash, Hasher};
     let mut h = rustc_hash::FxHasher::default();
     tag.hash(&mut h);
     for p in parts {
@@ -129,8 +164,7 @@ fn sym_id(tag: u64, parts: &[u64]) -> u64 {
 }
 
 /// Stable hash of any hashable tag (operator, builtin, contract).
-fn hashed<T: std::hash::Hash>(t: &T) -> u64 {
-    use std::hash::Hasher;
+fn hashed<T: Hash>(t: &T) -> u64 {
     let mut h = rustc_hash::FxHasher::default();
     t.hash(&mut h);
     h.finish()
@@ -1519,6 +1553,7 @@ fn truthy(v: &Value) -> Option<bool> {
     Some(match v {
         Value::Bool(b) => *b,
         Value::Int(i) => *i != 0,
+        Value::Float(f) => f.0 != 0.0, // 0.0/-0.0 falsy; nonzero incl. NaN truthy (self-consistent)
         Value::List(xs) => !xs.is_empty(),
         Value::Str(v) => !v.is_empty(),
         Value::Null | Value::Err => false,
@@ -1656,88 +1691,21 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
         return Value::Err;
     }
     match (a, b) {
-        (Int(x), Int(y)) => match op {
-            Op::Add => Int(x.wrapping_add(*y)),
-            Op::Sub => Int(x.wrapping_sub(*y)),
-            Op::Mul => Int(x.wrapping_mul(*y)),
-            Op::Div => {
-                if *y == 0 {
-                    Value::Err
-                } else {
-                    Int(x.wrapping_div(*y))
-                }
-            }
-            // True (float) division. The i64 model cannot represent `3.5`, so it is
-            // modeled like truncated `Div` here — BLIND to the float result but CONSISTENT
-            // within `TrueDiv`, which only ever compares with itself (a distinct op from
-            // `Div`/`FloorDiv`), so no false merge. An honest float result needs the `Float`
-            // value kind (#283-D, deferred). Div-by-zero still Errs.
-            Op::TrueDiv => {
-                if *y == 0 {
-                    Value::Err
-                } else {
-                    Int(x.wrapping_div(*y))
-                }
-            }
-            Op::Mod => {
-                if *y == 0 {
-                    Value::Err
-                } else {
-                    Int(x.wrapping_rem(*y))
-                }
-            }
-            // Floored modulo (Python/Ruby `%`): the remainder takes the sign of the
-            // DIVISOR. Truncated `wrapping_rem` takes the dividend's sign, so adjust
-            // by adding the divisor when they disagree (#283-D). `-1 %% 3 == 2`.
-            Op::FloorMod => {
-                if *y == 0 {
-                    Value::Err
-                } else {
-                    let r = x.wrapping_rem(*y);
-                    Int(if r != 0 && (r < 0) != (*y < 0) {
-                        r.wrapping_add(*y)
-                    } else {
-                        r
-                    })
-                }
-            }
-            // Floor division rounds the quotient toward −∞ (Python `//`): the
-            // truncating quotient is decremented when the remainder is nonzero
-            // and the operands disagree in sign (`-5 // 2 == -3`, `5 // -2 == -3`).
-            Op::FloorDiv => {
-                if *y == 0 {
-                    Value::Err
-                } else {
-                    let q = x.wrapping_div(*y);
-                    let r = x.wrapping_rem(*y);
-                    Int(if r != 0 && (r < 0) != (*y < 0) {
-                        q - 1
-                    } else {
-                        q
-                    })
-                }
-            }
-            // An exponent that isn't a non-negative `u32` has no usable value here: a
-            // negative one is fractional, and one past `u32::MAX` truncated under `as u32`
-            // (so `b ** 2^32` collapsed onto `b ** 0 == 1`). Both err, like Div/Mod by zero,
-            // rather than silently colliding distinct exponents.
-            Op::Pow if !(0..=u32::MAX as i64).contains(y) => Value::Err,
-            Op::Pow => Int(x.wrapping_pow(*y as u32)),
-            Op::Eq => Bool(x == y),
-            Op::Ne => Bool(x != y),
-            Op::Lt => Bool(x < y),
-            Op::Le => Bool(x <= y),
-            Op::Gt => Bool(x > y),
-            Op::Ge => Bool(x >= y),
-            Op::BitAnd => Int(x & y),
-            Op::BitOr => Int(x | y),
-            Op::BitXor => Int(x ^ y),
-            Op::Shl => Int(x.wrapping_shl(*y as u32)),
-            Op::Shr => Int(x.wrapping_shr(*y as u32)),
-            Op::And => Int(if *x != 0 { *y } else { *x }),
-            Op::Or => Int(if *x != 0 { *x } else { *y }),
-            _ => Value::Err,
-        },
+        (Int(x), Int(y)) => int_bin(op, *x, *y),
+        // Float arithmetic (#342): any float operand promotes the other (an `Int` coerces to
+        // f64 — the dynamic-language int/float rule, and self-consistent for the oracle), then
+        // computes under IEEE-754. This is what makes `(a+b)+c` and `a+(b+c)` over floats
+        // compute DIFFERENT values, so the oracle witnesses float non-associativity.
+        (Value::Float(_), Value::Float(_))
+        | (Value::Float(_), Int(_))
+        | (Int(_), Value::Float(_)) => {
+            let to_f = |v: &Value| match v {
+                Value::Float(f) => f.0,
+                Int(i) => *i as f64,
+                _ => unreachable!("guarded by the match arm"),
+            };
+            float_bin(op, to_f(a), to_f(b))
+        }
         (Bool(x), Bool(y)) => match op {
             Op::And => Bool(*x && *y),
             Op::Or => Bool(*x || *y),
@@ -1765,6 +1733,126 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
     }
 }
 
+/// Two's-complement / Python-`//`-`%` integer binary op. Extracted from `bin` so each numeric
+/// kind's arithmetic is one focused function. (`x`/`y` are rebound to references so the body —
+/// which predates the float kind — is unchanged.)
+fn int_bin(op: Op, x: i64, y: i64) -> Value {
+    use Value::{Bool, Int};
+    let (x, y) = (&x, &y);
+    match op {
+        Op::Add => Int(x.wrapping_add(*y)),
+        Op::Sub => Int(x.wrapping_sub(*y)),
+        Op::Mul => Int(x.wrapping_mul(*y)),
+        Op::Div => {
+            if *y == 0 {
+                Value::Err
+            } else {
+                Int(x.wrapping_div(*y))
+            }
+        }
+        // True (float) division. The i64 model cannot represent `3.5`, so it is
+        // modeled like truncated `Div` here — BLIND to the float result but CONSISTENT
+        // within `TrueDiv`, which only ever compares with itself (a distinct op from
+        // `Div`/`FloorDiv`), so no false merge. An honest float result needs the `Float`
+        // value kind (#283-D, deferred). Div-by-zero still Errs.
+        Op::TrueDiv => {
+            if *y == 0 {
+                Value::Err
+            } else {
+                Int(x.wrapping_div(*y))
+            }
+        }
+        Op::Mod => {
+            if *y == 0 {
+                Value::Err
+            } else {
+                Int(x.wrapping_rem(*y))
+            }
+        }
+        // Floored modulo (Python/Ruby `%`): the remainder takes the sign of the
+        // DIVISOR. Truncated `wrapping_rem` takes the dividend's sign, so adjust
+        // by adding the divisor when they disagree (#283-D). `-1 %% 3 == 2`.
+        Op::FloorMod => {
+            if *y == 0 {
+                Value::Err
+            } else {
+                let r = x.wrapping_rem(*y);
+                Int(if r != 0 && (r < 0) != (*y < 0) {
+                    r.wrapping_add(*y)
+                } else {
+                    r
+                })
+            }
+        }
+        // Floor division rounds the quotient toward −∞ (Python `//`): the
+        // truncating quotient is decremented when the remainder is nonzero
+        // and the operands disagree in sign (`-5 // 2 == -3`, `5 // -2 == -3`).
+        Op::FloorDiv => {
+            if *y == 0 {
+                Value::Err
+            } else {
+                let q = x.wrapping_div(*y);
+                let r = x.wrapping_rem(*y);
+                Int(if r != 0 && (r < 0) != (*y < 0) {
+                    q - 1
+                } else {
+                    q
+                })
+            }
+        }
+        // An exponent that isn't a non-negative `u32` has no usable value here: a
+        // negative one is fractional, and one past `u32::MAX` truncated under `as u32`
+        // (so `b ** 2^32` collapsed onto `b ** 0 == 1`). Both err, like Div/Mod by zero,
+        // rather than silently colliding distinct exponents.
+        Op::Pow if !(0..=u32::MAX as i64).contains(y) => Value::Err,
+        Op::Pow => Int(x.wrapping_pow(*y as u32)),
+        Op::Eq => Bool(x == y),
+        Op::Ne => Bool(x != y),
+        Op::Lt => Bool(x < y),
+        Op::Le => Bool(x <= y),
+        Op::Gt => Bool(x > y),
+        Op::Ge => Bool(x >= y),
+        Op::BitAnd => Int(x & y),
+        Op::BitOr => Int(x | y),
+        Op::BitXor => Int(x ^ y),
+        Op::Shl => Int(x.wrapping_shl(*y as u32)),
+        Op::Shr => Int(x.wrapping_shr(*y as u32)),
+        Op::And => Int(if *x != 0 { *y } else { *x }),
+        Op::Or => Int(if *x != 0 { *x } else { *y }),
+        _ => Value::Err,
+    }
+}
+
+/// IEEE-754 binary op on two f64 operands (#342). Self-consistent and deterministic — it need
+/// not match any one language. `==`/`!=` use RAW f64 equality (so `NaN == NaN` is `false`, the
+/// IEEE semantics of the SOURCE operator), which is distinct from `F64`'s canonical behavior-
+/// comparison `Eq`. Division by zero `Err`s (consistent with the integer arm) rather than
+/// producing inf/NaN; bitwise ops `Err` (floats have no bit ops).
+fn float_bin(op: Op, x: f64, y: f64) -> Value {
+    use Value::{Bool, Float};
+    match op {
+        Op::Add => Float(F64(x + y)),
+        Op::Sub => Float(F64(x - y)),
+        Op::Mul => Float(F64(x * y)),
+        Op::Div | Op::TrueDiv | Op::FloorDiv if y == 0.0 => Value::Err,
+        Op::Div | Op::TrueDiv => Float(F64(x / y)),
+        Op::FloorDiv => Float(F64((x / y).floor())),
+        Op::Mod | Op::FloorMod if y == 0.0 => Value::Err,
+        Op::Mod => Float(F64(x % y)),
+        Op::FloorMod => Float(F64(x.rem_euclid(y))),
+        Op::Pow => Float(F64(x.powf(y))),
+        Op::Eq => Bool(x == y),
+        Op::Ne => Bool(x != y),
+        Op::Lt => Bool(x < y),
+        Op::Le => Bool(x <= y),
+        Op::Gt => Bool(x > y),
+        Op::Ge => Bool(x >= y),
+        Op::And => Float(F64(if x != 0.0 { y } else { x })),
+        Op::Or => Float(F64(if x != 0.0 { x } else { y })),
+        _ => Value::Err,
+    }
+}
+
 fn un(op: Op, a: &Value) -> Value {
     if contains_sym(a) {
         return Value::Sym(sym_id(0x0004_0911, &[hashed(&op), vhash(a)]));
@@ -1775,6 +1863,9 @@ fn un(op: Op, a: &Value) -> Value {
         (Op::Neg, Value::Int(i)) => Value::Int(i.wrapping_neg()),
         (Op::Pos, Value::Int(i)) => Value::Int(*i),
         (Op::BitNot, Value::Int(i)) => Value::Int(!i),
+        // Float sign ops (#342): `-x`/`+x` on a float; `~` Errs (no bit ops on floats).
+        (Op::Neg, Value::Float(f)) => Value::Float(F64(-f.0)),
+        (Op::Pos, Value::Float(f)) => Value::Float(*f),
         // Negating an ERROR propagates the error — `not (1/0)` raises in Python, it does
         // NOT yield `True`. Without this, `not (a<=b)` on non-numeric operands wrongly gave
         // `Bool(true)` while the direct `a>b` gave `Err`, making the SOUND comparison-
@@ -2297,6 +2388,30 @@ mod tests {
     #[test]
     fn index_store_is_observed_by_later_read() {
         assert_eq!(run_index_store_then_read(), Value::Int(5));
+    }
+
+    // #342: the oracle models IEEE-754 float `+` as NON-associative, so it WITNESSES the
+    // `(a+b)+c` vs `a+(b+c)` difference the value graph now holds. `1e16 ± 1e16` loses the small
+    // term to rounding: `(1e16 + -1e16) + 1 = 1`, but `1e16 + (-1e16 + 1) = 0`.
+    #[test]
+    fn float_addition_is_non_associative_in_the_oracle() {
+        let f = |x: f64| Value::Float(F64(x));
+        let left = bin(Op::Add, &bin(Op::Add, &f(1e16), &f(-1e16)), &f(1.0));
+        let right = bin(Op::Add, &f(1e16), &bin(Op::Add, &f(-1e16), &f(1.0)));
+        assert_eq!(left, f(1.0));
+        assert_eq!(right, f(0.0));
+        assert_ne!(left, right, "float + is non-associative");
+        // `Int` promotes to float under a float operand (the dynamic-language coercion).
+        assert_eq!(bin(Op::Add, &Value::Int(2), &f(0.5)), f(2.5));
+    }
+
+    // #342: `F64`'s behavior-comparison `Eq` canonicalizes the float corners — all NaNs are
+    // equal (two units returning NaN ARE behavior-equal) and `+0.0 == -0.0`.
+    #[test]
+    fn f64_eq_canonicalizes_nan_and_signed_zero() {
+        assert_eq!(Value::Float(F64(f64::NAN)), Value::Float(F64(f64::NAN)));
+        assert_eq!(Value::Float(F64(0.0)), Value::Float(F64(-0.0)));
+        assert_ne!(Value::Float(F64(1.0)), Value::Float(F64(2.0)));
     }
 
     fn run_foreach_with_iterable_err() -> Option<Value> {

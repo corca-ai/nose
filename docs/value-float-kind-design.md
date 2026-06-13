@@ -1,25 +1,28 @@
-# Value::Float — design & go/no-go for the last C-float gap (#342)
+# Value::Float — the last C-float gap (#342, SHIPPED)
 
-Design document for closing the **fully-untyped** float-associativity false merge —
-the one remaining piece of the [#283](https://github.com/corca-ai/nose/issues/283)
-C-float cluster after the syntactic and typed cases shipped. It is the §6 "D-div full
-model" prerequisite-(b) design doc, and it records the prerequisite-(a) **recall
-measurement** that the go/no-go turns on.
+Design + outcome record for closing the **fully-untyped** float-associativity false merge —
+the last piece of the [#283](https://github.com/corca-ai/nose/issues/283) C-float cluster
+after the syntactic and typed cases shipped (#339/#340).
 
 Companion to [oracle-value-model §3.3 / §6](oracle-value-model.md) (the cluster scope),
 [design §1 (the sound core is the moat)](design.md), and
 [formal-soundness](formal-soundness.md).
 
-> **Bottom line up front.** The recall objection that kept this NO-GO is **not borne
-> out by measurement**: holding *every* untyped `+`/`*` chain unassociated costs **0
-> families** on type4 (74 Python files + 6 other langs) and **0** on nose's own Rust.
-> So the blocker is no longer recall — it is the implementation surface (an IEEE-754
-> `Value::Float` in the interpreter + a per-language Int↔Float coercion lattice) and the
-> fact that, until the oracle can *witness* float non-associativity, holding untyped
-> chains splits units the i64 oracle calls equal (a **completeness** regression with no
-> behavioral justification). Recommendation: **GO, phased** — build the float oracle
-> first (so the split is justified), then enable the hold; re-measure recall on a pinned
-> real-world corpus before flipping the scan default.
+> **Bottom line — SHIPPED.** The recall objection that kept this NO-GO was **refuted by
+> measurement**: holding untyped `+`/`*` chains costs **0 families on the full 105-repo
+> pinned corpus** (4309 → 4309), and **0** on type4 + nose. So #342 shipped both halves
+> together (the only gate-safe way — P1 alone exposes the merge as a visible violation
+> without fixing it):
+> - **P1 (oracle):** a real IEEE-754 `Value::Float` in `interp.rs`, plus a `verify_battery`
+>   float row (`1e16 ± 1e16`) so the oracle WITNESSES `(a+b)+c ≠ a+(b+c)`.
+> - **P2 (scan):** the value graph holds the grouping for a truly-untyped param in a
+>   dynamically-typed language (`possibly_float`), mirrored in the `algebra` pass.
+>
+> The hold is **associativity-only**: commutativity is preserved (`a+b+1 ≡ b+a+1`, same
+> grouping) by a grouping-preserving rebuild that still sorts non-concat operands, and
+> `: int`/`Number`-typed params still fully reassociate (the oracle feeds them `Int`).
+> Verify clean across type4, coevo, and 15 dynamic-language repos. The §1–§6 below are the
+> original design; §7 records what shipped vs. deferred.
 
 ## 1. The gap
 
@@ -158,14 +161,31 @@ machinery #339/#340 shipped; the only new input is "untyped leaf in Python/JS/Ru
   completeness loss for a soundness gain; document it in the CHANGELOG so it is not read
   as a regression.
 
-## 7. Recommendation
+## 7. Outcome (what shipped, #342)
 
-**GO, phased.** The recall objection that kept the full `Value::Float` model NO-GO is not
-supported by measurement (§3). The remaining cost is the IEEE-754 interpreter model and
-the coercion lattice — real but bounded, and sequenced so each phase is independently
-priced and the scan default flips only after a real-corpus recall re-measurement. Start
-with P1 (the float oracle), which converts an unwitnessable latent merge into a gate-
-visible one without touching scan recall at all.
+**SHIPPED — P1 + P2 together.** P1 alone is NOT gate-safe (it turns the latent merge into a
+*witnessed* violation without fixing the scan), so both halves landed in one change:
+
+- **P1 (oracle):** `Value::Float(F64)` in `interp.rs` with IEEE-754 `bin`/`un` arithmetic
+  (`F64` is a newtype with a behavior-comparison `Eq` that canonicalizes NaN/±0, so `Value`'s
+  derive is preserved). `verify_battery` Part 5 feeds adversarial floats (`1e16 ± 1e16`) so the
+  oracle witnesses non-associativity. Float *literals* stay opaque (`LitFloat` carries only a
+  hash) — only battery-fed params are concrete, which bounds the new interpretable surface.
+- **P2 (scan):** `possibly_float` = `proven_float` OR a **truly-untyped** (`None`-domain) param
+  in a dynamically-typed language, used by the grouping holds (`eval_assoc_comm_chain`,
+  `eval_sub_chain`, `ac_chain_canon`) and mirrored in `algebra`. A grouping-preserving rebuild
+  (`rebuild_grouped_float_chain`) keeps the source grouping while still sorting non-concat
+  operands, so **commutativity is preserved** (`a+b+1 ≡ b+a+1`) and only **associativity** is
+  held. `Number`-typed params are NOT held — the oracle feeds them `Int`, so it cannot witness
+  float there, and holding would split int/`number` clones (incl. cross-language) for no
+  soundness gain.
+
+**Recall: 0** on the full 105-repo pinned corpus (4309 → 4309) — the design's gate, measured
+on real code, not just type4. Verify clean on type4, coevo, and 15 dynamic-language repos.
+
+**Deferred (breadth, not a gap):** a full Int↔Float coercion lattice (mixed-type `==`, float
+literals once `LitFloat` retains a value, `Number`-param float witnessing). These widen what
+the oracle witnesses; none is a known false merge today.
 
 ---
 

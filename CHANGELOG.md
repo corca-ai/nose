@@ -17,6 +17,20 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **False merge closed: fully-untyped float `+`/`*` associativity — the `Value::Float` kind (#342).**
+  `(a+b)+c` and `a+(b+c)` over params with no float marker (`float_assoc.py`) computed different
+  floats (`(1e16 + -1e16) + 1 = 1` but `1e16 + (-1e16 + 1) = 0`) yet shared one fingerprint, the
+  last open case of the #283 C-float cluster. Closed by shipping both halves of the float value
+  kind: the interpreter gained a real IEEE-754 `Value::Float` (an `F64` newtype whose
+  behavior-comparison `Eq` canonicalizes NaN/±0), and a `verify_battery` float row feeds untyped
+  params adversarial magnitudes so the soundness oracle WITNESSES the non-associativity; the value
+  graph (and `algebra`) hold the source grouping for a truly-untyped param in a dynamically-typed
+  language (`possibly_float`). The hold is **associativity-only** — commutativity is preserved
+  (`a+b+1 ≡ b+a+1`, same grouping) by a grouping-preserving rebuild, and `: int`/`Number`-typed
+  chains still fully reassociate. **Recall delta 0 on the full 105-repo pinned corpus** (4309 →
+  4309); verify clean on type4/coevo and 15 dynamic-language repos. Remaining float work is
+  breadth (a full Int↔Float coercion lattice), not a soundness gap. (oracle-value-model §3.3,
+  value-float-kind-design.)
 - **False merge closed: in-place array-element mutation is now modeled (#337).** `swap`
   (`t=a[i]; a[i]=a[j]; a[j]=t`) and `clobber` (`a[i]=a[j]; a[j]=a[i]`) compute different
   results (`swap([1,2],0,1)` → `[2,1]`, `clobber` → `[2,2]`) but shared one

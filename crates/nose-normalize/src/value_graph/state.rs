@@ -184,10 +184,9 @@ impl<'a> Builder<'a> {
     /// `-` stays a literal `Sub`, not `a + (-b)`) AND `eval_assoc_comm_chain` (a float `+`/`*`
     /// chain rebuilds its SOURCE grouping rather than flatten/sort) — in BOTH the general path
     /// and the string-coercion `+` path (JS/TS/Java). The fingerprint is structure-sensitive,
-    /// so the held grouping survives. The ONE remaining C-float gap is the fully-untyped chain
-    /// (`(a+b)+c` with no float marker on any operand): nothing proves it float, the i64 oracle
-    /// is associative, so it still flattens — closing it needs the `Float` value kind
-    /// (oracle-value-model §3.3).
+    /// so the held grouping survives. This is GENUINE proof only; the fully-untyped chain is
+    /// handled (possibly-float) by `possibly_float`, and the oracle witnesses it via a float
+    /// battery (#342, oracle-value-model §3.3).
     pub(super) fn proven_float(&self, v: ValueId) -> bool {
         match self.nodes[v as usize].op {
             ValOp::Const { kind, .. } => kind == ConstKind::Float,
@@ -200,6 +199,31 @@ impl<'a> Builder<'a> {
                         .first()
                         .is_some_and(|&a| self.proven_float(a))
             }
+            _ => false,
+        }
+    }
+
+    /// Whether `v` COULD be a float — `proven_float`, OR a bare parameter in a dynamically-typed
+    /// language (Python/JS/TS/Ruby), where an untyped param carries no static type and so may be
+    /// a float at runtime (#342). Used ONLY by the grouping HOLDS (associativity / `eval_sub_chain`
+    /// / `ac_chain_canon`), never by a value-creating rewrite: holding a chain is split-only, so a
+    /// false positive here costs recall, never soundness (corpus family delta measured 0). The
+    /// statically-typed languages decide float-ness by proven domain (`proven_float`) instead.
+    pub(super) fn possibly_float(&self, v: ValueId) -> bool {
+        if self.proven_float(v) {
+            return true;
+        }
+        if !semantics(self.il.meta.lang).is_dynamically_typed() {
+            return false;
+        }
+        match self.nodes[v as usize].op {
+            // A TRULY-UNTYPED param (no domain evidence) could be a float at runtime → hold; the
+            // float battery feeds it directly, so the oracle witnesses the non-associativity. Any
+            // param WITH a domain (`a: int`, inferred `Number`, `str`, …) is fed a coerced
+            // concrete value by `coerce_to_declared_domain` (a `Number` becomes an `Int`), so the
+            // oracle cannot witness float there — holding it would only cost recall (it would
+            // split int/`number` clones, including across languages) with no soundness gain.
+            ValOp::Input(cid) => !self.param_domain.contains_key(&cid),
             _ => false,
         }
     }
