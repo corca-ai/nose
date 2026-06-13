@@ -72,8 +72,20 @@ keeps **every** genuine missed propagation while firing 73% less often than
 span-overlap firing (change-level: 15% of merged changes vs 33%), at 3.7× the
 precision. `--fail-on any` restores the old fire-on-anything behavior for
 ratchet-style use. Each JSON finding carries `fire_eligible`, `witness_kind`,
-`scope`, and per-changed-site `touches_shared`, so a CI wrapper can apply its own
+`scope`, per-changed-site `touches_shared`, and — for near families — the family's
+[graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`, `holes`,
+`patterns`, `referent_mismatches`, `caveat_names`), so a CI wrapper can apply its own
 tier without re-deriving the analysis.
+
+The graded witness is **evidence for the consumer, not a fire gate**: a clean
+`equal_modulo_holes` family is a strong missed-propagation candidate, while a
+`referent-mismatch` / `decorator-differs` family is one whose copies are not really
+the same logic (a likely false fire the consumer can down-rank). It deliberately does
+**not** gate `fire_eligible` — a decorator or a same-named-but-different-referent
+difference does not stop a shared-*body* fix from being a genuine missed propagation,
+so suppressing on it would risk the keep-every-propagation property the §BV policy is
+measured against. The fire decision stays the §BV shared-logic proof; the witness only
+makes a borderline fire explainable.
 
 ## Flags
 

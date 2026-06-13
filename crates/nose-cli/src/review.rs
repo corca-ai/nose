@@ -66,6 +66,13 @@ struct Divergence {
     /// lines it shares with an un-updated sibling. `--fail` fires only on these;
     /// `--fail-on any` restores span-overlap firing.
     fire_eligible: bool,
+    /// The near family's graded equivalence witness (#315), when present — evidence
+    /// for the consumer to judge a fire: a clean `equal_modulo_holes` family is a
+    /// strong missed-propagation candidate, while `referent_mismatches` /
+    /// `decorator-differs` mark a family whose copies are not really the same logic
+    /// (a likely false fire). It does NOT gate `fire_eligible` (that would risk
+    /// dropping a genuine shared-body propagation).
+    graded: Option<nose_detect::GradedWitness>,
     /// Members whose base span was changed by the diff (the edit landed here).
     changed: Vec<Site>,
     /// Sibling members the change did *not* touch (where it may be missing).
@@ -134,7 +141,21 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
         set.warn_expired();
     }
 
-    let flagged = flag_divergences(&families, ignore_set.as_ref(), &changed, &base_tree.path);
+    // Normalization knobs for the per-flagged-family graded-witness enrichment; must
+    // match how `detect_families` lowered (cfg_norm/dce/block_units default), so the
+    // re-derived unit roots line up with the family locations' spans.
+    let enrich_opts = nose_detect::DetectOptions {
+        min_lines,
+        min_tokens,
+        ..Default::default()
+    };
+    let flagged = flag_divergences(
+        &families,
+        ignore_set.as_ref(),
+        &changed,
+        &base_tree.path,
+        &enrich_opts,
+    );
 
     // base_tree is removed by Drop after we finish reading families.
     drop(base_tree);
@@ -167,12 +188,13 @@ fn flag_divergences(
     ignore_set: Option<&crate::ignores::IgnoreSet>,
     changed: &HashMap<String, Vec<(u32, u32)>>,
     base_root: &Path,
+    enrich_opts: &nose_detect::DetectOptions,
 ) -> Vec<Divergence> {
     let prefix = canonical(base_root);
     let mut lines = crate::FileLineCache::default();
     let mut flagged: Vec<Divergence> = Vec::new();
-    for fam in families {
-        let fam = repo_relative(fam, &prefix);
+    for orig in families {
+        let fam = repo_relative(orig, &prefix);
         if ignore_set.is_some_and(|set| set.match_family(&fam).is_some()) {
             continue;
         }
@@ -183,6 +205,14 @@ fn flag_divergences(
         if changed_members.is_empty() || untouched.is_empty() {
             continue;
         }
+        // This family is flagged; only now compute the graded witness — on a clone with
+        // the original ABSOLUTE base-worktree paths (enrichment re-reads source), so the
+        // cost is paid per flagged family, not per family in the repo.
+        let graded = {
+            let mut abs = orig.clone();
+            crate::enrich_graded_witnesses(std::slice::from_mut(&mut abs), enrich_opts);
+            abs.witness.and_then(|w| w.graded)
+        };
         // The #245 fire policy input: does the diff touch lines this changed
         // member SHARES with an un-updated sibling (its span minus the
         // varying spots)? §BR measured 51% of review false-fires as
@@ -211,6 +241,7 @@ fn flag_divergences(
             scope: fam.scope,
             witness_kind,
             fire_eligible,
+            graded,
             changed: changed_members
                 .iter()
                 .zip(&touches)
@@ -692,6 +723,7 @@ fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Resu
                 "scope": d.scope,
                 "witness_kind": d.witness_kind,
                 "fire_eligible": d.fire_eligible,
+                "graded": d.graded,
                 "changed": d.changed.iter().map(&site).collect::<Vec<_>>(),
                 "not_updated": d.not_updated.iter().map(&site).collect::<Vec<_>>(),
             })

@@ -3316,6 +3316,9 @@ pub(crate) fn detect_families(
     if channels.abstraction_only() {
         families.retain(|f| f.abstraction_witness.is_some());
     }
+    // The graded witness is NOT attached here: `review` enriches only the *flagged*
+    // families (a small subset of a diff) in `flag_divergences`, not every near family
+    // in the repo — enriching all of them on every gate run would be wasted work.
     Ok(families)
 }
 
@@ -3740,7 +3743,7 @@ fn weight_shared_lines(
 /// families it cannot witness (cross-language, fragments, pathological files) simply
 /// keep their ungraded witness. The representative pair is the family's two largest
 /// copies (`locations[0]` and `locations[1]`).
-fn enrich_graded_witnesses(
+pub(crate) fn enrich_graded_witnesses(
     families: &mut [nose_detect::RefactorFamily],
     opts: &nose_detect::DetectOptions,
 ) {
