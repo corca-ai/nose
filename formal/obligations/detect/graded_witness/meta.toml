@@ -1,0 +1,8 @@
+id = "detect.graded_witness"
+status = "empirical-only"
+kind = "soundness-boundary"
+summary = "The near-channel graded witness's `equal_modulo_holes` grade asserts the two copies' value graphs are equal modulo the reported holes, scoped to the modeled unit body (not definition-site decorators/annotations or signature). It is near-channel evidence, defended by the referent check, the decorator/attribute source comparison, and the witness soundness battery — NOT a machine-checked theorem. Recorded empirical-only so the Lean proof is a tracked gap; a name resolving to different referents, a differing decorator, an unaligned sink, or an over-deep/large pair all fail closed."
+
+[rust]
+files = ["crates/nose-detect/src/witness.rs"]
+symbols = ["graded_witness", "equal_modulo_holes", "compare_referents"]
