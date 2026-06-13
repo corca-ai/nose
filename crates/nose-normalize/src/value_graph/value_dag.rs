@@ -259,6 +259,13 @@ pub struct FileReferents<'a> {
     interner: &'a Interner,
     def_by_span: FxHashMap<(u32, u32), NodeId>,
     def_by_name: FxHashMap<Symbol, Vec<NodeId>>,
+    /// Unit name keyed by definition start-byte, for `def_name` — avoids an O(units)
+    /// scan per call-target.
+    name_by_start: FxHashMap<u32, Symbol>,
+    /// `CallTarget` evidence (anchor span + kind) sorted by anchor start-byte, so the
+    /// per-unit lookup is a range scan, not a full `il.evidence` walk (the latter was
+    /// O(units × evidence) — the §BQ "index the hot lookups" rule).
+    call_evidence: Vec<(Span, CallTargetEvidenceKind)>,
     import_evidence: Vec<(Span, ImportEvidenceKind)>,
     /// Content-hash memo shared across the file's units (definitions are re-referenced).
     memo: std::cell::RefCell<FxHashMap<u32, u64>>,
@@ -268,6 +275,7 @@ impl<'a> FileReferents<'a> {
     pub fn new(il: &'a Il, interner: &'a Interner) -> Self {
         let mut def_by_span: FxHashMap<(u32, u32), NodeId> = FxHashMap::default();
         let mut def_by_name: FxHashMap<Symbol, Vec<NodeId>> = FxHashMap::default();
+        let mut name_by_start: FxHashMap<u32, Symbol> = FxHashMap::default();
         for u in &il.units {
             let s = il.node(u.root).span;
             def_by_span
@@ -275,6 +283,7 @@ impl<'a> FileReferents<'a> {
                 .or_insert(u.root);
             if let Some(n) = u.name {
                 def_by_name.entry(n).or_default().push(u.root);
+                name_by_start.entry(s.start_byte).or_insert(n);
             }
         }
         for stmt in top_level_statements_for(il) {
@@ -290,11 +299,22 @@ impl<'a> FileReferents<'a> {
                 _ => None,
             })
             .collect();
+        let mut call_evidence: Vec<(Span, CallTargetEvidenceKind)> = il
+            .evidence
+            .iter()
+            .filter_map(|ev| match ev.kind {
+                EvidenceKind::CallTarget(k) => Some((ev.anchor.span(), k)),
+                _ => None,
+            })
+            .collect();
+        call_evidence.sort_by_key(|(s, _)| s.start_byte);
         FileReferents {
             il,
             interner,
             def_by_span,
             def_by_name,
+            name_by_start,
+            call_evidence,
             import_evidence,
             memo: std::cell::RefCell::new(FxHashMap::default()),
         }
@@ -330,12 +350,9 @@ impl<'a> FileReferents<'a> {
     }
 
     fn def_name(&self, span: Span) -> Option<String> {
-        self.il
-            .units
-            .iter()
-            .find(|u| self.il.node(u.root).span.start_byte == span.start_byte)
-            .and_then(|u| u.name)
-            .map(|s| self.interner.resolve(s).to_string())
+        self.name_by_start
+            .get(&span.start_byte)
+            .map(|&s| self.interner.resolve(s).to_string())
     }
 
     /// The names the unit rooted at `root` consumes, each with a resolved referent.
@@ -349,18 +366,24 @@ impl<'a> FileReferents<'a> {
         out
     }
 
-    /// Referents from `CallTarget` evidence anchored inside the unit.
+    /// Referents from `CallTarget` evidence anchored inside the unit. `call_evidence` is
+    /// sorted by anchor start-byte, so we binary-search to the unit's span and scan only
+    /// that window instead of walking all of `il.evidence` per unit.
     fn call_target_referents(&self, root: NodeId) -> Vec<VgReferent> {
         let il = self.il;
         let unit_span = il.node(root).span;
         let mut out: Vec<VgReferent> = Vec::new();
-        for ev in &il.evidence {
-            if !span_within(unit_span, ev.anchor.span()) {
+        let lo = self
+            .call_evidence
+            .partition_point(|(s, _)| s.start_byte < unit_span.start_byte);
+        for (span, k) in self.call_evidence[lo..]
+            .iter()
+            .take_while(|(s, _)| s.start_byte <= unit_span.end_byte)
+        {
+            if !span_within(unit_span, *span) {
                 continue;
             }
-            let EvidenceKind::CallTarget(k) = ev.kind else {
-                continue;
-            };
+            let k = *k;
             let (name_key, referent, name) = match k {
                 CallTargetEvidenceKind::DirectFunction {
                     target_span,

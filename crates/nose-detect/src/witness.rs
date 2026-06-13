@@ -244,8 +244,13 @@ impl<'a> Au<'a> {
         }
         self.matched_a.insert(x);
         self.matched_b.insert(y);
-        let (ax, ay) = (nx.args.clone(), ny.args.clone());
-        for (cx, cy) in ax.into_iter().zip(ay) {
+        // Recurse on each aligned argument pair. Index rather than clone the two arg
+        // vecs: this is the per-node hot path, and the immutable borrow of each node is
+        // released before the `&mut self` recursive call.
+        let arity = self.a.dag.nodes[x as usize].args.len();
+        for i in 0..arity {
+            let cx = self.a.dag.nodes[x as usize].args[i];
+            let cy = self.b.dag.nodes[y as usize].args[i];
             self.unify(cx, cy, depth + 1);
         }
     }
