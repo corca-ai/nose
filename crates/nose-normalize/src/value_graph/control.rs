@@ -960,9 +960,13 @@ impl<'a> Builder<'a> {
                 NodeKind::Func => {
                     let kids = self.il.children(c).to_vec();
                     let mut menv = env.clone();
-                    let saved_param_domain = self.param_domain.clone();
-                    let saved_param_ty = self.param_ty.clone();
-                    self.param_domain.clear();
+                    // The method shadows the container's param scope. MOVE the container maps
+                    // out (leaving them empty, which is what the seed below expects) and move
+                    // them back after — a behavior-identical save/restore that avoids cloning
+                    // both maps per method. `seed_param_value_domains` reassigns `param_ty`
+                    // wholesale, so its emptied start is equivalent to the prior un-cleared one.
+                    let saved_param_domain = std::mem::take(&mut self.param_domain);
+                    let saved_param_ty = std::mem::take(&mut self.param_ty);
                     self.seed_param_domains(c);
                     self.seed_param_value_domains(c);
                     let mut pos = 0u32;

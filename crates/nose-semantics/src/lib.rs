@@ -1276,6 +1276,27 @@ impl OperatorSemantics {
         })
     }
 
+    /// Whether `+` can coerce a mixed string/non-string operand pair (so grouping and order
+    /// are observable and the value-graph must not freely associate/commute it). True for the
+    /// JS family and Java (`"a" + 2 + 3` is `"a23"`, not `"a" + 5`). The single source for what
+    /// was duplicated as `plus_has_mixed_string_coercion` in `algebra` and the value graph.
+    pub fn plus_coerces_strings(self) -> bool {
+        js_like_lang(self.lang) || self.lang == Lang::Java
+    }
+
+    /// Whether relational operators (`<`/`>`/…) coerce strings (so their direction/ordering is
+    /// type-observable). The JS family; Java relationals are numeric-only, unlike its `+`.
+    pub fn relational_coerces_strings(self) -> bool {
+        js_like_lang(self.lang)
+    }
+
+    /// Whether `*` is (asymmetric) sequence repetition rather than purely numeric — Ruby only
+    /// (`"ab" * 3` is `"ababab"`, but `3 * "ab"` raises). Gates both the `algebra` constant-fold
+    /// reorder and the value-graph commutation of a `*` chain.
+    pub fn mul_is_sequence_repetition(self) -> bool {
+        self.lang == Lang::Ruby
+    }
+
     pub fn strict_operand_domain(self, op: Op) -> Option<ValueDomain> {
         if self.strict_numeric_operand_operator(op) {
             Some(ValueDomain::Number)
