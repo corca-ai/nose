@@ -1,5 +1,9 @@
 # Scan-JSON agent-usability audit, 2026-06-10
 
+> **Follow-up:** the five gaps below were subsequently closed; the
+> [2026-06-13 re-validation](scanjson-agent-audit-2026-06-13.md) re-decided the four
+> failures plus a fresh sample at 8/8 from JSON alone.
+
 [design](design.md) §2 names scan-JSON evidence richness as **the** lever for consumer 1
 (LLM agents calling nose): the output "should carry *why* two units are equivalent,
 *what* differs, exact locations, and the behavior contract, so the agent can decide and

@@ -81,6 +81,7 @@ You want to *change* nose or understand how it works inside.
 - [adversarial-coevolution](adversarial-coevolution.md) — the cross-axis campaign runbook: a white-box attacker derives structurally-missed patterns, an assessor prices them, a defender ships the largest sound generalization.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
 - [scanjson-agent-audit-2026-06-10](scanjson-agent-audit-2026-06-10.md) — can an LLM agent decide and act from scan JSON alone? The measured gap list for consumer 1's evidence surface.
+- [scanjson-agent-audit-2026-06-13](scanjson-agent-audit-2026-06-13.md) — the re-validation after the gap fixes (incl. the graded witness): all five gaps closed, 8/8 decidable from JSON alone.
 - [fragment-quality-audit-2026-06-10](fragment-quality-audit-2026-06-10.md) — labeled Java/Python hidden/review exact-fragment sample and the resulting surface policy.
 - [dogfooding](dogfooding.md) — nose run on its own source, and what its findings taught us.
 
