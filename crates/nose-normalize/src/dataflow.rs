@@ -147,9 +147,10 @@ fn find_inlines(
         // lookup and the hazard check into cheap set tests — without it a single
         // huge block is O(stmts² · subtree) (e.g. comfy/sd.py: 84ms → ~3ms).
         let mut owner: FxHashMap<u32, usize> = FxHashMap::default();
+        let mut lazy: FxHashSet<u32> = FxHashSet::default();
         let mut writes: Vec<FxHashSet<u32>> = Vec::with_capacity(stmts.len());
         for (idx, &s) in stmts.iter().enumerate() {
-            mark_owner(il, s, idx, &mut owner);
+            mark_owner(il, s, idx, false, &mut owner, &mut lazy);
             let mut w = FxHashSet::default();
             collect_writes(il, s, &mut w);
             writes.push(w);
@@ -178,7 +179,12 @@ fn find_inlines(
                 Some(&u) => u,
                 None => continue,
             };
-            // The single use must live in a later statement of this same block.
+            // The single use must be UNCONDITIONALLY evaluated relative to the def: in a
+            // later statement of this same block, and not inside a lambda/branch/loop where
+            // it might evaluate zero times or many (which would move the RHS's `Err`/eval).
+            if lazy.contains(&u.0) {
+                continue;
+            }
             let use_idx = match owner.get(&u.0) {
                 Some(&j) if j > idx => j,
                 _ => continue, // use is nested elsewhere / before — skip conservatively
@@ -210,11 +216,31 @@ fn read_cids(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
     }
 }
 
-/// Record `idx` as the owning statement for every node in `node`'s subtree.
-fn mark_owner(il: &Il, node: NodeId, idx: usize, owner: &mut FxHashMap<u32, usize>) {
+/// Record `idx` as the owning statement for every node in `node`'s subtree, and collect into
+/// `lazy` the nodes whose evaluation is CONDITIONAL or REPEATED relative to that statement —
+/// a lambda body (run 0+ times), a non-condition branch of an `If`/ternary, or anything under
+/// a `Loop`. Inlining a possibly-raising temp into such a position would change *when* (or
+/// whether) it evaluates: e.g. inlining `t = nodes[node_ind]` into a comprehension filter
+/// elides its `Err` when the iterable is empty. Such uses are skipped by the inliner.
+fn mark_owner(
+    il: &Il,
+    node: NodeId,
+    idx: usize,
+    in_lazy: bool,
+    owner: &mut FxHashMap<u32, usize>,
+    lazy: &mut FxHashSet<u32>,
+) {
     owner.insert(node.0, idx);
-    for &c in il.children(node) {
-        mark_owner(il, c, idx, owner);
+    if in_lazy {
+        lazy.insert(node.0);
+    }
+    let kind = il.kind(node);
+    for (ci, &c) in il.children(node).iter().enumerate() {
+        let child_lazy = in_lazy
+            || kind == NodeKind::Lambda
+            || kind == NodeKind::Loop
+            || (kind == NodeKind::If && ci > 0);
+        mark_owner(il, c, idx, child_lazy, owner, lazy);
     }
 }
 
@@ -222,10 +248,33 @@ fn mark_owner(il: &Il, node: NodeId, idx: usize, owner: &mut FxHashMap<u32, usiz
 fn collect_writes(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
     if il.kind(node) == NodeKind::Assign {
         if let Some(&lhs) = il.children(node).first() {
-            if il.kind(lhs) == NodeKind::Var {
-                if let Payload::Cid(c) = il.node(lhs).payload {
-                    out.insert(c);
+            match il.kind(lhs) {
+                NodeKind::Var => {
+                    if let Payload::Cid(c) = il.node(lhs).payload {
+                        out.insert(c);
+                    }
                 }
+                // An indexed/field store `a[i] = v` / `a.f = v` MUTATES the base object, so
+                // a later read of `a` (e.g. `a[k]`) observes it. Record the base's root var
+                // as written so the inliner's hazard check does not move a temp that reads
+                // `a` past the mutation — without this, `t = a[i]; a[i] = a[j]; a[j] = t`
+                // inlined `t` to `a[j] = a[i]`, reading the already-clobbered `a[i]` and
+                // silently turning a swap into "set both to a[j]".
+                NodeKind::Index | NodeKind::Field => {
+                    let mut base = lhs;
+                    while matches!(il.kind(base), NodeKind::Index | NodeKind::Field) {
+                        match il.children(base).first() {
+                            Some(&c) => base = c,
+                            None => break,
+                        }
+                    }
+                    if il.kind(base) == NodeKind::Var {
+                        if let Payload::Cid(c) = il.node(base).payload {
+                            out.insert(c);
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }

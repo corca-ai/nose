@@ -17,6 +17,19 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **Dataflow copy-propagation no longer makes two real-semantics-unsound moves (coevo
+  series 9 oracle residue).** The single-use temp inliner (1) moved a temp's read past an
+  indexed store that clobbers it — `t = a[i]; a[i] = a[j]; a[j] = t` became `a[i] = a[j];
+  a[j] = a[i]`, turning a swap into "set both to `a[j]`" — because the hazard check's
+  `collect_writes` ignored that `a[i] = …` mutates `a`; and (2) inlined a possibly-raising
+  read into a comprehension filter lambda, eliding its `Err` when the iterable is empty.
+  `collect_writes` now records the root var of an `Index`/`Field` store target, and the
+  inliner skips uses in a conditional/repeated position (lambda body, `If` branch, `Loop`).
+  This closes every remaining `nose verify` canon-preservation violation across the corpus
+  (netty/sympy/guava → 0); the value-graph fingerprint is essentially unchanged (family
+  delta ≈ 0). The deeper limit that array-element mutation is not modeled (so `swap` ≡
+  `clobber` still share an exact fingerprint) is an oracle-blind value-model gap recorded as
+  OPEN in `docs/oracle-value-model.md` §7.3 and `bench/coevo/false_merges/`.
 - **`nose verify` interpreter propagates `Err` from either operand (coevo series 9 oracle
   follow-up).** A comparison whose erroring operand sat on the *right* (`0 == b[s]` after
   the sound `==`/`!=` operand-ordering canon) read as a concrete `Bool` instead of raising,

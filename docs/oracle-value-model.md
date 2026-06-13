@@ -322,30 +322,55 @@ short-circuit stays for laziness/effect order. This is pure interpreter fidelity
 wherever it arises: **sympy 20 → 2 canon violations, netty 3 → 2**, every other checked
 repo unchanged at 0, zero false merges throughout.
 
-### 7.2 Residue (same spurious type-incoherence root, different interpreter paths)
+### 7.2 The remaining violations were real dataflow bugs — fixed (coevo series 9)
 
-Two narrower sub-classes survive, both still only on type-incoherent rows (so still
-unrealizable, not real canon bugs — every realizable battery row agrees):
+The two narrower sub-classes that survived §7.1 turned out NOT to be spurious: the
+canon-preservation check was correctly catching the copy-propagation inliner
+(`dataflow.rs`) make **real-semantics-unsound** moves, surfaced via type-incoherent rows
+only because the value model doesn't track in-place mutation (§7.3).
 
-- **Effect-trace on the `Err` path** (`ret_diff=false, eff_diff=true`): array-swap
-  writes — netty `swap`/`swapElements`, guava `ObjectArrays`/`Quantiles` — where the
-  canon reorders effect-producing index writes relative to an erroring index *read*, so
-  the two record different `effects` before both still return `Err`.
-- **Comprehension/reduction context** (`ret_diff=true, eff_diff=false`): sympy
-  `_matches_get_other_nodes` / `unit_propagate_int_repr`, where the erroring comparison
-  lives inside a list/set comprehension filter (`nodes[ind] == ind_node`) evaluated via
-  the `Elem`/reduce path, which does not reach the `bin` guard above.
+- **Inline past a clobbering indexed write** (netty/guava `swap`/`swapElements`/
+  `ObjectArrays`): `t = a[i]; a[i] = a[j]; a[j] = t` was inlined to `a[i] = a[j]; a[j] =
+  a[i]` — reading the *already-overwritten* `a[i]`, turning a swap into "set both to
+  `a[j]`". The inliner's hazard check missed it because `collect_writes` only recorded
+  `Var` assignments, not that an indexed store `a[i] = …` MUTATES the base `a`.
+- **Inline into a lambda body** (sympy `_matches_get_other_nodes` /
+  `unit_propagate_int_repr`): `ind = nodes[k]` (a possibly-raising read) was inlined into
+  a comprehension filter — evaluated zero times on an empty iterable, eliding the `Err`
+  the eager read raises. The inliner mapped the lambda-internal use to its top-level
+  statement and saw it as "a later statement of the same block."
 
-Both share the root and could be closed the same way (faithful `Err` propagation on
-those paths) or by **type-domain-aware input feeding**: infer a param's domain from its
-*usage* (index operand → Integer, base / `len` / iteration → Collection, arithmetic →
-Number) and coerce battery rows so impossible inputs never arise. The latter is
-behavior-affecting for *every* verify run (per-unit coercion can feed different values to
-two units in a fingerprint group), so it stays a separately-priced PR with corpus-wide
-re-validation — the floor-then-model discipline of §3. **The pinned soundness gate can
-widen toward dynamic-language repos now that the dominant (equality) class is closed, but
-full netty/guava/sympy inclusion waits on this residue.** `verify_battery`'s Part 3 stays
-hand-curated **on purpose** (a guard comment there points here).
+**Fix:** `collect_writes` records the root var of an `Index`/`Field` store target as a
+write (so the hazard check blocks the swap inline), and the inliner skips any use in a
+CONDITIONAL/REPEATED position — a lambda body, an `If` branch, or under a `Loop` — so it
+never moves a read into a context evaluated under a different condition. Both are
+real-semantics soundness fixes; the value-graph FINGERPRINT is essentially unchanged (the
+value graph does its own env substitution, corpus family delta ≈ 0) and the soundness
+oracle stays clean. Canon-preservation violations are now **zero** across netty/sympy/guava
+and the wider sweep — together with `bin`'s symmetric `Err` (§7.1), every
+canon-preservation violation the corpus surfaced is closed.
+
+### 7.3 The deeper limit: in-place element mutation is not modeled (oracle-blind, OPEN)
+
+The value model treats an indexed/collection store `a[i] = v` as an ordered, opaque effect
+and does NOT update readable state — so a later `a[i]` read re-derives the *pre-write*
+value (`field` stores ARE versioned via `field_env`; array elements are not). Under that
+model `swap` (`t=a[i]; a[i]=a[j]; a[j]=t`) and `clobber` (`a[i]=a[j]; a[j]=a[i]`) compute
+the same effect trace, so they share an `exact-value-graph` fingerprint — a latent false
+merge. It is **oracle-blind**: the interpreter shares the same no-mutation model, so the
+false-merge check sees them as behavior-equal too (no battery row distinguishes them). This
+is the same category as float non-associativity (`bench/coevo/false_merges/float_assoc.py`):
+a known value-model gap the oracle cannot witness, not a regression. Closing it needs
+in-place element-mutation modeling (version `a[i]` reads by the array's write state) in
+BOTH the value graph and the interpreter — a value-model extension on the scale of the
+`Float` kind (§3.3), tracked separately. Until then it is recorded in
+`bench/coevo/false_merges/` as an OPEN, oracle-blind class.
+
+**Net:** the equality-over-`Err` class (§7.1) and the dataflow unsoundness (§7.2) are
+closed, so the verify soundness gate can widen toward dynamic-language repos. The
+array-mutation modeling gap (§7.3) and type-domain-aware input feeding remain the
+floor-then-model follow-ups (§3); `verify_battery`'s Part 3 stays hand-curated **on
+purpose** (a guard comment there points here).
 
 ---
 
