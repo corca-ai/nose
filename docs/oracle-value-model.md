@@ -451,9 +451,11 @@ sees a list base with two distinct int indices — the combinatorial pool binds 
 list base with int indices is the normal array shape, NOT a type-incoherent string-as-index
 row, so it does not manufacture the spurious canon-preservation divergence §7 warns about —
 verified clean on type4 and coevo.) Recorded outcome: **corpus family delta 0** (type4
-20→20), verify clean, swap/clobber split AND oracle-witnessed. A Lean obligation analogous
-to `normalize.value_graph.field_writes` is a tracked follow-up (the argument today is
-conservative-by-construction plus the oracle).
+20→20), verify clean, swap/clobber split AND oracle-witnessed. The soundness is machine-checked
+by the Lean obligation `normalize.value_graph.index_writes` (#343, analogous to
+`field_writes`): read-forwarding the just-written place is sound, a distinct-place write
+preserves a forward, and same-place (aliasing) writes are order-sensitive (so a forward must be
+invalidated and element writes stay ordered).
 
 **Net:** the equality-over-`Err` class (§7.1), the dataflow unsoundness (§7.2), and the
 in-place element-mutation gap (§7.3) are all closed, so the verify soundness gate can widen

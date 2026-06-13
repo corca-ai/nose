@@ -7,6 +7,13 @@ break.
 ## [Unreleased]
 
 ### Added
+- **Lean obligation for indexed-element read-forwarding (`normalize.value_graph.index_writes`,
+  #343).** The #337 read-forwarding now carries a machine-checked proof (analogous to
+  `field_writes`): forwarding the just-written `(base, index)` place is sound; a write to a
+  distinct place preserves a place's value (so a forward survives a provably-different write);
+  and same-place (aliasing) writes are order-sensitive — so a forward must be invalidated on a
+  possibly-aliasing write and element writes stay ordered effects. The `proof-obligation` marker
+  is restored on `index_state.rs`; the obligation is `proven`.
 - **Falsification-driven distinguishing-input search for `nose verify` (`--falsify`, #317).**
   The fixed battery only finds a false merge when a hand-curated row happens to feed the
   distinguishing input (e.g. two distinct strings to two untyped params — the #283-C class).

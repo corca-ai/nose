@@ -14,10 +14,10 @@
 //! the most recent write with no intervening (possibly-aliasing) write. This errs toward
 //! FEWER forwards (more distinct nodes), which can only cost recall, never soundness.
 //!
-//! A Lean obligation analogous to `normalize.value_graph.field_writes` (last-write-wins, write
-//! order matters) is a tracked follow-up; for now the argument is conservative-by-construction
-//! (the gates above) plus the `nose verify` soundness oracle, which interprets in-place element
+//! The `nose verify` soundness oracle backs this empirically: it interprets in-place element
 //! mutation in lockstep (`interp.rs` `bind` for `Index`) and would witness any false merge.
+//!
+//! proof-obligation: normalize.value_graph.index_writes
 
 use super::*;
 

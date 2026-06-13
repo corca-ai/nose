@@ -1,0 +1,22 @@
+id = "normalize.value_graph.index_writes"
+status = "proven"
+kind = "soundness-boundary"
+summary = "Indexed-element read-forwarding returns the most-recent same-place write; a write to a distinct place preserves a place's value, and a possibly-aliasing write must invalidate the forward (so element writes stay order-sensitive)."
+
+[rust]
+files = [
+  "crates/nose-normalize/src/value_graph/index_state.rs",
+  "crates/nose-normalize/src/value_graph/model.rs",
+  "crates/nose-normalize/src/value_graph/eval.rs",
+  "crates/nose-normalize/src/interp.rs",
+]
+symbols = ["IndexStateKey", "record_index_write", "forwarded_index_read", "index_env"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseIndexWrites.forward_read_after_write_sound",
+  "NoseIndexWrites.distinct_write_preserves_read",
+]
+counterexamples = "Counterexamples.lean"
+counterexample_theorems = ["NoseIndexWriteCounterexamples.same_place_write_order_matters"]
