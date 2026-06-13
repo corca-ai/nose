@@ -482,7 +482,7 @@ impl<'a> Builder<'a> {
                 // chain with a proven-float leaf keeps its source grouping (the value the
                 // eval-time gate already built), so don't flatten it here either.
                 if (o == Op::Add as u32 || o == Op::Mul as u32)
-                    && leaves.iter().any(|&v| self.proven_float(v))
+                    && leaves.iter().any(|&v| self.possibly_float(v))
                 {
                     return None;
                 }

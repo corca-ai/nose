@@ -211,16 +211,21 @@ first; promote to the full model only if the priced recall loss justifies it.
   fingerprint is the reachable-**node** multiset (structure-sensitive, `intern_node` hashes
   args in order); the grouping was lost at the `algebra` reassociation and the value-graph
   flatten, both of which ARE gateable.
-- **Remaining (the full model):** ONLY the fully-untyped `(a+b)+c` (`float_assoc.py`) —
-  nothing proves it float, the i64 oracle is associative, so it still flattens. Closing it is
-  undecidable without types: it needs `Value::Float` with IEEE-754 semantics + the
-  per-language Int↔Float coercion lattice (so the oracle can witness the non-associativity) —
-  much smaller now that both the syntactic and the float-typed-param cases are closed. Scoped
-  with a recall measurement in **[value-float-kind-design](value-float-kind-design.md)** (#342):
-  holding untyped `+`/`*` costs 0 families on type4 + nose, so the recall objection is removed
-  and the recommendation flips to GO-phased (float oracle first, then the scan hold).
-- **Cost:** floor + syntactic + float-typed-param non-associativity paid (0 recall on type4);
-  remaining Medium ONLY for the fully-untyped case (a real Float interpreter value).
+- **Fully-untyped — CLOSED (#342, the `Value::Float` kind).** The last case, `(a+b)+c` vs
+  `a+(b+c)` over params with NO float marker (`float_assoc.py`), is now closed in both halves:
+  the interpreter gained a real IEEE-754 `Value::Float` (`interp.rs`), and a `verify_battery`
+  float row (`1e16 ± 1e16`) feeds untyped params adversarial floats so the oracle WITNESSES the
+  non-associativity; the scan holds the grouping (`possibly_float` = a truly-untyped param in a
+  dynamically-typed language, mirrored in `algebra`). Crucially the hold is associativity-only —
+  COMMUTATIVITY is preserved (`a+b+1 ≡ b+a+1`, same grouping) via a grouping-preserving rebuild
+  that still sorts operands when the chain is non-concat — and `: int`-typed and `Number`-typed
+  params still fully reassociate (the oracle feeds them `Int`). **Recall delta 0 on the full
+  105-repo pinned corpus** (4309 → 4309; the design doc's gate, measured), verify clean across
+  type4/coevo and 15 dynamic-language repos. See [value-float-kind-design](value-float-kind-design.md).
+- **Cost:** floor + syntactic + float-typed-param + fully-untyped non-associativity all paid
+  (0 recall on the full pinned corpus). The remaining float work is breadth, not a gap: a
+  full Int↔Float coercion lattice (mixed-type comparison, float literals — `LitFloat` stores
+  only a hash today) so the oracle witnesses MORE float behavior, not just non-associativity.
 
 ---
 
@@ -271,7 +276,7 @@ oracle-caught)":
 | target | file / repro | must become |
 |---|---|---|
 | C — string/mixed-coercive `+` ordering | `untyped_add_commute.py` (`a+b` vs `b+a`) and JS/TS/Java-style `x+4` / `x+(2+3)` / `x-3` / `-(x+2)` | detector keeps them **split**; oracle witnesses pure string now only after battery enrichment, and mixed string/number after coercion modeling |
-| C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | oracle witnesses (needs §3.3 float) or detector keeps split |
+| C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | detector keeps them **split** AND oracle witnesses — CLOSED (#342, the `Value::Float` kind, §3.3); guarded by `float_addition_is_non_associative_in_the_oracle` + `algebra_associativity` + `float_typed_param_addition_is_held_unassociated` |
 | D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split**; oracle int32 execution remains follow-up |
 | D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; real Float oracle remains follow-up |
 | in-place element mutation | `array_element_mutation.py` (`swap` vs `clobber`) | detector keeps them **split** AND oracle witnesses — CLOSED (#337, §7.3); guarded by `array_element_swap_does_not_merge_with_clobber` + `index_store_is_observed_by_later_read` |
@@ -300,15 +305,13 @@ coarse). Recommended sequence, cheapest-and-highest-confidence first:
    narrowing fingerprint is in place. Next work is int32 oracle execution plus
    measured JS↔C/Java-int recall recovery. Promote to the full fixed-width canon
    only if that loss is material.
-3. **D-div (Float) — floor shipped; syntactic + typed cases closed (#339/#340); full
-   model now GO-phased.** The true/floored/truncated fingerprints are split, and float
-   `+`/`*` non-associativity is held for syntactic-float and float-typed-param chains.
-   Both prerequisites for the full `Value::Float` model are now met: (a) the recall price
-   is **measured ≈ 0** (holding untyped `+`/`*` loses 0 families on type4 + nose), and (b)
-   it has its own design doc covering NaN/±0/coercion —
-   **[value-float-kind-design](value-float-kind-design.md)** (#342). Remaining is the
-   fully-untyped case; start with the float oracle (P1) so the latent merge becomes
-   gate-visible, then the scan hold (P2) after a real-corpus recall re-measurement.
+3. **D-div (Float) — CLOSED.** The true/floored/truncated fingerprints are split, and float
+   `+`/`*` non-associativity is held for syntactic-float, float-typed-param (#339/#340) AND
+   fully-untyped (#342) chains. The full `Value::Float` model shipped: the interpreter models
+   IEEE-754 (so the oracle witnesses non-associativity), the scan holds untyped chains, and the
+   recall price was **measured 0 on the full 105-repo pinned corpus** (4309 → 4309). Remaining
+   float work is breadth (a full Int↔Float coercion lattice, float literals), not a soundness
+   gap — see **[value-float-kind-design](value-float-kind-design.md)** (#342).
 
 This converts "one big scary foundational extension" into **three independently
 priced, independently shippable fixes**, each with a sound floor — exactly the

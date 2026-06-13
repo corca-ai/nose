@@ -1121,6 +1121,24 @@ impl LanguageProfile {
         self.lang
     }
 
+    /// Whether the language is dynamically typed — a bare parameter carries no static type, so
+    /// it could be a float at runtime (#342). Used to decide that an untyped `+`/`*` chain is
+    /// POSSIBLY float and must not be reassociated (float `+`/`*` is non-associative). The
+    /// statically-typed languages (Rust/Go/C/Java) instead carry per-param domain evidence, so
+    /// their float-ness is decided by the proven domain, not by this.
+    pub fn is_dynamically_typed(self) -> bool {
+        matches!(
+            self.lang,
+            Lang::Python
+                | Lang::Ruby
+                | Lang::JavaScript
+                | Lang::TypeScript
+                | Lang::Vue
+                | Lang::Svelte
+                | Lang::Html
+        )
+    }
+
     pub fn pack_id(self) -> &'static str {
         FIRST_PARTY_PACK_ID
     }

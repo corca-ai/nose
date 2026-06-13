@@ -2573,19 +2573,19 @@ fn cfg_continue_guard_requires_total_order_proof() {
 #[test]
 fn algebra_associativity() {
     let i = Interner::new();
-    // ASSOCIATIVITY (`(a+b)+c` ≡ `a+(b+c)`) is sound for ALL types — string concat is
-    // associative — so the value graph reconciles it even for UNTYPED params. COMMUTATIVITY
-    // (`(a+b)+c` ≡ `c+(a+b)`) is gated on non-concat (#283-C): untyped stays distinct, an
-    // int-annotated chain still fully canonicalizes. (Reconciled by the value graph, not the
-    // algebra IL pass — so check the fingerprint, not the IL hash.)
+    // ASSOCIATIVITY (`(a+b)+c` ≡ `a+(b+c)`) over UNTYPED params is now HELD: an untyped param
+    // could be a float at runtime, and float `+` is NON-associative (#342), so the two groupings
+    // no longer converge. COMMUTATIVITY (`(a+b)+c` ≡ `c+(a+b)`) was already gated on non-concat
+    // (#283-C) and stays distinct. An INT-ANNOTATED chain is proven integer, so it still fully
+    // associates AND commutes. (Reconciled by the value graph — check the fingerprint.)
     let left = "def f(a, b, c):\n    return (a + b) + c\n";
     let right = "def g(a, b, c):\n    return a + (b + c)\n";
     let mixed = "def h(a, b, c):\n    return c + (a + b)\n";
     let hl = value_fp(&i, left, Lang::Python);
-    assert_eq!(
+    assert_ne!(
         hl,
         value_fp(&i, right, Lang::Python),
-        "associativity is sound untyped"
+        "untyped associativity is now held (operands could be float)"
     );
     assert_ne!(
         hl,
@@ -2596,7 +2596,8 @@ fn algebra_associativity() {
     let tl = t("def f(a: int, b: int, c: int):\n    return (a + b) + c\n");
     assert_eq!(
         tl,
-        t("def g(a: int, b: int, c: int):\n    return a + (b + c)\n")
+        t("def g(a: int, b: int, c: int):\n    return a + (b + c)\n"),
+        "int-annotated + still associates (proven integer)"
     );
     assert_eq!(
         tl,
@@ -2622,10 +2623,11 @@ fn float_subtraction_is_not_reassociated_while_integer_subtraction_is() {
         t("def g(x):\n    return (1e100 - 1e100) + x\n"),
         "float-literal subtraction must not reassociate across groupings"
     );
-    // Control — the same shape with an integer literal is sound and still converges.
+    // Control — an INT-TYPED `x` reassociates and converges. (An untyped `x` is now held — it
+    // could be a float, #342 — so the control annotates `: int` to stay an integer chain.)
     assert_eq!(
-        t("def f(x):\n    return (5 + x) - 5\n"),
-        t("def g(x):\n    return (5 - 5) + x\n"),
+        t("def f(x: int):\n    return (5 + x) - 5\n"),
+        t("def g(x: int):\n    return (5 - 5) + x\n"),
         "integer subtraction must still reassociate (sound)"
     );
 }
@@ -2653,11 +2655,13 @@ fn float_addition_and_multiplication_are_held_unassociated() {
         t("def g(a, b, c):\n    return a / b + (c + 1.0)\n"),
         "true-division (float) `+` must not reassociate"
     );
-    // Control — integer reassociation is sound and still converges.
+    // Control — INT-TYPED reassociation is sound and still converges. (Untyped `a`/`b` are now
+    // HELD too — an untyped param could be a float at runtime, #342 — so the control annotates
+    // `: int` to stay an integer chain.)
     assert_eq!(
-        t("def p(a, b):\n    return (2 + a) + b\n"),
-        t("def q(a, b):\n    return 2 + (a + b)\n"),
-        "integer `+` still reassociates (sound)"
+        t("def p(a: int, b: int):\n    return (2 + a) + b\n"),
+        t("def q(a: int, b: int):\n    return 2 + (a + b)\n"),
+        "int-typed `+` still reassociates (sound)"
     );
     // Control — the SAME float grouping written twice still converges (the hold is
     // grouping-sensitive, not a blanket exclusion).
@@ -2765,9 +2769,11 @@ fn float_typed_param_addition_is_held_unassociated() {
         ),
         "java int `+` still reassociates"
     );
-    // Control — fully-untyped params still reassociate (the i64 oracle is associative;
-    // distinguishing this is the full Value::Float kind, §3.3).
-    assert_eq!(
+    // Fully-untyped params are now ALSO held — an untyped param could be a float at runtime,
+    // and the oracle witnesses the non-associativity via a float battery (#342, the Value::Float
+    // kind, oracle-value-model §3.3). Commutativity (same grouping) and `: int` chains still
+    // converge (see `algebra_associativity`).
+    assert_ne!(
         value_fp(
             &i,
             "def p(a, b, c):\n    return (a + b) + c\n",
@@ -2778,7 +2784,7 @@ fn float_typed_param_addition_is_held_unassociated() {
             "def q(a, b, c):\n    return a + (b + c)\n",
             Lang::Python
         ),
-        "untyped `+` still reassociates"
+        "untyped `+` is now held (possibly float)"
     );
 }
 
@@ -7650,13 +7656,15 @@ fn effectful_commutative_operands_do_not_reorder() {
         value_fp(&i, chain_rev, Lang::Python),
         "effectful AC chains must not sort into one fingerprint"
     );
-    // Effect-FREE numeric operands still converge (the common case is unaffected).
+    // Effect-FREE operands still COMMUTE within the same grouping (`a+b+1` ≡ `b+a+1`) — float
+    // `+` is commutative, only its associativity is held (#342). (A REGROUPING like `1+b+a`
+    // does NOT converge now: `(a+b)+1` vs `(1+b)+a` differ for floats.)
     let pure_fwd = "def f(a, b):\n    return a + b + 1\n";
-    let pure_rev = "def g(a, b):\n    return 1 + b + a\n";
+    let pure_rev = "def g(a, b):\n    return b + a + 1\n";
     assert_eq!(
         value_fp(&i, pure_fwd, Lang::Python),
         value_fp(&i, pure_rev, Lang::Python),
-        "effect-free numeric commutative operands must still converge"
+        "effect-free commutative operands (same grouping) must still converge"
     );
 }
 

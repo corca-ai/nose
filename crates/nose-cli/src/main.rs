@@ -1840,6 +1840,15 @@ fn verify_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::V
         Value::Int(0),
         Value::Int(3),
     ]);
+    // Part 5: float NON-ASSOCIATIVITY rows (#342). The pool is int/list only, so a fully-untyped
+    // `(a+b)+c` vs `a+(b+c)` never sees float inputs and the i64 oracle reads them associative.
+    // These rows feed FLOATS of adversarial magnitude (`1e16` ± `1e16` loses the small term to
+    // rounding), so `(a+b)+c != a+(b+c)`: `assoc_l(1e16,-1e16,1.0) = 1.0` but `assoc_r = 0.0`.
+    // With the value graph holding such chains unassociated (see `proven_float`/`chain_has_float`
+    // for untyped params in dynamically-typed languages), the oracle now WITNESSES the split.
+    let f = |x: f64| Value::Float(nose_normalize::F64(x));
+    battery.push(vec![f(1e16), f(-1e16), f(1.0), f(2.0)]);
+    battery.push(vec![f(1.0), f(1e16), f(-1e16), f(2.0)]);
     battery
 }
 
