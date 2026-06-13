@@ -9,10 +9,11 @@
 //!   grouping/ordering of `a + b + c` converges.
 //! - **comparison direction**: `a > b` → `b < a`, `a >= b` → `b <= a`, so only
 //!   `<`/`<=`/`==`/`!=` remain.
-//! - **negation / De Morgan**: `!(a && b)` → `!a || !b`, `!(a == b)` → `a != b`,
-//!   `!(a < b)` → `b <= a`. The value-DEPENDENT cancellations `!!x → x` (bool
-//!   coercion) and `-(-x) → x` (numeric only) are NOT done here — this pass has no
-//!   operand type, so they are deferred to the value graph's proof-gated canon.
+//! - **negation / De Morgan**: `!(a && b)` → `!a || !b`, `!(a == b)` → `a != b`.
+//!   Order-comparison duals such as `!(a < b)` → `a >= b`, plus value-DEPENDENT
+//!   cancellations `!!x → x` (bool coercion) and `-(-x) → x` (numeric only), are
+//!   NOT done here — this pass has no operand type, so they are deferred to the
+//!   value graph's proof-gated canon.
 //!
 //! Value-dependent identities (`x + 0` → `x`) are deferred — they need literal
 //! values, which are abstracted to classes. Full distribution (where the
@@ -52,6 +53,13 @@ fn is_assoc_comm(op: Op) -> bool {
     matches!(
         op,
         Op::Add | Op::Mul | Op::And | Op::Or | Op::BitAnd | Op::BitOr | Op::BitXor
+    )
+}
+
+fn plus_has_mixed_string_coercion(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html | Lang::Java
     )
 }
 
@@ -135,6 +143,13 @@ impl Rewriter<'_> {
             _ => return self.generic(old_id, span),
         };
         if is_assoc_comm(op) {
+            // JS/TS/Java `+` can coerce mixed string/non-string operands, so grouping itself
+            // is observable: `"a" + 2 + 3` is not `"a" + (2 + 3)`. This IL pass has no
+            // evidence strong enough to prove a chain numeric; leave the tree intact and
+            // let the value graph perform evidence-gated association/commutation.
+            if op == Op::Add && plus_has_mixed_string_coercion(self.old.meta.lang) {
+                return self.generic(old_id, span);
+            }
             let mut leaves = Vec::new();
             self.collect_assoc_old(old_id, op, &mut leaves);
             // Constant folding + identity elimination (now that C retains literal values):
@@ -320,14 +335,13 @@ impl Rewriter<'_> {
                             olds.into_iter().map(|o| self.rewrite_negated(o)).collect();
                         self.build_assoc(flip, span, negated)
                     }
-                    // Negate an order comparison on a total order, canonicalized to `<`/`<=`:
-                    //   !(x < y)  = y <= x   !(x <= y) = y < x    (operands reflect)
-                    //   !(x > y)  = x <= y   !(x >= y) = x < y     (operands stay)
-                    // The strict/non-strict polarity flips (`<`,`>` → `<=`; `<=`,`>=` → `<`),
-                    // and only the already-reflected `<`/`<=` cases swap operands so the result
-                    // points the canonical way. Lean obligation: `normalize.value_graph.compare`,
-                    // `not_le_eq_gt`+`gt_eq_lt_swap`, `not_gt_eq_le`, `not_ge_eq_lt`.
                     Op::Eq | Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge => {
+                        // Equality negation is value-independent. Order-comparison duals
+                        // need total-order proof because NaN makes `!(a < b)` differ from
+                        // `a >= b`; the value graph handles those when operands prove integer.
+                        if matches!(op, Op::Lt | Op::Le | Op::Gt | Op::Ge) {
+                            return self.negate_wrap(old, span);
+                        }
                         let Some(contract) = operators.canonical_negated_comparison(op) else {
                             return self.negate_wrap(old, span);
                         };

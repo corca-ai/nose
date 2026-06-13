@@ -1957,7 +1957,8 @@ fn js_bin_op(text: &str) -> Option<Op> {
         "===" => Some(Op::Eq),
         "!==" => Some(Op::Ne),
         // `x in obj` is a directional membership/key test — its own non-commutative op.
-        // `instanceof` is a type-identity check; equality-shaped is an acceptable approx.
+        // `instanceof` is structurally equality-shaped but carries a source-operator fact;
+        // the value graph salts it so prototype-chain type membership never merges with equality.
         "in" => Some(Op::In),
         "instanceof" => Some(Op::Eq),
         _ => None,

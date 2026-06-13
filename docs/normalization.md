@@ -38,7 +38,8 @@ experiments that validated these passes are in [experiments](experiments.md).
 > changed flattened predicates; filtered Sum/Reduce FlatMap aggregates, method-terminal
 > Any/All predicates, and filtered nested early-return any/all loops preserve carried
 > outer/inner predicates), full **AC flatten+sort in the value graph itself** (not
-> only the `algebra` IL pass), **operator-law contracts** from the semantic kernel
+> only the `algebra` IL pass), with `+` association/reorder kept domain-gated in
+> string-coercive languages, **operator-law contracts** from the semantic kernel
 > gate comparison transforms, comparison-lattice rewrites, static cardinality
 > thresholds, and source membership operators, while source-fact gates protect
 > JS-like constructor factories, regex literal `.test(...)`, and static
@@ -115,11 +116,27 @@ Guiding constraints for every pass:
   hunt fixed seven false merges; §AX, using the now-independent oracle, fixed a whole
   further class of *treating-a-non-commutative-op-as-commutative* bugs (value `and`/`or`,
   `!!x`, `not(Err)`, `x+0`/`x*1`, string-`+` operand sort). The core canons are also
-  **Lean-proven** (`formal/`). Operations whose commutativity/identity depends on value
-  domain are **domain-gated**, never assumed: `+` commutes only on non-concat operands
-  (string/list `+`
-  is ordered concatenation), and `and`/`or` commute only on Bool (else they are the
-  value-returning short-circuit `Phi`). Identity elimination `x+0`/`x*1`→`x` is dropped
+  **Lean-proven** (`formal/`). Operations whose commutativity, associativity, or
+  identity depends on value domain are **domain-gated**, never assumed: `+`
+  commutes and associates only on non-concat operands. String/list `+` is ordered
+  concatenation, and JS/TS/Vue/Svelte/HTML/Java mixed string coercion also makes
+  grouping observable (`"a"+2+3` vs. `"a"+(2+3)`). In those languages the value
+  graph flattens or reorders `+`, rewrites `x-y` as `x+(-y)`, or distributes
+  unary negation over addition only after every `+` leaf is proven non-concat.
+  JS loose equality over non-null operands and positive/negated JS `instanceof`
+  are also exact-closed behind their source operator facts; JS-family relational
+  comparisons stay exact-closed until both operands carry numeric proof, because
+  string/string comparison is lexicographic. Scalar/literal/operator-proven
+  TypeScript operands can use primitive comparison laws; `number[]` callback or
+  loop elements do not yet provide element-domain numeric proof. Negated order
+  comparisons use the `!(a < b)` -> `a >= b` dual only with integer-domain proof
+  because `NaN` breaks that equivalence. `x == null` remains the modeled nullish
+  check, while strict null equality stays separate.
+  Python free `abs(...)` and sign-test ternary absolute-value idioms lower to
+  the modeled Abs node only with integer-domain proof; untyped or element-derived
+  operands stay closed because signed zero and non-integer domains are observable.
+  `and`/`or` commute only on Bool (else they are the value-returning
+  short-circuit `Phi`). Identity elimination `x+0`/`x*1`→`x` is dropped
   entirely — it is unsound for non-number domains (`"a"+0` Errs), and value-domain
   inference is optimistic (it would infer `Number` from the `*1` itself), so even a
   number-domain gate can't make it safe.
@@ -284,7 +301,8 @@ via bounded equality saturation over a fixed rule set:
   unsound for non-number domains and untypeable here (the optimistic inference would
   self-justify it).
   negation normalization (De Morgan,
-  double-negation `!!x` cancelled only on Bool, negated-comparison `!(a<=b)`→`a>b`);
+  double-negation `!!x` cancelled only on Bool, equality negation, and order-comparison
+  negation only after integer-domain proof);
   comparison-direction canonicalization; short-circuit `and`/`or` to the value-`Phi`.
   Distribution/factoring (e.g. `a*c+b*c -> (a+b)*c`) is applied only through the
   value-graph rule when the operands are proven numeric. String/list repetition and other
@@ -295,7 +313,8 @@ canonical extraction, integer/float/overflow caveats (kept approximate).
 
 ## Track 3 — Control-flow graph normalization
 
-Beyond today's local rewrites (else-after-return, branch orientation): build a
+Beyond today's local rewrites (else-after-return, equality branch orientation, and
+value-graph order branch orientation after integer-domain proof): build a
 structured CFG and canonicalize equivalent shapes — flag-variable loop ↔ `break`,
 nested guards ↔ flattened guards, `continue`-skip ↔ wrapped body, redundant-jump
 elimination. Hard parts: structuring

@@ -1908,17 +1908,11 @@ mod tests {
     }
 
     #[test]
-    fn go_stdlib_method_requires_import_namespace_proof() {
+    fn go_math_abs_stays_closed_even_with_import_namespace_proof() {
         let (il, interner, call) = go_math_abs_il(false);
         assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
 
         let (il, interner, call) = go_math_abs_il(true);
-        assert!(matches!(
-            canon_call(&il, &interner, call),
-            CallCanon::Builtin {
-                op: Builtin::Abs,
-                arg_olds
-            } if arg_olds.len() == 1
-        ));
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
     }
 }

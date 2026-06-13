@@ -403,10 +403,10 @@ fn filtered_method_reduce_converges_with_guarded_loop() {
         value_fp(&i, reduce_js, Lang::TypeScript),
         "JS filter().reduce(sum) should converge with the guarded loop"
     );
-    assert_eq!(
+    assert_ne!(
         loop_fp,
         value_fp(&i, reduce_rs, Lang::Rust),
-        "Rust filter().fold(sum) should converge through the same value graph"
+        "TypeScript number[] element domains are not yet numeric proof for cross-language relational predicates"
     );
     assert_ne!(
         loop_fp,
@@ -434,10 +434,10 @@ fn filtered_count_aggregates_converge_with_count_loop() {
         return_fp(&i, len_js, Lang::TypeScript),
         "JS filter().length should converge with a guarded count loop"
     );
-    assert_eq!(
+    assert_ne!(
         loop_fp,
         return_fp(&i, count_rs, Lang::Rust),
-        "Rust filter().count() should converge through the same count reduce"
+        "TypeScript number[] element domains are not yet numeric proof for cross-language relational predicates"
     );
     assert_ne!(
         loop_fp,
@@ -1242,8 +1242,16 @@ fn selection_reduction_loops_converge_cross_language() {
     let bad_min = "def f(xs):\n    best = 0\n    for x in xs:\n        if x < best:\n            best = x\n    return best\n";
 
     let max_fp = value_fp(&i, py_max, Lang::Python);
-    assert_eq!(max_fp, value_fp(&i, js_max, Lang::JavaScript));
-    assert_eq!(max_fp, value_fp(&i, reduce_js, Lang::TypeScript));
+    assert_ne!(
+        max_fp,
+        value_fp(&i, js_max, Lang::JavaScript),
+        "untyped JS relational comparison can be string-ordered and must stay closed"
+    );
+    assert_ne!(
+        max_fp,
+        value_fp(&i, reduce_js, Lang::TypeScript),
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
+    );
     assert_eq!(max_fp, value_fp(&i, rust_max, Lang::Rust));
     assert_eq!(max_fp, value_fp(&i, rust_fold_max, Lang::Rust));
     let min_fp = value_fp(&i, py_min, Lang::Python);
@@ -1343,22 +1351,29 @@ fn enumerate_converges_with_range_index() {
 
 #[test]
 fn abs_idiom_converges() {
-    // `abs(x)` and the `x if x>=0 else -x` idiom canonicalize to one Abs value (§AI).
+    // Integer `abs(x)` and the `x if x>=0 else -x` idiom canonicalize to one Abs value (§AI).
     let i = Interner::new();
-    let call = "def f(x):\n    return abs(x)\n";
-    let tern = "def g(x):\n    return x if x >= 0 else -x\n";
+    let call = "def f(x: int):\n    return abs(x)\n";
+    let tern = "def g(x: int):\n    return x if x >= 0 else -x\n";
     assert_eq!(
         value_fp(&i, call, Lang::Python),
         value_fp(&i, tern, Lang::Python),
-        "abs(x) should converge with the conditional-negate idiom"
+        "integer abs(x) should converge with the conditional-negate idiom"
+    );
+    let untyped_call = "def f(x):\n    return abs(x)\n";
+    let untyped_tern = "def g(x):\n    return x if x >= 0 else -x\n";
+    assert_ne!(
+        value_fp(&i, untyped_call, Lang::Python),
+        value_fp(&i, untyped_tern, Lang::Python),
+        "untyped Python abs must not merge with the signed-zero-sensitive ternary idiom"
     );
 }
 
 #[test]
 fn scalar_abs_axis_converges_with_unused_alternate_param() {
     let i = Interner::new();
-    let call = "def f(value, other):\n    return abs(value)\n";
-    let tern = "def g(value, other):\n    return value if value >= 0 else -value\n";
+    let call = "def f(value: int, other: int):\n    return abs(value)\n";
+    let tern = "def g(value: int, other: int):\n    return value if value >= 0 else -value\n";
     assert_eq!(
         value_fp(&i, call, Lang::Python),
         value_fp(&i, tern, Lang::Python)
@@ -1368,12 +1383,13 @@ fn scalar_abs_axis_converges_with_unused_alternate_param() {
 #[test]
 fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
     let i = Interner::new();
-    let py = "def f(value, other):\n    magnitude = value if value >= 0 else -value\n    return magnitude + other\n";
+    let py = "def f(value: int, other: int):\n    magnitude = value if value >= 0 else -value\n    return magnitude + other\n";
     let js =
         "function f(value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
     let ts = "function f(value: number, other: number): number { const magnitude = Math.abs(value); return magnitude + other; }";
     let go = "package p\n\nimport \"math\"\n\nfunc F(value float64, other float64) float64 { magnitude := math.Abs(value); return magnitude + other }\n";
     let java = "class C { static int f(int value, int other) { int magnitude = Math.abs(value); return magnitude + other; } }\n";
+    let java_double = "class C { static double f(double value, double other) { double magnitude = Math.abs(value); return magnitude + other; } }\n";
     let ruby_abs = "def f(value, other)\n  magnitude = value.abs\n  magnitude + other\nend\n";
     let rust_abs =
         "pub fn f(value: i64, other: i64) -> i64 { let magnitude = value.abs(); magnitude + other }\n";
@@ -1384,10 +1400,23 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
     let rust_float_abs = "pub fn f(value: f64, other: f64) -> f64 { let magnitude = value.abs(); magnitude + other }\n";
     let custom_rust_abs = "struct Wrap(i64);\nimpl Wrap { fn abs(&self) -> i64 { 0 } }\npub fn f(value: Wrap) -> i64 { let magnitude = value.abs(); magnitude + 1 }\n";
     let fp = value_fp(&i, py, Lang::Python);
-    assert_eq!(fp, value_fp(&i, js, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, go, Lang::Go));
+    assert_ne!(fp, value_fp(&i, js, Lang::JavaScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, ts, Lang::TypeScript),
+        "TypeScript Math.abs over number keeps the signed-zero boundary closed"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, go, Lang::Go),
+        "Go math.Abs over float64 keeps the signed-zero boundary closed"
+    );
     assert_eq!(fp, value_fp(&i, java, Lang::Java));
+    assert_ne!(
+        fp,
+        value_fp(&i, java_double, Lang::Java),
+        "Java Math.abs over double keeps the signed-zero boundary closed"
+    );
     assert_ne!(fp, value_fp(&i, ruby_abs, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, rust_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
@@ -1413,6 +1442,7 @@ fn scalar_minmax_builtins_converge_cross_language() {
         "function f(left, right, other) { const selected = min(left, right); return selected + other; }";
     let go_min = "package p\n\nimport \"math\"\n\nfunc F(left float64, right float64, other float64) float64 { selected := math.Min(left, right); return selected + other }\n";
     let java_min = "class C { static int f(int left, int right, int other) { int selected = Math.min(left, right); return selected + other; } }\n";
+    let java_double_min = "class C { static double f(double left, double right, double other) { double selected = Math.min(left, right); return selected + other; } }\n";
     let c_min = "#include <math.h>\n\ndouble f(double left, double right, double other) { double selected = fmin(left, right); return selected + other; }\n";
     let ruby_min =
         "def f(left, right, other)\n  selected = [left, right].min\n  selected + other\nend\n";
@@ -1426,11 +1456,28 @@ fn scalar_minmax_builtins_converge_cross_language() {
 
     let fp = value_fp(&i, py_min, Lang::Python);
     assert_eq!(fp, value_fp(&i, py_min_call, Lang::Python));
-    assert_eq!(fp, value_fp(&i, js_min, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_min, Lang::TypeScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, js_min, Lang::JavaScript),
+        "JS Math.min returns NaN when any argument is NaN, unlike the ternary min idiom"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, ts_min, Lang::TypeScript),
+        "TypeScript Math.min over number keeps the same NaN boundary as JS"
+    );
     assert_ne!(fp, value_fp(&i, js_free_min, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, go_min, Lang::Go));
+    assert_ne!(
+        fp,
+        value_fp(&i, go_min, Lang::Go),
+        "Go math.Min is a float64 API and keeps the NaN boundary closed"
+    );
     assert_eq!(fp, value_fp(&i, java_min, Lang::Java));
+    assert_ne!(
+        fp,
+        value_fp(&i, java_double_min, Lang::Java),
+        "Java Math.min over double keeps the NaN boundary closed"
+    );
     assert_ne!(fp, value_fp(&i, c_min, Lang::C));
     assert_ne!(fp, value_fp(&i, ruby_min, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, rust_min, Lang::Rust));
@@ -1589,12 +1636,13 @@ fn numeric_clamp_surface_bridge_requires_bound_proof() {
 }
 
 #[test]
-fn conditional_abs_reduction_converges_with_aggregate() {
+fn conditional_abs_reduction_keeps_unproved_abs_aggregate_closed() {
     // A branch in the per-element contribution is still a single reduction:
-    // `total += (x < 0 ? -x : x)` must converge with aggregate `sum(abs(x))`.
+    // `total += (x < 0 ? -x : x)` can converge across proven integer surfaces, but
+    // Python `sum(abs(x) for x in xs)` stays closed until element-domain proof exists.
     let i = Interner::new();
-    let py_loop = "def f(xs):\n    total = 0\n    for x in xs:\n        if x < 0:\n            total += -x\n        else:\n            total += x\n    return total\n";
-    let py_sum = "def f(xs):\n    return sum(abs(x) for x in xs)\n";
+    let py_loop = "def f(xs: list[int]):\n    total = 0\n    for x in xs:\n        if x < 0:\n            total += -x\n        else:\n            total += x\n    return total\n";
+    let py_abs_sum = "def f(xs: list[int]):\n    return sum(abs(x) for x in xs)\n";
     let js_reduce =
         "function f(xs: number[]): number { return xs.reduce((total, x) => total + (x < 0 ? -x : x), 0); }";
     let rust_fold =
@@ -1603,10 +1651,26 @@ fn conditional_abs_reduction_converges_with_aggregate() {
     let bad_sum =
         "def f(xs):\n    total = 0\n    for x in xs:\n        total += x\n    return total\n";
     let fp = value_fp(&i, py_loop, Lang::Python);
-    assert_eq!(fp, value_fp(&i, py_sum, Lang::Python));
-    assert_eq!(fp, value_fp(&i, js_reduce, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, rust_fold, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, c_loop, Lang::C));
+    assert_ne!(
+        fp,
+        value_fp(&i, py_abs_sum, Lang::Python),
+        "Python list[int] does not yet prove generator element integer domains for abs"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, js_reduce, Lang::TypeScript),
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, rust_fold, Lang::Rust),
+        "Rust i32 slice elements provide integer-domain proof for abs-pattern lowering"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, c_loop, Lang::C),
+        "C int pointer elements provide integer-domain proof for abs-pattern lowering"
+    );
     assert_ne!(fp, value_fp(&i, bad_sum, Lang::Python));
 }
 
@@ -1688,15 +1752,15 @@ int h(const void *pa, const void *pb) {
 }
 "#;
     let fp = value_fp(&i, less_first, Lang::C);
-    assert_eq!(
+    assert_ne!(
         fp,
         value_fp(&i, greater_first, Lang::C),
-        "strict comparator guard order should not affect the fingerprint"
+        "C pointer-loaded comparator locals do not yet prove total-order guard inversion"
     );
-    assert_eq!(
+    assert_ne!(
         fp,
         value_fp(&i, ternary, Lang::C),
-        "strict if-return comparator should converge with the ternary sign form"
+        "C pointer-loaded comparator ternaries stay closed without total-order proof"
     );
 }
 
@@ -1980,38 +2044,47 @@ fn conjoined_guard_merges() {
 }
 
 #[test]
-fn continue_guard_unwraps() {
-    // `for x: if c: continue; body` ≡ `for x: if not c: body` (continue-guard unwrap).
+fn continue_guard_unwraps_requires_total_order_proof() {
+    // `for x: if c: continue; body` ≡ `for x: if not c: body` needs proof that
+    // the inverted guard is a total-order dual. Untyped collection elements stay closed.
     let i = Interner::new();
     let cont = "def f(xs):\n    for x in xs:\n        if x < 0:\n            continue\n        process(x)\n";
     let guard = "def g(xs):\n    for x in xs:\n        if x >= 0:\n            process(x)\n";
-    assert_eq!(
+    assert_ne!(
         unit_hash(&i, cont, Lang::Python),
         unit_hash(&i, guard, Lang::Python),
-        "continue-guard ≡ inverted nested body"
+        "continue-guard inversion over untyped elements must keep the NaN boundary closed"
     );
 }
 
 #[test]
 fn branch_orientation_inverts_comparison_canonically() {
-    // `if a < b { X } else { Y }` ≡ `if a >= b { Y } else { X }`: branch orientation
-    // must invert the comparison into the *canonical* (Lt/Le) operand order, else the
-    // two forms never converge. Regression for the Ge/Le canonicalization bug.
+    // Untyped order-comparison branch inversion is not sound in the behavioral
+    // fingerprint: NaN makes `!(a < b)` differ from `a >= b`.
     let i = Interner::new();
     let lt = "def f(a, b, x, y):\n    if a < b:\n        r = x\n    else:\n        r = y\n    return r\n";
     let ge = "def g(a, b, x, y):\n    if a >= b:\n        r = y\n    else:\n        r = x\n    return r\n";
-    assert_eq!(
-        unit_hash(&i, lt, Lang::Python),
-        unit_hash(&i, ge, Lang::Python),
-        "a<b/else ≡ a>=b/swapped"
+    assert_ne!(
+        value_fp(&i, lt, Lang::Python),
+        value_fp(&i, ge, Lang::Python),
+        "untyped a<b/else must not merge with a>=b/swapped"
     );
 
-    let le = "def f(a, b, x, y):\n    if a <= b:\n        r = x\n    else:\n        r = y\n    return r\n";
-    let gt = "def g(a, b, x, y):\n    if a > b:\n        r = y\n    else:\n        r = x\n    return r\n";
+    // Integer-proven operands can still use the total-order dual and should converge.
+    let int_lt = "def f(a: int, b: int, x: int, y: int):\n    if a < b:\n        r = x\n    else:\n        r = y\n    return r\n";
+    let int_ge = "def g(a: int, b: int, x: int, y: int):\n    if a >= b:\n        r = y\n    else:\n        r = x\n    return r\n";
     assert_eq!(
-        unit_hash(&i, le, Lang::Python),
-        unit_hash(&i, gt, Lang::Python),
-        "a<=b/else ≡ a>b/swapped"
+        value_fp(&i, int_lt, Lang::Python),
+        value_fp(&i, int_ge, Lang::Python),
+        "integer a<b/else should converge with a>=b/swapped"
+    );
+
+    let int_le = "def f(a: int, b: int, x: int, y: int):\n    if a <= b:\n        r = x\n    else:\n        r = y\n    return r\n";
+    let int_gt = "def g(a: int, b: int, x: int, y: int):\n    if a > b:\n        r = y\n    else:\n        r = x\n    return r\n";
+    assert_eq!(
+        value_fp(&i, int_le, Lang::Python),
+        value_fp(&i, int_gt, Lang::Python),
+        "integer a<=b/else should converge with a>b/swapped"
     );
 }
 
@@ -2487,11 +2560,11 @@ fn cfg_nested_guard_equals_conjunction() {
 }
 
 #[test]
-fn cfg_continue_guard_equals_nested() {
+fn cfg_continue_guard_requires_total_order_proof() {
     let i = Interner::new();
     let cont = "def f(xs):\n    total = 0\n    for x in xs:\n        if x < 0:\n            continue\n        total = total + x\n    return total\n";
     let nested = "def g(ys):\n    total = 0\n    for y in ys:\n        if y >= 0:\n            total = total + y\n    return total\n";
-    assert_eq!(
+    assert_ne!(
         unit_hash(&i, cont, Lang::Python),
         unit_hash(&i, nested, Lang::Python)
     );
@@ -2832,9 +2905,9 @@ fn filtered_flat_map_sum_converges_with_nested_guarded_reduction() {
         filtered_sum_gen, filtered_sum_loop,
         "filtered flat-map sums should match equivalent nested guarded reductions"
     );
-    assert_eq!(
+    assert_ne!(
         filtered_sum_gen, filtered_sum_js,
-        "filtered flatMap().reduce() should preserve carried outer and inner predicates"
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
     );
     assert_ne!(
         filtered_sum_gen, filtered_sum_outer_changed,
@@ -2890,9 +2963,9 @@ fn filtered_flat_map_any_all_converge_with_nested_guarded_loops() {
         Lang::TypeScript,
     );
 
-    assert_eq!(
+    assert_ne!(
         filtered_any_gen, filtered_any_js,
-        "method terminal predicates over filtered flatMap should preserve carried predicates"
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
     );
     assert_eq!(
         filtered_any_gen, filtered_any_loop,
@@ -2902,9 +2975,9 @@ fn filtered_flat_map_any_all_converge_with_nested_guarded_loops() {
         filtered_any_gen, filtered_any_terminal_changed,
         "changing the terminal method predicate changes behavior"
     );
-    assert_eq!(
+    assert_ne!(
         filtered_all_gen, filtered_all_js,
-        "method universal predicates over filtered flatMap should preserve carried predicates"
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
     );
     assert_eq!(
         filtered_all_gen, filtered_all_loop,
@@ -2916,9 +2989,10 @@ fn filtered_flat_map_any_all_converge_with_nested_guarded_loops() {
     );
 }
 
-/// Cross-language `any`/`all` predicate reductions converge to one fingerprint: Python
-/// `any(p(x) for x in xs)`, JS `xs.some(p)`, Rust `xs.iter().any(p)` — and likewise
-/// `all`/`every`. `any` and `all` stay DISTINCT (different short-circuit behavior).
+/// Cross-language `any`/`all` predicate reductions converge when the predicate is proven in the
+/// same primitive domain. Rust iterator predicates still converge with Python generators; TS
+/// `number[]` callbacks stay closed until element-domain proof exists. `any` and `all` stay
+/// DISTINCT (different short-circuit behavior).
 #[test]
 fn cross_language_any_all_converges() {
     let i = Interner::new();
@@ -2947,9 +3021,15 @@ fn cross_language_any_all_converges() {
         "function g(xs: number[]): boolean { return xs.every(x => x > 0); }",
         Lang::TypeScript,
     );
-    assert_eq!(any_py, any_js, "Python any ≡ JS some");
+    assert_ne!(
+        any_py, any_js,
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
+    );
     assert_eq!(any_py, any_rs, "Python any ≡ Rust any");
-    assert_eq!(all_py, all_js, "Python all ≡ JS every");
+    assert_ne!(
+        all_py, all_js,
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
+    );
     assert_ne!(any_py, all_py, "any and all must stay distinct");
     assert!(!any_py.is_empty());
 }
@@ -3006,21 +3086,21 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         filtered_py, filtered_js,
         "untyped JS parameter method calls lack a receiver proof and must stay opaque"
     );
-    assert_eq!(
+    assert_ne!(
         filtered_py, filtered_ts,
-        "TypeScript filter+map surface should agree"
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
     );
     assert_eq!(
         filtered_py, filter_map_rs,
-        "Rust filter_map Some/None should become the same filtered-map value"
+        "Rust i32 slice callback elements provide total-order proof for filter_map"
     );
     assert_eq!(
         filtered_py, match_option_rs,
-        "Rust filter_map match guards should become the same filtered-map value"
+        "Rust filter_map match guards should use the same total-order proof"
     );
     assert_eq!(
         filtered_py, and_then_rs,
-        "Rust filter_map pure Option::and_then chains should become the same filtered-map value"
+        "Rust Option::and_then filter_map chains should use the same total-order proof"
     );
     assert_eq!(
         filtered_py, guarded_builder_rs,
@@ -3072,11 +3152,11 @@ fn rust_filter_map_keeps_falsey_and_none_payload_boundaries() {
 
     assert_eq!(
         falsey_py, falsey_rs,
-        "Some(0) is an emitted value, not an absence sentinel"
+        "Rust filter_map emits falsey payloads rather than treating them as absence"
     );
     assert_eq!(
         filtered_none_py, wrapped_none_rs,
-        "Some(None) is an emitted Null payload, not a dropped item"
+        "Rust filter_map emits wrapped None payloads rather than dropping them"
     );
     assert_ne!(
         filtered_py, wrapped_none_rs,
@@ -3993,6 +4073,7 @@ fn import_named_and_namespace_member_coordinates_converge() {
     let js_named = "import { helper } from \"./shared-math\";\nfunction f(value) { return helper(value + 1); }\n";
     let js_namespace = "import * as mathOps from \"./shared-math\";\nfunction f(value) { return mathOps.helper(value + 1); }\n";
     let js_wrong_member = "import * as mathOps from \"./shared-math\";\nfunction f(value) { return mathOps.otherHelper(value + 1); }\n";
+    let ts_named = "import { helper } from \"./shared-math\";\nfunction f(value: number): number { return helper(value + 1); }\n";
     let ts_namespace = "import * as mathOps from \"./shared-math\";\nfunction f(value: number): number { return mathOps.helper(value + 1); }\n";
     let ts_type_only =
         "import type { helper } from \"./shared-math\";\nfunction f(value: number): number { return helper(value + 1); }\n";
@@ -4006,8 +4087,11 @@ fn import_named_and_namespace_member_coordinates_converge() {
 
     let fp = value_fp(&i, js_named, Lang::JavaScript);
     assert_eq!(fp, value_fp(&i, js_namespace, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_namespace, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, js_wrong_member, Lang::JavaScript));
+
+    let ts_fp = value_fp(&i, ts_named, Lang::TypeScript);
+    assert_eq!(ts_fp, value_fp(&i, ts_namespace, Lang::TypeScript));
+    assert_ne!(fp, ts_fp);
     assert_ne!(fp, value_fp(&i, ts_type_only, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, ts_mixed_type_only, Lang::TypeScript));
 
@@ -5380,19 +5464,26 @@ fn value_graph_distinguishes_boolean_literals() {
     // `if x>0: return True else False` and its negation (booleans swapped) compute
     // opposite results and must not collapse. The bool *value* was abstracted away.
     let i = Interner::new();
-    let p = "def f(x):\n    if x > 0:\n        return True\n    return False\n";
-    let q = "def g(x):\n    if x > 0:\n        return False\n    return True\n";
+    let p = "def f(x: int):\n    if x > 0:\n        return True\n    return False\n";
+    let q = "def g(x: int):\n    if x > 0:\n        return False\n    return True\n";
     assert_ne!(
         value_fp(&i, p, Lang::Python),
         value_fp(&i, q, Lang::Python),
         "a predicate and its boolean-swapped negation must not fingerprint identically"
     );
-    // Cross-language: the same predicate in TS converges with Python.
-    let ts = "function f(x) { if (x > 0) { return true; } return false; }";
+    // Cross-language: the same integer predicate in Java converges with Python.
+    let java = "class C { static boolean f(int x) { if (x > 0) { return true; } return false; } }";
     assert_eq!(
         value_fp(&i, p, Lang::Python),
+        value_fp(&i, java, Lang::Java),
+        "same integer predicate should converge across languages"
+    );
+    // TypeScript `number` keeps its NaN comparison boundary closed.
+    let ts = "function f(x: number): boolean { if (x > 0) { return true; } return false; }";
+    assert_ne!(
+        value_fp(&i, p, Lang::Python),
         value_fp(&i, ts, Lang::TypeScript),
-        "same predicate should converge across languages"
+        "TS number predicates must not merge with integer-only predicates"
     );
 }
 
@@ -5686,8 +5777,8 @@ u32 q(const int *a) {
 fn value_graph_cross_language_reorder() {
     // Same computation, different statement order, different language.
     let i = Interner::new();
-    let py = "def f(a, b):\n    p = a * b\n    q = a + b\n    return p + q + p\n";
-    let ts = "function g(a, b){ const q = a + b; const p = a * b; return p + q + p; }";
+    let py = "def f(a: int, b: int):\n    p = a * b\n    q = a + b\n    return p + q + p\n";
+    let ts = "function g(a: number, b: number): number { const q = a + b; const p = a * b; return p + q + p; }";
     assert_eq!(
         value_fp(&i, py, Lang::Python),
         value_fp(&i, ts, Lang::TypeScript)
@@ -5838,7 +5929,7 @@ fn lattice_strict_comparison_converges_and_separates() {
     // SOUND lattice canon on a total order: `(x ≤ y) ∧ (x ≠ y) ≡ x < y` and the dual
     // `(x < y) ∨ (x = y) ≡ x ≤ y`. Declaring the one `∧` rule composes through the
     // recursive `mk` fixpoint (De Morgan + comparison-direction canon) to also close
-    // `not (a > b or a == b) ≡ a < b`, cross-language.
+    // `not (a > b or a == b) ≡ a < b` for integer-proven operands.
     let i = Interner::new();
     let lt = value_fp(&i, "def f(a,b):\n    return a<b\n", Lang::Python);
     assert_eq!(
@@ -5851,22 +5942,32 @@ fn lattice_strict_comparison_converges_and_separates() {
         value_fp(&i, "def g(a,b):\n    return a!=b and a<=b\n", Lang::Python),
         "operand order of the conjunction must not matter"
     );
+    let lt_int = value_fp(&i, "def f(a: int,b: int):\n    return a<b\n", Lang::Python);
     assert_eq!(
+        lt_int,
+        value_fp(
+            &i,
+            "def g(a: int,b: int):\n    return not (a>b or a==b)\n",
+            Lang::Python
+        ),
+        "De Morgan + comparison-direction must compose into the lattice canon"
+    );
+    assert_ne!(
         lt,
         value_fp(
             &i,
             "def g(a,b):\n    return not (a>b or a==b)\n",
             Lang::Python
         ),
-        "De Morgan + comparison-direction must compose into the lattice canon"
+        "untyped De Morgan plus order negation must keep the NaN boundary closed"
     );
-    // Cross-language: a JS strict-less written as the conjunction.
+    // Cross-language: a typed TS strict-less written as the conjunction.
     assert_eq!(
         lt,
         value_fp(
             &i,
-            "function g(a,b){ return a<=b && a!=b; }",
-            Lang::JavaScript
+            "function g(a: number, b: number): boolean { return a <= b && a !== b; }",
+            Lang::TypeScript
         ),
         "the lattice canon is language-agnostic"
     );
@@ -6067,8 +6168,8 @@ fn class_value_law_domains_use_method_parameter_evidence() {
 
 /// FILTER FUSION: `filter(q, filter(p, xs))` ≡ `filter(p∧q, xs)`. The value graph carries a
 /// filter's element so nested filters fuse (`value_graph.rs` `HoFKind::Filter` arm, Lean
-/// `normalize.value_graph.functor`). A two-filter comprehension, an explicitly nested one, and
-/// (cross-language) a JS `.filter().filter()` all converge to one filtered stream.
+/// `normalize.value_graph.functor`). A two-filter comprehension and an explicitly nested one
+/// converge; TS `number[]` callbacks stay closed until element-domain proof exists.
 #[test]
 fn filter_fusion_converges() {
     let i = Interner::new();
@@ -6085,7 +6186,7 @@ fn filter_fusion_converges() {
         ),
         "two stacked filters should fuse with an explicitly nested filter"
     );
-    assert_eq!(
+    assert_ne!(
         value_fp(
             &i,
             "def f(xs):\n    return [x for x in xs if x>0 if x<10]\n",
@@ -6096,7 +6197,7 @@ fn filter_fusion_converges() {
             "function g(xs: number[]): number[] { return xs.filter(x=>x>0).filter(x=>x<10); }",
             Lang::TypeScript
         ),
-        "Python two-filter comprehension should converge with JS chained .filter().filter()"
+        "TypeScript number[] callback elements are not yet numeric proof for relational predicates"
     );
 }
 
@@ -6294,7 +6395,7 @@ fn convergence_probe_xlang() {
          "def f(a,b):\n    if a>0:\n        return b+1\n    return b+2\n", Lang::Python,
          "package p\nfunc f(a,b int) int {\n\tif a>0 {\n\t\treturn b+1\n\t}\n\treturn b+2\n}\n", Lang::Go),
         ("x*2 vs x+x", "def f(x):\n    return x*2\n", Lang::Python, "def g(x):\n    return x+x\n", Lang::Python),
-        ("abs idioms Py", "def f(x):\n    return x if x>=0 else -x\n", Lang::Python, "def g(x):\n    return abs(x)\n", Lang::Python),
+        ("abs idioms Py", "def f(x: int):\n    return x if x>=0 else -x\n", Lang::Python, "def g(x: int):\n    return abs(x)\n", Lang::Python),
         ("compound assign", "def f(a,b):\n    a += b\n    a *= 2\n    return a\n", Lang::Python, "def g(a,b):\n    return (a+b)*2\n", Lang::Python),
         ("min idioms", "def f(a,b):\n    return a if a<b else b\n", Lang::Python, "def g(a,b):\n    return min(a,b)\n", Lang::Python),
         ("count loop vs sum-1", "def f(xs):\n    c=0\n    for x in xs:\n        if x>0:\n            c+=1\n    return c\n", Lang::Python, "def g(xs):\n    return sum(1 for x in xs if x>0)\n", Lang::Python),
@@ -6469,15 +6570,15 @@ fn tail_recursion_converges_with_while_loop() {
 
 #[test]
 fn tail_recursion_converges_cross_language() {
-    // Python accumulator recursion ≡ a JavaScript while loop — the shared IL makes the
+    // Python accumulator recursion ≡ a typed TypeScript while loop — the shared IL makes the
     // recursion→iteration rewrite cross-language for free.
     let i = Interner::new();
     let py = "def f(n, acc):\n    if n == 0:\n        return acc\n    return f(n - 1, acc + n)\n";
-    let js = "function g(n, acc){ while(n != 0){ acc = acc + n; n = n - 1; } return acc; }";
+    let ts = "function g(n: number, acc: number): number { while (n !== 0) { acc = acc + n; n = n - 1; } return acc; }";
     assert_eq!(
         value_fp(&i, py, Lang::Python),
-        value_fp(&i, js, Lang::JavaScript),
-        "Python tail recursion and JS while loop should converge"
+        value_fp(&i, ts, Lang::TypeScript),
+        "Python tail recursion and typed TypeScript while loop should converge"
     );
 }
 
@@ -6733,6 +6834,217 @@ fn js_shift_is_int32_and_distinct_from_arbitrary_precision() {
         value_fp(&i, py_shl, Lang::Python),
         value_fp(&i, py_shl2, Lang::Python),
         "two Python `<<` must still converge"
+    );
+}
+
+#[test]
+fn js_mixed_string_addition_keeps_grouping_ordered() {
+    // JS `+` is not just numeric add or string concat: when a string participates,
+    // later numeric operands are coerced to strings in left-to-right order.
+    // `"a" + 2 + 3` is `"a23"`, while `"a" + (2 + 3)` / `"a" + 5` is `"a5"`.
+    // Flattening/folding an untyped JS `+` chain therefore false-merges real code.
+    let i = Interner::new();
+    let left_assoc = "function f(x) { return x + 2 + 3; }";
+    let grouped = "function g(x) { return x + (2 + 3); }";
+    let folded = "function h(x) { return x + 5; }";
+    assert_ne!(
+        value_fp(&i, left_assoc, Lang::JavaScript),
+        value_fp(&i, grouped, Lang::JavaScript),
+        "untyped JS `x + 2 + 3` must not merge with `x + (2 + 3)`"
+    );
+    assert_ne!(
+        value_fp(&i, left_assoc, Lang::JavaScript),
+        value_fp(&i, folded, Lang::JavaScript),
+        "untyped JS `x + 2 + 3` must not merge with `x + 5`"
+    );
+
+    let typed_left = "function f(x: number): number { return x + 2 + 3; }";
+    let typed_grouped = "function g(x: number): number { return x + (2 + 3); }";
+    assert_eq!(
+        value_fp(&i, typed_left, Lang::TypeScript),
+        value_fp(&i, typed_grouped, Lang::TypeScript),
+        "TypeScript number evidence should preserve numeric associativity recall"
+    );
+
+    let sub = "function f(x) { return x - 3; }";
+    let add_neg = "function g(x) { return x + (-3); }";
+    assert_ne!(
+        value_fp(&i, sub, Lang::JavaScript),
+        value_fp(&i, add_neg, Lang::JavaScript),
+        "untyped JS `x - 3` must not merge with `x + (-3)`"
+    );
+
+    let neg_grouped = "function f(x) { return -(x + 2); }";
+    let distributed = "function g(x) { return -x - 2; }";
+    assert_ne!(
+        value_fp(&i, neg_grouped, Lang::JavaScript),
+        value_fp(&i, distributed, Lang::JavaScript),
+        "untyped JS `-(x + 2)` must not distribute over potentially-string `+`"
+    );
+
+    let typed_sub = "function f(x: number): number { return x - 3; }";
+    let typed_add_neg = "function g(x: number): number { return x + (-3); }";
+    assert_eq!(
+        value_fp(&i, typed_sub, Lang::TypeScript),
+        value_fp(&i, typed_add_neg, Lang::TypeScript),
+        "TypeScript number evidence should preserve subtraction/add-negation recall"
+    );
+}
+
+#[test]
+fn js_value_returning_logical_operators_keep_operand_order() {
+    // JS `||`/`&&` return one of the operand values, not a coerced Bool. With
+    // `a = "left"` and `b = "right"`, `a || b` returns `a` while `b || a` returns `b`;
+    // `a && b` returns `b` while `b && a` returns `a`.
+    let i = Interner::new();
+    let or_ab = "function f(a, b) { return a || b; }";
+    let or_ba = "function g(a, b) { return b || a; }";
+    let and_ab = "function h(a, b) { return a && b; }";
+    let and_ba = "function k(a, b) { return b && a; }";
+    assert_ne!(
+        value_fp(&i, or_ab, Lang::JavaScript),
+        value_fp(&i, or_ba, Lang::JavaScript),
+        "untyped JS `a || b` must not merge with `b || a`"
+    );
+    assert_ne!(
+        value_fp(&i, and_ab, Lang::JavaScript),
+        value_fp(&i, and_ba, Lang::JavaScript),
+        "untyped JS `a && b` must not merge with `b && a`"
+    );
+
+    let bool_or_ab = "function f(a: boolean, b: boolean): boolean { return a || b; }";
+    let bool_or_ba = "function g(a: boolean, b: boolean): boolean { return b || a; }";
+    let bool_and_ab = "function h(a: boolean, b: boolean): boolean { return a && b; }";
+    let bool_and_ba = "function k(a: boolean, b: boolean): boolean { return b && a; }";
+    assert_eq!(
+        value_fp(&i, bool_or_ab, Lang::TypeScript),
+        value_fp(&i, bool_or_ba, Lang::TypeScript),
+        "typed boolean `||` should keep commutative recall"
+    );
+    assert_eq!(
+        value_fp(&i, bool_and_ab, Lang::TypeScript),
+        value_fp(&i, bool_and_ba, Lang::TypeScript),
+        "typed boolean `&&` should keep commutative recall"
+    );
+}
+
+#[test]
+fn js_loose_equality_stays_distinct_from_strict_equality() {
+    // JS loose equality coerces (`false == 0`, `"0" == 0`, `[] == 0`), so it is not
+    // semantically interchangeable with strict equality except for the intentionally modeled
+    // nullish check (`x == null`) that backs `??`.
+    let i = Interner::new();
+    let loose_zero = "function f(x) { return x == 0; }";
+    let loose_zero_swapped = "function g(y) { return 0 == y; }";
+    let strict_zero = "function h(x) { return x === 0; }";
+    assert_eq!(
+        value_fp(&i, loose_zero, Lang::JavaScript),
+        value_fp(&i, loose_zero_swapped, Lang::JavaScript),
+        "loose equality itself is symmetric and should still converge across operand order"
+    );
+    assert_ne!(
+        value_fp(&i, loose_zero, Lang::JavaScript),
+        value_fp(&i, strict_zero, Lang::JavaScript),
+        "loose `x == 0` must not merge with strict `x === 0`"
+    );
+
+    let loose_ne_zero = "function f(x) { return x != 0; }";
+    let strict_ne_zero = "function h(x) { return x !== 0; }";
+    assert_ne!(
+        value_fp(&i, loose_ne_zero, Lang::JavaScript),
+        value_fp(&i, strict_ne_zero, Lang::JavaScript),
+        "loose `x != 0` must not merge with strict `x !== 0`"
+    );
+
+    let nullish = "function f(x, d) { return x ?? d; }";
+    let loose_null = "function g(x, d) { return x == null ? d : x; }";
+    let strict_null = "function h(x, d) { return x === null ? d : x; }";
+    assert_eq!(
+        value_fp(&i, nullish, Lang::JavaScript),
+        value_fp(&i, loose_null, Lang::JavaScript),
+        "loose `== null` remains the modeled nullish check"
+    );
+    assert_ne!(
+        value_fp(&i, loose_null, Lang::JavaScript),
+        value_fp(&i, strict_null, Lang::JavaScript),
+        "strict null equality must stay separate from the nullish loose check"
+    );
+}
+
+#[test]
+fn js_instanceof_stays_distinct_from_equality() {
+    // `instanceof` tests a value's prototype chain. It is not equality:
+    // `[] instanceof Array` is true, while `[] === Array` is false.
+    let i = Interner::new();
+    let membership = "function f(x, C) { return x instanceof C; }";
+    let renamed_membership = "function h(value, Type) { return value instanceof Type; }";
+    let equality = "function g(x, C) { return x === C; }";
+    assert_eq!(
+        value_fp(&i, membership, Lang::JavaScript),
+        value_fp(&i, renamed_membership, Lang::JavaScript),
+        "`instanceof` should still converge with the same directional source surface"
+    );
+    assert_ne!(
+        value_fp(&i, membership, Lang::JavaScript),
+        value_fp(&i, equality, Lang::JavaScript),
+        "`x instanceof C` must not merge with `x === C`"
+    );
+
+    let not_membership = "function f(x, C) { return !(x instanceof C); }";
+    let not_renamed_membership = "function h(value, Type) { return !(value instanceof Type); }";
+    let strict_inequality = "function g(x, C) { return x !== C; }";
+    assert_eq!(
+        value_fp(&i, not_membership, Lang::JavaScript),
+        value_fp(&i, not_renamed_membership, Lang::JavaScript),
+        "negated `instanceof` should still converge with the same source surface"
+    );
+    assert_ne!(
+        value_fp(&i, not_membership, Lang::JavaScript),
+        value_fp(&i, strict_inequality, Lang::JavaScript),
+        "`!(x instanceof C)` must not merge with `x !== C`"
+    );
+}
+
+#[test]
+fn js_relational_comparison_stays_distinct_from_typed_numeric_comparison() {
+    // JS relational comparison is not purely numeric for untyped operands:
+    // `"2" < "10"` is false because both operands are strings, while `2 < 10` is true.
+    let i = Interner::new();
+    let js_lt = "function f(a, b) { return a < b; }";
+    let ts_lt = "function g(a: number, b: number): boolean { return a < b; }";
+    let ts_gt = "function h(a: number, b: number): boolean { return b > a; }";
+    assert_eq!(
+        value_fp(&i, ts_lt, Lang::TypeScript),
+        value_fp(&i, ts_gt, Lang::TypeScript),
+        "typed numeric TS comparison should keep primitive comparison laws"
+    );
+    assert_ne!(
+        value_fp(&i, js_lt, Lang::JavaScript),
+        value_fp(&i, ts_lt, Lang::TypeScript),
+        "untyped JS `<` must not merge with typed numeric `<`"
+    );
+
+    let not_lt = "function f(a, b) { return !(a < b); }";
+    let ge = "function g(a, b) { return a >= b; }";
+    assert_ne!(
+        value_fp(&i, not_lt, Lang::JavaScript),
+        value_fp(&i, ge, Lang::JavaScript),
+        "JS `!(a < b)` must not merge with `a >= b` because NaN makes them differ"
+    );
+
+    let py_not_lt = "def f(a, b):\n    return not (a < b)\n";
+    let py_ge = "def g(a, b):\n    return a >= b\n";
+    assert_ne!(
+        value_fp(&i, py_not_lt, Lang::Python),
+        value_fp(&i, py_ge, Lang::Python),
+        "Python `not (a < b)` must not merge with `a >= b` because NaN makes them differ"
+    );
+    let py_int_not_lt = "def f(a: int, b: int):\n    return not (a < b)\n";
+    let py_int_ge = "def g(a: int, b: int):\n    return a >= b\n";
+    assert_eq!(
+        value_fp(&i, py_int_not_lt, Lang::Python),
+        value_fp(&i, py_int_ge, Lang::Python),
+        "integer-proven Python order negation can use total-order duals"
     );
 }
 
@@ -7147,14 +7459,15 @@ fn effectful_commutative_operands_do_not_reorder() {
 
 #[test]
 fn sound_recall_rules_converge_with_hard_negatives() {
-    // #284 (coevo §CE / S5-C4): three behaviorally-equal forms that nose now
-    // converges. Each is sound for ALL inputs because the error behavior is
-    // preserved on both sides (unlike the §BA identity rewrites), so no type gate.
+    // #284 (coevo §CE / S5-C4): behaviorally-equal forms that nose now converges.
+    // The abs law is integer-gated; the bitwise laws preserve error behavior on
+    // both sides for non-integer inputs.
     let i = Interner::new();
 
-    // abs(abs x) ≡ abs x — abs is idempotent; a non-orderable input Errs on both.
-    let abs_nested = "def f(x):\n    a = x if x >= 0 else -x\n    return a if a >= 0 else -a\n";
-    let abs_once = "def g(x):\n    return x if x >= 0 else -x\n";
+    // abs(abs x) ≡ abs x for integer-proven operands.
+    let abs_nested =
+        "def f(x: int):\n    a = x if x >= 0 else -x\n    return a if a >= 0 else -a\n";
+    let abs_once = "def g(x: int):\n    return x if x >= 0 else -x\n";
     assert_eq!(
         value_fp(&i, abs_nested, Lang::Python),
         value_fp(&i, abs_once, Lang::Python),

@@ -114,10 +114,8 @@ impl<'a> Builder<'a> {
 
     fn unary_canon(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
         let ValOp::Un(o) = *op else { return None };
-        // ABS IDEMPOTENCE: `abs(abs x) → abs x` (#284). `abs` is always ≥ 0 so the
-        // outer is a no-op; on a non-orderable input both sides Err identically
-        // (the inner `abs` Errs, propagating), so it is sound for ALL inputs — no
-        // type gate. `ABS_CODE` is synthesized from a ternary by `minmax_pattern`.
+        // ABS IDEMPOTENCE: `abs(abs x) → abs x` (#284). `ABS_CODE` is synthesized
+        // only from integer-proven calls or sign ternaries, so the outer Abs is a no-op.
         if o == ABS_CODE && !args.is_empty() {
             if let ValOp::Un(io) = self.nodes[args[0] as usize].op {
                 if io == ABS_CODE {
@@ -153,9 +151,16 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        // NEGATED COMPARISON: `!(a<=b) → a>b`, `!(a<b) → a>=b`, `!(a==b) → a!=b`, etc.
-        // Sound for a total order, and on non-numeric operands both sides Err
-        // (`!(Err)` propagates — see interp `un`), so the rewrite preserves behavior.
+        // Boolean double negation: unlike truthiness `!!x`, `!!b == b` when the
+        // inner value is already proven Boolean (comparisons, boolean params, etc.).
+        if o == Op::Not as u32 && !args.is_empty() {
+            if let Some(inner) = self.boolean_double_negation(args[0]) {
+                return Some(inner);
+            }
+        }
+        // NEGATED COMPARISON: `!(a==b) → a!=b` is value-independent. Order duals
+        // such as `!(a<b) → a>=b` require integer-domain proof because NaN makes
+        // the apparent dual false while the negated comparison is true.
         // This canonicalizes the residual `Not` the algebra pass leaves on a pushed
         // double-negation (`!!(a<b)` → `!(b<=a)` → `a<b`), converging it with the bare
         // comparison without the unsound untyped `!!x → x`.
@@ -163,11 +168,8 @@ impl<'a> Builder<'a> {
             && !args.is_empty()
             && self.comparison_law_enabled(ComparisonLaw::Negation)
         {
-            if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
-                if let Some(neg) = negate_cmp_code(self.il.meta.lang, bo) {
-                    let cargs = self.nodes[args[0] as usize].args.clone();
-                    return Some(self.mk(ValOp::Bin(neg), cargs));
-                }
+            if let Some(negated) = self.negated_comparison(args[0]) {
+                return Some(negated);
             }
         }
         if o == Op::Neg as u32 && !args.is_empty() {
@@ -187,6 +189,13 @@ impl<'a> Builder<'a> {
             if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
                 if bo == Op::Add as u32 {
                     let inner = self.nodes[args[0] as usize].args.clone();
+                    let mut leaves = Vec::new();
+                    for &value in &inner {
+                        self.flatten_into(value, Op::Add as u32, &mut leaves);
+                    }
+                    if !self.add_association_safe(&leaves) {
+                        return None;
+                    }
                     let negs: Vec<ValueId> = inner
                         .iter()
                         .map(|&t| self.mk(ValOp::Un(Op::Neg as u32), vec![t]))
@@ -200,6 +209,31 @@ impl<'a> Builder<'a> {
             }
         }
         None
+    }
+
+    fn boolean_double_negation(&self, value: ValueId) -> Option<ValueId> {
+        let ValOp::Un(op) = self.nodes[value as usize].op else {
+            return None;
+        };
+        let inner = self.nodes[value as usize].args[0];
+        (op == Op::Not as u32 && self.vty(inner) == ValueDomain::Boolean).then_some(inner)
+    }
+
+    fn negated_comparison(&mut self, comparison: ValueId) -> Option<ValueId> {
+        let ValOp::Bin(op) = self.nodes[comparison as usize].op else {
+            return None;
+        };
+        let negated = negate_cmp_code(self.il.meta.lang, op)?;
+        let args = self.nodes[comparison as usize].args.clone();
+        if matches!(op_from_code(op), Some(Op::Lt | Op::Le | Op::Gt | Op::Ge))
+            && !args
+                .iter()
+                .copied()
+                .all(|arg| self.is_integer_domain_value(arg))
+        {
+            return None;
+        }
+        Some(self.mk(ValOp::Bin(negated), args))
     }
 
     fn bin_idempotence_and_factor(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
@@ -297,7 +331,8 @@ impl<'a> Builder<'a> {
     // Recognize select idioms on EVERY branch merge — `Phi(cond, then, els)` is built
     // both by a ternary (`a if c else b`) and by an if/else that assigns a variable, so
     // doing this here (not just at the ternary) keeps the two forms convergent:
-    //   `x if x>=0 else -x` → Abs(x) ;  `x if x<y else y` → Min(x,y) / Max(x,y).
+    //   integer-proven `x if x>=0 else -x` → Abs(x);
+    //   `x if x<y else y` → Min(x,y) / Max(x,y).
     fn phi_select_idioms(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
         if !matches!(*op, ValOp::Phi) || args.len() != 3 {
             return None;
@@ -307,6 +342,9 @@ impl<'a> Builder<'a> {
         }
         if self.bool_const(args[1]) == Some(false) && self.bool_const(args[2]) == Some(true) {
             return Some(self.mk(ValOp::Un(Op::Not as u32), vec![args[0]]));
+        }
+        if let Some(v) = self.phi_branch_orientation(args[0], args[1], args[2]) {
+            return Some(v);
         }
         if let Some(v) = self.boolean_guarded_identity_phi(args[0], args[1], args[2]) {
             return Some(v);
@@ -333,6 +371,19 @@ impl<'a> Builder<'a> {
             return Some(v);
         }
         None
+    }
+
+    fn phi_branch_orientation(
+        &mut self,
+        cond: ValueId,
+        then_v: ValueId,
+        else_v: ValueId,
+    ) -> Option<ValueId> {
+        if self.vhash[then_v as usize] <= self.vhash[else_v as usize] {
+            return None;
+        }
+        let negated = self.negated_comparison(cond)?;
+        Some(self.mk(ValOp::Phi, vec![negated, else_v, then_v]))
     }
 
     // Boolean logical `and`/`or` is associative and commutative only when both sides are
@@ -421,13 +472,16 @@ impl<'a> Builder<'a> {
             }
             if leaves.len() > 2 && leaves.iter().all(|&v| self.reorder_safe(v)) {
                 // ASSOCIATIVITY — re-grouping a flat chain into one canonical left-leaning
-                // shape — is sound for ALL types, string/list concat included
-                // (`"a"+"b"+"c"` is `"abc"` however parenthesized). So ALWAYS flatten and
-                // rebuild, converging `(a+b)+c` with `a+(b+c)` even for untyped params.
+                // shape — is sound for Python/Ruby string/list concat, but not for JS/TS/Java
+                // mixed string coercion (`"a"+2+3` != `"a"+(2+3)`). Gate `+` association
+                // in those languages on proof that every leaf is non-concat.
+                if o == Op::Add as u32 && !self.add_association_safe(&leaves) {
+                    return None;
+                }
                 // COMMUTATIVITY — sorting the operands — is gated per op (`ac_chain_commutes`):
-                // a concat-possible `+` (#283-C) and a Ruby string/list `*` (series 9) stay
-                // ordered, so `c+(a+b)` and `3*"ab"` keep their source order, while numeric/
-                // typed sums and products still fully canonicalize.
+                // a concat-possible `+` (#283-C), mixed-coercion `+`, and a Ruby string/list
+                // `*` (series 9) stay ordered, while numeric/typed sums and products still
+                // fully canonicalize.
                 let commute = self.ac_chain_commutes(o, &leaves, ValueLaw::AddCommutativity);
                 if commute {
                     leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
@@ -679,8 +733,8 @@ impl<'a> Builder<'a> {
         self.lattice_pair_canon(a, b, Op::Lt as u32, Op::Eq as u32, Op::Le as u32)
     }
 
-    /// Recognize the absolute-value idiom `x if x>=0 else -x` (and its mirror
-    /// `-x if x<0 else x`) as `Un(ABS_CODE, [x])`, so it converges with `abs(x)`.
+    /// Recognize integer absolute-value idioms `x if x>=0 else -x` (and mirrors)
+    /// as `Un(ABS_CODE, [x])`, so they converge with integer-proven `abs(x)`.
     pub(super) fn abs_pattern(
         &mut self,
         cond: ValueId,
@@ -702,6 +756,9 @@ impl<'a> Builder<'a> {
         } else {
             return None;
         };
+        if !self.is_integer_domain_value(v) {
+            return None;
+        }
         let cn = &self.nodes[cond as usize];
         let opc = match cn.op {
             ValOp::Bin(o) => o,

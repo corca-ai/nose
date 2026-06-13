@@ -49,8 +49,8 @@ fn push_canonical_java_minmax_builtin_evidence(il: &mut Il, first_id: u32) {
             Builtin::Max => "max",
             _ => continue,
         };
-        let contract = library_method_call_contract(il.meta.lang, method, arg_count)
-            .expect("min/max contract");
+        let contract = library_scalar_integer_method_contract(il.meta.lang, method, arg_count)
+            .expect("min/max integer contract");
         il.evidence.push(library_api_contract_evidence(
             next_id,
             il.node(node).span,

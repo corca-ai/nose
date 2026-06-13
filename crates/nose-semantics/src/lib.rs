@@ -2117,19 +2117,20 @@ fn scalar_integer_method_contract_shape(
     name: &str,
     arg_count: usize,
 ) -> Option<ScalarIntegerMethodContract> {
+    use MethodReceiverContract as Receiver;
     use ScalarIntegerMethod as Method;
 
-    let semantic = match (lang, name, arg_count) {
-        (Lang::Rust, "abs", 0) => Method::Abs,
-        (Lang::Rust, "min", 1) => Method::Min,
-        (Lang::Rust, "max", 1) => Method::Max,
-        (Lang::Rust, "clamp", 2) => Method::Clamp,
+    let (semantic, receiver) = match (lang, name, arg_count) {
+        (Lang::Rust, "abs", 0) => (Method::Abs, Receiver::ExactInteger),
+        (Lang::Rust, "min", 1) => (Method::Min, Receiver::ExactInteger),
+        (Lang::Rust, "max", 1) => (Method::Max, Receiver::ExactInteger),
+        (Lang::Rust, "clamp", 2) => (Method::Clamp, Receiver::ExactInteger),
+        (Lang::Java, "abs", 1) => (Method::Abs, Receiver::UnshadowedGlobal("Math")),
+        (Lang::Java, "min", 2) => (Method::Min, Receiver::UnshadowedGlobal("Math")),
+        (Lang::Java, "max", 2) => (Method::Max, Receiver::UnshadowedGlobal("Math")),
         _ => return None,
     };
-    Some(ScalarIntegerMethodContract {
-        semantic,
-        receiver: MethodReceiverContract::ExactInteger,
-    })
+    Some(ScalarIntegerMethodContract { semantic, receiver })
 }
 
 pub fn scalar_integer_method_contract(
@@ -2257,11 +2258,8 @@ fn method_namespace_call_contract_shape(
             Receiver::ImportedNamespace("fmt"),
             Args::All,
         ),
-        (Lang::Go, "Abs", 1) => (
-            Builtin::Abs,
-            Receiver::ImportedNamespace("math"),
-            Args::First,
-        ),
+        // Go math.Abs is a float64 API and differs from the ternary abs idiom on -0.0.
+        // Keep it closed until a signed-zero-aware float model exists.
         (Lang::Go, "HasPrefix", 2) => (
             Builtin::StartsWith,
             Receiver::ImportedNamespace("strings"),
@@ -2467,28 +2465,15 @@ fn method_numeric_contract_shape(
             Receiver::ImportedNamespace("functools"),
             Args::All,
         ),
-        (Lang::Go, "Min", 2) => (Builtin::Min, Receiver::ImportedNamespace("math"), Args::All),
-        (Lang::Go, "Max", 2) => (Builtin::Max, Receiver::ImportedNamespace("math"), Args::All),
-        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "abs", 1) => {
-            (
-                Builtin::Abs,
-                Receiver::UnshadowedGlobal("Math"),
-                Args::First,
-            )
-        }
-        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "min", 2) => {
-            (Builtin::Min, Receiver::UnshadowedGlobal("Math"), Args::All)
-        }
-        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "max", 2) => {
-            (Builtin::Max, Receiver::UnshadowedGlobal("Math"), Args::All)
-        }
-        (Lang::Java, "abs", 1) => (
-            Builtin::Abs,
-            Receiver::UnshadowedGlobal("Math"),
-            Args::First,
-        ),
-        (Lang::Java, "min", 2) => (Builtin::Min, Receiver::UnshadowedGlobal("Math"), Args::All),
-        (Lang::Java, "max", 2) => (Builtin::Max, Receiver::UnshadowedGlobal("Math"), Args::All),
+        // Go math.Min/math.Max are float64 APIs and return NaN if either argument is NaN.
+        // Keep them closed until a NaN-aware float model exists. Java Math.abs/min/max
+        // use scalar-integer method contracts instead, so only integer-overload calls
+        // lower to the modeled Abs/Min/Max value nodes.
+        // JS-family Math.abs differs from `x >= 0 ? x : -x` on -0.
+        // Keep it closed until a signed-zero-aware numeric model exists.
+        // JS-family Math.min/Math.max return NaN if any argument is NaN. The value
+        // graph's Min/Max nodes model the ternary selection idiom instead, so these
+        // calls stay ordinary calls until a NaN-aware numeric model exists.
         (Lang::Rust, "zip", 1) => (
             Builtin::Zip,
             Receiver::ExactProtocolPairArgument,

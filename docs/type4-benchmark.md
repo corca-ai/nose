@@ -228,8 +228,9 @@ generated as hard negatives.
 The current C total-order comparator contract is similarly narrow: generated comparator
 callbacks dereference two scalar coordinates and return `-1`, `1`, or `0` for ascending
 less, greater, and equal cases. Guard-return order and nested ternary sign forms may
-converge only when the comparison operators are primitive ordered comparisons; overloadable
-or effectful receiver comparisons remain hard negatives.
+converge only when the value graph has total-order proof for the compared values; pointer-loaded
+locals without that proof, overloadable comparisons, and effectful receiver comparisons remain
+hard negatives.
 
 The current C byte-pack contract is narrower still. Generated `u16` big-endian decoders may
 converge only when the receiver is proven to be a byte buffer (`unsigned char *`, `uint8_t *`,

@@ -555,14 +555,21 @@ migrated.
 - Imported namespace function contracts now cover Python `math.prod` as a product
   reduction only when the receiver is proven to be the imported `math` namespace.
   Bare globals named `math` and overwritten module bindings stay exact-closed.
-- Java and JS-like `Math.abs`/`Math.min`/`Math.max` now lower through method
-  contracts with an unshadowed `Math` receiver requirement instead of frontend
-  text-only builtin lowering.
+- Java integer `Math.abs`/`Math.min`/`Math.max` now lower through scalar-integer
+  method contracts with an unshadowed `Math` receiver requirement plus
+  integer-domain proof for value arguments instead of frontend text-only builtin
+  lowering. JS-like `Math.abs`/`Math.min`/`Math.max` stay exact-closed until a
+  signed-zero and NaN-aware numeric model exists; Go `math.Abs`/`math.Min`/
+  `math.Max` and Java floating `Math.abs`/`Math.min`/`Math.max` stay closed for
+  the same reason.
 - Two-argument free `min(...)`/`max(...)` normalization consumes the Python
-  free-function builtin `LibraryApi` occurrence contract. Same-named functions
-  from other languages, including JS `min(...)`, locally shadowed Python names,
-  and manually constructed calls without admitted occurrence evidence stay
-  exact-closed.
+  free-function builtin `LibraryApi` occurrence contract plus integer-domain
+  proof. Same-named functions from other languages, including JS `min(...)`,
+  locally shadowed Python names, manually constructed calls without admitted
+  occurrence evidence, and float/NaN-sensitive operands stay exact-closed. Python
+  free `abs(...)` and sign-test absolute-value ternaries also require
+  integer-domain proof before they use the modeled Abs node, so untyped and
+  element-derived operands keep the signed-zero boundary closed.
 - User-defined and imported opaque call identity now consume `CallTarget`
   evidence. The first-party producer admits `DirectFunction` records for unique
   top-level in-file function targets with no current or enclosing lexical
