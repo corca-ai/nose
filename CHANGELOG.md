@@ -6,6 +6,21 @@ break.
 
 ## [Unreleased]
 
+### Added
+- **Falsification-driven distinguishing-input search for `nose verify` (`--falsify`, #317).**
+  The fixed battery only finds a false merge when a hand-curated row happens to feed the
+  distinguishing input (e.g. two distinct strings to two untyped params — the #283-C class).
+  `--falsify` institutionalizes that: for each fingerprint-equal group the battery found equal,
+  it SEARCHES a value-kind-rich input domain (two distinct strings/lists, int32-wrapping ints,
+  float magnitudes, mined constants; seeded/deterministic, budget-bounded) for a row that
+  distinguishes two members — a false merge the battery's input starvation missed, counted
+  toward `--max-violations`. Unlike broadening the global battery (which manufactures impossible
+  type-incoherent rows), it compares group members against each other and never touches the
+  canon-preservation check, so the spurious-violation hazard does not arise. Offline/opt-in: the
+  scan path and the default `verify` gate are unchanged. The engine re-derives the #283-C
+  distinguisher by search (regression test) and finds 0 new false merges on the full pinned
+  corpus (the value model already separates every checked group). (oracle-value-model §7.)
+
 ### Performance
 - **Interactive `nose scan` no longer pays for the graded witness it does not show.**
   The graded witness (#315) is serialized only by `--format json`; the human and SARIF

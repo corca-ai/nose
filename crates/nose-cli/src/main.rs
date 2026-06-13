@@ -3,6 +3,7 @@
 mod baseline;
 mod cache;
 mod config;
+mod falsify;
 mod fnv;
 mod ignores;
 mod review;
@@ -372,6 +373,13 @@ enum Cmd {
         /// by unverified-merge mass instead of by guess.
         #[arg(long)]
         exclusion_census: Option<PathBuf>,
+        /// Run the falsification-driven distinguishing-input SEARCH (#317) IN ADDITION to the
+        /// fixed battery: for each fingerprint-equal group the battery found equal, search a
+        /// value-kind-rich input domain (two distinct strings/lists, int32-wrapping ints, float
+        /// magnitudes, mined constants) for a row that distinguishes two members — a false merge
+        /// the fixed battery's input STARVATION missed. Offline/opt-in; reports the search delta.
+        #[arg(long)]
+        falsify: bool,
     },
     /// EXPERIMENTAL Type-4 benchmark harness (research tool, not a stable interface).
     ///
@@ -1591,6 +1599,7 @@ fn run() -> Result<()> {
             max_violations,
             leads,
             exclusion_census,
+            falsify,
         } => cmd_verify(
             paths,
             no_cfg_norm,
@@ -1598,6 +1607,7 @@ fn run() -> Result<()> {
             max_violations,
             leads,
             exclusion_census,
+            falsify,
         ),
         Cmd::BehavioralGate {
             paths,
@@ -2311,6 +2321,7 @@ fn cmd_verify(
     max_violations: Option<usize>,
     leads: Option<PathBuf>,
     exclusion_census: Option<PathBuf>,
+    falsify: bool,
 ) -> Result<()> {
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
@@ -2360,9 +2371,16 @@ fn cmd_verify(
         }
     }
 
-    let n_violations = report_verify_soundness(&oracle.recs);
+    let mut n_violations = report_verify_soundness(&oracle.recs);
     report_verify_completeness(&oracle.recs, leads.as_deref())?;
     report_verify_calibration(&oracle.recs);
+    if falsify {
+        // Falsification search (#317): augment the fixed battery with a per-group
+        // distinguishing-input search. Any hit is a false merge the battery's input
+        // starvation missed; count it toward the gate so `--falsify --max-violations 0` is
+        // the stronger engine the issue calls for.
+        n_violations += report_falsify(&corpus, &opts, &oracle.recs, &verify_probes(&corpus));
+    }
 
     // CI soundness gate: fail if false merges exceed the budget, or if any normalization
     // pass changes a unit's behavior vs the pre-canon core IL. The independent oracle thus
@@ -2401,6 +2419,10 @@ struct VerifyRec {
     /// only when their declarations agree; a disagreement across different
     /// declarations is an advisory lead, not a hard violation.
     domain_sig: u64,
+    /// Index into `corpus.files` and the CORE-IL root, so `--falsify` can re-normalize the
+    /// file (deterministically) and re-interpret this unit on search-generated inputs (#317).
+    file_idx: usize,
+    core_root: nose_il::NodeId,
 }
 
 #[derive(Clone, Copy)]
@@ -2515,7 +2537,8 @@ fn collect_verify_recs(
     let per_file: Vec<_> = corpus
         .files
         .par_iter()
-        .map(|il| {
+        .enumerate()
+        .map(|(file_idx, il)| {
             let n = nose_normalize::normalize(il, &corpus.interner, opts);
             // The behavioral ground truth comes from the pre-canonicalization core IL (so a
             // behavior-changing canon can't mask itself), matched to each fully-normalized
@@ -2557,6 +2580,7 @@ fn collect_verify_recs(
                 battery,
                 &mut oracle,
                 &exact_safe_by_span,
+                file_idx,
             );
             oracle
         })
@@ -2610,6 +2634,7 @@ fn push_verify_census(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_file_verify_recs(
     n: &nose_il::Il,
     core: &nose_il::Il,
@@ -2618,6 +2643,7 @@ fn collect_file_verify_recs(
     battery: &[Vec<nose_normalize::Value>],
     oracle: &mut VerifyOracle,
     exact_safe_by_span: &std::collections::HashMap<(u32, u32), bool>,
+    file_idx: usize,
 ) {
     let file_path = &n.meta.path;
     let core_func = func_span_index(core);
@@ -2734,6 +2760,8 @@ fn collect_file_verify_recs(
             loc: format!("{}:{}", file_path, span.start_line),
             claimable,
             domain_sig: param_domain_signature(n, root),
+            file_idx,
+            core_root,
         });
     }
 }
@@ -2906,6 +2934,83 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
         }
     }
     n_violations
+}
+
+/// Falsification search (#317): for each fingerprint-equal group the FIXED battery found
+/// equal-and-hard-gate-eligible, search a value-kind-rich input domain (`falsify::falsify_pair`)
+/// for a distinguishing input. A hit is a false merge the battery's input starvation missed.
+/// Re-normalizes each member's file to the pre-canon CORE IL on demand (deterministic, cached)
+/// and re-interprets. Returns the count of newly-found false merges (added to the gate).
+fn report_falsify(
+    corpus: &Corpus,
+    opts: &nose_normalize::NormalizeOptions,
+    recs: &[VerifyRec],
+    probes: &[nose_normalize::Value],
+) -> usize {
+    use std::collections::HashMap;
+    const PER_PAIR_BUDGET: usize = 4096;
+    let oracle_opts = nose_normalize::NormalizeOptions {
+        oracle: true,
+        ..*opts
+    };
+    let mut by_fp: HashMap<&[u64], Vec<&VerifyRec>> = HashMap::new();
+    for r in recs {
+        by_fp.entry(&r.fp).or_default().push(r);
+    }
+    let mut core_cache: HashMap<usize, nose_il::Il> = HashMap::new();
+    let mut found: Vec<(String, String)> = Vec::new();
+    for members in by_fp.values() {
+        if members.len() < 2 {
+            continue;
+        }
+        let first = members[0];
+        for r in &members[1..] {
+            // The battery already found these EQUAL; only such groups need a deeper search.
+            // Restrict to hard-gate-eligible pairs (claimable, comparable declarations) so a hit
+            // is a real false merge, not an advisory/lossy diagnostic.
+            if r.beh != first.beh
+                || !(first.claimable && r.claimable && first.domain_sig == r.domain_sig)
+            {
+                continue;
+            }
+            for &idx in &[first.file_idx, r.file_idx] {
+                core_cache.entry(idx).or_insert_with(|| {
+                    nose_normalize::normalize(&corpus.files[idx], &corpus.interner, &oracle_opts)
+                });
+            }
+            let il_a = &core_cache[&first.file_idx];
+            let il_b = &core_cache[&r.file_idx];
+            if falsify::falsify_pair(
+                il_a,
+                first.core_root,
+                il_b,
+                r.core_root,
+                &corpus.interner,
+                probes,
+                PER_PAIR_BUDGET,
+            )
+            .is_some()
+            {
+                found.push((first.loc.clone(), r.loc.clone()));
+            }
+        }
+    }
+    println!("\nFALSIFICATION SEARCH (#317) — distinguishing inputs beyond the fixed battery:");
+    if found.is_empty() {
+        println!(
+            "  no new distinguishers — the fixed battery already separates every checked group ✓"
+        );
+    } else {
+        found.sort();
+        println!(
+            "  [!] {} false merge(s) found by SEARCH that the fixed battery missed:",
+            found.len()
+        );
+        for (a, b) in found.iter().take(20) {
+            println!("    {a}  ≡?  {b}   (distinguisher found by search)");
+        }
+    }
+    found.len()
 }
 
 /// Completeness: behavior-equal ⟹ fingerprint-equal (the under-merge / recall
