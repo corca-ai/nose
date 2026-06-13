@@ -351,6 +351,20 @@ trips it. `nose verify` on `netty` reported 3 canon-preservation "violations", a
 type-incoherent rows, and `sympy` 20 — masked only because the nightly soundness gate's
 pinned corpus includes neither.
 
+**The SOUND form shipped — a per-group falsification SEARCH (`nose verify --falsify`, #317).**
+Rather than broaden the global battery (which manufactures the impossible-input rows above),
+the search compares MEMBERS of a fingerprint-equal group against EACH OTHER on a value-kind-rich
+input domain (two distinct strings/lists, int32-wrapping ints, float magnitudes, mined
+constants; `crates/nose-cli/src/falsify.rs`). It never touches the canon-preservation check
+(core-vs-full-IL), so the impossible-input hazard does not arise; and it runs only on
+hard-gate-eligible groups (claimable, comparable declarations). A hit is a false merge the
+fixed battery's input starvation missed — counted toward `--max-violations`. The engine
+re-derives the #283-C string-non-commutativity distinguisher BY SEARCH (regression test
+`search_finds_string_noncommutativity_distinguisher`), and on the pinned corpus finds **0 new
+false merges** (the fixed battery + value model already separate every checked group) — so it
+institutionalizes the adversarial-input discipline without changing the gate's verdict today.
+It is offline/opt-in: the scan path and the default `verify` gate are untouched.
+
 ### 7.1 The equality-over-`Err` mechanism — fixed (coevo series 9)
 
 The series-9 oracle attacker sharpened the dominant class: the trigger was the
