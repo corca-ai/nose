@@ -64,6 +64,7 @@ fundamentals; the rest is grouped by area.
 - [fragment-contracts](fragment-contracts.md) — how exact sub-function fragments are modeled: classification, contract, the wrapper-synthesis behavior oracle, the effect algebra, and fail-closed receiver identity.
 - [reinvented-helpers](reinvented-helpers.md) — the containment channel: code that reimplements an existing pure helper inline, and the surface policy promoting non-test findings to the default report.
 - [oracle-value-model](oracle-value-model.md) — the verify oracle's value model (Int/Bool/Str-monoid/List/Sym), what it can and cannot witness, and the go/no-go plan to close #283's remaining false-merge sub-findings (C battery gap, D-int32 width, D-div float).
+- [value-float-kind-design](value-float-kind-design.md) — design & go/no-go for the last C-float gap (#342): the IEEE-754 `Value::Float` kind for fully-untyped float associativity, with the recall measurement that flips it from NO-GO to GO-phased.
 - [formal-soundness](formal-soundness.md) — Lean 4 proof-obligation registry for proof-sensitive IL, normalization, fragment, and oracle contracts.
 
 ### Semantic kernel & packs

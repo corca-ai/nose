@@ -215,7 +215,10 @@ first; promote to the full model only if the priced recall loss justifies it.
   nothing proves it float, the i64 oracle is associative, so it still flattens. Closing it is
   undecidable without types: it needs `Value::Float` with IEEE-754 semantics + the
   per-language Int↔Float coercion lattice (so the oracle can witness the non-associativity) —
-  much smaller now that both the syntactic and the float-typed-param cases are closed.
+  much smaller now that both the syntactic and the float-typed-param cases are closed. Scoped
+  with a recall measurement in **[value-float-kind-design](value-float-kind-design.md)** (#342):
+  holding untyped `+`/`*` costs 0 families on type4 + nose, so the recall objection is removed
+  and the recommendation flips to GO-phased (float oracle first, then the scan hold).
 - **Cost:** floor + syntactic + float-typed-param non-associativity paid (0 recall on type4);
   remaining Medium ONLY for the fully-untyped case (a real Float interpreter value).
 
@@ -297,11 +300,15 @@ coarse). Recommended sequence, cheapest-and-highest-confidence first:
    narrowing fingerprint is in place. Next work is int32 oracle execution plus
    measured JS↔C/Java-int recall recovery. Promote to the full fixed-width canon
    only if that loss is material.
-3. **D-div (Float) — floor shipped; full model remains NO-GO for now.** The
-   true/floored/truncated fingerprints are split. The full `Value::Float` model
-   is the largest single surface in the cluster and should not be started until
-   (a) the floor's recall price proves it necessary and (b) it gets its own
-   design doc covering NaN/±0/coercion.
+3. **D-div (Float) — floor shipped; syntactic + typed cases closed (#339/#340); full
+   model now GO-phased.** The true/floored/truncated fingerprints are split, and float
+   `+`/`*` non-associativity is held for syntactic-float and float-typed-param chains.
+   Both prerequisites for the full `Value::Float` model are now met: (a) the recall price
+   is **measured ≈ 0** (holding untyped `+`/`*` loses 0 families on type4 + nose), and (b)
+   it has its own design doc covering NaN/±0/coercion —
+   **[value-float-kind-design](value-float-kind-design.md)** (#342). Remaining is the
+   fully-untyped case; start with the float oracle (P1) so the latent merge becomes
+   gate-visible, then the scan hold (P2) after a real-corpus recall re-measurement.
 
 This converts "one big scary foundational extension" into **three independently
 priced, independently shippable fixes**, each with a sound floor — exactly the
