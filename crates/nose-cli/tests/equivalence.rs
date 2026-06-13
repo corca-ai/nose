@@ -6796,6 +6796,48 @@ fn js_nullish_assignment_desugars_to_nullish_coalescing() {
 }
 
 #[test]
+fn dataflow_does_not_unsoundly_inline_a_temp_past_a_write_or_into_a_lambda() {
+    // series 9 oracle residue: the copy-propagation inliner must not move a temp's
+    // (possibly-raising) read into a position evaluated under a different condition.
+    // Two cases, both verified to keep the temp's `Var` binding after normalization:
+    //   - `t = a[i]; a[i] = a[j]; a[j] = t` — inlining `t` past the indexed write that
+    //     clobbers `a[i]` would silently turn a swap into "set both to a[j]".
+    //   - `ind = nodes[k]; [x for x in d if nodes[x] == ind]` — inlining `ind` into the
+    //     filter lambda elides its `Err` when `d` is empty (the lambda never runs).
+    use nose_il::NodeKind;
+    let i = Interner::new();
+    let binds_a_var_temp = |il: &nose_il::Il| -> bool {
+        let mut stack = vec![first_func(il)];
+        while let Some(n) = stack.pop() {
+            if il.kind(n) == NodeKind::Assign {
+                if let Some(&lhs) = il.children(n).first() {
+                    if il.kind(lhs) == NodeKind::Var {
+                        return true;
+                    }
+                }
+            }
+            stack.extend(il.children(n).iter().copied());
+        }
+        false
+    };
+    let normalized = |src: &str, lang: Lang| {
+        let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, &i).unwrap();
+        normalize(&il, &i, &NormalizeOptions::default())
+    };
+    let swap = "def swap(a, i, j):\n    t = a[i]\n    a[i] = a[j]\n    a[j] = t\n";
+    assert!(
+        binds_a_var_temp(&normalized(swap, Lang::Python)),
+        "swap's `t = a[i]` must survive — inlining it past `a[i] = a[j]` is unsound",
+    );
+    let comp =
+        "def f(d, nodes, k):\n    ind = nodes[k]\n    return [x for x in d if nodes[x] == ind]\n";
+    assert!(
+        binds_a_var_temp(&normalized(comp, Lang::Python)),
+        "comprehension's `ind = nodes[k]` must not inline into the filter lambda",
+    );
+}
+
+#[test]
 fn js_strict_null_ternary_stays_distinct_from_nullish_coalescing() {
     // `x ?? d` and `x == null ? d : x` both default null AND undefined — they are
     // the same computation. `x === null ? d : x` passes undefined through, so it

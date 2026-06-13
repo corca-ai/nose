@@ -49,7 +49,15 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # (the `impl<'a>` header + a `for u in &il.units { def_*.entry(..) }` skeleton) with
 # value_graph/builders.rs's `impl Builder` — 8 varying spots, nothing extractable (the
 # two impls do unrelated work). A spurious whole-impl span, not new duplication.
-BUDGET=26      # accepted substantial families today (see docs/dogfooding.md)
+#
+# +1 (series 9): the two table-driven decidability-filter tests in nose-cli's inline
+# `tests` module — `declaration_spans_fail_open_per_language` and
+# `declaration_spans_classify_per_language` — are genuinely near-identical by construction
+# (a `&[(&str,&str)]` case table + an `assert!(…ast_classifies…)` loop, differing only in
+# the asserted direction). The series-9 dataflow inline-soundness fix shifted enough
+# structure to push the pair over the near threshold. Benign test scaffolding, nothing to
+# extract; the production change it rode in on is fingerprint-neutral (family delta ≈ 0).
+BUDGET=27      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 

@@ -165,3 +165,14 @@ the whole-impl span (8 varying spots, ~7 of ~270 lines shared), but the two impl
 (value-DAG referent resolution vs the value-graph builder's dict-entry/index-write methods) — there
 is nothing extractable. Another spurious whole-impl-span match, not new avoidable duplication; the
 budget is re-baselined to 26.
+
+## Budget 26 → 27 and the series-9 dataflow fix
+
+The series-9 dataflow inline-soundness fix (oracle-value-model §7.2 — `collect_writes` records
+indexed/field-store base mutations, and the inliner skips uses in conditional/repeated positions) is
+fingerprint-neutral on the corpus (family delta ≈ 0), but the small structural shift pushed one
+**pre-existing** test near-family over the substantial line: the two table-driven decidability-filter
+tests in nose-cli's inline `tests` module, `declaration_spans_fail_open_per_language` ↔
+`declaration_spans_classify_per_language`. They are near-identical by construction — a
+`&[(&str, &str)]` case table plus an `assert!(…ast_classifies…)` loop, differing only in the asserted
+direction — benign test scaffolding with nothing extractable. The budget is re-baselined to 27.
