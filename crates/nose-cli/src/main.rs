@@ -1803,6 +1803,13 @@ fn verify_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::V
     // Without these rows the order-sensitive `Str`/`List` model (interp.rs) is starved,
     // and the oracle reads SOUND while the detector reorders untyped `+` (#283-C). Each
     // slot gets a distinct token so every adjacent operand pair differs.
+    //
+    // These rows are kept hand-curated DELIBERATELY: see docs/oracle-value-model.md
+    // (§"Why the battery is not broadened by naive enumeration") — feeding broader typed
+    // inputs (equal strings, bool/null) to slots a typed array/index param would consume
+    // manufactures impossible inputs (a string as an array index) on which the
+    // canonicalizer legitimately differs, producing spurious canon-preservation
+    // violations. A sound broad distinguishing search needs type-domain-aware feeding.
     let s = |t: u64| Value::Str(vec![t]);
     let distinct: [[Value; VERIFY_WIDTH]; 2] = [
         [s(0xC0DE01), s(0xC0DE02), s(0xC0DE03), s(0xC0DE04)],

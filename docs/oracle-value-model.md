@@ -283,6 +283,42 @@ priced, independently shippable fixes**, each with a sound floor — exactly the
 incremental, measured discipline [design §1](design.md) and the
 [co-evolution runbook](adversarial-coevolution.md) call for.
 
+## 7. Why the battery is not broadened by naive enumeration (#317)
+
+#317 proposed replacing the hand-curated input battery (`verify_battery`) with an
+*enumerative* distinguishing-input search. The naive form — feed more value kinds
+(equal strings, bool, null) at more positions — is **unsound**, and the reason is
+worth recording so it is not re-attempted:
+
+The battery is global and positional: row `[a,b,c,d]` is bound to params 0–3 of
+*every* unit, regardless of each param's type. A unit's param carries a coercion only
+when it has **declared domain evidence** (`coerce_to_declared_domain`, interp.rs);
+typed-language array/index params (Java `byte[] bytes`, `int startPos`,
+`String[] a`) carry **none** today, so an incoherent value reaches them uncoerced.
+Feeding, say, a string or a list to a slot a unit uses as an array index manufactures
+an input that **can never occur**, and the canonicalizer legitimately differs on it —
+producing a spurious **canon-preservation** violation (the check is concrete-only but
+does not filter `Err`).
+
+This is not hypothetical, and not new to broadening: the *current* battery already
+trips it. `nose verify` on `netty` reports 3 canon-preservation "violations", all on
+type-incoherent rows — e.g. `isZeroSafe(byte[],int,int)` fed three lists gives
+core `Err` vs full `Bool(false)`; `swap(String[],int,int)` fed a probe row gives
+core `Err,[]` vs full `Err, effects=[…]`. They are masked only because the nightly
+soundness gate's pinned corpus does not include `netty`. **The verify soundness gate
+cannot safely widen its corpus to typed-language repos until this is fixed.**
+
+The sound fix is **type-domain-aware input feeding**: infer each param's domain from
+its *usage* (index operand → Integer, index base / `len` / iteration → Collection,
+arithmetic operand → Number) when no declaration exists, and coerce battery rows
+through it — so the search can broaden without manufacturing impossible inputs. That
+is a behavior-affecting change to the interpreter's binding for *every* verify run
+(per-unit coercion can feed different values to two units in a fingerprint group), so
+it needs corpus-wide re-validation (pinned corpus stays sound, no new false merges,
+completeness stable) and is a separately-priced PR — the same floor-then-model
+discipline as §3. Until then `verify_battery`'s Part 3 stays hand-curated **on
+purpose** (a guard comment there points here).
+
 ---
 
 *See also: [design & direction](design.md) · [formal soundness](formal-soundness.md) ·
