@@ -3511,7 +3511,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         }
     }
     weight_shared_lines(&mut families, &refs, &settings.exclude);
-    enrich_graded_witnesses(&mut families, &opts);
+    enrich_witnesses_for_format(&mut families, &opts, args.format);
     let sort = settings.sort;
     families.sort_by(|a, b| {
         sort.score(b)
@@ -3743,6 +3743,21 @@ fn weight_shared_lines(
 /// families it cannot witness (cross-language, fragments, pathological files) simply
 /// keep their ungraded witness. The representative pair is the family's two largest
 /// copies (`locations[0]` and `locations[1]`).
+/// Attach graded witnesses only when they will actually be emitted. The witness is
+/// serialized solely by the JSON report (the human and SARIF surfaces never render it),
+/// and re-deriving it for every near family is the dominant scan cost on large repos
+/// (netty: ~2.8s of a ~4.6s near scan) — so the common interactive `nose scan` (human)
+/// pays nothing for evidence it does not show.
+fn enrich_witnesses_for_format(
+    families: &mut [nose_detect::RefactorFamily],
+    opts: &nose_detect::DetectOptions,
+    format: ReportFormat,
+) {
+    if matches!(format, ReportFormat::Json) {
+        time_stage("enrich", || enrich_graded_witnesses(families, opts));
+    }
+}
+
 pub(crate) fn enrich_graded_witnesses(
     families: &mut [nose_detect::RefactorFamily],
     opts: &nose_detect::DetectOptions,
@@ -4198,10 +4213,10 @@ fn print_hotspots_refs(families: &[&nose_detect::RefactorFamily]) {
     }
 }
 
-/// Run the corpus discover+parse+lower step, printing its wall time under
-/// `NOSE_TIME` (the in-pipeline stages report themselves; this covers the
-/// frontend, which usually dominates and is otherwise invisible).
-fn time_lower<T>(f: impl FnOnce() -> T) -> T {
+/// Time a named CLI-side stage under `NOSE_TIME` (the in-pipeline detector stages
+/// report themselves; this covers post-detection CLI work — lowering, the graded-witness
+/// enrichment — that is otherwise invisible).
+fn time_stage<T>(label: &str, f: impl FnOnce() -> T) -> T {
     if std::env::var_os("NOSE_TIME").is_none() {
         return f();
     }
@@ -4209,10 +4224,17 @@ fn time_lower<T>(f: impl FnOnce() -> T) -> T {
     let out = f();
     eprintln!(
         "  [time] {:<12} {:>7.1}ms",
-        "lower",
+        label,
         t0.elapsed().as_secs_f64() * 1e3
     );
     out
+}
+
+/// Run the corpus discover+parse+lower step, printing its wall time under
+/// `NOSE_TIME` (the in-pipeline stages report themselves; this covers the
+/// frontend, which usually dominates and is otherwise invisible).
+fn time_lower<T>(f: impl FnOnce() -> T) -> T {
+    time_stage("lower", f)
 }
 
 fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {

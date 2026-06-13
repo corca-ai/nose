@@ -6,6 +6,16 @@ break.
 
 ## [Unreleased]
 
+### Performance
+- **Interactive `nose scan` no longer pays for the graded witness it does not show.**
+  The graded witness (#315) is serialized only by `--format json`; the human and SARIF
+  surfaces never render it. Enrichment now runs only when JSON is emitted, so a default
+  human scan skips it entirely — ~2.8s of a ~4.6s `--mode near` scan on netty (3249 near
+  families), now ~1.9s. JSON output is unchanged. Referent resolution in the witness is
+  also indexed (sorted call-target evidence + a name-by-span map) instead of an
+  O(units × evidence) scan, and the anti-unification hot path no longer clones argument
+  vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
+
 ### Fixed
 - **Graded witness now sees definition-site decorators** (#315 follow-up). A decorator's
   arguments are dropped at lowering, so `@click.argument("x")` and
