@@ -865,6 +865,9 @@ impl<'a> Interp<'a> {
                 },
             );
         }
+        // Left operand short-circuits Err here (not in `bin`) so a raising left side never
+        // evaluates the right — preserving laziness and effect order. The right operand's
+        // Err is handled symmetrically inside `bin`.
         if matches!(a, Value::Err) {
             return Ok(Value::Err);
         }
@@ -1619,6 +1622,17 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
     // an impure callee), and branching on the result bails at the truthiness gate.
     if contains_sym(a) || contains_sym(b) {
         return Value::Sym(sym_id(0x00B1_0911, &[hashed(&op), vhash(a), vhash(b)]));
+    }
+    // Err propagates from EITHER operand — an erroring sub-expression raises the whole
+    // expression regardless of its position. Without this the fallthrough arm below read
+    // `0 == Err` as `Bool(false)` (and `!=` as `Bool(true)`), so the SOUND `==`/`!=`
+    // operand-ordering canon (algebra sorts commutative comparison operands by hash) looked
+    // like a behavior change the moment it moved an erroring operand to the right — a
+    // spurious canon-preservation violation on type-incoherent battery rows (coevo series 9
+    // oracle finding). The `eval_bin_op` left short-circuit still fires first so laziness is
+    // preserved; this is the symmetric twin of `un`'s `(Op::Not, Err) => Err`.
+    if matches!(a, Value::Err) || matches!(b, Value::Err) {
+        return Value::Err;
     }
     match (a, b) {
         (Int(x), Int(y)) => match op {
@@ -3836,6 +3850,33 @@ mod tests {
             Value::Sym(_)
         ));
         assert!(contains_sym(&Value::List(vec![Value::Int(1), s])));
+    }
+
+    /// Err propagates from EITHER operand, so the SOUND `==`/`!=` operand-ordering canon
+    /// (which can move an erroring operand from left to right) does not look like a behavior
+    /// change. The fallthrough comparison arm would otherwise read `0 == Err` as a concrete
+    /// `Bool(false)` instead of raising (coevo series 9 oracle finding).
+    #[test]
+    fn err_propagates_from_either_operand() {
+        for op in [Op::Eq, Op::Ne, Op::Lt, Op::Add, Op::Mul, Op::BitAnd] {
+            assert!(
+                matches!(bin(op, &Value::Int(0), &Value::Err), Value::Err),
+                "{op:?}: right-operand Err must propagate"
+            );
+            assert!(
+                matches!(bin(op, &Value::Err, &Value::Int(0)), Value::Err),
+                "{op:?}: left-operand Err must propagate"
+            );
+        }
+        // The pre-fix bug: `0 == Err` and `0 != Err` collapsed to concrete Bools.
+        assert!(matches!(
+            bin(Op::Eq, &Value::Int(0), &Value::Err),
+            Value::Err
+        ));
+        assert!(matches!(
+            bin(Op::Ne, &Value::Int(0), &Value::Err),
+            Value::Err
+        ));
     }
 
     /// `g(x) = x*x` and `f(x) = g(x) + 1` in one file — running `f(3)` must interpret the

@@ -296,28 +296,56 @@ when it has **declared domain evidence** (`coerce_to_declared_domain`, interp.rs
 typed-language array/index params (Java `byte[] bytes`, `int startPos`,
 `String[] a`) carry **none** today, so an incoherent value reaches them uncoerced.
 Feeding, say, a string or a list to a slot a unit uses as an array index manufactures
-an input that **can never occur**, and the canonicalizer legitimately differs on it —
-producing a spurious **canon-preservation** violation (the check is concrete-only but
-does not filter `Err`).
+an input that **can never occur**, and on it the *interpreter*, not the canonicalizer,
+diverged — producing a spurious **canon-preservation** violation (the check is
+concrete-only but does not filter `Err`).
 
 This is not hypothetical, and not new to broadening: the *current* battery already
-trips it. `nose verify` on `netty` reports 3 canon-preservation "violations", all on
-type-incoherent rows — e.g. `isZeroSafe(byte[],int,int)` fed three lists gives
-core `Err` vs full `Bool(false)`; `swap(String[],int,int)` fed a probe row gives
-core `Err,[]` vs full `Err, effects=[…]`. They are masked only because the nightly
-soundness gate's pinned corpus does not include `netty`. **The verify soundness gate
-cannot safely widen its corpus to typed-language repos until this is fixed.**
+trips it. `nose verify` on `netty` reported 3 canon-preservation "violations", all on
+type-incoherent rows, and `sympy` 20 — masked only because the nightly soundness gate's
+pinned corpus includes neither.
 
-The sound fix is **type-domain-aware input feeding**: infer each param's domain from
-its *usage* (index operand → Integer, index base / `len` / iteration → Collection,
-arithmetic operand → Number) when no declaration exists, and coerce battery rows
-through it — so the search can broaden without manufacturing impossible inputs. That
-is a behavior-affecting change to the interpreter's binding for *every* verify run
-(per-unit coercion can feed different values to two units in a fingerprint group), so
-it needs corpus-wide re-validation (pinned corpus stays sound, no new false merges,
-completeness stable) and is a separately-priced PR — the same floor-then-model
-discipline as §3. Until then `verify_battery`'s Part 3 stays hand-curated **on
-purpose** (a guard comment there points here).
+### 7.1 The equality-over-`Err` mechanism — fixed (coevo series 9)
+
+The series-9 oracle attacker sharpened the dominant class: the trigger was the
+**`==`/`!=` canon meeting an `Err` operand**, and it was **language-independent**
+(untyped Python `def f(b,s): return b[s]==0` reproduced the typed-Java `bytes[i] != 0`).
+The root was an **interpreter asymmetry**, not a canon bug: `eval_bin_op` short-circuited
+`Err` on the *left* operand only, and `bin`'s comparison fallthrough read `0 == Err` as a
+concrete `Bool(false)` (and `!=` as `Bool(true)`). So the moment the sound `==`/`!=`
+operand-ordering canon (algebra sorts commutative comparison operands by hash) moved the
+erroring operand to the right, the full IL returned a `Bool` while the pre-canon core
+returned `Err` — a spurious violation. **Fix: `bin` propagates `Err` from *either*
+operand** (the symmetric twin of `un`'s existing `(Op::Not, Err) => Err`); the left
+short-circuit stays for laziness/effect order. This is pure interpreter fidelity —
+`interp.rs` is verify-only, so scan output is byte-identical — and it closes the class
+wherever it arises: **sympy 20 → 2 canon violations, netty 3 → 2**, every other checked
+repo unchanged at 0, zero false merges throughout.
+
+### 7.2 Residue (same spurious type-incoherence root, different interpreter paths)
+
+Two narrower sub-classes survive, both still only on type-incoherent rows (so still
+unrealizable, not real canon bugs — every realizable battery row agrees):
+
+- **Effect-trace on the `Err` path** (`ret_diff=false, eff_diff=true`): array-swap
+  writes — netty `swap`/`swapElements`, guava `ObjectArrays`/`Quantiles` — where the
+  canon reorders effect-producing index writes relative to an erroring index *read*, so
+  the two record different `effects` before both still return `Err`.
+- **Comprehension/reduction context** (`ret_diff=true, eff_diff=false`): sympy
+  `_matches_get_other_nodes` / `unit_propagate_int_repr`, where the erroring comparison
+  lives inside a list/set comprehension filter (`nodes[ind] == ind_node`) evaluated via
+  the `Elem`/reduce path, which does not reach the `bin` guard above.
+
+Both share the root and could be closed the same way (faithful `Err` propagation on
+those paths) or by **type-domain-aware input feeding**: infer a param's domain from its
+*usage* (index operand → Integer, base / `len` / iteration → Collection, arithmetic →
+Number) and coerce battery rows so impossible inputs never arise. The latter is
+behavior-affecting for *every* verify run (per-unit coercion can feed different values to
+two units in a fingerprint group), so it stays a separately-priced PR with corpus-wide
+re-validation — the floor-then-model discipline of §3. **The pinned soundness gate can
+widen toward dynamic-language repos now that the dominant (equality) class is closed, but
+full netty/guava/sympy inclusion waits on this residue.** `verify_battery`'s Part 3 stays
+hand-curated **on purpose** (a guard comment there points here).
 
 ---
 
