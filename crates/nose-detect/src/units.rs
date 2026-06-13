@@ -482,9 +482,8 @@ pub(crate) fn extract(
         })
         .collect();
     let parents = if block_units {
-        collect_block_units(il, il.root, &mut roots);
         let parents = build_parent_index(il);
-        collect_exact_statement_fragment_units(il, il.root, &parents, interner, &mut roots);
+        collect_extra_unit_roots(il, il.root, &parents, interner, &mut roots);
         Some(parents)
     } else {
         None
@@ -560,9 +559,8 @@ pub fn unit_dags_at(
         })
         .collect();
     if opts.block_units {
-        collect_block_units(&n, n.root, &mut roots);
         let parents = build_parent_index(&n);
-        collect_exact_statement_fragment_units(&n, n.root, &parents, interner, &mut roots);
+        collect_extra_unit_roots(&n, n.root, &parents, interner, &mut roots);
     }
     let facts = StrictFacts::collect(&n, interner);
     let context =
@@ -649,6 +647,20 @@ fn inline_test_module_spans(il: &Il, interner: &Interner) -> Vec<(u32, u32)> {
 
 /// Gate one unit root: collect its pre-order, apply the container/size/dense gates
 /// (reporting skips), and compute the strict-exact verdict and value fingerprint.
+fn exact_safe_for_unit(ctx: &UnitExtractCtx<'_>, root: NodeId, exact_fragment: bool) -> bool {
+    strict_exact_safe_tree(ctx.il, ctx.interner, ctx.facts, root)
+        || (exact_fragment
+            && ctx.parents.is_some_and(|parents| {
+                strict_exact_self_field_fragment_safe(
+                    ctx.il,
+                    ctx.interner,
+                    ctx.facts,
+                    parents,
+                    root,
+                )
+            }))
+}
+
 fn gate_unit(
     ctx: &UnitExtractCtx<'_>,
     unit_root: UnitRoot,
@@ -700,19 +712,14 @@ fn gate_unit(
     }
 
     let safe_start = unit_timer.start();
-    let strict_exact_safe = strict_exact_safe_tree(ctx.il, ctx.interner, ctx.facts, root);
-    let exact_safe = strict_exact_safe
-        || (exact_fragment
-            && ctx.parents.is_some_and(|parents| {
-                strict_exact_self_field_fragment_safe(
-                    ctx.il,
-                    ctx.interner,
-                    ctx.facts,
-                    parents,
-                    root,
-                )
-            }));
+    let exact_safe = exact_safe_for_unit(ctx, root, exact_fragment);
     let safe_ms = UnitTimer::elapsed(safe_start);
+
+    if exact_fragment && !exact_safe {
+        skip(unit_timer, safe_ms, None);
+        return None;
+    }
+
     // The value graph is the semantic fingerprint (already sorted), with the
     // literal-only multiset for data-table detection. Computed before the size
     // gate so the gate can consult semantic richness (below).
@@ -932,8 +939,40 @@ fn unit_minhash(value: &[u64], shapes: &[u64], shape_features: bool, seeds: &[u6
     }
 }
 
-/// Collect sub-function block roots (loops / ifs / try) as extra unit candidates.
-fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<UnitRoot>) {
+/// Collect sub-function blocks and exact statement fragments in one DFS.
+fn collect_extra_unit_roots(
+    il: &Il,
+    root: NodeId,
+    parents: &[Option<NodeId>],
+    interner: &Interner,
+    out: &mut Vec<UnitRoot>,
+) {
+    let mut block_roots = Vec::new();
+    let mut exact_roots = Vec::new();
+    collect_extra_unit_root_candidates(
+        il,
+        root,
+        parents,
+        interner,
+        true,
+        &mut block_roots,
+        &mut exact_roots,
+    );
+    out.extend(block_roots);
+    for (root, kind) in exact_roots {
+        push_or_upgrade_exact_fragment_root(out, root, kind);
+    }
+}
+
+fn collect_extra_unit_root_candidates(
+    il: &Il,
+    node: NodeId,
+    parents: &[Option<NodeId>],
+    interner: &Interner,
+    exact_enabled: bool,
+    block_roots: &mut Vec<UnitRoot>,
+    exact_roots: &mut Vec<(NodeId, FragmentKind)>,
+) {
     let is_statement_if = il.kind(node) == NodeKind::If
         && il
             .children(node)
@@ -941,46 +980,53 @@ fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<UnitRoot>) {
             .skip(1)
             .any(|&child| il.kind(child) == NodeKind::Block);
     if matches!(il.kind(node), NodeKind::Loop | NodeKind::Try) || is_statement_if {
-        out.push(UnitRoot {
+        block_roots.push(UnitRoot {
             root: node,
             kind: UnitKind::Block,
             name: None,
             fragment_kind: None,
         });
     }
+    if exact_enabled && exact_fragment_candidate_node(il, node) {
+        if let Some(contract) =
+            crate::fragment::recognize::recognize_contract(il, node, parents, interner)
+        {
+            let kind = contract.kind;
+            // The contract path is the production authority. Keep the old predicate
+            // matrix as a debug-only differential guard while it remains in-tree.
+            debug_assert!(
+                exact_statement_fragment_root(il, node, parents, interner)
+                    .is_some_and(|predicate_kind| predicate_kind == kind),
+                "predicate path must agree with contract-first fragment production for {kind:?}"
+            );
+            exact_roots.push((node, kind));
+        }
+    }
+    let child_exact_enabled = exact_enabled && il.kind(node) != NodeKind::Lambda;
     for &c in il.children(node) {
-        collect_block_units(il, c, out);
+        collect_extra_unit_root_candidates(
+            il,
+            c,
+            parents,
+            interner,
+            child_exact_enabled,
+            block_roots,
+            exact_roots,
+        );
     }
 }
 
-/// Collect single-statement fragments that can become exact semantic units even when
-/// their enclosing function is unsafe because of unrelated siblings.
-fn collect_exact_statement_fragment_units(
-    il: &Il,
-    node: NodeId,
-    parents: &[Option<NodeId>],
-    interner: &Interner,
-    out: &mut Vec<UnitRoot>,
-) {
-    if il.kind(node) == NodeKind::Lambda {
-        return;
-    }
-    if let Some(contract) =
-        crate::fragment::recognize::recognize_contract(il, node, parents, interner)
-    {
-        let kind = contract.kind;
-        // The contract path is the production authority. Keep the old predicate
-        // matrix as a debug-only differential guard while it remains in-tree.
-        debug_assert!(
-            exact_statement_fragment_root(il, node, parents, interner)
-                .is_some_and(|predicate_kind| predicate_kind == kind),
-            "predicate path must agree with contract-first fragment production for {kind:?}"
-        );
-        push_or_upgrade_exact_fragment_root(out, node, kind);
-    }
-    for &c in il.children(node) {
-        collect_exact_statement_fragment_units(il, c, parents, interner, out);
-    }
+fn exact_fragment_candidate_node(il: &Il, node: NodeId) -> bool {
+    matches!(
+        il.kind(node),
+        NodeKind::Return
+            | NodeKind::Throw
+            | NodeKind::Assign
+            | NodeKind::ExprStmt
+            | NodeKind::If
+            | NodeKind::Loop
+            | NodeKind::Block
+    )
 }
 
 fn push_or_upgrade_exact_fragment_root(out: &mut Vec<UnitRoot>, root: NodeId, kind: FragmentKind) {
@@ -3237,6 +3283,40 @@ mod tests {
                 .iter()
                 .any(|unit| unit.fragment_kind == Some(FragmentKind::DirectReturn)),
             "contract-first collector should still produce the exact direct-return fragment"
+        );
+    }
+
+    #[test]
+    fn exact_fragment_collector_does_not_enter_lambda_bodies() {
+        let interner = Interner::new();
+        let fragments = lowered_fragment_units(
+            "function f(x) { const g = () => { return (x + 1) * (x + 2); }; return x; }\n",
+            Lang::JavaScript,
+            &interner,
+        );
+
+        assert!(
+            fragments
+                .iter()
+                .all(|unit| unit.fragment_kind != Some(FragmentKind::DirectReturn)),
+            "lambda-local returns must not become enclosing-file exact fragments"
+        );
+    }
+
+    #[test]
+    fn exact_fragment_collector_keeps_self_field_body_blocks() {
+        let interner = Interner::new();
+        let fragments = lowered_fragment_units(
+            "class C { int value; int limit; void set(int v, int n) { this.value = (v + 1) * (v + 1); this.limit = n + 3; } }\n",
+            Lang::Java,
+            &interner,
+        );
+
+        assert!(
+            fragments
+                .iter()
+                .any(|unit| unit.fragment_kind == Some(FragmentKind::SelfFieldBody)),
+            "body-level self-field fragments are rooted at Block nodes"
         );
     }
 

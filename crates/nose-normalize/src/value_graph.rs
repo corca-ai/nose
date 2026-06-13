@@ -62,7 +62,7 @@ use crate::combine;
 use crate::module_facts::{
     assignment_name_in_scope, collect_all_node_symbols_in_scope,
     collect_module_mutations_in_scope_with_direct_definitions, local_scope_nodes,
-    top_level_statements_for,
+    node_symbol_in_scope, top_level_statements_for,
 };
 use field_state::FieldStateKey;
 use model::sentinel;

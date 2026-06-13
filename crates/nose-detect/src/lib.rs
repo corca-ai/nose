@@ -35,7 +35,7 @@ pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
     contiguous::stream(il, interner)
 }
 
-use nose_il::{Corpus, Il, Interner, NodeKind, UnitKind};
+use nose_il::{Corpus, Il, Interner, NodeId, NodeKind, UnitKind};
 use nose_normalize::NormalizeOptions;
 use nose_semantics::ValueLaw;
 use rayon::prelude::*;
@@ -159,7 +159,36 @@ const EXACT_VALUE_MIN: usize = 4;
 /// oracle's HARD soundness gate is scoped to exactly this surface; collisions
 /// between lossy fingerprints are diagnostics, not product false merges (#210).
 pub fn exact_claim_eligible(u: &UnitFeat) -> bool {
-    u.exact_safe && u.value.len() >= EXACT_VALUE_MIN
+    exact_claim_eligible_parts(u.exact_safe, u.value.len())
+}
+
+/// The exact-claim gate when the caller already has the two relevant facts.
+pub fn exact_claim_eligible_parts(exact_safe: bool, value_len: usize) -> bool {
+    exact_safe && value_len >= EXACT_VALUE_MIN
+}
+
+/// Strict exact-safety by source-line span for known roots.
+///
+/// `verify` already computes value fingerprints for the normalized functions it can
+/// afford to interpret. This helper lets it reuse those fingerprints and ask only for
+/// the exact-safety half of the product claim, without running full unit extraction for
+/// soon-to-be-excluded oversized functions.
+pub fn exact_safe_roots_by_span(
+    il: &Il,
+    interner: &Interner,
+    roots: &[NodeId],
+) -> HashMap<(u32, u32), bool> {
+    let facts = strict_exact::StrictFacts::collect(il, interner);
+    roots
+        .iter()
+        .map(|&root| {
+            let span = il.node(root).span;
+            (
+                (span.start_line, span.end_line),
+                strict_exact::strict_exact_safe_tree(il, interner, &facts, root),
+            )
+        })
+        .collect()
 }
 
 impl Detector for ExactBehaviorDetector {

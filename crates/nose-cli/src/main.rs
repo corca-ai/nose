@@ -2497,22 +2497,18 @@ fn collect_verify_recs(
                 .count();
             let value_context = (func_count > 1)
                 .then(|| nose_normalize::ValueFingerprintContext::new(&n, &corpus.interner));
-            // The exact channel's claim surface for this file, from the RAW lowered
-            // IL (the same input the detector extracts from), keyed by line span.
-            let claim_by_span: std::collections::HashMap<(u32, u32), bool> =
-                nose_detect::units_of_file(
-                    il,
-                    &corpus.interner,
-                    &nose_detect::DetectOptions::default(),
-                )
+            let exact_safe_roots: Vec<_> = n
+                .units
                 .iter()
-                .map(|f| {
-                    (
-                        (f.start_line, f.end_line),
-                        nose_detect::exact_claim_eligible(f),
-                    )
+                .filter_map(|unit| {
+                    let root = unit.root;
+                    (n.kind(root) == nose_il::NodeKind::Func
+                        && !verify_battery_over_budget(subtree_node_count(&n, root), battery.len()))
+                    .then_some(root)
                 })
                 .collect();
+            let exact_safe_by_span =
+                nose_detect::exact_safe_roots_by_span(&n, &corpus.interner, &exact_safe_roots);
             collect_file_verify_recs(
                 &n,
                 &core,
@@ -2520,7 +2516,7 @@ fn collect_verify_recs(
                 &corpus.interner,
                 battery,
                 &mut oracle,
-                &claim_by_span,
+                &exact_safe_by_span,
             );
             oracle
         })
@@ -2581,9 +2577,7 @@ fn collect_file_verify_recs(
     interner: &Interner,
     battery: &[Vec<nose_normalize::Value>],
     oracle: &mut VerifyOracle,
-    // A span the detector never extracted stays CLAIMABLE (fail closed: an
-    // unknown unit must not silently exempt itself from the gate).
-    claim_by_span: &std::collections::HashMap<(u32, u32), bool>,
+    exact_safe_by_span: &std::collections::HashMap<(u32, u32), bool>,
 ) {
     let file_path = &n.meta.path;
     let core_func = func_span_index(core);
@@ -2685,6 +2679,11 @@ fn collect_file_verify_recs(
             }
         }
         let span = n.node(root).span;
+        let exact_safe = exact_safe_by_span
+            .get(&(span.start_line, span.end_line))
+            .copied()
+            .unwrap_or(true);
+        let claimable = nose_detect::exact_claim_eligible_parts(exact_safe, fp.len());
         oracle.recs.push(VerifyRec {
             fp,
             beh,
@@ -2693,10 +2692,7 @@ fn collect_file_verify_recs(
             end: span.end_line,
             tokens,
             loc: format!("{}:{}", file_path, span.start_line),
-            claimable: claim_by_span
-                .get(&(span.start_line, span.end_line))
-                .copied()
-                .unwrap_or(true),
+            claimable,
             domain_sig: param_domain_signature(n, root),
         });
     }

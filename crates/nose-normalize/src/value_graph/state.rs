@@ -6,6 +6,14 @@ use super::*;
 
 impl<'a> Builder<'a> {
     pub(super) fn new(il: &'a Il, interner: &'a Interner) -> Self {
+        Self::new_with_local_scope_nodes(il, interner, Cow::Owned(local_scope_nodes(il)))
+    }
+
+    pub(super) fn new_with_local_scope_nodes(
+        il: &'a Il,
+        interner: &'a Interner,
+        local_scope_nodes: Cow<'a, [bool]>,
+    ) -> Self {
         Builder {
             il,
             interner,
@@ -35,7 +43,7 @@ impl<'a> Builder<'a> {
             inline_stack: Vec::new(),
             inline_capture: Vec::new(),
             loop_depth: 0,
-            local_scope_nodes: Cow::Owned(local_scope_nodes(il)),
+            local_scope_nodes,
             loop_recurrence: None,
             next_loop_key_base: 0,
             contracts: Vec::new(),
