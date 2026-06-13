@@ -1784,11 +1784,11 @@ fn int_bin(op: Op, x: i64, y: i64) -> Value {
                 Int(x.wrapping_div(*y))
             }
         }
-        // True (float) division. The i64 model cannot represent `3.5`, so it is
-        // modeled like truncated `Div` here — BLIND to the float result but CONSISTENT
-        // within `TrueDiv`, which only ever compares with itself (a distinct op from
-        // `Div`/`FloorDiv`), so no false merge. An honest float result needs the `Float`
-        // value kind (#283-D, deferred). Div-by-zero still Errs.
+        // True (float) division. `Value::Float` models float arithmetic now (#342), but an
+        // Int÷Int `TrueDiv` is NOT promoted to it here — it stays truncated `Div` (BLIND to the
+        // float result but CONSISTENT within `TrueDiv`, a distinct op that only compares with
+        // itself, so no false merge). Promoting Int÷Int to a float result is the remaining
+        // Int↔Float breadth (oracle-value-model §3.2). Div-by-zero still Errs.
         Op::TrueDiv => {
             if *y == 0 {
                 Value::Err

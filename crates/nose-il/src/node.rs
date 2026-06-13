@@ -745,9 +745,10 @@ pub enum Op {
     /// `/` (`7 / 2 == 3.5`). DISTINCT from [`Op::Div`] (C/Go/Java/Rust truncated-int,
     /// `7 / 2 == 3`) and [`Op::FloorDiv`] (Ruby `/` and Python `//`, floored-int) —
     /// the three disagree (`7/2` is `3.5`, `3`, `3`; `-7/2` is `-3.5`, `-3`, `-4`), so
-    /// one `Op::Div` for all of them is a false merge (#283-D). The i64 interpreter
-    /// cannot represent the float result, so it stays blind here (consistent within
-    /// the op — no cross-language merge); modeling it needs the `Float` value kind.
+    /// one `Op::Div` for all of them is a false merge (#283-D). `Value::Float` now models float
+    /// arithmetic (#342), but an Int÷Int `TrueDiv` is not promoted to it in the interpreter — it
+    /// stays i64-truncated (consistent within the op, no cross-language merge); the Int→Float
+    /// division promotion is the remaining Int↔Float breadth.
     TrueDiv,
 }
 

@@ -1,11 +1,11 @@
 # The verify oracle's value model — scope, gaps, and the extension plan
 
-Design / go-no-go document for closing the three remaining sub-findings of the
-P0 false-merge cluster ([#283](https://github.com/corca-ai/nose/issues/283) C,
-D-div, D-int32). It scopes *what the oracle's value model is today*, *what each
-finding actually needs* (which is **not** one shared "extend i64" prerequisite),
-the **minimum** change per finding, the **recall-pricing protocol**, the
-**regression targets**, and a **go/no-go** recommendation.
+Design / outcome document for the three sub-findings of the P0 false-merge cluster
+([#283](https://github.com/corca-ai/nose/issues/283) C, D-div, D-int32) — **all now
+closed**. It scopes *what the oracle's value model is today*, *what each finding
+needed* (which was **not** one shared "extend i64" prerequisite), the change made per
+finding, the **recall-pricing protocol** (each priced at ~0 on the full pinned corpus),
+and the **regression targets** that now guard them.
 
 Companion to [design §1 (the sound core is the moat)](design.md),
 [formal-soundness](formal-soundness.md), [normalization](normalization.md), the
@@ -13,18 +13,21 @@ Companion to [design §1 (the sound core is the moat)](design.md),
 [adversarial co-evolution runbook](adversarial-coevolution.md). The series-5
 finding that opened #283 is [experiments §CE](experiments.md).
 
-> **Bottom line up front.** The oracle's value model is richer than #283's prose
-> implies — it already models strings as an order-sensitive free monoid. The
-> three findings do **not** share a single "i64 → {int, float, string}"
-> extension. They decompose into three independent pieces of very different cost:
-> **C's detector-side string/mixed-coercion floor has shipped** (remaining work:
-> oracle input/model coverage and float non-associativity), **D-int32's
-> detector/value-graph floor AND oracle int32 execution have shipped** (#344; the full
-> fixed-width recall recovery was measured unnecessary — 0 family delta on the corpus),
-> and **D-div's fingerprint floor has
-> shipped** while the full `Float` value kind remains deferred. The remaining work
-> is now oracle/model enrichment and priced recall recovery, not one shared
-> foundational rewrite.
+> **Bottom line up front — the #283 cluster is CLOSED.** The oracle's value model is richer
+> than #283's prose implied — it already models strings as an order-sensitive free monoid — and
+> the three findings did **not** share a single "i64 → {int, float, string}" extension; they
+> were three independent pieces, each now closed:
+> - **C (string/mixed-coercion + `+` non-associativity):** the detector-side string/coercion
+>   floor, plus float `+`/`*` non-associativity for syntactic-float (#339), float-typed-param
+>   (#340) and fully-untyped (#342) chains; the falsification search (#317) institutionalizes
+>   the adversarial input coverage the fixed battery used to hand-curate.
+> - **D-int32:** the value-graph `ToInt32` floor plus oracle int32 execution (#344); the full
+>   fixed-width recall recovery was measured unnecessary (0 family delta on the corpus).
+> - **D-div (Float):** the true/floored/truncated `/` floor plus the full IEEE-754 `Value::Float`
+>   value kind (#342).
+>
+> Each was priced at ~0 recall on the full 105-repo pinned corpus. The remaining float work is
+> breadth (a full Int↔Float coercion lattice, float literals), not a soundness gap.
 
 ---
 
@@ -288,7 +291,7 @@ oracle-caught)":
 | C — string/mixed-coercive `+` ordering | `untyped_add_commute.py` (`a+b` vs `b+a`) and JS/TS/Java-style `x+4` / `x+(2+3)` / `x-3` / `-(x+2)` | detector keeps them **split**; oracle witnesses pure string now only after battery enrichment, and mixed string/number after coercion modeling |
 | C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | detector keeps them **split** AND oracle witnesses — CLOSED (#342, the `Value::Float` kind, §3.3); guarded by `float_addition_is_non_associative_in_the_oracle` + `algebra_associativity` + `float_typed_param_addition_is_held_unassociated` |
 | D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split** AND oracle witnesses (int32 execution shipped, #344); guarded by `js_bitwise_and_wraps_to_int32_in_the_oracle`; full fixed-width recall recovery measured-unneeded |
-| D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; real Float oracle remains follow-up |
+| D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; the real IEEE-754 `Value::Float` oracle shipped (#342) |
 | in-place element mutation | `array_element_mutation.py` (`swap` vs `clobber`) | detector keeps them **split** AND oracle witnesses — CLOSED (#337, §7.3); guarded by `array_element_swap_does_not_merge_with_clobber` + `index_store_is_observed_by_later_read` |
 
 New permanent regression tests follow the pattern of
@@ -299,18 +302,18 @@ still merges.
 
 ---
 
-## 6. Go / no-go recommendation
+## 6. Outcomes — all three closed
 
-The findings are **decoupled** — there is no forced ordering and no shared
-foundational blocker (the original "extend the value model" framing was too
-coarse). Recommended sequence, cheapest-and-highest-confidence first:
+The findings were **decoupled** — no forced ordering, no shared foundational blocker (the
+original "extend the value model" framing was too coarse). Each was closed independently:
 
-1. **C (battery + `+`-gate) — GO first.** The value model already supports it;
-   the only new code is battery rows plus a `proven_numeric`-style gate we have a
-   proven template for. Highest soundness-per-effort. The battery enrichment
-   alone (the floor) is worth shipping immediately — it strengthens the oracle for
-   *every* future finding and tells us how big the untyped-`+` problem actually
-   is before we price the gate.
+1. **C (string/coercion + `+`-non-associativity) — CLOSED.** The detector-side
+   string/mixed-coercion floor shipped, then float `+`/`*` non-associativity was held for
+   syntactic-float (#339), float-typed-param (#340) and fully-untyped (#342) chains via a
+   `proven_float`/`possibly_float` gate in both the `algebra` pass and the value graph.
+   Commutativity is preserved; recall delta 0 on the full corpus. The falsification search
+   (`--falsify`, #317) institutionalizes the adversarial input coverage the fixed battery used
+   to hand-curate, and finds 0 new false merges on the corpus.
 2. **D-int32 — floor + oracle int32 execution shipped; full width model measured-unneeded
    (#344).** The narrowing fingerprint splits JS bitwise from bigint, and the interpreter now
    executes JS bitwise as int32 so the oracle witnesses it. The "promote the full fixed-width

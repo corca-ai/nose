@@ -2613,8 +2613,8 @@ fn float_subtraction_is_not_reassociated_while_integer_subtraction_is() {
     // reassociation is float-unsound — `(1e100 + x) - 1e100` (= 0.0, the large term swallows
     // x) must not converge with the regrouped `(1e100 - 1e100) + x` (= x). Integer `-` still
     // normalizes and converges (two's-complement subtraction is associative). Pure `+`/`*`
-    // float associativity is also held now (next test); the fully-untyped `(a+b)+c` with no
-    // float marker still flattens — that is the remaining full Float value kind (§3.3).
+    // float associativity is also held now (next test), including the fully-untyped `(a+b)+c`
+    // case via the `Value::Float` kind (#342).
     let i = Interner::new();
     let t = |src: &str| value_fp(&i, src, Lang::Python);
     // Float literal: the two groupings compute different floats and must NOT merge.
@@ -2679,9 +2679,9 @@ fn float_typed_param_addition_is_held_unassociated() {
     // from the param's type evidence (`proven_float` via the param domain), not a literal. The
     // grouping is held in BOTH layers: the algebra IL pass (`chain_has_float` over
     // `float_param_cids` → don't reassociate) and the value graph (`proven_float` → don't
-    // flatten, in the general AND the string-coercion `+` path for Java/TS). Untyped/int-typed
-    // chains keep flattening (sound: integer `+` IS associative; the fully-untyped float case
-    // is the remaining Value::Float kind, §3.3).
+    // flatten, in the general AND the string-coercion `+` path for Java/TS). INT-typed chains
+    // keep flattening (sound: integer `+` IS associative); fully-untyped chains are now ALSO
+    // held — an untyped param could be float — via the `Value::Float` kind (#342).
     let i = Interner::new();
 
     // Python `: float`
