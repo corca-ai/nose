@@ -165,8 +165,9 @@ and pack ecosystem.
 - Python `math.prod` product-reduction recognition moved behind an imported
   namespace function contract with missing-import and overwritten-binding hard
   negatives.
-- Java `Math.abs`/`Math.min`/`Math.max` moved out of frontend text-only lowering
-  and into method contracts that require an unshadowed `Math` receiver.
+- Java integer `Math.abs`/`Math.min`/`Math.max` moved out of frontend text-only
+  lowering and into scalar-integer method contracts that require an unshadowed
+  `Math` receiver plus integer-domain proof for value arguments.
 - JS-like `undefined` moved from unconditional frontend null lowering to an
   unshadowed-global nullish contract, preserving shadowed binding hard negatives.
 - Strict exact gates now consume the same nullish-global proof, so temp-bound
@@ -180,15 +181,18 @@ and pack ecosystem.
 - Normalize idiom receiver admission for iterator identity adapters and Rust
   `zip` now consumes the same semantic contracts as value-graph/detect paths,
   closing language-blind `iter`/`zip` selector bypasses.
-- JS-like `Math.abs`/`Math.min`/`Math.max` now consume method contracts with an
-  unshadowed `Math` receiver, and JS record-shape guards using `Boolean(...)`
-  consume a static-global function contract with an unshadowed `Boolean`
-  requirement.
+- JS-like `Math.abs`/`Math.min`/`Math.max` stay exact-closed until a signed-zero
+  and NaN-aware numeric model exists; Go `math.Abs`/`math.Min`/`math.Max` and
+  Java floating `Math.abs`/`Math.min`/`Math.max` stay closed for the same reason.
+  JS record-shape guards using `Boolean(...)` consume a static-global function
+  contract with an unshadowed `Boolean` requirement.
 - Generic Python/Go free-function builtins now have `LibraryApi` occurrence
   rows. Early idiom canonicalization and value-graph two-argument
-  `min(...)`/`max(...)` require admitted occurrence evidence instead of raw
-  callee spelling, closing unqualified JS `min(...)`, local-shadowing, and
-  missing-producer bypasses.
+  `min(...)`/`max(...)` require admitted occurrence evidence plus integer-domain
+  proof instead of raw callee spelling. Python free `abs(...)` and sign-test
+  absolute-value ternaries use the same integer-domain proof gate, closing
+  unqualified JS `min(...)`, local-shadowing, missing-producer bypasses, and
+  float/signed-zero/NaN false merges.
 - Ruby `fetch(key) { fallback }` map-default handling now consumes an explicit
   zero-arg-lambda fallback argument contract, and Go `slices.Contains` value-graph
   membership proof consumes the imported namespace carried by the method contract

@@ -133,8 +133,11 @@ fn sub_dag_family_annotates_each_site_with_shared_computation_lines() {
 #[test]
 fn cross_language_family_groups_proven_foreach_languages() {
     // The same guarded-accumulator loop, written idiomatically in languages with proven foreach
-    // semantics, must land in ONE cross-language family. Ruby `.each` is present as a hard
-    // negative: it stays closed until a pack supplies receiver/protocol proof for `items`.
+    // semantics and numeric element proof, must land in ONE cross-language family. TypeScript
+    // `number[]` proves the receiver is an array, but the current domain evidence does not carry
+    // numeric element proof for `for...of`, so it stays closed under JS relational coercion rules.
+    // Ruby `.each` is present as a hard negative: it stays closed until a pack supplies
+    // receiver/protocol proof for `items`.
     let py = "def f(items):\n    total = 0\n    for x in items:\n        if x > 0:\n            total = total + x\n    return total\n";
     let ts = "function g(xs: number[]): number {\n    let acc = 0;\n    for (const v of xs) {\n        if (v > 0) {\n            acc = acc + v;\n        }\n    }\n    return acc;\n}\n";
     let go = "package m\nfunc H(items []int) int {\n\tsum := 0\n\tfor _, e := range items {\n\t\tif e > 0 {\n\t\t\tsum = sum + e\n\t\t}\n\t}\n\treturn sum\n}\n";
@@ -167,8 +170,8 @@ fn cross_language_family_groups_proven_foreach_languages() {
         .find(|f| f.languages >= 2)
         .expect("a cross-language family must exist");
     assert!(
-        xlang.languages == 5 && xlang.members == 5,
-        "py/ts/go/rust/java accumulators form one 5-language, 5-site family (got {} langs, {} sites)",
+        xlang.languages == 4 && xlang.members == 4,
+        "py/go/rust/java accumulators form one 4-language, 4-site family (got {} langs, {} sites)",
         xlang.languages,
         xlang.members
     );
@@ -176,8 +179,8 @@ fn cross_language_family_groups_proven_foreach_languages() {
         xlang
             .locations
             .iter()
-            .all(|l| l.file != "decoy.py" && l.file != "acc.rb"),
-        "ruby each and the decoy must not join the proven foreach family"
+            .all(|l| l.file != "decoy.py" && l.file != "acc.ts" && l.file != "acc.rb"),
+        "typescript without element-domain proof, ruby each, and the decoy must not join the proven foreach family"
     );
 }
 

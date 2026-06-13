@@ -3,14 +3,15 @@ use super::*;
 const LARGE_AC_EXPR_OPERANDS: usize = 64;
 
 impl<'a> Builder<'a> {
-    /// JS strict (in)equality. The value model conflates `null`/`undefined` into
-    /// ONE constant, so the model's Eq-against-null means the LOOSE check
-    /// (`x == null`, true for both) — which is also what `x ?? d` desugars to. A
-    /// strict `x === null` (false for undefined) cannot be expressed in that
-    /// model: keep it a distinct shape keyed by the spelled operand, so strict
-    /// checks converge only with the same strict spelling and never feed the
-    /// nullish-default fold (`null_condition` → `ValueOrDefault`).
-    fn eval_strict_equality_comparison(
+    /// JS equality with source-operator semantics. The value model conflates
+    /// `null`/`undefined` into ONE constant, so the model's Eq-against-null means
+    /// the LOOSE check (`x == null`, true for both) — which is also what `x ?? d`
+    /// desugars to. A strict `x === null` (false for undefined) cannot be expressed
+    /// in that model: keep it a distinct shape keyed by the spelled operand.
+    ///
+    /// Outside the nullish special case, JS loose equality uses coercions (`false == 0`,
+    /// `"0" == 0`, `[] == 0`) and must not merge with strict equality.
+    fn eval_js_equality_comparison(
         &mut self,
         expr: NodeId,
         op: u32,
@@ -20,14 +21,32 @@ impl<'a> Builder<'a> {
         if (op != Op::Eq as u32 && op != Op::Ne as u32) || kids.len() != 2 {
             return None;
         }
+        let source = source_operator_at_node(self.il, expr);
+        if matches!(source, Some(nose_il::SourceOperatorKind::TypeMembership)) {
+            let a = self.eval(kids[0], env);
+            let b = self.eval(kids[1], env);
+            let membership = self.mk(ValOp::Opaque(JS_INSTANCEOF_CMP_TAG), vec![a, b]);
+            return Some(if op == Op::Ne as u32 {
+                self.mk(ValOp::Un(Op::Not as u32), vec![membership])
+            } else {
+                membership
+            });
+        }
         let strict = matches!(
-            source_operator_at_node(self.il, expr),
+            source,
             Some(
                 nose_il::SourceOperatorKind::StrictEquality
                     | nose_il::SourceOperatorKind::StrictInequality
             )
         );
-        if !strict {
+        let loose = matches!(
+            source,
+            Some(
+                nose_il::SourceOperatorKind::LooseEquality
+                    | nose_il::SourceOperatorKind::LooseInequality
+            )
+        );
+        if !strict && !loose {
             return None;
         }
         let a = self.eval(kids[0], env);
@@ -40,6 +59,9 @@ impl<'a> Builder<'a> {
             None
         };
         if let Some((null_kid, value_side)) = null_kid {
+            if !strict {
+                return Some(self.mk(ValOp::Bin(op), vec![a, b]));
+            }
             // Exception: `=== undefined` against a value that provably cannot be
             // null IS the faithful absence check — a typed `Map.get` result is
             // `V | undefined`. Keep the model's Eq shape there so the map-default
@@ -58,6 +80,21 @@ impl<'a> Builder<'a> {
                     eq
                 });
             }
+        }
+        if loose {
+            let tag = if op == Op::Ne as u32 {
+                JS_LOOSE_NE_CMP_TAG
+            } else {
+                JS_LOOSE_EQ_CMP_TAG
+            };
+            let mut args = vec![a, b];
+            if self.reorder_safe(args[0])
+                && self.reorder_safe(args[1])
+                && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
+            {
+                args.swap(0, 1);
+            }
+            return Some(self.mk(ValOp::Opaque(tag), args));
         }
         // Strict comparison the model expresses faithfully: the model's Eq IS
         // strict. Operands are already evaluated — don't evaluate them twice.
@@ -246,10 +283,24 @@ impl<'a> Builder<'a> {
                 return v;
             }
         }
-        if let Some(v) = self.eval_strict_equality_comparison(expr, op, &kids, env) {
+        if let Some(v) = self.eval_js_equality_comparison(expr, op, &kids, env) {
             return v;
         }
-        if op == Op::Add as u32 || op == Op::Sub as u32 {
+        if self.relational_has_string_ordering()
+            && matches!(op_from_code(op), Some(Op::Lt | Op::Le | Op::Gt | Op::Ge))
+            && kids.len() == 2
+        {
+            let args: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+            if args.iter().all(|&v| self.proven_numeric(v)) {
+                return self.mk(ValOp::Bin(op), args);
+            }
+            return self.mk(
+                ValOp::Opaque(combine(JS_RELATIONAL_CMP_TAG, op as u64)),
+                args,
+            );
+        }
+        if (op == Op::Add as u32 || op == Op::Sub as u32) && !self.plus_has_mixed_string_coercion()
+        {
             let mut operands = Vec::new();
             self.collect_add_sub_expr_operands(expr, false, &mut operands);
             if operands.len() >= LARGE_AC_EXPR_OPERANDS {
@@ -283,6 +334,9 @@ impl<'a> Builder<'a> {
     fn eval_sub_chain(&mut self, kids: &[NodeId], env: &FxHashMap<u32, ValueId>) -> ValueId {
         let a = self.eval(kids[0], env);
         let b = self.eval(kids[1], env);
+        if self.plus_has_mixed_string_coercion() && !self.proven_non_concat(a) {
+            return self.mk(ValOp::Bin(Op::Sub as u32), vec![a, b]);
+        }
         let neg_b = self.mk(ValOp::Un(Op::Neg as u32), vec![b]);
         let mut operands = Vec::new();
         self.flatten_into(a, Op::Add as u32, &mut operands);
@@ -318,6 +372,24 @@ impl<'a> Builder<'a> {
         // Very large generated formulas can arrive as deeply nested binary ASTs.
         // For those, collect same-op source operands first so one giant expression
         // pays for flatten/sort/rebuild once instead of once per nested pair.
+        if op == Op::Add as u32 && self.plus_has_mixed_string_coercion() {
+            let direct: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+            let mut leaves = Vec::new();
+            for &value in &direct {
+                self.flatten_into(value, op, &mut leaves);
+            }
+            if !self.add_association_safe(&leaves) {
+                return self.intern_ac_chain(op, &direct);
+            }
+            let mut operands = leaves;
+            let do_sort = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
+                && operands.iter().all(|&v| self.reorder_safe(v));
+            if do_sort {
+                operands.sort_by_key(|&v| self.vhash[v as usize]);
+            }
+            return self.intern_ac_chain(op, &operands);
+        }
+
         let mut expr_operands = Vec::new();
         for &k in kids {
             self.collect_ac_expr_operands(k, op, &mut expr_operands);
@@ -535,7 +607,7 @@ impl<'a> Builder<'a> {
         // the explicit accumulator loop (§AI representation axis).
         if let Payload::Builtin(Builtin::Abs) = payload {
             if let Some(&arg) = kids.first() {
-                let v = self.eval(arg, env);
+                let v = self.eval_proven_integer_expr(arg, env)?;
                 return Some(self.mk(ValOp::Un(ABS_CODE), vec![v]));
             }
         }

@@ -6,8 +6,10 @@
 //!   produces are then canonicalized by `algebra` (flatten, De Morgan), so nested
 //!   and flattened control styles converge.
 //! - [`run`] (in-place, run last): **branch orientation** — when an `if`'s two
-//!   branches could be swapped, orient them canonically by inverting a comparison
-//!   condition. `if a < b { X } else { Y }` ≡ `if a >= b { Y } else { X }`.
+//!   branches could be swapped, orient equality comparisons canonically by
+//!   inverting the condition. Order-comparison branch orientation is value-domain
+//!   dependent (`NaN` breaks `!(a < b)` ≡ `a >= b`), so the value graph performs
+//!   that rewrite only after integer-domain proof.
 //!
 //! proof-obligation: normalize.control_flow.guard_returns
 
@@ -216,22 +218,19 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
     }
 }
 
-/// If `cond` is a comparison `BinOp`, return its canonical negation as
-/// `(operator, swap_operands)`. Only the post-`algebra` canonical comparisons
-/// (`Lt`/`Le`/`Eq`/`Ne`) are produced: `a < b` negates to `a >= b` ≡ `b <= a`
-/// (`Le`, operands swapped); `a <= b` to `b < a` (`Lt`, swapped).
+/// If `cond` is an equality comparison `BinOp`, return its canonical negation as
+/// `(operator, swap_operands)`. Order comparisons are deliberately excluded here:
+/// they need total-order proof, which is only available in the value graph.
 fn invert_comparison(il: &Il, cond: NodeId) -> Option<(Op, bool)> {
     let n = il.node(cond);
     if n.kind != NodeKind::BinOp {
         return None;
     }
     match n.payload {
-        Payload::Op(op) if matches!(op, Op::Eq | Op::Ne | Op::Lt | Op::Le) => {
-            semantics(il.meta.lang)
-                .operators()
-                .canonical_negated_comparison(op)
-                .map(|contract| (contract.output, contract.swap_operands))
-        }
+        Payload::Op(op) if matches!(op, Op::Eq | Op::Ne) => semantics(il.meta.lang)
+            .operators()
+            .canonical_negated_comparison(op)
+            .map(|contract| (contract.output, contract.swap_operands)),
         Payload::Op(_) => None,
         _ => None,
     }

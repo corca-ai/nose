@@ -990,24 +990,11 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             args: MethodBuiltinArgs::All,
         })
     );
-    assert_eq!(
-        method_call_contract(Lang::JavaScript, "min", 2),
-        Some(MethodCallContract {
-            semantic: MethodSemanticContract::Builtin(Builtin::Min),
-            receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
-            args: MethodBuiltinArgs::All,
-        })
-    );
+    assert_eq!(method_call_contract(Lang::JavaScript, "min", 2), None);
+    assert_eq!(method_call_contract(Lang::TypeScript, "max", 2), None);
     assert_eq!(method_call_contract(Lang::JavaScript, "min", 1), None);
     assert_eq!(method_call_contract(Lang::Python, "min", 2), None);
-    assert_eq!(
-        method_call_contract(Lang::Go, "Abs", 1),
-        Some(MethodCallContract {
-            semantic: MethodSemanticContract::Builtin(Builtin::Abs),
-            receiver: MethodReceiverContract::ImportedNamespace("math"),
-            args: MethodBuiltinArgs::First,
-        })
-    );
+    assert_eq!(method_call_contract(Lang::Go, "Abs", 1), None);
     assert_eq!(
         method_call_contract(Lang::Go, "Contains", 2),
         Some(MethodCallContract {
@@ -1016,22 +1003,8 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             args: MethodBuiltinArgs::GoSliceContains,
         })
     );
-    assert_eq!(
-        method_call_contract(Lang::Java, "abs", 1),
-        Some(MethodCallContract {
-            semantic: MethodSemanticContract::Builtin(Builtin::Abs),
-            receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
-            args: MethodBuiltinArgs::First,
-        })
-    );
-    assert_eq!(
-        method_call_contract(Lang::Java, "min", 2),
-        Some(MethodCallContract {
-            semantic: MethodSemanticContract::Builtin(Builtin::Min),
-            receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
-            args: MethodBuiltinArgs::All,
-        })
-    );
+    assert_eq!(method_call_contract(Lang::Java, "abs", 1), None);
+    assert_eq!(method_call_contract(Lang::Java, "min", 2), None);
 }
 
 #[test]
@@ -1104,7 +1077,22 @@ fn scalar_integer_methods_are_language_and_signature_constrained() {
             receiver: MethodReceiverContract::ExactInteger,
         })
     );
+    assert_eq!(
+        scalar_integer_method_contract(Lang::Java, "abs", 1),
+        Some(ScalarIntegerMethodContract {
+            semantic: ScalarIntegerMethod::Abs,
+            receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+        })
+    );
+    assert_eq!(
+        scalar_integer_method_contract(Lang::Java, "min", 2),
+        Some(ScalarIntegerMethodContract {
+            semantic: ScalarIntegerMethod::Min,
+            receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+        })
+    );
     assert_eq!(scalar_integer_method_contract(Lang::Rust, "clamp", 1), None);
+    assert_eq!(scalar_integer_method_contract(Lang::Java, "abs", 0), None);
     assert_eq!(
         scalar_integer_method_contract(Lang::TypeScript, "clamp", 2),
         None

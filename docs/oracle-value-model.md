@@ -17,11 +17,13 @@ finding that opened #283 is [experiments §CE](experiments.md).
 > implies — it already models strings as an order-sensitive free monoid. The
 > three findings do **not** share a single "i64 → {int, float, string}"
 > extension. They decompose into three independent pieces of very different cost:
-> **C is an input-battery gap** (the value model already suffices), **D-int32 is
-> a canonicalization-width problem** (no new value kind), and **D-div is the only
-> one that needs a genuinely new value kind (Float)**. Each has a cheap, sound
-> *fail-closed floor* that can ship first, with a measured recall cost, ahead of
-> any full model.
+> **C's detector-side string/mixed-coercion floor has shipped** (remaining work:
+> oracle input/model coverage and float non-associativity), **D-int32's
+> detector/value-graph floor has shipped** (remaining work: oracle int32 execution
+> plus any full fixed-width recall recovery), and **D-div's fingerprint floor has
+> shipped** while the full `Float` value kind remains deferred. The remaining work
+> is now oracle/model enrichment and priced recall recovery, not one shared
+> foundational rewrite.
 
 ---
 
@@ -82,47 +84,50 @@ is present but **starved of the input that would exercise it**.
 
 ## 2. The three findings, re-scoped
 
-### C — untyped `+` commutativity / associativity *(input-battery gap)*
+### C — untyped `+` commutativity / associativity *(detector gate shipped; oracle coverage gap remains)*
 
-`a+b ≡ b+a` and `(a+b)+c ≡ a+(b+c)` are merged for untyped params. Wrong for
-strings (`"x"+"y" ≠ "y"+"x"`) and for floats (`(1e100+1)-1e100`). The detector
-commutes/reorders `+` whenever an operand is not *proven* concat
-(`order_bin_operands`, `eval_sub_chain` in
-`crates/nose-normalize/src/value_graph/`); for untyped params nothing is proven,
-so it reorders optimistically.
+Historically, `a+b ≡ b+a` and `(a+b)+c ≡ a+(b+c)` merged for untyped params. That
+is wrong for strings (`"x"+"y" ≠ "y"+"x"`), for JS/Java-style mixed string
+coercion (`"a"+2+3` differs from `"a"+(2+3)`), and for floats
+(`(1e100+1)-1e100`). The detector now fails closed for this family: in
+JS/TS/Vue/Svelte/HTML/Java it only flattens/reorders `+`, rewrites `x-y` to
+`x+(-y)`, or distributes `-(x+y)` when every `+` leaf is proven non-concat.
+Untyped mixed forms such as `x+4`, `x+(2+3)`, `x-3`, and `-(x+2)` stay split from
+numeric-only rewrites.
 
-- **Value model:** already sufficient for the **string** half — the `Str` monoid
-  is order-sensitive. (The **float** half of C overlaps D-div; see there.)
-- **Real gap:** the **battery** (§1.1) never feeds two distinct strings/lists to
-  two params at once, so the oracle cannot witness the divergence — it reads
-  SOUND while the detector merges. This is the §AS "green corpus, latent false
-  merge" scenario, in the *oracle's own inputs* rather than the corpus.
-- **Cheapest of the three.** No new value kind.
+- **Value model:** sufficient for the pure **string + string** half — the `Str`
+  monoid is order-sensitive. The oracle still does not model JS/Java
+  numeric-to-string coercion for `string + number`, so mixed-coercion regressions
+  rely on external-language witnesses plus detector fingerprint splits until that
+  model exists. The **float** half of C overlaps D-div; see there.
+- **Remaining gap:** the **battery** (§1.1) never feeds two distinct strings/lists
+  to two params at once, and it has no mixed string/number coercion rows. The
+  detector no longer merges the known C string/mixed cases, but `nose verify`
+  remains too weak to witness all of them by itself.
+- **Cheapest of the three.** The detector floor is in place; the remaining work
+  is oracle coverage/modeling plus recall pricing on larger corpora.
 
-### D-int32 — JS bitwise width *(canonicalization-width problem)*
+### D-int32 — JS bitwise width *(detector floor shipped; oracle width gap remains)*
 
 JS bitwise ops coerce operands to int32 (`ToInt32`); Python/Ruby are
-arbitrary-precision. The detector merges JS `a&b` with Python `a&b` (same
-`Bin(BitAnd,[a,b])` fingerprint) and the oracle reads SOUND (both modeled as i64
-`x & y`). They differ for operands outside int32 range (`2^40 & 2^40` → JS `0`,
-Python `2^40`). **Confirmed active false merge** (verified 2026-06-12; reproducer
-below).
+arbitrary-precision. Historically the detector merged JS `a&b` with Python
+`a&b` (same `Bin(BitAnd,[a,b])` fingerprint) and the oracle read SOUND (both
+modeled as i64 `x & y`). They differ for operands outside int32 range (`2^40 &
+2^40` → JS `0`, Python `2^40`).
 
 - **Value kind:** none new — int32 is representable inside `Int(i64)` via
   `x as i32 as i64`.
-- **Real gap:** the *fingerprint* must differ (an oracle-only fix would make
-  `verify` flag the merge but leave the detector merging, and risk reddening the
-  corpus gate). The clean way — narrow JS bitwise operands — **collides with the
-  existing bitwise canonicalizations**: De Morgan `~(a&b)→~a|~b`
-  ([#284](https://github.com/corca-ai/nose/issues/284)) stops firing when `~`'s
-  operand is a narrowing node instead of a `BitAnd`; the `a&a→a` idempotence
-  (gated in [#283-B](https://github.com/corca-ai/nose/issues/283)) is itself
-  **unsound for JS** (`x&x` = ToInt32(x) ≠ x for `x ≥ 2³¹`); the u16/u32
-  byte-pack patterns no longer recognize wrapped operands. Width-awareness has to
-  be threaded **through the bitwise canon**, not bolted on. This is canon
-  surgery, not a value-model extension.
+- **Detector floor (shipped):** JS-family bitwise leaves now carry a `ToInt32`
+  wrapper in the value graph. That makes JS `& | ^ ~ << >>` fingerprints distinct
+  from arbitrary-precision Python/Ruby while preserving within-JS commutativity
+  and De Morgan recall (`~(a&b)` still converges with `~a|~b`). `>>>` remains a
+  distinct raw/operator surface.
+- **Remaining gap:** the independent interpreter still executes bitwise over
+  i64, so `nose verify` cannot yet witness the JS-vs-bigint difference by itself.
+  A full fixed-width model must thread width through bitwise canon and interpreter
+  execution, then price any JS↔C/Java-int recall recovery.
 
-### D-div — true-float division *(the only genuine value-kind gap)*
+### D-div — true-float division *(fingerprint floor shipped; Float value gap remains)*
 
 Three-way split: `/` is **true-float** in Python 3 / JS (`7/2 == 3.5`),
 **floored-int** in Ruby (`7/2 == 3`), **truncated-int** in C/Go/Java/Rust
@@ -133,6 +138,14 @@ The true-float result `3.5` is **unrepresentable in `Int(i64)`**.
 
 - **Value kind:** genuinely needs **`Float`** (plus the float semantics of
   `+ - * / %` and the per-language Int↔Float coercion rules).
+- **Detector floor (shipped):** Python and JS `/` now lower to `Op::TrueDiv`,
+  Ruby `/` and Python `//` lower to `Op::FloorDiv`, and C-family integer `/`
+  remains `Op::Div`. The value graph no longer merges true-float, floored, and
+  truncated division.
+- **Remaining gap:** the interpreter still maps `TrueDiv` integer inputs through
+  i64 truncation internally. That is safe for the detector floor because
+  `TrueDiv` has a distinct fingerprint, but it is not a real float model and
+  cannot witness `7 / 2 == 3.5` or NaN/±0 behavior.
 - **Most expensive.** Float drags in NaN (`NaN != NaN`), `±0`, non-associativity
   (the float half of C), and equality quirks — a large new surface in both the
   interpreter and the canonicalizer.
@@ -145,54 +158,46 @@ Each finding has a **fail-closed floor** (sound, cheap, with a measured recall
 cost) and a **full model** (recovers the recall, larger surface). Ship the floor
 first; promote to the full model only if the priced recall loss justifies it.
 
-### 3.1 C — battery enrichment (+ a detector gate)
+### 3.1 C — battery/model enrichment after the detector gate
 
-- **Floor (measure-only):** add battery rows that bind **two distinct strings**
-  (and two distinct lists) to multiple positions — e.g. probe pairs `("α","β")`
-  drawn from the mined string set, plus a couple of distinct-list rows. No model
-  change. *Effect:* `verify` now witnesses `a+b ≠ b+a` for strings and **flags
-  the existing false merge** — turning a latent hole into a measured one. Expect
-  `nose verify bench/repos` to surface new false merges if the corpus contains
-  untyped `+` reorders (this is the safety net working; it tells us the size of
-  the problem before we touch the detector).
-- **Fix:** gate the untyped `+` commute/reorder (`order_bin_operands`,
-  `eval_sub_chain`) on a *proven-not-concat* predicate (analogous to
-  [#283-B](https://github.com/corca-ai/nose/issues/283)'s `proven_numeric`):
-  reorder only when every operand is proven numeric/non-string. Untyped `+`
-  stays ordered. **This is the recall-priced step** — many real clones are
-  untyped numeric `+` that we must keep converging, so the predicate has to admit
-  the genuine numeric case (via the same genuine-evidence channel as
-  `proven_numeric`) without admitting untyped.
-- **Cost:** Low (battery) + Medium (the gate + its recall pricing).
+- **Detector floor (shipped):** gate untyped `+` commute/reorder and related
+  add/sub/negation rewrites on a *proven-not-concat* predicate: reorder only when
+  every operand is proven numeric/non-string. Untyped `+` stays ordered in
+  string-coercive languages, while typed numeric `+` still converges.
+- **Oracle coverage:** add battery rows that bind **two distinct strings** (and
+  two distinct lists) to multiple positions — e.g. probe pairs `("α","β")` drawn
+  from the mined string set, plus a couple of distinct-list rows. Add mixed
+  string/number rows only after the interpreter has explicit JS/Java coercion
+  semantics. *Effect:* `verify` can witness `a+b ≠ b+a` for strings and later
+  `"a"+2+3 ≠ "a"+(2+3)` for coercive languages, instead of relying only on
+  detector fingerprint splits and external-language witnesses.
+- **Cost:** Medium detector gate already paid; remaining Low-Medium oracle
+  enrichment/modeling plus recall pricing.
 
-### 3.2 D-int32 — width-aware bitwise canon (or fail-closed)
+### 3.2 D-int32 — width-aware bitwise canon
 
-- **Floor (fail-closed):** lower JS bitwise (`& | ^ ~ << >> >>>`) to a distinct
-  **opaque/narrowing op** that (a) fingerprints differently from
-  arbitrary-precision bitwise and (b) the interpreter models with int32
-  narrowing. JS bitwise stops merging with Python/Ruby (and, conservatively, with
-  C/Java-int — a recall loss to price). *Risk:* interacts with De Morgan /
-  idempotence / byte-pack (§2) — those rules must be made width-aware **or**
-  disabled for the narrowed op (recall loss).
+- **Floor (shipped):** JS bitwise (`& | ^ ~ << >>`) fingerprints through a
+  distinct `ToInt32` narrowing wrapper, so it stops merging with
+  arbitrary-precision bitwise. De Morgan and same-language bitwise recall remain
+  green because the wrap lands on leaves rather than replacing the whole operator.
 - **Full model:** a first-class fixed-width bitwise semantics (int32 for JS,
   type-width for C/Java/Go/Rust) that the whole bitwise canon understands — so
   JS `a&b` ≡ Java-`int` `a&b` ≡ C-`int32_t` `a&b` reconverge correctly while
   staying split from bigint and 64-bit. Largest of the three canon surfaces.
-- **Cost:** Medium (floor) → High (full).
+- **Cost:** floor paid; remaining Medium-High for oracle int32 execution and full
+  fixed-width recall recovery.
 
-### 3.3 D-div — Float value kind (or fail-closed)
+### 3.3 D-div — Float value kind
 
-- **Floor (fail-closed):** lower Python/JS `/` (true-float division) to an op the
-  interpreter **bails on** (`Sym`/`Err`, so it never feeds the SOUND gate) and
-  that fingerprints distinctly from integer division. True-float `/` units stop
-  merging across the int/float boundary. *Recall cost:* every true-float `/` unit
-  becomes oracle-opaque (no longer eligible for the exact behavioral claim) —
-  potentially significant in float-heavy corpora; **must be priced**.
+- **Floor (shipped):** Python/JS `/` (true-float division) fingerprints as
+  `TrueDiv`, distinct from C-family truncated `Div` and Ruby/Python `FloorDiv`.
+  Same-semantics surfaces still converge (`Python /` with JS `/`, Ruby `/` with
+  Python `//`).
 - **Full model:** add `Value::Float` with IEEE-754 semantics, the per-language
   Int↔Float coercion lattice, and the float half of C (`+`/`*` non-associativity,
   `(a+b)+c ≠ a+(b+c)`). Recovers the recall the floor gives up. **Largest single
   piece in the whole #283 cluster** — its own design doc if pursued.
-- **Cost:** Low–Medium (floor) → High (full).
+- **Cost:** floor paid; remaining High for a real Float interpreter/value-graph model.
 
 ---
 
@@ -223,7 +228,7 @@ For each candidate fix, record **before → after**:
    pathologically (a fix that merges *nothing* trivially has "no false merges");
    the pre-gate guards against measuring a degenerate detector.
 4. **No silent regressions elsewhere.**
-   dup-gate (`scripts/check-duplication.sh`, budget 25) and the byte-identical
+   dup-gate (`scripts/check-duplication.sh`, budget 28) and the byte-identical
    `cmp` fingerprint-stability gate must stay green; build a `main` worktree
    baseline for the family count so the delta is apples-to-apples (see the perf
    tooling notes in the repo memory / [dogfooding](dogfooding.md)).
@@ -242,10 +247,10 @@ oracle-caught)":
 
 | target | file / repro | must become |
 |---|---|---|
-| C — string `+` non-commutativity | `untyped_add_commute.py` (`a+b` vs `b+a`) | oracle **witnesses** the difference; detector keeps them **split** |
+| C — string/mixed-coercive `+` ordering | `untyped_add_commute.py` (`a+b` vs `b+a`) and JS/TS/Java-style `x+4` / `x+(2+3)` / `x-3` / `-(x+2)` | detector keeps them **split**; oracle witnesses pure string now only after battery enrichment, and mixed string/number after coercion modeling |
 | C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | oracle witnesses (needs §3.3 float) or detector keeps split |
-| D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer — **add to the battery** | detector keeps **split**; oracle models int32 |
-| D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; oracle models float (or fails closed) |
+| D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split**; oracle int32 execution remains follow-up |
+| D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; real Float oracle remains follow-up |
 
 New permanent regression tests follow the pattern of
 `crates/nose-cli/tests/equivalence.rs`
@@ -267,16 +272,15 @@ coarse). Recommended sequence, cheapest-and-highest-confidence first:
    alone (the floor) is worth shipping immediately — it strengthens the oracle for
    *every* future finding and tells us how big the untyped-`+` problem actually
    is before we price the gate.
-2. **D-int32 — GO as a fail-closed floor; defer the full width model.** Ship the
-   distinct narrowing op + int32 interpreter semantics, price the JS↔C/Java-int
-   recall loss. Promote to the full fixed-width canon only if that loss is
-   material. The canon interactions (§3.2) are the real work and should be a
-   separate PR from the floor.
-3. **D-div (Float) — NO-GO for now; floor-only.** Ship the fail-closed floor
-   (true-float `/` bails + fingerprints distinctly) and **measure** the recall
-   cost. The full `Value::Float` model is the largest single surface in the
-   cluster and should not be started until (a) the floor's recall price proves it
-   necessary and (b) it gets its own design doc covering NaN/±0/coercion.
+2. **D-int32 — floor shipped; defer the full width model.** The distinct
+   narrowing fingerprint is in place. Next work is int32 oracle execution plus
+   measured JS↔C/Java-int recall recovery. Promote to the full fixed-width canon
+   only if that loss is material.
+3. **D-div (Float) — floor shipped; full model remains NO-GO for now.** The
+   true/floored/truncated fingerprints are split. The full `Value::Float` model
+   is the largest single surface in the cluster and should not be started until
+   (a) the floor's recall price proves it necessary and (b) it gets its own
+   design doc covering NaN/±0/coercion.
 
 This converts "one big scary foundational extension" into **three independently
 priced, independently shippable fixes**, each with a sound floor — exactly the

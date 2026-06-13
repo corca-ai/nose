@@ -439,7 +439,7 @@ fn scan_mode_semantic_proves_rust_integer_methods() {
     fs::create_dir_all(&dir).unwrap();
     fs::write(
         dir.join("abs_conditional.py"),
-        "def magnitude(value, other):\n    magnitude = value if value >= 0 else -value\n    return magnitude + other\n",
+        "def magnitude(value: int, other: int):\n    magnitude = value if value >= 0 else -value\n    return magnitude + other\n",
     )
     .unwrap();
     fs::write(
@@ -2954,6 +2954,11 @@ fn scan_mode_semantic_allows_named_namespace_import_identity() {
     )
     .unwrap();
     fs::write(
+        dir.join("typed_named.ts"),
+        "import { helper } from \"./shared-math\";\n\nfunction report(input: number): number {\n  return helper(input + 1);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("typed_namespace.ts"),
         "import * as mathOps from \"./shared-math\";\n\nfunction build(input: number): number {\n  return mathOps.helper(input + 1);\n}\n",
     )
@@ -2968,12 +2973,14 @@ fn scan_mode_semantic_allows_named_namespace_import_identity() {
     let semantic_json: serde_json::Value =
         serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
     let semantic_text = semantic_json.to_string();
-    for expected in ["named.js", "namespace.js", "typed_namespace.ts"] {
-        assert!(
-            semantic_text.contains(expected),
-            "semantic mode should include static import member positive {expected}: {semantic}"
-        );
-    }
+    assert!(
+        family_contains_all(&semantic_json, &["named.js", "namespace.js"]),
+        "semantic mode should include untyped JS static import member positives: {semantic}"
+    );
+    assert!(
+        family_contains_all(&semantic_json, &["typed_named.ts", "typed_namespace.ts"]),
+        "semantic mode should include typed TS static import member positives: {semantic}"
+    );
     assert!(
         !semantic_text.contains("wrong_member.js"),
         "semantic mode must preserve imported member coordinate boundaries: {semantic}"

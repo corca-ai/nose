@@ -119,11 +119,39 @@ core canonicalizations, but not a per-scan or whole-pipeline proof. See
   carry no per-pair behavioral proof.
 - Type-4 coverage is a **growing set of modeled equivalences**, not a guarantee about any
   given pair of semantically-equal fragments.
-- **The value model is coarser than full JS semantics for loose equality on non-null
-  operands**: `a == b` and `a === b` over arbitrary values share a fingerprint (the model's
-  equality is strict/structural; coercion is not modeled). Null-ish checks are handled
-  precisely — `x === null` never merges with `x == null` / `x ?? d`, and `null` and
-  `undefined` spellings stay distinct in strict checks.
+- **JS loose equality is fail-closed outside the null-ish contract**: `a == b` over
+  non-null operands does not merge with `a === b`, because the value model does not
+  implement JS coercions such as `false == 0`, `"0" == 0`, or `[] == 0`. Loose
+  equality still converges with the same loose surface, including symmetric operand
+  order. Null-ish checks are handled precisely — `x == null` remains the modeled
+  nullish check that can converge with `x ?? d`, while `x === null` never merges
+  with `x == null` / `x ?? d`, and `null` and `undefined` spellings stay distinct
+  in strict checks.
+- **JS `instanceof` is exact-closed rather than equality-modeled**: `x instanceof C`
+  and `!(x instanceof C)` can converge with the same membership surface, but they
+  do not merge with `x === C` or `x !== C`. The value model does not attempt to
+  prove prototype-chain type membership equivalent to other predicates.
+- **JS-family relational comparisons need numeric proof**: untyped `<`, `<=`, `>`,
+  and `>=` stay exact-closed because JS compares two strings lexicographically but
+  otherwise coerces toward numeric comparison (`"2" < "10"` differs from `2 < 10`).
+  Scalar/literal/operator-proven numeric TypeScript comparisons still use the
+  primitive comparison laws. TypeScript `number[]` callback or loop elements are
+  not yet treated as numeric proof, so those higher-order relational predicates
+  stay closed until element-domain facts are modeled. Negated order comparisons
+  such as `!(a < b)` and branch-swapped order conditionals lower to the apparent
+  dual (`a >= b`) only with integer-domain proof, because `NaN` makes the two differ.
+- **Float-sensitive min/max APIs stay exact-closed**: the modeled Min/Max value
+  nodes represent integer/ternary selection idioms. JS-family `Math.min`/`Math.max`
+  and Go `math.Min`/`math.Max` return `NaN` if any argument is `NaN`; Java
+  `Math.min`/`Math.max` lower only with unshadowed `Math` plus integer-domain
+  proof for their value arguments. Free `min`/`max` lowering needs integer-domain
+  proof before it can use the modeled Min/Max node.
+- **Float-sensitive abs APIs stay exact-closed**: JS-family `Math.abs` and Go
+  `math.Abs` differ from ternary absolute-value idioms on signed zero; Java
+  `Math.abs` likewise lowers only with unshadowed `Math` plus integer-domain
+  proof. Python free `abs(...)` and sign-test ternary absolute-value idioms also
+  need integer-domain proof before they use the modeled Abs node. Float overloads
+  need a signed-zero-aware numeric model before entering exact matching.
 - Sub-function semantic coverage is intentionally bounded: nose extracts control-flow
   blocks and exact-safe single-statement fragments (return/throw expressions and simple
   conditional return/throw/effect guards, including bare returns, explicit empty no-op

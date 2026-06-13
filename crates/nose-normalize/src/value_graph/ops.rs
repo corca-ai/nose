@@ -281,6 +281,20 @@ pub(super) const TO_INT32_CODE: u32 = 0x132;
 /// the null/undefined-conflating value model cannot express as `Bin(Eq)` without
 /// merging it with the loose check (see `eval`'s strict-null handling).
 pub(super) const JS_STRICT_NULL_CMP_TAG: u64 = 0x4A53_534E_4351;
+/// Salt for JS loose equality outside the nullish special case. `x == null` is modeled
+/// by the null/undefined-conflating `Eq` because that is exactly the nullish-default
+/// check; other loose equality uses JS coercions and must not merge with `===`.
+pub(super) const JS_LOOSE_EQ_CMP_TAG: u64 = 0x4A53_4C45_4351;
+pub(super) const JS_LOOSE_NE_CMP_TAG: u64 = 0x4A53_4C4E_4351;
+/// Salt for JS `instanceof`. The frontend lowers it through an equality-shaped
+/// BinOp so structural consumers can still see a binary predicate, but the
+/// value graph must keep prototype-chain type membership distinct from equality.
+pub(super) const JS_INSTANCEOF_CMP_TAG: u64 = 0x4A53_494F_4351;
+/// Salt for JS-family relational comparison (`< <= > >=`) when operands are not
+/// proven numeric. JS compares two strings lexicographically but otherwise applies
+/// numeric coercion, so untyped relational predicates cannot share the primitive
+/// numeric comparison node safely.
+pub(super) const JS_RELATIONAL_CMP_TAG: u64 = 0x4A53_5243_4D50;
 pub(super) const C_U16_BE_BYTE_PACK_CODE: u32 = 0x4331_3642;
 pub(super) const C_U32_BE_BYTE_PACK_CODE: u32 = 0x4333_3242;
 pub(super) const EFFECT_ORDINAL_SINK_TAG: u64 = 0xEFFE_C701;

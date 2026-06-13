@@ -71,25 +71,56 @@ impl<'a> Builder<'a> {
             })
     }
 
-    /// Whether a `+` chain may be treated as commutative (so its operands can be reordered)
-    /// rather than as ordered string/list concat. `value_law_satisfied` alone accepts an
-    /// UNKNOWN operand optimistically — which false-merges `a+b` with `b+a` for two untyped
-    /// params that are actually strings (`"x"+"y" != "y"+"x"`, now witnessed by the oracle,
-    /// #283-C). The exact condition is that AT LEAST ONE operand is PROVEN non-concat (never
-    /// a string/list): if one operand is numeric, then for any other operand the sum either
-    /// stays numeric (commutes) or hits `num + str` → `Err` in EVERY order (Err propagates
-    /// symmetrically), so the chain is permutation-invariant. Only when NO operand is proven
-    /// non-concat could they all be strings/lists, where order matters. So `x + 4`,
-    /// `x*x + y*y`, and any sum touching a number still commute; only `a + b` with two
-    /// concat-possible operands stays ordered.
+    /// Whether a `+` chain may be treated as numeric/non-concat rather than ordered
+    /// string/list concat. `value_law_satisfied` alone accepts an UNKNOWN operand
+    /// optimistically, which false-merges `a+b` with `b+a` for two untyped params that are
+    /// actually strings (`"x"+"y" != "y"+"x"`, #283-C).
+    ///
+    /// Non-coercive languages can commute when at least one operand is proven non-concat:
+    /// `num + str` errors regardless of order. JS/TS/Java are stricter because their `+`
+    /// coerces mixed string/non-string operands instead of erroring, so `x + 4` is ordered
+    /// unless every leaf is proven non-concat.
     pub(super) fn add_values_not_concat(&self, law: ValueLaw, values: &[ValueId]) -> bool {
-        self.value_law_satisfied(law, values) && values.iter().any(|&v| self.proven_non_concat(v))
+        self.value_law_satisfied(law, values)
+            && if self.plus_has_mixed_string_coercion() {
+                values.iter().all(|&v| self.proven_non_concat(v))
+            } else {
+                values.iter().any(|&v| self.proven_non_concat(v))
+            }
+    }
+
+    pub(super) fn plus_has_mixed_string_coercion(&self) -> bool {
+        matches!(
+            self.il.meta.lang,
+            Lang::JavaScript
+                | Lang::TypeScript
+                | Lang::Vue
+                | Lang::Svelte
+                | Lang::Html
+                | Lang::Java
+        )
+    }
+
+    pub(super) fn relational_has_string_ordering(&self) -> bool {
+        matches!(
+            self.il.meta.lang,
+            Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+        )
+    }
+
+    /// Whether a `+` chain may be re-associated. In JS/TS/Java, grouping itself is
+    /// observable under mixed string coercion (`"a"+2+3` vs `"a"+(2+3)`), so association
+    /// needs the same all-leaves non-concat proof as commutation.
+    pub(super) fn add_association_safe(&self, values: &[ValueId]) -> bool {
+        !self.plus_has_mixed_string_coercion()
+            || self.add_values_not_concat(ValueLaw::AddAssociativity, values)
     }
 
     /// Whether an associative-commutative chain's operands may be COMMUTED (reordered).
     /// Associativity — regrouping a flat chain — is sound for every type and handled by the
     /// caller; this gates only the SORT. Commutativity is op- and language-specific:
-    /// - `+` is ordered string/list concat unless proven non-concat (#283-C, via `add_law`).
+    /// - `+` is ordered string/list concat unless proven non-concat (#283-C, via `add_law`);
+    ///   in JS/TS/Java mixed string coercion requires every operand to be proven non-concat.
     /// - `*` is string/list REPETITION in Ruby, and there it is asymmetric: `"ab" * 3` →
     ///   "ababab" but `3 * "ab"` raises (`Integer#*` rejects a String). Python repetition
     ///   commutes (`3 * "ab"` == `"ab" * 3`), and JS/TS/Java/Go/C `*` is always numeric — so

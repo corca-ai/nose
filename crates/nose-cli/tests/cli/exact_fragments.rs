@@ -392,40 +392,40 @@ fn semantic_scan_reports_exact_safe_conditional_return_fragments_under_opaque_fu
 fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_functions() {
     let fixtures = [
         (
-            "square_throw_guard_a.js",
-            "function squareThrowLeft(xs) {\n  if (xs[0] > 0) {\n    throw xs[0] * xs[0];\n  }\n  audit(xs);\n}\n",
+            "square_throw_guard_a.ts",
+            "function squareThrowLeft(xs: number[]) {\n  if (xs[0] > 0) {\n    throw xs[0] * xs[0];\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "square_throw_guard_b.js",
-            "function squareThrowRight(ys) {\n  if (0 < ys[0]) {\n    throw ys[0] * ys[0];\n  }\n  trace(ys);\n}\n",
+            "square_throw_guard_b.ts",
+            "function squareThrowRight(ys: number[]) {\n  if (0 < ys[0]) {\n    throw ys[0] * ys[0];\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "square_throw_guard_neg.js",
-            "function squareThrowWrong(zs) {\n  if (zs[0] > 1) {\n    throw zs[0] * zs[0];\n  }\n  audit(zs);\n}\n",
+            "square_throw_guard_neg.ts",
+            "function squareThrowWrong(zs: number[]) {\n  if (zs[0] > 1) {\n    throw zs[0] * zs[0];\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "sum_throw_guard_a.js",
-            "function sumThrowLeft(xs) {\n  if (xs[0] + xs[1] > 10) {\n    throw xs[0] + xs[1];\n  }\n  audit(xs);\n}\n",
+            "sum_throw_guard_a.ts",
+            "function sumThrowLeft(xs: number[]) {\n  if (xs[0] + xs[1] > 10) {\n    throw xs[0] + xs[1];\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "sum_throw_guard_b.js",
-            "function sumThrowRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
+            "sum_throw_guard_b.ts",
+            "function sumThrowRight(ys: number[]) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "sum_throw_guard_neg.js",
-            "function sumThrowWrong(zs) {\n  if (zs[0] + zs[1] > 10) {\n    throw zs[0] - zs[1];\n  }\n  audit(zs);\n}\n",
+            "sum_throw_guard_neg.ts",
+            "function sumThrowWrong(zs: number[]) {\n  if (zs[0] + zs[1] > 10) {\n    throw zs[0] - zs[1];\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "both_throw_guard_a.js",
-            "function bothThrowLeft(xs) {\n  if (xs[0] > 0 && xs[1] > 0) {\n    throw xs[0] + xs[1];\n  }\n  audit(xs);\n}\n",
+            "both_throw_guard_a.ts",
+            "function bothThrowLeft(x: number, y: number) {\n  if (x > 0 && y > 0) {\n    throw x + y;\n  }\n  audit(x);\n}\n",
         ),
         (
-            "both_throw_guard_b.js",
-            "function bothThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
+            "both_throw_guard_b.ts",
+            "function bothThrowRight(a: number, b: number) {\n  if (b > 0 && a > 0) {\n    throw a + b;\n  }\n  trace(a);\n}\n",
         ),
         (
-            "both_throw_guard_mutated.js",
-            "function bothThrowMutated(zs) {\n  zs.push(1);\n  if (zs[0] > 0 && zs[1] > 0) {\n    throw zs[0] + zs[1];\n  }\n  audit(zs);\n}\n",
+            "both_throw_guard_mutated.ts",
+            "function bothThrowMutated(z: number, w: number) {\n  z = z + 1;\n  if (z > 0 && w > 0) {\n    throw z + w;\n  }\n  audit(z);\n}\n",
         ),
     ];
     let (dir, out, families) =
@@ -448,19 +448,19 @@ fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_fun
     };
 
     assert_guard_family(
-        "square_throw_guard_a.js",
-        "square_throw_guard_b.js",
-        "square_throw_guard_neg.js",
+        "square_throw_guard_a.ts",
+        "square_throw_guard_b.ts",
+        "square_throw_guard_neg.ts",
     );
     assert_guard_family(
-        "sum_throw_guard_a.js",
-        "sum_throw_guard_b.js",
-        "sum_throw_guard_neg.js",
+        "sum_throw_guard_a.ts",
+        "sum_throw_guard_b.ts",
+        "sum_throw_guard_neg.ts",
     );
     assert_guard_family(
-        "both_throw_guard_a.js",
-        "both_throw_guard_b.js",
-        "both_throw_guard_mutated.js",
+        "both_throw_guard_a.ts",
+        "both_throw_guard_b.ts",
+        "both_throw_guard_mutated.ts",
     );
     let _ = fs::remove_dir_all(&dir);
 }
@@ -470,40 +470,40 @@ fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_unde
 {
     let fixtures = [
         (
-            "empty_else_return_a.js",
-            "function emptyElseReturnLeft(xs) {\n  if (xs[0] > 0) {\n    return xs[0] * xs[0];\n  } else {\n  }\n  audit(xs);\n}\n",
+            "empty_else_return_a.ts",
+            "function emptyElseReturnLeft(xs: number[]) {\n  if (xs[0] > 0) {\n    return xs[0] * xs[0];\n  } else {\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "empty_else_return_b.js",
-            "function emptyElseReturnRight(ys) {\n  if (0 < ys[0]) {\n    return ys[0] * ys[0];\n  } else {\n  }\n  trace(ys);\n}\n",
+            "empty_else_return_b.ts",
+            "function emptyElseReturnRight(ys: number[]) {\n  if (0 < ys[0]) {\n    return ys[0] * ys[0];\n  } else {\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "empty_else_return_neg.js",
-            "function emptyElseReturnWrong(zs) {\n  if (zs[0] > 1) {\n    return zs[0] * zs[0];\n  } else {\n  }\n  audit(zs);\n}\n",
+            "empty_else_return_neg.ts",
+            "function emptyElseReturnWrong(zs: number[]) {\n  if (zs[0] > 1) {\n    return zs[0] * zs[0];\n  } else {\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "empty_else_throw_a.js",
-            "function emptyElseThrowLeft(xs) {\n  if (xs[0] + xs[1] > 10) {\n    throw xs[0] + xs[1];\n  } else {\n  }\n  audit(xs);\n}\n",
+            "empty_else_throw_a.ts",
+            "function emptyElseThrowLeft(xs: number[]) {\n  if (xs[0] + xs[1] > 10) {\n    throw xs[0] + xs[1];\n  } else {\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "empty_else_throw_b.js",
-            "function emptyElseThrowRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  } else {\n  }\n  trace(ys);\n}\n",
+            "empty_else_throw_b.ts",
+            "function emptyElseThrowRight(ys: number[]) {\n  if (10 < ys[0] + ys[1]) {\n    throw ys[0] + ys[1];\n  } else {\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "empty_else_throw_neg.js",
-            "function emptyElseThrowWrong(zs) {\n  if (zs[0] + zs[1] > 10) {\n    throw zs[0] - zs[1];\n  } else {\n  }\n  audit(zs);\n}\n",
+            "empty_else_throw_neg.ts",
+            "function emptyElseThrowWrong(zs: number[]) {\n  if (zs[0] + zs[1] > 10) {\n    throw zs[0] - zs[1];\n  } else {\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "empty_then_throw_a.js",
-            "function emptyThenThrowLeft(xs) {\n  if (xs[0] > 0 && xs[1] > 0) {\n  } else {\n    throw xs[0] + xs[1];\n  }\n  audit(xs);\n}\n",
+            "empty_then_throw_a.ts",
+            "function emptyThenThrowLeft(x: number, y: number) {\n  if (x > 0 && y > 0) {\n  } else {\n    throw x + y;\n  }\n  audit(x);\n}\n",
         ),
         (
-            "empty_then_throw_b.js",
-            "function emptyThenThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    throw ys[0] + ys[1];\n  }\n  trace(ys);\n}\n",
+            "empty_then_throw_b.ts",
+            "function emptyThenThrowRight(a: number, b: number) {\n  if (b > 0 && a > 0) {\n  } else {\n    throw a + b;\n  }\n  trace(a);\n}\n",
         ),
         (
-            "empty_then_throw_mutated.js",
-            "function emptyThenThrowMutated(zs) {\n  zs.push(1);\n  if (zs[0] > 0 && zs[1] > 0) {\n  } else {\n    throw zs[0] + zs[1];\n  }\n  audit(zs);\n}\n",
+            "empty_then_throw_mutated.ts",
+            "function emptyThenThrowMutated(z: number, w: number) {\n  z = z + 1;\n  if (z > 0 && w > 0) {\n  } else {\n    throw z + w;\n  }\n  audit(z);\n}\n",
         ),
     ];
     let (dir, out, families) =
@@ -526,19 +526,19 @@ fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_unde
     };
 
     assert_guard_family(
-        "empty_else_return_a.js",
-        "empty_else_return_b.js",
-        "empty_else_return_neg.js",
+        "empty_else_return_a.ts",
+        "empty_else_return_b.ts",
+        "empty_else_return_neg.ts",
     );
     assert_guard_family(
-        "empty_else_throw_a.js",
-        "empty_else_throw_b.js",
-        "empty_else_throw_neg.js",
+        "empty_else_throw_a.ts",
+        "empty_else_throw_b.ts",
+        "empty_else_throw_neg.ts",
     );
     assert_guard_family(
-        "empty_then_throw_a.js",
-        "empty_then_throw_b.js",
-        "empty_then_throw_mutated.js",
+        "empty_then_throw_a.ts",
+        "empty_then_throw_b.ts",
+        "empty_then_throw_mutated.ts",
     );
     let _ = fs::remove_dir_all(&dir);
 }
@@ -554,40 +554,40 @@ fn semantic_scan_reports_exact_safe_conditional_bare_return_fragments_under_opaq
 
     let fixtures = [
         (
-            "bare_square_a.js",
-            "function bareSquareLeft(xs) {\n  if (xs[0] > 0) {\n    return;\n  }\n  audit(xs);\n}\n",
+            "bare_square_a.ts",
+            "function bareSquareLeft(xs: number[]) {\n  if (xs[0] > 0) {\n    return;\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "bare_square_b.js",
-            "function bareSquareRight(ys) {\n  if (0 < ys[0]) {\n    return;\n  }\n  trace(ys);\n}\n",
+            "bare_square_b.ts",
+            "function bareSquareRight(ys: number[]) {\n  if (0 < ys[0]) {\n    return;\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "bare_square_neg.js",
-            "function bareSquareWrong(zs) {\n  if (zs[0] > 1) {\n    return;\n  }\n  audit(zs);\n}\n",
+            "bare_square_neg.ts",
+            "function bareSquareWrong(zs: number[]) {\n  if (zs[0] > 1) {\n    return;\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "bare_sum_a.js",
-            "function bareSumLeft(xs) {\n  if (xs[0] + xs[1] > 10) {\n    return;\n  }\n  audit(xs);\n}\n",
+            "bare_sum_a.ts",
+            "function bareSumLeft(xs: number[]) {\n  if (xs[0] + xs[1] > 10) {\n    return;\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "bare_sum_b.js",
-            "function bareSumRight(ys) {\n  if (10 < ys[0] + ys[1]) {\n    return;\n  }\n  trace(ys);\n}\n",
+            "bare_sum_b.ts",
+            "function bareSumRight(ys: number[]) {\n  if (10 < ys[0] + ys[1]) {\n    return;\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "bare_sum_mutated.js",
-            "function bareSumMutated(zs) {\n  zs.push(1);\n  if (zs[0] + zs[1] > 10) {\n    return;\n  }\n  audit(zs);\n}\n",
+            "bare_sum_mutated.ts",
+            "function bareSumMutated(zs: number[]) {\n  zs.push(1);\n  if (zs[0] + zs[1] > 10) {\n    return;\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "bare_else_a.js",
-            "function bareElseLeft(xs) {\n  if (xs[0] > 0 && xs[1] > 0) {\n  } else {\n    return;\n  }\n  audit(xs);\n}\n",
+            "bare_else_a.ts",
+            "function bareElseLeft(x: number, y: number) {\n  if (x > 0 && y > 0) {\n  } else {\n    return;\n  }\n  audit(x);\n}\n",
         ),
         (
-            "bare_else_b.js",
-            "function bareElseRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    return;\n  }\n  trace(ys);\n}\n",
+            "bare_else_b.ts",
+            "function bareElseRight(a: number, b: number) {\n  if (b > 0 && a > 0) {\n  } else {\n    return;\n  }\n  trace(a);\n}\n",
         ),
         (
-            "bare_else_neg.js",
-            "function bareElseWrong(zs) {\n  if (zs[0] > 0 && zs[1] > 1) {\n  } else {\n    return;\n  }\n  audit(zs);\n}\n",
+            "bare_else_neg.ts",
+            "function bareElseWrong(z: number, w: number) {\n  if (z > 0 && w > 1) {\n  } else {\n    return;\n  }\n  audit(z);\n}\n",
         ),
     ];
     for (name, src) in fixtures {
@@ -636,9 +636,9 @@ fn semantic_scan_reports_exact_safe_conditional_bare_return_fragments_under_opaq
         );
     };
 
-    assert_guard_family("bare_square_a.js", "bare_square_b.js", "bare_square_neg.js");
-    assert_guard_family("bare_sum_a.js", "bare_sum_b.js", "bare_sum_mutated.js");
-    assert_guard_family("bare_else_a.js", "bare_else_b.js", "bare_else_neg.js");
+    assert_guard_family("bare_square_a.ts", "bare_square_b.ts", "bare_square_neg.ts");
+    assert_guard_family("bare_sum_a.ts", "bare_sum_b.ts", "bare_sum_mutated.ts");
+    assert_guard_family("bare_else_a.ts", "bare_else_b.ts", "bare_else_neg.ts");
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -653,40 +653,40 @@ fn semantic_scan_reports_exact_safe_conditional_expr_effect_fragments_under_opaq
 
     let fixtures = [
         (
-            "push_square_a.js",
-            "function pushSquareLeft(xs, out) {\n  if (xs[0] > 0) {\n    out.push(xs[0] * xs[0]);\n  }\n  audit(xs);\n}\n",
+            "push_square_a.ts",
+            "function pushSquareLeft(xs: number[], out: number[]) {\n  if (xs[0] > 0) {\n    out.push(xs[0] * xs[0]);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "push_square_b.js",
-            "function pushSquareRight(ys, dst) {\n  if (0 < ys[0]) {\n    dst.push(ys[0] * ys[0]);\n  }\n  trace(ys);\n}\n",
+            "push_square_b.ts",
+            "function pushSquareRight(ys: number[], dst: number[]) {\n  if (0 < ys[0]) {\n    dst.push(ys[0] * ys[0]);\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "push_square_neg.js",
-            "function pushSquareWrong(zs, out) {\n  if (zs[0] > 1) {\n    out.push(zs[0] * zs[0]);\n  }\n  audit(zs);\n}\n",
+            "push_square_neg.ts",
+            "function pushSquareWrong(zs: number[], out: number[]) {\n  if (zs[0] > 1) {\n    out.push(zs[0] * zs[0]);\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "push_sum_a.js",
-            "function pushSumLeft(xs, out) {\n  if (xs[0] + xs[1] > 10) {\n    out.push(xs[0] + xs[1]);\n  }\n  audit(xs);\n}\n",
+            "push_sum_a.ts",
+            "function pushSumLeft(xs: number[], out: number[]) {\n  if (xs[0] + xs[1] > 10) {\n    out.push(xs[0] + xs[1]);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "push_sum_b.js",
-            "function pushSumRight(ys, dst) {\n  if (10 < ys[0] + ys[1]) {\n    dst.push(ys[0] + ys[1]);\n  }\n  trace(ys);\n}\n",
+            "push_sum_b.ts",
+            "function pushSumRight(ys: number[], dst: number[]) {\n  if (10 < ys[0] + ys[1]) {\n    dst.push(ys[0] + ys[1]);\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "push_sum_neg.js",
-            "function pushSumWrong(zs, out) {\n  if (zs[0] + zs[1] > 10) {\n    out.push(zs[0] - zs[1]);\n  }\n  audit(zs);\n}\n",
+            "push_sum_neg.ts",
+            "function pushSumWrong(zs: number[], out: number[]) {\n  if (zs[0] + zs[1] > 10) {\n    out.push(zs[0] - zs[1]);\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "push_else_a.js",
-            "function pushElseLeft(xs, out) {\n  if (xs[0] > 0 && xs[1] > 0) {\n  } else {\n    out.push(xs[0] + xs[1]);\n  }\n  audit(xs);\n}\n",
+            "push_else_a.ts",
+            "function pushElseLeft(x: number, y: number, out: number[]) {\n  if (x > 0 && y > 0) {\n  } else {\n    out.push(x + y);\n  }\n  audit(x);\n}\n",
         ),
         (
-            "push_else_b.js",
-            "function pushElseRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    dst.push(ys[0] + ys[1]);\n  }\n  trace(ys);\n}\n",
+            "push_else_b.ts",
+            "function pushElseRight(a: number, b: number, dst: number[]) {\n  if (b > 0 && a > 0) {\n  } else {\n    dst.push(a + b);\n  }\n  trace(a);\n}\n",
         ),
         (
-            "push_else_mutated.js",
-            "function pushElseMutated(zs, out) {\n  out.push(0);\n  if (zs[0] > 0 && zs[1] > 0) {\n  } else {\n    out.push(zs[0] + zs[1]);\n  }\n  audit(zs);\n}\n",
+            "push_else_mutated.ts",
+            "function pushElseMutated(z: number, w: number, out: number[]) {\n  out.push(0);\n  if (z > 0 && w > 0) {\n  } else {\n    out.push(z + w);\n  }\n  audit(z);\n}\n",
         ),
     ];
     for (name, src) in fixtures {
@@ -735,9 +735,9 @@ fn semantic_scan_reports_exact_safe_conditional_expr_effect_fragments_under_opaq
         );
     };
 
-    assert_guard_family("push_square_a.js", "push_square_b.js", "push_square_neg.js");
-    assert_guard_family("push_sum_a.js", "push_sum_b.js", "push_sum_neg.js");
-    assert_guard_family("push_else_a.js", "push_else_b.js", "push_else_mutated.js");
+    assert_guard_family("push_square_a.ts", "push_square_b.ts", "push_square_neg.ts");
+    assert_guard_family("push_sum_a.ts", "push_sum_b.ts", "push_sum_neg.ts");
+    assert_guard_family("push_else_a.ts", "push_else_b.ts", "push_else_mutated.ts");
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -792,7 +792,7 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
         ),
         (
             "temp_effect_b.js",
-            "function tempEffectRight(ys, dst) {\n  if (0 < ys[0]) {\n    dst.push(ys[1] + ys[0] * ys[0]);\n  }\n  trace(ys);\n}\n",
+            "function tempEffectRight(ys, dst) {\n  if (0 < ys[0]) {\n    dst.push(ys[0] * ys[0] + ys[1]);\n  }\n  trace(ys);\n}\n",
         ),
         (
             "temp_effect_neg.js",
@@ -816,7 +816,7 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
         ),
         (
             "temp_chain_throw_b.js",
-            "function tempChainThrowRight(ys) {\n  if (0 < ys[0]) {\n    throw ys[1] + (1 + ys[0]) * (1 + ys[0]);\n  }\n  trace(ys);\n}\n",
+            "function tempChainThrowRight(ys) {\n  if (0 < ys[0]) {\n    throw (ys[0] + 1) * (ys[0] + 1) + ys[1];\n  }\n  trace(ys);\n}\n",
         ),
         (
             "temp_chain_throw_neg.js",
@@ -828,7 +828,7 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
         ),
         (
             "temp_chain_effect_b.js",
-            "function tempChainEffectRight(ys, dst) {\n  if (0 < ys[0]) {\n    dst.push(ys[1] + (1 + ys[0]) * (1 + ys[0]));\n  }\n  trace(ys);\n}\n",
+            "function tempChainEffectRight(ys, dst) {\n  if (0 < ys[0]) {\n    dst.push((ys[0] + 1) * (ys[0] + 1) + ys[1]);\n  }\n  trace(ys);\n}\n",
         ),
         (
             "temp_chain_effect_neg.js",
@@ -1006,40 +1006,40 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
 fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_opaque_functions() {
     let fixtures = [
         (
-            "nested_push_a.js",
-            "function nestedPushLeft(xs, out) {\n  if (xs[0] > 0 && xs[1] > 0) {\n    out.push(xs[0] + xs[1]);\n  } else {\n    if (xs[2] > 0) {\n      out.push(xs[2] * xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
+            "nested_push_a.ts",
+            "function nestedPushLeft(x: number, y: number, z: number, out: number[]) {\n  if (x > 0 && y > 0) {\n    out.push(x + y);\n  } else {\n    if (z > 0) {\n      out.push(z * z);\n    }\n  }\n  audit(x);\n}\n",
         ),
         (
-            "nested_push_b.js",
-            "function nestedPushRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    dst.push(ys[0] + ys[1]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+            "nested_push_b.ts",
+            "function nestedPushRight(a: number, b: number, c: number, dst: number[]) {\n  if (b > 0 && a > 0) {\n    dst.push(a + b);\n  } else {\n    if (0 < c) {\n      dst.push(c * c);\n    }\n  }\n  trace(a);\n}\n",
         ),
         (
-            "nested_push_mutated.js",
-            "function nestedPushMutated(zs, out) {\n  out.push(0);\n  if (zs[0] > 0 && zs[1] > 0) {\n    out.push(zs[0] + zs[1]);\n  } else {\n    if (zs[2] > 0) {\n      out.push(zs[2] * zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
+            "nested_push_mutated.ts",
+            "function nestedPushMutated(z: number, w: number, q: number, out: number[]) {\n  out.push(0);\n  if (z > 0 && w > 0) {\n    out.push(z + w);\n  } else {\n    if (q > 0) {\n      out.push(q * q);\n    }\n  }\n  audit(z);\n}\n",
         ),
         (
-            "nested_push_sum_a.js",
-            "function nestedPushSumLeft(xs, out) {\n  if (xs[0] + xs[1] > 10) {\n    out.push(xs[0] + xs[1]);\n  } else {\n    if (xs[2] > 0) {\n      out.push(xs[2] * xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
+            "nested_push_sum_a.ts",
+            "function nestedPushSumLeft(xs: number[], out: number[]) {\n  if (xs[0] + xs[1] > 10) {\n    out.push(xs[0] + xs[1]);\n  } else {\n    if (xs[2] > 0) {\n      out.push(xs[2] * xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "nested_push_sum_b.js",
-            "function nestedPushSumRight(ys, dst) {\n  if (10 < ys[0] + ys[1]) {\n    dst.push(ys[0] + ys[1]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+            "nested_push_sum_b.ts",
+            "function nestedPushSumRight(ys: number[], dst: number[]) {\n  if (10 < ys[0] + ys[1]) {\n    dst.push(ys[0] + ys[1]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "nested_push_sum_neg.js",
-            "function nestedPushSumWrong(zs, out) {\n  if (zs[0] + zs[1] > 10) {\n    out.push(zs[0] - zs[1]);\n  } else {\n    if (zs[2] > 0) {\n      out.push(zs[2] * zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
+            "nested_push_sum_neg.ts",
+            "function nestedPushSumWrong(zs: number[], out: number[]) {\n  if (zs[0] + zs[1] > 10) {\n    out.push(zs[0] - zs[1]);\n  } else {\n    if (zs[2] > 0) {\n      out.push(zs[2] * zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "nested_push_product_a.js",
-            "function nestedPushProductLeft(xs, out) {\n  if ((xs[0] + 1) > 10) {\n    out.push((xs[0] + 1) * 2);\n  } else {\n    if (xs[1] + xs[2] > 0) {\n      out.push(xs[1] + xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
+            "nested_push_product_a.ts",
+            "function nestedPushProductLeft(xs: number[], out: number[]) {\n  if ((xs[0] + 1) > 10) {\n    out.push((xs[0] + 1) * 2);\n  } else {\n    if (xs[1] + xs[2] > 0) {\n      out.push(xs[1] + xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "nested_push_product_b.js",
-            "function nestedPushProductRight(ys, dst) {\n  if (10 < (1 + ys[0])) {\n    dst.push(2 * (1 + ys[0]));\n  } else {\n    if (ys[1] + ys[2] > 0) {\n      dst.push(ys[1] + ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+            "nested_push_product_b.ts",
+            "function nestedPushProductRight(ys: number[], dst: number[]) {\n  if (10 < (ys[0] + 1)) {\n    dst.push(2 * (ys[0] + 1));\n  } else {\n    if (ys[1] + ys[2] > 0) {\n      dst.push(ys[1] + ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "nested_push_product_neg.js",
-            "function nestedPushProductWrong(zs, out) {\n  if ((zs[0] + 2) > 10) {\n    out.push((zs[0] + 2) * 2);\n  } else {\n    if (zs[1] + zs[2] > 0) {\n      out.push(zs[1] + zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
+            "nested_push_product_neg.ts",
+            "function nestedPushProductWrong(zs: number[], out: number[]) {\n  if ((zs[0] + 2) > 10) {\n    out.push((zs[0] + 2) * 2);\n  } else {\n    if (zs[1] + zs[2] > 0) {\n      out.push(zs[1] + zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
         ),
     ];
     let (dir, out, families) =
@@ -1059,19 +1059,19 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
     };
 
     assert_guard_family(
-        "nested_push_a.js",
-        "nested_push_b.js",
-        "nested_push_mutated.js",
+        "nested_push_a.ts",
+        "nested_push_b.ts",
+        "nested_push_mutated.ts",
     );
     assert_guard_family(
-        "nested_push_sum_a.js",
-        "nested_push_sum_b.js",
-        "nested_push_sum_neg.js",
+        "nested_push_sum_a.ts",
+        "nested_push_sum_b.ts",
+        "nested_push_sum_neg.ts",
     );
     assert_guard_family(
-        "nested_push_product_a.js",
-        "nested_push_product_b.js",
-        "nested_push_product_neg.js",
+        "nested_push_product_a.ts",
+        "nested_push_product_b.ts",
+        "nested_push_product_neg.ts",
     );
     let _ = fs::remove_dir_all(&dir);
 }
@@ -1111,7 +1111,7 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
         ),
         (
             "loop_push_product_b.ts",
-            "function loopPushProductRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    dst.push(2 * (1 + y));\n  }\n  trace(ys);\n}\n",
+            "function loopPushProductRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    dst.push(2 * (y + 1));\n  }\n  trace(ys);\n}\n",
         ),
         (
             "loop_push_product_neg.ts",
@@ -1123,7 +1123,7 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
         ),
         (
             "loop_push_guard_b.ts",
-            "function loopPushGuardRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    if (0 < y) dst.push(1 + y);\n  }\n  trace(ys);\n}\n",
+            "function loopPushGuardRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    if (0 < y) dst.push(y + 1);\n  }\n  trace(ys);\n}\n",
         ),
         (
             "loop_push_guard_neg.ts",
@@ -1159,7 +1159,7 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
         ),
         (
             "loop_temp_chain_push_b.ts",
-            "function loopTempChainPushRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    const offset = 1 + y;\n    const result = offset * offset;\n    dst.push(result);\n  }\n  trace(ys);\n}\n",
+            "function loopTempChainPushRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    const offset = y + 1;\n    const result = offset * offset;\n    dst.push(result);\n  }\n  trace(ys);\n}\n",
         ),
         (
             "loop_temp_chain_push_wrong.ts",
@@ -1593,11 +1593,11 @@ fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_
         ),
         (
             "cond_loop_else_b.ts",
-            "function condLoopElseRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "function condLoopElseRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      dst.push(y + 1);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_loop_else_wrong_receiver.ts",
-            "function condLoopElseWrongReceiver(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      ys.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "function condLoopElseWrongReceiver(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      ys.push(y + 1);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_loop_guard_a.ts",
@@ -1605,11 +1605,11 @@ fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_
         ),
         (
             "cond_loop_guard_b.ts",
-            "function condLoopGuardRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "function condLoopGuardRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(y + 1);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_loop_guard_wrong_value.ts",
-            "function condLoopGuardWrongValue(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(2 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "function condLoopGuardWrongValue(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(y + 2);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_loop_mutated.ts",
@@ -1697,7 +1697,7 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
         ),
         (
             "cond_two_loops_b.ts",
-            "function condTwoLoopsRight(flag: boolean, as: number[], bs: number[], dst: number[]): void {\n  if (flag) {\n    for (const a of as) {\n      dst.push(1 + a);\n    }\n    for (const b of bs) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "function condTwoLoopsRight(flag: boolean, as: number[], bs: number[], dst: number[]): void {\n  if (flag) {\n    for (const a of as) {\n      dst.push(a + 1);\n    }\n    for (const b of bs) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_two_loops_wrong_order.ts",
@@ -1891,23 +1891,23 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
         ),
         (
             "mixed_loop_append_b.ts",
-            "function mixedLoopAppendRight(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
+            "function mixedLoopAppendRight(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y + 1);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "mixed_loop_append_wrong_order.ts",
-            "function mixedLoopAppendWrongOrder(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    dst.push(base * base);\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "function mixedLoopAppendWrongOrder(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    dst.push(base * base);\n    for (const y of ys) {\n      dst.push(y + 1);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "mixed_loop_append_wrong_receiver.ts",
-            "function mixedLoopAppendWrongReceiver(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    ys.push(base * base);\n  }\n  trace(flag);\n}\n",
+            "function mixedLoopAppendWrongReceiver(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y + 1);\n    }\n    ys.push(base * base);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "mixed_loop_append_mutated.ts",
-            "function mixedLoopAppendMutated(flag: boolean, ys: number[], dst: number[], base: number): void {\n  dst.push(0);\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
+            "function mixedLoopAppendMutated(flag: boolean, ys: number[], dst: number[], base: number): void {\n  dst.push(0);\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y + 1);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "mixed_loop_append_third_effect.ts",
-            "function mixedLoopAppendThirdEffect(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n    dst.push(base + 1);\n  }\n  trace(flag);\n}\n",
+            "function mixedLoopAppendThirdEffect(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y + 1);\n    }\n    dst.push(base * base);\n    dst.push(base + 1);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "mixed_append_loop_a.py",
@@ -2550,27 +2550,27 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
         ),
         (
             "loop_cond_append_b.ts",
-            "function loopCondAppendRight(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "function loopCondAppendRight(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_wrong_order.ts",
-            "function loopCondAppendWrongOrder(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
+            "function loopCondAppendWrongOrder(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_wrong_guard.ts",
-            "function loopCondAppendWrongGuard(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "function loopCondAppendWrongGuard(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_wrong_receiver.ts",
-            "function loopCondAppendWrongReceiver(flag: boolean, ys: number[], b: number, dst: number[], other: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      other.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "function loopCondAppendWrongReceiver(flag: boolean, ys: number[], b: number, dst: number[], other: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      other.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_mutated.ts",
-            "function loopCondAppendMutated(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "function loopCondAppendMutated(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_third.ts",
-            "function loopCondAppendThird(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
+            "function loopCondAppendThird(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_a.py",
@@ -2780,27 +2780,27 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
         ),
         (
             "loop_cond_mixed_append_b.ts",
-            "function loopCondMixedRight(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "function loopCondMixedRight(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_wrong_order.ts",
-            "function loopCondMixedWrongOrder(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "function loopCondMixedWrongOrder(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_wrong_guard.ts",
-            "function loopCondMixedWrongGuard(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "function loopCondMixedWrongGuard(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_wrong_receiver.ts",
-            "function loopCondMixedWrongReceiver(flag: boolean, ys: number[], b: number, c: number, dst: number[], other: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    other.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "function loopCondMixedWrongReceiver(flag: boolean, ys: number[], b: number, c: number, dst: number[], other: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    other.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_mutated.ts",
-            "function loopCondMixedMutated(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "function loopCondMixedMutated(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_fourth.ts",
-            "function loopCondMixedFourth(flag: boolean, ys: number[], b: number, c: number, d: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n    dst.push(d + 4);\n  }\n  trace(flag);\n}\n",
+            "function loopCondMixedFourth(flag: boolean, ys: number[], b: number, c: number, d: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(a + 1);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n    dst.push(d + 4);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_a.py",
@@ -3958,7 +3958,7 @@ fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
         ),
         (
             "throw_squares_b.js",
-            "function throwSquaresRight(ys) {\n  throw ys[1] * ys[1] + ys[0] * ys[0];\n  trace(ys);\n}\n",
+            "function throwSquaresRight(ys) {\n  throw ys[0] * ys[0] + ys[1] * ys[1];\n  trace(ys);\n}\n",
         ),
         (
             "throw_squares_neg.js",
@@ -3970,7 +3970,7 @@ fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
         ),
         (
             "throw_product_b.js",
-            "function throwProductRight(ys) {\n  throw (4 + ys[2]) * (ys[0] + ys[1]);\n  trace(ys);\n}\n",
+            "function throwProductRight(ys) {\n  throw (ys[2] + 4) * (ys[0] + ys[1]);\n  trace(ys);\n}\n",
         ),
         (
             "throw_product_mutated.js",

@@ -139,7 +139,10 @@ fall back to a side-table mirror when source evidence is missing.
   closed.
 - JS-like static membership callbacks such as `x => x === value` consume source
   operator facts and require strict equality/inequality. Loose equality and
-  `instanceof` stay closed for those exact contracts.
+  `instanceof` stay closed for those exact contracts. The value graph also keeps
+  non-null loose equality and positive/negated JS `instanceof` exact-closed
+  instead of treating them as strict equality/inequality; only the `x == null`
+  source contract feeds the modeled nullish check.
 - Rust full-index range recognition consumes `Source::Range` evidence for the
   half-open `0..len(collection)` source surface. A raw `Seq(0, Len(C), 0)` shape,
   or an inclusive `0..=len(collection)` source fact, does not prove that loop

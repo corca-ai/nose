@@ -1001,26 +1001,49 @@ impl<'a> Builder<'a> {
     ) -> Option<ValueId> {
         let admitted = admitted_scalar_integer_method_at_call(self.il, self.interner, call)?;
         let contract = admitted.contract;
-        if contract.result.receiver != MethodReceiverContract::ExactInteger {
-            return None;
-        }
-        let receiver = admitted.receiver?;
-        let receiver_value = self.eval_proven_integer_expr(receiver, env)?;
-        match contract.result.semantic {
-            ScalarIntegerMethod::Abs => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
-            ScalarIntegerMethod::Min => {
-                let rhs = self.eval(*kids.get(1)?, env);
-                self.eval_proven_integer_minmax_method_call(MIN_CODE, receiver_value, rhs)
+        match contract.result.receiver {
+            MethodReceiverContract::ExactInteger => {
+                let receiver = admitted.receiver?;
+                let receiver_value = self.eval_proven_integer_expr(receiver, env)?;
+                match contract.result.semantic {
+                    ScalarIntegerMethod::Abs => {
+                        Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value]))
+                    }
+                    ScalarIntegerMethod::Min => {
+                        let rhs = self.eval(*kids.get(1)?, env);
+                        self.eval_proven_integer_minmax_method_call(MIN_CODE, receiver_value, rhs)
+                    }
+                    ScalarIntegerMethod::Max => {
+                        let rhs = self.eval(*kids.get(1)?, env);
+                        self.eval_proven_integer_minmax_method_call(MAX_CODE, receiver_value, rhs)
+                    }
+                    ScalarIntegerMethod::Clamp => {
+                        let lo = self.eval(*kids.get(1)?, env);
+                        let hi = self.eval(*kids.get(2)?, env);
+                        self.eval_proven_integer_clamp_method_call(receiver_value, lo, hi)
+                    }
+                }
             }
-            ScalarIntegerMethod::Max => {
-                let rhs = self.eval(*kids.get(1)?, env);
-                self.eval_proven_integer_minmax_method_call(MAX_CODE, receiver_value, rhs)
+            MethodReceiverContract::UnshadowedGlobal("Math") if self.il.meta.lang == Lang::Java => {
+                match contract.result.semantic {
+                    ScalarIntegerMethod::Abs => {
+                        let value = self.eval_proven_integer_expr(*kids.get(1)?, env)?;
+                        Some(self.mk(ValOp::Un(ABS_CODE), vec![value]))
+                    }
+                    ScalarIntegerMethod::Min | ScalarIntegerMethod::Max => {
+                        let left = self.eval_proven_integer_expr(*kids.get(1)?, env)?;
+                        let right = self.eval_proven_integer_expr(*kids.get(2)?, env)?;
+                        let op = match contract.result.semantic {
+                            ScalarIntegerMethod::Min => MIN_CODE,
+                            ScalarIntegerMethod::Max => MAX_CODE,
+                            _ => unreachable!(),
+                        };
+                        Some(self.mk(ValOp::Bin(op), vec![left, right]))
+                    }
+                    ScalarIntegerMethod::Clamp => None,
+                }
             }
-            ScalarIntegerMethod::Clamp => {
-                let lo = self.eval(*kids.get(1)?, env);
-                let hi = self.eval(*kids.get(2)?, env);
-                self.eval_proven_integer_clamp_method_call(receiver_value, lo, hi)
-            }
+            _ => None,
         }
     }
 
@@ -1054,6 +1077,9 @@ impl<'a> Builder<'a> {
         };
         let left = self.eval(kids[1], env);
         let right = self.eval(kids[2], env);
+        if !self.is_integer_domain_value(left) || !self.is_integer_domain_value(right) {
+            return None;
+        }
         Some(self.mk(ValOp::Bin(op), vec![left, right]))
     }
 
