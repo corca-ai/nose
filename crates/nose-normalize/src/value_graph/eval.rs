@@ -268,7 +268,14 @@ impl<'a> Builder<'a> {
         if is_assoc_comm_code(op) {
             self.eval_assoc_comm_chain(op, &kids, env)
         } else {
-            let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+            let mut a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+            // JS `a << b` / `a >> b` shift `ToInt32(a)` (32-bit, sign-propagating), unlike
+            // Python/Ruby's arbitrary-precision shifts — narrow the shifted operand so JS
+            // shifts fingerprint distinctly and never false-merge cross-language. (`>>>` is
+            // already kept distinct: js_bin_op leaves it unmapped.) #283-D, series 9.
+            if (op == Op::Shl as u32 || op == Op::Shr as u32) && !a.is_empty() {
+                a[0] = self.js_int32_narrow(a[0]);
+            }
             self.mk(ValOp::Bin(op), a)
         }
     }
@@ -325,8 +332,7 @@ impl<'a> Builder<'a> {
                 return v;
             }
             self.narrow_js_bitwise_leaves(op, &mut operands);
-            let do_sort = (op != Op::Add as u32
-                || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands))
+            let do_sort = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
                 && operands.iter().all(|&v| self.reorder_safe(v));
             if do_sort {
                 operands.sort_by_key(|&v| self.vhash[v as usize]);
@@ -343,8 +349,7 @@ impl<'a> Builder<'a> {
             return v;
         }
         self.narrow_js_bitwise_leaves(op, &mut operands);
-        let do_sort = (op != Op::Add as u32
-            || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands))
+        let do_sort = self.ac_chain_commutes(op, &operands, ValueLaw::AddAssociativity)
             && operands.iter().all(|&v| self.reorder_safe(v));
         if do_sort {
             operands.sort_by_key(|&v| self.vhash[v as usize]);
@@ -360,8 +365,8 @@ impl<'a> Builder<'a> {
     /// other ops and non-JS languages). Done after flattening so the wrap lands on the
     /// chain's leaves, not its intermediate (already int32) results — giving JS bitwise a
     /// fingerprint distinct from arbitrary-precision bitwise while keeping the op structure
-    /// intact for the De Morgan / idempotence canons (#283-D). Shifts and `~` are narrowed
-    /// at their own build sites.
+    /// intact for the De Morgan / idempotence canons (#283-D). Shifts (`eval_binop_expr`) and
+    /// `~` (`eval_inner`) are narrowed at their own build sites.
     fn narrow_js_bitwise_leaves(&mut self, op: u32, operands: &mut [ValueId]) {
         if op == Op::BitAnd as u32 || op == Op::BitOr as u32 || op == Op::BitXor as u32 {
             for v in operands.iter_mut() {

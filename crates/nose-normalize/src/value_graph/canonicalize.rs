@@ -58,19 +58,17 @@ impl<'a> Builder<'a> {
                 args.swap(0, 1);
             }
         }
-        // Canonicalize commutative operands by structural hash. `+` commutes UNLESS an
-        // operand is PROVEN string/list — concat is non-commutative (`s + x` ≠ `x + s`)
-        // and the free-monoid oracle distinguishes the orders. Unknown operands keep
-        // commuting (optimistic, and the oracle still checks it), so the common untyped
-        // numeric case is unaffected; only known-concat is held ordered. Other
-        // commutative ops Err on non-numeric regardless of order, so stay safe.
+        // Canonicalize commutative operands by structural hash. The commute is gated per op
+        // (`ac_chain_commutes`): `+` is held ordered when an operand is PROVEN string/list
+        // (concat, `s + x` ≠ `x + s`, #283-C) and `*` when it could be a Ruby string/list
+        // repetition (`"ab" * 3` ≠ `3 * "ab"`, series 9) — both distinguished by the
+        // free-monoid oracle. Unknown operands keep commuting (optimistic, oracle-checked),
+        // so the common untyped numeric case is unaffected; `& | ^`, `==`/`!=`, min/max all
+        // Err-or-symmetric regardless of order and stay safe.
         if let ValOp::Bin(o) = *op {
-            let concat = o == Op::Add as u32
-                && args.len() == 2
-                && !self.add_values_not_concat(ValueLaw::AddCommutativity, args);
             if is_commutative(o)
                 && args.len() == 2
-                && !concat
+                && self.ac_chain_commutes(o, args, ValueLaw::AddCommutativity)
                 && self.reorder_safe(args[0])
                 && self.reorder_safe(args[1])
                 && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
@@ -426,12 +424,11 @@ impl<'a> Builder<'a> {
                 // shape — is sound for ALL types, string/list concat included
                 // (`"a"+"b"+"c"` is `"abc"` however parenthesized). So ALWAYS flatten and
                 // rebuild, converging `(a+b)+c` with `a+(b+c)` even for untyped params.
-                // COMMUTATIVITY — sorting the operands — is the part gated on non-concat
-                // (#283-C): apply it for every AC op except a concat-possible `+`, so
-                // `c+(a+b)` (a reorder) stays distinct from `(a+b)+c` for untyped operands
-                // while numeric/typed sums still fully canonicalize.
-                let commute = o != Op::Add as u32
-                    || self.add_values_not_concat(ValueLaw::AddCommutativity, &leaves);
+                // COMMUTATIVITY — sorting the operands — is gated per op (`ac_chain_commutes`):
+                // a concat-possible `+` (#283-C) and a Ruby string/list `*` (series 9) stay
+                // ordered, so `c+(a+b)` and `3*"ab"` keep their source order, while numeric/
+                // typed sums and products still fully canonicalize.
+                let commute = self.ac_chain_commutes(o, &leaves, ValueLaw::AddCommutativity);
                 if commute {
                     leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
                 }

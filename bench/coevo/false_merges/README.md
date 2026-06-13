@@ -17,12 +17,16 @@ moved into the permanent regression battery.
 | effect_acchain.py | AC-chain sorts effectful leaves | yes | FIXED #286 (A) — `reorder_safe` |
 | neg_involution.py | `-(-x)→x` on optimistically-Num param | yes (canon-preservation) | FIXED #283-B — `proven_numeric` |
 | untyped_add_commute.py | `a+b≡b+a` for untyped (string/list concat) | yes (battery floor #294) | FIXED #283-C — `proven_numeric` `+`-reorder gate |
+| ruby_star_repetition.rb | Ruby `*` reorders, but `"ab"*3` ≠ `3*"ab"` (repetition is asymmetric) | yes | FIXED series 9 — `ac_chain_commutes` Ruby-`*` gate |
+| (cross-lang shift) | JS `a<<b`/`a>>b` (int32) ≡ Python arbitrary-precision `<<`/`>>` | n/a (cross-language — no single-file repro) | FIXED series 9 — JS shift operand int32-narrowed |
 | float_assoc.py | `(a+b)+c≡a+(b+c)` for floats | NO — oracle blind | OPEN (C/float) — needs the `Float` value kind (D-div) |
 
 FIXED rows are now covered by permanent regression tests (effect cases in the
 value-graph suite; `-(-a)`/`a&a`/`a+b` in `crates/nose-cli/tests/equivalence.rs`,
 `double_negation_cancels_only_for_proven_numeric` +
 `bitwise_self_idempotence_gates_on_proven_numeric` +
-`untyped_add_commute_gates_on_proven_numeric`). The reproducer files stay until
-#283 fully closes (the remaining OPEN row, `float_assoc.py`, is oracle-blind — its
+`untyped_add_commute_gates_on_proven_numeric`; the series-9 shift and Ruby-`*` cases in
+`js_shift_is_int32_and_distinct_from_arbitrary_precision` +
+`ruby_star_repetition_is_ordered_but_other_multiply_commutes`). The reproducer files stay
+until #283 fully closes (the remaining OPEN row, `float_assoc.py`, is oracle-blind — its
 float non-associativity needs the `Float` value kind, D-div — see #283-D).

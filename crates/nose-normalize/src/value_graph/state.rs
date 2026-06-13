@@ -86,6 +86,31 @@ impl<'a> Builder<'a> {
         self.value_law_satisfied(law, values) && values.iter().any(|&v| self.proven_non_concat(v))
     }
 
+    /// Whether an associative-commutative chain's operands may be COMMUTED (reordered).
+    /// Associativity — regrouping a flat chain — is sound for every type and handled by the
+    /// caller; this gates only the SORT. Commutativity is op- and language-specific:
+    /// - `+` is ordered string/list concat unless proven non-concat (#283-C, via `add_law`).
+    /// - `*` is string/list REPETITION in Ruby, and there it is asymmetric: `"ab" * 3` →
+    ///   "ababab" but `3 * "ab"` raises (`Integer#*` rejects a String). Python repetition
+    ///   commutes (`3 * "ab"` == `"ab" * 3`), and JS/TS/Java/Go/C `*` is always numeric — so
+    ///   only Ruby `*` needs gating, and only when an operand could be a string/sequence
+    ///   (series 9). Reordering a numeric `*` is always sound.
+    /// - `& | ^` Err on a non-numeric operand in every order, so they always commute.
+    pub(super) fn ac_chain_commutes(
+        &self,
+        op: u32,
+        operands: &[ValueId],
+        add_law: ValueLaw,
+    ) -> bool {
+        if op == Op::Add as u32 {
+            self.add_values_not_concat(add_law, operands)
+        } else if op == Op::Mul as u32 {
+            self.il.meta.lang != Lang::Ruby || operands.iter().all(|&v| self.proven_non_concat(v))
+        } else {
+            true
+        }
+    }
+
     /// Whether `v` provably evaluates to a Number on every input it does not Err on, using
     /// ONLY genuine domain evidence — numeric literals and annotated / pack-typed params —
     /// never the OPTIMISTIC "this param is Num because a numeric op was applied to it"

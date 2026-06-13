@@ -6702,6 +6702,80 @@ fn js_unsigned_shift_stays_distinct_from_signed_shift() {
 }
 
 #[test]
+fn js_shift_is_int32_and_distinct_from_arbitrary_precision() {
+    // series 9: `& | ^` were narrowed to int32 (#283-D) but `<<`/`>>` were not, so JS
+    // `a << b` (shifts ToInt32(a), 32-bit) false-merged with Python's arbitrary-precision
+    // `a << b` — e.g. `1 << 31` is -2147483648 in JS but 2147483648 in Python.
+    let i = Interner::new();
+    let js_shl = "function f(a, b) { return a << b; }";
+    let py_shl = "def f(a, b):\n    return a << b\n";
+    let js_shr = "function g(a, b) { return a >> b; }";
+    let py_shr = "def g(a, b):\n    return a >> b\n";
+    assert_ne!(
+        value_fp(&i, js_shl, Lang::JavaScript),
+        value_fp(&i, py_shl, Lang::Python),
+        "JS `<<` is int32; must not merge with arbitrary-precision Python `<<`"
+    );
+    assert_ne!(
+        value_fp(&i, js_shr, Lang::JavaScript),
+        value_fp(&i, py_shr, Lang::Python),
+        "JS `>>` is int32; must not merge with arbitrary-precision Python `>>`"
+    );
+    // Recall preserved: same-language shifts (and JS-vs-JS) still converge.
+    let js_shl2 = "function h(x, y) { return x << y; }";
+    assert_eq!(
+        value_fp(&i, js_shl, Lang::JavaScript),
+        value_fp(&i, js_shl2, Lang::JavaScript),
+        "two JS `<<` must still converge"
+    );
+    let py_shl2 = "def h(x, y):\n    return x << y\n";
+    assert_eq!(
+        value_fp(&i, py_shl, Lang::Python),
+        value_fp(&i, py_shl2, Lang::Python),
+        "two Python `<<` must still converge"
+    );
+}
+
+#[test]
+fn ruby_star_repetition_is_ordered_but_other_multiply_commutes() {
+    // series 9: `*` is string/array REPETITION in Ruby and asymmetric — `"ab" * 3` →
+    // "ababab" but `3 * "ab"` raises (`Integer#*` rejects a String). Reordering its
+    // operands (the algebra pass folded a constant to the end; the value graph sorted
+    // by hash) false-merged the two. Only Ruby is gated: Python repetition commutes and
+    // JS/Java/Go/C `*` is numeric.
+    let i = Interner::new();
+    let rb_str_first = "def a\n  \"ab\" * 3\nend\n";
+    let rb_int_first = "def b\n  3 * \"ab\"\nend\n";
+    assert_ne!(
+        value_fp(&i, rb_str_first, Lang::Ruby),
+        value_fp(&i, rb_int_first, Lang::Ruby),
+        "Ruby `\"ab\" * 3` (repeats) must not merge with `3 * \"ab\"` (raises)"
+    );
+    let rb_arr_first = "def a\n  [1, 2] * 3\nend\n";
+    let rb_arr_int_first = "def b\n  3 * [1, 2]\nend\n";
+    assert_ne!(
+        value_fp(&i, rb_arr_first, Lang::Ruby),
+        value_fp(&i, rb_arr_int_first, Lang::Ruby),
+        "Ruby `[1,2] * 3` (repeats) must not merge with `3 * [1,2]` (raises)"
+    );
+    // Largest-sound-generalization guard: only Ruby is gated.
+    let js_xy = "function p(x, y) { return x * y; }";
+    let js_yx = "function q(x, y) { return y * x; }";
+    assert_eq!(
+        value_fp(&i, js_xy, Lang::JavaScript),
+        value_fp(&i, js_yx, Lang::JavaScript),
+        "JS `x * y` is numeric and must still commute with `y * x`"
+    );
+    let py_sx = "def p(s):\n    return s * 3\n";
+    let py_xs = "def q(s):\n    return 3 * s\n";
+    assert_eq!(
+        value_fp(&i, py_sx, Lang::Python),
+        value_fp(&i, py_xs, Lang::Python),
+        "Python `s * 3` repetition commutes (`3 * s` is equal) and must still converge"
+    );
+}
+
+#[test]
 fn js_nullish_assignment_desugars_to_nullish_coalescing() {
     // `x ??= y` is `x = x ?? y` — and is NOT `x += y` (the old unmapped-operator
     // fallback silently defaulted compound assignments to Add).

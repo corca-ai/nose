@@ -17,6 +17,19 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **Two cross-/intra-language false merges closed (adversarial co-evolution series 9).**
+  - **JS bitwise *shifts* are now int32.** #283-D narrowed JS `& | ^` (and `~`) to int32 so
+    they fingerprint distinctly from arbitrary-precision Python/Ruby bitwise, but `<<`/`>>`
+    were left un-narrowed — so JS `a << b` (which shifts `ToInt32(a)`) false-merged with
+    Python's arbitrary-precision `a << b`, though e.g. `1 << 31` is `-2147483648` in JS and
+    `2147483648` in Python. JS shifts now narrow their shifted operand at the build site.
+  - **Ruby `*` is held ordered.** `*` is string/array *repetition* in Ruby and asymmetric —
+    `"ab" * 3` → `"ababab"` but `3 * "ab"` raises — yet the algebra pass folded a constant
+    to the chain's end and the value graph sorted operands by hash, false-merging the two.
+    `*` is now commuted only when sound: Ruby gates on no operand being a possible
+    string/sequence; Python repetition (commutative, `3 * "ab"` == `"ab" * 3`) and
+    JS/TS/Java/Go/C numeric `*` are unaffected. Corpus output is byte-identical (the merges
+    were latent); the soundness oracle stays clean. See [experiments §CK](docs/experiments.md).
 - **Graded witness now sees definition-site decorators** (#315 follow-up). A decorator's
   arguments are dropped at lowering, so `@click.argument("x")` and
   `@click.argument("x", metavar="m")` produce the same value graph — the witness used to

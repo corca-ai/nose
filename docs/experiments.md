@@ -2498,3 +2498,74 @@ semantics most likely to regress: lambda-local returns stay excluded, and Java
 regression test now completes in `0.93s` in the debug CLI test harness; the release
 reproducer above drops from `71.55s` to `0.56s`; and `./scripts/check-ci-local.sh
 --fast` passes.
+## CK. Adversarial co-evolution, series 9 — the post-#283 operator gaps (shifts, Ruby `*`)
+
+One protocol pass ([adversarial-coevolution](adversarial-coevolution.md)), aimed by the
+freshness slot rule at code changed since series 8: the #283-C/D operator narrowings
+(value-model/canonicalizer), the `nose verify` oracle (#317's type-incoherence finding),
+and the #328 enrich-only-emitted perf path. Three blind fresh-subagent attackers, persona-
+rotated (soundness-skeptic, oracle-bail-skeptic, perf-determinism); ledger `s9-*`; tracking
+issue #329; commit `6f61fb3`.
+
+**Two confirmed false merges, both in operators the #283 narrowings did not reach.**
+- **JS bitwise *shifts* were not int32.** #283-D narrowed `& | ^` and `~` for JS via
+  `js_int32_narrow` so they no longer merge with arbitrary-precision Python/Ruby bitwise,
+  but `<<`/`>>` built a bare `Bin(Shl/Shr, [a,b])` identical to Python's — an exact
+  cross-language merge though `1 << 31` is `-2147483648` in JS and `2147483648` in Python
+  (and `(2**32) >> 0` is `0` vs `2**32`; both verified with `node`/`python3`). The in-code
+  comment even *claimed* shifts were "narrowed at their own build sites" — they were not.
+  Fix: `eval_binop_expr` narrows the shifted operand via `js_int32_narrow` for JS `Shl`/
+  `Shr` (a no-op elsewhere; `>>>` was already kept distinct). JS-vs-JS shifts still converge.
+- **Ruby `*` commuted, but it is repetition.** The reorder sites all assumed "`* & | ^` Err
+  on non-numeric regardless of order, so stay safe" — false for Ruby, where `*` is string/
+  array repetition and *asymmetric*: `"ab" * 3` → `"ababab"` but `3 * "ab"` raises
+  (`Integer#*` rejects a String), and `[1,2] * 3` ≠ `3 * [1,2]`. Four sites reordered it:
+  the `algebra` IL pass (constant-fold-to-end **and** hash-sort) and the value graph
+  (AC-chain sort + the 2-operand commutative swap). Fix: one `ac_chain_commutes` predicate
+  threaded through all four — `+` stays gated on non-concat (#283-C), and `*` commutes only
+  when `lang != Ruby || all operands proven-non-concat`. **Largest sound generalization:**
+  only Ruby is held, because Python repetition *is* commutative (`3 * "ab"` == `"ab" * 3`)
+  and JS/TS/Java/Go/C `*` is numeric — so those five languages keep full `*` commutativity
+  and lose no recall.
+
+**Soundness by construction + measured.** Both fixes only ADD distinctions (a `ToInt32`
+node; held operand order) — they can only SPLIT fingerprints, never create a merge, so no
+new false merge is possible. Measured anyway: `nose verify --max-violations 0` clean on 13
+repos across the changed-path languages (Ruby/TS/Python/Java/Go); scan output **byte-
+identical** to `origin/main` on faraday, rack, axios, requests, gson (the merges were
+latent — absent from the corpus, the §AS reason batteries exist); determinism byte-
+identical across `RAYON_NUM_THREADS`. Permanent battery: two `equivalence.rs` tests with
+the cross-language hard negatives and the Python/JS commutativity guards;
+`bench/coevo/false_merges/ruby_star_repetition.rb`.
+
+**Oracle surface — green-with-teeth + a sharpened boundary.** The oracle attacker re-
+confirmed the #317/§7 type-incoherence false-positive class with a 2-line reproducer and
+**sharpened its root**: the trigger is the EQUALITY (`==`/`!=`) canon meeting an `Err`
+operand (relational `<` over the same incoherent subscript is clean, a bare subscript is
+clean), and it is **language-independent** — untyped Python `b[s] == 0` reproduces it — so
+the cause is `collect_file_verify_recs`'s concrete-only canon check not filtering `Err`,
+not the absence of declared-param domain evidence per se. Recorded as `recorded-low-
+prevalence`; the fix stays deferred (the cheap "skip `Err` rows" candidate must first be
+vetted against the cross-unit false-merge check, where `Err`-vs-value IS a distinguishing
+behavior). The bail taxonomy (`battery-bail`/`path-bail`/`uninterpretable`/`empty-
+fingerprint`/`core-missing`) is printed and censused — no silent coverage drop (green).
+
+**Perf surface — green-with-teeth.** The #328 enrich-only-emitted narrowing held under
+attack: 2560 per-family witness comparisons on jedis across `--top {0,5,30}` and a 6-entry
+ignore set spanning near ranks 2..2507 found zero witness loss, and 9/9 byte-identical
+determinism checks across thread counts (the merge-time verification reproduced
+adversarially).
+
+**Verdict.** Two false merges closed at the operator layer the series-6–8 encoding fixes
+never touched — the miss this time was not a lost identity token but an over-broad
+*algebraic law* (commute/int32-equivalence) applied past the language where it holds. The
+defense is the §BA pattern again: gate the law to exactly the languages/domains that prove
+it, no further. Issue #329.
+
+| packet | surface | verdict |
+|---|---|---|
+| s9-vm-shl-int32 | value-model | violation-fixed (JS `<<` int32-narrowed) |
+| s9-vm-shr-int32 | value-model | violation-fixed (JS `>>` int32-narrowed) |
+| s9-vm-ruby-mul-strrep | value-model | violation-fixed (`ac_chain_commutes` Ruby-`*` gate) |
+| s9-oracle-eq-err-incoherent | oracle | recorded-low-prevalence (§7 sharpened; fix deferred) |
+| s9-perf-enrich-narrowing | performance-determinism | green-confirmed |

@@ -9,7 +9,7 @@
    "mode": "authored",
    "surface": "decidability-filters",
    "claim": "declaration matchers match a declaration LINE, not a prefix",
-   "summary": "import pdb;pdb.post_mortem() / multi-declarator require / require 'x'; File.open \u2014 all classify",
+   "summary": "import pdb;pdb.post_mortem() / multi-declarator require / require 'x'; File.open — all classify",
    "verdict": "violation-fixed",
    "defense": "single-statement discipline (PR #271)"
   },
@@ -81,7 +81,7 @@
    "mode": "blind",
    "surface": "decidability-filters",
    "claim": "open multi-line declaration interiors hold only specifiers",
-   "summary": "os.Exit(1)) closes a Go import; } || x(); closes a JS import; require 'fs' + 1; #include <stdio.h> int x = 1; \u2014 tree-sitter error tolerance voids the parsed-file assumption",
+   "summary": "os.Exit(1)) closes a Go import; } || x(); closes a JS import; require 'fs' + 1; #include <stdio.h> int x = 1; — tree-sitter error tolerance voids the parsed-file assumption",
    "verdict": "violation-fixed",
    "defense": "interior validation + strict closers + lone string args (PR #273)"
   },
@@ -93,7 +93,7 @@
    "mode": "blind",
    "surface": "decidability-filters",
    "claim": "import-list names can smuggle code",
-   "summary": "`eval,` inside from-import parens is still an import name \u2014 wiring, not code",
+   "summary": "`eval,` inside from-import parens is still an import name — wiring, not code",
    "verdict": "refuted",
    "defense": null
   },
@@ -129,7 +129,7 @@
    "mode": "blind",
    "surface": "ranking-grouping-hints",
    "claim": "grouping/hints misbehave on degenerate inputs",
-   "summary": "identical-span double families and repeated in-family locations cannot occur (upstream invariants); transitive chaining accepted \u00a7BZ; helper visibility is judgment-axis; witness-kind set verified closed by S2-C5",
+   "summary": "identical-span double families and repeated in-family locations cannot occur (upstream invariants); transitive chaining accepted §BZ; helper visibility is judgment-axis; witness-kind set verified closed by S2-C5",
    "verdict": "refuted",
    "defense": null
   },
@@ -189,7 +189,7 @@
    "mode": "blind-executable",
    "surface": "decidability-filters",
    "claim": "single-line import/export wiring is pure wiring",
-   "summary": "import/export { x } from Math.max(\"a\",\"b\"); / from x import max(\"a\",\"b\") / import java.util.x + y; \u2014 6 self-verified packets with family ids; from-clause sources, Python name lists, Java paths were shape-checked only",
+   "summary": "import/export { x } from Math.max(\"a\",\"b\"); / from x import max(\"a\",\"b\") / import java.util.x + y; — 6 self-verified packets with family ids; from-clause sources, Python name lists, Java paths were shape-checked only",
    "verdict": "violation-fixed",
    "defense": "from-source + specifier + name-list + dotted-path validation (series-3 PR)"
   },
@@ -203,7 +203,7 @@
    "claim": "--cache-dir scans behave identically to non-cached scans",
    "summary": "build_units_cached skips the corpus-level resolve_imported_immutable_bindings pass (frontend lib.rs:195); 6 attacker probes + 2 assessor probes (imported-binding vs literal, default and semantic modes) could NOT expose an output divergence",
    "verdict": "deferred-issue",
-   "defense": "#275 ESCALATED: reproduced (cold 1 exact family vs cached 0) via a converging shape mined from equivalence.rs \u2014 the test suite as discriminating-input arsenal"
+   "defense": "#275 ESCALATED: reproduced (cold 1 exact family vs cached 0) via a converging shape mined from equivalence.rs — the test suite as discriminating-input arsenal"
   },
   {
    "packet_id": "s3-c3-test-naming-conventions",
@@ -213,7 +213,7 @@
    "mode": "blind-executable",
    "surface": "ranking-grouping-hints",
    "claim": "production code is NEVER misclassified as test (is_test_loc doc)",
-   "summary": "prod validator named test_data_loader.py and OpenAPI spec/ dir tag as test \u2014 ecosystem conventions win by design; the NEVER wording was the violation",
+   "summary": "prod validator named test_data_loader.py and OpenAPI spec/ dir tag as test — ecosystem conventions win by design; the NEVER wording was the violation",
    "verdict": "violation-fixed",
    "defense": "doc claim softened (conventions win; scope is display context); markers unchanged"
   },
@@ -237,7 +237,7 @@
    "mode": "blind-executable",
    "surface": "baseline-ignores",
    "claim": "structured ignores never hide members their selector does not cover",
-   "summary": "paths:[vendor/**] suppressed a family whose other copy lives in src/ \u2014 first-party duplication silently passed --fail-on any (any-member matching was even documented); switched to ALL-members selector semantics",
+   "summary": "paths:[vendor/**] suppressed a family whose other copy lives in src/ — first-party duplication silently passed --fail-on any (any-member matching was even documented); switched to ALL-members selector semantics",
    "verdict": "violation-fixed",
    "defense": "all-members matching in ignores.rs + doc + gate test (series-3 PR)"
   },
@@ -285,7 +285,7 @@
    "mode": "meta",
    "surface": "runbook",
    "claim": "executable-packet attackers can reproduce",
-   "summary": "an Explore-type attacker refused the executable contract (read-only self-interpretation); re-spawned as general-purpose with /tmp-only write scope \u2014 runbook should name the agent capability requirement",
+   "summary": "an Explore-type attacker refused the executable contract (read-only self-interpretation); re-spawned as general-purpose with /tmp-only write scope — runbook should name the agent capability requirement",
    "verdict": "violation-fixed",
    "defense": "runbook attacker-modes note (series-3 PR)"
   },
@@ -333,7 +333,7 @@
    "mode": "measured",
    "surface": "performance-determinism",
    "claim": "the AST migration is cost-neutral",
-   "summary": "A/B vs pre-AST binary: sympy 4.96->6.42s (+29%), craken-agents 0.546->0.760s (+39%) \u2014 serial re-parse of nearly every family-hosting file. Defense: sound-direction prescreen (declaration starters + mid-statement continuation shapes; false negatives only fail open) + parallel parse of unique candidate files. After: sympy 4.67s, craken-agents 0.550s \u2014 at or under the pre-AST baseline, classification byte-identical (42/10). The prescreen's first draft dropped a mid-statement-start family (caught by classification diff, not timing) \u2014 even perf-only gates need the classification diff check",
+   "summary": "A/B vs pre-AST binary: sympy 4.96->6.42s (+29%), craken-agents 0.546->0.760s (+39%) — serial re-parse of nearly every family-hosting file. Defense: sound-direction prescreen (declaration starters + mid-statement continuation shapes; false negatives only fail open) + parallel parse of unique candidate files. After: sympy 4.67s, craken-agents 0.550s — at or under the pre-AST baseline, classification byte-identical (42/10). The prescreen's first draft dropped a mid-statement-start family (caught by classification diff, not timing) — even perf-only gates need the classification diff check",
    "verdict": "violation-fixed",
    "defense": "prescreen + rayon parse (this PR)"
   },
@@ -404,8 +404,8 @@
    "persona": "soundness-skeptic",
    "mode": "blind-executable",
    "surface": "canonicalizer",
-   "claim": "equal fingerprint \u27f9 equal behavior",
-   "summary": "FALSE MERGE (cardinal sin): print(a)+print(b) \u2261 print(b)+print(a), AC chains, *, ^ \u2014 verify-confirmed; node-multiset fingerprint blind to operand order of a commutative op, effectful calls in value position not emitted as ordered effect sinks",
+   "claim": "equal fingerprint ⟹ equal behavior",
+   "summary": "FALSE MERGE (cardinal sin): print(a)+print(b) ≡ print(b)+print(a), AC chains, *, ^ — verify-confirmed; node-multiset fingerprint blind to operand order of a commutative op, effectful calls in value position not emitted as ordered effect sinks",
    "verdict": "deferred-issue",
    "defense": "#283 P0 (value-graph effect model)"
   },
@@ -417,7 +417,7 @@
    "mode": "blind-executable",
    "surface": "canonicalizer",
    "claim": "type-gated rewrites are sound because the type is PROVEN",
-   "summary": "FALSE MERGE: -(-a)\u2261a, a&a\u2261a, a|a\u2261a \u2014 value domain infers Number from the op itself, so the gate passes for untyped params; differs on list input; verify canon-preservation violation",
+   "summary": "FALSE MERGE: -(-a)≡a, a&a≡a, a|a≡a — value domain infers Number from the op itself, so the gate passes for untyped params; differs on list input; verify canon-preservation violation",
    "verdict": "deferred-issue",
    "defense": "#283 P0 (genuine vs optimistic Num proof)"
   },
@@ -429,7 +429,7 @@
    "mode": "blind-executable",
    "surface": "exact-channel-gates",
    "claim": "missing type evidence blocks exact acceptance",
-   "summary": "FALSE MERGE (oracle-blind): a+b\u2261b+a and (a+b)+c\u2261a+(b+c) for untyped params admitted to exact channel + commuted/associated; wrong for strings/floats; verify can't witness (battery never feeds 2 distinct strings, models i64)",
+   "summary": "FALSE MERGE (oracle-blind): a+b≡b+a and (a+b)+c≡a+(b+c) for untyped params admitted to exact channel + commuted/associated; wrong for strings/floats; verify can't witness (battery never feeds 2 distinct strings, models i64)",
    "verdict": "deferred-issue",
    "defense": "#283 P0 (require proven-numeric)"
   },
@@ -441,7 +441,7 @@
    "mode": "blind-executable",
    "surface": "oracle",
    "claim": "verify declares behavior-equal only when truly equal",
-   "summary": "the soundness net has holes: py % (floored) \u2261 js % (truncated), py / \u2261 ruby / , js (x|0)+1 \u2261 x+1; interp maps every Op to one Rust i64 op; index-store mutation dropped+faked as effect. Masks cross-language false merges",
+   "summary": "the soundness net has holes: py % (floored) ≡ js % (truncated), py / ≡ ruby / , js (x|0)+1 ≡ x+1; interp maps every Op to one Rust i64 op; index-store mutation dropped+faked as effect. Masks cross-language false merges",
    "verdict": "deferred-issue",
    "defense": "#283 P0 (interpreter language-awareness)"
   },
@@ -453,7 +453,7 @@
    "mode": "blind-executable",
    "surface": "canonicalizer",
    "claim": "behaviorally-equal forms converge",
-   "summary": "4 oracle-confirmed recall misses: abs(abs x)\u2261abs x and ~(a&b)\u2261~a|~b (both fully sound, no gate needed \u2014 worth adding); max(max(a,b),c)\u2261max(a,max(b,c)) (compositional: MIN/MAX in is_commutative but not is_assoc_comm_code \u2014 clean e-graph-ledger trigger); x+x\u2261x*2 (documented \u00a7BA gap)",
+   "summary": "4 oracle-confirmed recall misses: abs(abs x)≡abs x and ~(a&b)≡~a|~b (both fully sound, no gate needed — worth adding); max(max(a,b),c)≡max(a,max(b,c)) (compositional: MIN/MAX in is_commutative but not is_assoc_comm_code — clean e-graph-ledger trigger); x+x≡x*2 (documented §BA gap)",
    "verdict": "recorded-low-prevalence",
    "defense": "#284 (sound recall rules: abs-idem, bitwise-DeMorgan, min/max AC)"
   },
@@ -465,7 +465,7 @@
    "mode": "informed",
    "surface": "canonicalizer",
    "claim": "canon rules are proven or tested",
-   "summary": "15 gaps: byte-pack u16/u32 + low-bit-toggle have NO Lean proof (positive-only tests); many type-gated rules (abs, minmax, idempotence, negation-distrib) have positive tests but NO hard-negative proving the gate holds \u2014 the AC-chain hard-negative gap is highest risk and overlaps the #283 cardinal-sin cluster",
+   "summary": "15 gaps: byte-pack u16/u32 + low-bit-toggle have NO Lean proof (positive-only tests); many type-gated rules (abs, minmax, idempotence, negation-distrib) have positive tests but NO hard-negative proving the gate holds — the AC-chain hard-negative gap is highest risk and overlaps the #283 cardinal-sin cluster",
    "verdict": "recorded-low-prevalence",
    "defense": "#283 hard-negative + Lean backlog"
   },
@@ -491,7 +491,7 @@
    "claim": "a module function reassigned anywhere in the file is not provably its def body",
    "summary": "`global helper; helper = special_a` inside another function (Python) / bare module reassignment from a function (JS) was invisible to scope_bound (which only checks the call site's lexical enclosing scopes) and to collect_function_binding_hashes (no mutation check). Raw body inlined; callers false-merged (caller(1)=1000 vs 2000). Cross-language.",
    "verdict": "deferred-issue",
-   "defense": "#302 \u2014 the natural gate (reassigned-anywhere) cannot be made precise: the frontend drops global/nonlocal, so a non-top-level `name = x` is indistinguishable from a local shadow. The broad predicate over-fired, killing legitimate inlines at 37 corpus repos (netty -26, raylib -11) for zero soundness gain there \u2014 reverted per 'the defender's ceiling is provability'. Needs frontend global-binding tracking. Only the precise decorator fact (S2-A) shipped."
+   "defense": "#302 — the natural gate (reassigned-anywhere) cannot be made precise: the frontend drops global/nonlocal, so a non-top-level `name = x` is indistinguishable from a local shadow. The broad predicate over-fired, killing legitimate inlines at 37 corpus repos (netty -26, raylib -11) for zero soundness gain there — reverted per 'the defender's ceiling is provability'. Needs frontend global-binding tracking. Only the precise decorator fact (S2-A) shipped."
   },
   {
    "packet_id": "s6-s3-2-caller-via-inline-span",
@@ -503,7 +503,7 @@
    "claim": "Callers are never findings; the site is INSIDE the container",
    "summary": "A pure caller of a function that inline-reinvents the helper was itself reported (called_helper_returns is one call level deep, keyed on the direct callee's own return hash), with a site line outside its own range.",
    "verdict": "violation-fixed",
-   "defense": "Reject a finding whose matched anchor carries a REAL (non-zero) source span outside [container_start,container_end] \u2014 that span belongs to the inlined callee, so the unit is a transitive caller. Zero-span loop-fold anchors (the flagship) fall back to container range and stay."
+   "defense": "Reject a finding whose matched anchor carries a REAL (non-zero) source span outside [container_start,container_end] — that span belongs to the inlined callee, so the unit is a transitive caller. Zero-span loop-fold anchors (the flagship) fall back to container range and stay."
   },
   {
    "packet_id": "s6-s3-3-bound-blind-reduce",
@@ -515,7 +515,7 @@
    "claim": "the matched sub-computation is the SAME computation, never merely similar; matching a fold while iterating differently is not containment",
    "summary": "For indexed while loops the bound is absorbed into a pointer-length contract and dropped from cond_sinks AND the Reduce hash, so a fold over i<n-1 (or an unrelated bound m) value-exactly 'contained' a fold over i<n though they differ on almost every input (11 vs 22 on xs=[1,1],n=2). The documented guard-inclusion check was vacuous (cond_sinks empty).",
    "verdict": "violation-fixed",
-   "defense": "sink_profile now reports used_length_contract; a helper that relied on a pointer-length contract is ineligible (its return hash does not faithfully determine its value). Conservative: also drops the same-bound true-positive shape (S3-1) since the bound is unrecoverable from the hash \u2014 sound recall loss. Genuine length iteration records no contract and stays eligible."
+   "defense": "sink_profile now reports used_length_contract; a helper that relied on a pointer-length contract is ineligible (its return hash does not faithfully determine its value). Conservative: also drops the same-bound true-positive shape (S3-1) since the bound is unrecoverable from the hash — sound recall loss. Genuine length iteration records no contract and stays eligible."
   },
   {
    "packet_id": "s6-s3-1-approximate-site",
@@ -537,9 +537,9 @@
    "mode": "blind",
    "surface": "reinvented-helpers",
    "claim": "replace the matched lines with a call to the helper that already exists (the fix compiles)",
-   "summary": "Field access hashes by name only, so a Go container over struct Span value-exactly 'contains' a helper taking Vec2; the suggested NormBlend(s) is a compile error under Go nominal typing \u2014 the helper cannot be called with the container's operand.",
+   "summary": "Field access hashes by name only, so a Go container over struct Span value-exactly 'contains' a helper taking Vec2; the suggested NormBlend(s) is a compile error under Go nominal typing — the helper cannot be called with the container's operand.",
    "verdict": "recorded-low-prevalence",
-   "defense": "Routes to consumer judgment (the value model erases types by design, clone-types.md). Docs add the type-erasure caveat: in statically-typed languages the suggested call must be type-checked by the consumer. Not suppressed \u2014 the computation IS structurally identical; only callability is undecidable here. No corpus instance observed."
+   "defense": "Routes to consumer judgment (the value model erases types by design, clone-types.md). Docs add the type-erasure caveat: in statically-typed languages the suggested call must be type-checked by the consumer. Not suppressed — the computation IS structurally identical; only callability is undecidable here. No corpus instance observed."
   },
   {
    "packet_id": "s6-s1-keyword-arg-order",
@@ -551,7 +551,7 @@
    "claim": "interprocedural inlining is behavior-preserving; equal fingerprint implies equal behavior",
    "summary": "Python keyword arguments lower to their value in source order, dropping the name, so helper(b=p,a=q) is byte-identical IL to helper(a=p,b=q) and the two callers false-merge as 'exact behavior match' (-2 vs 5 on p=1,q=2). Pre-existing frontend gap; occurs on the opaque-call path too (inline not load-bearing).",
    "verdict": "deferred-issue",
-   "defense": "#301 \u2014 sound fix needs IL Call keyword identity (new node/metadata) canonicalized by name + threaded through the value graph and inline binding + cross-language battery; exceeds the series-6 (#299-surfaces) scope. Reproducer attached."
+   "defense": "#301 — sound fix needs IL Call keyword identity (new node/metadata) canonicalized by name + threaded through the value graph and inline binding + cross-language battery; exceeds the series-6 (#299-surfaces) scope. Reproducer attached."
   },
   {
    "packet_id": "s6-s4-oracle-lockstep",
@@ -561,7 +561,7 @@
    "mode": "blind",
    "surface": "oracle",
    "claim": "nose verify witnesses or fail-closed excludes every inline-created merge; SOUND covers the exact-claim surface",
-   "summary": "No violation. Inline admission and the oracle's callee-execution gate resolve the same DirectFunction target from the same evidence, so the oracle is at least as general as the inline. Census: ~43% of inline-created merge mass is oracle-opaque, all in the fail-closed uninterpretable bucket (free module globals, floats, JS C-style for-loops) \u2014 exclusion mass, not silent SOUND.",
+   "summary": "No violation. Inline admission and the oracle's callee-execution gate resolve the same DirectFunction target from the same evidence, so the oracle is at least as general as the inline. Census: ~43% of inline-created merge mass is oracle-opaque, all in the fail-closed uninterpretable bucket (free module globals, floats, JS C-style for-loops) — exclusion mass, not silent SOUND.",
    "verdict": "green-confirmed",
    "defense": "None needed. Minor cosmetic note: verify labels the bucket 'uninterpretable' while --exclusion-census JSON says 'battery-bail'."
   },
@@ -575,7 +575,7 @@
    "claim": "decorated callers fail closed (boundary edge: methods, not functions)",
    "summary": "Boundary re-attack: decorated-METHOD callers (self.helper(a)) still merge across @double/@triple. Root cause is the PRE-EXISTING opaque method-name identity (self.helper keyed by name 'helper'); a no-decorator control with different method bodies merges identically. Not the content-keying mechanism the S2 fix covers, and predates #299.",
    "verdict": "deferred-issue",
-   "defense": "Documented opaque-method-identity boundary (clone-types.md: unproven methods are name-keyed). A sound fix needs method receiver-type resolution \u2014 separate from this campaign. The S2 fix's content-keying/evidence paths DO correctly gate decorated methods; only the orthogonal opaque-method-name path remains."
+   "defense": "Documented opaque-method-identity boundary (clone-types.md: unproven methods are name-keyed). A sound fix needs method receiver-type resolution — separate from this campaign. The S2 fix's content-keying/evidence paths DO correctly gate decorated methods; only the orthogonal opaque-method-name path remains."
   },
   {
    "packet_id": "s7-s1-splat-erasure",
@@ -584,10 +584,10 @@
    "persona": "py-arg-specialist",
    "mode": "blind",
    "surface": "keyword-arg-identity",
-   "claim": "a call's argument identity matches its (name->value) structure; equal fingerprint \u27f9 equal behavior",
+   "claim": "a call's argument identity matches its (name->value) structure; equal fingerprint ⟹ equal behavior",
    "summary": "The frontend stripped `*expr`/`**expr` to the bare expr, so `f(*args)` lowered identically to `f(args)` and `f(**d)` to `f(d)`. `stats(*xs)` false-merged with `stats(xs)` (len 3 vs 1 on [[1,2,3]]); the oracle read SOUND (both layers used the stripped IL).",
    "verdict": "violation-fixed",
-   "defense": "New NodeKind::Splat (declared last) carries `*`/`**`; the call stays fingerprint-distinct from a plain arg. keyword_arg_binding_plan fails closed on a Splat (dynamic arity \u2192 no inline), and the interpreter evaluates a Splat to its inner value only for opaque calls (where the fingerprint already separates them)."
+   "defense": "New NodeKind::Splat (declared last) carries `*`/`**`; the call stays fingerprint-distinct from a plain arg. keyword_arg_binding_plan fails closed on a Splat (dynamic arity → no inline), and the interpreter evaluates a Splat to its inner value only for opaque calls (where the fingerprint already separates them)."
   },
   {
    "packet_id": "s7-s2-rebind-forms",
@@ -611,7 +611,7 @@
    "claim": "a module function reassigned anywhere is withheld",
    "summary": "`globals()['helper'] = other` is a dynamic module rebind with no `global` statement, so the global-frame detection misses it; callers false-merge.",
    "verdict": "deferred-issue",
-   "defense": "#307 \u2014 a distinct dynamic-write mechanism (no `global` to key off); needs `globals()[<str>] =`/`setattr` subscript recognition + string-literal-to-symbol resolution. Exotic; separate focused fix."
+   "defense": "#307 — a distinct dynamic-write mechanism (no `global` to key off); needs `globals()[<str>] =`/`setattr` subscript recognition + string-literal-to-symbol resolution. Exotic; separate focused fix."
   },
   {
    "packet_id": "s7-s3-effectful-kwarg-reorder",
@@ -621,9 +621,9 @@
    "mode": "blind",
    "surface": "keyword-arg-identity",
    "claim": "reordered same-mapping keyword calls converge soundly",
-   "summary": "The #304 keyword name-sort merged `combine(a=sideA(x), b=sideB(y))` with the reordered `combine(b=sideB(y), a=sideA(x))`. Python evaluates args in SOURCE order, so with effectful values the effect/exception order differs \u2014 a false merge (the oracle witnessed it as advisory; the canonical sort hid it from the hard gate).",
+   "summary": "The #304 keyword name-sort merged `combine(a=sideA(x), b=sideB(y))` with the reordered `combine(b=sideB(y), a=sideA(x))`. Python evaluates args in SOURCE order, so with effectful values the effect/exception order differs — a false merge (the oracle witnessed it as advisory; the canonical sort hid it from the hard gate).",
    "verdict": "violation-fixed",
-   "defense": "Gate the keyword name-sort on `reorder_safe` (the same effect-free predicate as AC operands, \u00a7CE/#286): sort only when every keyword value is effect-free; otherwise keep source order. Pure reorders still converge; effectful ones stay distinct."
+   "defense": "Gate the keyword name-sort on `reorder_safe` (the same effect-free predicate as AC operands, §CE/#286): sort only when every keyword value is effect-free; otherwise keep source order. Pure reorders still converge; effectful ones stay distinct."
   },
   {
    "packet_id": "s7-s4-oracle-parity",
@@ -633,7 +633,7 @@
    "mode": "blind",
    "surface": "oracle",
    "claim": "the oracle binds kwargs/rebinds in lockstep with the value graph; SOUND covers what it reports",
-   "summary": "No oracle blind spot. By-name binding is shared via keyword_arg_binding_plan; source order preserved; rebinds opaque to both; unbindable kwargs fail closed. The oracle stays lockstep-or-stricter \u2014 it WITNESSED the S3 effectful-reorder (advisory) and a string-+ commute (hard violation) rather than silently reading SOUND.",
+   "summary": "No oracle blind spot. By-name binding is shared via keyword_arg_binding_plan; source order preserved; rebinds opaque to both; unbindable kwargs fail closed. The oracle stays lockstep-or-stricter — it WITNESSED the S3 effectful-reorder (advisory) and a string-+ commute (hard violation) rather than silently reading SOUND.",
    "verdict": "green-confirmed",
    "defense": "None needed."
   },
@@ -645,9 +645,9 @@
    "mode": "blind",
    "surface": "canonicalizer",
    "claim": "`+` commutes only when an operand is proven non-concat (#283-C)",
-   "summary": "`\"p\"+\"q\"` \u2261 `\"q\"+\"p\"` false-merges: a string literal's Const key `0x2000_0000.wrapping_add(h)` wraps OUT of the String range when h's high bits are set, so const_value_domain misreads it as non-String \u2192 proven_non_concat wrongly admits the `+` commute. nose verify catches it as a hard violation.",
+   "summary": "`\"p\"+\"q\"` ≡ `\"q\"+\"p\"` false-merges: a string literal's Const key `0x2000_0000.wrapping_add(h)` wraps OUT of the String range when h's high bits are set, so const_value_domain misreads it as non-String → proven_non_concat wrongly admits the `+` commute. nose verify catches it as a hard violation.",
    "verdict": "violation-fixed",
-   "defense": "#308 \u2014 a string literal's Const key kept the `String` class tag but the content hash wrapped out of range. Fixed by masking the hash into the low 28 bits (`string_const_key`), shared by the frontend's LitStr and the synthesized empty string so they agree (the py-`.get(k,\"\")` vs go-zero-value convergence). Verify clean on sympy+guava (49k interpretable units, no collision-induced merges); corpus family deltas small and in the false-merge-separating direction."
+   "defense": "#308 — a string literal's Const key kept the `String` class tag but the content hash wrapped out of range. Fixed by masking the hash into the low 28 bits (`string_const_key`), shared by the frontend's LitStr and the synthesized empty string so they agree (the py-`.get(k,\"\")` vs go-zero-value convergence). Verify clean on sympy+guava (49k interpretable units, no collision-induced merges); corpus family deltas small and in the false-merge-separating direction."
   },
   {
    "packet_id": "s8-s1-int-bool-wrap",
@@ -657,9 +657,9 @@
    "mode": "blind",
    "surface": "value-model",
    "claim": "an int/float Const-key wrap is always fail-closed; no int key wrap causes a false merge",
-   "summary": "The int literal 536870914 (=0x2000_0002) keyed to 0x3000_0002 via 0x1000_0000.wrapping_add(v as u32), byte-identical to LitBool(true)'s key \u2014 so x+536870914 false-merged with x+True. The #308 author's 'ints are fail-closed' claim was false.",
+   "summary": "The int literal 536870914 (=0x2000_0002) keyed to 0x3000_0002 via 0x1000_0000.wrapping_add(v as u32), byte-identical to LitBool(true)'s key — so x+536870914 false-merged with x+True. The #308 author's 'ints are fail-closed' claim was false.",
    "verdict": "violation-fixed",
-   "defense": "#313 \u2014 ValOp::Const restructured to carry the kind explicitly (ConstKind) plus the full value/hash, so no value can wrap a class boundary."
+   "defense": "#313 — ValOp::Const restructured to carry the kind explicitly (ConstKind) plus the full value/hash, so no value can wrap a class boundary."
   },
   {
    "packet_id": "s8-s1-int-truncation",
@@ -669,9 +669,9 @@
    "mode": "blind",
    "surface": "value-model",
    "claim": "int literals are keyed by value distinctly",
-   "summary": "eval keyed LitInt(v) as v as u32, truncating i64 to 32 bits, so 0 \u2261 2^32 and 5 \u2261 4294967301 false-merged. 2^32 is a plausible real constant.",
+   "summary": "eval keyed LitInt(v) as v as u32, truncating i64 to 32 bits, so 0 ≡ 2^32 and 5 ≡ 4294967301 false-merged. 2^32 is a plausible real constant.",
    "verdict": "violation-fixed",
-   "defense": "#313 \u2014 Const{kind:Int, bits} retains the FULL i64."
+   "defense": "#313 — Const{kind:Int, bits} retains the FULL i64."
   },
   {
    "packet_id": "s8-s2-string-28bit-collision",
@@ -683,7 +683,7 @@
    "claim": "#308's string-key mask discriminates distinct strings",
    "summary": "The #308 mask 0x2000_0000 | (h & 0x0FFF_FFFF) kept only 28 bits, so brute-forced strings 'geU'/'aaha' (sharing low-28-bits) collapsed to one Const and false-merged. #308 traded the out-of-range bug for a collision bug.",
    "verdict": "violation-fixed",
-   "defense": "#313 \u2014 Const{kind:Str, bits} retains the FULL 64-bit hash; the 28-bit mask is removed."
+   "defense": "#313 — Const{kind:Str, bits} retains the FULL 64-bit hash; the 28-bit mask is removed."
   },
   {
    "packet_id": "s8-value-model-canon-green",
@@ -696,6 +696,66 @@
    "summary": "Green on the algebraic canon: string-repetition distribution (gated tight), a+'literal' commutativity (held ordered), loose-vs-strict equality (unwitnessable, oracle has no coercion), De Morgan / abs idempotence (sound for all integers). The only exploitable surface was the literal-key hashing, not the canonicalizations.",
    "verdict": "green-confirmed",
    "defense": "None needed."
+  },
+  {
+   "packet_id": "s9-vm-shl-int32",
+   "series": 9,
+   "campaign": "S1",
+   "persona": "soundness-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "#283-D narrowed JS `& | ^` to int32 so they don't merge with arbitrary-precision Python/Ruby bitwise; the same gap is closed for shifts",
+   "summary": "JS `a << b` shifts ToInt32(a) (32-bit, mod-32) but built a bare Bin(Shl,[a,b]) identical to Python's arbitrary-precision `<<` — false-merging cross-language though `1 << 31` is -2147483648 in JS, 2147483648 in Python (verified with node/python3).",
+   "verdict": "violation-fixed",
+   "defense": "eval_binop_expr narrows the shifted operand via js_int32_narrow for JS Shl/Shr (no-op for non-JS); fingerprints split, JS-vs-JS still converge. Regression: equivalence.rs::js_shift_is_int32_and_distinct_from_arbitrary_precision."
+  },
+  {
+   "packet_id": "s9-vm-shr-int32",
+   "series": 9,
+   "campaign": "S1",
+   "persona": "soundness-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "same int32-narrowing gap for the right-shift operator `>>`",
+   "summary": "JS `a >> b` is a sign-propagating int32 shift; `(2**32) >> 0` is 0 in JS but 2**32 in Python. Same bare Bin(Shr) false merge as `<<`. (`>>>` was already kept distinct — unmapped in js_bin_op.)",
+   "verdict": "violation-fixed",
+   "defense": "same JS Shl/Shr operand narrowing in eval_binop_expr (series 9)."
+  },
+  {
+   "packet_id": "s9-vm-ruby-mul-strrep",
+   "series": 9,
+   "campaign": "S1",
+   "persona": "soundness-skeptic",
+   "mode": "blind",
+   "surface": "value-model",
+   "claim": "`* & | ^` Err on non-numeric regardless of order, so reordering their operands is always sound",
+   "summary": "FALSE for Ruby `*`: string/array repetition is asymmetric — `\"ab\" * 3` → \"ababab\" but `3 * \"ab\"` raises (Integer#* rejects String). The algebra pass folded a constant to the chain end and the value graph sorted operands by hash, false-merging the two orders (also `[1,2]*3` vs `3*[1,2]`).",
+   "verdict": "violation-fixed",
+   "defense": "ac_chain_commutes gates `*` commute on lang!=Ruby || all-proven-non-concat, applied at all reorder sites (algebra build_assoc + fold_arith skip for Ruby Mul; value-graph AC-chain + 2-operand swap). Largest sound generalization: Python repetition (commutative) and JS/Java/Go/C numeric `*` keep full commutativity — corpus output byte-identical. Regression: equivalence.rs::ruby_star_repetition_is_ordered_but_other_multiply_commutes."
+  },
+  {
+   "packet_id": "s9-oracle-eq-err-incoherent",
+   "series": 9,
+   "campaign": "S2",
+   "persona": "oracle-bail-skeptic",
+   "mode": "blind",
+   "surface": "oracle",
+   "claim": "`nose verify` canon-preservation bails are fail-closed and report no spurious violation",
+   "summary": "RE-CONFIRMS and SHARPENS the documented §7 type-incoherence false-positive class: the trigger is an EQUALITY (==/!=) canon meeting an `Err` operand (relational `<` over the same incoherent subscript is clean; a bare subscript is clean), and it is LANGUAGE-INDEPENDENT (untyped Python `b[s]==0` reproduces it), so the root is collect_file_verify_recs's concrete-only canon check not filtering `Err`, not declared-param-domain absence per se. Masked on the nightly gate because netty is not in the pinned corpus.",
+   "verdict": "recorded-low-prevalence",
+   "defense": "Deferred (same as §7). The cheap candidate — skip canon-preservation rows where either behavior carries Err — needs soundness vetting against the cross-unit false-merge check (Err-vs-value IS a distinguishing behavior there), so it is not shipped blind. Boundary recorded in oracle-value-model.md §7."
+  },
+  {
+   "packet_id": "s9-perf-enrich-narrowing",
+   "series": 9,
+   "campaign": "S3",
+   "persona": "perf-determinism",
+   "mode": "blind",
+   "surface": "performance-determinism",
+   "claim": "#328 enrich-only-emitted is byte-identical to full enrichment for every --top/ignore, and scan JSON is deterministic under thread variation",
+   "summary": "GREEN with teeth. jedis (2508 families, 1063 near+graded): 2560 per-family witness comparisons across --top {0,5,30} + a 6-entry ignore file spanning near ranks 2..2507 — zero witness loss, all 6 ignored families keep graded at --top 5. Determinism 9/9 byte-identical (cmp) across RAYON_NUM_THREADS=1 vs default and repeats on jedis/commons-lang/flask.",
+   "verdict": "green-confirmed",
+   "defense": "n/a — the merge-time content-invariance and determinism claims hold."
   }
  ]
 }

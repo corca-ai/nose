@@ -23,7 +23,7 @@
 //! proof-obligation: normalize.value_graph.compare
 
 use crate::combine;
-use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span};
+use nose_il::{Il, IlBuilder, Interner, Lang, NodeId, NodeKind, Op, Payload, Span};
 use nose_semantics::{semantics, ComparisonLaw};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -141,7 +141,12 @@ impl Rewriter<'_> {
             // `2 + 3` → `5`, `x + 2 + 3` → `x + 5`, `x + 0` → `x`, `x * 1` → `x`. SOUND —
             // `x` is still evaluated either way. NOT `x * 0 → 0` (would drop `x`'s
             // side effects). Only the arithmetic ring ops; bitwise/logical left as-is.
-            if matches!(op, Op::Add | Op::Mul) {
+            // EXCEPT Ruby `*`: it is string/array REPETITION and asymmetric (`3 * s` Errs
+            // when `s` is a String but `s * 3` repeats), so folding a constant to the end —
+            // a commute — would change behavior. Hold it ordered; the value graph commutes
+            // it type-gated (series 9). Numeric Ruby `*` still converges there.
+            let ruby_mul = op == Op::Mul && self.old.meta.lang == Lang::Ruby;
+            if matches!(op, Op::Add | Op::Mul) && !ruby_mul {
                 return self.fold_arith(op, span, &leaves);
             }
             let operands: Vec<(NodeId, u64)> = leaves.iter().map(|&c| self.rewrite(c)).collect();
@@ -257,14 +262,19 @@ impl Rewriter<'_> {
     ///   • logical `and`/`or` — short-circuit value-and/or is associative but NOT
     ///     commutative (`1 or 2` = 1 ≠ `2 or 1`); kept in source order, canonicalized to
     ///     the positional `Phi` by the value graph.
-    /// Bitwise `&`/`|`/`^` and `*` (string`*`int repetition is commutative too) stay sorted.
+    ///   • Ruby `*` — string/array repetition is non-commutative in Ruby (`"ab" * 3` →
+    ///     "ababab" but `3 * "ab"` raises); kept ordered, commuted type-gated by the value
+    ///     graph (series 9). Python `*` repetition IS commutative and JS/Java/Go/C `*` is
+    ///     numeric, so only Ruby is held.
+    /// Bitwise `&`/`|`/`^` and non-Ruby `*` stay sorted (associativity is always applied).
     fn build_assoc(
         &mut self,
         op: Op,
         span: Span,
         mut operands: Vec<(NodeId, u64)>,
     ) -> (NodeId, u64) {
-        if !matches!(op, Op::And | Op::Or | Op::Add) {
+        let ruby_mul = op == Op::Mul && self.old.meta.lang == Lang::Ruby;
+        if !matches!(op, Op::And | Op::Or | Op::Add) && !ruby_mul {
             operands.sort_by_key(|&(_, h)| h);
         }
         let mut iter = operands.into_iter();
