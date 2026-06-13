@@ -2783,6 +2783,32 @@ fn float_typed_param_addition_is_held_unassociated() {
 }
 
 #[test]
+fn array_element_swap_does_not_merge_with_clobber() {
+    // #337: in-place element mutation. `swap` (`t=a[i]; a[i]=a[j]; a[j]=t`) and `clobber`
+    // (`a[i]=a[j]; a[j]=a[i]`) differ: clobber's second `a[i]` read observes the FIRST write,
+    // while swap captured the pre-write value in `t`. The value graph forwards a post-write
+    // read of `a[i]` to the written value (`index_env`), so the two element-write traces — and
+    // thus the fingerprints — differ. They previously SHARED a fingerprint (the no-mutation
+    // store model treated every `a[i]` read as the pre-write value): a false merge.
+    let i = Interner::new();
+    let swap = "def swap(a, i, j):\n    t = a[i]\n    a[i] = a[j]\n    a[j] = t\n";
+    let clobber = "def clobber(a, i, j):\n    a[i] = a[j]\n    a[j] = a[i]\n";
+    assert_ne!(
+        value_fp(&i, swap, Lang::Python),
+        value_fp(&i, clobber, Lang::Python),
+        "swap must not merge with clobber (post-write reads forward to the written value)"
+    );
+    // Control — two structurally-identical swaps still converge (read-forwarding is structure-
+    // sensitive, not a blanket exclusion of indexed stores, so genuine clones are unaffected).
+    let swap2 = "def s2(b, m, n):\n    t = b[m]\n    b[m] = b[n]\n    b[n] = t\n";
+    assert_eq!(
+        value_fp(&i, swap, Lang::Python),
+        value_fp(&i, swap2, Lang::Python),
+        "identical swaps still converge"
+    );
+}
+
+#[test]
 fn algebra_comparison_direction() {
     let i = Interner::new();
     let gt = "def f(a, b):\n    return a > b\n";

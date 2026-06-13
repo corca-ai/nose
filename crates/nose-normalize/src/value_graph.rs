@@ -33,6 +33,7 @@ mod context;
 mod control;
 mod eval;
 mod field_state;
+mod index_state;
 mod inline;
 mod model;
 mod ops;
@@ -65,6 +66,7 @@ use crate::module_facts::{
     node_symbol_in_scope, top_level_statements_for,
 };
 use field_state::FieldStateKey;
+use index_state::IndexStateKey;
 use model::sentinel;
 use model::{
     Builder, BuilderCandidate, BuilderKind, ConstKind, FilterMapResult, HofAdmission,

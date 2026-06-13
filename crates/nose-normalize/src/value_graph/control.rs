@@ -81,6 +81,7 @@ impl<'a> Builder<'a> {
             }
         }
         self.flush_fields();
+        self.index_env.clear();
     }
 
     /// Recognize an existence/universal loop written with an early return, and rewrite it
@@ -1196,7 +1197,24 @@ impl<'a> Builder<'a> {
         if self.try_record_index_assign(stmt, rhs, env) {
             return;
         }
-        // store into an index / computed target → an ordered effect
+        // store into an index / computed target → an ordered effect. Element WRITES stay
+        // ORDERED effects (order-sensitive — sound even when two indices alias at runtime).
+        // Additionally version the `(base, index)` place for READ-forwarding (#337): a later
+        // `base[index]` read in the same straight-line run sees `rhs`, distinguishing `swap`
+        // from `clobber`. The write TARGET is built directly from base+index (NOT via `eval`,
+        // which would forward a prior write into the place itself).
+        if self.il.kind(kids[0]) == NodeKind::Index {
+            let ik = self.il.children(kids[0]).to_vec();
+            if ik.len() == 2 {
+                let base = self.eval(ik[0], env);
+                let index = self.eval(ik[1], env);
+                let place = self.mk(ValOp::Index, vec![base, index]);
+                let st = self.mk(ValOp::Call(0), vec![place, rhs]);
+                self.push_effect(st);
+                self.record_index_write(base, index, rhs);
+                return;
+            }
+        }
         let target = self.eval(kids[0], env);
         let st = self.mk(ValOp::Call(0), vec![target, rhs]);
         self.push_effect(st);
@@ -1300,9 +1318,14 @@ impl<'a> Builder<'a> {
         // Bracket the whole loop processing in a depth counter so an inline return
         // capture can tell a return executed *inside* a callee loop (poison) from one
         // merely written after it (fine).
+        // A loop is an effect/aliasing barrier for indexed read-forwarding (#337): a forward
+        // valid before the loop is invalid inside it (the array may be rewritten each
+        // iteration), and a forward installed inside is invalid after. Clear on both edges.
+        self.index_env.clear();
         self.loop_depth += 1;
         self.process_loop_inner(stmt, env);
         self.loop_depth -= 1;
+        self.index_env.clear();
     }
 
     fn process_loop_inner(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {

@@ -17,6 +17,21 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **False merge closed: in-place array-element mutation is now modeled (#337).** `swap`
+  (`t=a[i]; a[i]=a[j]; a[j]=t`) and `clobber` (`a[i]=a[j]; a[j]=a[i]`) compute different
+  results (`swap([1,2],0,1)` → `[2,1]`, `clobber` → `[2,2]`) but shared one
+  `exact-value-graph` fingerprint: an indexed store was an opaque effect that never updated
+  readable state, so a later `a[i]` read re-derived the pre-write value. Now a `base[index]`
+  READ that follows a write to that exact place FORWARDS to the written value
+  (`value_graph/index_state.rs`), so the two element-write traces — and thus the fingerprints
+  — differ. The element WRITE stays an ordered effect (order-sensitive, sound under index
+  aliasing); forwarding is installed only for an unconditional, top-level, non-loop write and
+  is invalidated by any effect/branch/loop, so it can only cost recall, never soundness. The
+  interpreter mutates the array in place in lockstep (`interp.rs`), so the `nose verify`
+  soundness oracle WITNESSES the difference (a new battery row feeds a list base with two
+  distinct int indices) instead of being blind to it. Split-only: corpus family delta 0
+  (type4 20→20), verify clean. A Lean obligation (cf. `normalize.value_graph.field_writes`)
+  is a tracked follow-up. (oracle-value-model §7.3.)
 - **False merge closed: float-TYPED-param `+`/`*` is no longer reassociated (#283 C-float).**
   A `+`/`*` chain over float-typed params — `: float` (Python), `f64` (Rust), `double` (Java),
   `float64` (Go), `number` (TS) — is now held unassociated even with no syntactic float leaf:

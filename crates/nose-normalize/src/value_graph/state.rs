@@ -25,6 +25,7 @@ impl<'a> Builder<'a> {
             sinks: Vec::new(),
             opaque_ctr: 0,
             field_env: FxHashMap::default(),
+            index_env: FxHashMap::default(),
             subtree_hash: None,
             shared_subtree_hashes: None,
             valued_subtree_hash: None,

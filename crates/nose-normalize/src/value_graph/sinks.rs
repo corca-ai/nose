@@ -8,6 +8,11 @@ impl<'a> Builder<'a> {
     /// Push an effect sink, tagged with the current path condition — so a *conditional*
     /// effect (`if c { append(x) }`) carries `c`, the way a guarded return does.
     pub(super) fn push_effect(&mut self, v: ValueId) {
+        // Any ordered effect — a method call, an opaque store, a function call taking an array
+        // — may mutate an array's elements (`a.insert`, `a.sort`, `f(a)`), so it INVALIDATES
+        // all outstanding indexed-element read-forwards (#337). The just-emitted indexed write
+        // re-installs its own forward AFTER this, via `record_index_write`.
+        self.index_env.clear();
         let ord = self.next_effect_ordinal();
         let g = self.guarded(v);
         self.sinks.push(Sink::ordered_effect(g, ord));

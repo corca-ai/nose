@@ -691,20 +691,41 @@ impl<'a> Interp<'a> {
             }
             NodeKind::Index => {
                 let kids = self.il.children(target).to_vec();
-                if let Some(&base) = kids.first() {
-                    let base_value = self.eval(base, env)?;
-                    if matches!(base_value, Value::Err) {
-                        return Ok(true);
-                    }
+                let Some(&base) = kids.first() else {
+                    return Err(Unsupported);
+                };
+                let base_value = self.eval(base, env)?;
+                if matches!(base_value, Value::Err) {
+                    return Ok(true);
                 }
+                let mut iv = None;
                 if let Some(&ix) = kids.get(1) {
-                    let iv = self.eval(ix, env)?;
-                    if matches!(iv, Value::Err) {
+                    let v = self.eval(ix, env)?;
+                    if matches!(v, Value::Err) {
                         return Ok(true);
                     }
-                    self.effects.push(iv);
+                    self.effects.push(v.clone());
+                    iv = Some(v);
                 }
-                self.effects.push(val);
+                self.effects.push(val.clone());
+                // In-place element mutation (#337): when the base is a simple var holding a
+                // `List` and the index is an in-bounds `Int`, update the element so a LATER
+                // `base[i]` read observes the write — this is what distinguishes `swap`
+                // (`t=a[i]; a[i]=a[j]; a[j]=t`) from `clobber` (`a[i]=a[j]; a[j]=a[i]`). The
+                // ordered-effect push above still records the write itself; mutation only
+                // changes what subsequent reads see. Any non-clean shape (computed/aliased
+                // base, out-of-bounds, non-List) leaves the list untouched — the conservative
+                // no-mutation fall-back, matching the value graph's clear-on-write forwarding.
+                if let (NodeKind::Var, Some(Value::Int(i))) = (self.il.kind(base), &iv) {
+                    if let Payload::Cid(c) = self.il.node(base).payload {
+                        if let Some(Value::List(xs)) = env.get_mut(&c) {
+                            let idx = if *i < 0 { *i + xs.len() as i64 } else { *i };
+                            if idx >= 0 && (idx as usize) < xs.len() {
+                                xs[idx as usize] = val;
+                            }
+                        }
+                    }
+                }
                 Ok(false)
             }
             _ => Err(Unsupported),
@@ -2230,6 +2251,48 @@ mod tests {
     #[test]
     fn cstyle_loop_update_err_stops_execution() {
         assert_eq!(run_cstyle_loop_with_update_err(), Value::Err);
+    }
+
+    // #337: `def f(a): a[0] = 5; return a[0]` — the read must observe the WRITTEN 5 (in-place
+    // element mutation), not the pre-write element. Without mutation modeling the oracle was
+    // blind to `swap` vs `clobber`; with it, the value graph's read-forwarding and the oracle
+    // agree, so the two no longer false-merge.
+    fn run_index_store_then_read() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let a_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let a_var = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let target = b.add(NodeKind::Index, Payload::None, sp, &[a_var, zero]);
+        let five = b.add(NodeKind::Lit, Payload::LitInt(5), sp, &[]);
+        let store = b.add(NodeKind::Assign, Payload::None, sp, &[target, five]);
+        let a_var2 = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let zero2 = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let read = b.add(NodeKind::Index, Payload::None, sp, &[a_var2, zero2]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[read]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[store, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[a_param, block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_admitted_unit(
+            il,
+            func,
+            &[Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])],
+        )
+        .expect("run_unit")
+        .ret
+    }
+
+    #[test]
+    fn index_store_is_observed_by_later_read() {
+        assert_eq!(run_index_store_then_read(), Value::Int(5));
     }
 
     fn run_foreach_with_iterable_err() -> Option<Value> {

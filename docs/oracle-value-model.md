@@ -271,6 +271,7 @@ oracle-caught)":
 | C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | oracle witnesses (needs §3.3 float) or detector keeps split |
 | D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split**; oracle int32 execution remains follow-up |
 | D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; real Float oracle remains follow-up |
+| in-place element mutation | `array_element_mutation.py` (`swap` vs `clobber`) | detector keeps them **split** AND oracle witnesses — CLOSED (#337, §7.3); guarded by `array_element_swap_does_not_merge_with_clobber` + `index_store_is_observed_by_later_read` |
 
 New permanent regression tests follow the pattern of
 `crates/nose-cli/tests/equivalence.rs`
@@ -374,54 +375,56 @@ oracle stays clean. Canon-preservation violations are now **zero** across netty/
 and the wider sweep — together with `bin`'s symmetric `Err` (§7.1), every
 canon-preservation violation the corpus surfaced is closed.
 
-### 7.3 The deeper limit: in-place element mutation is not modeled (oracle-blind, OPEN)
+### 7.3 In-place element mutation — CLOSED (#337)
 
-The value model treats an indexed/collection store `a[i] = v` as an ordered, opaque effect
-and does NOT update readable state — so a later `a[i]` read re-derives the *pre-write*
-value (`field` stores ARE versioned via `field_env`; array elements are not). Under that
-model `swap` (`t=a[i]; a[i]=a[j]; a[j]=t`) and `clobber` (`a[i]=a[j]; a[j]=a[i]`) compute
-the same effect trace, so they share an `exact-value-graph` fingerprint — a latent false
-merge. It is **oracle-blind**: the interpreter shares the same no-mutation model, so the
-false-merge check sees them as behavior-equal too (no battery row distinguishes them). This
-is the same category as float non-associativity (`bench/coevo/false_merges/float_assoc.py`):
-a known value-model gap the oracle cannot witness, not a regression. Closing it needs
-in-place element-mutation modeling (version `a[i]` reads by the array's write state) in
-BOTH the value graph and the interpreter — a value-model extension on the scale of the
-`Float` kind (§3.3), tracked in **#337**. Until then it is recorded in
-`bench/coevo/false_merges/array_element_mutation.py` as an OPEN, oracle-blind class.
+The value model treated an indexed store `a[i] = v` as an ordered, opaque effect that did
+NOT update readable state — so a later `a[i]` read re-derived the *pre-write* value (`field`
+stores were versioned via `field_env`; array elements were not). Under that model `swap`
+(`t=a[i]; a[i]=a[j]; a[j]=t`) and `clobber` (`a[i]=a[j]; a[j]=a[i]`) produced the same
+element-write trace and shared an `exact-value-graph` fingerprint — a false merge (`swap`
+on `[1,2]` gives `[2,1]`, `clobber` gives `[2,2]`).
 
-**Why there is no canon-gate slice (design assessment).** Unlike the float *subtraction*
-case (§3.3), which had a clean `Sub`-vs-`Add` node distinction, closing the swap/clobber
-SCAN merge requires the **fingerprint itself** to distinguish a pre-write from a post-write
-`a[i]` read — i.e. versioning the read value node. Four blockers, found while scoping this,
-make it the epic and not a patch:
-1. **`ValOp::Index` is assumed 2-ary.** Several passes match it positionally — the
-   dict-builder lookup `node.args == [map, key]` (`collections.rs`) and the getter shape
-   `args.len() == 2` (`canonicalize.rs`) — so adding a third "generation" arg silently
-   disables them for versioned reads. A versioned read needs a distinct representation, not
-   an extra arg.
-2. **`eval` is memoised (hash-consed).** The same `a[i]` IL node evaluated before and after
-   a write must yield DIFFERENT value nodes, so the write generation has to enter the eval
-   cache key — today reads are cached by node id alone.
-3. **Aliasing forces a conservative generation.** A per-base counter is unsound when two
-   params alias the same list (`f(xs, xs)`); soundness needs a global per-unit generation
-   bumped on ANY element write, versioning even unrelated array reads after a write — the
-   recall cost.
-4. **Two models must move together.** The value graph (fingerprint) AND the interpreter
-   (oracle) both use the no-mutation model; versioning only one makes them disagree, so the
-   change spans both — exactly the `Float`-kind shape.
+**The fix is READ-FORWARDING, not a versioned read node — which dissolves the blockers.**
+The earlier scoping framed this as needing a third "generation" arg on every `a[i]` read
+node (an epic with four blockers). That framing was wrong. The element WRITE is kept an
+ordered effect (`push_effect`, order-sensitive — already sound even when indices alias);
+the only new behavior is that a `base[index]` READ evaluated after a write to that exact
+place FORWARDS to the written value (`index_env`, `value_graph/index_state.rs`). So
+`clobber`'s second `a[i]` read becomes the value just stored in `a[j]`, while `swap`'s `t`
+holds the pre-write value — distinct write traces, distinct fingerprints. The four "blockers":
+1. **`ValOp::Index` 2-arity** — preserved. Forwarding returns the stored *value node*; it
+   never adds an arg, so the dict-builder/getter positional matches are untouched.
+2. **`eval` hash-consing** — irrelevant. `eval` is not traversal-memoised, and pre/post-write
+   reads are distinct IL nodes anyway; forwarding consults `index_env` at eval time.
+3. **Aliasing** — handled conservatively. A forward is installed only for an UNCONDITIONAL,
+   top-level, non-loop write (`path` empty, `loop_depth == 0`), and ANY ordered effect
+   (`push_effect` — a method call, `f(a)`, an opaque store), branch, or loop CLEARS the
+   forwarding map. So a forward survives only across a straight-line, effect-free run with no
+   possibly-aliasing write — sound by construction; errs toward fewer forwards (recall, never
+   soundness). Conditional base reassignment becomes a `Phi` (a different value node), so its
+   key never matches.
+4. **Two models move together** — done. The interpreter (`interp.rs` `bind` for `Index`) now
+   mutates the array in place (clean Var-holding-`List` + in-bounds-`Int` case; everything
+   else falls back to the opaque no-mutation effect), so the soundness oracle WITNESSES the
+   `swap`/`clobber` difference instead of being blind to it. This is essential: value-graph
+   forwarding *without* interpreter mutation would false-merge `a[0]=5; return a[0]` with
+   `a[0]=5; return 5` against the old non-mutating oracle.
 
-The exact-channel-eligibility route (exclude read-after-write units, like the `ModuleRebind`
-exclusion) does NOT help: it changes only verify's gating, not the scan fingerprint, so the
-product would still merge swap with clobber. The merge is latent (corpus family delta from
-any partial attempt is 0), so this stays the deferred Float-kind-scale epic rather than a
-recall-costly partial gate.
+`verify_battery` Part 4 adds `(list, int, int, int)` rows so a `swap(a,i,j)`/`clobber(a,i,j)`
+sees a list base with two distinct int indices — the combinatorial pool binds slot ≥2 of a
+≥3-arg function to a list, so without these rows the distinguishing input never occurs. (A
+list base with int indices is the normal array shape, NOT a type-incoherent string-as-index
+row, so it does not manufacture the spurious canon-preservation divergence §7 warns about —
+verified clean on type4 and coevo.) Recorded outcome: **corpus family delta 0** (type4
+20→20), verify clean, swap/clobber split AND oracle-witnessed. A Lean obligation analogous
+to `normalize.value_graph.field_writes` is a tracked follow-up (the argument today is
+conservative-by-construction plus the oracle).
 
-**Net:** the equality-over-`Err` class (§7.1) and the dataflow unsoundness (§7.2) are
-closed, so the verify soundness gate can widen toward dynamic-language repos. The
-array-mutation modeling gap (§7.3) and type-domain-aware input feeding remain the
-floor-then-model follow-ups (§3); `verify_battery`'s Part 3 stays hand-curated **on
-purpose** (a guard comment there points here).
+**Net:** the equality-over-`Err` class (§7.1), the dataflow unsoundness (§7.2), and the
+in-place element-mutation gap (§7.3) are all closed, so the verify soundness gate can widen
+toward dynamic-language repos. Type-domain-aware input feeding remains the floor-then-model
+follow-up (§3); the rest of `verify_battery` stays hand-curated **on purpose** (the guard
+comment there points here).
 
 ---
 

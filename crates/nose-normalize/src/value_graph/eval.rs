@@ -554,6 +554,13 @@ impl<'a> Builder<'a> {
         let kids = self.il.children(expr).to_vec();
         let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
         if a.len() == 2 {
+            // #337: a read of an element written earlier in this straight-line run forwards to
+            // the written value, so `clobber`'s post-write `a[i]` read (= the value just put in
+            // `a[j]`) differs from `swap`'s pre-write read. Only fires for a place that was the
+            // most recent indexed write with no intervening effect (see `record_index_write`).
+            if let Some(forwarded) = self.forwarded_index_read(a[0], a[1]) {
+                return forwarded;
+            }
             if let Some((map, default)) = self.proven_go_literal_zero_map_value(a[0]) {
                 return self.mk(
                     ValOp::Call(builtin_tag(Builtin::GetOrDefault)),

@@ -180,6 +180,11 @@ pub(super) struct Builder<'a> {
     /// by `Place(SelfField)` and `Effect(SelfFieldWrite)`. Raw dynamic attribute writes stay
     /// ordered effects because selector spelling alone is not place/effect proof.
     pub(super) field_env: FxHashMap<FieldStateKey, ValueId>,
+    /// Same-unit indexed-element read-forwarding (#337): the value most recently written to a
+    /// `(base, index)` place, so a later `base[index]` read observes the write. Cleared on any
+    /// indexed write (conservative aliasing). The write itself stays an ordered effect — this
+    /// only versions READS. See `index_state.rs`.
+    pub(super) index_env: FxHashMap<IndexStateKey, ValueId>,
     /// Lazily-computed subtree hash per IL node (kind + payload + children), used to
     /// key unlowered `Raw` constructs and lambda bodies by content. Computed once per
     /// graph (the whole-IL pass is O(n)); `None` until first needed.

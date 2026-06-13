@@ -1,12 +1,11 @@
-# The value model treats an indexed store `a[i] = v` as an opaque ordered effect and does
-# NOT update readable state, so a later `a[i]` read re-derives the PRE-write value (fields
-# are versioned via `field_env`; array elements are not). So `swap` and `clobber` below
-# compute the same effect trace and share an exact-value-graph fingerprint — a false merge:
-# swap(a,0,1) on [1,2] gives [2,1], clobber gives [2,2]. OPEN, ORACLE-BLIND: the interpreter
-# shares the no-mutation model, so `nose verify` cannot witness it (no battery row
-# distinguishes them) — the same category as float_assoc.py. Closing it needs in-place
-# element-mutation modeling in the value graph AND the interpreter. See
-# docs/oracle-value-model.md §7.3 (coevo series 9).
+# CLOSED (#337). `swap(a,0,1)` on [1,2] gives [2,1]; `clobber` gives [2,2] — different
+# behavior. They once shared an exact-value-graph fingerprint because an indexed store
+# `a[i] = v` was an opaque effect that did not update readable state, so a later `a[i]` read
+# re-derived the PRE-write value. Now the value graph FORWARDS a post-write read of `base[index]`
+# to the written value (`value_graph/index_state.rs`) and the interpreter mutates the array in
+# place (`interp.rs` `bind` for `Index`), so the two are split AND oracle-witnessed. Kept as a
+# guard; the permanent tests are `array_element_swap_does_not_merge_with_clobber` (equivalence)
+# and `index_store_is_observed_by_later_read` (interp). See docs/oracle-value-model.md §7.3.
 def swap(a, i, j):
     t = a[i]
     a[i] = a[j]
