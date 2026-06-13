@@ -1,0 +1,556 @@
+{
+ "CASE-1 antlr4 cross-lang (was: undecidable \u2014 no equivalence witness)": {
+  "languages": 4,
+  "members": 8,
+  "files": 4,
+  "shared_lines": 0,
+  "params": 0,
+  "scope": "prod",
+  "recommended_surface": "default",
+  "witness_kind": "structural-similarity",
+  "mean_value_jaccard": 0.061,
+  "mean_shape_jaccard": 0.229,
+  "graded": null,
+  "varying_spots": [],
+  "locations": [
+   {
+    "file": "atn/PredictionContext.java",
+    "lines": [
+     345,
+     465
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "v4/prediction_context.go",
+    "lines": [
+     546,
+     661
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "context/PredictionContextUtils.js",
+    "lines": [
+     131,
+     239
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "antlr4/PredictionContext.py",
+    "lines": [
+     443,
+     534
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ },
+ "CASE-2 arrow locales (was: wrongly 'worthy' \u2014 no difference evidence)": {
+  "languages": 1,
+  "members": 4,
+  "files": 1,
+  "shared_lines": 13,
+  "params": 2,
+  "scope": "prod",
+  "recommended_surface": "default",
+  "witness_kind": "structural-similarity",
+  "mean_value_jaccard": 1.0,
+  "mean_shape_jaccard": 1.0,
+  "graded": {
+   "holes": 0,
+   "equal_modulo_holes": true,
+   "patterns": null,
+   "referent_mismatches": null,
+   "caveat_names": null,
+   "spots": []
+  },
+  "varying_spots": [
+   {
+    "a": "delta: Union[int, float] = 0,",
+    "b": "delta: Union[float, int] = 1,  # key is always future when only_distance=False"
+   },
+   {
+    "a": "# German uses a different case without 'in' or 'ago' humanized: str = self.timeframes_only_distance[timeframe].format( trunc(abs(delta)) )",
+    "b": "# Sinhala uses a different case without 'in' or 'ago' humanized = self.timeframes_only_distance[timeframe].format(trunc(abs(delta)))"
+   }
+  ],
+  "locations": [
+   {
+    "file": "arrow/locales.py",
+    "lines": [
+     2111,
+     2132
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "arrow/locales.py",
+    "lines": [
+     6110,
+     6128
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "arrow/locales.py",
+    "lines": [
+     6483,
+     6500
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "arrow/locales.py",
+    "lines": [
+     5657,
+     5671
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ },
+ "CASE-3 cmark scanners.c (was: wrongly 'worthy' \u2014 generated not flagged)": {
+  "languages": 1,
+  "members": 63,
+  "files": 1,
+  "shared_lines": 23,
+  "params": 4,
+  "scope": "prod",
+  "recommended_surface": "generated",
+  "witness_kind": "structural-similarity",
+  "mean_value_jaccard": 0.98,
+  "mean_shape_jaccard": 0.99,
+  "graded": {
+   "holes": 36,
+   "equal_modulo_holes": false,
+   "patterns": null,
+   "referent_mismatches": null,
+   "caveat_names": null,
+   "spots": [
+    {
+     "class": "literal",
+     "a": "if (yych <= ',')",
+     "b": "if (yych <= 'Z') {"
+    },
+    {
+     "class": "operator",
+     "a": "if (yych <= '.') {",
+     "b": "if (yych <= '=') {"
+    },
+    {
+     "class": "literal",
+     "a": "if (yych <= '=') {",
+     "b": "if (yych <= '>')"
+    },
+    {
+     "class": "operator",
+     "a": "if (yych <= '-')",
+     "b": null
+    },
+    {
+     "class": "operator",
+     "a": null,
+     "b": "if (yych <= 'Z') {"
+    },
+    {
+     "class": "literal",
+     "a": "if (yych <= '=') {",
+     "b": "if (yych <= '@')"
+    }
+   ]
+  },
+  "varying_spots": [
+   {
+    "a": "if (yych <= '-') goto yy31; goto yy27;",
+    "b": "if (yych >= '.') goto yy27;"
+   },
+   {
+    "a": "goto yy32;",
+    "b": "goto yy29;"
+   },
+   {
+    "a": "goto yy32;",
+    "b": "goto yy29;"
+   },
+   {
+    "a": "goto yy32;",
+    "b": "goto yy29;"
+   }
+  ],
+  "locations": [
+   {
+    "file": "src/scanners.c",
+    "lines": [
+     1692,
+     1720
+    ],
+    "kind": "Block",
+    "looks_generated": true,
+    "enclosing": "_scan_autolink_email"
+   },
+   {
+    "file": "src/scanners.c",
+    "lines": [
+     1642,
+     1669
+    ],
+    "kind": "Block",
+    "looks_generated": true,
+    "enclosing": "_scan_autolink_email"
+   },
+   {
+    "file": "src/scanners.c",
+    "lines": [
+     1749,
+     1776
+    ],
+    "kind": "Block",
+    "looks_generated": true,
+    "enclosing": "_scan_autolink_email"
+   },
+   {
+    "file": "src/scanners.c",
+    "lines": [
+     1800,
+     1827
+    ],
+    "kind": "Block",
+    "looks_generated": true,
+    "enclosing": "_scan_autolink_email"
+   }
+  ]
+ },
+ "CASE-4 alacritty vi_mode.rs (was: wrong scope=prod)": {
+  "languages": 1,
+  "members": 2,
+  "files": 1,
+  "shared_lines": 18,
+  "params": 3,
+  "scope": "test",
+  "recommended_surface": "default",
+  "witness_kind": "copy-paste-run",
+  "mean_value_jaccard": null,
+  "mean_shape_jaccard": null,
+  "graded": null,
+  "varying_spots": [
+   {
+    "a": "fn semantic_wide() {",
+    "b": "fn word_wide() {"
+   },
+   {
+    "a": "cursor = cursor.motion(&mut term, ViMotion::SemanticRight);",
+    "b": "cursor = cursor.motion(&mut term, ViMotion::WordRight);"
+   },
+   {
+    "a": "cursor = cursor.motion(&mut term, ViMotion::SemanticLeft);",
+    "b": "cursor = cursor.motion(&mut term, ViMotion::WordLeft);"
+   }
+  ],
+  "locations": [
+   {
+    "file": "src/vi_mode.rs",
+    "lines": [
+     686,
+     709
+    ],
+    "kind": "Block",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "src/vi_mode.rs",
+    "lines": [
+     762,
+     785
+    ],
+    "kind": "Block",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ },
+ "FRESH flask (top family)": {
+  "languages": 1,
+  "members": 9,
+  "files": 2,
+  "shared_lines": 2,
+  "params": 0,
+  "scope": "test",
+  "recommended_surface": "default",
+  "witness_kind": "exact-value-graph",
+  "mean_value_jaccard": null,
+  "mean_shape_jaccard": null,
+  "graded": null,
+  "varying_spots": [],
+  "locations": [
+   {
+    "file": "tests/test_blueprints.py",
+    "lines": [
+     439,
+     440
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "tests/test_blueprints.py",
+    "lines": [
+     448,
+     449
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "tests/test_blueprints.py",
+    "lines": [
+     472,
+     473
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "tests/test_blueprints.py",
+    "lines": [
+     489,
+     490
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ },
+ "FRESH gin (top family)": {
+  "languages": 1,
+  "members": 12,
+  "files": 1,
+  "shared_lines": 15,
+  "params": 2,
+  "scope": "test",
+  "recommended_surface": "default",
+  "witness_kind": "structural-similarity",
+  "mean_value_jaccard": 0.507,
+  "mean_shape_jaccard": 0.9,
+  "graded": {
+   "holes": 1,
+   "equal_modulo_holes": true,
+   "patterns": null,
+   "referent_mismatches": null,
+   "caveat_names": [
+    "assert",
+    "http",
+    "io",
+    "string"
+   ],
+   "spots": [
+    {
+     "class": "input",
+     "a": "DebugMode,",
+     "b": "TestMode,"
+    }
+   ]
+  },
+  "varying_spots": [
+   {
+    "a": "func TestLoadHTMLGlobDebugMode(t *testing.T) {",
+    "b": "func TestLoadHTMLGlobTestMode(t *testing.T) {"
+   },
+   {
+    "a": "DebugMode,",
+    "b": "TestMode,"
+   }
+  ],
+  "locations": [
+   {
+    "file": "gin/gin_test.go",
+    "lines": [
+     65,
+     83
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "gin/gin_test.go",
+    "lines": [
+     123,
+     141
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "gin/gin_test.go",
+    "lines": [
+     143,
+     161
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "gin/gin_test.go",
+    "lines": [
+     190,
+     208
+    ],
+    "kind": "Function",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ },
+ "FRESH rxjs (top family)": {
+  "languages": 1,
+  "members": 31,
+  "files": 31,
+  "shared_lines": 21,
+  "params": 1,
+  "scope": "test",
+  "recommended_surface": "default",
+  "witness_kind": "copy-paste-run",
+  "mean_value_jaccard": null,
+  "mean_shape_jaccard": null,
+  "graded": null,
+  "varying_spots": [
+   {
+    "a": "finalize(() => {",
+    "b": "tap(() => {"
+   }
+  ],
+  "locations": [
+   {
+    "file": "operators/finalize-spec.ts",
+    "lines": [
+     253,
+     276
+    ],
+    "kind": "Block",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "operators/tap-spec.ts",
+    "lines": [
+     293,
+     316
+    ],
+    "kind": "Block",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "operators/audit-spec.ts",
+    "lines": [
+     447,
+     468
+    ],
+    "kind": "Block",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "operators/catchError-spec.ts",
+    "lines": [
+     463,
+     484
+    ],
+    "kind": "Block",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ },
+ "FRESH jedis (top family)": {
+  "languages": 1,
+  "members": 19,
+  "files": 19,
+  "shared_lines": 4,
+  "params": 0,
+  "scope": "test",
+  "recommended_surface": "default",
+  "witness_kind": "structural-similarity",
+  "mean_value_jaccard": 1.0,
+  "mean_shape_jaccard": 1.0,
+  "graded": {
+   "holes": 0,
+   "equal_modulo_holes": true,
+   "patterns": null,
+   "referent_mismatches": null,
+   "caveat_names": [
+    "endpoint",
+    "protocol"
+   ],
+   "spots": []
+  },
+  "varying_spots": [],
+  "locations": [
+   {
+    "file": "bloom/BloomRedisClientCommandsIT.java",
+    "lines": [
+     18,
+     21
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "bloom/CMSRedisClientCommandsIT.java",
+    "lines": [
+     18,
+     21
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "bloom/CuckooRedisClientCommandsIT.java",
+    "lines": [
+     18,
+     21
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   },
+   {
+    "file": "bloom/TDigestRedisClientCommandsIT.java",
+    "lines": [
+     18,
+     21
+    ],
+    "kind": "Method",
+    "looks_generated": null,
+    "enclosing": null
+   }
+  ]
+ }
+}
