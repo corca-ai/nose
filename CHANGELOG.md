@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-14
+
 ### Added
 - **Lean obligation for indexed-element read-forwarding (`normalize.value_graph.index_writes`,
   #343).** The #337 read-forwarding now carries a machine-checked proof (analogous to
