@@ -152,6 +152,16 @@ impl Rewriter<'_> {
             }
             let mut leaves = Vec::new();
             self.collect_assoc_old(old_id, op, &mut leaves);
+            // Float `+`/`*` is NON-ASSOCIATIVE (`(a+b)+c != a+(b+c)`, #283 C-float). If any
+            // leaf is syntactically float — a float literal or a `/` true-division result —
+            // leave the source tree intact (like the mixed-coercion `+` above) so the
+            // grouping survives into the value graph, which keeps it (its `proven_float`
+            // gate). Folding/reassociating here would erase the grouping the float result
+            // depends on. (Float-typed params with no syntactic marker still flatten — that
+            // needs the full Float value kind, §3.3.)
+            if matches!(op, Op::Add | Op::Mul) && self.chain_has_syntactic_float(&leaves) {
+                return self.generic(old_id, span);
+            }
             // Constant folding + identity elimination (now that C retains literal values):
             // `2 + 3` → `5`, `x + 2 + 3` → `x + 5`, `x + 0` → `x`, `x * 1` → `x`. SOUND —
             // `x` is still evaluated either way. NOT `x * 0 → 0` (would drop `x`'s
@@ -396,5 +406,18 @@ impl Rewriter<'_> {
                 out.push(*c);
             }
         }
+    }
+
+    /// Whether any leaf of an `Add`/`Mul` chain is SYNTACTICALLY float — a float literal or
+    /// a `/` (true-division) result — so the chain must not be reassociated (#283 C-float;
+    /// float `+`/`*` is non-associative). Float-typed params with no syntactic marker are
+    /// not detected here (the full Float value kind, §3.3).
+    fn chain_has_syntactic_float(&self, leaves: &[NodeId]) -> bool {
+        leaves.iter().any(|&n| {
+            matches!(
+                self.old.node(n).payload,
+                Payload::LitFloat(_) | Payload::Op(Op::TrueDiv)
+            )
+        })
     }
 }

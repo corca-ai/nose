@@ -2611,9 +2611,9 @@ fn float_subtraction_is_not_reassociated_while_integer_subtraction_is() {
     // than routed through the AC `+` normalization (`a - b` ≡ `a + (-b)`), because that
     // reassociation is float-unsound — `(1e100 + x) - 1e100` (= 0.0, the large term swallows
     // x) must not converge with the regrouped `(1e100 - 1e100) + x` (= x). Integer `-` still
-    // normalizes and converges (two's-complement subtraction is associative). The pure-`+`
-    // float case (`(a+b)+c ≡ a+(b+c)` for untyped a,b,c) is NOT closed here — the fingerprint
-    // flattens AC chains, so it needs the `Float` value kind (oracle-value-model §3.3).
+    // normalizes and converges (two's-complement subtraction is associative). Pure `+`/`*`
+    // float associativity is also held now (next test); the fully-untyped `(a+b)+c` with no
+    // float marker still flattens — that is the remaining full Float value kind (§3.3).
     let i = Interner::new();
     let t = |src: &str| value_fp(&i, src, Lang::Python);
     // Float literal: the two groupings compute different floats and must NOT merge.
@@ -2627,6 +2627,44 @@ fn float_subtraction_is_not_reassociated_while_integer_subtraction_is() {
         t("def f(x):\n    return (5 + x) - 5\n"),
         t("def g(x):\n    return (5 - 5) + x\n"),
         "integer subtraction must still reassociate (sound)"
+    );
+}
+
+#[test]
+fn float_addition_and_multiplication_are_held_unassociated() {
+    // #283 C-float: float `+`/`*` is non-associative. A chain with a SYNTACTICALLY-float leaf
+    // — a float literal or a `/` (true-division) result — keeps its source grouping in BOTH
+    // the algebra IL pass (`chain_has_syntactic_float` → don't reassociate) and the value
+    // graph (`proven_float` → don't flatten), so the groupings fingerprint distinctly.
+    let i = Interner::new();
+    let t = |src: &str| value_fp(&i, src, Lang::Python);
+    assert_ne!(
+        t("def f(a, b):\n    return (1.0 + a) + b\n"),
+        t("def g(a, b):\n    return 1.0 + (a + b)\n"),
+        "float-literal `+` must not reassociate"
+    );
+    assert_ne!(
+        t("def f(a, b):\n    return (1.5 * a) * b\n"),
+        t("def g(a, b):\n    return 1.5 * (a * b)\n"),
+        "float-literal `*` must not reassociate"
+    );
+    assert_ne!(
+        t("def f(a, b, c):\n    return (a / b + c) + 1.0\n"),
+        t("def g(a, b, c):\n    return a / b + (c + 1.0)\n"),
+        "true-division (float) `+` must not reassociate"
+    );
+    // Control — integer reassociation is sound and still converges.
+    assert_eq!(
+        t("def p(a, b):\n    return (2 + a) + b\n"),
+        t("def q(a, b):\n    return 2 + (a + b)\n"),
+        "integer `+` still reassociates (sound)"
+    );
+    // Control — the SAME float grouping written twice still converges (the hold is
+    // grouping-sensitive, not a blanket exclusion).
+    assert_eq!(
+        t("def p(a, b):\n    return (1.0 + a) + b\n"),
+        t("def q(x, y):\n    return (1.0 + x) + y\n"),
+        "identical float grouping still converges"
     );
 }
 

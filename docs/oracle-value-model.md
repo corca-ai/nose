@@ -193,24 +193,27 @@ first; promote to the full model only if the priced recall loss justifies it.
   `TrueDiv`, distinct from C-family truncated `Div` and Ruby/Python `FloorDiv`.
   Same-semantics surfaces still converge (`Python /` with JS `/`, Ruby `/` with
   Python `//`).
-- **Subtraction slice (shipped, series-9 follow-up):** a `-` carrying a proven-float
-  operand (float literal / `TrueDiv` result / float-typed param) is kept as a literal
-  `Sub` instead of being routed through the AC `+` normalization (`a - b` ≡ `a + (-b)`),
-  so `(1e100 + x) - 1e100` no longer false-merges with the regrouped `(1e100 - 1e100) + x`
-  (`proven_float` + the `eval_sub_chain` gate; corpus family delta 0). This works only
-  because `Sub` and `Add` are distinct fingerprint nodes.
-- **Why the pure `+`/`*` case still needs the full model (the finding):** gating the
-  *canonicalizer* CANNOT close `(a+b)+c ≡ a+(b+c)` for floats — the exact fingerprint
-  flattens an associative-commutative chain to its **leaf sequence** (grouping-insensitive
-  by design, so loop≡sum and regrouped sums converge), so holding the source tree grouping
-  leaves the leaves identical and the fingerprint unchanged. Closing it requires the
-  fingerprint itself to be **grouping-sensitive for float chains** — i.e. the Float value
-  kind, not a canon gate.
-- **Full model:** add `Value::Float` with IEEE-754 semantics, the per-language
-  Int↔Float coercion lattice, and the float half of C (`+`/`*` non-associativity,
-  `(a+b)+c ≠ a+(b+c)`). Recovers the recall the floor gives up. **Largest single
-  piece in the whole #283 cluster** — its own design doc if pursued.
-- **Cost:** floor paid; remaining High for a real Float interpreter/value-graph model.
+- **Non-associativity — syntactic-float `+`/`*`/`-` (shipped).** Float `+`/`*` is
+  non-associative (`(1.0+a)+b ≠ 1.0+(a+b)`) and a float `-` must not fold into a sum, so a
+  chain with a **syntactically-float** leaf — a float literal or a `/` (true-division)
+  result — keeps its source grouping. Held in BOTH layers: the `algebra` IL pass
+  (`chain_has_syntactic_float` → leave the tree intact, like the mixed-coercion `+` bail) and
+  the value graph (`proven_float` → don't flatten the AC chain; `eval_sub_chain` keeps a
+  float `-` as `Sub`). Closes the documented `(1e100+1)-1e100` and the `(a+b)+c ≡ a+(b+c)`
+  float-literal/division cases. **Corpus family delta ≈ 0** (sympy −1, all others 0 — float
+  clones written in one grouping are unaffected); verify clean. The earlier worry that "the
+  fingerprint flattens AC chains to a leaf sequence so no canon gate can help" was a
+  **misdiagnosis**: the fingerprint is the reachable-**node** multiset (structure-sensitive,
+  `intern_node` hashes args in order); the grouping was lost at the `algebra` reassociation,
+  which IS gateable.
+- **Remaining (the full model):** a chain whose float-ness is ONLY in a type — `def
+  f(a: float, b: float, c: float): (a+b)+c` — has no syntactic float leaf, so it still
+  flattens; and the fully-untyped `(a+b)+c` (`float_assoc.py`) is undecidable without types.
+  Both need `Value::Float` with IEEE-754 semantics + the per-language Int↔Float coercion
+  lattice (so a param's float-ness propagates and the oracle can witness it) — smaller now
+  that the syntactic cases are closed.
+- **Cost:** floor + syntactic non-associativity paid (≈0 recall); remaining Medium for
+  float-typed-param propagation and a real Float interpreter value.
 
 ---
 

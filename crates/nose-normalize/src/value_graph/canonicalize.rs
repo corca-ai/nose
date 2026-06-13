@@ -478,6 +478,14 @@ impl<'a> Builder<'a> {
                 if o == Op::Add as u32 && !self.add_association_safe(&leaves) {
                     return None;
                 }
+                // Float `+`/`*` is non-associative (`(a+b)+c != a+(b+c)`, #283 C-float): a
+                // chain with a proven-float leaf keeps its source grouping (the value the
+                // eval-time gate already built), so don't flatten it here either.
+                if (o == Op::Add as u32 || o == Op::Mul as u32)
+                    && leaves.iter().any(|&v| self.proven_float(v))
+                {
+                    return None;
+                }
                 // COMMUTATIVITY — sorting the operands — is gated per op (`ac_chain_commutes`):
                 // a concat-possible `+` (#283-C), mixed-coercion `+`, and a Ruby string/list
                 // `*` (series 9) stay ordered, while numeric/typed sums and products still
