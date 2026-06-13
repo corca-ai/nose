@@ -3518,7 +3518,6 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         }
     }
     weight_shared_lines(&mut families, &refs, &settings.exclude);
-    enrich_witnesses_for_format(&mut families, &opts, args.format);
     let sort = settings.sort;
     families.sort_by(|a, b| {
         sort.score(b)
@@ -3532,25 +3531,27 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     if args.write_baseline {
         return write_scan_baseline(&args, &families);
     }
-    let baseline_comparison = if let Some(path) = args.baseline.as_ref() {
-        let accepted = baseline::load(path)?;
-        let comparison = BaselineComparison::new(path, &accepted, &families);
-        families.retain(|f| !accepted.keys.contains(&baseline::family_key(f)));
-        Some(comparison)
-    } else {
-        None
-    };
-    let (families, ignored_families) = partition_ignored(families, settings.ignore_set.as_ref());
+    let baseline_comparison = apply_scan_baseline(&args, &mut families)?;
+    let (families, mut ignored_families) =
+        partition_ignored(families, settings.ignore_set.as_ref());
     let mut families = families;
     let overrides = classify_surface_overrides(&mut families, &refs, &settings.exclude);
-    let families = families;
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
     let limit = if settings.top == 0 {
-        usize::MAX
+        families.len()
     } else {
-        settings.top
+        settings.top.min(families.len())
     };
+    enrich_serialized_witnesses(
+        &mut families,
+        &mut ignored_families,
+        limit,
+        &opts,
+        args.format,
+    );
+    let families = families;
+
     let shown = families.iter().take(limit).collect::<Vec<_>>();
     let reportable_families = families
         .iter()
@@ -3765,6 +3766,42 @@ fn enrich_witnesses_for_format(
     }
 }
 
+/// Enrich the graded witness on exactly the families scan JSON serializes — the top
+/// `limit` shown families plus every ignored family — and nothing else. The witness is
+/// JSON-only and computed per family, so the thousands of lower-ranked near families JSON
+/// never prints can skip it (netty `--top 50`: ~2.3s → a fraction). `--top 0` sets
+/// `limit == families.len()`, so it still enriches everything — the full-audit contract.
+/// Human/SARIF skip entirely (they don't render the witness).
+fn enrich_serialized_witnesses(
+    families: &mut [nose_detect::RefactorFamily],
+    ignored: &mut [IgnoredFamily],
+    limit: usize,
+    opts: &nose_detect::DetectOptions,
+    format: ReportFormat,
+) {
+    enrich_witnesses_for_format(&mut families[..limit], opts, format);
+    enrich_ignored_witnesses_for_format(ignored, opts, format);
+}
+
+/// Enrich the graded witness on ignored families, which scan JSON serializes under
+/// `ignored_families` (so an audit of the ignore set sees the same evidence as an active
+/// family). They are wrapped in [`IgnoredFamily`], so enrich each in place; the set is the
+/// user's ignore list — typically small, often empty — so the lost batching is immaterial.
+fn enrich_ignored_witnesses_for_format(
+    ignored: &mut [IgnoredFamily],
+    opts: &nose_detect::DetectOptions,
+    format: ReportFormat,
+) {
+    if !matches!(format, ReportFormat::Json) {
+        return;
+    }
+    time_stage("enrich_ignored", || {
+        for fam in ignored {
+            enrich_graded_witnesses(std::slice::from_mut(&mut fam.family), opts);
+        }
+    });
+}
+
 pub(crate) fn enrich_graded_witnesses(
     families: &mut [nose_detect::RefactorFamily],
     opts: &nose_detect::DetectOptions,
@@ -3974,6 +4011,22 @@ fn write_scan_baseline(args: &ScanArgs, families: &[nose_detect::RefactorFamily]
         path.display()
     );
     Ok(())
+}
+
+/// Compare against an accepted baseline: build the comparison, then drop already-accepted
+/// families in place so only new/changed duplication is reported and gated. `None` when no
+/// `--baseline` is set. (`--write-baseline` is handled earlier, before this runs.)
+fn apply_scan_baseline(
+    args: &ScanArgs,
+    families: &mut Vec<nose_detect::RefactorFamily>,
+) -> Result<Option<BaselineComparison>> {
+    let Some(path) = args.baseline.as_ref() else {
+        return Ok(None);
+    };
+    let accepted = baseline::load(path)?;
+    let comparison = BaselineComparison::new(path, &accepted, families);
+    families.retain(|f| !accepted.keys.contains(&baseline::family_key(f)));
+    Ok(Some(comparison))
 }
 
 fn partition_ignored(
