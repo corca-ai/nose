@@ -24,7 +24,7 @@
 //! proof-obligation: normalize.value_graph.compare
 
 use crate::combine;
-use nose_il::{Il, IlBuilder, Interner, Lang, NodeId, NodeKind, Op, Payload, Span};
+use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span};
 use nose_semantics::{semantics, ComparisonLaw};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -73,13 +73,6 @@ fn is_assoc_comm(op: Op) -> bool {
     matches!(
         op,
         Op::Add | Op::Mul | Op::And | Op::Or | Op::BitAnd | Op::BitOr | Op::BitXor
-    )
-}
-
-fn plus_has_mixed_string_coercion(lang: Lang) -> bool {
-    matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html | Lang::Java
     )
 }
 
@@ -170,7 +163,11 @@ impl Rewriter<'_> {
             // is observable: `"a" + 2 + 3` is not `"a" + (2 + 3)`. This IL pass has no
             // evidence strong enough to prove a chain numeric; leave the tree intact and
             // let the value graph perform evidence-gated association/commutation.
-            if op == Op::Add && plus_has_mixed_string_coercion(self.old.meta.lang) {
+            if op == Op::Add
+                && semantics(self.old.meta.lang)
+                    .operators()
+                    .plus_coerces_strings()
+            {
                 return self.generic(old_id, span);
             }
             let mut leaves = Vec::new();
@@ -193,7 +190,10 @@ impl Rewriter<'_> {
             // when `s` is a String but `s * 3` repeats), so folding a constant to the end —
             // a commute — would change behavior. Hold it ordered; the value graph commutes
             // it type-gated (series 9). Numeric Ruby `*` still converges there.
-            let ruby_mul = op == Op::Mul && self.old.meta.lang == Lang::Ruby;
+            let ruby_mul = op == Op::Mul
+                && semantics(self.old.meta.lang)
+                    .operators()
+                    .mul_is_sequence_repetition();
             if matches!(op, Op::Add | Op::Mul) && !ruby_mul {
                 return self.fold_arith(op, span, &leaves);
             }
@@ -321,7 +321,10 @@ impl Rewriter<'_> {
         span: Span,
         mut operands: Vec<(NodeId, u64)>,
     ) -> (NodeId, u64) {
-        let ruby_mul = op == Op::Mul && self.old.meta.lang == Lang::Ruby;
+        let ruby_mul = op == Op::Mul
+            && semantics(self.old.meta.lang)
+                .operators()
+                .mul_is_sequence_repetition();
         if !matches!(op, Op::And | Op::Or | Op::Add) && !ruby_mul {
             operands.sort_by_key(|&(_, h)| h);
         }

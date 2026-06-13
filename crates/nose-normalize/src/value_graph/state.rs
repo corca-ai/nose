@@ -91,22 +91,13 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn plus_has_mixed_string_coercion(&self) -> bool {
-        matches!(
-            self.il.meta.lang,
-            Lang::JavaScript
-                | Lang::TypeScript
-                | Lang::Vue
-                | Lang::Svelte
-                | Lang::Html
-                | Lang::Java
-        )
+        semantics(self.il.meta.lang).operators().plus_coerces_strings()
     }
 
     pub(super) fn relational_has_string_ordering(&self) -> bool {
-        matches!(
-            self.il.meta.lang,
-            Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-        )
+        semantics(self.il.meta.lang)
+            .operators()
+            .relational_coerces_strings()
     }
 
     /// Whether a `+` chain may be re-associated. In JS/TS/Java, grouping itself is
@@ -137,7 +128,10 @@ impl<'a> Builder<'a> {
         if op == Op::Add as u32 {
             self.add_values_not_concat(add_law, operands)
         } else if op == Op::Mul as u32 {
-            self.il.meta.lang != Lang::Ruby || operands.iter().all(|&v| self.proven_non_concat(v))
+            !semantics(self.il.meta.lang)
+                .operators()
+                .mul_is_sequence_repetition()
+                || operands.iter().all(|&v| self.proven_non_concat(v))
         } else {
             true
         }
