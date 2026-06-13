@@ -113,6 +113,19 @@ REQUIRED_OBLIGATIONS = (
         ("crates/nose-normalize/src/value_graph.rs",),
         ("eval_inlined_call",),
     ),
+    # The near-channel graded witness. Required so the obligation can never be silently
+    # dropped while the soundness-bearing code lives — refactoring away `graded_witness`,
+    # `equal_modulo_holes`, or the `compare_referents` check (or removing the obligation's
+    # marker) fails the gate until the registry is updated. NOTE: unlike the entries above
+    # this obligation is `empirical-only`, not `proven` — required-EXISTENCE is enforced
+    # here; the Lean proof remains a tracked gap (the witness is near-channel evidence, not
+    # an exact-channel theorem). When a proof is written, flip the status to `proven` and
+    # the standard `[lean]` checks take over.
+    RequiredObligation(
+        "detect.graded_witness",
+        ("crates/nose-detect/src/witness.rs",),
+        ("graded_witness", "equal_modulo_holes", "compare_referents"),
+    ),
 )
 
 
