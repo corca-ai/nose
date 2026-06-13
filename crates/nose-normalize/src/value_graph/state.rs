@@ -91,7 +91,9 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn plus_has_mixed_string_coercion(&self) -> bool {
-        semantics(self.il.meta.lang).operators().plus_coerces_strings()
+        semantics(self.il.meta.lang)
+            .operators()
+            .plus_coerces_strings()
     }
 
     pub(super) fn relational_has_string_ordering(&self) -> bool {
