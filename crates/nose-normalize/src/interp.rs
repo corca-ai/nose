@@ -22,8 +22,8 @@ use nose_il::{stable_symbol_hash, Builtin, Il, Interner, LoopKind, NodeId, NodeK
 use nose_semantics::{
     admitted_builtin_semantics_at_call, builtin_demand_profile,
     direct_function_call_target_at_call, exact_java_this_field, exact_java_this_var,
-    exact_self_field_write_assignment, hof_contract, BuiltinDemandProfile, DemandOperation,
-    EagerBuiltinContract, HofDemandProfile,
+    exact_self_field_write_assignment, hof_contract, semantics, BuiltinDemandProfile,
+    DemandOperation, EagerBuiltinContract, HofDemandProfile,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::{Hash, Hasher};
@@ -792,7 +792,14 @@ impl<'a> Interp<'a> {
             NodeKind::UnOp => {
                 let kids = self.il.children(node).to_vec();
                 let a = self.eval(*kids.first().ok_or(Unsupported)?, env)?;
-                Ok(un(op_of(n.payload), &a))
+                let op = op_of(n.payload);
+                // int32 oracle execution (#344): JS-family `~x` is `~ToInt32(x)`, an int32.
+                let a = if matches!(op, Op::BitNot) && self.bitwise_result_is_int32() {
+                    to_int32(a)
+                } else {
+                    a
+                };
+                Ok(un(op, &a))
             }
             NodeKind::Index => self.eval_index(node, env),
             NodeKind::Seq => {
@@ -927,7 +934,24 @@ impl<'a> Interp<'a> {
             return Ok(Value::Err);
         }
         let b = self.eval(kids[1], env)?;
+        // int32 oracle execution (#344): a JS-family bitwise `& | ^` coerces both operands to
+        // int32, so the result is int32 — `(2**40 & 1)` is `0`, not the bigint `2**40 & 1`.
+        // This makes the oracle WITNESS the int32-vs-bigint difference the value graph's
+        // `ToInt32` narrowing fingerprints (it narrows exactly these ops' operands), instead of
+        // computing them as arbitrary-precision i64. Other languages' bitwise stays i64.
+        if matches!(op, Op::BitAnd | Op::BitOr | Op::BitXor) && self.bitwise_result_is_int32() {
+            return Ok(bin(op, &to_int32(a), &to_int32(b)));
+        }
         Ok(bin(op, &a, &b))
+    }
+
+    /// Whether this language's bitwise operators coerce their operands to int32 (the JS family).
+    /// Mirrors the value graph's `is_js_like_lang` gate on the `ToInt32` narrowing, so the
+    /// oracle's bitwise result matches the fingerprint's (#344, #283-D).
+    fn bitwise_result_is_int32(&self) -> bool {
+        semantics(self.il.meta.lang)
+            .modules()
+            .js_like_shadowed_module_bindings()
     }
 
     fn eval_index(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
@@ -1668,6 +1692,16 @@ fn range_values(args: &[Value]) -> R<Value> {
         cur = next;
     }
     Ok(Value::List(out))
+}
+
+/// Coerce an integer `Value` to int32 (`x & 0xFFFF_FFFF`, sign-extended), the operand coercion
+/// every JS-family bitwise operator applies (#344). Non-`Int` values pass through (a bitwise op
+/// on them already `Err`s / stays symbolic in `bin`).
+fn to_int32(v: Value) -> Value {
+    match v {
+        Value::Int(i) => Value::Int(i as i32 as i64),
+        other => other,
+    }
 }
 
 fn bin(op: Op, a: &Value, b: &Value) -> Value {
@@ -2412,6 +2446,49 @@ mod tests {
         assert_eq!(Value::Float(F64(f64::NAN)), Value::Float(F64(f64::NAN)));
         assert_eq!(Value::Float(F64(0.0)), Value::Float(F64(-0.0)));
         assert_ne!(Value::Float(F64(1.0)), Value::Float(F64(2.0)));
+    }
+
+    // #344: a JS-family `a & b` coerces operands to int32, so its result is int32 — the oracle
+    // computes `0xF_0000_0003 & 0xF_0000_0005` as `1` (the low-32-bit AND), not the bigint
+    // `0xF_0000_0001`. This is what lets `nose verify` witness the int32-vs-bigint split the
+    // value graph's `ToInt32` floor fingerprints. A non-JS language keeps the i64 result.
+    fn run_bitand(lang: Lang, a: i64, b: i64) -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut bld = IlBuilder::new(FileId(0));
+        let pa = bld.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let pb = bld.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
+        let va = bld.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let vb = bld.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let and = bld.add(NodeKind::BinOp, Payload::Op(Op::BitAnd), sp, &[va, vb]);
+        let ret = bld.add(NodeKind::Return, Payload::None, sp, &[and]);
+        let func = bld.add(NodeKind::Func, Payload::None, sp, &[pa, pb, ret]);
+        let il = bld.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_admitted_unit(il, func, &[Value::Int(a), Value::Int(b)])
+            .expect("run_unit")
+            .ret
+    }
+
+    #[test]
+    fn js_bitwise_and_wraps_to_int32_in_the_oracle() {
+        // JS truncates to int32; Python keeps arbitrary precision.
+        assert_eq!(
+            run_bitand(Lang::JavaScript, 0xF_0000_0003, 0xF_0000_0005),
+            Value::Int(1)
+        );
+        assert_eq!(
+            run_bitand(Lang::Python, 0xF_0000_0003, 0xF_0000_0005),
+            Value::Int(0xF_0000_0001)
+        );
+        // Small ints are identical either way (int32(x) == x).
+        assert_eq!(run_bitand(Lang::JavaScript, 6, 3), Value::Int(2));
     }
 
     fn run_foreach_with_iterable_err() -> Option<Value> {

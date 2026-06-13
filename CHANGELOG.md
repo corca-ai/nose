@@ -17,6 +17,16 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **Soundness oracle now witnesses int32 bitwise (#344).** A JS-family `a & b` / `a | b` /
+  `a ^ b` / `~a` coerces its operands to int32, so the interpreter (the `nose verify` oracle)
+  now evaluates them under int32 wrap (`0xF_0000_0003 & 0xF_0000_0005` is `1`, not the bigint
+  `0xF_0000_0001`) instead of arbitrary-precision i64. The scan fingerprint already split JS
+  bitwise from bigint via the `ToInt32` floor (#283-D); this makes the oracle agree with that
+  split rather than be blind to it, widening the verify gate's coverage. Scan unchanged (family
+  delta 0); a `verify_battery` row with high-bit-overlapping ints makes the wrap observable.
+  The deferred **full fixed-width canon** (reconverging JS `a&b` ≡ Java-`int` `a&b`) was
+  **measured unnecessary**: disabling the int32 narrowing changes 0 families on the full 105-repo
+  pinned corpus, so the floor is the correct stopping point. (oracle-value-model §3.2/§6.)
 - **False merge closed: fully-untyped float `+`/`*` associativity — the `Value::Float` kind (#342).**
   `(a+b)+c` and `a+(b+c)` over params with no float marker (`float_assoc.py`) computed different
   floats (`(1e16 + -1e16) + 1 = 1` but `1e16 + (-1e16 + 1) = 0`) yet shared one fingerprint, the
