@@ -2284,7 +2284,11 @@ mod tests {
         run_admitted_unit(
             il,
             func,
-            &[Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])],
+            &[Value::List(vec![
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+            ])],
         )
         .expect("run_unit")
         .ret

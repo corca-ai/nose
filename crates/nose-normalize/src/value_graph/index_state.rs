@@ -54,8 +54,6 @@ impl Builder<'_> {
     /// The forwarded value for a `base[index]` read, if that exact place was the most recent
     /// indexed write (see `record_index_write`). `None` → no forward; emit a fresh `Index`.
     pub(super) fn forwarded_index_read(&self, base: ValueId, index: ValueId) -> Option<ValueId> {
-        self.index_env
-            .get(&IndexStateKey { base, index })
-            .copied()
+        self.index_env.get(&IndexStateKey { base, index }).copied()
     }
 }

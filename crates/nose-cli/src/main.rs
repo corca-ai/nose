@@ -1828,8 +1828,18 @@ fn verify_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::V
     // forwarding (and the interpreter's in-place store) is starved and `swap` reads identical to
     // `clobber`. A list base + small int indices is the NORMAL array shape (unlike a string used
     // as an index), so it does not manufacture canonicalizer-divergent impossible inputs.
-    battery.push(vec![l(&[1, 2, 3, 4]), Value::Int(0), Value::Int(1), Value::Int(2)]);
-    battery.push(vec![l(&[5, 1, 4, 2, 8]), Value::Int(2), Value::Int(0), Value::Int(3)]);
+    battery.push(vec![
+        l(&[1, 2, 3, 4]),
+        Value::Int(0),
+        Value::Int(1),
+        Value::Int(2),
+    ]);
+    battery.push(vec![
+        l(&[5, 1, 4, 2, 8]),
+        Value::Int(2),
+        Value::Int(0),
+        Value::Int(3),
+    ]);
     battery
 }
 
