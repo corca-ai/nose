@@ -380,8 +380,35 @@ is the same category as float non-associativity (`bench/coevo/false_merges/float
 a known value-model gap the oracle cannot witness, not a regression. Closing it needs
 in-place element-mutation modeling (version `a[i]` reads by the array's write state) in
 BOTH the value graph and the interpreter — a value-model extension on the scale of the
-`Float` kind (§3.3), tracked separately. Until then it is recorded in
-`bench/coevo/false_merges/` as an OPEN, oracle-blind class.
+`Float` kind (§3.3), tracked in **#337**. Until then it is recorded in
+`bench/coevo/false_merges/array_element_mutation.py` as an OPEN, oracle-blind class.
+
+**Why there is no canon-gate slice (design assessment).** Unlike the float *subtraction*
+case (§3.3), which had a clean `Sub`-vs-`Add` node distinction, closing the swap/clobber
+SCAN merge requires the **fingerprint itself** to distinguish a pre-write from a post-write
+`a[i]` read — i.e. versioning the read value node. Four blockers, found while scoping this,
+make it the epic and not a patch:
+1. **`ValOp::Index` is assumed 2-ary.** Several passes match it positionally — the
+   dict-builder lookup `node.args == [map, key]` (`collections.rs`) and the getter shape
+   `args.len() == 2` (`canonicalize.rs`) — so adding a third "generation" arg silently
+   disables them for versioned reads. A versioned read needs a distinct representation, not
+   an extra arg.
+2. **`eval` is memoised (hash-consed).** The same `a[i]` IL node evaluated before and after
+   a write must yield DIFFERENT value nodes, so the write generation has to enter the eval
+   cache key — today reads are cached by node id alone.
+3. **Aliasing forces a conservative generation.** A per-base counter is unsound when two
+   params alias the same list (`f(xs, xs)`); soundness needs a global per-unit generation
+   bumped on ANY element write, versioning even unrelated array reads after a write — the
+   recall cost.
+4. **Two models must move together.** The value graph (fingerprint) AND the interpreter
+   (oracle) both use the no-mutation model; versioning only one makes them disagree, so the
+   change spans both — exactly the `Float`-kind shape.
+
+The exact-channel-eligibility route (exclude read-after-write units, like the `ModuleRebind`
+exclusion) does NOT help: it changes only verify's gating, not the scan fingerprint, so the
+product would still merge swap with clobber. The merge is latent (corpus family delta from
+any partial attempt is 0), so this stays the deferred Float-kind-scale epic rather than a
+recall-costly partial gate.
 
 **Net:** the equality-over-`Err` class (§7.1) and the dataflow unsoundness (§7.2) are
 closed, so the verify soundness gate can widen toward dynamic-language repos. The
