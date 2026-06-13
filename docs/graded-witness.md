@@ -97,10 +97,13 @@ not folded into nose's deterministic order on a neutral signal.
   fragments and pathological (generated/minified) files.
 - **The unit body, plus decorators by source — not the full signature.** The witness
   compares the two units' *value graphs* (the modeled body), augmented by the
-  source-level decorator/attribute check above. What it still does not model: the
-  parameter **signature** — a differing *unused* parameter is invisible (a used one
-  surfaces as a value-graph hole). Treat `equal_modulo_holes` as "equal within the
-  modeled body and matching decorators".
+  source-level decorator/attribute check above. What it does not model is the parameter
+  **signature** — a differing *unused* parameter is invisible. This is a deliberate,
+  sound boundary, not a gap: a parameter that the body *uses* already surfaces as a
+  value-graph hole (it appears as an input the two copies bind differently), and a
+  parameter the body *never reads* cannot change behavior, so omitting it leaves the
+  "equal body ⟹ equal behavior" claim intact. Treat `equal_modulo_holes` as "equal
+  within the modeled body and matching decorators".
 - **The structural core is machine-checked; the referent gate is not.** The
   anti-unification core is now a `proven` Lean obligation, `detect.graded_witness` (see
   [formal soundness](formal-soundness.md)): both copies match their least general
