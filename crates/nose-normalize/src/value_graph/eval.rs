@@ -385,6 +385,19 @@ impl<'a> Builder<'a> {
             for &value in &direct {
                 self.flatten_into(value, op, &mut leaves);
             }
+            // Float `+` is NON-ASSOCIATIVE even in string-coercion langs (Java `double`,
+            // TS `number`): a float-typed chain is provably non-concat, so the lines below
+            // would happily flatten+sort it — but `(a+b)+c != a+(b+c)` in IEEE-754 (#283
+            // C-float). Hold the SOURCE grouping by rebuilding from the original binop kids,
+            // exactly as the general (non-coercion) path does. Each kid was recursively
+            // eval'd, so any nested float subchain already preserved its own grouping.
+            if leaves.iter().any(|&v| self.proven_float(v)) {
+                let mut acc = direct[0];
+                for &v in &direct[1..] {
+                    acc = self.mk(ValOp::Bin(op), vec![acc, v]);
+                }
+                return acc;
+            }
             if !self.add_association_safe(&leaves) {
                 return self.intern_ac_chain(op, &direct);
             }

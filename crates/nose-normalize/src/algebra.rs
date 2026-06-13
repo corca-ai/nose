@@ -37,12 +37,32 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
         return old.clone();
     }
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
+    // Params with FLOAT type evidence (`double`/`f64`/`float64`/`: float`/…): a `+`/`*`
+    // chain over them is non-associative (#283 C-float), so it must not be reassociated.
+    // The value graph already proves these float (`proven_float` via the param domain); the
+    // grouping is lost HERE, in the IL reassociation, unless this pass is float-aware too.
+    let float_param_cids: FxHashSet<u32> = old
+        .nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, node)| node.kind == NodeKind::Param)
+        .filter_map(|(i, node)| match node.payload {
+            Payload::Cid(c)
+                if nose_semantics::domain_evidence_for_param(old, NodeId(i as u32))
+                    .is_some_and(|d| d.is_float()) =>
+            {
+                Some(c)
+            }
+            _ => None,
+        })
+        .collect();
     let mut rw = Rewriter {
         old,
         b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         hashes: Vec::with_capacity(old.nodes.len()),
         remap: FxHashMap::default(),
         unit_root_set,
+        float_param_cids,
         interner,
     };
     let (new_root, _) = rw.rewrite(old.root);
@@ -70,6 +90,9 @@ struct Rewriter<'a> {
     hashes: Vec<u64>,
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: FxHashSet<u32>,
+    /// Canonical ids of float-typed params (#283 C-float) — a `+`/`*` chain touching one
+    /// is non-associative and must keep its source grouping.
+    float_param_cids: FxHashSet<u32>,
     interner: &'a Interner,
 }
 
@@ -153,13 +176,13 @@ impl Rewriter<'_> {
             let mut leaves = Vec::new();
             self.collect_assoc_old(old_id, op, &mut leaves);
             // Float `+`/`*` is NON-ASSOCIATIVE (`(a+b)+c != a+(b+c)`, #283 C-float). If any
-            // leaf is syntactically float — a float literal or a `/` true-division result —
-            // leave the source tree intact (like the mixed-coercion `+` above) so the
-            // grouping survives into the value graph, which keeps it (its `proven_float`
-            // gate). Folding/reassociating here would erase the grouping the float result
-            // depends on. (Float-typed params with no syntactic marker still flatten — that
-            // needs the full Float value kind, §3.3.)
-            if matches!(op, Op::Add | Op::Mul) && self.chain_has_syntactic_float(&leaves) {
+            // leaf is provably float — a float literal, a `/` true-division result, or a
+            // float-TYPED param — leave the source tree intact (like the mixed-coercion `+`
+            // above) so the grouping survives into the value graph, which keeps it (its
+            // `proven_float` gate). Folding/reassociating here would erase the grouping the
+            // float result depends on. (The fully-untyped chain with no float evidence still
+            // flattens — that needs the full Float value kind, §3.3.)
+            if matches!(op, Op::Add | Op::Mul) && self.chain_has_float(&leaves) {
                 return self.generic(old_id, span);
             }
             // Constant folding + identity elimination (now that C retains literal values):
@@ -408,16 +431,30 @@ impl Rewriter<'_> {
         }
     }
 
-    /// Whether any leaf of an `Add`/`Mul` chain is SYNTACTICALLY float — a float literal or
-    /// a `/` (true-division) result — so the chain must not be reassociated (#283 C-float;
-    /// float `+`/`*` is non-associative). Float-typed params with no syntactic marker are
-    /// not detected here (the full Float value kind, §3.3).
-    fn chain_has_syntactic_float(&self, leaves: &[NodeId]) -> bool {
-        leaves.iter().any(|&n| {
-            matches!(
-                self.old.node(n).payload,
-                Payload::LitFloat(_) | Payload::Op(Op::TrueDiv)
-            )
-        })
+    /// Whether any leaf of an `Add`/`Mul` chain is FLOAT — a float literal, a `/`
+    /// (true-division) result, a FLOAT-TYPED param (`double`/`f64`/`float64`/`: float`/…), or
+    /// a sign-flip of one — so the chain must not be reassociated (#283 C-float; float
+    /// `+`/`*` is non-associative). Mirrors the value graph's `proven_float` at the IL level
+    /// so the two layers agree. The fully-untyped case (no float evidence anywhere) is
+    /// undecidable here and still flattens (the residual Float value kind, §3.3).
+    fn chain_has_float(&self, leaves: &[NodeId]) -> bool {
+        leaves.iter().any(|&n| self.il_node_is_float(n))
+    }
+
+    fn il_node_is_float(&self, n: NodeId) -> bool {
+        match self.old.node(n).payload {
+            Payload::LitFloat(_) => true,
+            Payload::Op(Op::TrueDiv) => true,
+            Payload::Cid(c) if self.old.kind(n) == NodeKind::Var => {
+                self.float_param_cids.contains(&c)
+            }
+            // `-x` / `+x` is float iff `x` is (mirrors `proven_float`'s unary recursion).
+            Payload::Op(Op::Neg | Op::Pos) => self
+                .old
+                .children(n)
+                .first()
+                .is_some_and(|&child| self.il_node_is_float(child)),
+            _ => false,
+        }
     }
 }

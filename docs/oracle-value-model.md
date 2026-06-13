@@ -193,27 +193,31 @@ first; promote to the full model only if the priced recall loss justifies it.
   `TrueDiv`, distinct from C-family truncated `Div` and Ruby/Python `FloorDiv`.
   Same-semantics surfaces still converge (`Python /` with JS `/`, Ruby `/` with
   Python `//`).
-- **Non-associativity — syntactic-float `+`/`*`/`-` (shipped).** Float `+`/`*` is
-  non-associative (`(1.0+a)+b ≠ 1.0+(a+b)`) and a float `-` must not fold into a sum, so a
-  chain with a **syntactically-float** leaf — a float literal or a `/` (true-division)
-  result — keeps its source grouping. Held in BOTH layers: the `algebra` IL pass
-  (`chain_has_syntactic_float` → leave the tree intact, like the mixed-coercion `+` bail) and
-  the value graph (`proven_float` → don't flatten the AC chain; `eval_sub_chain` keeps a
-  float `-` as `Sub`). Closes the documented `(1e100+1)-1e100` and the `(a+b)+c ≡ a+(b+c)`
-  float-literal/division cases. **Corpus family delta ≈ 0** (sympy −1, all others 0 — float
-  clones written in one grouping are unaffected); verify clean. The earlier worry that "the
-  fingerprint flattens AC chains to a leaf sequence so no canon gate can help" was a
-  **misdiagnosis**: the fingerprint is the reachable-**node** multiset (structure-sensitive,
-  `intern_node` hashes args in order); the grouping was lost at the `algebra` reassociation,
-  which IS gateable.
-- **Remaining (the full model):** a chain whose float-ness is ONLY in a type — `def
-  f(a: float, b: float, c: float): (a+b)+c` — has no syntactic float leaf, so it still
-  flattens; and the fully-untyped `(a+b)+c` (`float_assoc.py`) is undecidable without types.
-  Both need `Value::Float` with IEEE-754 semantics + the per-language Int↔Float coercion
-  lattice (so a param's float-ness propagates and the oracle can witness it) — smaller now
-  that the syntactic cases are closed.
-- **Cost:** floor + syntactic non-associativity paid (≈0 recall); remaining Medium for
-  float-typed-param propagation and a real Float interpreter value.
+- **Non-associativity — syntactic-float AND float-typed-param `+`/`*`/`-` (shipped).** Float
+  `+`/`*` is non-associative (`(1.0+a)+b ≠ 1.0+(a+b)`) and a float `-` must not fold into a
+  sum, so a chain that is **provably float** keeps its source grouping. Two sources of proof
+  are now honored: a **syntactically-float** leaf (a float literal or a `/` true-division
+  result), and a **float-TYPED param** (`: float`, `f64`, `double`, `float64` — via the param
+  domain evidence, `proven_float(Input)`). Held in BOTH layers: the `algebra` IL pass
+  (`chain_has_float` over the syntactic markers + the float-typed-param cids → leave the tree
+  intact, like the mixed-coercion `+` bail) and the value graph (`proven_float` → rebuild the
+  source grouping instead of flatten/sort, in the general AC path AND the string-coercion `+`
+  path used by JS/TS/Java; `eval_sub_chain` keeps a float `-` as `Sub`). Closes the documented
+  `(1e100+1)-1e100`, the float-literal/division `(a+b)+c ≡ a+(b+c)`, and now the
+  `def f(a: float, b: float, c: float): (a+b)+c` typed-param case across Python/Rust/Java/Go/TS.
+  **Corpus family delta = 0** (type4: 20→20; the typed-param cases are split-only — int-typed
+  and untyped chains still associate); verify clean. The earlier worry that "the fingerprint
+  flattens AC chains to a leaf sequence so no canon gate can help" was a **misdiagnosis**: the
+  fingerprint is the reachable-**node** multiset (structure-sensitive, `intern_node` hashes
+  args in order); the grouping was lost at the `algebra` reassociation and the value-graph
+  flatten, both of which ARE gateable.
+- **Remaining (the full model):** ONLY the fully-untyped `(a+b)+c` (`float_assoc.py`) —
+  nothing proves it float, the i64 oracle is associative, so it still flattens. Closing it is
+  undecidable without types: it needs `Value::Float` with IEEE-754 semantics + the
+  per-language Int↔Float coercion lattice (so the oracle can witness the non-associativity) —
+  much smaller now that both the syntactic and the float-typed-param cases are closed.
+- **Cost:** floor + syntactic + float-typed-param non-associativity paid (0 recall on type4);
+  remaining Medium ONLY for the fully-untyped case (a real Float interpreter value).
 
 ---
 

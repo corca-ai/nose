@@ -17,6 +17,19 @@ break.
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
+- **False merge closed: float-TYPED-param `+`/`*` is no longer reassociated (#283 C-float).**
+  A `+`/`*` chain over float-typed params — `: float` (Python), `f64` (Rust), `double` (Java),
+  `float64` (Go), `number` (TS) — is now held unassociated even with no syntactic float leaf:
+  the float-ness comes from the param's type evidence (`proven_float` via the param domain).
+  Held in BOTH layers: the `algebra` IL pass (`chain_has_float` now also matches float-typed
+  param cids, not just float literals / `/`) and the value graph (`proven_float` rebuilds the
+  source grouping). The value-graph fix also covers the **string-coercion `+` path** that
+  JS/TS/Java route through — previously a `double a,b,c` chain was proven non-concat and so
+  flattened+sorted there, leaking `(a+b)+c ≡ a+(b+c)`. Now `def f(a: float,b,c): (a+b)+c`
+  fingerprints distinctly from `a+(b+c)`. Split-only: int-typed and untyped chains still
+  associate, so corpus family delta is **0** (type4 20→20); verify clean. Only the
+  fully-untyped float chain (`float_assoc.py`) remains — undecidable without types, the
+  genuine `Value::Float` kind (§3.3).
 - **False merge closed: syntactic-float `+`/`*` is no longer reassociated (#283 C-float).**
   Float `+`/`*` is non-associative (`(1.0 + a) + b ≠ 1.0 + (a + b)`), so a chain with a
   syntactically-float leaf — a float literal or a `/` (true-division) result — now keeps its
@@ -27,7 +40,7 @@ break.
   family delta ≈ 0 (sympy −1, all others 0), verify clean. (The earlier note that this needed
   the full Float value kind was a misdiagnosis — the fingerprint is structure-sensitive; the
   grouping was lost at `algebra` reassociation, which is gateable. The float-**typed-param**
-  case with no syntactic marker still flattens — that is the remaining Float-kind work, §3.3.)
+  case is now closed too — see the entry above.)
 - **False merge closed: float subtraction is no longer reassociated (#283 C-float, partial).**
   A `-` carrying a proven-float operand (a float literal, a `/` true-division result, or a
   float-typed param) is now kept as a literal `Sub` rather than routed through the

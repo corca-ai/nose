@@ -179,16 +179,18 @@ impl<'a> Builder<'a> {
         }
     }
 
-    /// Whether `v` provably evaluates to a FLOAT (so subtraction over it must not be routed
-    /// through the AC `+` normalization, #283 C-float). Genuine evidence only — a float
-    /// literal, a true-division result (`a / b` is float even of integers, the value-blind
-    /// i64 model notwithstanding), a float-typed parameter, or a sign-flip of one. Fails
-    /// closed: an untyped param is NOT proven float. NOTE: this gates only `eval_sub_chain`
-    /// (subtraction), the one place where the source grouping survives into the fingerprint
-    /// — `Sub` and `Add` are distinct nodes. Pure `+`/`*` associativity (`(a+b)+c ≡ a+(b+c)`)
-    /// CANNOT be gated this way: the fingerprint flattens an AC chain to its leaf sequence,
-    /// so holding the source tree leaves the leaves identical. Closing that needs the `Float`
-    /// value kind (a grouping-sensitive fingerprint for float chains, oracle-value-model §3.3).
+    /// Whether `v` provably evaluates to a FLOAT (so `+`/`*`/`-` over it is non-associative
+    /// and its source grouping must be preserved, #283 C-float). Genuine evidence only — a
+    /// float literal, a true-division result (`a / b` is float even of integers, the
+    /// value-blind i64 model notwithstanding), a float-typed parameter, or a sign-flip of one.
+    /// Fails closed: an untyped param is NOT proven float. This gates `eval_sub_chain` (a float
+    /// `-` stays a literal `Sub`, not `a + (-b)`) AND `eval_assoc_comm_chain` (a float `+`/`*`
+    /// chain rebuilds its SOURCE grouping rather than flatten/sort) — in BOTH the general path
+    /// and the string-coercion `+` path (JS/TS/Java). The fingerprint is structure-sensitive,
+    /// so the held grouping survives. The ONE remaining C-float gap is the fully-untyped chain
+    /// (`(a+b)+c` with no float marker on any operand): nothing proves it float, the i64 oracle
+    /// is associative, so it still flattens — closing it needs the `Float` value kind
+    /// (oracle-value-model §3.3).
     pub(super) fn proven_float(&self, v: ValueId) -> bool {
         match self.nodes[v as usize].op {
             ValOp::Const { kind, .. } => kind == ConstKind::Float,

@@ -2669,6 +2669,64 @@ fn float_addition_and_multiplication_are_held_unassociated() {
 }
 
 #[test]
+fn float_typed_param_addition_is_held_unassociated() {
+    // #283 C-float: a `+`/`*` chain over FLOAT-TYPED params (`: float`, `f64`, `double`,
+    // `float64`) is non-associative even with no syntactic float leaf — the float-ness comes
+    // from the param's type evidence (`proven_float` via the param domain), not a literal. The
+    // grouping is held in BOTH layers: the algebra IL pass (`chain_has_float` over
+    // `float_param_cids` → don't reassociate) and the value graph (`proven_float` → don't
+    // flatten, in the general AND the string-coercion `+` path for Java/TS). Untyped/int-typed
+    // chains keep flattening (sound: integer `+` IS associative; the fully-untyped float case
+    // is the remaining Value::Float kind, §3.3).
+    let i = Interner::new();
+
+    // Python `: float`
+    assert_ne!(
+        value_fp(&i, "def f(a: float, b: float, c: float):\n    return (a + b) + c\n", Lang::Python),
+        value_fp(&i, "def g(a: float, b: float, c: float):\n    return a + (b + c)\n", Lang::Python),
+        "python float-typed `+` must not reassociate"
+    );
+    // Rust `f64`
+    assert_ne!(
+        value_fp(&i, "fn f(a: f64, b: f64, c: f64) -> f64 { (a + b) + c }", Lang::Rust),
+        value_fp(&i, "fn g(a: f64, b: f64, c: f64) -> f64 { a + (b + c) }", Lang::Rust),
+        "rust f64 `+` must not reassociate"
+    );
+    // Java `double` — the value graph routes Java `+` through the string-coercion path, which
+    // must honor the float hold too (the regression this test guards).
+    assert_ne!(
+        value_fp(&i, "class C { static double f(double a, double b, double c) { return (a + b) + c; } }", Lang::Java),
+        value_fp(&i, "class C { static double g(double a, double b, double c) { return a + (b + c); } }", Lang::Java),
+        "java double `+` must not reassociate"
+    );
+    // Go `float64`
+    assert_ne!(
+        value_fp(&i, "package m\nfunc f(a float64, b float64, c float64) float64 { return (a + b) + c }", Lang::Go),
+        value_fp(&i, "package m\nfunc g(a float64, b float64, c float64) float64 { return a + (b + c) }", Lang::Go),
+        "go float64 `+` must not reassociate"
+    );
+
+    // Control — INT-typed params still reassociate (sound): split-only on float evidence.
+    assert_eq!(
+        value_fp(&i, "def p(a: int, b: int, c: int):\n    return (a + b) + c\n", Lang::Python),
+        value_fp(&i, "def q(a: int, b: int, c: int):\n    return a + (b + c)\n", Lang::Python),
+        "python int-typed `+` still reassociates"
+    );
+    assert_eq!(
+        value_fp(&i, "class C { static int p(int a, int b, int c) { return (a + b) + c; } }", Lang::Java),
+        value_fp(&i, "class C { static int q(int a, int b, int c) { return a + (b + c); } }", Lang::Java),
+        "java int `+` still reassociates"
+    );
+    // Control — fully-untyped params still reassociate (the i64 oracle is associative;
+    // distinguishing this is the full Value::Float kind, §3.3).
+    assert_eq!(
+        value_fp(&i, "def p(a, b, c):\n    return (a + b) + c\n", Lang::Python),
+        value_fp(&i, "def q(a, b, c):\n    return a + (b + c)\n", Lang::Python),
+        "untyped `+` still reassociates"
+    );
+}
+
+#[test]
 fn algebra_comparison_direction() {
     let i = Interner::new();
     let gt = "def f(a, b):\n    return a > b\n";
