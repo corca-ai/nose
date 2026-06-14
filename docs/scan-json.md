@@ -229,7 +229,7 @@ schema version 1:
 | `value` | number | Raw refactoring value: duplicated volume scaled by similarity and spread. |
 | `members` | integer | Number of duplicated sites. |
 | `files` | integer | Distinct files spanned by the family. |
-| `modules` | integer | Distinct directories/modules spanned by the family. |
+| `modules` | integer | Distinct directories spanned by the family (design-level spread). The field name is historical; nose's spatial unit is the directory, and human output says "directories". |
 | `languages` | integer | Distinct languages spanned by the family. |
 | `mean_score` | number | Mean pairwise clone similarity. |
 | `mean_lines` | integer | Mean source-line span per member. |

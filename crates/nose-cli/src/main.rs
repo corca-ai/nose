@@ -765,7 +765,7 @@ enum ShowView {
     Diff,
     /// An extraction skeleton per family: the shared structure with varying spots as ⟨param N⟩.
     Proposal,
-    /// After the report, directories/modules ranked by total duplicated lines.
+    /// After the report, directories ranked by total duplicated lines.
     Hotspots,
     /// Reinvented-helper containment findings: code that reimplements an existing pure
     /// helper inline instead of calling it (exact-grade; experimental surface).
@@ -4404,7 +4404,7 @@ fn enforce_scan_fail_on(
 
 fn print_hotspots_refs(families: &[&nose_detect::RefactorFamily]) {
     use std::collections::{HashMap, HashSet};
-    // module -> (lines residing here that are in a family, distinct families touching it)
+    // directory -> (lines residing here that are in a family, distinct families touching it)
     let mut lines: HashMap<&str, u32> = HashMap::new();
     let mut fams: HashMap<&str, HashSet<usize>> = HashMap::new();
     for (fi, f) in families.iter().enumerate() {
@@ -4426,10 +4426,10 @@ fn print_hotspots_refs(families: &[&nose_detect::RefactorFamily]) {
         .collect();
     // Most duplicated lines first; ties by family count, then path for determinism.
     ranked.sort_by(|a, b| b.1.cmp(&a.1).then(b.2.cmp(&a.2)).then(a.0.cmp(b.0)));
-    println!("\nduplication hotspots (modules by lines that sit in a clone family):");
+    println!("\nduplication hotspots (directories by lines that sit in a clone family):");
     for (m, dup, n) in ranked.iter().take(10) {
-        let module = if m.is_empty() { "." } else { m };
-        println!("  ~{dup:>5} dup lines · {n:>3} families  {module}");
+        let dir = if m.is_empty() { "." } else { m };
+        println!("  ~{dup:>5} dup lines · {n:>3} families  {dir}");
     }
 }
 
@@ -5140,12 +5140,12 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
     let base = match (shared_name, f.modules) {
         (Some(name), _) => format!("consolidate `{name}` — {} copies{cross}", f.members),
         (None, m) if m >= 3 && all_classes => {
-            format!("repeated across {m} modules — {extract}{cross}")
+            format!("repeated across {m} directories — {extract}{cross}")
         }
         (None, m) if m >= 3 => {
-            format!("repeated across {m} modules — extract a shared abstraction{cross}")
+            format!("repeated across {m} directories — extract a shared abstraction{cross}")
         }
-        (None, m) if m >= 2 => format!("duplicated across {m} modules — {extract}{cross}"),
+        (None, m) if m >= 2 => format!("duplicated across {m} directories — {extract}{cross}"),
         (None, _) => format!("local duplication — {extract}{cross}"),
     };
     // "Extract a method" overclaims when the helper would take many parameters
@@ -5834,7 +5834,7 @@ fn print_refactor_markdown(
             s => format!(" · cross-language: {s}"),
         };
         println!(
-            "## {}. `{}` — {} sites, {} files, {} modules — ~{} dup lines ({}){}",
+            "## {}. `{}` — {} sites, {} files, {} directories — ~{} dup lines ({}){}",
             i + 1,
             baseline::family_id(f),
             f.members,
@@ -6269,7 +6269,7 @@ mod tests {
         let f = fam(1, 3, &[Some("replace"), Some("replaceOrAppend"), None]);
         assert_eq!(
             family_hint(&f),
-            "repeated across 3 modules — extract a shared abstraction"
+            "repeated across 3 directories — extract a shared abstraction"
         );
     }
 
@@ -6312,7 +6312,7 @@ mod tests {
         let f = fam_kind(1, 3, &[None, None, None], nose_il::UnitKind::Class);
         assert_eq!(
             family_hint(&f),
-            "repeated across 3 modules — extract a shared base class / mixin"
+            "repeated across 3 directories — extract a shared base class / mixin"
         );
     }
 
