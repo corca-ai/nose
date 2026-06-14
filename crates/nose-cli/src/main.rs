@@ -1082,6 +1082,10 @@ struct ScanJsonSurfaceCounts {
     /// declarations — real duplication with no extraction action (the human
     /// report omits these from default output too).
     declaration: usize,
+    /// Unproven families whose extracted helper would be mostly parameters
+    /// (`shallow-extraction`) — a decidable non-action class the human report
+    /// omits from default output (kept here and in `--top 0` JSON).
+    shallow: usize,
     fragments: ScanJsonFragmentSurfaceCounts,
 }
 
@@ -1120,6 +1124,7 @@ impl ScanJsonSurfaceCounts {
             "debug" => self.debug += 1,
             "generated" => self.generated += 1,
             "declaration" => self.declaration += 1,
+            "shallow" => self.shallow += 1,
             _ => self.debug += 1,
         }
     }
@@ -3704,12 +3709,8 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // the default surface so a diagnostic family can never swallow a default
     // one.
     let opportunities = OpportunityGroups::from_ranked(&reportable_families);
-    let shown_reportable = reportable_families
-        .iter()
-        .filter(|f| !opportunities.is_slice(f))
-        .take(limit)
-        .copied()
-        .collect::<Vec<_>>();
+    let shown_reportable =
+        select_shown_reportable(&reportable_families, &opportunities, args.scope, limit);
     let omitted_note = surface_omission_note(&families, &overrides);
 
     render_scan_report(
@@ -4837,6 +4838,10 @@ fn surface_omission_note(
                 && family_declaration_run(f, overrides)
         })
         .count();
+    let shallow = families
+        .iter()
+        .filter(|f| f.recommended_surface() == "shallow")
+        .count();
     let review = families
         .iter()
         .filter(|f| f.recommended_surface() == "review")
@@ -4849,11 +4854,17 @@ fn surface_omission_note(
         .iter()
         .filter(|f| f.recommended_surface() == "debug")
         .count();
-    let omitted = generated + declaration + review + hidden + debug;
+    let omitted = generated + declaration + shallow + review + hidden + debug;
     if omitted == 0 {
         return None;
     }
-    if generated == 0 && declaration == 0 && review == 0 && hidden == 1 && debug == 0 {
+    if generated == 0
+        && declaration == 0
+        && shallow == 0
+        && review == 0
+        && hidden == 1
+        && debug == 0
+    {
         return Some("omitted 1 hidden proof-only family from default output".to_string());
     }
     let mut parts = Vec::new();
@@ -4862,6 +4873,9 @@ fn surface_omission_note(
     }
     if declaration > 0 {
         parts.push(format!("{declaration} declaration-run"));
+    }
+    if shallow > 0 {
+        parts.push(format!("{shallow} shallow-extraction"));
     }
     if review > 0 {
         parts.push(format!("{review} review"));
@@ -5116,6 +5130,105 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
 /// triage experience: 6+ spots read as scenario-shaped, not helper-shaped).
 const HIGH_PARAM_SPOTS: u32 = 6;
 
+/// The default-surface families to render, in display order: overlapping slices folded
+/// out, then production-scope findings ahead of test-scope, then truncated to `--top`.
+///
+/// §2c default-surface honesty: test duplication is a real smell (never dropped, still
+/// ranked, in `--format json`, one `--scope test` away), but production leads the
+/// bare-default screen so it is not buried — test scope was measured at 60–76% of the
+/// default head ([default-surface-noise-audit](../../../docs/default-surface-noise-audit-2026-06-14.md)).
+/// The reorder is stable (extractability rank preserved within each scope) and only runs
+/// when no `--scope` filter has already narrowed the set to one scope.
+fn select_shown_reportable<'a>(
+    reportable: &[&'a nose_detect::RefactorFamily],
+    opportunities: &OpportunityGroups,
+    scope: ScopeFilter,
+    limit: usize,
+) -> Vec<&'a nose_detect::RefactorFamily> {
+    let mut shown: Vec<_> = reportable
+        .iter()
+        .filter(|f| !opportunities.is_slice(f))
+        .copied()
+        .collect();
+    if matches!(scope, ScopeFilter::All) {
+        shown.sort_by_key(|f| f.scope == "test");
+    }
+    shown.truncate(limit);
+    shown
+}
+
+/// Render one ranked family entry of the human report: headline, hint, folded
+/// opportunity slices, abstraction witness, the (capped) site list, and optional
+/// diff/proposal views.
+fn print_family_entry(
+    i: usize,
+    f: &nose_detect::RefactorFamily,
+    opportunities: &OpportunityGroups,
+    diff: bool,
+    proposal: bool,
+) {
+    // Every site is listed (you can't act on a clone you can't see); only pathological
+    // fanout is capped, with a pointer to the full machine-readable list.
+    const SITE_CAP: usize = 30;
+    println!(
+        "\n#{}  id {} · {}",
+        i + 1,
+        baseline::family_id(f),
+        family_summary(f)
+    );
+    println!("    → {}", family_hint(f));
+    if let Some(slices) = opportunities.slices(f) {
+        let listed = slices
+            .iter()
+            .take(4)
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .join(", ");
+        let more = if slices.len() > 4 { ", …" } else { "" };
+        let (n, noun, verb) = match slices.len() {
+            1 => (1, "family", "folds"),
+            n => (n, "families", "fold"),
+        };
+        println!(
+            "    ↳ {n} overlapping slice {noun} {verb} into this entry (id{} {listed}{more})",
+            if n == 1 { ":" } else { "s:" }
+        );
+    }
+    if let Some(witness) = &f.abstraction_witness {
+        println!("    witness {}", abstraction_witness_summary(witness));
+    }
+    for l in f.locations.iter().take(SITE_CAP) {
+        let name = l
+            .name
+            .as_deref()
+            .map(|n| format!("  {n}"))
+            .unwrap_or_default();
+        // For a partial / sub-DAG clone, point at where the shared computation sits here.
+        let shared = match l.shared_subdag {
+            Some((s, e)) if (s, e) != (l.start_line, l.end_line) => {
+                format!("  (shared computation: lines {s}-{e})")
+            }
+            _ => String::new(),
+        };
+        println!(
+            "    {}:{}-{}{}{}",
+            l.file, l.start_line, l.end_line, name, shared
+        );
+    }
+    if f.locations.len() > SITE_CAP {
+        println!(
+            "    … and {} more sites (--format json lists every one)",
+            f.locations.len() - SITE_CAP
+        );
+    }
+    if diff && f.locations.len() >= 2 {
+        print_member_diff(&f.locations[0], &f.locations[1]);
+    }
+    if proposal && f.locations.len() >= 2 {
+        print_member_proposal(&f.locations[0], &f.locations[1], f.locations.len());
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn print_refactor_human(
     all: &[&nose_detect::RefactorFamily],
@@ -5148,67 +5261,36 @@ fn print_refactor_human(
     if let Some(note) = omitted_note {
         println!("{note}");
     }
-    // Every site is listed (you can't act on a clone you can't see); only pathological
-    // fanout is capped, with a pointer to the full machine-readable list.
-    const SITE_CAP: usize = 30;
+    // Production findings lead; a single separator marks where test-scope duplication
+    // (already sorted beneath, never dropped) begins. Skipped when the list is all one
+    // scope (e.g. under `--scope test`/`prod`).
+    let any_nontest = shown.iter().any(|f| f.scope != "test");
+    let mut test_header_shown = false;
     for (i, f) in shown.iter().enumerate() {
+        if any_nontest && !test_header_shown && f.scope == "test" {
+            let n = shown.iter().filter(|g| g.scope == "test").count();
+            println!(
+                "\n── {n} test-scope {} ranked beneath production · --scope test to focus, --scope prod to hide ──",
+                if n == 1 { "family" } else { "families" }
+            );
+            test_header_shown = true;
+        }
+        print_family_entry(i, f, opportunities, diff, proposal);
+    }
+    // Test-scope duplication is a real smell (never dropped), but production leads the
+    // default screen — so when `--top` cut some test families, say so rather than let
+    // them vanish silently. Skipped under `--scope test`/`prod` (no production above).
+    let test_total = all
+        .iter()
+        .filter(|f| f.scope == "test" && !opportunities.is_slice(f))
+        .count();
+    let test_shown = shown.iter().filter(|f| f.scope == "test").count();
+    if any_nontest && test_total > test_shown {
+        let more = test_total - test_shown;
         println!(
-            "\n#{}  id {} · {}",
-            i + 1,
-            baseline::family_id(f),
-            family_summary(f)
+            "\n+{more} more test-scope {} ranked beneath production (--scope test to focus, --top 0 for all)",
+            if more == 1 { "family" } else { "families" }
         );
-        println!("    → {}", family_hint(f));
-        if let Some(slices) = opportunities.slices(f) {
-            let listed = slices
-                .iter()
-                .take(4)
-                .map(String::as_str)
-                .collect::<Vec<_>>()
-                .join(", ");
-            let more = if slices.len() > 4 { ", …" } else { "" };
-            let (n, noun, verb) = match slices.len() {
-                1 => (1, "family", "folds"),
-                n => (n, "families", "fold"),
-            };
-            println!(
-                "    ↳ {n} overlapping slice {noun} {verb} into this entry (id{} {listed}{more})",
-                if n == 1 { ":" } else { "s:" }
-            );
-        }
-        if let Some(witness) = &f.abstraction_witness {
-            println!("    witness {}", abstraction_witness_summary(witness));
-        }
-        for l in f.locations.iter().take(SITE_CAP) {
-            let name = l
-                .name
-                .as_deref()
-                .map(|n| format!("  {n}"))
-                .unwrap_or_default();
-            // For a partial / sub-DAG clone, point at where the shared computation sits here.
-            let shared = match l.shared_subdag {
-                Some((s, e)) if (s, e) != (l.start_line, l.end_line) => {
-                    format!("  (shared computation: lines {s}-{e})")
-                }
-                _ => String::new(),
-            };
-            println!(
-                "    {}:{}-{}{}{}",
-                l.file, l.start_line, l.end_line, name, shared
-            );
-        }
-        if f.locations.len() > SITE_CAP {
-            println!(
-                "    … and {} more sites (--format json lists every one)",
-                f.locations.len() - SITE_CAP
-            );
-        }
-        if diff && f.locations.len() >= 2 {
-            print_member_diff(&f.locations[0], &f.locations[1]);
-        }
-        if proposal && f.locations.len() >= 2 {
-            print_member_proposal(&f.locations[0], &f.locations[1], f.locations.len());
-        }
     }
     // Discoverability: the report's natural next steps, shown once a real report
     // exists and only when no extra view was already requested.

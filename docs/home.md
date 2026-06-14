@@ -101,6 +101,7 @@ fundamentals; the rest is grouped by area.
 - [scanjson-agent-audit-2026-06-13](scanjson-agent-audit-2026-06-13.md) — the re-validation after the gap fixes (incl. the graded witness): all five gaps closed, 8/8 decidable from JSON alone.
 - [fragment-quality-audit-2026-06-10](fragment-quality-audit-2026-06-10.md) — labeled Java/Python hidden/review exact-fragment sample and the resulting surface policy.
 - [lawpack-provenance-audit-2026-06-10](lawpack-provenance-audit-2026-06-10.md) — full-corpus and targeted real-repo audit of `nose.value_graph.laws` provenance.
+- [default-surface-noise-audit-2026-06-14](default-surface-noise-audit-2026-06-14.md) — re-judging the #263/#264/#11/#353 triage-noise feedback on fresh repos: the default-surface noise is two populations (decidable-shape vs judgment-deep AAA scaffolding), and the principle-respecting lever.
 
 The contributor workflow and quality gates live in
 [CONTRIBUTING](../CONTRIBUTING.md); release history is in

@@ -142,7 +142,7 @@ same breakdown for families with at least one exact fragment location. That make
 | `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
-| `ranking.surface_counts` | object | Active family counts by effective surface before `--top`: `default`, `review`, `hidden`, `debug`, `generated` (families wholly in generated-header source), and `declaration` (families whose every member span is only import/include/use/re-export declarations) — the human report omits the last two from default output. Plus `fragments.total/default/review/hidden/debug` for families with exact fragment locations. |
+| `ranking.surface_counts` | object | Active family counts by effective surface before `--top`: `default`, `review`, `hidden`, `debug`, `generated` (families wholly in generated-header source), `declaration` (families whose every member span is only import/include/use/re-export declarations), and `shallow` (unproven families whose extracted helper would be mostly parameters — `params` ≥ a third of `shared_lines`) — the human report omits `generated`, `declaration`, and `shallow` from default output. Plus `fragments.total/default/review/hidden/debug` for families with exact fragment locations. |
 | `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |
 | `ignore` | object, optional | Structured ignore summary when an ignore file was read. |
 | `families` | array | Active ranked clone families in JSON order, including diagnostic review/hidden families. Empty means no family survived the filters, baseline, and structured ignores. |
@@ -241,7 +241,7 @@ schema version 1:
 | `mean_sem` | number | Mean value-graph size across members. |
 | `scope` | string | `prod`, `test`, or `mixed` test/production classification. |
 | `discount` | number | Refactor-worthiness discount for generated or type-heavy families. |
-| `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling; `generated` marks families whose every location sits in a generated-header source; `declaration` marks families whose every member span consists only of import/include/use/re-export declarations — real duplication the language mandates per file, with no extraction action. The human report omits `generated` and `declaration` from default output. Human-action integrations should keep `default` and treat the others as diagnostic/review surfaces. This is ranking/presentation policy, not detector exactness. |
+| `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling; `generated` marks families whose every location sits in a generated-header source; `declaration` marks families whose every member span consists only of import/include/use/re-export declarations — real duplication the language mandates per file, with no extraction action; `shallow` marks an unproven family (not the `exact-value-graph`/`shared-sub-dag` channel) whose extracted helper would be mostly parameters — `params` ≥ a third of `shared_lines`, the decidable `shallow-extraction` non-action class ([default-surface-noise-audit](default-surface-noise-audit-2026-06-14.md)). The human report omits `generated`, `declaration`, and `shallow` from default output. Human-action integrations should keep `default` and treat the others as diagnostic/review surfaces. This is ranking/presentation policy, not detector exactness. |
 | `overlap_primary_id` | string, optional | Present when this family is an overlapping slice of another default-surface family (≥2 member pairs overlapping on the same file by ≥ half of the shorter span): the `family_id` of that primary. The human report folds slices under their primary as one opportunity; JSON keeps every family so consumers can group or ungroup freely. |
 | `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
 | `abstraction_witness` | object, optional | Experimental weak-claim witness emitted only for `--mode abstraction` families that share a normalized template with one supported literal leaf hole. |
@@ -290,11 +290,16 @@ The optional `enclosing_unit` object has:
 | `name` | string, optional | Enclosing symbol name when recoverable. |
 | `unit_key` | string | Stable key built from file, kind, span, and name for grouping/review context. |
 
-Do not confuse fragment `reason_code` with family-level witness reason codes. Fragment
-`reason_code` answers why this sub-function fragment was accepted as exact-safe. Future
-family/actionability reason codes answer why a clone family is worth refactoring or
-reviewing. The experimental `abstraction_witness.reason_code` below is a weak-template
-reason, not exact-fragment proof.
+Do not confuse fragment `reason_code` with family-level actionability reason codes. Fragment
+`reason_code` answers why this sub-function fragment was accepted as exact-safe. Family-level
+actionability reason codes answer why a clone family is, or is not, a clean refactor
+candidate; the first **decidable** one ships as the `shallow` `recommended_surface`
+(`shallow-extraction` — an unproven match whose helper would be mostly parameters). The
+judgment-deep half (worthy-fixture vs intentional scaffolding) is left to the consumer's
+own model and carried as evidence (`witness.kind`, `scope`, `params`/`shared_lines`,
+`varying_spots`), never a verdict — see [design](design.md) §2 and the
+[default-surface-noise-audit](default-surface-noise-audit-2026-06-14.md). The experimental
+`abstraction_witness.reason_code` below is a weak-template reason, not exact-fragment proof.
 
 ### Abstraction witnesses
 

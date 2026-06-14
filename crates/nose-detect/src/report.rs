@@ -161,10 +161,51 @@ impl RefactorFamily {
             * self.default_surface_weight()
     }
 
+    /// Decidable, scope-blind actionability reason — a stable code naming WHY a family
+    /// is not a clean default-surface refactor candidate, computed purely from family
+    /// shape (no source, no judgment, no `scope` input). The one measured code today is
+    /// `shallow-extraction`: an **unproven** match (not the exact value-graph or
+    /// shared-sub-dag channel) whose extracted helper would be mostly parameters —
+    /// `params` ≥ a third of the `shared_lines`. Measured 2026-06-14
+    /// ([default-surface-noise-audit](../../../docs/default-surface-noise-audit-2026-06-14.md)):
+    /// this cut labels at 0.89 precision with ~0 worthy loss, and is the dual of
+    /// extractability's `param_penalty`. Proven channels and families with no shared
+    /// lines (cross-language / unreadable) are never shallow. Returns `None` for a clean
+    /// candidate.
+    pub fn actionability_reason(&self) -> Option<&'static str> {
+        const SHALLOW_PARAM_RATIO: f64 = 0.33;
+        let proven = matches!(
+            self.witness.as_ref().map(|w| w.kind),
+            Some("exact-value-graph") | Some("shared-sub-dag")
+        );
+        if !proven
+            && self.shared_lines > 0
+            && self.params as f64 >= SHALLOW_PARAM_RATIO * self.shared_lines as f64
+        {
+            return Some("shallow-extraction");
+        }
+        None
+    }
+
     /// Product placement for the default scan/review/debug surfaces. This is a
     /// presentation/ranking decision, not detector semantics: exact fragments remain
     /// present in `--top 0` JSON even when their default ranking is dampened.
+    ///
+    /// A family that would otherwise reach the **default** head but is a decidable
+    /// non-action shape ([`actionability_reason`](Self::actionability_reason)) is demoted
+    /// to the `shallow` surface, reason-coded and kept in `--top 0` JSON (the §2b
+    /// decidability boundary, measured 2026-06-14). It never overrides a *more specific*
+    /// diagnostic placement (a tiny test-scaffold fragment stays `hidden`), and never
+    /// fires on a proven channel.
     pub fn recommended_surface(&self) -> &'static str {
+        let base = self.recommended_surface_base();
+        if base == "default" && self.actionability_reason().is_some() {
+            return "shallow";
+        }
+        base
+    }
+
+    fn recommended_surface_base(&self) -> &'static str {
         let fragment_sites = self.locations.iter().filter(|l| l.is_fragment).count();
         let all_generated = self.locations.iter().all(is_generated_loc);
         let high_fanout = self.members >= 8;
@@ -248,6 +289,7 @@ impl RefactorFamily {
         match self.recommended_surface() {
             "default" => 1.0,
             "review" => 0.35,
+            "shallow" => 0.05,
             "hidden" => 0.05,
             "debug" => 0.02,
             _ => 1.0,
@@ -1274,6 +1316,91 @@ mod tests {
             fmixed.value, fpure.value,
             "test↔prod duplication is not discounted"
         );
+    }
+
+    fn witnessed(mut f: RefactorFamily, kind: &'static str) -> RefactorFamily {
+        f.witness = Some(crate::EquivalenceWitness {
+            kind,
+            value_nodes: None,
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+            graded: None,
+        });
+        f
+    }
+
+    #[test]
+    fn shallow_extraction_is_demoted_off_default() {
+        // An unproven match whose helper would be mostly parameters (params ≥ a third of
+        // the shared lines) is decidable non-action: demoted to the `shallow` surface,
+        // reason-coded, but never deleted. shared=9, params=4 → ratio 0.44 ≥ 0.33.
+        let shallow = witnessed(
+            fam(
+                500.0,
+                30,
+                9,
+                4,
+                vec![loc("a.go", 1, 30, "go"), loc("b.go", 1, 30, "go")],
+            ),
+            "copy-paste-run",
+        );
+        assert_eq!(shallow.actionability_reason(), Some("shallow-extraction"));
+        assert_eq!(shallow.recommended_surface(), "shallow");
+    }
+
+    #[test]
+    fn clean_low_param_match_stays_default() {
+        // shared=18, params=1 → ratio 0.06 < 0.33: a clean extract, stays on default.
+        let clean = witnessed(
+            fam(
+                500.0,
+                30,
+                18,
+                1,
+                vec![loc("a.go", 1, 30, "go"), loc("b.go", 1, 30, "go")],
+            ),
+            "copy-paste-run",
+        );
+        assert_eq!(clean.actionability_reason(), None);
+        assert_eq!(clean.recommended_surface(), "default");
+    }
+
+    #[test]
+    fn proven_channel_is_never_shallow() {
+        // Same shallow shape (shared=9, params=4) but on the exact value-graph channel:
+        // a proof of equal behavior is never demoted on a parameter-ratio heuristic.
+        let proven = witnessed(
+            fam(
+                500.0,
+                30,
+                9,
+                4,
+                vec![loc("a.go", 1, 30, "go"), loc("b.go", 1, 30, "go")],
+            ),
+            "exact-value-graph",
+        );
+        assert_eq!(proven.actionability_reason(), None);
+        assert_eq!(proven.recommended_surface(), "default");
+    }
+
+    #[test]
+    fn cross_language_no_shared_lines_is_never_shallow() {
+        // shared_lines == 0 (cross-language / unreadable) → ratio undefined → not shallow.
+        let cross = witnessed(
+            fam(
+                500.0,
+                30,
+                0,
+                4,
+                vec![
+                    loc("a.py", 1, 30, "python"),
+                    loc("b.ts", 1, 30, "typescript"),
+                ],
+            ),
+            "structural-similarity",
+        );
+        assert_eq!(cross.actionability_reason(), None);
+        assert_ne!(cross.recommended_surface(), "shallow");
     }
 
     #[test]

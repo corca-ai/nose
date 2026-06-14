@@ -6,6 +6,22 @@ break.
 
 ## [Unreleased]
 
+### Added
+- **Default-surface honesty: `shallow-extraction` demotion + production-first human report
+  (#263, #264, #11).** A fresh-repo head-of-ranking audit
+  ([default-surface-noise-audit](docs/default-surface-noise-audit-2026-06-14.md)) measured the
+  bare-default scan surface as ~58% test-scope token-level copy-paste and only 4–5% proven
+  channels. Two measured, principle-respecting levers:
+  - Unproven families whose extracted helper would be mostly parameters (`params` ≥ a third of
+    `shared_lines`) are classified `shallow` (a new `recommended_surface` value / `surface_counts`
+    bucket) and omitted from the default human surface — kept in `--format json --top 0`. The cut
+    labeled at 0.89 precision (−34–36% of the default surface on the audit repos), and never fires
+    on a proven channel.
+  - The human report now leads with production findings and ranks test-scope duplication beneath a
+    `── N test-scope families …` separator (or a `+N more` footer under `--top`). `scope` stays a
+    context tag, never a worthiness penalty: nothing is dropped — test families stay ranked, in
+    JSON, and one `--scope test` away (`--scope prod` hides them).
+
 ## [0.8.0] - 2026-06-14
 
 ### Added
