@@ -6,6 +6,30 @@ break.
 
 ## [Unreleased]
 
+The 0.10.0 line (breaking): **`nose query` becomes the primary surface and `nose scan` is
+deprecated.** All changes below are staged; the release is not yet cut.
+
+### Added
+- **`nose query` is now a complete surface** over the same dataset `scan` computes:
+  - **Explorability (#374):** DSL negation (`field!=value` / `path!~substr`), an `at=FILE:LINE`
+    selector (a stable family handle across edits), and a `same_symbol` evidence field +
+    facet (the parallel-variant signal).
+  - **Analysis flags:** `--mode`/`--min-*`/`--exclude`/`--cache-dir`/`--ignore-file`/
+    `--semantic-pack`/`--config`, configured identically to scan.
+  - **CI gate:** `--fail-on any`/`new` with `--baseline`/`--write-baseline`, reusing scan's
+    gate/baseline/ignore logic — `nose query <path> --fail-on any` is a drop-in gate.
+  - **A structured, versioned JSON contract** ([query-json](docs/query-json.md), schema v2)
+    across every view, advertised as `capabilities.schemas.query_json`.
+
+### Changed (breaking)
+- **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run
+  prints a one-line nudge); `capabilities` moves it from `commands.stable` to
+  `commands.deprecated`; docs lead with `query`. Removal is slated for a later release.
+
+### Deprecated
+- `nose scan` (see above) and the scan-JSON v1 contract — migrate to `nose query` and the
+  query-JSON v2 contract.
+
 ## [0.9.1] - 2026-06-15
 
 Documentation release: lead with `nose query`, and a full code-docs drift sweep. No

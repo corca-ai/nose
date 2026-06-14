@@ -1633,13 +1633,18 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
             "il",
             "query",
             "review",
-            "scan",
             "semantic-pack",
             "stats"
         ]
     );
+    // `scan` is deprecated in favour of `query` (#375) — moved out of `stable`.
+    assert_eq!(
+        json_array_strings(&json["commands"], "deprecated"),
+        vec!["scan"]
+    );
     assert_eq!(json["schemas"]["capabilities"][0], 1);
     assert_eq!(json["schemas"]["scan_json"][0], 1);
+    assert_eq!(json["schemas"]["query_json"][0], 2);
     assert_eq!(
         json["schemas"]["semantic_packs"][0],
         "nose.semantic-pack.v0"

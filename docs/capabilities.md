@@ -42,7 +42,8 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["capabilities", "il", "query", "review", "scan", "semantic-pack", "stats"]
+    "stable": ["capabilities", "il", "query", "review", "semantic-pack", "stats"],
+    "deprecated": ["scan"]
   },
   "schemas": {
     "capabilities": [1],
@@ -132,7 +133,8 @@ release so it can't drift.
 | `interfaces.capabilities_json` | boolean | Whether `nose capabilities` is the supported capability query interface. |
 | `interfaces.version_json` | boolean | Whether `nose --version --json` is supported. Version 1 reports `false`. |
 | `interfaces.doctor_json` | boolean | Whether `nose doctor --json` is supported. Version 1 reports `false`. |
-| `commands.stable` | array | Stable user-facing commands that integrations may invoke (incl. `query`, the interactive exploration surface — see [usage › nose query](usage.md#nose-query); it has no versioned sub-contract of its own yet). Hidden research commands are intentionally omitted. |
+| `commands.stable` | array | Stable user-facing commands that integrations may invoke (incl. `query`, the interactive exploration surface — see [usage › nose query](usage.md#nose-query), with its versioned [query-JSON](query-json.md) contract). Hidden research commands are intentionally omitted. |
+| `commands.deprecated` | array | Commands that still work but are being retired; integrations should migrate. `scan` → `nose query` (same dataset + gate + a structured `--format json` contract). |
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
 | `schemas.scan_json` | array | Supported `nose scan --format json` schema versions. |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0`. |

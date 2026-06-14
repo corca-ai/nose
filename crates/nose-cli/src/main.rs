@@ -916,6 +916,9 @@ struct CapabilitiesInterfaces {
 #[derive(serde::Serialize)]
 struct CapabilitiesCommands {
     stable: Vec<&'static str>,
+    /// Commands that still work but are on their way out — integrations should migrate.
+    /// `scan` → `nose query` (same dataset, gate, and a structured `--format json` contract).
+    deprecated: Vec<&'static str>,
 }
 
 #[derive(serde::Serialize)]
@@ -984,10 +987,10 @@ impl CapabilitiesReport {
                     "il",
                     "query",
                     "review",
-                    "scan",
                     "semantic-pack",
                     "stats",
                 ],
+                deprecated: vec!["scan"],
             },
             schemas: CapabilitiesSchemas {
                 capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
@@ -4828,6 +4831,17 @@ fn build_scan_dataset(args: &ScanArgs, refs: &[&std::path::Path]) -> Result<Scan
 }
 
 fn cmd_scan(args: ScanArgs) -> Result<()> {
+    // `nose scan` is deprecated in favour of `nose query` (#375), which reads the same
+    // dataset and now carries the gate, baselines, ignores, and a structured `--format json`
+    // contract. The nudge is interactive-only — gated on a TTY stderr — so machine/CI/test
+    // runs (piped stderr) are never spammed; the `capabilities.commands.deprecated` list and
+    // the docs are the machine-facing deprecation signal.
+    if std::io::IsTerminal::is_terminal(&std::io::stderr()) {
+        eprintln!(
+            "note: `nose scan` is deprecated — use `nose query` (same dataset; adds slice/filter \
+             navigation, and takes the same --fail-on/--baseline gate). See `nose query --help`."
+        );
+    }
     // `--fail-on new` gates on families that are new/changed vs a baseline, so without
     // `--baseline` the gate could never fire — reject the combination instead of silently
     // passing (a CI gate that always succeeds is the worst failure mode).
