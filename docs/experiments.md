@@ -2589,9 +2589,19 @@ caps at 0.76), so it is judgment-deep (§2 consumer-LLM call).
 
 The `scope = test` lever is **measured-bad** (prec 0.74, demotes 28 worthy KEEP) —
 confirming the documented principle that `scope` is a context tag, never a worthiness
-penalty. The lever, split at the §2b decidability boundary: **(a)** decidable actionability
-reason codes (#11 unified with #353) demote the shape-noise codes off the default head
-(kept in JSON, reason-coded; −34–36%); **(b)** the AAA bulk is handled by scope-aware
+penalty. The lever, split at the §2b decidability boundary: **(a)** the decidable
+`shallow-extraction` reason code (#11) demotes off the default head (kept in JSON,
+reason-coded; −34–36%, shipped); **(b)** the AAA bulk is handled by scope-aware
 *rendering* (collapse test beneath prod, nothing dropped), not a penalty. One capability
-(reason codes + scope-aware rendering) answers #11/#263/#264/#353; the judgment residue
-stays with the consumer.
+(reason codes + scope-aware rendering) answers #11/#263/#264; the judgment residue stays
+with the consumer.
+
+**#353 (JSX `markup` code) — NO-GO.** A decidable behavior-free-JSX surface (no
+`subtree_executes` node in the JSX subtree) was measured on two React repos before
+building: **1 / 314** qualifying families on excalidraw (a static SVG `<path>`), **0 / 23**
+on react-bootstrap. Structural, not a tuning miss: clone families are whole-component
+functions (spans carry `function`/`return`), and real JSX embeds `clsx`/handlers/`.map`
+(all executing) — catching the field's actual JSX examples needs whitelisting
+list-render/class idioms, which is judgment, not decidable (§2). JSX-presentational-ness
+becomes one **evidence** input for the consumer (the #11 vocabulary), not a detector
+surface — see the audit doc §5.

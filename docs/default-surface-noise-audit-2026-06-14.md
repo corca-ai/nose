@@ -92,14 +92,14 @@ across witnesses but never demote a proven family on shape alone.)
 
 **Shipped** (both arms, this PR — see [CHANGELOG](../CHANGELOG.md) Unreleased):
 
-- **(a) Decidable actionability reason codes** ([#11](https://github.com/corca-ai/nose/issues/11),
-  with [#353](https://github.com/corca-ai/nose/issues/353) as a follow-on code): the first
-  decidable code, **`shallow-extraction`** (unproven match, helper-mostly-parameters), ships as a
-  new `shallow` `recommended_surface` / `surface_counts` bucket — demoted off the default head,
-  **kept in JSON**, never firing on a proven channel. ~0.89 precision; **−36%** (goreleaser) /
-  **−34%** (excalidraw) of the default surface, 0 proven demoted. Touches no `scope`. The further
-  codes (`idiomatic-repetition`, `trivial`, `markup`/JSX) remain queued behind their own
-  measurement.
+- **(a) Decidable actionability reason codes** ([#11](https://github.com/corca-ai/nose/issues/11)):
+  the first decidable code, **`shallow-extraction`** (unproven match, helper-mostly-parameters),
+  ships as a new `shallow` `recommended_surface` / `surface_counts` bucket — demoted off the
+  default head, **kept in JSON**, never firing on a proven channel. ~0.89 precision; **−36%**
+  (goreleaser) / **−34%** (excalidraw) of the default surface, 0 proven demoted. Touches no
+  `scope`. The further candidate codes (`idiomatic-repetition`, `trivial`) remain queued behind
+  their own measurement; the `markup`/JSX code ([#353](https://github.com/corca-ai/nose/issues/353))
+  was measured a NO-GO — see §5.
 - **(b) AAA bulk → scope-aware *rendering*, not penalty.** Collapse/summarize test-scope
   families beneath prod findings on the human surface (the way overlapping slices already
   fold into one opportunity); **nothing dropped** — every test family stays in the ranking,
@@ -116,6 +116,36 @@ penalty), most of which are the judgment §2 already delegates to the consumer.
 Projection on the two surfaces: the shape cut removes ~35%; with test rendered beneath prod,
 the prod-and-not-shallow head is **105** (goreleaser) / **208** (excalidraw) families —
 converging on #263's *"~20 worth reading"* once the head is what the first screen shows.
+
+## 5. [#353](https://github.com/corca-ai/nose/issues/353) (JSX markup) — measured NO-GO as a detector filter
+
+The follow-on idea was a decidable `markup` class: a family whose every member span is
+**provably behavior-free JSX** (no `subtree_executes` node — no call, arrow, `await`, `new`,
+function, or `yield` anywhere in the JSX subtree), demoted off the default like `declaration`.
+Measured on two React repos before building it:
+
+| repo | default-surface families with all-`.tsx`/`.jsx` locations | JSX-ish span (starts `<`/`{`) | **decidable behavior-free markup** |
+|---|---:|---:|---:|
+| excalidraw | 314 | 18 | **1** (static SVG `<path>` data) |
+| react-bootstrap | 23 | 2 | **0** |
+
+**NO-GO** — the decidable, safe `markup` filter catches ~0–1 families, for structural reasons,
+not a tuning miss:
+
+1. Clone families are whole-component **functions**, so their spans carry `function`/`return`/`=>`
+   code lines — never pure markup (the `declaration` line-grammar would poison them).
+2. Real JSX embeds `clsx(...)`, event handlers, and `{items.map(...)}` — all `subtree_executes`
+   nodes, so a behavior-free JSX span is rare.
+3. Catching the *actual* JSX noise the field reports name (the Homepage `.map` list-render, the
+   `clsx`-wrapped button `<input>`) requires whitelisting list-render / class-helper idioms —
+   which crosses from **decidable** into **judgment** ("is this list-render worth extracting?").
+   §2 puts that on the consumer's model, not the detector.
+
+So JSX/markup-presentational-ness is **not** a detector surface; it becomes one **evidence**
+input for the consumer's own call (the #11 vocabulary), exactly like the AAA-scaffold bulk in §3.
+Shipping a `markup` surface for ~1 family would be dead complexity against *capabilities over
+features*. #353 is closed measured-negligible; the cheap re-run path is the same per-repo
+measurement script if a future component-library corpus suggests otherwise.
 
 ## Honest limits
 
