@@ -165,20 +165,12 @@ fn ordered_mixed_effect_sequence(
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
     let kids = block_children_exact_len(il, node, 2)?;
-    if kids
-        .iter()
-        .filter(|&&kid| il.kind(kid) == NodeKind::Loop)
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| k == NodeKind::Loop) {
         return None;
     }
-    if kids
-        .iter()
-        .filter(|&&kid| matches!(il.kind(kid), NodeKind::ExprStmt | NodeKind::Assign))
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| {
+        matches!(k, NodeKind::ExprStmt | NodeKind::Assign)
+    }) {
         return None;
     }
     let mut effects = Vec::new();
@@ -216,20 +208,12 @@ fn ordered_conditional_mixed_effect_sequence(
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
     let kids = block_children_exact_len(il, node, 2)?;
-    if kids
-        .iter()
-        .filter(|&&kid| il.kind(kid) == NodeKind::If)
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| k == NodeKind::If) {
         return None;
     }
-    if kids
-        .iter()
-        .filter(|&&kid| matches!(il.kind(kid), NodeKind::ExprStmt | NodeKind::Assign))
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| {
+        matches!(k, NodeKind::ExprStmt | NodeKind::Assign)
+    }) {
         return None;
     }
     let mut effects = Vec::new();
@@ -251,20 +235,10 @@ fn ordered_loop_conditional_effect_sequence(
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
     let kids = block_children_exact_len(il, node, 2)?;
-    if kids
-        .iter()
-        .filter(|&&kid| il.kind(kid) == NodeKind::Loop)
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| k == NodeKind::Loop) {
         return None;
     }
-    if kids
-        .iter()
-        .filter(|&&kid| il.kind(kid) == NodeKind::If)
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| k == NodeKind::If) {
         return None;
     }
     let mut effects = Vec::new();
@@ -284,28 +258,15 @@ fn ordered_loop_conditional_mixed_effect_sequence(
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
     let kids = block_children_exact_len(il, node, 3)?;
-    if kids
-        .iter()
-        .filter(|&&kid| il.kind(kid) == NodeKind::Loop)
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| k == NodeKind::Loop) {
         return None;
     }
-    if kids
-        .iter()
-        .filter(|&&kid| il.kind(kid) == NodeKind::If)
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| k == NodeKind::If) {
         return None;
     }
-    if kids
-        .iter()
-        .filter(|&&kid| matches!(il.kind(kid), NodeKind::ExprStmt | NodeKind::Assign))
-        .count()
-        != 1
-    {
+    if !exactly_one_kid(il, kids, |k| {
+        matches!(k, NodeKind::ExprStmt | NodeKind::Assign)
+    }) {
         return None;
     }
     let mut effects = Vec::new();
@@ -739,6 +700,13 @@ fn append_consumes_chained_temp(
 
 fn block_children_exact_len(il: &Il, node: NodeId, len: usize) -> Option<&[NodeId]> {
     (il.kind(node) == NodeKind::Block && il.children(node).len() == len).then(|| il.children(node))
+}
+
+/// True when exactly one of `kids` is a node whose kind satisfies `pred`. The
+/// `ordered_*_effect_sequence` recognizers use it to assert a block's shape (e.g. "exactly
+/// one loop and exactly one direct statement") without repeating the filter/count/`!= 1`.
+fn exactly_one_kid(il: &Il, kids: &[NodeId], pred: impl Fn(NodeKind) -> bool) -> bool {
+    kids.iter().filter(|&&kid| pred(il.kind(kid))).count() == 1
 }
 
 fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {

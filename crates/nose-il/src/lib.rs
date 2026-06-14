@@ -247,6 +247,18 @@ impl Il {
         }
     }
 
+    /// The bound name symbol of a `Var` node, resolving a `Payload::Cid` through
+    /// `cid_names`. Unlike [`Self::var_name`] (which matches `Payload::Name` only), this
+    /// is the full Var-name lookup several passes need; `None` for a non-`Var` node.
+    #[inline]
+    pub fn var_binding_name(&self, id: NodeId) -> Option<Symbol> {
+        match (self.kind(id), self.node(id).payload) {
+            (NodeKind::Var, Payload::Name(name)) => Some(name),
+            (NodeKind::Var, Payload::Cid(cid)) => self.cid_names.get(cid as usize).copied(),
+            _ => None,
+        }
+    }
+
     #[inline]
     pub fn assignment_parts(&self, id: NodeId) -> Option<(NodeId, NodeId)> {
         if self.kind(id) != NodeKind::Assign {

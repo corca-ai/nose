@@ -1009,17 +1009,8 @@ fn assignment_parts(il: &Il, stmt: NodeId) -> Option<(NodeId, NodeId)> {
 }
 
 fn node_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
-    if il.kind(node) != NodeKind::Var {
-        return None;
-    }
-    match il.node(node).payload {
-        Payload::Name(symbol) => Some(interner.resolve(symbol)),
-        Payload::Cid(cid) => il
-            .cid_names
-            .get(cid as usize)
-            .map(|&symbol| interner.resolve(symbol)),
-        _ => None,
-    }
+    il.var_binding_name(node)
+        .map(|symbol| interner.resolve(symbol))
 }
 
 fn node_name_hash(il: &Il, interner: &Interner, node: NodeId) -> Option<u64> {

@@ -3,6 +3,22 @@
 use super::*;
 
 impl<'a> Builder<'a> {
+    /// A collection sequence-literal call `Call(0, [callee, Seq(collection)])` → its
+    /// `(callee, seq)`. The shared guard under every collection/map factory recognizer; `None`
+    /// when `value` is not that shape.
+    fn collection_call_callee_seq(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
+            return None;
+        }
+        let (callee, seq) = (node.args[0], node.args[1]);
+        matches!(
+            self.nodes[seq as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        )
+        .then_some((callee, seq))
+    }
+
     /// Shared skeleton of the collection-factory recognizers: a collection sequence literal
     /// call `Call(0, [callee, Seq(collection)])`
     /// whose `callee` passes `is_factory` wraps the sequence literal `args[1]`; return it. The
@@ -13,17 +29,7 @@ impl<'a> Builder<'a> {
         value: ValueId,
         is_factory: impl FnOnce(&Self, ValueId) -> bool,
     ) -> Option<ValueId> {
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
-            return None;
-        }
-        let (callee, seq) = (node.args[0], node.args[1]);
-        if !matches!(
-            self.nodes[seq as usize].op,
-            ValOp::Seq(SEQ_VALUE_COLLECTION)
-        ) {
-            return None;
-        }
+        let (callee, seq) = self.collection_call_callee_seq(value)?;
         is_factory(self, callee).then_some(seq)
     }
 
@@ -361,17 +367,7 @@ impl<'a> Builder<'a> {
     /// 2-element key/value entries. Data-driven by first-party map contracts in `nose-semantics`;
     /// the matched row's `Seq` tag says how each entry is shaped (JS array vs Rust tuple).
     pub(super) fn proven_free_name_map_factory(&mut self, value: ValueId) -> Option<ValueId> {
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
-            return None;
-        }
-        let (callee, seq) = (node.args[0], node.args[1]);
-        if !matches!(
-            self.nodes[seq as usize].op,
-            ValOp::Seq(SEQ_VALUE_COLLECTION)
-        ) {
-            return None;
-        }
+        let (callee, seq) = self.collection_call_callee_seq(value)?;
         let admitted = admitted_free_name_map_factory_at_call_span(
             self.il,
             self.interner,
@@ -914,14 +910,25 @@ impl<'a> Builder<'a> {
         }
         let receiver = admitted.receiver?;
         let key = self.eval(kids[1], env);
+        let map = self.resolve_receiver_map_value(receiver, env)?;
+        Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
+    }
+
+    /// The proven map [`ValueId`] a map-method `receiver` denotes: the receiver value itself
+    /// when it is a map parameter, else a proven map value or a proven local map binding.
+    /// `None` when the receiver is not a provable map.
+    fn resolve_receiver_map_value(
+        &mut self,
+        receiver: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
         let receiver_value = self.eval(receiver, env);
-        let map = if self.is_map_param_expr(receiver) {
-            receiver_value
+        if self.is_map_param_expr(receiver) {
+            Some(receiver_value)
         } else {
             self.proven_map_value(receiver_value)
-                .or_else(|| self.proven_local_map_binding_value(receiver, env))?
-        };
-        Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
+                .or_else(|| self.proven_local_map_binding_value(receiver, env))
+        }
     }
 
     pub(super) fn eval_proven_map_get_default_call(
@@ -945,13 +952,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let receiver = admitted.receiver?;
-        let receiver_value = self.eval(receiver, env);
-        let map = if self.is_map_param_expr(receiver) {
-            receiver_value
-        } else {
-            self.proven_map_value(receiver_value)
-                .or_else(|| self.proven_local_map_binding_value(receiver, env))?
-        };
+        let map = self.resolve_receiver_map_value(receiver, env)?;
         let key = self.eval(kids[1], env);
         let default = self.eval_map_get_default_arg(result.args, kids[2], env)?;
         Some(self.mk(
