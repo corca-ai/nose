@@ -34,11 +34,12 @@ anti-unification re-rank columns. The current default `extractability` order is 
 `nose scan --format json` family order; the snapshot below uses that same label matching
 with the native order kept.
 
-**Current reproducible snapshot:** with the current default `extractability` order, an
-audit run over the checked-out `bench/repos` corpus measured overall precision@10 at about
-**65% dev / 58% held-out**. The same scan re-sorted by raw `value` measured about
-**58% dev / 56% held-out**. Worthy-recall in that run was roughly **86% dev / 88%
-held-out**. The per-language CIs are wide (bounded by #repos×10), which is the point —
+**Current reproducible snapshot (v0.9.0):** with the default `extractability` order — after
+the all-copies `shared_lines` (#366, §CL) and the member-span heterogeneity penalty (#365,
+§CM) — an audit run over the checked-out `bench/repos` corpus measured overall precision@10 at
+about **61% dev [56–66] / 59% held-out [54–64]**. Worthy-recall in that run was roughly
+**86% dev / 88% held-out**, and is unchanged by those two ranking edits (they only reorder).
+The per-language CIs are wide (bounded by #repos×10), which is the point —
 they tell you whether a per-language difference is real or noise. The standing finding
 (experiments §AV) is that much residual precision loss is *judgment-deep*
 (genuinely-ambiguous, parallel-by-design families), not a simple detector signal gap.
