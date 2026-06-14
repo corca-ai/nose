@@ -1849,6 +1849,43 @@ fn proposal_shows_shared_skeleton_and_parameters() {
 }
 
 #[test]
+fn proposal_aligns_across_all_copies() {
+    // Three near-identical functions (one operator each) form one family of 3. The
+    // proposal must align across ALL three copies (#360), not just a representative
+    // pair — so it says so, and the operator line is a parameter.
+    let dir = std::env::temp_dir().join(format!("nose_prop3_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    for d in ["a", "b", "c"] {
+        fs::create_dir_all(dir.join(d)).unwrap();
+    }
+    let mk = |op: &str| {
+        format!("def f(xs):\n    t = 0\n    for x in xs:\n        if x > 0:\n            t = t {op} x\n    return t\n")
+    };
+    fs::write(dir.join("a/m.py"), mk("+")).unwrap();
+    fs::write(dir.join("b/m.py"), mk("*")).unwrap();
+    fs::write(dir.join("c/m.py"), mk("-")).unwrap();
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "near:0.5",
+        "--show",
+        "proposal",
+        "--min-size",
+        "12",
+    ]);
+    assert!(
+        out.contains("across all 3 copies"),
+        "proposal must align across all 3 copies: {out}"
+    );
+    assert!(
+        out.contains("⟨param 1⟩"),
+        "the varying operator line is a parameter: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn sort_keys_label_the_ranking_and_reject_garbage() {
     let dir = make_project("sort");
     let p = dir.to_str().unwrap();
