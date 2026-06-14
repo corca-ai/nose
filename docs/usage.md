@@ -215,7 +215,8 @@ runnable `nose query …` next-commands, so an agent navigates by following link
 than re-reading a schema or hand-writing `jq`.
 
 It is **opt-in and additive** — `nose scan`, `--fail-on`, and the scan-JSON contract are
-unchanged.
+unchanged. With `--format json` every view emits the structured, versioned
+[query-JSON v2 contract](query-json.md).
 
 ```text
 nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] [top=N] [full] [all]

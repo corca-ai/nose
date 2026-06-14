@@ -876,6 +876,7 @@ impl ScanScope {
 }
 
 const SCAN_JSON_SCHEMA_VERSION: u32 = 1;
+const QUERY_JSON_SCHEMA_VERSION: u32 = 2;
 const CAPABILITIES_SCHEMA_VERSION: u32 = 1;
 
 #[derive(serde::Serialize)]
@@ -921,6 +922,7 @@ struct CapabilitiesCommands {
 struct CapabilitiesSchemas {
     capabilities: Vec<u32>,
     scan_json: Vec<u32>,
+    query_json: Vec<u32>,
     semantic_packs: Vec<&'static str>,
     semantic_pack_conformance: Vec<u32>,
 }
@@ -990,6 +992,7 @@ impl CapabilitiesReport {
             schemas: CapabilitiesSchemas {
                 capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
                 scan_json: vec![SCAN_JSON_SCHEMA_VERSION],
+                query_json: vec![QUERY_JSON_SCHEMA_VERSION],
                 semantic_packs: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
                 semantic_pack_conformance: vec![semantic_pack::CONFORMANCE_SCHEMA_VERSION],
             },
@@ -4097,6 +4100,67 @@ fn query_row(f: &nose_detect::RefactorFamily) -> String {
     )
 }
 
+/// One family as the structured `nose query --format json` object (schema_version 2): all
+/// the evidence a consumer needs to triage without re-parsing a human row. `shared`/`params`
+/// are the all-copies counts (the same the human row shows); `skeleton` is the all-copies
+/// extraction proposal, included only on `full`.
+fn query_family_json(
+    f: &nose_detect::RefactorFamily,
+    ov: &SurfaceOverrides,
+    opp: &OpportunityGroups,
+    full: bool,
+) -> serde_json::Value {
+    let (shared, params) = all_copies_shared(f);
+    let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
+    let locations: Vec<_> = f
+        .locations
+        .iter()
+        .map(|l| {
+            serde_json::json!({
+                "file": l.file, "start": l.start_line, "end": l.end_line,
+                "name": l.name, "lang": l.lang.as_str(),
+            })
+        })
+        .collect();
+    let mut obj = serde_json::json!({
+        "id": baseline::family_id(f),
+        "scope": f.scope,
+        "witness": witness_token(f.witness.as_ref().map(|w| w.kind)),
+        "surface": effective_surface(f, ov),
+        "members": f.members,
+        "files": f.files,
+        "dirs": f.modules,
+        "shared": shared,
+        "rep_lines": representative_lines(f),
+        "params": params,
+        "removable": removable,
+        "value": f.value,
+        "extraction_shape": f.extraction_shape(),
+        "same_symbol": family_same_symbol(f),
+        "folds": opp.slices(f).map(<[_]>::len).unwrap_or(0),
+        "locations": locations,
+    });
+    if full {
+        if let Some(skeleton) = family_skeleton(f) {
+            obj["skeleton"] = serde_json::Value::from(skeleton);
+        }
+    }
+    obj
+}
+
+/// The all-copies extraction-skeleton lines (the `--show proposal` artifact) for the `full`
+/// JSON contract. `None` when fewer than two copies read. Capped at the same 8 members as
+/// `all_copies_shared`, so the skeleton and the `shared`/`params` counts agree.
+fn family_skeleton(f: &nose_detect::RefactorFamily) -> Option<Vec<String>> {
+    let members: Vec<Vec<String>> = f
+        .locations
+        .iter()
+        .take(8)
+        .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
+        .collect();
+    (members.len() >= 2).then(|| anti_unify_all(&members).0)
+}
+
 /// Shared-line and parameter counts aligned across **all** copies (not the pairwise
 /// representative `shared_lines`, which over-counts a family whose 3rd+ copies diverge —
 /// e.g. 25 serializer methods that pairwise share 11 lines but all-25 share 2). Reads the
@@ -4261,8 +4325,8 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
             })
             .collect();
         match &q.group {
-            Some(field) => render_query_group(&sel, field, &terms, &path_arg),
-            None => render_query_list(&sel, &overrides, &opp, &q, &terms, &path_arg, widen),
+            Some(field) => render_query_group(&sel, field, &terms, &path_arg, json),
+            None => render_query_list(&sel, &overrides, &opp, &q, &terms, &path_arg, widen, json),
         }
     }
     // CI gate (same as scan): a non-empty default-report family set fails `--fail-on`.
@@ -4313,15 +4377,21 @@ fn render_query_dashboard(
         let top: Vec<_> = def
             .iter()
             .take(5)
-            .map(|f| serde_json::json!({"id": baseline::family_id(f), "where": query_row(f)}))
+            .map(|f| query_family_json(f, ov, opp, false))
             .collect();
         println!(
             "{}",
             serde_json::json!({
+                "schema_version": QUERY_JSON_SCHEMA_VERSION,
+                "tool": "nose",
                 "view": "dashboard",
-                "families": def.len(),
-                "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
-                    "copy_paste": count("copy-paste"), "similar": count("similar")},
+                "path": path,
+                "summary": {
+                    "scanned_files": scope.files,
+                    "families": def.len(),
+                    "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
+                        "copy_paste": count("copy-paste"), "similar": count("similar")},
+                },
                 "top_candidates": top,
                 "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
                     format!("nose query {path} scope=prod"), format!("nose query {path} witness=exact")],
@@ -4429,6 +4499,7 @@ fn render_query_dashboard(
 
 /// A ranked list of the current selection: each row carries its own `id=` drill link,
 /// plus a reasoned `next:`.
+#[allow(clippy::too_many_arguments)] // dataset + view + selection state for one list render
 fn render_query_list(
     sel: &[&nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
@@ -4437,9 +4508,30 @@ fn render_query_list(
     terms: &[String],
     path: &str,
     widen: bool,
+    json: bool,
 ) {
     let top = q.top.unwrap_or(30);
     let shown = sel.len().min(top);
+    if json {
+        let fams: Vec<_> = sel
+            .iter()
+            .take(top)
+            .map(|f| query_family_json(f, ov, opp, q.id_full))
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "schema_version": QUERY_JSON_SCHEMA_VERSION,
+                "tool": "nose",
+                "view": "list",
+                "path": path,
+                "summary": { "families": sel.len(), "shown": shown, "widened": widen },
+                "families": fams,
+                "next": [format!("nose query {path} group=dir"), format!("nose query {path} group=witness")],
+            })
+        );
+        return;
+    }
     println!(
         "{} families{}{}:",
         sel.len(),
@@ -4500,6 +4592,7 @@ fn render_query_group(
     field: &str,
     terms: &[String],
     path: &str,
+    json: bool,
 ) {
     use std::collections::HashMap;
     let key = |f: &nose_detect::RefactorFamily| -> String {
@@ -4517,6 +4610,31 @@ fn render_query_group(
             _ => "?".to_string(),
         }
     };
+    if json {
+        let mut counts: HashMap<String, (usize, String)> = HashMap::new();
+        for f in sel {
+            let e = counts.entry(key(f)).or_insert((0, String::new()));
+            if e.0 == 0 {
+                e.1 = baseline::family_id(f);
+            }
+            e.0 += 1;
+        }
+        let mut rows: Vec<(String, usize, String)> =
+            counts.into_iter().map(|(k, (n, ex))| (k, n, ex)).collect();
+        rows.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        let groups: Vec<_> = rows
+            .into_iter()
+            .map(|(k, n, ex)| serde_json::json!({"key": k, "count": n, "exemplar_id": ex}))
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "schema_version": QUERY_JSON_SCHEMA_VERSION, "tool": "nose", "view": "group", "path": path,
+                "field": field, "groups": groups,
+            })
+        );
+        return;
+    }
     let mut buckets: HashMap<String, (usize, String)> = HashMap::new();
     for f in sel {
         let e = buckets.entry(key(f)).or_insert((0, String::new()));
@@ -4548,7 +4666,7 @@ fn render_query_group(
 /// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
 fn render_query_family(
     families: &[nose_detect::RefactorFamily],
-    _ov: &SurfaceOverrides,
+    ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
     idv: &str,
     full: bool,
@@ -4576,18 +4694,15 @@ fn render_query_family(
         String::new()
     };
     if json {
-        let locs: Vec<_> = f
-            .locations
-            .iter()
-            .map(|l| serde_json::json!({"file": l.file, "start": l.start_line, "end": l.end_line, "name": l.name}))
-            .collect();
         println!(
             "{}",
             serde_json::json!({
-                "view": "family", "id": id, "scope": f.scope,
-                "witness": witness_token(f.witness.as_ref().map(|w| w.kind)),
-                "members": f.members, "shared_lines": f.shared_lines, "params": f.params,
-                "extraction_shape": f.extraction_shape(), "hint": family_hint(f), "locations": locs,
+                "schema_version": QUERY_JSON_SCHEMA_VERSION,
+                "tool": "nose",
+                "view": "family",
+                "path": path,
+                "hint": family_hint(f),
+                "family": query_family_json(f, ov, opp, full),
             })
         );
         return;
