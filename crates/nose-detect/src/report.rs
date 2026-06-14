@@ -157,8 +157,45 @@ impl RefactorFamily {
             * spread(self.files, self.modules, self.languages)
             * param_penalty
             * tightness
+            * self.shape_homogeneity()
             * self.discount
             * self.default_surface_weight()
+    }
+
+    /// Member-span **heterogeneity** demotion: copies that vary widely in length are
+    /// not one shape — folding them needs a catch-all, not a clean helper, no matter how
+    /// many lines happen to align in the representative pair. This is the decidable proxy
+    /// for the issue's "signature/arity heterogeneity" (#365): the per-member source span
+    /// is the one size signal available without re-parsing. Validated on the v5 labelset —
+    /// not-worthy families carry ~2.7× the member-span coefficient-of-variation of worthy
+    /// ones (mean 0.137 vs 0.051), and families with CV ≥ 0.3 are worthy only 23% of the
+    /// time vs 52% overall. The penalty is **deliberately gentle** (`1/(1+CV)`): the gold
+    /// set rewards demoting the worst offenders (serde's 25 heterogeneous `Serializer`
+    /// methods drop from #1 to #2, the clean 10-method numeric writer takes #1) but a
+    /// harder penalty regresses held-out past α≈1 — the §AV/§CL judgment-deep ceiling,
+    /// where high-CV worthy families start paying too. Same-language only, like
+    /// `tightness`: cross-language families have no shared line basis to fold against, and
+    /// the gold set showed gating it there is metric-neutral. Returns 1.0 (no demotion)
+    /// for uniform copies. See experiments §CM.
+    fn shape_homogeneity(&self) -> f64 {
+        if self.languages > 1 {
+            return 1.0;
+        }
+        let lens: Vec<f64> = self
+            .locations
+            .iter()
+            .map(|l| span_lines(l) as f64)
+            .collect();
+        if lens.len() < 2 {
+            return 1.0;
+        }
+        let mean = lens.iter().sum::<f64>() / lens.len() as f64;
+        if mean <= 0.0 {
+            return 1.0;
+        }
+        let var = lens.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / lens.len() as f64;
+        let cv = var.sqrt() / mean;
+        1.0 / (1.0 + cv)
     }
 
     /// Decidable, scope-blind actionability reason — a stable code naming WHY a family

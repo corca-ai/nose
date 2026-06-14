@@ -2682,3 +2682,42 @@ number-basis bug — #365 needs its own signal (signature/arity heterogeneity), 
 honest parameter count. Scan and query now print one shared/removable headline per family;
 the `params`/`spots-differ` count stays each surface's own (scan = representative pair,
 query = all-copies helper arity).
+
+## CM. Foldability ranking — the member-span heterogeneity demotion (#365, 2026-06-14)
+
+The 4-round `nose query` judge (§ query-surface) flagged that `extractability`'s #1
+"cleanest to extract" was often the *least* foldable family: serde_json's #1 was 25
+heterogeneous `Serializer` trait methods sharing ~4 all-copies lines, while the clean
+10-method numeric-writer family sat lower. The formula rewards `copies × spread`, and 25
+copies of an almost-but-not-quite-shared shape out-scores 10 copies of a tight one. #366
+(§CL) didn't fix it — the dud's all-copies `shared_lines` is still enough, with a
+representative-pair `params` of 1, to clear the shallow gate and ride its copy count to #1.
+
+The decidable signal that separates them, found by mining the v5 labelset: **member-span
+heterogeneity**. The per-member source span is the one size signal available without
+re-parsing, and it is a clean proxy for the issue's "signature/arity heterogeneity" —
+copies that vary widely in length are not one shape, so no single helper folds them. On
+the 9,461-family labelset, not-worthy families carry **~2.7× the span coefficient-of-
+variation** of worthy ones (mean 0.137 vs 0.051); families with CV ≥ 0.3 are worthy only
+**23%** of the time vs 52% overall; the `coincidental-shape` not-worthy reason averages
+CV 0.271. So `extractability` gains a `× 1/(1+CV)` factor (same-language only, like
+`tightness`).
+
+Strength was swept on the gold set and the gentle setting won — the §AV/§CL judgment-deep
+pattern again. `eval_by_language.py`, v5, native `extractability` order:
+
+| variant | dev P@10 | held-out P@10 | worthy-recall |
+|---|---|---|---|
+| baseline (post-#366) | 61% [56-65] n=381 | 59% [53-64] n=321 | — |
+| **`× 1/(1+CV)`** (α=1, shipped) | **61% [56-66] n=380** | **59% [54-64] n=321** | **byte-identical** |
+| `× 1/(1+2·CV)` | 61% | 58% | byte-identical |
+| `× exp(−4·CV)` | 62% dev | 57% held-out | byte-identical |
+
+Recall is **invariant** by construction — the penalty only reorders, never drops a family
+from the candidate set. Held-out stays flat at α=1 (Go +4, Rust dev +4, no language down
+beyond CI) and regresses as the penalty hardens (high-CV *worthy* families start paying).
+So α=1 is shipped: it demotes serde's dud from #1 to #2 (the clean numeric writer takes
+#1) and the other repos' #1 — already low-CV — are untouched, at zero measured precision or
+recall cost. The aggregate P@10 move is within CI: the demotion is a real, validated, safe
+correction of the *visible* failure, not a headline-precision jump — the residual ranking
+loss is judgment-deep (genuinely-ambiguous, parallel-by-design families), confirming §AV.

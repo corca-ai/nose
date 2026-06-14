@@ -106,7 +106,7 @@ noise floor on raw value and applies under every sort.
 
 | key | ranks by | use when |
 |---|---|---|
-| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
+| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape) | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
 | `value` | raw duplicated volume: removable lines × similarity × spread | you want the most *code* deleted, accepting that divergent copies cost more to merge |
 | `sites` | number of copies | hunting the most-repeated patterns |
 | `hazard` *(experimental)* | divergent-edit *propensity*: line span × spread × invisibility × scope | you want a view of which clones tend to get edited inconsistently — **not yet a validated *harm* ranker** (see [hazard-ranking](hazard-ranking.md)) |
@@ -117,7 +117,10 @@ spots is mostly scaffolding (6% invariant), not an extraction — it ranks far b
 tight `15/15`-shared, zero-parameter pair. The honest `N/M shared · Pp` cell in the
 report is the same signal the ranking uses. Same-language families with **no** shared
 invariant lines (a language idiom, or two unrelated type literals with the same shape)
-have nothing to extract and sink to the bottom, even at `sim 1.00`.
+have nothing to extract and sink to the bottom, even at `sim 1.00`. Extractability also
+demotes families whose copies **vary widely in length**: 25 same-shaped-but-different
+`Serializer` methods are not one helper waiting to happen, however many copies there
+are — a measured proxy for signature heterogeneity (experiments §CM).
 
 `--sort hazard` is an **experimental** severity-style ranking calibrated on mined
 divergent-edit history. It predicts *which clones get edited inconsistently* (divergence
