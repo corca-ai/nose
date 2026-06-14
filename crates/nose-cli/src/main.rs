@@ -3752,6 +3752,9 @@ struct Query {
     /// The `reinvented` view — code that reimplements an existing helper (the `reinvented`
     /// channel, surfaced in query), distinct from `shape=call-existing-helper` families.
     reinvented: bool,
+    /// `since=<baseline>` — compare the dataset to a saved snapshot and expose each family's
+    /// `status` (new/changed/unchanged) as a queryable field (temporal lens, not a gate).
+    since: Option<String>,
 }
 
 enum QOp {
@@ -3783,6 +3786,7 @@ const STR_FIELDS: &[&str] = &[
     "extraction_shape",
     "same_symbol",
     "spotclass",
+    "status",
 ];
 /// Numeric filter fields (also the only ones that accept `>`/`<`).
 const NUM_FIELDS: &[&str] = &[
@@ -3881,6 +3885,8 @@ fn parse_query(terms: &[String]) -> Result<Query> {
             q.id = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("at=") {
             q.at = Some(v.to_string());
+        } else if let Some(v) = t.strip_prefix("since=") {
+            q.since = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("sort=") {
             q.sort = Some(parse_sort_key(v).ok_or_else(|| {
                 anyhow::anyhow!("unknown sort key `{v}` (extractability|value|sites|hazard)")
@@ -3943,6 +3949,7 @@ fn validate_filter_values(flt: &QFilter) -> Result<()> {
         ]),
         "same_symbol" => Some(&["true", "false"]),
         "spotclass" => Some(&["leaf-only", "structural"]),
+        "status" => Some(&["new", "changed", "unchanged"]),
         _ => None,
     };
     let Some(vals) = valid else { return Ok(()) };
@@ -4067,10 +4074,16 @@ fn family_num(f: &nose_detect::RefactorFamily, field: &str) -> Option<f64> {
 }
 
 /// Whether a family satisfies one filter.
-fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &QFilter) -> bool {
+fn family_matches(
+    f: &nose_detect::RefactorFamily,
+    ov: &SurfaceOverrides,
+    flt: &QFilter,
+    since: Option<&BaselineComparison>,
+) -> bool {
     let field = flt.field.as_str();
     // The family's value for string fields, computed once. `None` (e.g. `spotclass` on an
-    // unenriched/non-near family) deliberately matches nothing rather than erroring.
+    // unenriched/non-near family, or `status` without `since=`) deliberately matches nothing
+    // rather than erroring.
     let fval: Option<String> = match field {
         "scope" => Some(f.scope.to_string()),
         "witness" => Some(witness_token(f.witness.as_ref().map(|w| w.kind)).to_string()),
@@ -4079,6 +4092,7 @@ fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &
         "dir" => Some(family_dir(f)),
         "same_symbol" => Some(family_same_symbol(f).to_string()),
         "spotclass" => family_spotclass(f).map(str::to_string),
+        "status" => since.map(|c| family_status(f, c).to_string()),
         _ => None,
     };
     let path_has = |val: &str| f.locations.iter().any(|l| l.file.contains(val));
@@ -4176,6 +4190,7 @@ fn query_family_json(
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
     full: bool,
+    since: Option<&BaselineComparison>,
 ) -> serde_json::Value {
     let (shared, params) = all_copies_shared(f);
     let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
@@ -4224,6 +4239,10 @@ fn query_family_json(
     // proven span per location instead). Evidence, not a verdict.
     if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes) {
         obj["value_nodes"] = serde_json::Value::from(n);
+    }
+    // Temporal status against a `since=` snapshot (new/changed/unchanged), when one was given.
+    if let Some(cmp) = since {
+        obj["status"] = serde_json::Value::from(family_status(f, cmp));
     }
     // Fold-graph navigation: the actual related family ids, not just a count — so a caller can
     // jump to the fuller overlapping family or open the slices it subsumes (HATEOAS).
@@ -4309,6 +4328,7 @@ fn query_selection<'a>(
     opp: &OpportunityGroups,
     q: &Query,
     path_arg: &str,
+    since: Option<&BaselineComparison>,
 ) -> Result<Vec<&'a nose_detect::RefactorFamily>> {
     if let Some(at) = &q.at {
         let idv = baseline::family_id(family_at(families, at, path_arg)?);
@@ -4329,7 +4349,9 @@ fn query_selection<'a>(
         .filter(|f| {
             (widen || is_default_surface(f, ov))
                 && !opp.is_slice(f)
-                && q.filters.iter().all(|flt| family_matches(f, ov, flt))
+                && q.filters
+                    .iter()
+                    .all(|flt| family_matches(f, ov, flt, since))
         })
         .collect())
 }
@@ -4412,6 +4434,19 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
     if needs_spotclass {
         enrich_graded_witnesses(&mut dataset.families, &dataset.opts);
     }
+    // `since=<snapshot>` annotates each family with a temporal `status` (new/changed/unchanged)
+    // — an exploration lens over the baseline machinery, not a gate (it hides nothing). The
+    // `status` field is unresolvable without it, so reject the combination loudly.
+    let uses_status =
+        q.group.as_deref() == Some("status") || q.filters.iter().any(|flt| flt.field == "status");
+    if uses_status && q.since.is_none() {
+        anyhow::bail!("`status` needs a snapshot — add `since=<baseline-file>` (write one with `--write-baseline`)");
+    }
+    let since_cmp = match &q.since {
+        Some(p) => Some(compare_since(p, &dataset.families)?),
+        None => None,
+    };
+    let since = since_cmp.as_ref();
     if let Some(sk) = q.sort {
         dataset.families.sort_by(|a, b| {
             sk.score(b)
@@ -4433,7 +4468,8 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         // ignore dashboard/group navigation and just render the family set the query selects,
         // reusing scan's own formatters (#374 + scan parity).
         ReportFormat::Markdown | ReportFormat::Sarif => {
-            let selected = query_selection(&dataset.families, &overrides, &opp, &q, &path_arg)?;
+            let selected =
+                query_selection(&dataset.families, &overrides, &opp, &q, &path_arg, since)?;
             let top = q.top.unwrap_or(30);
             let shown: Vec<&nose_detect::RefactorFamily> =
                 selected.iter().take(top).copied().collect();
@@ -4473,6 +4509,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                     &path_arg,
                     reinvented_prod,
                     json,
+                    since,
                 );
             } else if let Some(at) = &q.at {
                 // `at=file:line` → the family whose member span covers that location (stable
@@ -4486,6 +4523,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                     q.id_full,
                     &path_arg,
                     json,
+                    since,
                 );
             } else if let Some(idv) = &q.id {
                 render_query_family(
@@ -4496,18 +4534,20 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                     q.id_full,
                     &path_arg,
                     json,
+                    since,
                 );
             } else {
                 // Default to the curated default surface (the same families the dashboard
                 // counts and `scan` trusts); `all` or an explicit `surface=` filter widens to
                 // the raw universe.
                 let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
-                let sel = query_selection(&dataset.families, &overrides, &opp, &q, &path_arg)?;
+                let sel =
+                    query_selection(&dataset.families, &overrides, &opp, &q, &path_arg, since)?;
                 match &q.group {
-                    Some(field) => render_query_group(&sel, field, &terms, &path_arg, json),
+                    Some(field) => render_query_group(&sel, field, &terms, &path_arg, json, since),
                     None => {
                         render_query_list(
-                            &sel, &overrides, &opp, &q, &terms, &path_arg, widen, json,
+                            &sel, &overrides, &opp, &q, &terms, &path_arg, widen, json, since,
                         );
                     }
                 }
@@ -4542,6 +4582,7 @@ fn render_query_dashboard(
     path: &str,
     reinvented_prod: usize,
     json: bool,
+    since: Option<&BaselineComparison>,
 ) {
     // Default surface, slice-folds removed (shown under their primary) — matches scan.
     let mut def: Vec<&nose_detect::RefactorFamily> = families
@@ -4564,7 +4605,7 @@ fn render_query_dashboard(
         let top: Vec<_> = def
             .iter()
             .take(5)
-            .map(|f| query_family_json(f, ov, opp, false))
+            .map(|f| query_family_json(f, ov, opp, false, since))
             .collect();
         println!(
             "{}",
@@ -4784,6 +4825,7 @@ fn render_query_list(
     path: &str,
     widen: bool,
     json: bool,
+    since: Option<&BaselineComparison>,
 ) {
     let top = q.top.unwrap_or(30);
     let shown = sel.len().min(top);
@@ -4791,7 +4833,7 @@ fn render_query_list(
         let fams: Vec<_> = sel
             .iter()
             .take(top)
-            .map(|f| query_family_json(f, ov, opp, q.id_full))
+            .map(|f| query_family_json(f, ov, opp, q.id_full, since))
             .collect();
         println!(
             "{}",
@@ -4831,8 +4873,14 @@ fn render_query_list(
             Some(s) if !s.is_empty() => format!("\n       ↳ +{} overlapping slice folds", s.len()),
             _ => String::new(),
         };
+        // With `since=`, tag the actionable changes (new/changed) so the diff against the
+        // snapshot is visible inline; unchanged families stay untagged (the common case).
+        let status = match since.map(|c| family_status(f, c)) {
+            Some(s @ ("new" | "changed")) => format!(" [{s}]"),
+            _ => String::new(),
+        };
         println!(
-            "  {}{surf}   nose query {path} id={}{fold}",
+            "  {}{surf}{status}   nose query {path} id={}{fold}",
             query_row(f),
             short_id(&baseline::family_id(f))
         );
@@ -4879,6 +4927,7 @@ fn render_query_group(
     terms: &[String],
     path: &str,
     json: bool,
+    since: Option<&BaselineComparison>,
 ) {
     use std::collections::HashMap;
     let key = |f: &nose_detect::RefactorFamily| -> String {
@@ -4899,6 +4948,7 @@ fn render_query_group(
             "shape" | "extraction_shape" => f.extraction_shape().to_string(),
             "same_symbol" => family_same_symbol(f).to_string(),
             "spotclass" => family_spotclass(f).unwrap_or("unwitnessed").to_string(),
+            "status" => since.map_or_else(|| "?".to_string(), |c| family_status(f, c).to_string()),
             _ => "?".to_string(),
         }
     };
@@ -4964,6 +5014,7 @@ fn render_query_group(
 
 /// Open one family: its copies, the extraction hint, the representative-pair diff, and —
 /// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
+#[allow(clippy::too_many_arguments)] // dataset + view + selection state for one family render
 fn render_query_family(
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
@@ -4972,6 +5023,7 @@ fn render_query_family(
     full: bool,
     path: &str,
     json: bool,
+    since: Option<&BaselineComparison>,
 ) {
     let Some(f) = families
         .iter()
@@ -5013,7 +5065,7 @@ fn render_query_family(
                 "view": "family",
                 "path": path,
                 "hint": family_hint(f),
-                "family": query_family_json(f, ov, opp, full),
+                "family": query_family_json(f, ov, opp, full, since),
             })
         );
         return;
@@ -5672,6 +5724,31 @@ fn apply_scan_baseline(
     let comparison = BaselineComparison::new(path, &accepted, families);
     families.retain(|f| !accepted.keys.contains(&baseline::family_key(f)));
     Ok(Some(comparison))
+}
+
+/// `since=<baseline>`: compare to a saved snapshot WITHOUT hiding anything — the temporal
+/// exploration lens. Unlike `--baseline` (which drops accepted families for the gate), this
+/// keeps every family and lets the caller slice by the `status` field. `nose query <path>
+/// since=B status=new --fail-on any` is the composable equivalent of `--baseline B --fail-on
+/// new`; the two baseline paths converge as the gate folds into query (the review-unification).
+fn compare_since(
+    path: &str,
+    families: &[nose_detect::RefactorFamily],
+) -> Result<BaselineComparison> {
+    let snapshot = baseline::load(std::path::Path::new(path))?;
+    Ok(BaselineComparison::new(
+        std::path::Path::new(path),
+        &snapshot,
+        families,
+    ))
+}
+
+/// A family's status against a `since=` snapshot: `new`/`changed` (in the comparison) or
+/// `unchanged` (present in the snapshot, so absent from the changed/new map).
+fn family_status(f: &nose_detect::RefactorFamily, cmp: &BaselineComparison) -> &'static str {
+    cmp.statuses
+        .get(&baseline::family_key(f))
+        .map_or("unchanged", BaselineStatus::as_str)
 }
 
 fn partition_ignored(
@@ -7912,7 +7989,7 @@ mod tests {
             declaration_run_ids: std::collections::HashSet::new(),
         };
         // The primary lists the slice ids it subsumes (navigable id= handles).
-        let ja = query_family_json(&a, &ov, &opp, false);
+        let ja = query_family_json(&a, &ov, &opp, false, None);
         assert_eq!(
             ja["subsumes"],
             serde_json::json!([short_id(&baseline::family_id(&b))]),
@@ -7920,7 +7997,7 @@ mod tests {
         );
         assert!(ja.get("subsumed_by").is_none(), "a primary is not subsumed");
         // The slice points back at its primary.
-        let jb = query_family_json(&b, &ov, &opp, false);
+        let jb = query_family_json(&b, &ov, &opp, false, None);
         assert_eq!(
             jb["subsumed_by"],
             serde_json::Value::from(short_id(&baseline::family_id(&a))),
@@ -7955,7 +8032,7 @@ mod tests {
             mean_shape_jaccard: None,
             graded: None,
         });
-        let je = query_family_json(&exact, &ov, &empty, false);
+        let je = query_family_json(&exact, &ov, &empty, false, None);
         assert_eq!(
             je["value_nodes"], 12,
             "exact family carries value_nodes: {je}"
@@ -7963,7 +8040,7 @@ mod tests {
         // Sub-dag channel: the proven shared-computation span per location.
         let mut sub = fam(1, 2, &[Some("c"), Some("d")]);
         sub.locations[0].shared_subdag = Some((10, 14));
-        let js = query_family_json(&sub, &ov, &empty, false);
+        let js = query_family_json(&sub, &ov, &empty, false, None);
         assert_eq!(
             js["locations"][0]["shared_subdag"],
             serde_json::json!([10, 14]),

@@ -2165,6 +2165,97 @@ fn query_reinvented_view_lists_call_the_helper_findings() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)] // one end-to-end walk of the since= temporal lens
+fn query_since_status_classifies_against_a_snapshot() {
+    // Family X (3 near copies of `process`, one operator each) exists at snapshot time; a
+    // structurally distinct family Y (3 exact `banner` copies) is added after — so `since=`
+    // grades X unchanged and Y new. (Y must be distinct: a near-identical Y would *merge*
+    // into X, which would correctly read as `changed`, not a second family.)
+    let dir = std::env::temp_dir().join(format!("nose_since_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    for d in ["a", "b", "c", "d", "e", "f"] {
+        fs::create_dir_all(dir.join(d)).unwrap();
+    }
+    let process = |op: &str| {
+        format!(
+            "def process(items):\n    total = 0\n    count = 0\n    best = None\n    for it in items:\n        v = it.value\n        total = total {op} v\n        count = count + 1\n        if best is None or v > best:\n            best = v\n    return total, count, best\n"
+        )
+    };
+    fs::write(dir.join("a/m.py"), process("+")).unwrap();
+    fs::write(dir.join("b/m.py"), process("*")).unwrap();
+    fs::write(dir.join("c/m.py"), process("-")).unwrap();
+    let p = dir.to_str().unwrap();
+    let bl = dir.join("base.json");
+    let bls = bl.to_str().unwrap();
+
+    // Snapshot the current state (only family X).
+    run(&["query", p, "--baseline", bls, "--write-baseline"]);
+
+    // Add a structurally distinct family Y (exact copies) after the snapshot.
+    let banner = "def banner(title):\n    line = \"=\" * 40\n    print(line)\n    print(\"  \" + title)\n    print(line)\n    print(\"done\")\n    return title\n";
+    fs::write(dir.join("d/n.py"), banner).unwrap();
+    fs::write(dir.join("e/n.py"), banner).unwrap();
+    fs::write(dir.join("f/n.py"), banner).unwrap();
+
+    // `status` without `since=` is a hard error (the field is unresolvable).
+    assert!(
+        run_fail(&["query", p, "status=new"]).contains("needs a snapshot"),
+        "status without since= errors"
+    );
+
+    // group=status facets the diff against the snapshot.
+    let grouped = run(&["query", p, &format!("since={bls}"), "group=status"]);
+    assert!(
+        grouped.contains("by status"),
+        "group=status facets the snapshot diff: {grouped}"
+    );
+
+    // status=new keeps the family added after the snapshot; the JSON family carries status.
+    let newj: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        p,
+        &format!("since={bls}"),
+        "status=new",
+        "--format",
+        "json",
+    ]))
+    .unwrap();
+    let newfams = newj["families"].as_array().unwrap();
+    assert!(
+        !newfams.is_empty() && newfams.iter().all(|f| f["status"] == "new"),
+        "status=new selects only new families, each tagged: {newj}"
+    );
+    // The new family is Y (the post-snapshot `banner` copy-paste family in d/e/f), not the
+    // snapshotted `process` family (which is the `similar` witness in a/b/c).
+    assert!(
+        newfams.iter().all(|f| f["witness"] == "copy-paste"
+            && f["locations"][0]["file"].as_str().unwrap().contains("/d/")),
+        "the post-snapshot family (Y) is flagged new, not the snapshotted X: {newj}"
+    );
+
+    // status=unchanged keeps the snapshotted family X (`process`, the `similar` witness).
+    let unchanged: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        p,
+        &format!("since={bls}"),
+        "status=unchanged",
+        "--format",
+        "json",
+    ]))
+    .unwrap();
+    assert!(
+        unchanged["families"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|f| f["locations"][0]["name"] == "process" && f["status"] == "unchanged"),
+        "the snapshotted family grades unchanged: {unchanged}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn sort_keys_label_the_ranking_and_reject_garbage() {
     let dir = make_project("sort");
     let p = dir.to_str().unwrap();

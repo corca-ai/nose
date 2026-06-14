@@ -63,6 +63,7 @@ value, approximate}` — code that reimplements an existing helper; the action i
 | `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
 | `spotclass` | (only on enriched near families) `leaf-only` (varying spots are clean value-leaves) \| `structural` (a shape/arity/referent divergence — genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
 | `value_nodes` | (exact families) the size of the shared value multiset proven identical — *how much* is proven, not just that it is |
+| `status` | (only with `since=`) `new` \| `changed` \| `unchanged` against the snapshot — the temporal lens |
 | `folds` | count of overlapping slice families folded under this one |
 | `subsumes` | (in the `family` view) the `id=` handles of the slice families this one subsumes — open any to inspect |
 | `subsumed_by` | (in the `family` view) the `id=` handle of the fuller overlapping family this one is a slice of |

@@ -224,16 +224,17 @@ unchanged. With `--format json` every view emits the structured, versioned
 [query-JSON v2 contract](query-json.md).
 
 ```text
-nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented] [sort=KEY] [top=N] [full] [all]
+nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented] [since=FILE] [sort=KEY] [top=N] [full] [all]
 ```
 
 | part | meaning |
 |---|---|
 | `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,subdag` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,subdag` drops both) |
-| `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
+| `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, fold-graph links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
+| `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status=new --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
 | `top=N` | show the first N rows (default 30) |
 | `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
@@ -242,7 +243,8 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 Fields: `scope` (prod\|test\|mixed), `witness` (exact\|subdag\|copy-paste\|similar),
 `same_symbol` (true\|false — every copy is the same named symbol, the parallel-variant
 signature), `spotclass` (leaf-only\|structural — for near families, whether the varying spots
-are clean value-leaves to parameterize or genuine logic divergence), `lang`, `path`, `dir`,
+are clean value-leaves to parameterize or genuine logic divergence), `status`
+(new\|changed\|unchanged — vs the `since=` snapshot), `lang`, `path`, `dir`,
 `members`, `files`, `value`, `params`, `shared`. Every row shows the payoff economics —
 `M/REP shared, Pp · ~N removable` — so a candidate can be triaged without opening it. Each
 result is a pure function of (repo state, command); an unknown field or enum value is a hard

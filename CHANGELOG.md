@@ -37,6 +37,11 @@ deprecated.** All changes below are staged; the release is not yet cut.
     signature (#374 item 6), and the family object carries proof depth — `value_nodes` (the
     shared value-multiset size an exact family proves identical) and per-location
     `shared_subdag` spans (where a sub-dag clone's proven shared computation lives).
+  - **Temporality — query the loop, not a snapshot:** `since=<baseline>` exposes each family's
+    `status` (`new`/`changed`/`unchanged`) against a saved snapshot as a queryable field —
+    `status=new` filter, `group=status` facet, `status` in JSON. Unlike `--baseline` (which
+    hides accepted families for the gate), `since=` hides nothing; `since=B status=new
+    --fail-on any` is the composable equivalent of `--baseline B --fail-on new`.
 
 ### Changed (breaking)
 - **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run
