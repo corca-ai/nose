@@ -22,6 +22,14 @@ break.
     context tag, never a worthiness penalty: nothing is dropped — test families stay ranked, in
     JSON, and one `--scope test` away (`--scope prod` hides them).
 
+### Changed
+- **Test-scope findings carry a scaffolding triage caveat (#264).** A test-scope family's `→`
+  hint now appends "test scaffolding: consolidate only a genuinely shared fixture/helper, not
+  per-scenario setup" — Arrange/Act/Assert setup is often duplicated on purpose, so extraction can
+  hide each scenario's intent. It is a caveat, not a verdict (the worthy fixture-vs-scaffold call
+  is the reader's and is not feature-decidable); `mixed` test↔prod leaks get no caveat, and the
+  high-parameter caution still wins when both apply.
+
 ## [0.8.0] - 2026-06-14
 
 ### Added

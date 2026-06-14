@@ -5123,6 +5123,17 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
             f.params
         );
     }
+    // Test-scope duplication is a real smell, but Arrange/Act/Assert setup is often
+    // duplicated on purpose — extracting it can hide each scenario's intent (issue
+    // #264). Flag that triage caveat without asserting a verdict; the worthy
+    // fixture-vs-scaffold call is the reader's (and is not feature-decidable — see the
+    // default-surface-noise-audit). `mixed` (a test↔prod leak) is a real extract, no caveat.
+    if f.scope == "test" {
+        return format!(
+            "{base} — test scaffolding: consolidate only a genuinely shared fixture/helper, \
+             not per-scenario setup"
+        );
+    }
     base
 }
 
@@ -6203,6 +6214,34 @@ mod tests {
         assert_eq!(
             family_hint(&f),
             "repeated across 3 modules — extract a shared abstraction"
+        );
+    }
+
+    #[test]
+    fn hint_test_scope_flags_scaffolding_caveat() {
+        let mut f = fam(1, 2, &[None, None]);
+        f.scope = "test";
+        let h = family_hint(&f);
+        assert!(h.contains("extract a helper"), "{h}");
+        assert!(h.ends_with("not per-scenario setup"), "{h}");
+    }
+
+    #[test]
+    fn hint_prod_scope_has_no_test_caveat() {
+        let f = fam(1, 2, &[None, None]); // scope defaults to prod
+        assert!(!family_hint(&f).contains("test scaffolding"));
+    }
+
+    #[test]
+    fn hint_high_param_caution_wins_over_test_caveat() {
+        let mut f = fam(1, 2, &[None, None]);
+        f.scope = "test";
+        f.params = 8; // >= HIGH_PARAM_SPOTS
+        let h = family_hint(&f);
+        assert!(h.contains("high-parameter"), "{h}");
+        assert!(
+            !h.contains("test scaffolding"),
+            "high-param branch wins: {h}"
         );
     }
 
