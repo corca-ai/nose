@@ -1964,6 +1964,17 @@ fn query_dashboard_filter_and_family() {
     );
     assert!(run_fail(&["query", p, "same_symbol=oops"]).contains("unknown same_symbol value"));
 
+    // query takes scan's analysis flags (dataset parity): `--min-members 99` floors out the
+    // 3-copy family, and `--mode syntax` is accepted (different channel mix).
+    assert!(
+        run(&["query", p, "--min-members", "99"]).contains("0 duplicated-code families"),
+        "query respects --min-members"
+    );
+    assert!(
+        run(&["query", p, "--mode", "syntax"]).contains("families"),
+        "query accepts --mode"
+    );
+
     let _ = fs::remove_dir_all(&dir);
 }
 

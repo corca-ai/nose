@@ -241,6 +241,11 @@ field or enum value is a hard error (so a typo can't read as "no duplication").
 
 A typical loop: `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 
+`nose query` accepts the same **analysis flags** as `scan` — `--mode`, `--min-size`,
+`--min-value`, `--min-members`, `--exclude`, `--cache-dir`, `--ignore-file`,
+`--semantic-pack`, `--config` — so the dataset it explores is configured identically (the
+scope/sort/top knobs are the DSL's `scope=`/`sort=`/`top=` instead).
+
 ## Integrating with nose
 
 Use `nose capabilities` when another tool needs to decide what this installed

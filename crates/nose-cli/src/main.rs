@@ -210,6 +210,36 @@ enum Cmd {
         /// Output format (`human` or `json`).
         #[arg(long, default_value = "human")]
         format: ReportFormat,
+        /// Detection channels (same as `nose scan --mode`); omit for `syntax,semantic,near`.
+        #[arg(long, value_delimiter = ',')]
+        mode: Vec<ScanMode>,
+        /// Minimum IL-token size for a unit to be considered (same as scan).
+        #[arg(long)]
+        min_size: Option<usize>,
+        /// Minimum invariant-line floor (advanced; same as scan).
+        #[arg(long, hide = true)]
+        min_lines: Option<u32>,
+        /// Minimum family value to keep (same as scan).
+        #[arg(long, value_parser = parse_min_value)]
+        min_value: Option<f64>,
+        /// Minimum copies per family (same as scan).
+        #[arg(long)]
+        min_members: Option<usize>,
+        /// Exclude paths by glob (repeatable; same as scan).
+        #[arg(long)]
+        exclude: Vec<String>,
+        /// Cache per-file analysis under this directory (same as scan).
+        #[arg(long, value_name = "DIR")]
+        cache_dir: Option<PathBuf>,
+        /// Structured-ignore file (same as scan); auto-read `nose.ignore.json` when present.
+        #[arg(long, value_name = "FILE")]
+        ignore_file: Option<PathBuf>,
+        /// Local semantic-pack manifest(s) (same as scan).
+        #[arg(long = "semantic-pack", value_name = "FILE_OR_DIR")]
+        semantic_pack: Vec<PathBuf>,
+        /// Config file (`nose.toml`; same as scan).
+        #[arg(long, value_name = "FILE")]
+        config: Option<PathBuf>,
     },
     /// Flag a change applied to one clone copy but not its siblings (PR/CI check).
     ///
@@ -4092,6 +4122,16 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         path,
         terms,
         format,
+        mode,
+        min_size,
+        min_lines,
+        min_value,
+        min_members,
+        exclude,
+        cache_dir,
+        ignore_file,
+        semantic_pack,
+        config,
     } = cmd
     else {
         unreachable!("run_query_cmd requires Cmd::Query")
@@ -4105,22 +4145,22 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let args = ScanArgs {
         paths: vec![path],
         top: Some(0),
-        min_members: None,
-        min_value: None,
+        min_members,
+        min_value,
         sort: None,
-        config: None,
-        mode: vec![],
+        config,
+        mode,
         show: vec![],
-        cache_dir: None,
+        cache_dir,
         fail_on: None,
         baseline: None,
-        ignore_file: None,
-        semantic_pack: vec![],
+        ignore_file,
+        semantic_pack,
         write_baseline: false,
         format,
-        exclude: vec![],
-        min_size: None,
-        min_lines: None,
+        exclude,
+        min_size,
+        min_lines,
         scope: ScopeFilter::All,
     };
     let refs = paths_as_refs(&args.paths);
