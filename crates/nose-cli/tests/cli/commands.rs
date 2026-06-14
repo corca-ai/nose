@@ -1913,9 +1913,11 @@ fn query_dashboard_filter_and_family() {
         dash.contains("nose query"),
         "dashboard teaches the grammar: {dash}"
     );
+    // Suggested commands echo the path so they're runnable verbatim (the surface takes
+    // the path positionally) — every drill link is `nose query <path> id=…`.
     assert!(
-        dash.contains("nose query id="),
-        "dashboard shows a real candidate with a drill link: {dash}"
+        dash.contains(&format!("nose query {p} id=")),
+        "dashboard's drill links carry the path: {dash}"
     );
 
     // A filter narrows to a ranked list; a facet groups it.

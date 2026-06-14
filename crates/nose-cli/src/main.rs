@@ -3670,6 +3670,10 @@ struct Query {
     group: Option<String>,
     id: Option<String>,
     id_full: bool,
+    /// Widen from the curated default surface to the full raw universe (shallow/hidden/
+    /// declaration/generated families too) — the `all` token. Default queries stay on the
+    /// default surface so `query`'s counts and curation match `scan`'s.
+    all: bool,
     sort: Option<SortKey>,
     top: Option<usize>,
 }
@@ -3685,6 +3689,58 @@ struct QFilter {
     field: String,
     op: QOp,
     value: String,
+}
+
+/// String-valued (or substring) filter fields.
+const STR_FIELDS: &[&str] = &[
+    "scope",
+    "witness",
+    "lang",
+    "language",
+    "path",
+    "file",
+    "dir",
+    "surface",
+    "shape",
+    "extraction_shape",
+];
+/// Numeric filter fields (also the only ones that accept `>`/`<`).
+const NUM_FIELDS: &[&str] = &[
+    "members",
+    "copies",
+    "sites",
+    "files",
+    "modules",
+    "dirs",
+    "value",
+    "params",
+    "lines",
+    "mean_lines",
+    "shared",
+    "shared_lines",
+    "dup",
+    "dup_lines",
+    "languages",
+];
+
+/// Reject an unknown field (so a typo errors loudly instead of silently matching nothing
+/// and reading as "this repo is clean"), and a non-numeric `>`/`<`.
+fn validate_field(field: &str, op: &QOp) -> Result<()> {
+    let numeric = NUM_FIELDS.contains(&field);
+    if matches!(op, QOp::Gt | QOp::Lt) && !numeric {
+        anyhow::bail!(
+            "`{field}` is not numeric — `>`/`<` take one of: {}",
+            NUM_FIELDS.join(" ")
+        );
+    }
+    if !numeric && !STR_FIELDS.contains(&field) {
+        anyhow::bail!(
+            "unknown field `{field}` — valid: {} {}",
+            STR_FIELDS.join(" "),
+            NUM_FIELDS.join(" ")
+        );
+    }
+    Ok(())
 }
 
 /// Canonical `witness.kind` for a friendly filter token (`exact`→`exact-value-graph`, …).
@@ -3726,6 +3782,8 @@ fn parse_query(terms: &[String]) -> Result<Query> {
     for t in terms {
         if t == "full" {
             q.id_full = true;
+        } else if t == "all" {
+            q.all = true;
         } else if let Some(v) = t.strip_prefix("group=") {
             q.group = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("id=") {
@@ -3768,6 +3826,9 @@ fn parse_query(terms: &[String]) -> Result<Query> {
                 "unrecognized term `{t}` — try field=value, group=FIELD, id=FAM, sort=KEY, top=N"
             );
         }
+    }
+    for flt in &q.filters {
+        validate_field(&flt.field, &flt.op)?;
     }
     Ok(q)
 }
@@ -3861,7 +3922,9 @@ fn short_id(id: &str) -> &str {
     &id[..id.len().min(10)]
 }
 
-/// One concise list/preview row: where the largest copy is + what it is.
+/// One concise list/preview row: where the largest copy is, what it is, and the **payoff
+/// economics** an agent needs to triage without opening the family — how much is shared,
+/// how many spots vary, how many lines an extraction removes (counts, not a verdict).
 fn query_row(f: &nose_detect::RefactorFamily) -> String {
     let l = &f.locations[0];
     let name = l
@@ -3870,10 +3933,14 @@ fn query_row(f: &nose_detect::RefactorFamily) -> String {
         .map(|n| format!("  {n}"))
         .unwrap_or_default();
     format!(
-        "{}:{}{name}  ({} copies · {})",
+        "{}:{}{name}  {} copies · {}/{} shared, {}p · ~{} removable · {}",
         l.file,
         l.start_line,
         f.members,
+        f.shared_lines,
+        representative_lines(f),
+        f.params,
+        removable_lines(f),
         witness_token(f.witness.as_ref().map(|w| w.kind))
     )
 }
@@ -3893,6 +3960,9 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
     };
     require_paths_exist(std::slice::from_ref(&path))?;
     let q = parse_query(&terms)?;
+    // The path as the user typed it — every suggested next-command echoes it so the links
+    // are runnable verbatim (the surface takes the path positionally).
+    let path_arg = path.to_string_lossy().into_owned();
     // Build the full dataset (all families); query filters/views work in-memory over it.
     let args = ScanArgs {
         paths: vec![path],
@@ -3929,25 +3999,42 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
     }
     let json = matches!(format, ReportFormat::Json);
     if terms.is_empty() {
-        render_query_dashboard(&dataset.families, &overrides, &dataset.scope, json);
+        render_query_dashboard(
+            &dataset.families,
+            &overrides,
+            &dataset.scope,
+            &path_arg,
+            json,
+        );
         return Ok(());
     }
     if let Some(idv) = &q.id {
-        render_query_family(&dataset.families, &overrides, idv, q.id_full, json);
+        render_query_family(
+            &dataset.families,
+            &overrides,
+            idv,
+            q.id_full,
+            &path_arg,
+            json,
+        );
         return Ok(());
     }
+    // Default to the curated default surface (the same families the dashboard counts and
+    // `scan` trusts); `all` or an explicit `surface=` filter widens to the raw universe.
+    let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
     let sel: Vec<&nose_detect::RefactorFamily> = dataset
         .families
         .iter()
         .filter(|f| {
-            q.filters
-                .iter()
-                .all(|flt| family_matches(f, &overrides, flt))
+            (widen || is_default_surface(f, &overrides))
+                && q.filters
+                    .iter()
+                    .all(|flt| family_matches(f, &overrides, flt))
         })
         .collect();
     match &q.group {
-        Some(field) => render_query_group(&sel, field, &terms),
-        None => render_query_list(&sel, &q, &terms),
+        Some(field) => render_query_group(&sel, field, &terms, &path_arg),
+        None => render_query_list(&sel, &overrides, &q, &terms, &path_arg, widen),
     }
     Ok(())
 }
@@ -3955,21 +4042,26 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
 /// The landing dashboard: what nose is, the dataset's shape, a few real candidates per
 /// slice with `id=` links, and the grammar — all self-describing so a nose-naive agent
 /// can act from this output alone.
+#[allow(clippy::too_many_lines)]
 fn render_query_dashboard(
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     scope: &ScanScope,
+    path: &str,
     json: bool,
 ) {
-    let def: Vec<&nose_detect::RefactorFamily> = families
+    let mut def: Vec<&nose_detect::RefactorFamily> = families
         .iter()
         .filter(|f| is_default_surface(f, ov))
         .collect();
+    // Production leads, test-scope ranked beneath — scan's #263/#264 ordering.
+    def.sort_by_key(|f| f.scope == "test");
     let count = |k: &str| {
         def.iter()
             .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind)) == k)
             .count()
     };
+    let n_test = def.iter().filter(|f| f.scope == "test").count();
     if json {
         let top: Vec<_> = def
             .iter()
@@ -3984,7 +4076,8 @@ fn render_query_dashboard(
                 "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
                     "copy_paste": count("copy-paste"), "similar": count("similar")},
                 "top_candidates": top,
-                "next": ["nose query sort=value", "nose query group=dir", "nose query witness=exact"],
+                "next": [format!("nose query {path} sort=value"), format!("nose query {path} group=dir"),
+                    format!("nose query {path} scope=prod"), format!("nose query {path} witness=exact")],
             })
         );
         return;
@@ -3992,26 +4085,38 @@ fn render_query_dashboard(
     println!("nose — finds duplicated & refactorable code across languages.");
     println!("{}", scope.summary());
     println!(
-        "\n{} duplicated-code families on the default surface.\n  by confidence: exact {} · subdag {} · copy-paste {} · similar {}\n                 (exact = proven-identical, value-graph-verified · similar = fuzzy match)",
+        "\n{} duplicated-code families on the default surface.\n  by confidence: exact {} · subdag {} · copy-paste {} · similar {}\n                 (exact/subdag = behavior-proven, value-graph-verified · copy-paste = token-identical · similar = fuzzy)",
         def.len(),
         count("exact"),
         count("subdag"),
         count("copy-paste"),
         count("similar"),
     );
-    println!("\ncleanest to extract:");
+    println!("\ncleanest to extract (production first):");
     for f in def.iter().take(3) {
         println!(
-            "  {}   nose query id={}",
+            "  {}   nose query {path} id={}",
             query_row(f),
             short_id(&baseline::family_id(f))
         );
     }
     println!(
-        "  nose query sort=value                # all {}, ranked",
+        "  nose query {path} sort=value                # all {} (default surface), ranked",
         def.len()
     );
+    if n_test > 0 && n_test < def.len() {
+        println!(
+            "  nose query {path} scope=prod                # production only ({n_test} test-scope ranked beneath)"
+        );
+    }
 
+    let kind_of = |k: &str| {
+        def.iter()
+            .filter(|f| f.witness.as_ref().map(|w| w.kind) == Some(k))
+            .count()
+    };
+    let n_exact = kind_of("exact-value-graph");
+    let n_subdag = kind_of("shared-sub-dag");
     let proven: Vec<_> = def
         .iter()
         .filter(|f| {
@@ -4023,17 +4128,23 @@ fn render_query_dashboard(
         .collect();
     if !proven.is_empty() {
         println!(
-            "\nproven-identical / shared-core ({}, highest confidence):",
-            proven.len()
+            "\nhighest confidence — exact {n_exact} (proven-identical) + shared-core {n_subdag}:"
         );
         for f in proven.iter().take(3) {
             println!(
-                "  {}   nose query id={}",
+                "  {}   nose query {path} id={}",
                 query_row(f),
                 short_id(&baseline::family_id(f))
             );
         }
-        println!("  nose query witness=exact             # the proven core");
+        if n_exact > 0 {
+            println!(
+                "  nose query {path} witness=exact             # the {n_exact} proven-identical"
+            );
+        }
+        if n_subdag > 0 {
+            println!("  nose query {path} witness=subdag            # the {n_subdag} shared-core");
+        }
     }
 
     // Most-duplicated directories.
@@ -4049,23 +4160,31 @@ fn render_query_dashboard(
     if !dirs.is_empty() {
         println!("\nmost-duplicated directories:");
         for (d, (_dup, n)) in dirs.iter().take(3) {
-            println!("  nose query path~{d:<28}   # {n} families");
+            println!("  nose query {path} path~{d}   # {n} families");
         }
-        println!("  nose query group=dir                 # full breakdown");
+        println!("  nose query {path} group=dir                 # full breakdown");
     }
     println!(
-        "\ngrammar:  nose query [field=value ...] [group=FIELD | id=FAM]\n          filter fields: scope witness lang path members files value params shared dir  ·  add `full` to id= to align all copies"
+        "\ngrammar:  nose query <path> [field=value | field>N | field~substr ...] [group=FIELD | id=FAM]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) lang path members files value params shared dir\n          · sort=value|members  · top=N  · `full` after id= aligns all copies  · `all` widens past the default surface"
     );
 }
 
 /// A ranked list of the current selection: each row carries its own `id=` drill link,
 /// plus a reasoned `next:`.
-fn render_query_list(sel: &[&nose_detect::RefactorFamily], q: &Query, terms: &[String]) {
+fn render_query_list(
+    sel: &[&nose_detect::RefactorFamily],
+    ov: &SurfaceOverrides,
+    q: &Query,
+    terms: &[String],
+    path: &str,
+    widen: bool,
+) {
     let top = q.top.unwrap_or(30);
     let shown = sel.len().min(top);
     println!(
-        "{} families{}:",
+        "{} families{}{}:",
         sel.len(),
+        if widen { " (full surface)" } else { "" },
         if shown < sel.len() {
             format!(" (showing {shown})")
         } else {
@@ -4073,8 +4192,17 @@ fn render_query_list(sel: &[&nose_detect::RefactorFamily], q: &Query, terms: &[S
         }
     );
     for f in sel.iter().take(top) {
+        // When widened past the default surface, label why a demoted family is here.
+        let surf = if widen {
+            match effective_surface(f, ov) {
+                "default" => String::new(),
+                s => format!(" [{s}]"),
+            }
+        } else {
+            String::new()
+        };
         println!(
-            "  {}   nose query id={}",
+            "  {}{surf}   nose query {path} id={}",
             query_row(f),
             short_id(&baseline::family_id(f))
         );
@@ -4083,15 +4211,23 @@ fn render_query_list(sel: &[&nose_detect::RefactorFamily], q: &Query, terms: &[S
     if !terms.iter().any(|t| t.starts_with("group=")) {
         println!(
             "  {} group=dir       # where this selection concentrates",
-            base_cmd(terms)
+            base_cmd(terms, path)
         );
     }
-    println!("  {} group=witness   # by confidence", base_cmd(terms));
+    println!(
+        "  {} group=witness   # by confidence",
+        base_cmd(terms, path)
+    );
 }
 
 /// Facet the current selection by a discrete field, with a top exemplar per bucket and
 /// the "see all" command for each.
-fn render_query_group(sel: &[&nose_detect::RefactorFamily], field: &str, terms: &[String]) {
+fn render_query_group(
+    sel: &[&nose_detect::RefactorFamily],
+    field: &str,
+    terms: &[String],
+    path: &str,
+) {
     use std::collections::HashMap;
     let key = |f: &nose_detect::RefactorFamily| -> String {
         match field {
@@ -4124,9 +4260,9 @@ fn render_query_group(sel: &[&nose_detect::RefactorFamily], field: &str, terms: 
         .map(String::as_str)
         .collect();
     let base = if other.is_empty() {
-        "nose query".to_string()
+        format!("nose query {path}")
     } else {
-        format!("nose query {}", other.join(" "))
+        format!("nose query {path} {}", other.join(" "))
     };
     for (k, (n, ex)) in &rows {
         println!("  {k:<16} ({n:>3})  e.g. {ex}");
@@ -4141,6 +4277,7 @@ fn render_query_family(
     _ov: &SurfaceOverrides,
     idv: &str,
     full: bool,
+    path: &str,
     json: bool,
 ) {
     let Some(f) = families
@@ -4169,11 +4306,15 @@ fn render_query_family(
         return;
     }
     println!(
-        "{} — {} · {} · {} copies",
+        "{} — {} · {} · {} copies · {}/{} shared, {}p · ~{} removable",
         short_id(&id),
         witness_token(f.witness.as_ref().map(|w| w.kind)),
         f.scope,
-        f.members
+        f.members,
+        f.shared_lines,
+        representative_lines(f),
+        f.params,
+        removable_lines(f),
     );
     println!("  → {}", family_hint(f));
     println!("  copies:");
@@ -4192,34 +4333,34 @@ fn render_query_family(
         print_member_proposal(&f.locations);
     } else if f.locations.len() > 2 {
         println!(
-            "    nose query id={} full   # align the extraction across all {} copies",
+            "    nose query {path} id={} full   # align the extraction across all {} copies",
             short_id(&id),
             f.members
         );
     }
     println!("\nnext:");
     println!(
-        "  nose query path~{}   # other duplication in this directory",
+        "  nose query {path} path~{}   # other duplication in this directory",
         family_dir(f)
     );
     println!(
-        "  nose query witness={}   # other families of the same confidence",
+        "  nose query {path} witness={}   # other families of the same confidence",
         witness_token(f.witness.as_ref().map(|w| w.kind))
     );
 }
 
 /// `nose query` with the current selection's terms minus any view term — the prefix the
 /// `next:` links extend.
-fn base_cmd(terms: &[String]) -> String {
+fn base_cmd(terms: &[String], path: &str) -> String {
     let keep: Vec<&str> = terms
         .iter()
         .filter(|t| !t.starts_with("group=") && !t.starts_with("id=") && *t != "full")
         .map(String::as_str)
         .collect();
     if keep.is_empty() {
-        "nose query".to_string()
+        format!("nose query {path}")
     } else {
-        format!("nose query {}", keep.join(" "))
+        format!("nose query {path} {}", keep.join(" "))
     }
 }
 
