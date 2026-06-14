@@ -42,6 +42,68 @@ fn nose_review(dir: &Path, extra: &[&str]) -> std::process::Output {
         .expect("run nose review")
 }
 
+fn nose_query_in(dir: &Path, extra: &[&str]) -> std::process::Output {
+    let mut args = vec!["query", "."];
+    args.extend_from_slice(extra);
+    Command::new(bin())
+        .current_dir(dir)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_OBJECT_DIRECTORY")
+        .env_remove("GIT_COMMON_DIR")
+        .args(&args)
+        .output()
+        .expect("run nose query")
+}
+
+#[test]
+fn query_base_flags_divergent_edits_like_review() {
+    // `nose query . base=<ref>` is the review pipeline surfaced under query: detect at the
+    // ref, flag a clone changed in one copy but not its siblings, gate on the proven case.
+    let dir = make_project("query_base");
+    init_git_repo(&dir);
+    let a = dir.join("a/f.py");
+    let src = fs::read_to_string(&a).unwrap();
+    fs::write(
+        &a,
+        src.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+
+    let out = nose_query_in(&dir, &["base=main", "--min-size", "8"]);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("divergent") && stdout.contains("a/f.py") && stdout.contains("b/f.py"),
+        "base= names the changed copy and the un-updated sibling: {stdout}"
+    );
+
+    let jout = nose_query_in(&dir, &["base=main", "--min-size", "8", "--format", "json"]);
+    let j: serde_json::Value = serde_json::from_slice(&jout.stdout).unwrap();
+    assert_eq!(j["view"], "base", "v2 envelope, base view: {j}");
+    assert_eq!(j["base"], "main");
+    assert!(
+        j["summary"]["divergences"].as_u64().unwrap() >= 1,
+        "at least one divergence: {j}"
+    );
+    assert!(
+        j["items"][0]["fire_eligible"].is_boolean(),
+        "items carry the §BV fire verdict: {j}"
+    );
+
+    // `--fail-on any` over base= fires on the conservative (shared-logic) policy.
+    let gated = nose_query_in(&dir, &["base=main", "--min-size", "8", "--fail-on", "any"]);
+    assert!(
+        !gated.status.success(),
+        "base= --fail-on any exits non-zero on a proven divergence"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn review_flags_a_clone_changed_in_one_copy_only() {
     let dir = make_project("review_flag");

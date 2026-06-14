@@ -42,8 +42,12 @@ deprecated.** All changes below are staged; the release is not yet cut.
     `status=new` filter, `group=status` facet, `status` in JSON. Unlike `--baseline` (which
     hides accepted families for the gate), `since=` hides nothing; `since=B status=new
     --fail-on any` is the composable equivalent of `--baseline B --fail-on new`.
-
-### Changed (breaking)
+  - **Divergent-edit view — `base=<git-ref>`:** the [`nose review`](docs/review.md) pipeline
+    surfaced under query. Detects families at the ref and flags the ones a diff changed in one
+    copy but not its siblings (a likely un-propagated fix), each item carrying `fire_eligible`
+    (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate, firing only
+    on the proven case. Reuses review's detection verbatim, so the fire precision is identical
+    — the first step of folding `review` into `query` (deprecation to follow once at parity).
 - **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run
   prints a one-line nudge); `capabilities` moves it from `commands.stable` to
   `commands.deprecated`; docs lead with `query`. Removal is slated for a later release.

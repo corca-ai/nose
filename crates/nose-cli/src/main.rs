@@ -3755,6 +3755,10 @@ struct Query {
     /// `since=<baseline>` — compare the dataset to a saved snapshot and expose each family's
     /// `status` (new/changed/unchanged) as a queryable field (temporal lens, not a gate).
     since: Option<String>,
+    /// `base=<git-ref>` — the divergent-edit view: detect families at that ref and flag the
+    /// ones a diff changed in one copy but not its siblings (the `nose review` pipeline,
+    /// surfaced in query). A distinct entity (a divergence), so it's its own view.
+    base: Option<String>,
 }
 
 enum QOp {
@@ -3887,6 +3891,8 @@ fn parse_query(terms: &[String]) -> Result<Query> {
             q.at = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("since=") {
             q.since = Some(v.to_string());
+        } else if let Some(v) = t.strip_prefix("base=") {
+            q.base = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("sort=") {
             q.sort = Some(parse_sort_key(v).ok_or_else(|| {
                 anyhow::anyhow!("unknown sort key `{v}` (extractability|value|sites|hazard)")
@@ -4356,6 +4362,124 @@ fn query_selection<'a>(
         .collect())
 }
 
+/// The `base=<git-ref>` view: divergent edits (a clone changed in one copy but not its
+/// siblings) detected at the ref by the `nose review` pipeline, surfaced under query. Reuses
+/// review's detection verbatim — so the §BV fire precision is preserved by construction — and
+/// gates with the same conservative shared-logic policy.
+fn run_query_base(args: &ScanArgs, base_ref: &str, q: &Query, path_arg: &str) -> Result<()> {
+    // `base=` gates on a diff against a ref, not a saved baseline — `--fail-on new` (which
+    // needs `--baseline`) is meaningless here.
+    if matches!(args.fail_on, Some(FailOn::New)) {
+        anyhow::bail!(
+            "`base=` gates on a diff, not a baseline — use `--fail-on any` (fires on a proven divergence)"
+        );
+    }
+    let review_args = review::ReviewArgs {
+        paths: args.paths.clone(),
+        base: base_ref.to_string(),
+        mode: args.mode.clone(),
+        min_size: args.min_size,
+        min_lines: args.min_lines,
+        exclude: args.exclude.clone(),
+        config: args.config.clone(),
+        ignore_file: args.ignore_file.clone(),
+        format: args.format,
+        top: q.top,
+        fail: false,
+        fail_on: review::ReviewFailOn::default(),
+    };
+    let (flagged, changed_files) = review::detect_divergences(&review_args)?.unwrap_or_default();
+    let json = matches!(args.format, ReportFormat::Json);
+    render_query_base(&flagged, changed_files, base_ref, path_arg, q.top, json);
+    // The gate fires on the §BV conservative policy (a proven shared-logic divergence) — the
+    // only sane CI default — reused verbatim from review so the fire decision is identical.
+    if matches!(args.fail_on, Some(FailOn::Any))
+        && review::divergences_fire(&flagged, review::ReviewFailOn::SharedLogic)
+    {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+/// Render the `base=` divergence view: query's v2 envelope around review's shared finding
+/// JSON, or a concise human report keyed on which copy changed and whether the edit touched
+/// shared logic (the propagation hazard).
+fn render_query_base(
+    flagged: &[review::Divergence],
+    changed_files: usize,
+    base_ref: &str,
+    path: &str,
+    top: Option<usize>,
+    json: bool,
+) {
+    let limit = top.unwrap_or(30);
+    let fire_eligible = flagged.iter().filter(|d| d.fire_eligible).count();
+    if json {
+        let items: Vec<_> = review::divergence_items_json(flagged)
+            .into_iter()
+            .take(limit)
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "schema_version": QUERY_JSON_SCHEMA_VERSION,
+                "tool": "nose",
+                "view": "base",
+                "path": path,
+                "base": base_ref,
+                "summary": {
+                    "changed_files": changed_files,
+                    "divergences": flagged.len(),
+                    "fire_eligible": fire_eligible,
+                },
+                "items": items,
+                "next": [format!("nose query {path} base={base_ref} --fail-on any")],
+            })
+        );
+        return;
+    }
+    if flagged.is_empty() {
+        println!("no divergent edits vs `{base_ref}` ({changed_files} files changed).");
+        return;
+    }
+    println!(
+        "{} divergent {} vs `{base_ref}` ({changed_files} files changed; {fire_eligible} touch shared logic):",
+        flagged.len(),
+        if flagged.len() == 1 { "family" } else { "families" },
+    );
+    let site = |s: &review::Site| {
+        let name = s
+            .name
+            .as_deref()
+            .map(|n| format!("  {n}"))
+            .unwrap_or_default();
+        format!("{}:{}-{}{name}", s.file, s.start_line, s.end_line)
+    };
+    for d in flagged.iter().take(limit) {
+        let propagation = if d.fire_eligible {
+            "shared-logic (likely missed propagation)"
+        } else {
+            "span-only (edit stayed in the varying spots)"
+        };
+        println!(
+            "  {}  {} · {} · {propagation}",
+            short_id(&d.family_id),
+            witness_token(d.witness_kind),
+            d.scope,
+        );
+        for s in &d.changed {
+            println!("    changed:      {}", site(s));
+        }
+        for s in &d.not_updated {
+            println!("    not updated:  {}", site(s));
+        }
+    }
+    println!("\nnext:");
+    println!(
+        "  nose query {path} base={base_ref} --fail-on any   # fail CI on a proven divergence"
+    );
+}
+
 #[allow(clippy::too_many_lines)] // a flat command dispatcher: dashboard / at= / id= / group / list
 fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let Cmd::Query {
@@ -4410,6 +4534,11 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         anyhow::bail!(
             "--fail-on new requires --baseline (it gates on families new vs the baseline)"
         );
+    }
+    // `base=<git-ref>` is the divergent-edit view (the `nose review` pipeline): it detects at
+    // the ref, not the working tree, so it short-circuits the working-tree dataset entirely.
+    if let Some(base_ref) = &q.base {
+        return run_query_base(&args, base_ref, &q, &path_arg);
     }
     let refs = paths_as_refs(&args.paths);
     let mut dataset = build_scan_dataset(&args, &refs)?;

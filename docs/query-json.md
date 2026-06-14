@@ -43,6 +43,13 @@ object; with `full`, that object carries `skeleton`.
 `{helper {name,file,start,end}, site {file,container,container_start,container_end,start,end},
 value, approximate}` — code that reimplements an existing helper; the action is "call it".
 
+**`base`** (`base=<git-ref>`) — the divergent-edit view (the [`nose review`](review.md)
+pipeline). `base` (the ref), `summary` (`changed_files`, `divergences`, `fire_eligible`), and
+`items[]` of `{family_id, similarity, scope, witness_kind, fire_eligible, graded, changed[],
+not_updated[]}` — each `changed`/`not_updated` site carries `{file, name, start_line, end_line,
+…, touches_shared}`. `fire_eligible` is the §BV proven-shared-logic verdict the gate fires on.
+This is the same per-finding shape as `review --format json`.
+
 ## The family object
 
 | field | meaning |

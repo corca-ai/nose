@@ -224,7 +224,7 @@ unchanged. With `--format json` every view emits the structured, versioned
 [query-JSON v2 contract](query-json.md).
 
 ```text
-nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented] [since=FILE] [sort=KEY] [top=N] [full] [all]
+nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented | base=REF] [since=FILE] [sort=KEY] [top=N] [full] [all]
 ```
 
 | part | meaning |
@@ -234,6 +234,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, fold-graph links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
+| `base=REF` | the **divergent-edit** view (the [`nose review`](review.md) pipeline, surfaced in query): detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. Each item carries `fire_eligible` (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate (fires only on the proven case) |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status=new --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
 | `top=N` | show the first N rows (default 30) |

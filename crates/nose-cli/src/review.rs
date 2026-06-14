@@ -50,72 +50,70 @@ pub(crate) enum ReviewFailOn {
 }
 
 /// A flagged family: a clone whose copies were edited apart in this change set. Locations
-/// are repo-relative (the report navigates the real working tree).
-struct Divergence {
-    family_id: String,
-    similarity: f64,
-    hazard: f64,
-    review_priority: u8,
-    complexity: usize,
+/// are repo-relative (the report navigates the real working tree). `pub(crate)` so the
+/// `nose query <paths> base=<ref>` view renders the same findings (the review/query
+/// unification): query reuses this exact detection, preserving §BV fire precision.
+pub(crate) struct Divergence {
+    pub(crate) family_id: String,
+    pub(crate) similarity: f64,
+    pub(crate) hazard: f64,
+    pub(crate) review_priority: u8,
+    pub(crate) complexity: usize,
     /// Family scope: `prod` / `test` / `mixed` (test scaffolding fires differently).
-    scope: &'static str,
+    pub(crate) scope: &'static str,
     /// The family's equivalence-witness kind (`exact-value-graph`,
     /// `copy-paste-run`, `shared-sub-dag`, `structural-similarity`).
-    witness_kind: Option<&'static str>,
+    pub(crate) witness_kind: Option<&'static str>,
     /// The #245 conservative gate verdict: some changed member PROVABLY touches
     /// lines it shares with an un-updated sibling. `--fail` fires only on these;
     /// `--fail-on any` restores span-overlap firing.
-    fire_eligible: bool,
+    pub(crate) fire_eligible: bool,
     /// The near family's graded equivalence witness (#315), when present — evidence
     /// for the consumer to judge a fire: a clean `equal_modulo_holes` family is a
     /// strong missed-propagation candidate, while `referent_mismatches` /
     /// `decorator-differs` mark a family whose copies are not really the same logic
     /// (a likely false fire). It does NOT gate `fire_eligible` (that would risk
     /// dropping a genuine shared-body propagation).
-    graded: Option<nose_detect::GradedWitness>,
+    pub(crate) graded: Option<nose_detect::GradedWitness>,
     /// Members whose base span was changed by the diff (the edit landed here).
-    changed: Vec<Site>,
+    pub(crate) changed: Vec<Site>,
     /// Sibling members the change did *not* touch (where it may be missing).
-    not_updated: Vec<Site>,
+    pub(crate) not_updated: Vec<Site>,
 }
 
 #[derive(Clone)]
-struct Site {
-    file: String,
-    name: Option<String>,
-    start_line: u32,
-    end_line: u32,
-    lang: String,
-    kind: nose_il::UnitKind,
-    span_lines: u32,
-    span_tokens: usize,
-    is_fragment: bool,
-    fragment_kind: Option<FragmentKind>,
-    reason_code: Option<&'static str>,
-    enclosing_unit: Option<EnclosingUnit>,
+pub(crate) struct Site {
+    pub(crate) file: String,
+    pub(crate) name: Option<String>,
+    pub(crate) start_line: u32,
+    pub(crate) end_line: u32,
+    pub(crate) lang: String,
+    pub(crate) kind: nose_il::UnitKind,
+    pub(crate) span_lines: u32,
+    pub(crate) span_tokens: usize,
+    pub(crate) is_fragment: bool,
+    pub(crate) fragment_kind: Option<FragmentKind>,
+    pub(crate) reason_code: Option<&'static str>,
+    pub(crate) enclosing_unit: Option<EnclosingUnit>,
     /// For CHANGED sites: does the diff touch lines this member shares with an
     /// un-updated sibling? `Some(false)` = the edit stayed inside this member's
     /// varying spots; `None` = unprovable (unreadable source / capped diff) or a
     /// not-updated site.
-    touches_shared: Option<bool>,
+    pub(crate) touches_shared: Option<bool>,
 }
 
-pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
+/// The detection half of `review`, split out so the `nose query base=<ref>` view reuses it
+/// verbatim (the unification). Returns the flagged divergences plus how many files changed;
+/// `None` when there is nothing to review (an adds-only / empty diff). The temporary base
+/// worktree is created and torn down inside — the returned `Divergence`s own their data.
+pub(crate) fn detect_divergences(args: &ReviewArgs) -> Result<Option<(Vec<Divergence>, usize)>> {
     let root = git_repo_root().context(
-        "nose review needs a git repository — it compares the working tree to a git ref",
+        "nose needs a git repository to compare the working tree to a git ref (`base=`/`--base`)",
     )?;
     let changed = git_changed_ranges(&root, &args.base, &args.paths)?;
     if changed.is_empty() {
-        // Nothing reviewable (e.g. an adds-only diff), but the machine formats
-        // must still emit their contract — a JSON consumer parses stdout.
-        match args.format {
-            ReportFormat::Json => println!("{}", review_json(&[], &args.base, 0)?),
-            ReportFormat::Sarif => println!("{}", review_sarif(&[])?),
-            _ => println!("no changes vs `{}` — nothing to review.", args.base),
-        }
-        return Ok(());
+        return Ok(None);
     }
-
     // Detect clone families at the base, where every copy is still intact. A temporary
     // worktree gives the base tree on disk without disturbing the user's working tree.
     let base_tree = BaseWorktree::create(&root, &args.base)?;
@@ -128,7 +126,7 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
     let families = crate::detect_families(
         &base_paths,
         &exclude,
-        args.mode,
+        args.mode.clone(),
         cfg.mode,
         min_tokens,
         min_lines,
@@ -159,22 +157,37 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
 
     // base_tree is removed by Drop after we finish reading families.
     drop(base_tree);
+    Ok(Some((flagged, changed.len())))
+}
 
-    let changed_files = changed.len();
+/// Whether a flagged set fires the gate under the given policy — shared by `review --fail`
+/// and `query base=<ref> --fail-on` so both gate identically.
+pub(crate) fn divergences_fire(flagged: &[Divergence], fail_on: ReviewFailOn) -> bool {
+    match fail_on {
+        ReviewFailOn::SharedLogic => flagged.iter().any(|d| d.fire_eligible),
+        ReviewFailOn::Any => !flagged.is_empty(),
+    }
+}
+
+pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
+    let Some((flagged, changed_files)) = detect_divergences(&args)? else {
+        // Nothing reviewable (e.g. an adds-only diff), but the machine formats
+        // must still emit their contract — a JSON consumer parses stdout.
+        match args.format {
+            ReportFormat::Json => println!("{}", review_json(&[], &args.base, 0)?),
+            ReportFormat::Sarif => println!("{}", review_sarif(&[])?),
+            _ => println!("no changes vs `{}` — nothing to review.", args.base),
+        }
+        return Ok(());
+    };
     match args.format {
         ReportFormat::Json => println!("{}", review_json(&flagged, &args.base, changed_files)?),
         ReportFormat::Sarif => println!("{}", review_sarif(&flagged)?),
         _ => print_review_human(&flagged, &args.base, changed_files, args.top.unwrap_or(30)),
     }
 
-    if args.fail {
-        let fires = match args.fail_on {
-            ReviewFailOn::SharedLogic => flagged.iter().any(|d| d.fire_eligible),
-            ReviewFailOn::Any => !flagged.is_empty(),
-        };
-        if fires {
-            std::process::exit(1);
-        }
+    if args.fail && divergences_fire(&flagged, args.fail_on) {
+        std::process::exit(1);
     }
     Ok(())
 }
@@ -697,7 +710,10 @@ fn print_review_human(flagged: &[Divergence], base: &str, changed_files: usize, 
     }
 }
 
-fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Result<String> {
+/// The flagged divergences as JSON objects — shared by `review --format json` and the
+/// `nose query base=<ref>` view, so the two serialize each finding identically (one contract,
+/// reachable from either surface during the unification).
+pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::Value> {
     use serde_json::json;
     let site = |s: &Site| {
         json!({
@@ -713,7 +729,7 @@ fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Resu
             "touches_shared": s.touches_shared,
         })
     };
-    let items: Vec<_> = flagged
+    flagged
         .iter()
         .map(|d| {
             json!({
@@ -728,14 +744,18 @@ fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Resu
                 "not_updated": d.not_updated.iter().map(&site).collect::<Vec<_>>(),
             })
         })
-        .collect();
+        .collect()
+}
+
+fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Result<String> {
+    use serde_json::json;
     Ok(serde_json::to_string_pretty(&json!({
         "schema_version": 1,
         "tool_version": env!("CARGO_PKG_VERSION"),
         "base": base,
         "changed_files": changed_files,
         "inconsistent_families": flagged.len(),
-        "findings": items,
+        "findings": divergence_items_json(flagged),
     }))?)
 }
 
