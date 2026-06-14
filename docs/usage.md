@@ -36,6 +36,11 @@ from-source `./target/release/nose`.
 
 ## `nose scan`
 
+> **Deprecated** (since 0.10.0) in favour of [`nose query`](#nose-query), which reads the
+> same dataset and now carries the analysis flags, the `--fail-on`/`--baseline` gate, and a
+> structured versioned [`--format json`](query-json.md) contract. `scan` still works (an
+> interactive run prints a one-line nudge); it will be removed in a later release.
+
 `nose scan <paths…>` scans one or more files/directories (recursively, respecting
 `.gitignore` files inside each scanned tree), groups duplicated code into **families**, and
 ranks them by **extractability** — how cleanly each family folds into one shared helper — so the
