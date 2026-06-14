@@ -1848,8 +1848,8 @@ fn proposal_shows_shared_skeleton_and_parameters() {
         "should report parameters: {out}"
     );
     assert!(
-        out.contains("⟨param 1⟩"),
-        "should show a parameter placeholder: {out}"
+        out.contains("⟨param 1:"),
+        "should show a parameter placeholder with a value-class hint: {out}"
     );
     let _ = fs::remove_dir_all(&dir);
 }
@@ -1885,8 +1885,8 @@ fn proposal_aligns_across_all_copies() {
         "proposal must align across all 3 copies: {out}"
     );
     assert!(
-        out.contains("⟨param 1⟩"),
-        "the varying operator line is a parameter: {out}"
+        out.contains("⟨param 1:"),
+        "the varying operator line is a parameter (with a class hint): {out}"
     );
     let _ = fs::remove_dir_all(&dir);
 }

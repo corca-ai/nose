@@ -32,6 +32,11 @@ deprecated.** All changes below are staged; the release is not yet cut.
     (`subsumes`/`subsumed_by` — the related `id=` handles, not just a count), and a new
     `reinvented` view surfaces the reinvented-helper channel ("call the existing helper") that
     was previously `scan --show reinvented` only.
+  - **Decision completeness — act in one turn:** `full` skeletons annotate each varying spot
+    with a coarse value-class hint (`⟨param N: literal|name|call|expr|block⟩`) for the helper
+    signature (#374 item 6), and the family object carries proof depth — `value_nodes` (the
+    shared value-multiset size an exact family proves identical) and per-location
+    `shared_subdag` spans (where a sub-dag clone's proven shared computation lives).
 
 ### Changed (breaking)
 - **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run

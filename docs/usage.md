@@ -236,7 +236,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
 | `top=N` | show the first N rows (default 30) |
-| `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched) |
+| `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 
 Fields: `scope` (prod\|test\|mixed), `witness` (exact\|subdag\|copy-paste\|similar),

@@ -4193,6 +4193,11 @@ fn query_family_json(
             if helper.is_some_and(|h| std::ptr::eq(h, l)) {
                 o["role"] = serde_json::Value::from("existing-helper");
             }
+            // For a shared-sub-dag (partial) clone, where the proven shared computation lives
+            // at this site — so the caller can see what is provably equal, not just the unit.
+            if let Some((s, e)) = l.shared_subdag {
+                o["shared_subdag"] = serde_json::json!([s, e]);
+            }
             o
         })
         .collect();
@@ -4214,6 +4219,12 @@ fn query_family_json(
         "folds": opp.slices(f).map(<[_]>::len).unwrap_or(0),
         "locations": locations,
     });
+    // Proof depth: for the exact channel, how much is proven identical — the size of the shared
+    // value multiset. Lets a caller act now on the strongest evidence (subdag families carry the
+    // proven span per location instead). Evidence, not a verdict.
+    if let Some(n) = f.witness.as_ref().and_then(|w| w.value_nodes) {
+        obj["value_nodes"] = serde_json::Value::from(n);
+    }
     // Fold-graph navigation: the actual related family ids, not just a count — so a caller can
     // jump to the fuller overlapping family or open the slices it subsumes (HATEOAS).
     let id = baseline::family_id(f);
@@ -6907,22 +6918,61 @@ fn anti_unify_all(members: &[Vec<String>]) -> (Vec<String>, u32, u32) {
     let mut skeleton: Vec<String> = Vec::new();
     let mut shared = 0u32;
     let mut params = 0u32;
-    let mut in_hole = false;
-    let mut indent = "";
+    // The open hole, if any: (the skeleton slot to fill once it closes, the placeholder
+    // indent, and the anchor lines that vary across it — kept so the placeholder can carry a
+    // value-class hint for the helper signature, #374 item 6).
+    let mut hole: Option<(usize, &str, Vec<&str>)> = None;
     for (line, &kept) in anchor.iter().zip(&survive) {
         if kept {
-            in_hole = false;
+            if let Some((slot, indent, lines)) = hole.take() {
+                skeleton[slot] = format!("{indent}⟨param {params}: {}⟩", classify_param(&lines));
+            }
             shared += 1;
-            // remember the indentation to align the placeholder
-            indent = &line[..line.len() - line.trim_start().len()];
             skeleton.push((*line).to_string());
-        } else if !in_hole {
-            in_hole = true;
-            params += 1;
-            skeleton.push(format!("{indent}⟨param {params}⟩"));
+        } else {
+            match &mut hole {
+                Some((_, _, lines)) => lines.push(line),
+                None => {
+                    params += 1;
+                    let indent = &line[..line.len() - line.trim_start().len()];
+                    let slot = skeleton.len();
+                    skeleton.push(String::new());
+                    hole = Some((slot, indent, vec![line]));
+                }
+            }
         }
     }
+    if let Some((slot, indent, lines)) = hole.take() {
+        skeleton[slot] = format!("{indent}⟨param {params}: {}⟩", classify_param(&lines));
+    }
     (skeleton, shared, params)
+}
+
+/// A coarse value-class for one skeleton hole, from its (line-granularity) varying text — a
+/// signature hint for the extracted helper, not a proof: `literal` (a constant → a value
+/// parameter), `name` (a bare identifier), `call` (a call expression → maybe a closure/fn
+/// parameter), `block` (a multi-line region → a large or divergent parameter), or `expr`
+/// (anything else single-line).
+fn classify_param(lines: &[&str]) -> &'static str {
+    if lines.len() > 1 {
+        return "block";
+    }
+    let t = lines.first().map_or("", |s| s.trim());
+    let Some(first) = t.chars().next() else {
+        return "expr";
+    };
+    if first.is_ascii_digit() || matches!(first, '"' | '\'' | '`') {
+        "literal"
+    } else if t.ends_with(')') && t.contains('(') {
+        "call"
+    } else if t
+        .chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.'))
+    {
+        "name"
+    } else {
+        "expr"
+    }
 }
 
 /// The invariant (shared) source lines across a family, plus the parameter count — the
@@ -7875,6 +7925,49 @@ mod tests {
             jb["subsumed_by"],
             serde_json::Value::from(short_id(&baseline::family_id(&a))),
             "slice points at its primary: {jb}"
+        );
+    }
+
+    #[test]
+    fn classify_param_hints_value_class() {
+        assert_eq!(classify_param(&["  42"]), "literal");
+        assert_eq!(classify_param(&["\"hello\""]), "literal");
+        assert_eq!(classify_param(&["foo.bar"]), "name");
+        assert_eq!(classify_param(&["compute(x, y)"]), "call");
+        assert_eq!(classify_param(&["a + b * c"]), "expr");
+        assert_eq!(classify_param(&["line one", "line two"]), "block");
+        assert_eq!(classify_param(&[]), "expr");
+    }
+
+    #[test]
+    fn query_family_json_carries_proof_depth() {
+        let ov = SurfaceOverrides {
+            generated_sources: std::collections::HashSet::new(),
+            declaration_run_ids: std::collections::HashSet::new(),
+        };
+        let empty = OpportunityGroups::default();
+        // Exact channel: how much is proven identical (the shared value-multiset size).
+        let mut exact = fam(1, 2, &[Some("a"), Some("b")]);
+        exact.witness = Some(nose_detect::EquivalenceWitness {
+            kind: "exact-value-graph",
+            value_nodes: Some(12),
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+            graded: None,
+        });
+        let je = query_family_json(&exact, &ov, &empty, false);
+        assert_eq!(
+            je["value_nodes"], 12,
+            "exact family carries value_nodes: {je}"
+        );
+        // Sub-dag channel: the proven shared-computation span per location.
+        let mut sub = fam(1, 2, &[Some("c"), Some("d")]);
+        sub.locations[0].shared_subdag = Some((10, 14));
+        let js = query_family_json(&sub, &ov, &empty, false);
+        assert_eq!(
+            js["locations"][0]["shared_subdag"],
+            serde_json::json!([10, 14]),
+            "location carries the proven shared-subdag span: {js}"
         );
     }
 

@@ -62,11 +62,12 @@ value, approximate}` — code that reimplements an existing helper; the action i
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
 | `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
 | `spotclass` | (only on enriched near families) `leaf-only` (varying spots are clean value-leaves) \| `structural` (a shape/arity/referent divergence — genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
+| `value_nodes` | (exact families) the size of the shared value multiset proven identical — *how much* is proven, not just that it is |
 | `folds` | count of overlapping slice families folded under this one |
 | `subsumes` | (in the `family` view) the `id=` handles of the slice families this one subsumes — open any to inspect |
 | `subsumed_by` | (in the `family` view) the `id=` handle of the fuller overlapping family this one is a slice of |
-| `locations[]` | every copy: `{file, start, end, name, lang}`; the `existing_helper` member also carries `role: "existing-helper"` |
-| `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, `⟨param N⟩` for varying spots |
+| `locations[]` | every copy: `{file, start, end, name, lang}`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
+| `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, each varying spot a `⟨param N: class⟩` placeholder (`class` = `literal`/`name`/`call`/`expr`/`block` — a coarse value-class hint for the helper signature) |
 
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel
 judgment is the caller's ([design §2](design.md)). See the [agent-recipe](agent-recipe.md) for
