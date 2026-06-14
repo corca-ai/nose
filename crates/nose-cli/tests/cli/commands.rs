@@ -2037,6 +2037,45 @@ fn query_dashboard_filter_and_family() {
         "id=…full json carries skeleton: {opened}"
     );
 
+    // spotclass (#374 item 2): the near family's only varying spot is the operator — a clean
+    // value-leaf — so it grades `leaf-only`. Grouping/filtering by spotclass triggers the
+    // on-demand graded-witness enrichment (skipped on the common path for cost).
+    assert!(
+        run(&["query", p, "group=spotclass"]).contains("by spotclass"),
+        "group=spotclass facets the near families"
+    );
+    let leaf: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        p,
+        "spotclass=leaf-only",
+        "--format",
+        "json",
+    ]))
+    .unwrap();
+    assert_eq!(
+        leaf["families"][0]["spotclass"], "leaf-only",
+        "the operator-varying near family grades leaf-only: {leaf}"
+    );
+    assert!(run_fail(&["query", p, "spotclass=bogus"]).contains("unknown spotclass value"));
+
+    // Report formats (#374 + scan parity): query reuses scan's markdown and SARIF formatters
+    // over the selected family set.
+    let md = run(&["query", p, "--format", "markdown"]);
+    assert!(
+        md.contains("duplicated lines"),
+        "markdown report has the header: {md}"
+    );
+    let sarif: serde_json::Value =
+        serde_json::from_str(&run(&["query", p, "--format", "sarif"])).unwrap();
+    assert_eq!(
+        sarif["version"], "2.1.0",
+        "query emits a SARIF 2.1.0 doc: {sarif}"
+    );
+    assert!(
+        sarif["runs"][0]["results"].is_array(),
+        "SARIF has a results array: {sarif}"
+    );
+
     let _ = fs::remove_dir_all(&dir);
 }
 

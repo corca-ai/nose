@@ -230,7 +230,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] 
 | part | meaning |
 |---|---|
 | `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a whole directory) |
-| `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`, `same_symbol`), with a count and an exemplar per bucket |
+| `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`), with a count and an exemplar per bucket |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, and navigation links |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
@@ -240,10 +240,17 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] 
 
 Fields: `scope` (prod\|test\|mixed), `witness` (exact\|subdag\|copy-paste\|similar),
 `same_symbol` (true\|false — every copy is the same named symbol, the parallel-variant
-signature), `lang`, `path`, `dir`, `members`, `files`, `value`, `params`, `shared`. Every row shows
-the payoff economics — `M/REP shared, Pp · ~N removable` — so a candidate can be triaged
-without opening it. Each result is a pure function of (repo state, command); an unknown
-field or enum value is a hard error (so a typo can't read as "no duplication").
+signature), `spotclass` (leaf-only\|structural — for near families, whether the varying spots
+are clean value-leaves to parameterize or genuine logic divergence), `lang`, `path`, `dir`,
+`members`, `files`, `value`, `params`, `shared`. Every row shows the payoff economics —
+`M/REP shared, Pp · ~N removable` — so a candidate can be triaged without opening it. Each
+result is a pure function of (repo state, command); an unknown field or enum value is a hard
+error (so a typo can't read as "no duplication").
+
+`spotclass` reads the [graded witness](graded-witness.md), which is presentation-layer
+enrichment (the dominant scan cost), so `query` computes it **on demand** — only when a term
+filters or groups by `spotclass`. The common query path pays nothing; a `spotclass=` /
+`group=spotclass` query re-derives the witness for the near families first.
 
 A typical loop: `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 

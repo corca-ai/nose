@@ -55,8 +55,10 @@ object; with `full`, that object carries `skeleton`.
 | `value` | the raw duplicated-volume score |
 | `extraction_shape` | the decidable fix shape (`extract-helper`, `call-existing-helper`, …) |
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
+| `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
+| `spotclass` | (only on enriched near families) `leaf-only` (varying spots are clean value-leaves) \| `structural` (a shape/arity/referent divergence — genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
 | `folds` | overlapping slice families folded under this one |
-| `locations[]` | every copy: `{file, start, end, name, lang}` |
+| `locations[]` | every copy: `{file, start, end, name, lang}`; the `existing_helper` member also carries `role: "existing-helper"` |
 | `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, `⟨param N⟩` for varying spots |
 
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel
