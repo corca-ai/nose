@@ -937,6 +937,7 @@ impl CapabilitiesReport {
                 stable: vec![
                     "capabilities",
                     "il",
+                    "query",
                     "review",
                     "scan",
                     "semantic-pack",

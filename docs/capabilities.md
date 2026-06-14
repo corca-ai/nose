@@ -42,7 +42,7 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["capabilities", "il", "review", "scan", "semantic-pack", "stats"]
+    "stable": ["capabilities", "il", "query", "review", "scan", "semantic-pack", "stats"]
   },
   "schemas": {
     "capabilities": [1],

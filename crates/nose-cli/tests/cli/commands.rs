@@ -1631,6 +1631,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
         vec![
             "capabilities",
             "il",
+            "query",
             "review",
             "scan",
             "semantic-pack",
