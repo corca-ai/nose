@@ -157,6 +157,40 @@ Shipping a `markup` surface for ~1 family would be dead complexity against *capa
 features*. #353 is closed measured-negligible; the cheap re-run path is the same per-repo
 measurement script if a future component-library corpus suggests otherwise.
 
+## 6. Tier-2 sibling-family folding — measured NO-GO
+
+§4(b) collapses *overlapping slices of one region* and renders test beneath prod, but the bare
+default is still a long list (fresh `--top 0` default families: rxjs 636, prometheus 1455,
+redis 484, zod 397). The tempting next lever: fold the **per-variant sibling-family wall** —
+many *distinct* families that are copies of one shape (rxjs per-operator marble tests,
+prometheus per-service AWS-discovery inits, serde owned/borrowed impls) — into one
+"opportunity", lifting the genuine standalone wins into view. Fully implemented and measured on
+a 7-repo slice (rich, serde_json, zod, rxjs, prometheus, redis, cobra), reading cluster
+members' real source. **NO-GO, for two structural reasons:**
+
+1. **nose already folds the real repetition** into multi-member families: `finalize-spec.ts` is
+   one 31-member family, serde `write_i8` one 10-member family. The *separate* families that
+   remain are below the clone-merge threshold *because they are genuinely structurally
+   distinct* — there is little cross-family redundancy left to fold.
+2. **Cross-family folding can't cluster coherently.** A metadata key
+   `(scope, extraction_shape, dir, size-band)` "reduces" the surface 72–89% but **incoherently**
+   (rich's best finding `replace_link_ids` grouped with unrelated tests; a 4-line
+   `__rich_measure__` with an 86-line `__init__`). A leaf-abstracted value-DAG shape key
+   (per-node Merkle hash over `(VgOp, arity, child-hashes)`, multiset Jaccard / overlap) does
+   not rescue it: exact-match folds ~nothing; and even **complete-link @ Jaccard 0.6 groups
+   `map.rs new()`/`iter()` with `deserialize_tuple_struct`** — a small unit's leaf-abstracted
+   whole-unit shape is generic ("calls + return" ≈ "construct + return"), so unrelated small
+   units are mutually similar. No metric × threshold × linkage × min-node floor separated true
+   siblings from generic-shape collisions; cost was **+67% scan time** (re-lowering the whole
+   surface for shapes).
+
+Shipping it would hide distinct genuine findings under a misleading "same shape" label *and*
+slow scans — strictly worse. Recorded in [experiments §CA](experiments.md). The independent,
+source-verified lever stands: a decidable **evidence** flag for language-forced parallel
+duplication (`owned-vs-borrowed` / `covariant-type-only` / `high-param-ratio` from the graded
+per-spot `class`, evidence-not-verdict) and retiring "proven ⇒ trust/lead" (serde's top
+`shared-sub-dag` is `Value` vs `&Value`, value 179, **params 15**).
+
 ## Honest limits
 
 Two repos, two languages (Go, TS/React); single-judge labels (no adversarial refuter pass,

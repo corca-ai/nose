@@ -2605,3 +2605,45 @@ functions (spans carry `function`/`return`), and real JSX embeds `clsx`/handlers
 list-render/class idioms, which is judgment, not decidable (§2). JSX-presentational-ness
 becomes one **evidence** input for the consumer (the #11 vocabulary), not a detector
 surface — see the audit doc §5.
+
+**Tier-2 sibling-family folding — NO-GO (measured 2026-06-14).** A natural follow-up to the
+scope-aware *rendering* lever above: the bare default surface is still a long list (per-repo
+default families, fresh `--top 0`: rxjs 636, prometheus 1455, redis 484, zod 397), so collapse
+the *per-variant sibling-family wall* — the rxjs per-operator marble tests, the prometheus
+per-service AWS-discovery inits, the serde owned/borrowed impls — into one folded
+"opportunity" the way overlap slices already fold, lifting the genuine standalone wins into
+view. Fully implemented and measured on a 7-repo corpus slice (rich, serde_json, zod, rxjs,
+prometheus, redis, cobra), reading cluster members' real source to judge coherence. **NO-GO,
+for two structural reasons:**
+
+1. **nose's own family grouping already folds the real repetition.** The "wall of N redundant
+   sibling families" was a miscount: `finalize-spec.ts` is one **31-member** family,
+   serde `write_i8` one **10-member** family, `serialize_newtype_variant` 25 members. The
+   *separate* default families that remain are below the clone-merge threshold *because they
+   are genuinely structurally distinct* — there is little true cross-family redundancy left to
+   fold.
+
+2. **Cross-family folding cannot cluster coherently — intrinsic, not a tuning miss.** A
+   metadata key `(scope, extraction_shape, dir, size-band)` "reduced" the surface 72–89% but
+   **incoherently** — rich's single best finding (`replace_link_ids`, a real shared test
+   helper) was grouped with unrelated tests; a 4-line `__rich_measure__` with an 86-line
+   `__init__`. Replacing the key with a leaf-abstracted value-DAG shape (per-node Merkle hash
+   over `(VgOp, arity, child-hashes)`, ignoring the literal/name `key`; multiset compared by
+   Jaccard or overlap-coefficient) does not rescue it: exact-match folds ~nothing (true
+   siblings differ by ≥1 node, else they'd already be one family); Jaccard is defeated by the
+   siblings' size variance; overlap-coefficient and even **complete-link @ Jaccard 0.6 still
+   group `map.rs new()`/`iter()` with `deserialize_tuple_struct`** — a small function's
+   leaf-abstracted whole-unit shape is generic ("calls + return" ≈ "construct + return"), so
+   semantically-unrelated small units are mutually similar. No metric × threshold × linkage ×
+   min-node floor separated true siblings from generic-shape collisions. Cost: **+67% scan
+   time** (2.96 s → 4.94 s on prometheus) to re-lower the whole default surface for shapes.
+
+Shipping folding would **hide distinct genuine findings under a misleading "same shape" label**
+(the over-folding hazard) *and* slow scans — strictly worse. The whole-unit structural signal
+is not clean enough to separate per-variant siblings from coincidental shape collisions. The
+independent, source-verified lever from the same audit stands unaffected: a decidable
+**evidence** flag for language-forced parallel duplication (`owned-vs-borrowed` /
+`covariant-type-only` / `high-param-ratio`, a rollup of the graded per-spot `class`,
+evidence-not-verdict), plus retiring "proven ⇒ trust/lead" (serde's top `shared-sub-dag` is
+`Value` vs `&Value`, value 179, **params 15** — forced duplication at the head of the proven
+channel). See the audit doc §5.
