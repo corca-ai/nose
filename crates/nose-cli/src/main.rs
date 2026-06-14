@@ -3779,6 +3779,7 @@ const STR_FIELDS: &[&str] = &[
     "shape",
     "extraction_shape",
     "same_symbol",
+    "spotclass",
 ];
 /// Numeric filter fields (also the only ones that accept `>`/`<`).
 const NUM_FIELDS: &[&str] = &[
@@ -3927,6 +3928,7 @@ fn parse_query(terms: &[String]) -> Result<Query> {
                     "consolidate-cross-language",
                 ]),
                 "same_symbol" => Some(&["true", "false"]),
+                "spotclass" => Some(&["leaf-only", "structural"]),
                 _ => None,
             };
             if let Some(vals) = valid {
@@ -3995,6 +3997,46 @@ fn family_same_symbol(f: &nose_detect::RefactorFamily) -> bool {
     }
 }
 
+/// The existing helper a `call-existing-helper` family already contains: the lone named
+/// function/method whose body the other (inline) members recompute (#374 item 5). `None`
+/// for every other extraction shape. The `extraction_shape() == "call-existing-helper"`
+/// gate is exactly the predicate `family_hint` uses, so the surfaced helper always matches
+/// the hint — naming *which* member it is stops the agent from reading the helper's own
+/// body as just another copy (the #373 dogfood confusion).
+fn family_existing_helper(f: &nose_detect::RefactorFamily) -> Option<&nose_detect::Loc> {
+    if f.extraction_shape() != "call-existing-helper" {
+        return None;
+    }
+    f.locations.iter().find(|l| {
+        matches!(
+            l.kind,
+            nose_il::UnitKind::Function | nose_il::UnitKind::Method
+        ) && l.name.is_some()
+            && !l.is_fragment
+    })
+}
+
+/// The aggregate value-class of a near family's varying spots, from the #315 graded witness:
+/// `leaf-only` (every hole is a clean value-leaf — a parameterize/extract candidate) vs
+/// `structural` (at least one hole is a shape/arity/unmodeled/decorator divergence, or a
+/// referent mismatch — genuinely different logic, not just parameters). `None` until the
+/// graded witness is attached (near families only, and only when the query asks for it —
+/// the enrichment is the dominant cost, so `query` runs it on demand; see `run_query_cmd`).
+fn family_spotclass(f: &nose_detect::RefactorFamily) -> Option<&'static str> {
+    let g = f.witness.as_ref()?.graded.as_ref()?;
+    let is_structural = |c: &str| {
+        matches!(
+            c,
+            "arity" | "shape" | "unmodeled" | "extra-sink" | "decorator"
+        )
+    };
+    if !g.referent_mismatches.is_empty() || g.spots.iter().any(|s| is_structural(s.class)) {
+        Some("structural")
+    } else {
+        Some("leaf-only")
+    }
+}
+
 /// Numeric value of a family field (for `>`/`<`/`=` on numbers).
 fn family_num(f: &nose_detect::RefactorFamily, field: &str) -> Option<f64> {
     Some(match field {
@@ -4034,6 +4076,9 @@ fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &
             "shape" | "extraction_shape" => f.extraction_shape().to_string(),
             "dir" => family_dir(f),
             "same_symbol" => family_same_symbol(f).to_string(),
+            // `None` (witness not enriched / not a near family) deliberately matches no
+            // `spotclass=` filter rather than erroring — the caller widens or drops it.
+            "spotclass" => family_spotclass(f)?.to_string(),
             _ => return None,
         })
     };
@@ -4115,14 +4160,21 @@ fn query_family_json(
 ) -> serde_json::Value {
     let (shared, params) = all_copies_shared(f);
     let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
+    let helper = family_existing_helper(f);
     let locations: Vec<_> = f
         .locations
         .iter()
         .map(|l| {
-            serde_json::json!({
+            let mut o = serde_json::json!({
                 "file": l.file, "start": l.start_line, "end": l.end_line,
                 "name": l.name, "lang": l.lang.as_str(),
-            })
+            });
+            // Mark the member that is itself the existing helper, so the agent does not read
+            // it as one more copy to fold (#374 item 5).
+            if helper.is_some_and(|h| std::ptr::eq(h, l)) {
+                o["role"] = serde_json::Value::from("existing-helper");
+            }
+            o
         })
         .collect();
     let mut obj = serde_json::json!({
@@ -4143,6 +4195,19 @@ fn query_family_json(
         "folds": opp.slices(f).map(<[_]>::len).unwrap_or(0),
         "locations": locations,
     });
+    // `call-existing-helper` families: name the helper to call (the action is "call it", not
+    // "extract a new one"). Omitted for every other shape (#374 item 5).
+    if let Some(h) = helper {
+        obj["existing_helper"] = serde_json::json!({
+            "name": h.name, "file": h.file, "start": h.start_line, "end": h.end_line,
+        });
+    }
+    // Spot value-class evidence: present only on near families whose graded witness has been
+    // enriched (the query path runs that on demand — see `run_query_cmd`); omitted otherwise
+    // rather than emitted as a misleading null (#374 item 2).
+    if let Some(sc) = family_spotclass(f) {
+        obj["spotclass"] = serde_json::Value::from(sc);
+    }
     if full {
         if let Some(skeleton) = family_skeleton(f) {
             obj["skeleton"] = serde_json::Value::from(skeleton);
@@ -4192,6 +4257,41 @@ fn all_copies_shared(f: &nose_detect::RefactorFamily) -> (u32, u32) {
 
 fn is_default_surface(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides) -> bool {
     effective_surface(f, ov) == "default"
+}
+
+/// The flat family set a report format (`--format markdown`/`sarif`) emits for a query: the
+/// single addressed family for `at=`/`id=`, otherwise the same default-surface (or `all`/
+/// `surface=`-widened, slice-folded, filtered) selection the list view shows. Report formats
+/// are non-interactive, so they collapse the dashboard/group views to this set.
+fn query_selection<'a>(
+    families: &'a [nose_detect::RefactorFamily],
+    ov: &SurfaceOverrides,
+    opp: &OpportunityGroups,
+    q: &Query,
+    path_arg: &str,
+) -> Result<Vec<&'a nose_detect::RefactorFamily>> {
+    if let Some(at) = &q.at {
+        let idv = baseline::family_id(family_at(families, at, path_arg)?);
+        return Ok(families
+            .iter()
+            .filter(|f| baseline::family_id(f) == idv)
+            .collect());
+    }
+    if let Some(idv) = &q.id {
+        return Ok(families
+            .iter()
+            .filter(|f| baseline::family_id(f).starts_with(idv.as_str()))
+            .collect());
+    }
+    let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
+    Ok(families
+        .iter()
+        .filter(|f| {
+            (widen || is_default_surface(f, ov))
+                && !opp.is_slice(f)
+                && q.filters.iter().all(|flt| family_matches(f, ov, flt))
+        })
+        .collect())
 }
 
 #[allow(clippy::too_many_lines)] // a flat command dispatcher: dashboard / at= / id= / group / list
@@ -4263,6 +4363,15 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
     dataset.families = active;
     let overrides =
         classify_surface_overrides(&mut dataset.families, &refs, &dataset.settings.exclude);
+    // `spotclass` reads the #315 graded witness, which `build_scan_dataset` does not compute
+    // (re-deriving it is the dominant scan cost — netty: ~2.8s of a ~4.6s near scan). Run that
+    // enrichment only when the query actually filters or groups by `spotclass`, and before the
+    // filter so the class exists to match on; the common query path stays free of it.
+    let needs_spotclass = q.group.as_deref() == Some("spotclass")
+        || q.filters.iter().any(|flt| flt.field == "spotclass");
+    if needs_spotclass {
+        enrich_graded_witnesses(&mut dataset.families, &dataset.opts);
+    }
     if let Some(sk) = q.sort {
         dataset.families.sort_by(|a, b| {
             sk.score(b)
@@ -4279,57 +4388,78 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         .filter(|f| is_default_surface(f, &overrides))
         .collect();
     let opp = OpportunityGroups::from_ranked(&default_fams);
-    let json = matches!(format, ReportFormat::Json);
-    if terms.is_empty() {
-        render_query_dashboard(
-            &dataset.families,
-            &overrides,
-            &opp,
-            &dataset.scope,
-            &path_arg,
-            json,
-        );
-    } else if let Some(at) = &q.at {
-        // `at=file:line` → the family whose member span covers that location (stable across
-        // edits, unlike the span-derived id). Resolve to an `id=` open.
-        let idv = baseline::family_id(family_at(&dataset.families, at, &path_arg)?);
-        render_query_family(
-            &dataset.families,
-            &overrides,
-            &opp,
-            &idv,
-            q.id_full,
-            &path_arg,
-            json,
-        );
-    } else if let Some(idv) = &q.id {
-        render_query_family(
-            &dataset.families,
-            &overrides,
-            &opp,
-            idv,
-            q.id_full,
-            &path_arg,
-            json,
-        );
-    } else {
-        // Default to the curated default surface (the same families the dashboard counts and
-        // `scan` trusts); `all` or an explicit `surface=` filter widens to the raw universe.
-        let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
-        let sel: Vec<&nose_detect::RefactorFamily> = dataset
-            .families
-            .iter()
-            .filter(|f| {
-                (widen || is_default_surface(f, &overrides))
-                    && !opp.is_slice(f)
-                    && q.filters
-                        .iter()
-                        .all(|flt| family_matches(f, &overrides, flt))
-            })
-            .collect();
-        match &q.group {
-            Some(field) => render_query_group(&sel, field, &terms, &path_arg, json),
-            None => render_query_list(&sel, &overrides, &opp, &q, &terms, &path_arg, widen, json),
+    match format {
+        // Report formats (for PRs / code-scanning, like scan's): non-interactive, so they
+        // ignore dashboard/group navigation and just render the family set the query selects,
+        // reusing scan's own formatters (#374 + scan parity).
+        ReportFormat::Markdown | ReportFormat::Sarif => {
+            let selected = query_selection(&dataset.families, &overrides, &opp, &q, &path_arg)?;
+            let top = q.top.unwrap_or(30);
+            let shown: Vec<&nose_detect::RefactorFamily> =
+                selected.iter().take(top).copied().collect();
+            if matches!(format, ReportFormat::Sarif) {
+                println!("{}", refactor_sarif(&shown, selected.len())?);
+            } else {
+                print_refactor_markdown(
+                    &selected,
+                    &shown,
+                    dataset.settings.channels,
+                    baseline_comparison.as_ref(),
+                    None,
+                    0,
+                    None,
+                );
+            }
+        }
+        _ => {
+            let json = matches!(format, ReportFormat::Json);
+            if terms.is_empty() {
+                render_query_dashboard(
+                    &dataset.families,
+                    &overrides,
+                    &opp,
+                    &dataset.scope,
+                    &path_arg,
+                    json,
+                );
+            } else if let Some(at) = &q.at {
+                // `at=file:line` → the family whose member span covers that location (stable
+                // across edits, unlike the span-derived id). Resolve to an `id=` open.
+                let idv = baseline::family_id(family_at(&dataset.families, at, &path_arg)?);
+                render_query_family(
+                    &dataset.families,
+                    &overrides,
+                    &opp,
+                    &idv,
+                    q.id_full,
+                    &path_arg,
+                    json,
+                );
+            } else if let Some(idv) = &q.id {
+                render_query_family(
+                    &dataset.families,
+                    &overrides,
+                    &opp,
+                    idv,
+                    q.id_full,
+                    &path_arg,
+                    json,
+                );
+            } else {
+                // Default to the curated default surface (the same families the dashboard
+                // counts and `scan` trusts); `all` or an explicit `surface=` filter widens to
+                // the raw universe.
+                let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
+                let sel = query_selection(&dataset.families, &overrides, &opp, &q, &path_arg)?;
+                match &q.group {
+                    Some(field) => render_query_group(&sel, field, &terms, &path_arg, json),
+                    None => {
+                        render_query_list(
+                            &sel, &overrides, &opp, &q, &terms, &path_arg, widen, json,
+                        );
+                    }
+                }
+            }
         }
     }
     // CI gate (same as scan): a non-empty default-report family set fails `--fail-on`.
@@ -4610,6 +4740,7 @@ fn render_query_group(
             "dir" => family_dir(f),
             "shape" | "extraction_shape" => f.extraction_shape().to_string(),
             "same_symbol" => family_same_symbol(f).to_string(),
+            "spotclass" => family_spotclass(f).unwrap_or("unwitnessed").to_string(),
             _ => "?".to_string(),
         }
     };
@@ -4726,13 +4857,21 @@ fn render_query_family(
     print!("{fold_note}");
     println!("  → {}", family_hint(f));
     println!("  copies:");
+    let helper = family_existing_helper(f);
     for l in f.locations.iter().take(30) {
         let name = l
             .name
             .as_deref()
             .map(|n| format!("  {n}"))
             .unwrap_or_default();
-        println!("    {}:{}-{}{name}", l.file, l.start_line, l.end_line);
+        // Flag the member that *is* the existing helper, so it isn't mistaken for a copy
+        // to fold — the action is to call it (#374 item 5).
+        let role = if helper.is_some_and(|h| std::ptr::eq(h, l)) {
+            "  ← existing helper (call it)"
+        } else {
+            ""
+        };
+        println!("    {}:{}-{}{name}{role}", l.file, l.start_line, l.end_line);
     }
     // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
     // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.
@@ -7561,6 +7700,75 @@ mod tests {
             family_hint(&f),
             "2 sites reimplement `clamp` — call the existing helper (core/math.ts)"
         );
+    }
+
+    #[test]
+    fn existing_helper_names_the_call_target_member() {
+        // A call-existing-helper family: one named function + inline copies that recompute it.
+        let mut f = fam(1, 2, &[None, None, None]);
+        f.locations = vec![
+            {
+                let mut l = loc_at("core/math.ts", 10, 14, nose_il::UnitKind::Function);
+                l.name = Some("clamp".to_string());
+                l
+            },
+            loc_at("ui/model.ts", 80, 84, nose_il::UnitKind::Block),
+            loc_at("worker/job.ts", 33, 37, nose_il::UnitKind::Block),
+        ];
+        let helper = family_existing_helper(&f).expect("call-existing-helper has a helper member");
+        assert_eq!(helper.name.as_deref(), Some("clamp"));
+        assert_eq!(helper.file, "core/math.ts");
+        // A plain multi-function family is a fresh extraction — there is no member to call.
+        assert!(family_existing_helper(&fam(1, 2, &[Some("a"), Some("b")])).is_none());
+    }
+
+    #[test]
+    fn spotclass_grades_near_family_holes() {
+        use nose_detect::{EquivalenceWitness, GradedWitness, WitnessHole};
+        let hole = |class: &'static str| WitnessHole {
+            class,
+            a_lines: None,
+            b_lines: None,
+            effect: false,
+            a_text: String::new(),
+            b_text: String::new(),
+        };
+        let graded = |spots: Vec<WitnessHole>, referent: Vec<String>| {
+            let mut f = fam(1, 2, &[Some("x"), Some("y")]);
+            f.witness = Some(EquivalenceWitness {
+                kind: "structural-similarity",
+                value_nodes: None,
+                mean_value_jaccard: None,
+                mean_shape_jaccard: None,
+                graded: Some(GradedWitness {
+                    holes: spots.len(),
+                    spots,
+                    patterns: Vec::new(),
+                    referent_mismatches: referent,
+                    caveat_names: Vec::new(),
+                    equal_modulo_holes: true,
+                    modeled_caveat: false,
+                }),
+            });
+            f
+        };
+        // Only value-leaf holes → a clean parameterize/extract candidate.
+        assert_eq!(
+            family_spotclass(&graded(vec![hole("literal"), hole("call")], vec![])),
+            Some("leaf-only")
+        );
+        // A shape/arity hole → genuine logic divergence, not just a parameter.
+        assert_eq!(
+            family_spotclass(&graded(vec![hole("literal"), hole("shape")], vec![])),
+            Some("structural")
+        );
+        // A referent mismatch (same name, behaviorally distinct) → structural even with leaf holes.
+        assert_eq!(
+            family_spotclass(&graded(vec![hole("literal")], vec!["equals".into()])),
+            Some("structural")
+        );
+        // No graded witness (not enriched / not a near family) → no class.
+        assert!(family_spotclass(&fam(1, 1, &[Some("a"), Some("b")])).is_none());
     }
 
     #[test]
