@@ -3749,6 +3749,9 @@ struct Query {
     all: bool,
     sort: Option<SortKey>,
     top: Option<usize>,
+    /// The `reinvented` view — code that reimplements an existing helper (the `reinvented`
+    /// channel, surfaced in query), distinct from `shape=call-existing-helper` families.
+    reinvented: bool,
 }
 
 enum QOp {
@@ -3870,6 +3873,8 @@ fn parse_query(terms: &[String]) -> Result<Query> {
             q.id_full = true;
         } else if t == "all" {
             q.all = true;
+        } else if t == "reinvented" {
+            q.reinvented = true;
         } else if let Some(v) = t.strip_prefix("group=") {
             q.group = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("id=") {
@@ -4195,6 +4200,16 @@ fn query_family_json(
         "folds": opp.slices(f).map(<[_]>::len).unwrap_or(0),
         "locations": locations,
     });
+    // Fold-graph navigation: the actual related family ids, not just a count — so a caller can
+    // jump to the fuller overlapping family or open the slices it subsumes (HATEOAS).
+    let id = baseline::family_id(f);
+    if let Some(primary) = opp.primary_of.get(&id) {
+        obj["subsumed_by"] = serde_json::Value::from(short_id(primary));
+    }
+    if let Some(slices) = opp.slices(f).filter(|s| !s.is_empty()) {
+        let ids: Vec<&str> = slices.iter().map(|s| short_id(s)).collect();
+        obj["subsumes"] = serde_json::Value::from(ids);
+    }
     // `call-existing-helper` families: name the helper to call (the action is "call it", not
     // "extract a new one"). Omitted for every other shape (#374 item 5).
     if let Some(h) = helper {
@@ -4413,13 +4428,25 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         }
         _ => {
             let json = matches!(format, ReportFormat::Json);
-            if terms.is_empty() {
+            if q.reinvented {
+                // The reinvented-helper channel as a query view — code that reimplements an
+                // existing helper (the action is "call it"). Complements (does not duplicate)
+                // `shape=call-existing-helper`: those are the cases the family clusterer caught,
+                // these are the ones it did not.
+                render_query_reinvented(&dataset.reinvented, &path_arg, q.top, json);
+            } else if terms.is_empty() {
+                let reinvented_prod = dataset
+                    .reinvented
+                    .iter()
+                    .filter(|r| !r.container_in_test)
+                    .count();
                 render_query_dashboard(
                     &dataset.families,
                     &overrides,
                     &opp,
                     &dataset.scope,
                     &path_arg,
+                    reinvented_prod,
                     json,
                 );
             } else if let Some(at) = &q.at {
@@ -4481,12 +4508,14 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
 /// slice with `id=` links, and the grammar — all self-describing so a nose-naive agent
 /// can act from this output alone.
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments)] // a self-describing landing view over several dataset facets
 fn render_query_dashboard(
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
     opp: &OpportunityGroups,
     scope: &ScanScope,
     path: &str,
+    reinvented_prod: usize,
     json: bool,
 ) {
     // Default surface, slice-folds removed (shown under their primary) — matches scan.
@@ -4524,6 +4553,7 @@ fn render_query_dashboard(
                     "families": def.len(),
                     "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
                         "copy_paste": count("copy-paste"), "similar": count("similar")},
+                    "reinvented": reinvented_prod,
                 },
                 "top_candidates": top,
                 "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
@@ -4616,6 +4646,13 @@ fn render_query_dashboard(
         }
         println!("  nose query {path} group=dir                 # full breakdown");
     }
+    if reinvented_prod > 0 {
+        println!(
+            "\n{reinvented_prod} place{} reimplement an existing helper — call it instead:",
+            if reinvented_prod == 1 { "" } else { "s" }
+        );
+        println!("  nose query {path} reinvented                 # the call-the-helper findings");
+    }
     // Repo-level magnitude + what the default surface omitted (scan's honesty footer).
     let omitted = surface_omission_note(families, ov);
     println!(
@@ -4627,6 +4664,86 @@ fn render_query_dashboard(
     );
     println!(
         "\ngrammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr ...] [group=FIELD | id=FAM | at=FILE:LINE]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) same_symbol(true|false) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
+    );
+}
+
+/// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`
+/// channel). Each finding's action is "call the helper instead" — the same action as a
+/// `call-existing-helper` family, but for sites the family clusterer did not group (different
+/// recall, not a second way to ask the same question). Production-first, like the dashboard.
+fn render_query_reinvented(
+    reinvented: &[nose_detect::ReinventedHelper],
+    path: &str,
+    top: Option<usize>,
+    json: bool,
+) {
+    let shown: Vec<&nose_detect::ReinventedHelper> =
+        reinvented.iter().filter(|r| !r.container_in_test).collect();
+    let in_test = reinvented.len() - shown.len();
+    let limit = top.unwrap_or(30);
+    if json {
+        let items: Vec<_> = shown
+            .iter()
+            .take(limit)
+            .map(|r| {
+                serde_json::json!({
+                    "helper": {"name": r.helper_name, "file": r.helper_file,
+                        "start": r.helper_start_line, "end": r.helper_end_line},
+                    "site": {"file": r.container_file, "container": r.container_name,
+                        "container_start": r.container_start_line, "container_end": r.container_end_line,
+                        "start": r.site_start_line, "end": r.site_end_line},
+                    "value": r.weight,
+                    "approximate": r.site_approximate,
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "schema_version": QUERY_JSON_SCHEMA_VERSION,
+                "tool": "nose",
+                "view": "reinvented",
+                "path": path,
+                "summary": {"findings": shown.len(), "shown": shown.len().min(limit), "in_test": in_test},
+                "items": items,
+                "next": [format!("nose query {path} shape=call-existing-helper")],
+            })
+        );
+        return;
+    }
+    if shown.is_empty() {
+        println!("no reinvented-helper findings on the production surface.");
+        if in_test > 0 {
+            println!("  ({in_test} in test code — omitted)");
+        }
+        return;
+    }
+    println!("reinvented helpers — code that reimplements an existing helper; call it instead:");
+    for r in shown.iter().take(limit) {
+        let approx = if r.site_approximate { " ~approx" } else { "" };
+        println!(
+            "  {}:{}-{}{}  → call {} ({}:{}-{})  ~{} value nodes",
+            r.container_file,
+            r.site_start_line,
+            r.site_end_line,
+            approx,
+            r.helper_name.as_deref().unwrap_or("-"),
+            r.helper_file,
+            r.helper_start_line,
+            r.helper_end_line,
+            r.weight,
+        );
+    }
+    let hidden = shown.len().saturating_sub(limit);
+    if hidden > 0 {
+        println!("  … {hidden} more (raise top=N)");
+    }
+    if in_test > 0 {
+        println!("  ({in_test} more in test code — omitted)");
+    }
+    println!("\nnext:");
+    println!(
+        "  nose query {path} shape=call-existing-helper   # the clustered cases (in clone families)"
     );
 }
 
@@ -4720,6 +4837,17 @@ fn render_query_list(
 
 /// Facet the current selection by a discrete field, with a top exemplar per bucket and
 /// the "see all" command for each.
+/// One `group=` bucket's aggregate: how many families, how many removable lines they carry,
+/// and an exemplar. Economics-per-bucket is what turns `group=dir`/`group=file` into a
+/// duplication hotspot map (where the volume is), not just a tally.
+#[derive(Default)]
+struct GroupAgg {
+    count: usize,
+    removable: u32,
+    exemplar_id: String,
+    exemplar_row: String,
+}
+
 fn render_query_group(
     sel: &[&nose_detect::RefactorFamily],
     field: &str,
@@ -4738,27 +4866,47 @@ fn render_query_group(
                 .map(|l| l.lang.as_str().to_string())
                 .unwrap_or_default(),
             "dir" => family_dir(f),
+            "file" => f
+                .locations
+                .first()
+                .map(|l| l.file.clone())
+                .unwrap_or_default(),
             "shape" | "extraction_shape" => f.extraction_shape().to_string(),
             "same_symbol" => family_same_symbol(f).to_string(),
             "spotclass" => family_spotclass(f).unwrap_or("unwitnessed").to_string(),
             _ => "?".to_string(),
         }
     };
-    if json {
-        let mut counts: HashMap<String, (usize, String)> = HashMap::new();
-        for f in sel {
-            let e = counts.entry(key(f)).or_insert((0, String::new()));
-            if e.0 == 0 {
-                e.1 = baseline::family_id(f);
-            }
-            e.0 += 1;
+    // Aggregate each bucket's payoff, not just its count — so the facet ranks by impact and
+    // `group=dir`/`group=file` reads as a hotspot map. `removable_lines` is the cheap detector
+    // estimate (no source read), so summing over every family stays bounded.
+    let mut buckets: HashMap<String, GroupAgg> = HashMap::new();
+    for f in sel {
+        let e = buckets.entry(key(f)).or_default();
+        if e.count == 0 {
+            e.exemplar_id = baseline::family_id(f);
+            e.exemplar_row = query_row(f);
         }
-        let mut rows: Vec<(String, usize, String)> =
-            counts.into_iter().map(|(k, (n, ex))| (k, n, ex)).collect();
-        rows.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        e.count += 1;
+        e.removable += removable_lines(f);
+    }
+    let mut rows: Vec<(String, GroupAgg)> = buckets.into_iter().collect();
+    // Rank by removable volume (the hotspot order), then count, then key — deterministic.
+    rows.sort_by(|a, b| {
+        b.1.removable
+            .cmp(&a.1.removable)
+            .then(b.1.count.cmp(&a.1.count))
+            .then(a.0.cmp(&b.0))
+    });
+    if json {
         let groups: Vec<_> = rows
-            .into_iter()
-            .map(|(k, n, ex)| serde_json::json!({"key": k, "count": n, "exemplar_id": ex}))
+            .iter()
+            .map(|(k, g)| {
+                serde_json::json!({
+                    "key": k, "count": g.count, "removable": g.removable,
+                    "exemplar_id": g.exemplar_id,
+                })
+            })
             .collect();
         println!(
             "{}",
@@ -4769,17 +4917,7 @@ fn render_query_group(
         );
         return;
     }
-    let mut buckets: HashMap<String, (usize, String)> = HashMap::new();
-    for f in sel {
-        let e = buckets.entry(key(f)).or_insert((0, String::new()));
-        if e.0 == 0 {
-            e.1 = query_row(f);
-        }
-        e.0 += 1;
-    }
-    let mut rows: Vec<_> = buckets.into_iter().collect();
-    rows.sort_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.0.cmp(&b.0)));
-    println!("{} families by {field}:", sel.len());
+    println!("{} families by {field} (most removable first):", sel.len());
     let other: Vec<&str> = terms
         .iter()
         .filter(|t| !t.starts_with("group="))
@@ -4790,8 +4928,11 @@ fn render_query_group(
     } else {
         format!("nose query {path} {}", other.join(" "))
     };
-    for (k, (n, ex)) in &rows {
-        println!("  {k:<16} ({n:>3})  e.g. {ex}");
+    for (k, g) in &rows {
+        println!(
+            "  {k:<16} ({:>3} families · ~{} removable)  e.g. {}",
+            g.count, g.removable, g.exemplar_row
+        );
         println!("        {base} {field}={k}");
     }
 }
@@ -4823,7 +4964,18 @@ fn render_query_family(
             short_id(primary)
         )
     } else if let Some(s) = opp.slices(f).filter(|s| !s.is_empty()) {
-        format!("  ↳ subsumes {} overlapping slice families\n", s.len())
+        let ids: Vec<&str> = s.iter().take(6).map(|x| short_id(x)).collect();
+        let more = s.len().saturating_sub(ids.len());
+        let tail = if more > 0 {
+            format!(" +{more}")
+        } else {
+            String::new()
+        };
+        format!(
+            "  ↳ subsumes {} overlapping slice families: {}{tail}  (open with id=)\n",
+            s.len(),
+            ids.join(" ")
+        )
     } else {
         String::new()
     };
@@ -7681,6 +7833,34 @@ mod tests {
             groups.slices(&a),
             Some(&[baseline::family_id(&b)][..]),
             "a lists exactly b as its folded slice"
+        );
+    }
+
+    #[test]
+    fn query_family_json_carries_fold_navigation() {
+        // a subsumes b (b's two members are shifted slices of a's regions).
+        let a = fam_at(&[("t/a.go", 100, 130), ("t/b.go", 50, 70)]);
+        let b = fam_at(&[("t/a.go", 105, 128), ("t/b.go", 52, 66)]);
+        let ranked = [&a, &b];
+        let opp = OpportunityGroups::from_ranked(&ranked);
+        let ov = SurfaceOverrides {
+            generated_sources: std::collections::HashSet::new(),
+            declaration_run_ids: std::collections::HashSet::new(),
+        };
+        // The primary lists the slice ids it subsumes (navigable id= handles).
+        let ja = query_family_json(&a, &ov, &opp, false);
+        assert_eq!(
+            ja["subsumes"],
+            serde_json::json!([short_id(&baseline::family_id(&b))]),
+            "primary names the slices it subsumes: {ja}"
+        );
+        assert!(ja.get("subsumed_by").is_none(), "a primary is not subsumed");
+        // The slice points back at its primary.
+        let jb = query_family_json(&b, &ov, &opp, false);
+        assert_eq!(
+            jb["subsumed_by"],
+            serde_json::Value::from(short_id(&baseline::family_id(&a))),
+            "slice points at its primary: {jb}"
         );
     }
 

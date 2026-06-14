@@ -25,6 +25,12 @@ deprecated.** All changes below are staged; the release is not yet cut.
   - **A structured, versioned JSON contract** ([query-json](docs/query-json.md), schema v2)
     across every view, advertised as `capabilities.schemas.query_json`, plus `--format
     markdown`/`sarif` report output (reusing scan's formatters over the query selection).
+  - **Object model — query the whole dataset, not just families:** `group=` buckets now carry
+    summed removable lines and rank by them (`group=dir`/`group=file` is a duplication hotspot
+    map), `file` is a new group key, the `family` view emits fold-graph links
+    (`subsumes`/`subsumed_by` — the related `id=` handles, not just a count), and a new
+    `reinvented` view surfaces the reinvented-helper channel ("call the existing helper") that
+    was previously `scan --show reinvented` only.
 
 ### Changed (breaking)
 - **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run

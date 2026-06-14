@@ -224,15 +224,16 @@ unchanged. With `--format json` every view emits the structured, versioned
 [query-JSON v2 contract](query-json.md).
 
 ```text
-nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] [top=N] [full] [all]
+nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented] [sort=KEY] [top=N] [full] [all]
 ```
 
 | part | meaning |
 |---|---|
 | `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a whole directory) |
-| `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`), with a count and an exemplar per bucket |
-| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, and navigation links |
+| `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
+| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, fold-graph links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
+| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
 | `top=N` | show the first N rows (default 30) |
 | `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched) |

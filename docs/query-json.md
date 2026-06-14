@@ -26,17 +26,22 @@ plus the view-specific body below. Like the human surface, a result is a pure fu
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`
-`{exact,subdag,copy_paste,similar}`), `top_candidates[]` (curated production-first families,
-each a *family object*), and `next[]` (runnable follow-up commands).
+`{exact,subdag,copy_paste,similar}`, `reinvented` = production reinvented-helper findings),
+`top_candidates[]` (curated production-first families, each a *family object*), and `next[]`
+(runnable follow-up commands).
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.
 
-**`group`** (`group=FIELD`) — `field` and `groups[]` of `{key, count, exemplar_id}`,
-ranked by count.
+**`group`** (`group=FIELD`) — `field` and `groups[]` of `{key, count, removable, exemplar_id}`,
+ranked by **removable lines** (so `group=dir`/`group=file` is the duplication hotspot map).
 
 **`family`** (`id=` / `at=`) — `hint` (the prose `→` recommendation) and a single `family`
 object; with `full`, that object carries `skeleton`.
+
+**`reinvented`** (`reinvented`) — `summary` (`findings`, `shown`, `in_test`) and `items[]` of
+`{helper {name,file,start,end}, site {file,container,container_start,container_end,start,end},
+value, approximate}` — code that reimplements an existing helper; the action is "call it".
 
 ## The family object
 
@@ -57,7 +62,9 @@ object; with `full`, that object carries `skeleton`.
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
 | `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
 | `spotclass` | (only on enriched near families) `leaf-only` (varying spots are clean value-leaves) \| `structural` (a shape/arity/referent divergence — genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
-| `folds` | overlapping slice families folded under this one |
+| `folds` | count of overlapping slice families folded under this one |
+| `subsumes` | (in the `family` view) the `id=` handles of the slice families this one subsumes — open any to inspect |
+| `subsumed_by` | (in the `family` view) the `id=` handle of the fuller overlapping family this one is a slice of |
 | `locations[]` | every copy: `{file, start, end, name, lang}`; the `existing_helper` member also carries `role: "existing-helper"` |
 | `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, `⟨param N⟩` for varying spots |
 

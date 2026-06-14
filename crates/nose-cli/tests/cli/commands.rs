@@ -2076,6 +2076,73 @@ fn query_dashboard_filter_and_family() {
         "SARIF has a results array: {sarif}"
     );
 
+    // group= is a hotspot map: each bucket carries summed removable lines and ranks by them,
+    // and `file` is a group key (object-model PR).
+    assert!(
+        run(&["query", p, "group=dir"]).contains("removable"),
+        "group=dir aggregates removable economics per bucket"
+    );
+    let byfile: serde_json::Value =
+        serde_json::from_str(&run(&["query", p, "group=file", "--format", "json"])).unwrap();
+    assert_eq!(byfile["field"], "file");
+    assert!(
+        byfile["groups"][0]["removable"].is_number(),
+        "group buckets carry removable: {byfile}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_reinvented_view_lists_call_the_helper_findings() {
+    // A function that reimplements an existing pure helper inline (the reinvented channel),
+    // surfaced as a query view — the action is "call the helper", complementing the clustered
+    // `shape=call-existing-helper` families.
+    let dir = std::env::temp_dir().join(format!("nose_reinv_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("a.js"),
+        "function big(x, y) {\n    return ((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))\n}\n\nfunction use(x, y) {\n    return big(x, y) + 1\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("b.js"),
+        "function manual(x, y) {\n    return (((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))) * 7\n}\n",
+    )
+    .unwrap();
+    let p = dir.to_str().unwrap();
+    let human = run(&[
+        "query",
+        p,
+        "reinvented",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]);
+    assert!(
+        human.contains("call big") && human.contains("reimplements an existing helper"),
+        "reinvented view names the helper to call: {human}"
+    );
+    let j: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        p,
+        "reinvented",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+    ]))
+    .unwrap();
+    assert_eq!(j["view"], "reinvented");
+    assert_eq!(
+        j["items"][0]["helper"]["name"], "big",
+        "json names the helper: {j}"
+    );
+    assert_eq!(j["items"][0]["site"]["container"], "manual");
     let _ = fs::remove_dir_all(&dir);
 }
 
