@@ -240,6 +240,17 @@ enum Cmd {
         /// Config file (`nose.toml`; same as scan).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
+        /// CI gate — exit non-zero when default-surface families are reported: `any`, or
+        /// `new` (only new/changed vs `--baseline`). Same gate as `nose scan --fail-on`.
+        #[arg(long, value_name = "WHAT")]
+        fail_on: Option<FailOn>,
+        /// Accepted-baseline file: hide already-recorded families so only new/changed
+        /// duplication is shown and gated (same as scan).
+        #[arg(long, value_name = "FILE")]
+        baseline: Option<PathBuf>,
+        /// Write the current families to `--baseline` and exit (same as scan).
+        #[arg(long, requires = "baseline")]
+        write_baseline: bool,
     },
     /// Flag a change applied to one clone copy but not its siblings (PR/CI check).
     ///
@@ -4132,6 +4143,9 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         ignore_file,
         semantic_pack,
         config,
+        fail_on,
+        baseline,
+        write_baseline,
     } = cmd
     else {
         unreachable!("run_query_cmd requires Cmd::Query")
@@ -4152,19 +4166,34 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         mode,
         show: vec![],
         cache_dir,
-        fail_on: None,
-        baseline: None,
+        fail_on,
+        baseline,
         ignore_file,
         semantic_pack,
-        write_baseline: false,
+        write_baseline,
         format,
         exclude,
         min_size,
         min_lines,
         scope: ScopeFilter::All,
     };
+    if matches!(args.fail_on, Some(FailOn::New)) && args.baseline.is_none() {
+        anyhow::bail!(
+            "--fail-on new requires --baseline (it gates on families new vs the baseline)"
+        );
+    }
     let refs = paths_as_refs(&args.paths);
     let mut dataset = build_scan_dataset(&args, &refs)?;
+    // query is a full surface (#375): prepare the family set exactly as scan does before
+    // rendering — write/apply a baseline, drop ignored families — then run the same CI gate.
+    if args.write_baseline {
+        return write_scan_baseline(&args, &dataset.families);
+    }
+    let baseline_comparison = apply_scan_baseline(&args, &mut dataset.families)?;
+    let ignore_set = dataset.settings.ignore_set.take();
+    let (active, _ignored) =
+        partition_ignored(std::mem::take(&mut dataset.families), ignore_set.as_ref());
+    dataset.families = active;
     let overrides =
         classify_surface_overrides(&mut dataset.families, &refs, &dataset.settings.exclude);
     if let Some(sk) = q.sort {
@@ -4193,9 +4222,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
             &path_arg,
             json,
         );
-        return Ok(());
-    }
-    if let Some(at) = &q.at {
+    } else if let Some(at) = &q.at {
         // `at=file:line` → the family whose member span covers that location (stable across
         // edits, unlike the span-derived id). Resolve to an `id=` open.
         let idv = baseline::family_id(family_at(&dataset.families, at, &path_arg)?);
@@ -4208,9 +4235,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
             &path_arg,
             json,
         );
-        return Ok(());
-    }
-    if let Some(idv) = &q.id {
+    } else if let Some(idv) = &q.id {
         render_query_family(
             &dataset.families,
             &overrides,
@@ -4220,26 +4245,38 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
             &path_arg,
             json,
         );
-        return Ok(());
+    } else {
+        // Default to the curated default surface (the same families the dashboard counts and
+        // `scan` trusts); `all` or an explicit `surface=` filter widens to the raw universe.
+        let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
+        let sel: Vec<&nose_detect::RefactorFamily> = dataset
+            .families
+            .iter()
+            .filter(|f| {
+                (widen || is_default_surface(f, &overrides))
+                    && !opp.is_slice(f)
+                    && q.filters
+                        .iter()
+                        .all(|flt| family_matches(f, &overrides, flt))
+            })
+            .collect();
+        match &q.group {
+            Some(field) => render_query_group(&sel, field, &terms, &path_arg),
+            None => render_query_list(&sel, &overrides, &opp, &q, &terms, &path_arg, widen),
+        }
     }
-    // Default to the curated default surface (the same families the dashboard counts and
-    // `scan` trusts); `all` or an explicit `surface=` filter widens to the raw universe.
-    let widen = q.all || q.filters.iter().any(|flt| flt.field == "surface");
-    let sel: Vec<&nose_detect::RefactorFamily> = dataset
+    // CI gate (same as scan): a non-empty default-report family set fails `--fail-on`.
+    let reportable: Vec<&nose_detect::RefactorFamily> = dataset
         .families
         .iter()
-        .filter(|f| {
-            (widen || is_default_surface(f, &overrides))
-                && !opp.is_slice(f)
-                && q.filters
-                    .iter()
-                    .all(|flt| family_matches(f, &overrides, flt))
-        })
+        .filter(|f| is_default_report_family(f, &overrides))
         .collect();
-    match &q.group {
-        Some(field) => render_query_group(&sel, field, &terms, &path_arg),
-        None => render_query_list(&sel, &overrides, &opp, &q, &terms, &path_arg, widen),
-    }
+    enforce_scan_fail_on(
+        &args,
+        dataset.settings.channels,
+        &reportable,
+        baseline_comparison.as_ref(),
+    );
     Ok(())
 }
 

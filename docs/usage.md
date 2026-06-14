@@ -244,7 +244,9 @@ A typical loop: `nose query .` → `nose query . witness=exact` → `nose query 
 `nose query` accepts the same **analysis flags** as `scan` — `--mode`, `--min-size`,
 `--min-value`, `--min-members`, `--exclude`, `--cache-dir`, `--ignore-file`,
 `--semantic-pack`, `--config` — so the dataset it explores is configured identically (the
-scope/sort/top knobs are the DSL's `scope=`/`sort=`/`top=` instead).
+scope/sort/top knobs are the DSL's `scope=`/`sort=`/`top=` instead). It also takes the same
+**CI gate** — `--fail-on any` / `--fail-on new` with `--baseline`/`--write-baseline` — and
+drops structured-ignored families, so `nose query <path> --fail-on any` is a drop-in gate.
 
 ## Integrating with nose
 

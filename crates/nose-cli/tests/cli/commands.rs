@@ -1975,6 +1975,17 @@ fn query_dashboard_filter_and_family() {
         "query accepts --mode"
     );
 
+    // query gates like scan: `--fail-on any` exits non-zero on a reported family, and
+    // `--fail-on new` without `--baseline` errors (parity with scan).
+    assert!(
+        run_fail(&["query", p, "--fail-on", "any"]).contains("--fail-on any"),
+        "query --fail-on any fires on a reported family"
+    );
+    assert!(
+        run_fail(&["query", p, "--fail-on", "new"]).contains("requires --baseline"),
+        "query --fail-on new requires --baseline"
+    );
+
     let _ = fs::remove_dir_all(&dir);
 }
 
