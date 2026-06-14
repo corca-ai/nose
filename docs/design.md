@@ -68,6 +68,12 @@ What nose owes consumer 1:
 - **Rich machine-readable evidence** — the [scan JSON](scan-json.md) output should carry
   *why* two units are equivalent, *what* differs, exact locations, and the behavior contract,
   so the agent can decide and act without re-deriving the analysis.
+- **A navigable, self-describing surface** — [`nose query`](usage.md#nose-query) lets the
+  agent *explore* the same dataset interactively: a landing dashboard, sliceable
+  filters/facets, drill-into-one-family, and a runnable next-command on every result, so the
+  agent navigates by following links instead of re-reading a schema or hand-writing `jq`. This
+  is consumer 1's interactive entry point; the one-shot scan JSON is the batch/contract form of
+  the same dataset. (Packaged as a Skill, deliberately not as an MCP server.)
 - **Speed.**
 
 Implication: **perfectly separating parallel-by-design is not specially important here** — the
@@ -95,7 +101,7 @@ diff — is a natural high-precision, actionable gate trigger.
 |---|---|---|
 | recall | higher is better (agent filters) | low is fine |
 | precision | good enough (deep judgment outsourced) | **must be extremely high** |
-| output | rich JSON + equivalence evidence | pass / block + `--fail-on` |
+| output | interactive `nose query` + one-shot rich JSON, both with equivalence evidence | pass / block + `--fail-on` |
 | ranking | triage aid (saves agent tokens) | mostly irrelevant (gates don't rank) |
 | LLM | in the *caller* (external) | none (determinism required) |
 | shared | **soundness · determinism · speed** | same |
@@ -126,9 +132,10 @@ is held to proof discipline (§1). Actionability splits by **decidability, not c
 
 ### 2c. The bare default is the product
 
-`nose scan <path>` with **no flags** is the first-user experience and the calling agent's
-default invocation; the top of that report is nose's one chance to demonstrate value.
-Two consequences:
+A no-flags invocation is the first-user experience: `nose query <path>` (the interactive
+landing dashboard) for an exploring agent or human, `nose scan <path>` (the one-shot report)
+for a batch read or CI. Both render the **same default surface**, and its head is nose's one
+chance to demonstrate value. Two consequences:
 
 - The default surface must be **dominated by actionable findings**. A finding class leaves
   the default surface only when its non-actionability is *decidable* (§2b) or *measured*
@@ -204,7 +211,7 @@ engine over a single formal IL semantics was evaluated in depth. The current evi
   measured: 6/7 phase-ordering-stressing equivalences already converge, the 7th closed by
   *one* new rule, not an engine ("the lever is new sound rules, not a better engine");
 - the fingerprint is a whole-DAG node-hash multiset (`fingerprint_lits` in
-  `crates/nose-normalize/src/value_graph.rs`); cost-based extraction from two non-isomorphic
+  `crates/nose-normalize/src/value_graph/output.rs`); cost-based extraction from two non-isomorphic
   e-graphs could pick different representatives and **break currently-converging matches**,
   and threatens the byte-determinism invariant;
 - behavioral equivalence is **not a congruence** under the IL's ordered effects (the oracle

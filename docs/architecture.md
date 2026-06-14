@@ -74,8 +74,9 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    ([graded-witness](graded-witness.md)).
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
-   × similarity × cross-module/-file/-language spread). See [usage](usage.md) for how the
-   ranked report reads.
+   × similarity × cross-directory/-file/-language spread). See [usage](usage.md) for how the
+   ranked report reads — and [`nose query`](usage.md#nose-query) for exploring the same
+   families dataset interactively.
 
 ## Crates
 

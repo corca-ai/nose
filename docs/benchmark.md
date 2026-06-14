@@ -26,7 +26,7 @@ so a change has to generalize, not just fit the dev repos; tune only on dev.
 ```sh
 bench/setup_repos.sh                      # clone the pinned corpus into bench/repos
 python3 bench/prune_corpus.py --check-manifest  # verify the recorded prune digest
-python3 bench/labels/eval_by_language.py  # P@10 + worthy-recall, per language, dev/held-out, 95% CIs
+python3 bench/labels/eval_by_language.py --rank extractability  # P@10 + worthy-recall, per language, dev/held-out, 95% CIs
 ```
 
 `eval_by_language.py` still prints its historical `value` baseline and
@@ -51,7 +51,9 @@ nose's value-graph fingerprint is **sound by intent**: equal fingerprint ⟹ equ
 an input battery and flags any fingerprint-equal pair whose behavior differs. It interprets
 the *pre-canonicalization* IL (so a behavior-changing canon can't mask itself), and a
 **canon-preservation** check requires each unit's core-IL behavior to equal its full-IL
-behavior. The core canonicalizations are additionally machine-checked in Lean (`formal/`).
+behavior *up to abort* — two runs that both error are equivalent regardless of the effects
+recorded before the trap, so an impossible input can't manufacture a phantom violation
+(experiments §CN). The core canonicalizations are additionally machine-checked in Lean (`formal/`).
 Both currently report **zero** violations on the characterized gates. `verify` is bounded:
 units whose estimated work (`IL nodes × battery rows`) exceeds the oracle budget fail closed as
 `battery-bail` and appear in the exclusion census instead of monopolizing the run.
@@ -77,7 +79,8 @@ experiments §T for the throughput work.
 
 ## The research commands
 
-The everyday surface is `nose scan` ([usage](usage.md)). The default mix is
+The everyday surfaces are `nose query` (interactive exploration) and `nose scan` (one-shot
+report + CI gate) — both over the same dataset ([usage](usage.md)). The default mix is
 `syntax,semantic,near` (experiments §BM priced the flip); benchmark runs that need the
 pre-flip exact-only surface pin `--mode syntax,semantic` explicitly. The benchmark also
 uses a hidden research surface:

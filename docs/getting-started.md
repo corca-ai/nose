@@ -25,7 +25,37 @@ Silicon + Intel) and Linux (x86_64 + arm64) are attached to every
 [release](https://github.com/corca-ai/nose/releases). To build from source
 instead, see [usage → Install](usage.md#install).
 
+## Explore interactively: `nose query`
+
+The quickest way in is `nose query <path>`. It prints a **landing dashboard** of what nose
+found, and every result suggests the next command to run — so you (or an agent) navigate by
+following links instead of memorizing flags:
+
+```
+$ nose query examples
+nose — finds duplicated & refactorable code across languages.
+scanned 3 files · go 1 · python 1 · typescript 1
+
+1 duplicated-code families on the default surface.
+  by confidence: exact 0 · subdag 1 · copy-paste 0 · similar 0
+
+cleanest to extract (production first):
+  examples/sum.go:3  6 copies · same logic in 3 languages · ~30 removable · subdag   nose query examples id=b658f483dc
+  …
+grammar:  nose query <path> [field=value | field>N | field~substr …] [group=FIELD | id=FAM] [sort=KEY] [top=N] [full] [all]
+```
+
+From there you **slice** (`nose query examples witness=exact`, `scope=prod`, `params<2`),
+**facet** (`group=dir`), or **open one family** (`nose query examples id=b658f483dc full`
+shows its copies and the all-copies extraction skeleton). Each result is a pure function of
+(repo state, command), and an unknown field or value is a hard error — so a typo can never
+read as "no duplication." It explores the *same* dataset `nose scan` computes; nothing is
+written and `nose scan` / CI are unaffected.
+
 ## Your first scan
+
+For a **one-shot ranked report** — to read top-down, paste into a PR, or gate CI —
+use `nose scan`.
 
 Run `nose scan` on any file or directory. It recurses, respects `.gitignore` files inside
 the scanned tree, and prints the duplication it found, most worth-refactoring first:
@@ -70,12 +100,12 @@ shared helper, base class, or data table). Read it left to right:
 - `3 copies` — how many places this code appears.
 - `same logic in 2 languages …` — what's shared. For copies in one language this
   instead reads `N of M lines identical` (or `… shared, K spots differ`) — the
-  *honest* overlap, so a pair that looks identical but really shares few lines is
-  obvious. Cross-language copies have no shared *source* lines, so they report the
-  language list instead.
+  *honest* overlap counted across **all** the copies (not just two), so a family that
+  looks identical but really shares few lines is obvious. Cross-language copies have no
+  shared *source* lines, so they report the language list instead.
 - `~134 lines removable` — roughly how much code you'd delete by consolidating.
 - The **`→` line is a hint**, grounded in facts (a shared symbol name, how many
-  modules it spans), never a guess about what the code means.
+  directories it spans), never a guess about what the code means.
 - Then **every site is listed** with its exact `file:line-range` — you can't act on
   a clone you can't see.
 
@@ -108,6 +138,8 @@ nose scan src --show proposal   # show the extracted helper skeleton, varying sp
 
 | You want… | Command |
 |---|---|
+| Explore interactively (or drive from an agent loop) | `nose query src` → follow the next-commands |
+| Only the behavior-proven families, interactively | `nose query src witness=exact` |
 | A report to paste into a PR or issue | `nose scan src --format markdown > REFACTOR.md` |
 | Only the biggest, cleanest wins | `nose scan src --min-value 300 --min-members 3` |
 | A copy-paste gate for CI (jscpd-style) | `nose scan src --mode syntax --fail-on any` |
@@ -138,6 +170,8 @@ gate policy, and CI wiring.
 
 ## Where to go next
 
+- **[usage › nose query](usage.md#nose-query)** — the full query grammar: filters,
+  facets, drill-into-one-family, and the agent loop.
 - **[usage](usage.md)** — every command and flag, the ranking keys, and the scan
   modes in full.
 - **[review](review.md)** — the git-aware companion command: catch a clone

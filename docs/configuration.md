@@ -37,7 +37,7 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | key | type | default | same as flag |
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
-| `mode` | list of `syntax`\|`semantic`\|`near[:T]` | `["syntax", "semantic"]` | `--mode` |
+| `mode` | list of `syntax`\|`semantic`\|`near[:T]` | `["syntax", "semantic", "near"]` | `--mode` |
 | `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `--sort` |
 | `min-value` | finite non-negative float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
@@ -51,9 +51,9 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 
 ```toml
 [scan]
-mode = ["syntax"]                  # jscpd-style gate
-# mode = ["syntax", "semantic"]    # same as omitting mode
-# mode = ["syntax", "semantic", "near"]
+mode = ["syntax"]                          # jscpd-style gate (exact copy-paste only)
+# mode = ["syntax", "semantic"]            # exact channels only, no fuzzy near
+# mode = ["syntax", "semantic", "near"]    # same as omitting mode (the default)
 ```
 
 `min-size` (and the advanced `min-lines`) apply to both structural units and the syntax

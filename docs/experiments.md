@@ -2570,7 +2570,7 @@ it, no further. Issue #329.
 | s9-oracle-eq-err-incoherent | oracle | recorded-low-prevalence (§7 sharpened; fix deferred) |
 | s9-perf-enrich-narrowing | performance-determinism | green-confirmed |
 
-## CA. Default-surface noise — the #263/#264 triage feedback, re-judged by fresh-repo audit
+## CO. Default-surface noise — the #263/#264 triage feedback, re-judged by fresh-repo audit
 
 The triage-noise feedback ([#263](https://github.com/corca-ai/nose/issues/263) TS/React,
 [#264](https://github.com/corca-ai/nose/issues/264) Go-CLI, [#11](https://github.com/corca-ai/nose/issues/11)
@@ -2677,7 +2677,7 @@ principled (it correctly demotes the low-foldability serde family — the standi
 target) but **regressed held-out** (59→57, Java −9): the all-copies hole count over-fires
 `shallow-extraction` on dev-shaped families that don't generalize. So `params` deliberately
 stays representative-pair (also keeping it tied to `varying_spots` and the frozen scan-JSON
-v1 contract). The lesson repeats §AV/§CA: the residual ranking loss is judgment-deep, not a
+v1 contract). The lesson repeats §AV/§CO: the residual ranking loss is judgment-deep, not a
 number-basis bug — #365 needs its own signal (signature/arity heterogeneity), not a more
 honest parameter count. Scan and query now print one shared/removable headline per family;
 the `params`/`spots-differ` count stays each surface's own (scan = representative pair,

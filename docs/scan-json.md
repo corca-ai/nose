@@ -6,7 +6,9 @@ For the command context see [usage](usage.md); for CI-oriented formats see
 [continuous-integration](continuous-integration.md). Tools can discover supported
 scan JSON schema versions with [capabilities](capabilities.md). An LLM agent
 consuming this schema should follow the validated triage protocol in
-[agent-recipe](agent-recipe.md).
+[agent-recipe](agent-recipe.md). This is the one-shot batch contract; for *interactive*
+exploration of the same dataset, [`nose query`](usage.md#nose-query) is its companion
+surface (also `--format json`).
 
 ## Version 1
 
@@ -80,6 +82,9 @@ The top-level value is always an object:
       "review": 1,
       "hidden": 7,
       "debug": 0,
+      "generated": 0,
+      "declaration": 0,
+      "shallow": 0,
       "fragments": {
         "total": 8,
         "default": 1,

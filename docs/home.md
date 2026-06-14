@@ -18,7 +18,10 @@ where relevant. The pages are grouped by what you're here to do.
 ## Fast paths
 
 - **Trying nose locally:** install from [getting-started](getting-started.md), then run
-  `nose scan <path>` and read the first few ranked families.
+  `nose query <path>` to explore interactively (follow the suggested next-commands), or
+  `nose scan <path>` for a one-shot ranked report.
+- **Driving nose from an agent:** run `nose query <path>` and follow the runnable `next:`
+  links — see [usage › nose query](usage.md#nose-query) and the [agent-recipe](agent-recipe.md).
 - **Adding a repo gate:** start with [continuous integration](continuous-integration.md),
   then commit shared defaults from [configuration](configuration.md).
 - **Building an integration:** use [capabilities](capabilities.md) before invoking a binary
@@ -28,7 +31,8 @@ where relevant. The pages are grouped by what you're here to do.
 
 You want to *run* nose on a codebase and act on what it finds.
 
-- [usage](usage.md) — the complete command and flag reference (`scan`, `review`, `stats`, `il`, `capabilities`), the ranking keys, and the scan modes.
+- [usage](usage.md) — the complete command and flag reference (`query`, `scan`, `review`, `stats`, `il`, `capabilities`, `semantic-pack`), the ranking keys, and the scan modes.
+- [usage › nose query](usage.md#nose-query) — `nose query`: the stateless, self-describing **exploration surface** over the same dataset `scan` computes — a landing dashboard, sliceable filters/facets, drill-into-one-family, and a runnable next-command on every result. The interactive/agent entry point.
 - [review](review.md) — `nose review`: flag clones changed inconsistently in a diff (a copy fixed, its siblings missed) — a PR/CI check on top of git.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, modes, ranking, thresholds, and structured-ignore defaults.
 - [continuous-integration](continuous-integration.md) — the `--fail-on any` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
@@ -44,8 +48,8 @@ You're building tooling — an installer, CI wrapper, or editor integration — 
 of nose's machine-readable output.
 
 - [capabilities](capabilities.md) — the `nose capabilities` JSON contract: what an installed binary supports, so a wrapper never has to scrape `--help`.
-- [scan-json](scan-json.md) — the versioned `nose scan --format json` contract for downstream tooling.
-- [agent-recipe](agent-recipe.md) — the validated protocol for an LLM agent triaging scan JSON: which fields to read, in what order, and what to do with each verdict.
+- [agent-recipe](agent-recipe.md) — the validated protocol for an LLM agent: explore interactively with `nose query` (follow the emitted next-commands), then read the `nose scan --format json` contract for the batch/gate path.
+- [scan-json](scan-json.md) — the versioned `nose scan --format json` contract for downstream tooling and CI (the batch surface; `nose query` is its interactive companion).
 
 ## Contributing
 

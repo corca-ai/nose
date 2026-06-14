@@ -92,6 +92,7 @@
       "debug": 0,
       "generated": 0,
       "declaration": 0,
+      "shallow": 0,
       "fragments": {
         "total": 0,
         "default": 0,

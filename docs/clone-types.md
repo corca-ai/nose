@@ -190,7 +190,7 @@ separately with `recommended_surface`: default, review, or hidden. See
 Each type maps to a detection channel by evidence surface: **Type-1 and token-level
 copy floors → `syntax`**, identifier/type-normalized **Type-2 → `semantic` or `near`**,
 literal-varied Type-2 and **Type-3 → `near`** (fuzzy; the threshold rides on the mode,
-`near:0.8`), and exact **Type-4 → `semantic`**. The experimental
+`near:0.70` by default), and exact **Type-4 → `semantic`**. The experimental
 `abstraction[:T]` mode is a weak family-wide witness layer over a narrow `near` subset;
 it does not feed `semantic` or `verify`. The default is `syntax,semantic,near`; see
 [usage → Scan modes](usage.md#scan-modes) for the full table and how to compose channels.

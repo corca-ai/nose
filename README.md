@@ -18,35 +18,45 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/corca-ai/nose/releases/
 
 ## Quick start
 
-Point `nose scan` at a directory. It groups duplicated code into clone families
-and ranks them by how cleanly each folds into one shared helper, so the report
-reads top-down as a refactoring to-do list:
+Point `nose query` at a directory to **explore** its duplication. It prints a landing
+dashboard, and every result suggests the next command to run — so you (or an agent) navigate
+by following links instead of memorizing flags:
 
 ```
-$ nose scan src
+$ nose query src
+nose — finds duplicated & refactorable code across languages.
 scanned 23 files · python 14 · typescript 9
-4 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~118 duplicated lines  (showing 4)
 
-#1  id b221962180c09063 · 2 copies · 8 of 10 lines shared, 2 spots differ · ~8 lines removable
-    → local duplication — extract a method from the repeated block
-    src/loaders/users.py:1-10  load_users
-    src/loaders/orders.py:12-21  load_orders
-…
+4 duplicated-code families on the default surface.
+  by confidence: exact 1 · subdag 0 · copy-paste 1 · similar 2
+
+cleanest to extract (production first):
+  src/loaders/users.py:1  2 copies · 8/10 shared, 2p · ~8 removable · similar   nose query src id=b221962180
+  …
+grammar:  nose query <path> [field=value | field>N | field~substr …] [group=FIELD | id=FAM] [sort=KEY] [top=N] [full] [all]
 ```
 
-The everyday commands:
+Then drill: `nose query src witness=exact` (only behavior-proven families), `nose query src
+group=dir` (by directory), `nose query src id=b221962180 full` (open one family with its
+all-copies extraction skeleton).
+
+For a **one-shot ranked report** — to read top-down, paste into a PR, or gate CI — use
+`nose scan`:
 
 ```sh
+nose scan src                              # the ranked report, cleanest-to-fold first
 nose scan src --show diff                  # also show exactly what differs inside each family
 nose scan src --format markdown            # a report to paste into a PR or issue
 nose review --base origin/main             # PR check: a change applied to one clone copy but not its siblings
 nose scan src --mode syntax --fail-on any  # jscpd-style copy-paste gate for CI
-nose scan src --format json                # machine-readable output for tooling and agents
+nose scan src --format json                # the versioned machine-readable contract for batch tooling and CI
 ```
 
-By default `nose scan` runs all three channels — `syntax` (copy-paste runs),
-`semantic` (exact same-logic Type-4 clones), and `near` (fuzzy near-duplicates) —
-and respects `.gitignore`. Pass `--mode` to run exactly the channels you list.
+`query` and `scan` read the **same** dataset: `query` is the interactive/agent surface,
+`scan` is the one-shot report plus the frozen JSON contract and the `--fail-on` CI gate. By
+default both run all three channels — `syntax` (copy-paste runs), `semantic` (exact
+same-logic Type-4 clones), and `near` (fuzzy near-duplicates) — and respect `.gitignore`.
+Pass `--mode` to run exactly the channels you list.
 
 ## Documentation
 

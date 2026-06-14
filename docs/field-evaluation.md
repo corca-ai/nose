@@ -118,7 +118,8 @@ over-rewarded a big block whose copies share little -- a 384-line family sharing
 22 lines across 14 varying spots topped the list at a misleading `sim 1.00`,
 above a tight `15/15`-shared pair. The default sort is now **extractability** --
 how cleanly a family folds into one helper (invariant lines × copies × spread,
-weighted by tightness and penalized by parameter count), with the report's
+weighted by tightness and penalized by parameter count and member-span heterogeneity —
+#365/§CM), with the report's
 similarity cell replaced by an honest `N/M shared · Pp`. Same-language families
 that share *no* invariant lines (a language idiom, or two unrelated type literals
 of the same shape) now sink instead of topping the list. `--sort value` retains

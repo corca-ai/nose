@@ -140,8 +140,9 @@ enum Cmd {
         )]
         mode: Vec<ScanMode>,
         /// Extra views (repeatable / comma-list): `diff` (each family as a unified
-        /// diff of its two copies), `proposal` (an extraction skeleton), `hotspots`
-        /// (directories ranked by duplicated lines). e.g. `--show diff,hotspots`.
+        /// diff of its two copies), `proposal` (an extraction skeleton over all copies),
+        /// `hotspots` (directories ranked by duplicated lines), `reinvented` (helpers
+        /// reimplemented inline instead of called). e.g. `--show diff,hotspots`.
         #[arg(long, value_delimiter = ',', value_name = "VIEW")]
         show: Vec<ShowView>,
         /// Cache per-file analysis under this directory. Re-runs reuse the cache for
@@ -5953,7 +5954,7 @@ fn family_langs(f: &nose_detect::RefactorFamily) -> String {
 
 /// A short, fact-grounded refactoring hint for a family — only from signals the
 /// report already establishes (a shared symbol name, cross-language spread, the
-/// number of modules), never a guess about semantics.
+/// number of directories), never a guess about semantics.
 fn family_hint(f: &nose_detect::RefactorFamily) -> String {
     use nose_il::UnitKind;
     // Exactly one member is a whole named function/method while every other

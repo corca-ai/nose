@@ -396,6 +396,7 @@ fn assert_scan_json_surface_counts_contract(
         "debug",
         "generated",
         "declaration",
+        "shallow",
         "fragments",
     ] {
         assert!(

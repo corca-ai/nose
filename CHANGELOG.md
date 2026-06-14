@@ -6,6 +6,42 @@ break.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-06-15
+
+Documentation release: lead with `nose query`, and a full code-docs drift sweep. No
+behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contract.
+
+### Changed
+- **Docs lead with `nose query`.** README, [home](docs/home.md),
+  [getting-started](docs/getting-started.md), [agent-recipe](docs/agent-recipe.md), and
+  [design](docs/design.md) §2 now present `nose query` as the interactive/agent exploration
+  entry point, with `nose scan` framed as the one-shot report plus the frozen JSON contract and
+  the `--fail-on` CI gate — both over the same dataset. `nose scan` is **not** deprecated.
+
+### Fixed (code-docs drift)
+- **Default scan mode** in [configuration](docs/configuration.md) said `["syntax","semantic"]`;
+  the real default is `["syntax","semantic","near"]` (matches the CLI and `README`).
+- **The verify oracle now models IEEE-754 floats** ([oracle-value-model](docs/oracle-value-model.md)
+  §1 still said "there is no Float", contradicting #342 and its own §3.3/§6); the input battery's
+  "starved `Str` model" narrative was stale (Parts 3–6 ship distinct-string/list, element-mutation,
+  float, and int32 rows); the canon-preservation baseline was corrected to 0 and the #369
+  up-to-abort attribution untangled from the series-9 cases.
+- **"directory" not "module"** in the `getting-started` report-reading guide and the
+  `architecture` ranking formula (#363); **all-copies** (not "a pair") shared-line wording.
+- **Benchmark reproducer** ([benchmark](docs/benchmark.md)) now passes `--rank extractability`
+  (the no-flag default sorts by `value` and won't reproduce the headline P@10); canon-preservation
+  described "up to abort" (#369); `extractability` description gains the member-span heterogeneity
+  penalty (#365) in [field-evaluation](docs/field-evaluation.md); `clone-types` near threshold
+  `0.70`; `scan-json` example `surface_counts` includes the always-emitted `generated`/`declaration`/`shallow`.
+- **Hazard re-calibration checklist** ([hazard-release-checklist](docs/hazard-release-checklist.md))
+  quick-check no longer over-triggers on display-only/reorder changes (e.g. #365/#366) — it compares
+  the calibrated feature fields sort-independently, with a display-vs-feature note (`shared_lines` ≠
+  `shared_weight`).
+- **scan-JSON v1 contract test** now asserts the always-emitted `shallow` surface count (fixture
+  + `support.rs` had drifted); `--show` help lists the `reinvented` view; a stale `family_hint`
+  doc-comment said "modules". Experiments log: the duplicate `§CA` anchor was disambiguated
+  (default-surface-noise is now `§CO`).
+
 ## [0.9.0] - 2026-06-14
 
 ### Added

@@ -29,8 +29,21 @@ miss.
 
 **How to tell if detection output changed**, if unsure: scan a fixed fixture corpus with
 the old and new binary and diff the JSON `families` (`nose scan <fixtures> --mode
-semantic,near --format json --top 0`). No diff → ranking-only, skip. Any diff → refresh.
-When in doubt, refresh — it costs minutes (cached clones).
+semantic,near --format json --top 0`), comparing **sort-independently** and looking only at
+the calibrated inputs — family identity, member sets, fingerprints, and the feature values in
+the row above (`mean_sem`, `shared_weight`, `params`, `mean_lines`, `modules`, `scope`). A
+change there → refresh. **Ignore** pure-display fields and ordering: a reorder of the
+extractability-sorted `families` array, or a changed `shared_lines`/`dup_lines`/`~removable`
+value, is *not* a hazard input (e.g. v0.9.0's #365 reorder and #366 all-copies `shared_lines`
+both moved the JSON without touching any hazard feature — see the note below). When a real
+feature value moved, refresh — it costs minutes (cached clones).
+
+> **Display vs feature.** The display field `shared_lines` (#366; computed CLI-side, feeds
+> `extractability` via the shallow-extraction gate) is **not** the calibrated hazard feature
+> `shared_weight` (the IDF-weighted majority-vote count, byte-identical across #366). `hazard()`
+> consumes `shared_weight`/`mean_lines`/`spread`/`scope` — never `shared_lines` — so a
+> #366-style change is "Nothing" for hazard even though it alters scan JSON and extractability
+> order.
 
 ## The refresh procedure
 

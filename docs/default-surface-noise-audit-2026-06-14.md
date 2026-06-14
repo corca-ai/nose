@@ -185,7 +185,7 @@ members' real source. **NO-GO, for two structural reasons:**
    surface for shapes).
 
 Shipping it would hide distinct genuine findings under a misleading "same shape" label *and*
-slow scans — strictly worse. Recorded in [experiments §CA](experiments.md). The independent,
+slow scans — strictly worse. Recorded in [experiments §CO](experiments.md). The independent,
 source-verified lever stands: a decidable **evidence** flag for language-forced parallel
 duplication (`owned-vs-borrowed` / `covariant-type-only` / `high-param-ratio` from the graded
 per-spot `class`, evidence-not-verdict) and retiring "proven ⇒ trust/lead" (serde's top

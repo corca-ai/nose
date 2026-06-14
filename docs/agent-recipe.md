@@ -1,30 +1,55 @@
-# Agent recipe — triaging nose scan JSON
+# Agent recipe — exploring & triaging nose findings
 
 [design](design.md) §2: nose's primary consumer is an LLM coding agent that **calls
 nose and applies its own judgment on top**. nose surfaces candidates with
 deterministic, machine-readable evidence; the judgment-deep question — *worth
 refactoring, or parallel-by-design?* — belongs in the caller (experiments §AV/§AY
 measured that ceiling; an internal LLM would be redundant for agents and harmful for
-gates). This page is the protocol for that caller: which fields to read, in what
-order, and what to do with each verdict. It was validated by replaying it against
-the human-audited v5 labels (see *Validation* below).
+gates). This page is the protocol for that caller: how to **explore** the findings, which
+fields to read, in what order, and what to do with each verdict. It was validated by
+replaying it against the human-audited v5 labels (see *Validation* below).
 
-## Inputs
+## Explore: the `nose query` loop (start here)
+
+`nose query <path>` is the interactive entry point — a stateless, self-describing surface
+over the same family dataset, built for an agent loop. Start with no terms for a landing
+dashboard, then **follow the runnable `next:` command on each result** rather than
+pre-scripting field reads:
 
 ```sh
-nose scan <path> --format json --top 30        # the ranked triage surface
+nose query <path>                      # landing dashboard: counts by confidence + cleanest candidates
+nose query <path> witness=exact        # slice: only the behavior-proven families
+nose query <path> scope=prod           # slice: production-scope only
+nose query <path> group=dir            # facet: by directory, with a count + exemplar
+nose query <path> id=<fam> full        # open one family: copies + all-copies extraction skeleton
+```
+
+Each result is a pure function of (repo state, command); an unknown field or enum value is a
+hard error (so a typo can't read as "no duplication"). Use `--format json` on any query for
+the same rows structured. This surface is delivered as the agent's primary path; it is *not*
+an MCP server (a Skill is the intended packaging).
+
+## Inputs for the batch / gate path
+
+For non-interactive consumption — a CI gate, a one-shot triage of the whole tree, or feeding
+the versioned contract to other tooling — read the JSON directly:
+
+```sh
+nose scan <path> --format json --top 30        # the ranked triage surface (versioned contract)
 nose review --base origin/main --format json   # PR-time divergence findings
 ```
 
-Parse `families[]` ([scan JSON](scan-json.md)). Do not scrape human output.
+Parse `families[]` ([scan JSON](scan-json.md)). Do not scrape human output. The per-family
+decision procedure below applies to both a `nose query` row and a `scan` JSON family — they
+carry the same evidence fields.
 
 ## Per-family decision procedure
 
 Read the fields in this order — each step either decides or narrows:
 
 1. **Surface filter.** Act on `recommended_surface == "default"` only;
-   `review`/`hidden`/`shallow` are diagnostic surfaces. If you widen past the
-   default, `actionability_reason` names *why* a family was demoted — `trivial`
+   `review`/`hidden`/`shallow`/`generated`/`declaration` are diagnostic surfaces. If you
+   widen past the default, `actionability_reason` names *why* a family was demoted — `trivial`
    (too small to extract), `shallow-extraction` (the helper would be mostly
    parameters), `declaration-run` (only import/include/use/re-export spans), or
    `generated-source` — each a decidable classification, not a worthiness verdict.
@@ -99,5 +124,5 @@ following this page over a deterministic top-K sample of v5-labeled families
 reproduced the human-audited worthy/not-worthy verdicts — see
 [experiments §BX](experiments.md) for the run and its agreement numbers.
 
-*See also: [scan JSON](scan-json.md) · [review](review.md) ·
-[structured-ignores](structured-ignores.md) · [design](design.md).*
+*See also: [usage › nose query](usage.md#nose-query) · [scan JSON](scan-json.md) ·
+[review](review.md) · [structured-ignores](structured-ignores.md) · [design](design.md).*

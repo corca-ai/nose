@@ -40,7 +40,8 @@ on a battery of inputs and compares observable behavior. Its value type is
 
 | kind | models | notes |
 |---|---|---|
-| `Int(i64)` | every integer | **all numbers** — there is no float (see §3.3) |
+| `Int(i64)` | every integer | i64 arithmetic, with JS int32 bitwise execution where typed (#344) |
+| `Float(F64)` | IEEE-754 doubles | full IEEE-754 `Add`/`Sub`/`Mul`/`Div`/`FloorDiv`/`Mod`/`Pow` (#342, see §3.3); float *literals* stay opaque (`LitFloat`) |
 | `Bool(bool)` | booleans | |
 | `Str(Vec<u64>)` | strings as a **free monoid** over appended token hashes | **order-sensitive**: `"x"+"y"` = `[hx,hy]` ≠ `[hy,hx]` = `"y"+"x"`. No char content; length/index stay `Err`. |
 | `List(Vec<Value>)` | sequences | |
@@ -53,11 +54,11 @@ Two facts matter for everything below:
 - **Strings are already order-sensitive.** The free-monoid `Str` was built
   precisely so that an unsound commutative treatment of `+` on strings is
   *witnessable* — the model is not the gap for finding C.
-- **There is no `Float`.** Every numeric literal and result is an `i64`. Float
-  *literals* are kept distinct in the value graph (`LitFloat`, a hash of the
-  source text, so `3.14 ≠ 2.71` — `crates/nose-il/src/node.rs`), but the
-  interpreter has no float arithmetic, so any *computation* whose result depends
-  on float semantics is invisible to the oracle.
+- **The oracle now models IEEE-754 floats** (`Value::Float(F64)`, #342 — see §3.3/§6).
+  Float *literals* are still kept opaque in the value graph (`LitFloat`, a hash of the
+  source text, so `3.14 ≠ 2.71` — `crates/nose-il/src/node.rs`), but float *arithmetic* is
+  interpreted, so the fully-untyped float associativity gap that motivated this doc is
+  closed in both the detector and the oracle.
 
 ### 1.1 The input battery (the other half of the oracle)
 
@@ -73,16 +74,22 @@ production battery is `verify_battery` / `verify_probes`
   corpus actually branches on, each injected at **one** position with the other
   slots filled by `pool[0]` (the list `[1,2,3,4]`).
 
-The `wide` ("leap-3") battery widens the integer/list domain but follows the same
-shape: still no strings in the combinatorial core, still one-position string
-probes.
+Beyond the combinatorial core and the literal probes, the battery carries targeted
+order/kind rows (`verify_battery` Parts 3–6) added as each gap was closed:
 
-**Consequence:** the battery never binds **two distinct strings to two
-parameters simultaneously**. So `f(a,b)=a+b` and `g(a,b)=b+a` are only ever
-compared on integer/list rows (where `+` is commutative or both `Err`) and on
-single-string probe rows (`"x" + [1,2,3,4]` → `Err`, same as the swap) — never on
-`("x","y")`, the one input on which they differ. The order-sensitive `Str` model
-is present but **starved of the input that would exercise it**.
+- **Part 3 — distinct-pair rows (#283-C):** two *distinct* strings (and two distinct lists)
+  bound to adjacent params, forward and reversed — the input on which `a+b` and `b+a` differ.
+- **Part 4 — element-mutation rows (#337):** a list base with two distinct int indices, so
+  `swap(a,i,j)` is observably ≠ `clobber`.
+- **Part 5 — adversarial float rows (#342):** magnitudes like `1e16 ± 1e16` that expose
+  non-associative float `+`.
+- **Part 6 — int32-overlap rows (#344):** ints straddling the 2³² boundary for JS bitwise width.
+
+**Consequence:** the order-sensitive `Str`/`List` model is **no longer starved** — Part 3
+binds `("x","y")` to two params, so `f(a,b)=a+b` and `g(a,b)=b+a` are now distinguished by the
+oracle, not only by the detector gate. The remaining genuine gap is *mixed* string/number
+**coercion** rows (a string and a number to the same family of params), which need
+type-domain-aware feeding to avoid manufacturing impossible inputs (§7).
 
 ---
 
@@ -104,10 +111,11 @@ numeric-only rewrites.
   numeric-to-string coercion for `string + number`, so mixed-coercion regressions
   rely on external-language witnesses plus detector fingerprint splits until that
   model exists. The **float** half of C overlaps D-div; see there.
-- **Remaining gap:** the **battery** (§1.1) never feeds two distinct strings/lists
-  to two params at once, and it has no mixed string/number coercion rows. The
-  detector no longer merges the known C string/mixed cases, but `nose verify`
-  remains too weak to witness all of them by itself.
+- **Remaining gap:** the **battery** (§1.1) now feeds two distinct strings/lists to two
+  params at once (Part 3), so pure string/list ordering is oracle-witnessed; what it still
+  lacks is mixed string/number **coercion** rows. The detector no longer merges the known C
+  string/mixed cases, and `nose verify` now witnesses the pure-string half itself — only the
+  mixed-coercion half still relies on detector splits.
 - **Cheapest of the three.** The detector floor is in place; the remaining work
   is oracle coverage/modeling plus recall pricing on larger corpora.
 
@@ -168,11 +176,11 @@ first; promote to the full model only if the priced recall loss justifies it.
   add/sub/negation rewrites on a *proven-not-concat* predicate: reorder only when
   every operand is proven numeric/non-string. Untyped `+` stays ordered in
   string-coercive languages, while typed numeric `+` still converges.
-- **Oracle coverage:** add battery rows that bind **two distinct strings** (and
-  two distinct lists) to multiple positions — e.g. probe pairs `("α","β")` drawn
-  from the mined string set, plus a couple of distinct-list rows. Add mixed
-  string/number rows only after the interpreter has explicit JS/Java coercion
-  semantics. *Effect:* `verify` can witness `a+b ≠ b+a` for strings and later
+- **Oracle coverage (distinct-pair rows shipped, Part 3):** the battery now binds **two
+  distinct strings** (and two distinct lists) to adjacent positions, forward and reversed —
+  so `verify` witnesses `a+b ≠ b+a` for strings directly. The remaining piece is mixed
+  string/number rows, to be added only after the interpreter has explicit JS/Java coercion
+  semantics. *Effect:* `verify` witnesses pure-string `a+b ≠ b+a` today, and later
   `"a"+2+3 ≠ "a"+(2+3)` for coercive languages, instead of relying only on
   detector fingerprint splits and external-language witnesses.
 - **Cost:** Medium detector gate already paid; remaining Low-Medium oracle
@@ -256,7 +264,8 @@ For each candidate fix, record **before → after**:
 1. **Soundness (must improve or hold).**
    `nose verify bench/repos` → `SOUND: no false merges ✓`, and the reproducer in
    §5 must flip from merged to split. Canon-preservation violations must not rise
-   above the standing baseline (currently **20**, sympy/nushell).
+   above the standing baseline (currently **0** on the pinned corpus — the last
+   spurious cases were resolved by the up-to-abort gate, §7.2 / experiments §CN).
 2. **Recall delta (the price).**
    `nose scan bench/repos --mode semantic --top 0` family count, **dev split and
    heldout split separately**. A change that holds family count on dev but drops
@@ -288,7 +297,7 @@ oracle-caught)":
 
 | target | file / repro | must become |
 |---|---|---|
-| C — string/mixed-coercive `+` ordering | `untyped_add_commute.py` (`a+b` vs `b+a`) and JS/TS/Java-style `x+4` / `x+(2+3)` / `x-3` / `-(x+2)` | detector keeps them **split**; oracle witnesses pure string now only after battery enrichment, and mixed string/number after coercion modeling |
+| C — string/mixed-coercive `+` ordering | `untyped_add_commute.py` (`a+b` vs `b+a`) and JS/TS/Java-style `x+4` / `x+(2+3)` / `x-3` / `-(x+2)` | detector keeps them **split** AND oracle witnesses pure string/list ordering (battery Part 3 shipped); mixed string/number still awaits coercion modeling |
 | C — float `+` non-associativity | `float_assoc.py` (`(a+b)+c` vs `a+(b+c)`) | detector keeps them **split** AND oracle witnesses — CLOSED (#342, the `Value::Float` kind, §3.3); guarded by `float_addition_is_non_associative_in_the_oracle` + `algebra_associativity` + `float_typed_param_addition_is_held_unassociated` |
 | D-int32 — JS bitwise vs bigint | cross-language `a & b` (JS vs Python), e.g. the §2 reproducer | detector keeps **split** AND oracle witnesses (int32 execution shipped, #344); guarded by `js_bitwise_and_wraps_to_int32_in_the_oracle`; full fixed-width recall recovery measured-unneeded |
 | D-div — true-float `/` | Python/JS `a/b` vs Ruby `a/b` vs C `a/b` | the three **do not merge**; the real IEEE-754 `Value::Float` oracle shipped (#342) |
@@ -352,8 +361,10 @@ effects recorded *before* the trap.
 This is not hypothetical: the *current* battery already trips it. It surfaced on the
 pinned corpus as 4 canon-preservation "violations" in libsodium's `fe25519` limb
 arithmetic (`fe25519_add`/`sub`/`neg` take 3 array params, so the #337 element-mutation
-battery row binds a list to one and ints to the rest, and `f[i]` indexes an int — #369),
-and off-corpus on `netty` (3) and `sympy` (20). **Fixed** by judging canon preservation
+battery row binds a list to one and ints to the rest, and `f[i]` indexes an int — #369).
+(Earlier off-corpus `netty`/`sympy` violations were a *related but distinct* class — the
+`==`/`Err`-operand canon — resolved separately by the series-9 `bin`/dataflow fixes, §7.1/§7.2.)
+**Fixed** by judging canon preservation
 *up to abort*: two runs that both return `Err` are equivalent regardless of their pre-trap
 effects (`behavior_equiv`, interp.rs), since an erroring execution has no observable result
 and reordering operations ahead of a guaranteed trap is behavior-preserving. `Ok→Err`,
