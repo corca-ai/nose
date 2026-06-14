@@ -3910,45 +3910,53 @@ fn parse_query(terms: &[String]) -> Result<Query> {
     }
     for flt in &q.filters {
         validate_field(&flt.field, &flt.op)?;
-        // Validate enum *values* too (a value typo must error, not silently match nothing
-        // and read as "no such clones exist").
-        if matches!(flt.op, QOp::Eq) {
-            let valid: Option<&[&str]> = match flt.field.as_str() {
-                "scope" => Some(&["prod", "test", "mixed"]),
-                "witness" => Some(&[
-                    "exact",
-                    "subdag",
-                    "copy-paste",
-                    "similar",
-                    "shared-core",
-                    "copypaste",
-                    "structural",
-                ]),
-                "shape" | "extraction_shape" => Some(&[
-                    "call-existing-helper",
-                    "extract-helper",
-                    "extract-method-from-block",
-                    "consolidate-type",
-                    "extract-base-class",
-                    "consolidate-cross-language",
-                ]),
-                "same_symbol" => Some(&["true", "false"]),
-                "spotclass" => Some(&["leaf-only", "structural"]),
-                _ => None,
-            };
-            if let Some(vals) = valid {
-                if !vals.contains(&flt.value.as_str()) {
-                    anyhow::bail!(
-                        "unknown {} value `{}` — valid: {}",
-                        flt.field,
-                        flt.value,
-                        vals.join(" ")
-                    );
-                }
-            }
-        }
+        validate_filter_values(flt)?;
     }
     Ok(q)
+}
+
+/// Validate an `=`/`!=` filter's value(s) against the field's enum, if it has one — so a value
+/// typo errors instead of silently matching nothing (which reads as "no such clones exist").
+/// Each comma-part is a member of the OR set and is checked independently.
+fn validate_filter_values(flt: &QFilter) -> Result<()> {
+    if !matches!(flt.op, QOp::Eq) {
+        return Ok(());
+    }
+    let valid: Option<&[&str]> = match flt.field.as_str() {
+        "scope" => Some(&["prod", "test", "mixed"]),
+        "witness" => Some(&[
+            "exact",
+            "subdag",
+            "copy-paste",
+            "similar",
+            "shared-core",
+            "copypaste",
+            "structural",
+        ]),
+        "shape" | "extraction_shape" => Some(&[
+            "call-existing-helper",
+            "extract-helper",
+            "extract-method-from-block",
+            "consolidate-type",
+            "extract-base-class",
+            "consolidate-cross-language",
+        ]),
+        "same_symbol" => Some(&["true", "false"]),
+        "spotclass" => Some(&["leaf-only", "structural"]),
+        _ => None,
+    };
+    let Some(vals) = valid else { return Ok(()) };
+    for part in flt.value.split(',') {
+        if !vals.contains(&part) {
+            anyhow::bail!(
+                "unknown {} value `{}` — valid: {}",
+                flt.field,
+                part,
+                vals.join(" ")
+            );
+        }
+    }
+    Ok(())
 }
 
 /// The family whose member span covers `at` (`file:line`) — the `at=` selector's target.
@@ -4061,10 +4069,20 @@ fn family_num(f: &nose_detect::RefactorFamily, field: &str) -> Option<f64> {
 /// Whether a family satisfies one filter.
 fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &QFilter) -> bool {
     let field = flt.field.as_str();
-    let val = flt.value.as_str();
-    // Substring fields.
-    let path_has = || f.locations.iter().any(|l| l.file.contains(val));
-    let lang_eq = |exact: bool| {
+    // The family's value for string fields, computed once. `None` (e.g. `spotclass` on an
+    // unenriched/non-near family) deliberately matches nothing rather than erroring.
+    let fval: Option<String> = match field {
+        "scope" => Some(f.scope.to_string()),
+        "witness" => Some(witness_token(f.witness.as_ref().map(|w| w.kind)).to_string()),
+        "surface" => Some(effective_surface(f, ov).to_string()),
+        "shape" | "extraction_shape" => Some(f.extraction_shape().to_string()),
+        "dir" => Some(family_dir(f)),
+        "same_symbol" => Some(family_same_symbol(f).to_string()),
+        "spotclass" => family_spotclass(f).map(str::to_string),
+        _ => None,
+    };
+    let path_has = |val: &str| f.locations.iter().any(|l| l.file.contains(val));
+    let lang_match = |val: &str, exact: bool| {
         f.locations.iter().any(|l| {
             if exact {
                 l.lang.as_str() == val
@@ -4073,46 +4091,42 @@ fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &
             }
         })
     };
-    let strfield = |field: &str| -> Option<String> {
-        Some(match field {
-            "scope" => f.scope.to_string(),
-            "witness" => witness_token(f.witness.as_ref().map(|w| w.kind)).to_string(),
-            "surface" => effective_surface(f, ov).to_string(),
-            "shape" | "extraction_shape" => f.extraction_shape().to_string(),
-            "dir" => family_dir(f),
-            "same_symbol" => family_same_symbol(f).to_string(),
-            // `None` (witness not enriched / not a near family) deliberately matches no
-            // `spotclass=` filter rather than erroring — the caller widens or drops it.
-            "spotclass" => family_spotclass(f)?.to_string(),
-            _ => return None,
-        })
+    // Match one value (one comma-part). `=`/`~` OR over the comma-separated set (membership);
+    // `>`/`<` are a range, so they take the whole value as a single number.
+    let one = |val: &str| -> bool {
+        match flt.op {
+            QOp::Has => match field {
+                "path" | "file" => path_has(val),
+                "lang" | "language" => lang_match(val, false),
+                _ => fval.as_deref().is_some_and(|s| s.contains(val)),
+            },
+            QOp::Eq => match field {
+                "path" | "file" => path_has(val),
+                "lang" | "language" => lang_match(val, true),
+                "witness" => f.witness.as_ref().map(|w| w.kind) == Some(witness_alias(val)),
+                _ => {
+                    if let Some(s) = &fval {
+                        s == val
+                    } else {
+                        family_num(f, field)
+                            .zip(val.parse::<f64>().ok())
+                            .is_some_and(|(a, b)| (a - b).abs() < f64::EPSILON)
+                    }
+                }
+            },
+            QOp::Gt => family_num(f, field)
+                .zip(val.parse::<f64>().ok())
+                .is_some_and(|(a, b)| a > b),
+            QOp::Lt => family_num(f, field)
+                .zip(val.parse::<f64>().ok())
+                .is_some_and(|(a, b)| a < b),
+        }
     };
     let base = match flt.op {
-        QOp::Has => match field {
-            "path" | "file" => path_has(),
-            "lang" | "language" => lang_eq(false),
-            _ => strfield(field).is_some_and(|s| s.contains(val)),
-        },
-        QOp::Eq => match field {
-            "path" | "file" => path_has(),
-            "lang" | "language" => lang_eq(true),
-            "witness" => f.witness.as_ref().map(|w| w.kind) == Some(witness_alias(val)),
-            _ => {
-                if let Some(s) = strfield(field) {
-                    s == val
-                } else {
-                    family_num(f, field)
-                        .zip(val.parse::<f64>().ok())
-                        .is_some_and(|(a, b)| (a - b).abs() < f64::EPSILON)
-                }
-            }
-        },
-        QOp::Gt => family_num(f, field)
-            .zip(val.parse::<f64>().ok())
-            .is_some_and(|(a, b)| a > b),
-        QOp::Lt => family_num(f, field)
-            .zip(val.parse::<f64>().ok())
-            .is_some_and(|(a, b)| a < b),
+        // Set-membership OR: `witness=exact,subdag` matches either; `!=` (negate) then drops
+        // any family in the set. `>`/`<` stay single-valued.
+        QOp::Has | QOp::Eq => flt.value.split(',').any(one),
+        QOp::Gt | QOp::Lt => one(flt.value.as_str()),
     };
     base ^ flt.negate
 }

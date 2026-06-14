@@ -1948,6 +1948,24 @@ fn query_dashboard_filter_and_family() {
     // Negated equality still validates the value (a typo errors, never silently matches).
     assert!(run_fail(&["query", p, "witness!=nonsense"]).contains("unknown witness value"));
 
+    // Set-membership OR: comma is "any of". The fixture family is `similar`, so a set that
+    // includes `similar` keeps it and one that excludes it drops it — and a typo in any
+    // comma-part errors (never silently narrows the set).
+    assert!(
+        run(&["query", p, "witness=exact,similar"]).contains("families"),
+        "witness=exact,similar matches the similar fixture (OR)"
+    );
+    let none = run(&["query", p, "witness=exact,copy-paste"]);
+    assert!(
+        none.contains("0 families") || !none.contains(&format!("nose query {p} id=")),
+        "a set without `similar` excludes the only family"
+    );
+    assert!(
+        run(&["query", p, "witness!=exact,copy-paste"]).contains("families"),
+        "witness!=<set> keeps a family outside the set"
+    );
+    assert!(run_fail(&["query", p, "witness=similar,bogus"]).contains("unknown witness value"));
+
     // `at=FILE:LINE` opens the family whose copy covers that location; a miss errors loudly.
     let at = run(&["query", p, &format!("at={p}/a/m.py:3")]);
     assert!(

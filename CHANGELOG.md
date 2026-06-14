@@ -11,13 +11,14 @@ deprecated.** All changes below are staged; the release is not yet cut.
 
 ### Added
 - **`nose query` is now a complete surface** over the same dataset `scan` computes:
-  - **Explorability (#374):** DSL negation (`field!=value` / `path!~substr`), an `at=FILE:LINE`
-    selector (a stable family handle across edits), a `same_symbol` evidence field + facet (the
-    parallel-variant signal), an `existing_helper` field on `call-existing-helper` families
-    (names the member to call — and marks it `role: "existing-helper"` — so it isn't read as one
-    more copy to fold), and a `spotclass` facet (`leaf-only` vs `structural`) that separates
-    near families whose varying spots are clean value-leaves from those with genuine logic
-    divergence (computed on demand from the graded witness — only when queried, for cost).
+  - **Explorability (#374):** DSL negation (`field!=value` / `path!~substr`), **set-membership
+    OR** (`witness=exact,subdag` matches either; `!=` over a comma-set drops all of them), an
+    `at=FILE:LINE` selector (a stable family handle across edits), a `same_symbol` evidence field
+    + facet (the parallel-variant signal), an `existing_helper` field on `call-existing-helper`
+    families (names the member to call — and marks it `role: "existing-helper"` — so it isn't read
+    as one more copy to fold), and a `spotclass` facet (`leaf-only` vs `structural`) that
+    separates near families whose varying spots are clean value-leaves from those with genuine
+    logic divergence (computed on demand from the graded witness — only when queried, for cost).
   - **Analysis flags:** `--mode`/`--min-*`/`--exclude`/`--cache-dir`/`--ignore-file`/
     `--semantic-pack`/`--config`, configured identically to scan.
   - **CI gate:** `--fail-on any`/`new` with `--baseline`/`--write-baseline`, reusing scan's

@@ -229,7 +229,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 
 | part | meaning |
 |---|---|
-| `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a whole directory) |
+| `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,subdag` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,subdag` drops both) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, fold-graph links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
