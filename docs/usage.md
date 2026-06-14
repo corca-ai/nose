@@ -27,6 +27,7 @@ from-source `./target/release/nose`.
 | You want to... | Use |
 |---|---|
 | Find refactoring candidates in a tree | `nose scan <paths...>` |
+| Explore the duplication interactively (agent loop) | `nose query <path> [terms...]` |
 | Catch a missed sibling edit in a diff or PR | `nose review --base <ref>` |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
@@ -198,6 +199,42 @@ field writes. General statement windows, dynamic receiver writes, mixed unproven
 and arbitrary field/property mutation stay closed. The exact fragment contract and JSON
 metadata are documented in [fragment-contracts](fragment-contracts.md) and
 [scan-json](scan-json.md#fragment-metadata).
+
+## `nose query`
+
+`nose query <path> [terms…]` is the **exploration surface** (#359): a stateless,
+self-describing query over the same family dataset `scan` computes, designed for an LLM
+agent loop. With no terms it prints a **landing dashboard** — what nose is, the family
+count by confidence, the cleanest production candidates (each with its own runnable drill
+link), the highest-confidence families, the most-duplicated directories, and a one-line
+omission footer. Add terms to slice, facet, or open one family; every result ends in
+runnable `nose query …` next-commands, so an agent navigates by following links rather
+than re-reading a schema or hand-writing `jq`.
+
+It is **opt-in and additive** — `nose scan`, `--fail-on`, and the scan-JSON contract are
+unchanged.
+
+```text
+nose query <path> [FILTER … | group=FIELD | id=FAM] [sort=KEY] [top=N] [full] [all]
+```
+
+| part | meaning |
+|---|---|
+| `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring |
+| `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`), with a count and an exemplar per bucket |
+| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, and navigation links |
+| `sort=KEY` | `extractability` (default), `value`, or `members` |
+| `top=N` | show the first N rows (default 30) |
+| `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched) |
+| `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
+
+Fields: `scope` (prod\|test\|mixed), `witness` (exact\|subdag\|copy-paste\|similar),
+`lang`, `path`, `dir`, `members`, `files`, `value`, `params`, `shared`. Every row shows
+the payoff economics — `M/REP shared, Pp · ~N removable` — so a candidate can be triaged
+without opening it. Each result is a pure function of (repo state, command); an unknown
+field or enum value is a hard error (so a typo can't read as "no duplication").
+
+A typical loop: `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 
 ## Integrating with nose
 
