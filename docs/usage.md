@@ -128,7 +128,7 @@ chance** — see [hazard-ranking](hazard-ranking.md) for the full, honest evalua
 | flag | effect |
 |---|---|
 | `--show diff` | show each family inline as a unified diff between its two representative copies — both versions and exactly what differs |
-| `--show proposal` | show an extraction skeleton per family — the shared structure with the differing parts marked as parameters |
+| `--show proposal` | show an extraction skeleton per family — the structure shared across **all** the family's copies, with the differing parts marked as parameters (so the helper is safe to apply to every copy, not just a representative pair) |
 | `--show hotspots` | after the report, rank directories/modules by total duplicated lines (architecture view) |
 | `--show reinvented` | list **every** [reinvented-helper](reinvented-helpers.md) containment finding (code that reimplements an existing pure helper inline), including the test-container ones the default report excludes — the bare default already lists the non-test findings |
 | `--format human\|json\|markdown\|sarif` | output format (default `human`) |

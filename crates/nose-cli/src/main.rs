@@ -5271,7 +5271,7 @@ fn print_family_entry(
         print_member_diff(&f.locations[0], &f.locations[1]);
     }
     if proposal && f.locations.len() >= 2 {
-        print_member_proposal(&f.locations[0], &f.locations[1], f.locations.len());
+        print_member_proposal(&f.locations);
     }
 }
 
@@ -5368,59 +5368,80 @@ fn print_member_diff(a: &nose_detect::Loc, b: &nose_detect::Loc) {
     }
 }
 
-/// Synthesize an *extraction proposal* from two representative copies: the lines
-/// they share become the body of the shared helper, and each maximal run of differing
-/// lines collapses to a `⟨param N⟩` placeholder — i.e. anti-unification at line
-/// granularity. Turns "these are similar" into "extract this, parameterize these N
-/// spots." The varying spots are the candidate parameters.
-///
-/// The skeleton is necessarily *pairwise* (the two largest copies). For a family with
-/// more copies that's an upper bound: a third copy that diverges further shrinks the
-/// truly-shared body and adds parameters, which is why the family's one-line summary —
-/// computed as a *majority* intersection across all members — can report fewer shared
-/// lines. `members` lets us say so rather than letting the two counts silently disagree.
-fn print_member_proposal(a: &nose_detect::Loc, b: &nose_detect::Loc, members: usize) {
-    let (Some(la), Some(lb)) = (
-        read_lines(&a.file, a.start_line, a.end_line),
-        read_lines(&b.file, b.start_line, b.end_line),
-    ) else {
+/// Synthesize an *extraction proposal* aligned across **all** the family's copies (#360):
+/// the lines invariant across *every* copy become the body of the shared helper, and each
+/// maximal run that varies in *any* copy collapses to a `⟨param N⟩` placeholder — line-
+/// granularity anti-unification, N-way. Turns "these are similar" into "extract this,
+/// parameterize these N spots", and — unlike a pairwise skeleton — the result is safe to
+/// apply to *every* member, not just the two largest, so it never claims a shared line a
+/// third copy actually diverges on. Bounded to one family, paid only on `--show proposal`.
+fn print_member_proposal(locations: &[nose_detect::Loc]) {
+    // Read every copy's source; align across all of them. A copy whose source can't be
+    // read is dropped, and the count reflects the copies actually aligned.
+    let members: Vec<Vec<String>> = locations
+        .iter()
+        .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
+        .collect();
+    if members.len() < 2 {
         return;
-    };
-    let ar: Vec<&str> = la.iter().map(String::as_str).collect();
-    let br: Vec<&str> = lb.iter().map(String::as_str).collect();
-    let (skeleton, shared, params) = anti_unify(&ar, &br);
-    let scope = if members > 2 {
-        format!(" (of the 2 largest of {members} copies; the rest may share fewer)")
-    } else {
-        String::new()
-    };
+    }
+    let (skeleton, shared, params) = anti_unify_all(&members);
+    let copies = members.len();
     println!(
-        "     proposal  extract a shared helper · {shared} shared lines · {params} parameter(s) vary{scope}"
+        "     proposal  extract a shared helper · {shared} shared lines · {params} parameter(s) vary (across all {copies} copies)"
     );
     for line in skeleton.iter().take(40) {
         println!("       │ {line}");
     }
 }
 
-/// Anti-unify two line-blocks at line granularity: the lines they share become the
-/// body of the extracted helper, and each maximal run of differing lines collapses to
-/// one `⟨param N⟩` placeholder (a candidate parameter). Returns the skeleton, the
-/// count of shared (invariant) lines, and the parameter count. Shared by the
-/// `--show proposal` view and by extractability ranking / honest shared-line reporting.
-fn anti_unify(a: &[&str], b: &[&str]) -> (Vec<String>, u32, u32) {
-    let diff = line_diff(a, b);
+/// Anti-unify N line-blocks at line granularity. Anchored on the first (largest) copy,
+/// a line *survives* into the shared body only if it is matched in *every* other copy
+/// (each copy votes via a pairwise `line_diff` against the anchor); any maximal run of
+/// non-surviving anchor lines collapses to one `⟨param N⟩` placeholder. Returns the
+/// skeleton, the count of lines shared across all copies, and the parameter count. With
+/// two copies this is exactly the old pairwise anti-unification; with more, it is the
+/// honest intersection — what the `--show proposal` view renders.
+fn anti_unify_all(members: &[Vec<String>]) -> (Vec<String>, u32, u32) {
+    let anchor: Vec<&str> = members[0].iter().map(String::as_str).collect();
+    let n = anchor.len();
+    // survive[i]: anchor line i is matched in every other copy.
+    let mut survive = vec![true; n];
+    for other in &members[1..] {
+        let b: Vec<&str> = other.iter().map(String::as_str).collect();
+        let mut matched = vec![false; n];
+        let mut ai = 0usize;
+        for (tag, _line) in line_diff(&anchor, &b) {
+            match tag {
+                // matched line — advances the anchor cursor and votes the line in.
+                ' ' => {
+                    if ai < n {
+                        matched[ai] = true;
+                    }
+                    ai += 1;
+                }
+                // anchor-only line — advances the cursor, not voted in.
+                '-' => ai += 1,
+                // other-only line ('+') — does not advance the anchor cursor.
+                _ => {}
+            }
+        }
+        for (s, m) in survive.iter_mut().zip(matched) {
+            *s &= m;
+        }
+    }
     let mut skeleton: Vec<String> = Vec::new();
     let mut shared = 0u32;
     let mut params = 0u32;
     let mut in_hole = false;
     let mut indent = "";
-    for (tag, line) in &diff {
-        if *tag == ' ' {
+    for (line, &kept) in anchor.iter().zip(&survive) {
+        if kept {
             in_hole = false;
             shared += 1;
             // remember the indentation to align the placeholder
             indent = &line[..line.len() - line.trim_start().len()];
-            skeleton.push(line.clone());
+            skeleton.push((*line).to_string());
         } else if !in_hole {
             in_hole = true;
             params += 1;
