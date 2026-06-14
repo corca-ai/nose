@@ -1886,6 +1886,49 @@ fn proposal_aligns_across_all_copies() {
 }
 
 #[test]
+fn query_dashboard_filter_and_family() {
+    // A sizeable 3-copy near family (one operator each) survives the default size floor.
+    let dir = std::env::temp_dir().join(format!("nose_query_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    for d in ["a", "b", "c"] {
+        fs::create_dir_all(dir.join(d)).unwrap();
+    }
+    let mk = |op: &str| {
+        format!(
+            "def process(items):\n    total = 0\n    count = 0\n    best = None\n    for it in items:\n        v = it.value\n        total = total {op} v\n        count = count + 1\n        if best is None or v > best:\n            best = v\n    avg = total / count\n    return total, count, best, avg\n"
+        )
+    };
+    fs::write(dir.join("a/m.py"), mk("+")).unwrap();
+    fs::write(dir.join("b/m.py"), mk("*")).unwrap();
+    fs::write(dir.join("c/m.py"), mk("-")).unwrap();
+    let p = dir.to_str().unwrap();
+
+    // Dashboard: self-describing, with a real candidate carrying a runnable drill link.
+    let dash = run(&["query", p]);
+    assert!(
+        dash.contains("duplicated-code families"),
+        "dashboard names the dataset: {dash}"
+    );
+    assert!(
+        dash.contains("nose query"),
+        "dashboard teaches the grammar: {dash}"
+    );
+    assert!(
+        dash.contains("nose query id="),
+        "dashboard shows a real candidate with a drill link: {dash}"
+    );
+
+    // A filter narrows to a ranked list; a facet groups it.
+    assert!(run(&["query", p, "members>1"]).contains("families"));
+    assert!(run(&["query", p, "group=dir"]).contains("families by dir"));
+
+    // An unknown term is a hard error (a typo must not silently widen the result).
+    assert!(run_fail(&["query", p, "wat"]).contains("unrecognized term"));
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn sort_keys_label_the_ranking_and_reject_garbage() {
     let dir = make_project("sort");
     let p = dir.to_str().unwrap();

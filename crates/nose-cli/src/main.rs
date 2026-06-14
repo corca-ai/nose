@@ -193,6 +193,22 @@ enum Cmd {
         #[arg(long, value_enum, default_value_t = ScopeFilter::All)]
         scope: ScopeFilter,
     },
+    /// Explore the duplication dataset (#359) — a stateless, self-describing query
+    /// surface for an agent loop. `nose query <path>` prints a landing dashboard; add
+    /// terms to slice, facet, or open one family. Every result suggests runnable next
+    /// commands. Opt-in: it does not change `nose scan`.
+    Query {
+        /// Path to a file or directory (recursively scanned).
+        #[arg(required = true)]
+        path: PathBuf,
+        /// Query terms (none → the dashboard): `field=value` `field>N` `field<N`
+        /// `path~substr` filter (AND-ed); `group=FIELD` facet; `id=FAM` (add `full` to
+        /// align all copies); `sort=KEY`; `top=N`.
+        terms: Vec<String>,
+        /// Output format (`human` or `json`).
+        #[arg(long, default_value = "human")]
+        format: ReportFormat,
+    },
     /// Flag a change applied to one clone copy but not its siblings (PR/CI check).
     ///
     /// Compares the working tree to a git ref and reports clone families changed
@@ -1601,6 +1617,7 @@ fn run() -> Result<()> {
             corpus,
         } => cmd_eval(gold, predictions, hard_negatives, corpus),
         cmd @ Cmd::Scan { .. } => run_scan_cmd(cmd),
+        cmd @ Cmd::Query { .. } => run_query_cmd(cmd),
         cmd @ Cmd::Review { .. } => run_review_cmd(cmd),
         Cmd::Ceiling {
             gold,
@@ -3644,22 +3661,586 @@ fn semantic_pack_summary_line(packs: &nose_semantics::SemanticPackSet) -> Option
     })
 }
 
-fn cmd_scan(args: ScanArgs) -> Result<()> {
-    // `--fail-on new` gates on families that are new/changed vs a baseline, so without
-    // `--baseline` the gate could never fire — reject the combination instead of silently
-    // passing (a CI gate that always succeeds is the worst failure mode).
-    if matches!(args.fail_on, Some(FailOn::New)) && args.baseline.is_none() {
-        anyhow::bail!(
-            "--fail-on new requires --baseline (it gates on families new vs the baseline)"
+// ===================== `nose query`: the exploration surface (#359) =====================
+
+/// A parsed query: in-memory filters over the family dataset, plus the chosen view.
+#[derive(Default)]
+struct Query {
+    filters: Vec<QFilter>,
+    group: Option<String>,
+    id: Option<String>,
+    id_full: bool,
+    sort: Option<SortKey>,
+    top: Option<usize>,
+}
+
+enum QOp {
+    Eq,
+    Gt,
+    Lt,
+    Has,
+}
+
+struct QFilter {
+    field: String,
+    op: QOp,
+    value: String,
+}
+
+/// Canonical `witness.kind` for a friendly filter token (`exact`→`exact-value-graph`, …).
+fn witness_alias(v: &str) -> &str {
+    match v {
+        "exact" => "exact-value-graph",
+        "subdag" | "shared-core" => "shared-sub-dag",
+        "copy-paste" | "copypaste" => "copy-paste-run",
+        "similar" | "structural" => "structural-similarity",
+        other => other,
+    }
+}
+
+/// The friendly token for a `witness.kind` (for display / `group=witness`).
+fn witness_token(kind: Option<&str>) -> &'static str {
+    match kind {
+        Some("exact-value-graph") => "exact",
+        Some("shared-sub-dag") => "subdag",
+        Some("copy-paste-run") => "copy-paste",
+        Some("structural-similarity") => "similar",
+        _ => "?",
+    }
+}
+
+fn parse_sort_key(v: &str) -> Option<SortKey> {
+    match v {
+        "extractability" | "extract" => Some(SortKey::Extractability),
+        "value" => Some(SortKey::Value),
+        "sites" | "members" | "copies" => Some(SortKey::Sites),
+        "hazard" => Some(SortKey::Hazard),
+        _ => None,
+    }
+}
+
+/// Parse free-form query terms. Unknown terms are an error (a typo must not silently
+/// widen the result to everything).
+fn parse_query(terms: &[String]) -> Result<Query> {
+    let mut q = Query::default();
+    for t in terms {
+        if t == "full" {
+            q.id_full = true;
+        } else if let Some(v) = t.strip_prefix("group=") {
+            q.group = Some(v.to_string());
+        } else if let Some(v) = t.strip_prefix("id=") {
+            q.id = Some(v.to_string());
+        } else if let Some(v) = t.strip_prefix("sort=") {
+            q.sort = Some(parse_sort_key(v).ok_or_else(|| {
+                anyhow::anyhow!("unknown sort key `{v}` (extractability|value|sites|hazard)")
+            })?);
+        } else if let Some(v) = t.strip_prefix("top=") {
+            q.top = Some(
+                v.parse()
+                    .map_err(|_| anyhow::anyhow!("top= needs a number, got `{v}`"))?,
+            );
+        } else if let Some((f, v)) = t.split_once('~') {
+            q.filters.push(QFilter {
+                field: f.into(),
+                op: QOp::Has,
+                value: v.into(),
+            });
+        } else if let Some((f, v)) = t.split_once('>') {
+            q.filters.push(QFilter {
+                field: f.into(),
+                op: QOp::Gt,
+                value: v.into(),
+            });
+        } else if let Some((f, v)) = t.split_once('<') {
+            q.filters.push(QFilter {
+                field: f.into(),
+                op: QOp::Lt,
+                value: v.into(),
+            });
+        } else if let Some((f, v)) = t.split_once('=') {
+            q.filters.push(QFilter {
+                field: f.into(),
+                op: QOp::Eq,
+                value: v.into(),
+            });
+        } else {
+            anyhow::bail!(
+                "unrecognized term `{t}` — try field=value, group=FIELD, id=FAM, sort=KEY, top=N"
+            );
+        }
+    }
+    Ok(q)
+}
+
+/// The directory a family lives in (the parent of its largest copy) — nose's spatial unit.
+fn family_dir(f: &nose_detect::RefactorFamily) -> String {
+    f.locations
+        .first()
+        .and_then(|l| {
+            std::path::Path::new(&l.file)
+                .parent()
+                .and_then(|p| p.to_str())
+        })
+        .filter(|s| !s.is_empty())
+        .unwrap_or(".")
+        .to_string()
+}
+
+/// Numeric value of a family field (for `>`/`<`/`=` on numbers).
+fn family_num(f: &nose_detect::RefactorFamily, field: &str) -> Option<f64> {
+    Some(match field {
+        "members" | "copies" | "sites" => f.members as f64,
+        "files" => f.files as f64,
+        "modules" | "dirs" => f.modules as f64,
+        "value" => f.value,
+        "params" => f.params as f64,
+        "lines" | "mean_lines" => f.mean_lines as f64,
+        "shared" | "shared_lines" => f.shared_lines as f64,
+        "dup" | "dup_lines" => f.dup_lines as f64,
+        "languages" => f.languages as f64,
+        _ => return None,
+    })
+}
+
+/// Whether a family satisfies one filter.
+fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &QFilter) -> bool {
+    let field = flt.field.as_str();
+    let val = flt.value.as_str();
+    // Substring fields.
+    let path_has = || f.locations.iter().any(|l| l.file.contains(val));
+    let lang_eq = |exact: bool| {
+        f.locations.iter().any(|l| {
+            if exact {
+                l.lang.as_str() == val
+            } else {
+                l.lang.as_str().contains(val)
+            }
+        })
+    };
+    let strfield = |field: &str| -> Option<String> {
+        Some(match field {
+            "scope" => f.scope.to_string(),
+            "witness" => witness_token(f.witness.as_ref().map(|w| w.kind)).to_string(),
+            "surface" => effective_surface(f, ov).to_string(),
+            "shape" | "extraction_shape" => f.extraction_shape().to_string(),
+            "dir" => family_dir(f),
+            _ => return None,
+        })
+    };
+    match flt.op {
+        QOp::Has => match field {
+            "path" | "file" => path_has(),
+            "lang" | "language" => lang_eq(false),
+            _ => strfield(field).is_some_and(|s| s.contains(val)),
+        },
+        QOp::Eq => match field {
+            "path" | "file" => path_has(),
+            "lang" | "language" => lang_eq(true),
+            "witness" => f.witness.as_ref().map(|w| w.kind) == Some(witness_alias(val)),
+            _ => {
+                if let Some(s) = strfield(field) {
+                    s == val
+                } else {
+                    family_num(f, field)
+                        .zip(val.parse::<f64>().ok())
+                        .is_some_and(|(a, b)| (a - b).abs() < f64::EPSILON)
+                }
+            }
+        },
+        QOp::Gt => family_num(f, field)
+            .zip(val.parse::<f64>().ok())
+            .is_some_and(|(a, b)| a > b),
+        QOp::Lt => family_num(f, field)
+            .zip(val.parse::<f64>().ok())
+            .is_some_and(|(a, b)| a < b),
+    }
+}
+
+/// A short, git-style family handle for `id=` links (the full id accepts any prefix).
+fn short_id(id: &str) -> &str {
+    &id[..id.len().min(10)]
+}
+
+/// One concise list/preview row: where the largest copy is + what it is.
+fn query_row(f: &nose_detect::RefactorFamily) -> String {
+    let l = &f.locations[0];
+    let name = l
+        .name
+        .as_deref()
+        .map(|n| format!("  {n}"))
+        .unwrap_or_default();
+    format!(
+        "{}:{}{name}  ({} copies · {})",
+        l.file,
+        l.start_line,
+        f.members,
+        witness_token(f.witness.as_ref().map(|w| w.kind))
+    )
+}
+
+fn is_default_surface(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides) -> bool {
+    effective_surface(f, ov) == "default"
+}
+
+fn run_query_cmd(cmd: Cmd) -> Result<()> {
+    let Cmd::Query {
+        path,
+        terms,
+        format,
+    } = cmd
+    else {
+        unreachable!("run_query_cmd requires Cmd::Query")
+    };
+    require_paths_exist(std::slice::from_ref(&path))?;
+    let q = parse_query(&terms)?;
+    // Build the full dataset (all families); query filters/views work in-memory over it.
+    let args = ScanArgs {
+        paths: vec![path],
+        top: Some(0),
+        min_members: None,
+        min_value: None,
+        sort: None,
+        config: None,
+        mode: vec![],
+        show: vec![],
+        cache_dir: None,
+        fail_on: None,
+        baseline: None,
+        ignore_file: None,
+        semantic_pack: vec![],
+        write_baseline: false,
+        format,
+        exclude: vec![],
+        min_size: None,
+        min_lines: None,
+        scope: ScopeFilter::All,
+    };
+    let refs = paths_as_refs(&args.paths);
+    let mut dataset = build_scan_dataset(&args, &refs)?;
+    let overrides =
+        classify_surface_overrides(&mut dataset.families, &refs, &dataset.settings.exclude);
+    if let Some(sk) = q.sort {
+        dataset.families.sort_by(|a, b| {
+            sk.score(b)
+                .total_cmp(&sk.score(a))
+                .then(b.value.total_cmp(&a.value))
+                .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
+        });
+    }
+    let json = matches!(format, ReportFormat::Json);
+    if terms.is_empty() {
+        render_query_dashboard(&dataset.families, &overrides, &dataset.scope, json);
+        return Ok(());
+    }
+    if let Some(idv) = &q.id {
+        render_query_family(&dataset.families, &overrides, idv, q.id_full, json);
+        return Ok(());
+    }
+    let sel: Vec<&nose_detect::RefactorFamily> = dataset
+        .families
+        .iter()
+        .filter(|f| {
+            q.filters
+                .iter()
+                .all(|flt| family_matches(f, &overrides, flt))
+        })
+        .collect();
+    match &q.group {
+        Some(field) => render_query_group(&sel, field, &terms),
+        None => render_query_list(&sel, &q, &terms),
+    }
+    Ok(())
+}
+
+/// The landing dashboard: what nose is, the dataset's shape, a few real candidates per
+/// slice with `id=` links, and the grammar — all self-describing so a nose-naive agent
+/// can act from this output alone.
+fn render_query_dashboard(
+    families: &[nose_detect::RefactorFamily],
+    ov: &SurfaceOverrides,
+    scope: &ScanScope,
+    json: bool,
+) {
+    let def: Vec<&nose_detect::RefactorFamily> = families
+        .iter()
+        .filter(|f| is_default_surface(f, ov))
+        .collect();
+    let count = |k: &str| {
+        def.iter()
+            .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind)) == k)
+            .count()
+    };
+    if json {
+        let top: Vec<_> = def
+            .iter()
+            .take(5)
+            .map(|f| serde_json::json!({"id": baseline::family_id(f), "where": query_row(f)}))
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "view": "dashboard",
+                "families": def.len(),
+                "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
+                    "copy_paste": count("copy-paste"), "similar": count("similar")},
+                "top_candidates": top,
+                "next": ["nose query sort=value", "nose query group=dir", "nose query witness=exact"],
+            })
+        );
+        return;
+    }
+    println!("nose — finds duplicated & refactorable code across languages.");
+    println!("{}", scope.summary());
+    println!(
+        "\n{} duplicated-code families on the default surface.\n  by confidence: exact {} · subdag {} · copy-paste {} · similar {}\n                 (exact = proven-identical, value-graph-verified · similar = fuzzy match)",
+        def.len(),
+        count("exact"),
+        count("subdag"),
+        count("copy-paste"),
+        count("similar"),
+    );
+    println!("\ncleanest to extract:");
+    for f in def.iter().take(3) {
+        println!(
+            "  {}   nose query id={}",
+            query_row(f),
+            short_id(&baseline::family_id(f))
         );
     }
+    println!(
+        "  nose query sort=value                # all {}, ranked",
+        def.len()
+    );
 
-    let refs = paths_as_refs(&args.paths);
-    let settings = resolve_scan_settings(&args)?;
+    let proven: Vec<_> = def
+        .iter()
+        .filter(|f| {
+            matches!(
+                f.witness.as_ref().map(|w| w.kind),
+                Some("exact-value-graph") | Some("shared-sub-dag")
+            )
+        })
+        .collect();
+    if !proven.is_empty() {
+        println!(
+            "\nproven-identical / shared-core ({}, highest confidence):",
+            proven.len()
+        );
+        for f in proven.iter().take(3) {
+            println!(
+                "  {}   nose query id={}",
+                query_row(f),
+                short_id(&baseline::family_id(f))
+            );
+        }
+        println!("  nose query witness=exact             # the proven core");
+    }
+
+    // Most-duplicated directories.
+    use std::collections::HashMap;
+    let mut by_dir: HashMap<String, (u32, usize)> = HashMap::new();
+    for f in &def {
+        let e = by_dir.entry(family_dir(f)).or_default();
+        e.0 += f.dup_lines;
+        e.1 += 1;
+    }
+    let mut dirs: Vec<_> = by_dir.into_iter().collect();
+    dirs.sort_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.0.cmp(&b.0)));
+    if !dirs.is_empty() {
+        println!("\nmost-duplicated directories:");
+        for (d, (_dup, n)) in dirs.iter().take(3) {
+            println!("  nose query path~{d:<28}   # {n} families");
+        }
+        println!("  nose query group=dir                 # full breakdown");
+    }
+    println!(
+        "\ngrammar:  nose query [field=value ...] [group=FIELD | id=FAM]\n          filter fields: scope witness lang path members files value params shared dir  ·  add `full` to id= to align all copies"
+    );
+}
+
+/// A ranked list of the current selection: each row carries its own `id=` drill link,
+/// plus a reasoned `next:`.
+fn render_query_list(sel: &[&nose_detect::RefactorFamily], q: &Query, terms: &[String]) {
+    let top = q.top.unwrap_or(30);
+    let shown = sel.len().min(top);
+    println!(
+        "{} families{}:",
+        sel.len(),
+        if shown < sel.len() {
+            format!(" (showing {shown})")
+        } else {
+            String::new()
+        }
+    );
+    for f in sel.iter().take(top) {
+        println!(
+            "  {}   nose query id={}",
+            query_row(f),
+            short_id(&baseline::family_id(f))
+        );
+    }
+    println!("\nnext:");
+    if !terms.iter().any(|t| t.starts_with("group=")) {
+        println!(
+            "  {} group=dir       # where this selection concentrates",
+            base_cmd(terms)
+        );
+    }
+    println!("  {} group=witness   # by confidence", base_cmd(terms));
+}
+
+/// Facet the current selection by a discrete field, with a top exemplar per bucket and
+/// the "see all" command for each.
+fn render_query_group(sel: &[&nose_detect::RefactorFamily], field: &str, terms: &[String]) {
+    use std::collections::HashMap;
+    let key = |f: &nose_detect::RefactorFamily| -> String {
+        match field {
+            "scope" => f.scope.to_string(),
+            "witness" => witness_token(f.witness.as_ref().map(|w| w.kind)).to_string(),
+            "lang" | "language" => f
+                .locations
+                .first()
+                .map(|l| l.lang.as_str().to_string())
+                .unwrap_or_default(),
+            "dir" => family_dir(f),
+            "shape" | "extraction_shape" => f.extraction_shape().to_string(),
+            _ => "?".to_string(),
+        }
+    };
+    let mut buckets: HashMap<String, (usize, String)> = HashMap::new();
+    for f in sel {
+        let e = buckets.entry(key(f)).or_insert((0, String::new()));
+        if e.0 == 0 {
+            e.1 = query_row(f);
+        }
+        e.0 += 1;
+    }
+    let mut rows: Vec<_> = buckets.into_iter().collect();
+    rows.sort_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.0.cmp(&b.0)));
+    println!("{} families by {field}:", sel.len());
+    let other: Vec<&str> = terms
+        .iter()
+        .filter(|t| !t.starts_with("group="))
+        .map(String::as_str)
+        .collect();
+    let base = if other.is_empty() {
+        "nose query".to_string()
+    } else {
+        format!("nose query {}", other.join(" "))
+    };
+    for (k, (n, ex)) in &rows {
+        println!("  {k:<16} ({n:>3})  e.g. {ex}");
+        println!("        {base} {field}={k}");
+    }
+}
+
+/// Open one family: its copies, the extraction hint, the representative-pair diff, and —
+/// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
+fn render_query_family(
+    families: &[nose_detect::RefactorFamily],
+    _ov: &SurfaceOverrides,
+    idv: &str,
+    full: bool,
+    json: bool,
+) {
+    let Some(f) = families
+        .iter()
+        .find(|f| baseline::family_id(f).starts_with(idv))
+    else {
+        println!("no family whose id starts with `{idv}` — run `nose query` for the dashboard");
+        return;
+    };
+    let id = baseline::family_id(f);
+    if json {
+        let locs: Vec<_> = f
+            .locations
+            .iter()
+            .map(|l| serde_json::json!({"file": l.file, "start": l.start_line, "end": l.end_line, "name": l.name}))
+            .collect();
+        println!(
+            "{}",
+            serde_json::json!({
+                "view": "family", "id": id, "scope": f.scope,
+                "witness": witness_token(f.witness.as_ref().map(|w| w.kind)),
+                "members": f.members, "shared_lines": f.shared_lines, "params": f.params,
+                "extraction_shape": f.extraction_shape(), "hint": family_hint(f), "locations": locs,
+            })
+        );
+        return;
+    }
+    println!(
+        "{} — {} · {} · {} copies",
+        short_id(&id),
+        witness_token(f.witness.as_ref().map(|w| w.kind)),
+        f.scope,
+        f.members
+    );
+    println!("  → {}", family_hint(f));
+    println!("  copies:");
+    for l in f.locations.iter().take(30) {
+        let name = l
+            .name
+            .as_deref()
+            .map(|n| format!("  {n}"))
+            .unwrap_or_default();
+        println!("    {}:{}-{}{name}", l.file, l.start_line, l.end_line);
+    }
+    if f.locations.len() >= 2 {
+        print_member_diff(&f.locations[0], &f.locations[1]);
+    }
+    if full {
+        print_member_proposal(&f.locations);
+    } else if f.locations.len() > 2 {
+        println!(
+            "    nose query id={} full   # align the extraction across all {} copies",
+            short_id(&id),
+            f.members
+        );
+    }
+    println!("\nnext:");
+    println!(
+        "  nose query path~{}   # other duplication in this directory",
+        family_dir(f)
+    );
+    println!(
+        "  nose query witness={}   # other families of the same confidence",
+        witness_token(f.witness.as_ref().map(|w| w.kind))
+    );
+}
+
+/// `nose query` with the current selection's terms minus any view term — the prefix the
+/// `next:` links extend.
+fn base_cmd(terms: &[String]) -> String {
+    let keep: Vec<&str> = terms
+        .iter()
+        .filter(|t| !t.starts_with("group=") && !t.starts_with("id=") && *t != "full")
+        .map(String::as_str)
+        .collect();
+    if keep.is_empty() {
+        "nose query".to_string()
+    } else {
+        format!("nose query {}", keep.join(" "))
+    }
+}
+
+/// The ranked family dataset shared by `nose scan` and `nose query`: detect, rank,
+/// filter (min-members / min-value / scope), relativize paths, weight shared lines, and
+/// sort. It stops before the scan-only surface policy (baseline, structured ignores,
+/// surface classification, rendering, the gate) so `query` can apply its own views over
+/// exactly the same deterministic set.
+struct ScanDataset {
+    families: Vec<nose_detect::RefactorFamily>,
+    scope: ScanScope,
+    settings: ScanSettings,
+    reinvented: Vec<nose_detect::ReinventedHelper>,
+    opts: nose_detect::DetectOptions,
+}
+
+fn build_scan_dataset(args: &ScanArgs, refs: &[&std::path::Path]) -> Result<ScanDataset> {
+    let settings = resolve_scan_settings(args)?;
     let opts = scan_detect_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = scan_detector(settings.channels, &opts);
-    let (mut report, scope) =
-        scan_report(&args, &refs, &settings.exclude, &opts, detector.as_ref());
+    let (mut report, scope) = scan_report(args, refs, &settings.exclude, &opts, detector.as_ref());
 
     let mut families = nose_detect::rank_families(&report);
     if settings.channels.abstraction_only() {
@@ -3681,7 +4262,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             r.container_file = relativize(&r.container_file, &cwd);
         }
     }
-    weight_shared_lines(&mut families, &refs, &settings.exclude);
+    weight_shared_lines(&mut families, refs, &settings.exclude);
     let sort = settings.sort;
     families.sort_by(|a, b| {
         sort.score(b)
@@ -3690,6 +4271,33 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             .then(b.value.total_cmp(&a.value))
             .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
     });
+    Ok(ScanDataset {
+        families,
+        scope,
+        settings,
+        reinvented,
+        opts,
+    })
+}
+
+fn cmd_scan(args: ScanArgs) -> Result<()> {
+    // `--fail-on new` gates on families that are new/changed vs a baseline, so without
+    // `--baseline` the gate could never fire — reject the combination instead of silently
+    // passing (a CI gate that always succeeds is the worst failure mode).
+    if matches!(args.fail_on, Some(FailOn::New)) && args.baseline.is_none() {
+        anyhow::bail!(
+            "--fail-on new requires --baseline (it gates on families new vs the baseline)"
+        );
+    }
+
+    let refs = paths_as_refs(&args.paths);
+    let ScanDataset {
+        mut families,
+        scope,
+        settings,
+        reinvented,
+        opts,
+    } = build_scan_dataset(&args, &refs)?;
     // Baseline: write the current state, or hide already-accepted families so only
     // new/changed duplication is reported and gated.
     if args.write_baseline {

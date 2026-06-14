@@ -121,6 +121,17 @@ pub(crate) fn run(args: &[&str]) -> String {
     String::from_utf8(out.stdout).unwrap()
 }
 
+/// Like [`run`] but expects a non-zero exit; returns stderr (where errors print).
+#[allow(dead_code)]
+pub(crate) fn run_fail(args: &[&str]) -> String {
+    let out = Command::new(bin()).args(args).output().expect("run nose");
+    assert!(
+        !out.status.success(),
+        "expected nose to fail, but it succeeded"
+    );
+    String::from_utf8(out.stderr).unwrap()
+}
+
 /// `nose scan <dir> --mode <mode> --format json --top 0` with the tiny-fixture
 /// floors (`--min-lines 1 --min-size 1`) — the standard invocation for the
 /// one-function fixtures the semantic CLI tests are built from.
