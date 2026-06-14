@@ -2647,3 +2647,38 @@ independent, source-verified lever from the same audit stands unaffected: a deci
 evidence-not-verdict), plus retiring "proven ⇒ trust/lead" (serde's top `shared-sub-dag` is
 `Value` vs `&Value`, value 179, **params 15** — forced duplication at the head of the proven
 channel). See the audit doc §5.
+
+## CL. Honest headline numbers — scan's `shared_lines` to the all-copies basis (#366, 2026-06-14)
+
+`nose query` reports the all-copies anti-unification economics (`M/REP shared · ~N
+removable`, reusing #360's `anti_unify_all`); `nose scan`'s headline counted the
+**representative pair**, so for a family whose 3rd+ copies diverge the two surfaces
+disagreed — serde's 25-copy `serialize_newtype_variant` read `11 shared → ~264
+removable` on scan but `4 shared → ~96 removable` on query. The pairwise number
+over-states: the helper that folds *all* copies can only hoist what is invariant across
+*all* of them. #366 converges scan's `shared_lines` (and the derived `~removable`) onto
+that all-copies count.
+
+The catch, found by measurement, is that `shared_lines` is **not** display-only: it feeds
+the `shallow-extraction` surface test (`params ≥ ⅓·shared_lines`), which feeds
+`default_surface_weight`, which multiplies into `extractability`. So the change re-ranks.
+Gold-set audit (`bench/labels/eval_by_language.py`, v5 labelset, P@10 + worthy-recall,
+dev/held-out, native `extractability` order):
+
+| variant | dev P@10 | held-out P@10 | worthy-recall |
+|---|---|---|---|
+| baseline (rep-pair `shared_lines` + `params`) | 60% [55-65] n=379 | 59% [54-65] n=322 | unchanged |
+| **all-copies `shared_lines`, rep-pair `params`** (shipped) | **61% [56-65] n=381** | **59% [53-64] n=321** | **unchanged** |
+| all-copies `shared_lines` **and** `params` | 61% [56-66] n=380 | **57% [51-63] n=307** (Java 60→51) | unchanged |
+
+Held-out is the generalization gate. Moving **`shared_lines`** alone holds it flat
+(dev +1, recall byte-identical) — shipped. Also moving **`params`** to all-copies looked
+principled (it correctly demotes the low-foldability serde family — the standing #365
+target) but **regressed held-out** (59→57, Java −9): the all-copies hole count over-fires
+`shallow-extraction` on dev-shaped families that don't generalize. So `params` deliberately
+stays representative-pair (also keeping it tied to `varying_spots` and the frozen scan-JSON
+v1 contract). The lesson repeats §AV/§CA: the residual ranking loss is judgment-deep, not a
+number-basis bug — #365 needs its own signal (signature/arity heterogeneity), not a more
+honest parameter count. Scan and query now print one shared/removable headline per family;
+the `params`/`spots-differ` count stays each surface's own (scan = representative pair,
+query = all-copies helper arity).

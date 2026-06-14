@@ -234,8 +234,8 @@ schema version 1:
 | `mean_score` | number | Mean pairwise clone similarity. |
 | `mean_lines` | integer | Mean source-line span per member. |
 | `dup_lines` | integer | Approximate removable duplicate lines. |
-| `shared_lines` | integer | Invariant source lines between representative copies when comparable. |
-| `params` | integer | Varying spots in the representative diff, used as extraction parameters. |
+| `shared_lines` | integer | Lines invariant across **all** copies (up to an 8-member cap), the all-copies anti-unification count — the same shared/removable headline `nose query` reports for the family (#366). Earlier releases counted the representative pair, which over-stated families whose 3rd+ copies diverge. |
+| `params` | integer | Varying spots in the **representative** diff, used as extraction parameters; stays representative-pair (so it agrees with `varying_spots`) — the all-copies hole count was gold-set-measured into the ranking and regressed held-out, so only `shared_lines` moved to the all-copies basis. |
 | `shared_weight` | number | Shared-line score weighted by how specific those lines are. |
 | `locations` | array | Duplicated sites, largest first. |
 | `mean_sem` | number | Mean value-graph size across members. |

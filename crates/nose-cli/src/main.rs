@@ -4000,9 +4000,12 @@ fn all_copies_shared(f: &nose_detect::RefactorFamily) -> (u32, u32) {
     if f.languages != 1 {
         return (f.shared_lines, f.params);
     }
+    // Same MEMBER_CAP (8) as scan's shared_lines_of, so the two surfaces compute the
+    // all-copies count over the same member set and report identical numbers.
     let members: Vec<Vec<String>> = f
         .locations
         .iter()
+        .take(8)
         .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
         .collect();
     if members.len() < 2 {
@@ -4769,9 +4772,9 @@ fn weight_shared_lines(
                 .sum();
             // Gate ramps 0→1 as substantive shared content goes 0→2 lines.
             let gate = (substantive / 2.0).clamp(0.0, 1.0);
-            // Display is the representative pair's physical invariant count;
-            // ranking weights the majority-voted set. `shared_weight` keeps
-            // using the rank set so the robust signal still drives the order.
+            // Display is the all-copies invariant count (#366); ranking weights the
+            // majority-voted set. `shared_weight` keeps using the rank set so the
+            // robust signal still drives the order, unchanged by the display basis.
             f.shared_lines = s.display;
             f.shared_weight = s.rank_lines.len() as f64 * gate;
             f.params = s.params;
@@ -6349,70 +6352,77 @@ struct SharedLines {
     /// ranking weights by IDF. Robustness is the point: a 6-copy family isn't
     /// tanked because its 6th copy diverges.
     rank_lines: Vec<String>,
-    /// The representative pair's invariant **physical** line count — what the
-    /// `N of M shared, K spots differ` summary shows. Counted (not deduped) and
-    /// taken from the same pair as `params`, so `display + params` partitions
-    /// the pair's diff and the summary can never read `5 of 6 + 2 spots`
-    /// (the §S4-C2 self-contradiction) or undercount repeated lines.
+    /// Lines invariant across **all** copies (#366) — the all-copies anti-unification
+    /// count, the same number `nose query` shows, so scan and query report one
+    /// shared/removable headline per family. Bounded by the representative pair's
+    /// invariant count (`display ≤ rep-pair-invariant`), so with `params` (rep-pair
+    /// holes ≤ `M − rep-pair-invariant`) it still holds `display + params ≤ M`: the
+    /// `N of M shared, K spots differ` summary can never read `5 of 6 + 2 spots`
+    /// (the §S4-C2 self-contradiction).
     display: u32,
+    /// The representative pair's hole count — `K` in `N of M shared, K spots differ`,
+    /// kept tied to `varying_spots` and the `param_penalty`/`shallow-extraction`
+    /// ranking. Deliberately representative-pair, not all-copies: the all-copies
+    /// hole count was gold-set-measured into the shallow ratio and regressed held-out
+    /// (experiments §CL), so only `display` moved to the all-copies basis.
     params: u32,
 }
 
 fn shared_lines_of(locs: &[nose_detect::Loc], cache: &mut FileLineCache) -> Option<SharedLines> {
-    // The representative pair: invariant lines (for the majority vote), the
-    // physical invariant-line count (for display), and the hole count.
-    let pair = |a: &nose_detect::Loc, b: &nose_detect::Loc, cache: &mut FileLineCache| {
-        let la = cache.slice(&a.file, a.start_line, a.end_line)?;
-        let lb = cache.slice(&b.file, b.start_line, b.end_line)?;
-        let ar: Vec<&str> = la.iter().map(String::as_str).collect();
+    const MEMBER_CAP: usize = 8;
+    // Read the anchor (largest copy) and up to MEMBER_CAP-1 others once.
+    let anchor = cache.slice(&locs[0].file, locs[0].start_line, locs[0].end_line)?;
+    let mut members: Vec<Vec<String>> = vec![anchor];
+    // The pairwise pass against the anchor feeds the majority-vote `rank_lines`
+    // (→ `shared_weight`) and `params` (the representative-pair hole count, which stays
+    // tied to `varying_spots` and drives `param_penalty`/`shallow-extraction`). These are
+    // the ranking inputs and are computed exactly as before, so the family order is
+    // unchanged. Only `display` becomes the all-copies count, below (#366).
+    let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut n_others = 0usize;
+    let mut params = 0u32;
+    for b in locs.iter().skip(1).take(MEMBER_CAP - 1) {
+        let Some(lb) = cache.slice(&b.file, b.start_line, b.end_line) else {
+            continue;
+        };
+        let ar: Vec<&str> = members[0].iter().map(String::as_str).collect();
         let br: Vec<&str> = lb.iter().map(String::as_str).collect();
         let mut shared = Vec::new();
-        let mut display = 0u32;
-        let mut params = 0u32;
+        let mut p = 0u32;
         let mut in_hole = false;
         for (tag, line) in &line_diff(&ar, &br) {
             if *tag == ' ' {
                 in_hole = false;
                 let t = line.trim();
                 if !t.is_empty() {
-                    // Every physical invariant line counts toward display (so
-                    // three identical `buf.append(x)` lines count as 3); the
-                    // dedup happens only in the majority-vote set below.
-                    display += 1;
                     shared.push(t.to_string());
                 }
             } else if !in_hole {
                 in_hole = true;
-                params += 1;
+                p += 1;
             }
         }
-        Some((shared, display, params))
-    };
-    const MEMBER_CAP: usize = 8;
-    let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    let mut n_others = 0usize;
-    let mut params = 0u32;
-    let mut display = 0u32;
-    for b in locs.iter().skip(1).take(MEMBER_CAP - 1) {
-        let Some((s, d, p)) = pair(&locs[0], b, cache) else {
-            continue;
-        };
-        // Display and params come from the first pair that actually reads —
-        // keyed on `n_others`, not the loop index, so an unreadable
-        // representative pair doesn't silently drop them to zero.
+        // Params come from the first pair that actually reads (the rep pair).
         if n_others == 0 {
             params = p;
-            display = d;
         }
         n_others += 1;
-        let uniq: std::collections::HashSet<String> = s.into_iter().collect();
+        let uniq: std::collections::HashSet<String> = shared.into_iter().collect();
         for l in uniq {
             *counts.entry(l).or_insert(0) += 1;
         }
+        members.push(lb);
     }
     if n_others == 0 {
         return None;
     }
+    // Display: lines invariant across **all** copies (#366) — the same all-copies
+    // anti-unification `nose query` renders, so scan and query report one shared/removable
+    // headline per family (the old pairwise count over-stated families whose 3rd+ copies
+    // diverge). Display-only and gold-set-measured ranking-neutral: the order reads
+    // `shared_weight`/`params`, never this. (All-copies *params* was measured too and
+    // regressed held-out — experiments §CL — so `params` stays representative-pair.)
+    let (_skeleton, display, _params) = anti_unify_all(&members);
     let need = ((n_others as f64) * 0.6).ceil().max(1.0) as usize;
     let mut rank_lines: Vec<String> = counts
         .into_iter()
