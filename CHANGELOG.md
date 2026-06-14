@@ -7,6 +7,22 @@ break.
 ## [Unreleased]
 
 ### Added
+- **Family-level actionability vocabulary in scan JSON (#11).** Two new optional fields make a
+  family's triage *machine-readable as classification, not a verdict* (no `refactorability_score` /
+  `confidence` — that judgment is the consumer's, design §2):
+  - `actionability_reason` — why a family is **not** a clean default candidate: `trivial`
+    (`mean_lines` ≤ 4, measured 0.95 precision), `shallow-extraction`, `declaration-run`, or
+    `generated-source`. Absent for a clean candidate. `trivial` is a new decidable demotion (to
+    the `hidden` surface); proven channels never carry it.
+  - `extraction_shape` — the decidable structural shape of the fix for a clean candidate
+    (`call-existing-helper` / `extract-helper` / `extract-method-from-block` / `consolidate-type`
+    / `extract-base-class` / `consolidate-cross-language`) — the same decision the human `→` hint
+    renders in prose.
+
+  The judgment-deep half (worthy-fixture vs intentional scaffolding) is deliberately not a code —
+  it stays the consumer's call, carried as evidence. `idiomatic-repetition` was evaluated and is a
+  measured NO-GO (no decidable rule separates it from real same-file production duplication; see
+  the [default-surface-noise-audit](docs/default-surface-noise-audit-2026-06-14.md)).
 - **Default-surface honesty: `shallow-extraction` demotion + production-first human report
   (#263, #264, #11).** A fresh-repo head-of-ranking audit
   ([default-surface-noise-audit](docs/default-surface-noise-audit-2026-06-14.md)) measured the

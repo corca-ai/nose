@@ -92,14 +92,24 @@ across witnesses but never demote a proven family on shape alone.)
 
 **Shipped** (both arms, this PR — see [CHANGELOG](../CHANGELOG.md) Unreleased):
 
-- **(a) Decidable actionability reason codes** ([#11](https://github.com/corca-ai/nose/issues/11)):
-  the first decidable code, **`shallow-extraction`** (unproven match, helper-mostly-parameters),
-  ships as a new `shallow` `recommended_surface` / `surface_counts` bucket — demoted off the
-  default head, **kept in JSON**, never firing on a proven channel. ~0.89 precision; **−36%**
-  (goreleaser) / **−34%** (excalidraw) of the default surface, 0 proven demoted. Touches no
-  `scope`. The further candidate codes (`idiomatic-repetition`, `trivial`) remain queued behind
-  their own measurement; the `markup`/JSX code ([#353](https://github.com/corca-ai/nose/issues/353))
-  was measured a NO-GO — see §5.
+- **(a) Decidable actionability vocabulary** ([#11](https://github.com/corca-ai/nose/issues/11)):
+  shipped as two JSON fields — `actionability_reason` (why a family is *not* a clean candidate)
+  and `extraction_shape` (the structural shape if a clean candidate is acted upon) — classification,
+  not a `refactorability_score`/`confidence` verdict (§2). The decidable reason codes:
+  - **`shallow-extraction`** (unproven, helper-mostly-parameters) — `shallow` surface; 0.89
+    precision, **−36%** (goreleaser) / **−34%** (excalidraw), 0 proven demoted.
+  - **`trivial`** (`mean_lines` ≤ 4, unproven) — `hidden` surface; re-measured against the labels
+    here at **0.95 precision** (loses 1 of 24: a 3-line structural helper).
+  - `declaration-run`, `generated-source` — the pre-existing source-derived classes, now also
+    surfaced under the unified `actionability_reason` field.
+  - **`idiomatic-repetition` = NO-GO.** No decidable rule separates "same-file switch-arm/struct
+    repetition" from real same-file production duplication with the available features (no AST
+    switch-arm marker): the broad `same_file ∧ Block` cut is 0.68 precision and loses 21 worthy
+    (10 dup-prod-block, 6 worthy-fixture); every tighter cut either catches ~nothing or is
+    subsumed by `trivial`. Left to the consumer as evidence.
+
+  All reason codes are scope-blind and never fire on a proven channel; the `markup`/JSX code
+  ([#353](https://github.com/corca-ai/nose/issues/353)) was also a NO-GO — see §5.
 - **(b) AAA bulk → scope-aware *rendering*, not penalty.** Collapse/summarize test-scope
   families beneath prod findings on the human surface (the way overlapping slices already
   fold into one opportunity); **nothing dropped** — every test family stays in the ranking,

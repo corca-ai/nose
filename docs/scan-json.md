@@ -242,6 +242,8 @@ schema version 1:
 | `scope` | string | `prod`, `test`, or `mixed` test/production classification. |
 | `discount` | number | Refactor-worthiness discount for generated or type-heavy families. |
 | `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling; `generated` marks families whose every location sits in a generated-header source; `declaration` marks families whose every member span consists only of import/include/use/re-export declarations — real duplication the language mandates per file, with no extraction action; `shallow` marks an unproven family (not the `exact-value-graph`/`shared-sub-dag` channel) whose extracted helper would be mostly parameters — `params` ≥ a third of `shared_lines`, the decidable `shallow-extraction` non-action class ([default-surface-noise-audit](default-surface-noise-audit-2026-06-14.md)). The human report omits `generated`, `declaration`, and `shallow` from default output. Human-action integrations should keep `default` and treat the others as diagnostic/review surfaces. This is ranking/presentation policy, not detector exactness. |
+| `actionability_reason` | string, optional | The decidable, classification-not-verdict reason this family is **not** a clean default-surface refactor candidate — absent for a clean candidate. One of `trivial` (`mean_lines` ≤ 4 — too small to extract), `shallow-extraction` (unproven, helper-mostly-parameters: `params` ≥ a third of `shared_lines`), `declaration-run` (every member span is only import/use/include/re-export), or `generated-source` (every location in generated-header source). Each is a *reason*; `recommended_surface` is the placement it drives (`trivial`→`hidden`, `shallow-extraction`→`shallow`, the other two their like-named surfaces). Proven channels (`exact-value-graph`/`shared-sub-dag`) never carry `trivial`/`shallow-extraction`. See [default-surface-noise-audit](default-surface-noise-audit-2026-06-14.md). |
+| `extraction_shape` | string, optional | The **decidable structural shape** of the fix if this family is acted upon — present only for a clean candidate (no `actionability_reason`). NOT a worth-it claim (that judgment is the consumer's, [design](design.md) §2). One of `call-existing-helper` (one named helper + inline copies that recompute it), `extract-helper`, `extract-method-from-block`, `consolidate-type`, `extract-base-class`, `consolidate-cross-language`. The same structural decision the human report's `→` hint renders in prose. |
 | `overlap_primary_id` | string, optional | Present when this family is an overlapping slice of another default-surface family (≥2 member pairs overlapping on the same file by ≥ half of the shorter span): the `family_id` of that primary. The human report folds slices under their primary as one opportunity; JSON keeps every family so consumers can group or ungroup freely. |
 | `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
 | `abstraction_witness` | object, optional | Experimental weak-claim witness emitted only for `--mode abstraction` families that share a normalized template with one supported literal leaf hole. |
@@ -290,14 +292,16 @@ The optional `enclosing_unit` object has:
 | `name` | string, optional | Enclosing symbol name when recoverable. |
 | `unit_key` | string | Stable key built from file, kind, span, and name for grouping/review context. |
 
-Do not confuse fragment `reason_code` with family-level actionability reason codes. Fragment
-`reason_code` answers why this sub-function fragment was accepted as exact-safe. Family-level
-actionability reason codes answer why a clone family is, or is not, a clean refactor
-candidate; the first **decidable** one ships as the `shallow` `recommended_surface`
-(`shallow-extraction` — an unproven match whose helper would be mostly parameters). The
-judgment-deep half (worthy-fixture vs intentional scaffolding) is left to the consumer's
-own model and carried as evidence (`witness.kind`, `scope`, `params`/`shared_lines`,
-`varying_spots`), never a verdict — see [design](design.md) §2 and the
+Do not confuse fragment `reason_code` with the family-level `actionability_reason`. Fragment
+`reason_code` answers why this sub-function fragment was accepted as exact-safe.
+`actionability_reason` answers why a clone family is **not** a clean refactor candidate
+(`trivial` / `shallow-extraction` / `declaration-run` / `generated-source`), and
+`extraction_shape` names the structural shape of the fix for the families that **are** clean —
+both **decidable classifications, not verdicts**. The judgment-deep half (worthy-fixture vs
+intentional scaffolding, "is this worth coupling?") is deliberately NOT a code: it is left to
+the consumer's own model and carried as evidence (`witness.kind`, `scope`, `params`/`shared_lines`,
+`varying_spots`, `reinvented_helpers`, `graded`), never a `refactorability_score`/`confidence`
+verdict — see [design](design.md) §2 and the
 [default-surface-noise-audit](default-surface-noise-audit-2026-06-14.md). The experimental
 `abstraction_witness.reason_code` below is a weak-template reason, not exact-fragment proof.
 

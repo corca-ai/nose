@@ -163,28 +163,90 @@ impl RefactorFamily {
 
     /// Decidable, scope-blind actionability reason — a stable code naming WHY a family
     /// is not a clean default-surface refactor candidate, computed purely from family
-    /// shape (no source, no judgment, no `scope` input). The one measured code today is
-    /// `shallow-extraction`: an **unproven** match (not the exact value-graph or
-    /// shared-sub-dag channel) whose extracted helper would be mostly parameters —
-    /// `params` ≥ a third of the `shared_lines`. Measured 2026-06-14
-    /// ([default-surface-noise-audit](../../../docs/default-surface-noise-audit-2026-06-14.md)):
-    /// this cut labels at 0.89 precision with ~0 worthy loss, and is the dual of
-    /// extractability's `param_penalty`. Proven channels and families with no shared
-    /// lines (cross-language / unreadable) are never shallow. Returns `None` for a clean
-    /// candidate.
+    /// shape (no source, no judgment, no `scope` input). The family-side codes
+    /// (declaration/generated are decided CLI-side from source — see
+    /// `family_actionability_reason`):
+    ///
+    /// - `trivial` — `mean_lines` ≤ 4: too small to be an extraction target (0.95
+    ///   precision in the audit).
+    /// - `shallow-extraction` — the extracted helper would be mostly parameters
+    ///   (`params` ≥ a third of `shared_lines`); the dual of extractability's
+    ///   `param_penalty` (0.89 precision).
+    ///
+    /// Measured 2026-06-14
+    /// ([default-surface-noise-audit](../../../docs/default-surface-noise-audit-2026-06-14.md)).
+    /// A **proven** channel (exact value-graph / shared-sub-dag) is never demoted on a
+    /// shape/size heuristic. Returns `None` for a clean candidate.
     pub fn actionability_reason(&self) -> Option<&'static str> {
+        // Size floor below which a clone is too small to be an extraction target. Measured
+        // 2026-06-14 (default-surface-noise-audit): `trivial` labels at 0.95 precision.
+        const TRIVIAL_MAX_LINES: u32 = 4;
         const SHALLOW_PARAM_RATIO: f64 = 0.33;
+        // A proven channel is never demoted on a shape/size heuristic.
         let proven = matches!(
             self.witness.as_ref().map(|w| w.kind),
             Some("exact-value-graph") | Some("shared-sub-dag")
         );
-        if !proven
-            && self.shared_lines > 0
+        if proven {
+            return None;
+        }
+        // `trivial` before `shallow-extraction`: size is the more fundamental reason.
+        if self.mean_lines <= TRIVIAL_MAX_LINES {
+            return Some("trivial");
+        }
+        if self.shared_lines > 0
             && self.params as f64 >= SHALLOW_PARAM_RATIO * self.shared_lines as f64
         {
             return Some("shallow-extraction");
         }
         None
+    }
+
+    /// The structural shape of the fix IF this family is acted upon — a **decidable**
+    /// classification from unit kinds and channel, NOT a worth-it verdict (that is the
+    /// consumer's, §2). Promotes the same structural decision `family_hint` renders in
+    /// prose to a stable machine field (#11). The consumer reads it only for a clean
+    /// candidate (`actionability_reason` absent).
+    pub fn extraction_shape(&self) -> &'static str {
+        use nose_il::UnitKind;
+        // call-existing-helper: exactly one named whole function/method, every other
+        // member an inline block/fragment — the inline copies recompute the existing
+        // helper, so the fix is "call it", not a fresh extraction (#263's local `clamp`).
+        let named: Vec<&Loc> = self
+            .locations
+            .iter()
+            .filter(|l| {
+                matches!(l.kind, UnitKind::Function | UnitKind::Method)
+                    && l.name.is_some()
+                    && !l.is_fragment
+            })
+            .collect();
+        let inline = self
+            .locations
+            .iter()
+            .filter(|l| l.kind == UnitKind::Block || l.is_fragment)
+            .count();
+        if let [helper] = named[..] {
+            let callable =
+                !helper.looks_generated && (self.scope == "test" || !is_test_loc(helper));
+            if callable && inline >= 1 && inline == self.locations.len() - 1 {
+                return "call-existing-helper";
+            }
+        }
+        if self.languages > 1 {
+            return "consolidate-cross-language";
+        }
+        let all_classes = self.locations.iter().all(|l| l.kind == UnitKind::Class);
+        let all_blocks = self.locations.iter().all(|l| l.kind == UnitKind::Block);
+        if all_classes && self.mean_sem < 12.0 {
+            "consolidate-type"
+        } else if all_classes {
+            "extract-base-class"
+        } else if all_blocks {
+            "extract-method-from-block"
+        } else {
+            "extract-helper"
+        }
     }
 
     /// Product placement for the default scan/review/debug surfaces. This is a
@@ -199,8 +261,15 @@ impl RefactorFamily {
     /// fires on a proven channel.
     pub fn recommended_surface(&self) -> &'static str {
         let base = self.recommended_surface_base();
-        if base == "default" && self.actionability_reason().is_some() {
-            return "shallow";
+        if base == "default" {
+            // Map the decidable reason to its placement: `shallow-extraction` to the
+            // `shallow` surface; `trivial` to `hidden` (it is a size floor). The reason
+            // itself rides the separate `actionability_reason` JSON field.
+            match self.actionability_reason() {
+                Some("shallow-extraction") => return "shallow",
+                Some("trivial") => return "hidden",
+                _ => {}
+            }
         }
         base
     }
@@ -1404,6 +1473,89 @@ mod tests {
     }
 
     #[test]
+    fn trivial_family_is_demoted_to_hidden() {
+        // mean_lines ≤ 4, unproven → too small to extract: reason `trivial`, surface hidden.
+        let tiny = witnessed(
+            fam(
+                500.0,
+                3,
+                3,
+                0,
+                vec![loc("a.go", 1, 3, "go"), loc("b.go", 1, 3, "go")],
+            ),
+            "copy-paste-run",
+        );
+        assert_eq!(tiny.actionability_reason(), Some("trivial"));
+        assert_eq!(tiny.recommended_surface(), "hidden");
+    }
+
+    #[test]
+    fn proven_tiny_family_is_not_trivial() {
+        // Same tiny shape on the exact value-graph channel: never demoted on size.
+        let proven = witnessed(
+            fam(
+                500.0,
+                3,
+                3,
+                0,
+                vec![loc("a.go", 1, 3, "go"), loc("b.go", 1, 3, "go")],
+            ),
+            "exact-value-graph",
+        );
+        assert_eq!(proven.actionability_reason(), None);
+        assert_eq!(proven.recommended_surface(), "default");
+    }
+
+    #[test]
+    fn trivial_takes_precedence_over_shallow() {
+        // Tiny AND high-param: size is the more fundamental reason.
+        let f = witnessed(
+            fam(
+                500.0,
+                4,
+                3,
+                2,
+                vec![loc("a.go", 1, 4, "go"), loc("b.go", 1, 4, "go")],
+            ),
+            "copy-paste-run",
+        );
+        assert_eq!(f.actionability_reason(), Some("trivial"));
+    }
+
+    #[test]
+    fn extraction_shape_classifies_structurally() {
+        use crate::Loc;
+        // default: two same-language whole functions → extract-helper.
+        let helper = fam(
+            500.0,
+            20,
+            15,
+            1,
+            vec![loc("a.go", 1, 20, "go"), loc("b.go", 1, 20, "go")],
+        );
+        assert_eq!(helper.extraction_shape(), "extract-helper");
+        // cross-language.
+        let cross = fam(
+            500.0,
+            20,
+            0,
+            1,
+            vec![
+                loc("a.py", 1, 20, "python"),
+                loc("b.ts", 1, 20, "typescript"),
+            ],
+        );
+        assert_eq!(cross.extraction_shape(), "consolidate-cross-language");
+        // all blocks → extract a method from the repeated block.
+        let block = |file: &str| Loc {
+            kind: nose_il::UnitKind::Block,
+            ..loc(file, 1, 20, "go")
+        };
+        let blocks = fam(500.0, 20, 15, 1, vec![block("a.go"), block("b.go")]);
+        assert_eq!(blocks.extraction_shape(), "extract-method-from-block");
+    }
+
+    #[test]
     fn pack_facing_laws_become_family_provenance_only_when_registered() {
         let proven = Group {
             score: 1.0,
@@ -1448,12 +1600,17 @@ mod tests {
 
     #[test]
     fn tiny_all_fragment_family_is_hidden_and_downranked() {
+        // mean_lines above the `trivial` floor so the whole unit is a real default
+        // candidate — the contrast this test is about is fragment-vs-whole, not size.
         let whole = fam(
             10.0,
-            2,
-            2,
+            10,
+            8,
             0,
-            vec![loc("src/a.rs", 1, 2, "rust"), loc("src/b.rs", 1, 2, "rust")],
+            vec![
+                loc("src/a.rs", 1, 10, "rust"),
+                loc("src/b.rs", 1, 10, "rust"),
+            ],
         );
         let fragment = fam(
             10.0,

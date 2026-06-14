@@ -1148,6 +1148,17 @@ struct ScanJsonFamily<'a> {
     #[serde(flatten)]
     family: &'a nose_detect::RefactorFamily,
     recommended_surface: &'static str,
+    /// The decidable, classification-not-verdict reason this family is NOT a clean
+    /// default-surface refactor candidate: `shallow-extraction`, `trivial`,
+    /// `declaration-run`, or `generated-source`. Absent for a clean candidate (#11).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    actionability_reason: Option<&'static str>,
+    /// The decidable structural shape of the fix IF a clean candidate is acted upon —
+    /// `call-existing-helper` / `extract-helper` / `extract-method-from-block` /
+    /// `consolidate-type` / `extract-base-class` / `consolidate-cross-language`. NOT a
+    /// worth-it claim (§2). Present only when `actionability_reason` is absent (#11).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extraction_shape: Option<&'static str>,
     /// Present when this family is an overlapping slice of another default-
     /// surface family: the id of that primary. Consumers triaging
     /// opportunities can fold slices under their primary.
@@ -1251,11 +1262,18 @@ impl<'a> ScanJsonReport<'a> {
                 .iter()
                 .map(|family| {
                     let family_id = baseline::family_id(family);
+                    let actionability_reason = family_actionability_reason(family, input.overrides);
                     ScanJsonFamily {
                         overlap_primary_id: input.opportunities.primary_of.get(&family_id).cloned(),
                         family_id,
                         family,
                         recommended_surface: effective_surface(family, input.overrides),
+                        actionability_reason,
+                        // The structural shape is meaningful only for a clean candidate;
+                        // a non-action family has nothing to extract.
+                        extraction_shape: actionability_reason
+                            .is_none()
+                            .then(|| family.extraction_shape()),
                         baseline_status: statuses
                             .and_then(|s| s.get(&baseline::family_key(family)))
                             .map(BaselineStatus::as_str),
@@ -4623,6 +4641,23 @@ fn is_default_report_family(
     family.recommended_surface() == "default"
         && !family_all_generated_source(family, &overrides.generated_sources)
         && !family_declaration_run(family, overrides)
+}
+
+/// The decidable `actionability_reason` for the JSON contract (#11): the source-derived
+/// CLI-side non-action classes (`generated-source`, `declaration-run`) take precedence —
+/// mirroring [`effective_surface`] — then the detector's pure-shape codes (`trivial`,
+/// `shallow-extraction`). `None` for a clean candidate. A reason, not a verdict.
+fn family_actionability_reason(
+    family: &nose_detect::RefactorFamily,
+    overrides: &SurfaceOverrides,
+) -> Option<&'static str> {
+    if family_all_generated_source(family, &overrides.generated_sources) {
+        Some("generated-source")
+    } else if family_declaration_run(family, overrides) {
+        Some("declaration-run")
+    } else {
+        family.actionability_reason()
+    }
 }
 
 fn family_declaration_run(

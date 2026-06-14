@@ -23,10 +23,12 @@ Parse `families[]` ([scan JSON](scan-json.md)). Do not scrape human output.
 Read the fields in this order — each step either decides or narrows:
 
 1. **Surface filter.** Act on `recommended_surface == "default"` only;
-   `review`/`hidden` are diagnostic surfaces, `generated` means every member sits
-   in generated output, and `declaration` means every member span is only
-   import/include/use/re-export declarations (real duplication, but the language
-   mandates it per file — there is nothing to extract).
+   `review`/`hidden`/`shallow` are diagnostic surfaces. If you widen past the
+   default, `actionability_reason` names *why* a family was demoted — `trivial`
+   (too small to extract), `shallow-extraction` (the helper would be mostly
+   parameters), `declaration-run` (only import/include/use/re-export spans), or
+   `generated-source` — each a decidable classification, not a worthiness verdict.
+   A default-surface family has no `actionability_reason`.
 2. **Generated/vendored.** Drop the family if every location has
    `looks_generated: true` or the paths are vendored (`vendor/`, `.min.`,
    `*.pb.go`, lockfiles). A *partly* generated family is a real leak — keep it.
@@ -43,7 +45,9 @@ Read the fields in this order — each step either decides or narrows:
    spot list over near-identical lines is a data table (`extract-data-table` or
    not-worthy locale/i18n parallel data — check whether the literals are *content*
    or *parameters*). Many spots (`params` high) relative to `shared_lines` means a
-   costly, ugly extraction.
+   costly, ugly extraction. `extraction_shape` names the decidable shape of the fix
+   for a clean candidate (`call-existing-helper` is the strongest — an existing
+   helper is reinvented inline, so the action is to *call* it, not extract anew).
 5. **Where it lives — `scope` + `in_test_module`.** Test-scaffolding duplication is
    still worthy (a test helper is the refactor) — but weigh it below production
    logic when budgeting attention.
