@@ -3829,6 +3829,41 @@ fn parse_query(terms: &[String]) -> Result<Query> {
     }
     for flt in &q.filters {
         validate_field(&flt.field, &flt.op)?;
+        // Validate enum *values* too (a value typo must error, not silently match nothing
+        // and read as "no such clones exist").
+        if matches!(flt.op, QOp::Eq) {
+            let valid: Option<&[&str]> = match flt.field.as_str() {
+                "scope" => Some(&["prod", "test", "mixed"]),
+                "witness" => Some(&[
+                    "exact",
+                    "subdag",
+                    "copy-paste",
+                    "similar",
+                    "shared-core",
+                    "copypaste",
+                    "structural",
+                ]),
+                "shape" | "extraction_shape" => Some(&[
+                    "call-existing-helper",
+                    "extract-helper",
+                    "extract-method-from-block",
+                    "consolidate-type",
+                    "extract-base-class",
+                    "consolidate-cross-language",
+                ]),
+                _ => None,
+            };
+            if let Some(vals) = valid {
+                if !vals.contains(&flt.value.as_str()) {
+                    anyhow::bail!(
+                        "unknown {} value `{}` — valid: {}",
+                        flt.field,
+                        flt.value,
+                        vals.join(" ")
+                    );
+                }
+            }
+        }
     }
     Ok(q)
 }
@@ -3932,17 +3967,42 @@ fn query_row(f: &nose_detect::RefactorFamily) -> String {
         .as_deref()
         .map(|n| format!("  {n}"))
         .unwrap_or_default();
+    let (shared, params) = all_copies_shared(f);
+    let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
     format!(
         "{}:{}{name}  {} copies · {}/{} shared, {}p · ~{} removable · {}",
         l.file,
         l.start_line,
         f.members,
-        f.shared_lines,
+        shared,
         representative_lines(f),
-        f.params,
-        removable_lines(f),
+        params,
+        removable,
         witness_token(f.witness.as_ref().map(|w| w.kind))
     )
+}
+
+/// Shared-line and parameter counts aligned across **all** copies (not the pairwise
+/// representative `shared_lines`, which over-counts a family whose 3rd+ copies diverge —
+/// e.g. 25 serializer methods that pairwise share 11 lines but all-25 share 2). Reads the
+/// copies and runs the N-way anti-unification (#360); only ever called on the rows
+/// actually displayed, so it is bounded. The honest `~removable` is then `(copies − 1) ×
+/// all-copies-shared`, which is never more than is truly shared and `0` when nothing is.
+/// Cross-language or unreadable families fall back to the detector's structural estimate.
+fn all_copies_shared(f: &nose_detect::RefactorFamily) -> (u32, u32) {
+    if f.languages != 1 {
+        return (f.shared_lines, f.params);
+    }
+    let members: Vec<Vec<String>> = f
+        .locations
+        .iter()
+        .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
+        .collect();
+    if members.len() < 2 {
+        return (f.shared_lines, f.params);
+    }
+    let (_skeleton, shared, params) = anti_unify_all(&members);
+    (shared, params)
 }
 
 fn is_default_surface(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides) -> bool {
@@ -4206,6 +4266,16 @@ fn render_query_list(
             query_row(f),
             short_id(&baseline::family_id(f))
         );
+        // `full` on a list/filter batches the extraction skeletons — triage N candidates
+        // in one stateless call (no per-family id= round-trip).
+        if q.id_full {
+            print_member_proposal(&f.locations);
+        }
+    }
+    if !q.id_full {
+        println!(
+            "  nose query {path} ... full   # add `full` to show the extraction skeletons inline"
+        );
     }
     println!("\nnext:");
     if !terms.iter().any(|t| t.starts_with("group=")) {
@@ -4305,16 +4375,18 @@ fn render_query_family(
         );
         return;
     }
+    let (shared, params) = all_copies_shared(f);
+    let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
     println!(
         "{} — {} · {} · {} copies · {}/{} shared, {}p · ~{} removable",
         short_id(&id),
         witness_token(f.witness.as_ref().map(|w| w.kind)),
         f.scope,
         f.members,
-        f.shared_lines,
+        shared,
         representative_lines(f),
-        f.params,
-        removable_lines(f),
+        params,
+        removable,
     );
     println!("  → {}", family_hint(f));
     println!("  copies:");
@@ -4326,16 +4398,17 @@ fn render_query_family(
             .unwrap_or_default();
         println!("    {}:{}-{}{name}", l.file, l.start_line, l.end_line);
     }
+    // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
+    // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.
     if f.locations.len() >= 2 {
-        print_member_diff(&f.locations[0], &f.locations[1]);
-    }
-    if full {
         print_member_proposal(&f.locations);
-    } else if f.locations.len() > 2 {
+    }
+    if full && f.locations.len() >= 2 {
+        print_member_diff(&f.locations[0], &f.locations[1]);
+    } else if !full && f.locations.len() >= 2 {
         println!(
-            "    nose query {path} id={} full   # align the extraction across all {} copies",
-            short_id(&id),
-            f.members
+            "    nose query {path} id={} full   # also show the raw token diff of two copies",
+            short_id(&id)
         );
     }
     println!("\nnext:");
