@@ -6,7 +6,21 @@ break.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-14
+
 ### Added
+- **`nose query` — a stateless, self-describing exploration surface for agents (#359).** A new
+  opt-in subcommand over the *same* family dataset `scan` computes: with no terms it prints a
+  landing dashboard, terms slice (`field=value`/`>`/`<`/`path~substr`), facet (`group=FIELD`), or
+  open a family (`id=FAM`, add `full` for the all-copies extraction skeleton). Every result is
+  self-describing and ends in **runnable `nose query …` next-commands**, so an agent navigates by
+  following links — no schema to learn, no `jq` to author. Each row carries the all-copies payoff
+  economics (`M/REP shared, Pp · ~N removable`); the surface is production-first, default-surface-
+  consistent (`all` widens), folds overlapping slices, and is evidence-never-verdict (unknown
+  fields/values error loudly; deterministic). Validated by 4 rounds of LLM-as-judge on 6 corpus
+  repos ("a functional superset of scan, more honest per-family"). `scan`, `--fail-on`, and the
+  scan-JSON v1 contract are unchanged; `build_scan_dataset` is factored out so both share one
+  deterministic family build. MCP is deliberately *not* added (a Skill is the intended packaging).
 - **Family-level actionability vocabulary in scan JSON (#11).** Two new optional fields make a
   family's triage *machine-readable as classification, not a verdict* (no `refactorability_score` /
   `confidence` — that judgment is the consumer's, design §2):
@@ -45,6 +59,41 @@ break.
   hide each scenario's intent. It is a caveat, not a verdict (the worthy fixture-vs-scaffold call
   is the reader's and is not feature-decidable); `mixed` test↔prod leaks get no caveat, and the
   high-parameter caution still wins when both apply.
+- **Scan's `shared`/`removable` headline on the all-copies basis (#366).** `shared_lines` and the
+  derived `~removable` now count lines invariant across **all** of a family's copies (the same
+  all-copies anti-unification `nose query` reports), not just the representative pair — which
+  over-stated families whose 3rd+ copies diverge (serde's 25-copy `serialize_newtype_variant`
+  read `11 shared → ~264 removable`, now `4 → ~96`). Gold-set measured neutral (held-out P@10
+  flat, worthy-recall byte-identical; experiments §CL). `params`/`varying_spots` stay
+  representative-pair (the all-copies hole count regressed held-out, and it keeps the scan-JSON v1
+  `params↔varying_spots` invariant); scan-JSON v1 schema unchanged.
+- **Foldability-aware `extractability` ranking (#365).** The default ranking gains a member-span
+  **heterogeneity** penalty (`× 1/(1+CV)`, same-language): copies that vary widely in length are
+  not one shape, so no single helper folds them — a decidable proxy for signature/arity
+  heterogeneity (on the v5 labelset, not-worthy families carry ~2.7× the span CV of worthy ones).
+  Demotes the low-foldability family that ranked #1 in most corpus repos (serde's 25 heterogeneous
+  `Serializer` methods → #2; the clean numeric writer takes #1). Gold-set measured: held-out P@10
+  flat, worthy-recall invariant (the penalty only reorders); experiments §CM.
+- **Extraction proposal aligns across all copies (#360).** `--show proposal` and `nose query
+  id=FAM full` anti-unify over **all** of a family's copies (not just the two largest), so the
+  drafted helper is safe to apply to every copy — pairwise by default, full alignment on drill.
+- **Directory terminology (#363).** Human-facing output says "directory/directories": nose's
+  spatial unit is the parent directory, not an under-defined "module". The scan-JSON `modules`
+  field name is kept for v1 compatibility.
+
+### Fixed
+- **Canon preservation up to abort (#369).** The soundness oracle's canon-preservation gate
+  flagged 4 spurious violations in libsodium `fe25519` limb arithmetic: on impossible inputs (an
+  int bound to an array parameter), the unit traps (`ret: Err`) on both the core and full IL,
+  differing only in the partial effects recorded before the trap. The gate now judges preservation
+  *up to abort* — two aborting runs are equivalent regardless of pre-trap effects — so `nose verify
+  --max-violations 0` reads PRESERVED on the pinned corpus again. `Ok→Err`/`Err→Ok`/differing
+  results still trip; the soundness/false-merge lane is unchanged. Experiments §CN.
+
+### Notes
+- **Measured NO-GOs** (recorded so they are not re-attempted): JSX-markup detector filtering
+  (#353) and tier-2 sibling-family folding (#358) were both evaluated and rejected on measurement
+  — see the experiment log.
 
 ## [0.8.0] - 2026-06-14
 
