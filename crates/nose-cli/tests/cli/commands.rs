@@ -1887,6 +1887,7 @@ fn proposal_aligns_across_all_copies() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines, clippy::cognitive_complexity)] // one end-to-end walk of the query surface
 fn query_dashboard_filter_and_family() {
     // A sizeable 3-copy near family (one operator each) survives the default size floor.
     let dir = std::env::temp_dir().join(format!("nose_query_{}", std::process::id()));
@@ -1984,6 +1985,51 @@ fn query_dashboard_filter_and_family() {
     assert!(
         run_fail(&["query", p, "--fail-on", "new"]).contains("requires --baseline"),
         "query --fail-on new requires --baseline"
+    );
+
+    // The JSON form is the structured, versioned query-v2 contract (every view).
+    let dash: serde_json::Value =
+        serde_json::from_str(&run(&["query", p, "--format", "json"])).unwrap();
+    assert_eq!(
+        dash["schema_version"], 2,
+        "dashboard json is schema v2: {dash}"
+    );
+    assert_eq!(dash["view"], "dashboard");
+    assert!(dash["summary"]["families"].is_number());
+    // A filtered list emits structured family objects (not human `where` strings).
+    let list: serde_json::Value =
+        serde_json::from_str(&run(&["query", p, "members>1", "--format", "json"])).unwrap();
+    assert_eq!(list["view"], "list");
+    let fam = &list["families"][0];
+    for k in [
+        "id",
+        "scope",
+        "witness",
+        "members",
+        "shared",
+        "params",
+        "removable",
+        "locations",
+        "extraction_shape",
+        "same_symbol",
+    ] {
+        assert!(!fam[k].is_null(), "query-json family.{k} present: {list}");
+    }
+    // `full` carries the all-copies extraction skeleton on the family object.
+    let famid = fam["id"].as_str().unwrap().to_string();
+    let opened: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        p,
+        &format!("id={famid}"),
+        "full",
+        "--format",
+        "json",
+    ]))
+    .unwrap();
+    assert_eq!(opened["view"], "family");
+    assert!(
+        opened["family"]["skeleton"].is_array(),
+        "id=…full json carries skeleton: {opened}"
     );
 
     let _ = fs::remove_dir_all(&dir);
