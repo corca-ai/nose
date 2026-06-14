@@ -3731,6 +3731,7 @@ const STR_FIELDS: &[&str] = &[
     "surface",
     "shape",
     "extraction_shape",
+    "same_symbol",
 ];
 /// Numeric filter fields (also the only ones that accept `>`/`<`).
 const NUM_FIELDS: &[&str] = &[
@@ -3878,6 +3879,7 @@ fn parse_query(terms: &[String]) -> Result<Query> {
                     "extract-base-class",
                     "consolidate-cross-language",
                 ]),
+                "same_symbol" => Some(&["true", "false"]),
                 _ => None,
             };
             if let Some(vals) = valid {
@@ -3934,6 +3936,18 @@ fn family_dir(f: &nose_detect::RefactorFamily) -> String {
         .to_string()
 }
 
+/// Whether every copy is the **same named symbol** in a different place — the decidable
+/// signature of a parallel-variant family (e.g. one `lower_for`/`stmt_as_block` per language
+/// frontend). Evidence, not a verdict: combine with negation (`same_symbol!=true`) to drop the
+/// parallel-by-design class, or `same_symbol=true` to review it.
+fn family_same_symbol(f: &nose_detect::RefactorFamily) -> bool {
+    let mut names = f.locations.iter().map(|l| l.name.as_deref());
+    match names.next().flatten() {
+        Some(first) if f.locations.len() > 1 => names.all(|n| n == Some(first)),
+        _ => false,
+    }
+}
+
 /// Numeric value of a family field (for `>`/`<`/`=` on numbers).
 fn family_num(f: &nose_detect::RefactorFamily, field: &str) -> Option<f64> {
     Some(match field {
@@ -3972,6 +3986,7 @@ fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &
             "surface" => effective_surface(f, ov).to_string(),
             "shape" | "extraction_shape" => f.extraction_shape().to_string(),
             "dir" => family_dir(f),
+            "same_symbol" => family_same_symbol(f).to_string(),
             _ => return None,
         })
     };
@@ -4331,7 +4346,7 @@ fn render_query_dashboard(
             .unwrap_or_default()
     );
     println!(
-        "\ngrammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr ...] [group=FIELD | id=FAM | at=FILE:LINE]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
+        "\ngrammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr ...] [group=FIELD | id=FAM | at=FILE:LINE]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) same_symbol(true|false) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
     );
 }
 
@@ -4421,6 +4436,7 @@ fn render_query_group(
                 .unwrap_or_default(),
             "dir" => family_dir(f),
             "shape" | "extraction_shape" => f.extraction_shape().to_string(),
+            "same_symbol" => family_same_symbol(f).to_string(),
             _ => "?".to_string(),
         }
     };

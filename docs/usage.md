@@ -224,7 +224,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] 
 | part | meaning |
 |---|---|
 | `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a whole directory) |
-| `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`), with a count and an exemplar per bucket |
+| `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`, `same_symbol`), with a count and an exemplar per bucket |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, and navigation links |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
@@ -233,7 +233,8 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] 
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 
 Fields: `scope` (prod\|test\|mixed), `witness` (exact\|subdag\|copy-paste\|similar),
-`lang`, `path`, `dir`, `members`, `files`, `value`, `params`, `shared`. Every row shows
+`same_symbol` (true\|false — every copy is the same named symbol, the parallel-variant
+signature), `lang`, `path`, `dir`, `members`, `files`, `value`, `params`, `shared`. Every row shows
 the payoff economics — `M/REP shared, Pp · ~N removable` — so a candidate can be triaged
 without opening it. Each result is a pure function of (repo state, command); an unknown
 field or enum value is a hard error (so a typo can't read as "no duplication").

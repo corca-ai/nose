@@ -1953,6 +1953,17 @@ fn query_dashboard_filter_and_family() {
         "a location with no family errors"
     );
 
+    // same_symbol: the three `process` copies share a name → the parallel-variant signal.
+    assert!(
+        run(&["query", p, "same_symbol=true"]).contains("families"),
+        "same_symbol=true matches the same-named family"
+    );
+    assert!(
+        run(&["query", p, "group=same_symbol"]).contains("by same_symbol"),
+        "group=same_symbol facets"
+    );
+    assert!(run_fail(&["query", p, "same_symbol=oops"]).contains("unknown same_symbol value"));
+
     let _ = fs::remove_dir_all(&dir);
 }
 
