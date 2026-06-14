@@ -3969,8 +3969,14 @@ fn query_row(f: &nose_detect::RefactorFamily) -> String {
         .unwrap_or_default();
     let (shared, params) = all_copies_shared(f);
     let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
+    // Flag non-production scope inline so a test/mixed family isn't mistaken for prod.
+    let scope = if f.scope == "prod" {
+        String::new()
+    } else {
+        format!(" · {}", f.scope)
+    };
     format!(
-        "{}:{}{name}  {} copies · {}/{} shared, {}p · ~{} removable · {}",
+        "{}:{}{name}  {} copies · {}/{} shared, {}p · ~{} removable · {}{scope}",
         l.file,
         l.start_line,
         f.members,
@@ -4057,11 +4063,20 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                 .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
         });
     }
+    // Fold overlapping slice families under their best-ranked primary (scan's #263/#264
+    // grouping) so query doesn't double-count or under-report the same region vs scan.
+    let default_fams: Vec<&nose_detect::RefactorFamily> = dataset
+        .families
+        .iter()
+        .filter(|f| is_default_surface(f, &overrides))
+        .collect();
+    let opp = OpportunityGroups::from_ranked(&default_fams);
     let json = matches!(format, ReportFormat::Json);
     if terms.is_empty() {
         render_query_dashboard(
             &dataset.families,
             &overrides,
+            &opp,
             &dataset.scope,
             &path_arg,
             json,
@@ -4072,6 +4087,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         render_query_family(
             &dataset.families,
             &overrides,
+            &opp,
             idv,
             q.id_full,
             &path_arg,
@@ -4087,6 +4103,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         .iter()
         .filter(|f| {
             (widen || is_default_surface(f, &overrides))
+                && !opp.is_slice(f)
                 && q.filters
                     .iter()
                     .all(|flt| family_matches(f, &overrides, flt))
@@ -4094,7 +4111,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         .collect();
     match &q.group {
         Some(field) => render_query_group(&sel, field, &terms, &path_arg),
-        None => render_query_list(&sel, &overrides, &q, &terms, &path_arg, widen),
+        None => render_query_list(&sel, &overrides, &opp, &q, &terms, &path_arg, widen),
     }
     Ok(())
 }
@@ -4106,13 +4123,15 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
 fn render_query_dashboard(
     families: &[nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
+    opp: &OpportunityGroups,
     scope: &ScanScope,
     path: &str,
     json: bool,
 ) {
+    // Default surface, slice-folds removed (shown under their primary) — matches scan.
     let mut def: Vec<&nose_detect::RefactorFamily> = families
         .iter()
-        .filter(|f| is_default_surface(f, ov))
+        .filter(|f| is_default_surface(f, ov) && !opp.is_slice(f))
         .collect();
     // Production leads, test-scope ranked beneath — scan's #263/#264 ordering.
     def.sort_by_key(|f| f.scope == "test");
@@ -4122,6 +4141,10 @@ fn render_query_dashboard(
             .count()
     };
     let n_test = def.iter().filter(|f| f.scope == "test").count();
+    let fold = |f: &nose_detect::RefactorFamily| match opp.slices(f) {
+        Some(s) if !s.is_empty() => format!("\n       ↳ +{} overlapping slice folds", s.len()),
+        _ => String::new(),
+    };
     if json {
         let top: Vec<_> = def
             .iter()
@@ -4136,7 +4159,7 @@ fn render_query_dashboard(
                 "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
                     "copy_paste": count("copy-paste"), "similar": count("similar")},
                 "top_candidates": top,
-                "next": [format!("nose query {path} sort=value"), format!("nose query {path} group=dir"),
+                "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
                     format!("nose query {path} scope=prod"), format!("nose query {path} witness=exact")],
             })
         );
@@ -4155,13 +4178,14 @@ fn render_query_dashboard(
     println!("\ncleanest to extract (production first):");
     for f in def.iter().take(3) {
         println!(
-            "  {}   nose query {path} id={}",
+            "  {}   nose query {path} id={}{}",
             query_row(f),
-            short_id(&baseline::family_id(f))
+            short_id(&baseline::family_id(f)),
+            fold(f)
         );
     }
     println!(
-        "  nose query {path} sort=value                # all {} (default surface), ranked",
+        "  nose query {path} sort=extractability       # all {} (default surface), cleanest first",
         def.len()
     );
     if n_test > 0 && n_test < def.len() {
@@ -4192,9 +4216,10 @@ fn render_query_dashboard(
         );
         for f in proven.iter().take(3) {
             println!(
-                "  {}   nose query {path} id={}",
+                "  {}   nose query {path} id={}{}",
                 query_row(f),
-                short_id(&baseline::family_id(f))
+                short_id(&baseline::family_id(f)),
+                fold(f)
             );
         }
         if n_exact > 0 {
@@ -4224,8 +4249,17 @@ fn render_query_dashboard(
         }
         println!("  nose query {path} group=dir                 # full breakdown");
     }
+    // Repo-level magnitude + what the default surface omitted (scan's honesty footer).
+    let omitted = surface_omission_note(families, ov);
     println!(
-        "\ngrammar:  nose query <path> [field=value | field>N | field~substr ...] [group=FIELD | id=FAM]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) lang path members files value params shared dir\n          · sort=value|members  · top=N  · `full` after id= aligns all copies  · `all` widens past the default surface"
+        "\n~{} duplicated lines on the default surface.{}",
+        total_dup_lines_refs(&def),
+        omitted
+            .map(|n| format!(" {n} — add `all` to include them"))
+            .unwrap_or_default()
+    );
+    println!(
+        "\ngrammar:  nose query <path> [field=value | field>N | field~substr ...] [group=FIELD | id=FAM]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
     );
 }
 
@@ -4234,6 +4268,7 @@ fn render_query_dashboard(
 fn render_query_list(
     sel: &[&nose_detect::RefactorFamily],
     ov: &SurfaceOverrides,
+    opp: &OpportunityGroups,
     q: &Query,
     terms: &[String],
     path: &str,
@@ -4261,8 +4296,12 @@ fn render_query_list(
         } else {
             String::new()
         };
+        let fold = match opp.slices(f) {
+            Some(s) if !s.is_empty() => format!("\n       ↳ +{} overlapping slice folds", s.len()),
+            _ => String::new(),
+        };
         println!(
-            "  {}{surf}   nose query {path} id={}",
+            "  {}{surf}   nose query {path} id={}{fold}",
             query_row(f),
             short_id(&baseline::family_id(f))
         );
@@ -4345,6 +4384,7 @@ fn render_query_group(
 fn render_query_family(
     families: &[nose_detect::RefactorFamily],
     _ov: &SurfaceOverrides,
+    opp: &OpportunityGroups,
     idv: &str,
     full: bool,
     path: &str,
@@ -4358,6 +4398,18 @@ fn render_query_family(
         return;
     };
     let id = baseline::family_id(f);
+    // Overlap-fold provenance: a slice points at its richer primary; a primary lists what
+    // it subsumes (so the agent doesn't triage the same region twice).
+    let fold_note = if let Some(primary) = opp.primary_of.get(&id) {
+        format!(
+            "  ↳ subsumed by id={} (the fuller overlapping family)\n",
+            short_id(primary)
+        )
+    } else if let Some(s) = opp.slices(f).filter(|s| !s.is_empty()) {
+        format!("  ↳ subsumes {} overlapping slice families\n", s.len())
+    } else {
+        String::new()
+    };
     if json {
         let locs: Vec<_> = f
             .locations
@@ -4388,6 +4440,7 @@ fn render_query_family(
         params,
         removable,
     );
+    print!("{fold_note}");
     println!("  → {}", family_hint(f));
     println!("  copies:");
     for l in f.locations.iter().take(30) {
