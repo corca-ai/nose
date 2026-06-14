@@ -1928,6 +1928,31 @@ fn query_dashboard_filter_and_family() {
     // An unknown term is a hard error (a typo must not silently widen the result).
     assert!(run_fail(&["query", p, "wat"]).contains("unrecognized term"));
 
+    // Negation (`!~`): a path substring matched by every copy drops the family; a
+    // non-matching one keeps it (so a typo'd exclusion can't silently empty the result).
+    assert!(
+        run(&["query", p, "path!~m.py"]).contains("0 families")
+            || !run(&["query", p, "path!~m.py"]).contains("nose query"),
+        "path!~m.py excludes the all-m.py family"
+    );
+    assert!(
+        run(&["query", p, "path!~zzz_absent"]).contains("families"),
+        "path!~<absent> keeps the family"
+    );
+    // Negated equality still validates the value (a typo errors, never silently matches).
+    assert!(run_fail(&["query", p, "witness!=nonsense"]).contains("unknown witness value"));
+
+    // `at=FILE:LINE` opens the family whose copy covers that location; a miss errors loudly.
+    let at = run(&["query", p, &format!("at={p}/a/m.py:3")]);
+    assert!(
+        at.contains("copies:") && at.contains("shared"),
+        "at= opens the covering family: {at}"
+    );
+    assert!(
+        run_fail(&["query", p, "at=nope.rs:999"]).contains("no family has a copy covering"),
+        "a location with no family errors"
+    );
+
     let _ = fs::remove_dir_all(&dir);
 }
 

@@ -203,7 +203,8 @@ enum Cmd {
         #[arg(required = true)]
         path: PathBuf,
         /// Query terms (none → the dashboard): `field=value` `field>N` `field<N`
-        /// `path~substr` filter (AND-ed); `group=FIELD` facet; `id=FAM` (add `full` to
+        /// `path~substr` filter (AND-ed; negate with `field!=value` / `path!~substr`);
+        /// `group=FIELD` facet; `id=FAM` or `at=FILE:LINE` open one family (add `full` to
         /// align all copies); `sort=KEY`; `top=N`.
         terms: Vec<String>,
         /// Output format (`human` or `json`).
@@ -3691,6 +3692,9 @@ struct Query {
     filters: Vec<QFilter>,
     group: Option<String>,
     id: Option<String>,
+    /// `at=file:line` — open the family whose member span covers that source location (a
+    /// stable handle across edits, unlike the span-derived `id=`). Resolved to an `id=` open.
+    at: Option<String>,
     id_full: bool,
     /// Widen from the curated default surface to the full raw universe (shallow/hidden/
     /// declaration/generated families too) — the `all` token. Default queries stay on the
@@ -3711,6 +3715,8 @@ struct QFilter {
     field: String,
     op: QOp,
     value: String,
+    /// `!=`/`!~` — keep families that do NOT match (the filter result is inverted).
+    negate: bool,
 }
 
 /// String-valued (or substring) filter fields.
@@ -3799,6 +3805,15 @@ fn parse_sort_key(v: &str) -> Option<SortKey> {
 
 /// Parse free-form query terms. Unknown terms are an error (a typo must not silently
 /// widen the result to everything).
+fn qfilter(field: &str, op: QOp, value: &str, negate: bool) -> QFilter {
+    QFilter {
+        field: field.into(),
+        op,
+        value: value.into(),
+        negate,
+    }
+}
+
 fn parse_query(terms: &[String]) -> Result<Query> {
     let mut q = Query::default();
     for t in terms {
@@ -3810,6 +3825,8 @@ fn parse_query(terms: &[String]) -> Result<Query> {
             q.group = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("id=") {
             q.id = Some(v.to_string());
+        } else if let Some(v) = t.strip_prefix("at=") {
+            q.at = Some(v.to_string());
         } else if let Some(v) = t.strip_prefix("sort=") {
             q.sort = Some(parse_sort_key(v).ok_or_else(|| {
                 anyhow::anyhow!("unknown sort key `{v}` (extractability|value|sites|hazard)")
@@ -3819,33 +3836,21 @@ fn parse_query(terms: &[String]) -> Result<Query> {
                 v.parse()
                     .map_err(|_| anyhow::anyhow!("top= needs a number, got `{v}`"))?,
             );
+        } else if let Some((f, v)) = t.split_once("!~") {
+            q.filters.push(qfilter(f, QOp::Has, v, true));
+        } else if let Some((f, v)) = t.split_once("!=") {
+            q.filters.push(qfilter(f, QOp::Eq, v, true));
         } else if let Some((f, v)) = t.split_once('~') {
-            q.filters.push(QFilter {
-                field: f.into(),
-                op: QOp::Has,
-                value: v.into(),
-            });
+            q.filters.push(qfilter(f, QOp::Has, v, false));
         } else if let Some((f, v)) = t.split_once('>') {
-            q.filters.push(QFilter {
-                field: f.into(),
-                op: QOp::Gt,
-                value: v.into(),
-            });
+            q.filters.push(qfilter(f, QOp::Gt, v, false));
         } else if let Some((f, v)) = t.split_once('<') {
-            q.filters.push(QFilter {
-                field: f.into(),
-                op: QOp::Lt,
-                value: v.into(),
-            });
+            q.filters.push(qfilter(f, QOp::Lt, v, false));
         } else if let Some((f, v)) = t.split_once('=') {
-            q.filters.push(QFilter {
-                field: f.into(),
-                op: QOp::Eq,
-                value: v.into(),
-            });
+            q.filters.push(qfilter(f, QOp::Eq, v, false));
         } else {
             anyhow::bail!(
-                "unrecognized term `{t}` — try field=value, group=FIELD, id=FAM, sort=KEY, top=N"
+                "unrecognized term `{t}` — try field=value, field!=value, path~substr, group=FIELD, id=FAM, at=FILE:LINE, sort=KEY, top=N"
             );
         }
     }
@@ -3888,6 +3893,31 @@ fn parse_query(terms: &[String]) -> Result<Query> {
         }
     }
     Ok(q)
+}
+
+/// The family whose member span covers `at` (`file:line`) — the `at=` selector's target.
+/// A stable handle across edits, unlike the span-derived `id=`.
+fn family_at<'f>(
+    families: &'f [nose_detect::RefactorFamily],
+    at: &str,
+    path_arg: &str,
+) -> Result<&'f nose_detect::RefactorFamily> {
+    let (file, line) = at
+        .rsplit_once(':')
+        .and_then(|(f, l)| l.parse::<u32>().ok().map(|n| (f, n)))
+        .ok_or_else(|| anyhow::anyhow!("at= needs `file:line`, got `{at}`"))?;
+    families
+        .iter()
+        .find(|fam| {
+            fam.locations
+                .iter()
+                .any(|l| l.file.contains(file) && l.start_line <= line && line <= l.end_line)
+        })
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "no family has a copy covering `{at}` — try `nose query {path_arg} path~{file}` to browse nearby"
+            )
+        })
 }
 
 /// The directory a family lives in (the parent of its largest copy) — nose's spatial unit.
@@ -3945,7 +3975,7 @@ fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &
             _ => return None,
         })
     };
-    match flt.op {
+    let base = match flt.op {
         QOp::Has => match field {
             "path" | "file" => path_has(),
             "lang" | "language" => lang_eq(false),
@@ -3971,7 +4001,8 @@ fn family_matches(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides, flt: &
         QOp::Lt => family_num(f, field)
             .zip(val.parse::<f64>().ok())
             .is_some_and(|(a, b)| a < b),
-    }
+    };
+    base ^ flt.negate
 }
 
 /// A short, git-style family handle for `id=` links (the full id accepts any prefix).
@@ -4040,6 +4071,7 @@ fn is_default_surface(f: &nose_detect::RefactorFamily, ov: &SurfaceOverrides) ->
     effective_surface(f, ov) == "default"
 }
 
+#[allow(clippy::too_many_lines)] // a flat command dispatcher: dashboard / at= / id= / group / list
 fn run_query_cmd(cmd: Cmd) -> Result<()> {
     let Cmd::Query {
         path,
@@ -4103,6 +4135,21 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
             &overrides,
             &opp,
             &dataset.scope,
+            &path_arg,
+            json,
+        );
+        return Ok(());
+    }
+    if let Some(at) = &q.at {
+        // `at=file:line` → the family whose member span covers that location (stable across
+        // edits, unlike the span-derived id). Resolve to an `id=` open.
+        let idv = baseline::family_id(family_at(&dataset.families, at, &path_arg)?);
+        render_query_family(
+            &dataset.families,
+            &overrides,
+            &opp,
+            &idv,
+            q.id_full,
             &path_arg,
             json,
         );
@@ -4284,7 +4331,7 @@ fn render_query_dashboard(
             .unwrap_or_default()
     );
     println!(
-        "\ngrammar:  nose query <path> [field=value | field>N | field~substr ...] [group=FIELD | id=FAM]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
+        "\ngrammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr ...] [group=FIELD | id=FAM | at=FILE:LINE]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
     );
 }
 

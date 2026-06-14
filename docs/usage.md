@@ -218,14 +218,15 @@ It is **opt-in and additive** — `nose scan`, `--fail-on`, and the scan-JSON co
 unchanged.
 
 ```text
-nose query <path> [FILTER … | group=FIELD | id=FAM] [sort=KEY] [top=N] [full] [all]
+nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] [top=N] [full] [all]
 ```
 
 | part | meaning |
 |---|---|
-| `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring |
+| `field=value` | keep families where the field equals the value (AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a whole directory) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `scope`, `witness`, `lang`, `shape`), with a count and an exemplar per bucket |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, and navigation links |
+| `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
 | `top=N` | show the first N rows (default 30) |
 | `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched) |
