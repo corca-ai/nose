@@ -346,13 +346,19 @@ typed-language array/index params (Java `byte[] bytes`, `int startPos`,
 `String[] a`) carry **none** today, so an incoherent value reaches them uncoerced.
 Feeding, say, a string or a list to a slot a unit uses as an array index manufactures
 an input that **can never occur**, and on it the *interpreter*, not the canonicalizer,
-diverged — producing a spurious **canon-preservation** violation (the check is
-concrete-only but does not filter `Err`).
+diverged — the unit **aborts** (`ret: Err`) either way, differing only in the partial
+effects recorded *before* the trap.
 
-This is not hypothetical, and not new to broadening: the *current* battery already
-trips it. `nose verify` on `netty` reported 3 canon-preservation "violations", all on
-type-incoherent rows, and `sympy` 20 — masked only because the nightly soundness gate's
-pinned corpus includes neither.
+This is not hypothetical: the *current* battery already trips it. It surfaced on the
+pinned corpus as 4 canon-preservation "violations" in libsodium's `fe25519` limb
+arithmetic (`fe25519_add`/`sub`/`neg` take 3 array params, so the #337 element-mutation
+battery row binds a list to one and ints to the rest, and `f[i]` indexes an int — #369),
+and off-corpus on `netty` (3) and `sympy` (20). **Fixed** by judging canon preservation
+*up to abort*: two runs that both return `Err` are equivalent regardless of their pre-trap
+effects (`behavior_equiv`, interp.rs), since an erroring execution has no observable result
+and reordering operations ahead of a guaranteed trap is behavior-preserving. `Ok→Err`,
+`Err→Ok`, and differing successful results still trip; the soundness/false-merge lane is
+untouched.
 
 **The SOUND form shipped — a per-group falsification SEARCH (`nose verify --falsify`, #317).**
 Rather than broaden the global battery (which manufactures the impossible-input rows above),

@@ -2721,3 +2721,33 @@ So α=1 is shipped: it demotes serde's dud from #1 to #2 (the clean numeric writ
 recall cost. The aggregate P@10 move is within CI: the demotion is a real, validated, safe
 correction of the *visible* failure, not a headline-precision jump — the residual ranking
 loss is judgment-deep (genuinely-ambiguous, parallel-by-design families), confirming §AV.
+
+## CN. Canon preservation up to abort — the impossible-input artifact (#369, 2026-06-14)
+
+The nightly `corpus verify` gate had been red for days on **4 canon-preservation
+violations** — all in libsodium's `fe25519` field arithmetic (`fe25519_add`/`sub`/`neg`,
+`int32_t[10]` / `int64_t[5]` limbs). The exact-claim soundness lane was unaffected
+(`SOUND: no false merges`); this was the stricter pair-free core-vs-full-IL self-check.
+
+Dumping the differing battery rows settled it: **all 279, across all 4 units, had
+`ret == Err` on both the core and the full IL** — zero rows where the return differed or
+either side succeeded. These functions take three array params; the global battery binds
+list/int mixes (e.g. the #337 element-mutation row makes one param a list, the rest ints),
+so `f[i]` indexes a non-list — an input that can never occur. The unit **traps either
+way**; the canonicalizer merely reorders the element-writes recorded *before* the trap,
+so `core = {Err, effects:[]}` vs `full = {Err, effects:[…partial…]}`. The #344 int oracle
+made these limb units interpretable, which is why the check started running on them
+(v0.8.0 shipped with the gate red). This is exactly the impossible-input class
+oracle-value-model.md §7 anticipated ("does not filter `Err`"); it had been masked off-
+corpus (netty 3, sympy 20) but libsodium is pinned.
+
+Fix: judge canon preservation **up to abort** — `behavior_equiv` treats two runs that
+both return `Err` as equivalent regardless of their pre-trap effects, since an erroring
+execution has no observable result and reordering operations ahead of a guaranteed trap is
+behavior-preserving. `Ok→Err`, `Err→Ok`, and differing successful results still trip, so a
+real behavior-changing canon is still caught; scoped to the canon-preservation comparison,
+the soundness/false-merge lane untouched. Full-corpus `nose verify --max-violations 0` then
+reads **PRESERVED ✓** with the soundness lane byte-identical — the benchmark.md "zero
+violations" claim is true again. Lesson: an oracle that models `Err` as an observable
+value must still treat *aborted* executions as resultless, or impossible inputs (which a
+global positional battery cannot avoid) manufacture phantom behavior differences.

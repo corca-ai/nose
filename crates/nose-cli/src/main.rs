@@ -2675,6 +2675,26 @@ fn push_verify_census(
     });
 }
 
+/// Did a canon pass change a unit's behavior? True iff some battery row's full-IL behavior
+/// is not equivalent to the core-IL behavior. Equivalence (`behavior_equiv`) treats two
+/// ABORTING runs (both `ret == Err`) as equal regardless of the effects recorded before the
+/// abort: an erroring execution has no observable result (the input is out of the unit's
+/// domain), and reordering operations before a guaranteed trap is behavior-preserving.
+/// Without this, impossible inputs (an int bound to an array param of a multi-array-param C
+/// routine like `fe25519_add`, #369) manufacture spurious violations. `Ok→Err`, `Err→Ok`,
+/// and differing successful results still trip (the `ret`s differ, or both are non-`Err` and
+/// compared in full).
+fn canon_changed_behavior(
+    core: &[nose_normalize::Behavior],
+    full: &[nose_normalize::Behavior],
+) -> bool {
+    core.len() != full.len()
+        || core
+            .iter()
+            .zip(full)
+            .any(|(c, f)| !nose_normalize::behavior_equiv(c, f))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn collect_file_verify_recs(
     n: &nose_il::Il,
@@ -2777,7 +2797,7 @@ fn collect_file_verify_recs(
                 && !full_beh.iter().any(nose_normalize::behavior_has_sym);
             if concrete {
                 oracle.canon_checked += 1;
-                if full_beh != beh && oracle.canon_violations.len() < 20 {
+                if canon_changed_behavior(&beh, &full_beh) && oracle.canon_violations.len() < 20 {
                     let s = n.node(root).span;
                     oracle
                         .canon_violations

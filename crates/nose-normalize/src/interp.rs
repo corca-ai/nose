@@ -181,6 +181,23 @@ pub fn behavior_has_sym(b: &Behavior) -> bool {
         || b.fields.iter().any(|(_, v)| contains_sym(v))
 }
 
+/// Oracle behavioral equivalence: like `==`, except two ABORTING runs (both `ret ==
+/// Value::Err`) are equal regardless of their `effects`/`fields`. An erroring execution
+/// has no observable result — the input is outside the unit's domain — and the side
+/// effects recorded before a trap are not committed behavior, so a canonicalization that
+/// reorders operations ahead of a guaranteed trap (leaving one IL with a partial effect
+/// trace the other lacks, but BOTH still trapping) has not changed what the unit computes.
+/// A real behavior change — `Ok→Err`, `Err→Ok`, or a differing successful result — is
+/// still unequal: the `ret`s differ, or both are non-`Err` and the full behaviors compare.
+/// Used by the canon-preservation gate, where impossible inputs (e.g. an int bound to an
+/// array parameter) would otherwise manufacture spurious violations.
+pub fn behavior_equiv(a: &Behavior, b: &Behavior) -> bool {
+    if a.ret == Value::Err && b.ret == Value::Err {
+        return true;
+    }
+    a == b
+}
+
 /// Does the value contain a `Sym` anywhere (including inside lists)? Concrete
 /// operations must never run over a hidden symbolic operand — `sum([f(x)])`
 /// collapsing to a concrete `Err` would launder unknownness into the hard
@@ -1930,6 +1947,43 @@ mod tests {
         admit_test_builtin_calls(&mut il);
         let interner = Interner::new();
         run_unit(&il, &interner, root, args)
+    }
+
+    #[test]
+    fn behavior_equiv_treats_both_abort_as_equal() {
+        let beh = |ret: Value, effects: Vec<Value>| Behavior {
+            ret,
+            effects,
+            fields: vec![],
+        };
+        // Both abort (`Err`) with DIFFERENT pre-trap effects → equivalent: an erroring run
+        // has no observable result, so reordering ops before a guaranteed trap preserves
+        // behavior. This is the #-canon-preservation fix for impossible inputs.
+        let abort_a = beh(Value::Err, vec![]);
+        let abort_b = beh(Value::Err, vec![Value::Int(0), Value::Int(2)]);
+        assert!(behavior_equiv(&abort_a, &abort_b));
+        assert!(behavior_equiv(&abort_b, &abort_a));
+        // Real behavior changes still compare unequal:
+        // Ok→Err (the canon made it start/stop erroring)
+        assert!(!behavior_equiv(
+            &beh(Value::Int(1), vec![]),
+            &beh(Value::Err, vec![])
+        ));
+        // two successful runs with different results
+        assert!(!behavior_equiv(
+            &beh(Value::Int(1), vec![]),
+            &beh(Value::Int(2), vec![])
+        ));
+        // two successful runs with different effect traces
+        assert!(!behavior_equiv(
+            &beh(Value::Null, vec![Value::Int(1)]),
+            &beh(Value::Null, vec![Value::Int(2)]),
+        ));
+        // identical successful runs are equal
+        assert!(behavior_equiv(
+            &beh(Value::Int(7), vec![Value::Int(1)]),
+            &beh(Value::Int(7), vec![Value::Int(1)]),
+        ));
     }
 
     fn test_span(offset: u32) -> Span {

@@ -34,7 +34,8 @@ mod value_graph;
 
 pub use commutative::{node_tag, node_tag_valued, subtree_hashes, valued_tree_hash};
 pub use interp::{
-    behavior_has_sym, run_unit, run_unit_paths, Behavior, Value, F64, MAX_SYM_BRANCH_SITES,
+    behavior_equiv, behavior_has_sym, run_unit, run_unit_paths, Behavior, Value, F64,
+    MAX_SYM_BRANCH_SITES,
 };
 pub use value_graph::{
     anchor_min_weight, containment_anchor_min_weight, value_anchors, value_fingerprint,
