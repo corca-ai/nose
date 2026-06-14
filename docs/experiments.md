@@ -2569,3 +2569,29 @@ it, no further. Issue #329.
 | s9-vm-ruby-mul-strrep | value-model | violation-fixed (`ac_chain_commutes` Ruby-`*` gate) |
 | s9-oracle-eq-err-incoherent | oracle | recorded-low-prevalence (§7 sharpened; fix deferred) |
 | s9-perf-enrich-narrowing | performance-determinism | green-confirmed |
+
+## CA. Default-surface noise — the #263/#264 triage feedback, re-judged by fresh-repo audit
+
+The triage-noise feedback ([#263](https://github.com/corca-ai/nose/issues/263) TS/React,
+[#264](https://github.com/corca-ai/nose/issues/264) Go-CLI, [#11](https://github.com/corca-ai/nose/issues/11)
+reason codes) was re-judged against the current binary on two public unseen repos
+(goreleaser, excalidraw) — the §2c fresh-repo head-of-ranking instrument. Full record:
+[default-surface-noise-audit-2026-06-14](default-surface-noise-audit-2026-06-14.md).
+
+**Both complaints reproduce**: the bare-default head is 60–76% test scope and 74–83%
+`copy-paste-run`; the proven moat is 4–5% of the default surface. A 206-family
+read-the-source labeling pass (KEEP 71 / DEMOTE 135) found the noise is **two
+populations**: (a) *decidable-by-shape* (shallow `ratio = params/shared ≥ 0.33`, idiomatic
+same-file, trivial, declaration, JSX) — separable scope-blind at **0.89 precision**, and
+(b) the *AAA test-scaffold bulk* — **not separable from worthy test fixtures/helpers by any
+feature** (the `test × copy-paste-run` cell's KEEP/DEMOTE medians are identical; every cut
+caps at 0.76), so it is judgment-deep (§2 consumer-LLM call).
+
+The `scope = test` lever is **measured-bad** (prec 0.74, demotes 28 worthy KEEP) —
+confirming the documented principle that `scope` is a context tag, never a worthiness
+penalty. The lever, split at the §2b decidability boundary: **(a)** decidable actionability
+reason codes (#11 unified with #353) demote the shape-noise codes off the default head
+(kept in JSON, reason-coded; −34–36%); **(b)** the AAA bulk is handled by scope-aware
+*rendering* (collapse test beneath prod, nothing dropped), not a penalty. One capability
+(reason codes + scope-aware rendering) answers #11/#263/#264/#353; the judgment residue
+stays with the consumer.

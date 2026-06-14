@@ -159,7 +159,14 @@ Two consequences:
 - **Determinism** as a sacred invariant — now wanted by *both* consumers.
 - **Default-surface honesty (§2b/§2c).** Decidable non-action classes are filtered
   detector-side with a reason code and JSON preservation; fresh-repo head-of-ranking
-  audits are the recurring instrument that feeds this queue.
+  audits are the recurring instrument that feeds this queue. *Measured 2026-06-14
+  ([default-surface-noise-audit](default-surface-noise-audit-2026-06-14.md)): the bare
+  default was ~58% test-scope token copy-paste, ~4–5% proven. Shipped — the decidable
+  `shallow-extraction` class (unproven, helper-mostly-parameters) demotes off the default
+  at 0.89 precision (−35%), and the human report leads with production, ranking test-scope
+  beneath (never dropped — `scope` stays a context tag). The judgment-deep residue
+  (worthy-fixture vs intentional scaffolding) is feature-inseparable and stays the
+  consumer's call, carried as evidence (§2).*
 
 **Keep / conditional:**
 

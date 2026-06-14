@@ -1557,14 +1557,17 @@ fn diff_shows_the_differing_line() {
     // are a clear near-duplicate family. (A `+`-loop vs a `*`-loop is deliberately
     // *not* used here: the value graph now treats those as distinct reductions — see
     // §AH — so they are no longer a single family.)
+    // Share enough invariant lines that the one differing literal is a clean,
+    // low-parameter extract — otherwise the family is (correctly) a `shallow`
+    // non-action candidate and leaves the default surface this test reads.
     fs::write(
         dir.join("a/f.py"),
-        "def f(items):\n    t = 0\n    for x in items:\n        t = t + x * 2\n    return t\n",
+        "def f(items):\n    t = 0\n    n = 0\n    s = 0\n    for x in items:\n        t = t + x * 2\n        n = n + 1\n        s = s + x\n    return t\n",
     )
     .unwrap();
     fs::write(
         dir.join("b/f.py"),
-        "def g(items):\n    t = 0\n    for x in items:\n        t = t + x * 3\n    return t\n",
+        "def g(items):\n    t = 0\n    n = 0\n    s = 0\n    for x in items:\n        t = t + x * 3\n        n = n + 1\n        s = s + x\n    return t\n",
     )
     .unwrap();
     let out = run(&[

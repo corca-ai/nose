@@ -51,11 +51,18 @@ breakdown, scope tags, and the `→` hint — is covered in
 [getting-started → How to read the report](getting-started.md#how-to-read-the-report).
 The default human, Markdown, SARIF, and `--fail-on` surfaces show only
 action-oriented findings. Tiny proof-only fragments, review-only fragments,
-families wholly inside files with generated-code headers, and declaration runs
+families wholly inside files with generated-code headers, declaration runs
 (spans that are only import/include/use/re-export lines — duplication the
-language mandates per file, with nothing to extract) are omitted with a short
-count line; `--format json --top 0` keeps the post-ranking diagnostic families that
-survive rank-time pruning.
+language mandates per file, with nothing to extract), and `shallow-extraction`
+families (unproven matches whose helper would be mostly parameters — `params` ≥ a
+third of the shared lines) are omitted with a short count line; `--format json
+--top 0` keeps the post-ranking diagnostic families that survive rank-time pruning.
+
+Within the human report, **production findings lead and test-scope duplication is
+ranked beneath**, behind a `── N test-scope families …` separator (or a `+N more`
+footer when `--top` cuts them). Test duplication is still a real smell — nothing is
+dropped: the families stay ranked, in `--format json`, and one `--scope test` away.
+`--scope prod` hides them entirely; `--scope test` focuses on them.
 
 A named path that doesn't exist is an error (exit non-zero) — a typo'd path in a
 CI gate must fail loudly. A path that exists but contains no supported source
