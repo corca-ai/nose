@@ -105,6 +105,56 @@ fn query_base_flags_divergent_edits_like_review() {
 }
 
 #[test]
+fn query_base_matches_review_findings() {
+    // The deprecation is earned: `nose query base=<ref>` and `nose review` run the same
+    // detection, so they report the same findings (family_id + fire verdict) on one diff.
+    let dir = make_project("query_base_parity");
+    init_git_repo(&dir);
+    let a = dir.join("a/f.py");
+    let src = fs::read_to_string(&a).unwrap();
+    fs::write(
+        &a,
+        src.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+
+    let rev: serde_json::Value =
+        serde_json::from_slice(&nose_review(&dir, &["--format", "json"]).stdout).unwrap();
+    let qry: serde_json::Value = serde_json::from_slice(
+        &nose_query_in(&dir, &["base=main", "--min-size", "8", "--format", "json"]).stdout,
+    )
+    .unwrap();
+
+    let key = |v: &serde_json::Value, arr: &str| {
+        let mut ks: Vec<(String, bool)> = v[arr]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|f| {
+                (
+                    f["family_id"].as_str().unwrap().to_string(),
+                    f["fire_eligible"].as_bool().unwrap(),
+                )
+            })
+            .collect();
+        ks.sort();
+        ks
+    };
+    let rev_keys = key(&rev, "findings");
+    assert!(!rev_keys.is_empty(), "review found a divergence: {rev}");
+    assert_eq!(
+        rev_keys,
+        key(&qry, "items"),
+        "query base= reports the same family ids + fire verdicts as review"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn review_flags_a_clone_changed_in_one_copy_only() {
     let dir = make_project("review_flag");
     init_git_repo(&dir);

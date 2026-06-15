@@ -28,7 +28,7 @@ from-source `./target/release/nose`.
 |---|---|
 | Find refactoring candidates in a tree | `nose scan <paths...>` |
 | Explore the duplication interactively (agent loop) | `nose query <path> [terms...]` |
-| Catch a missed sibling edit in a diff or PR | `nose review --base <ref>` |
+| Catch a missed sibling edit in a diff or PR | `nose query <path> base=<ref>` (was `nose review --base`, now deprecated) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
 | Inspect lowering coverage for a language | `nose stats <paths...>` |
@@ -283,10 +283,10 @@ and may change to improve readability. The stable contract is documented in
 
 ## Other commands
 
-- `nose review [paths…] [--base <ref>]` — flag clones changed inconsistently in a diff (a
-  copy edited, its siblings missed). Defaults to `HEAD` for uncommitted local changes;
-  use `--base origin/main` for a PR branch. The git-aware companion to `scan`; full guide in
-  [review](review.md).
+- `nose review [paths…] [--base <ref>]` — **deprecated** in favour of
+  [`nose query <paths> base=<ref>`](#nose-query) (same detection + gate). Flags clones changed
+  inconsistently in a diff (a copy edited, its siblings missed); defaults to `HEAD`, use
+  `base=origin/main` for a PR branch. Full guide in [review](review.md).
 - `nose stats <paths…> [--top N] [--json]` — per-language IL lowering coverage (the
   Raw-node ratio), with the top unhandled surface kinds (`--top`, default 30; `--json`
   for machine output). Use it to spot a language/construct that isn't lowering well; see

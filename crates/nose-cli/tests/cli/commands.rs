@@ -1628,19 +1628,13 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
 
     assert_eq!(
         json_array_strings(&json["commands"], "stable"),
-        vec![
-            "capabilities",
-            "il",
-            "query",
-            "review",
-            "semantic-pack",
-            "stats"
-        ]
+        vec!["capabilities", "il", "query", "semantic-pack", "stats"]
     );
-    // `scan` is deprecated in favour of `query` (#375) — moved out of `stable`.
+    // `scan` and `review` are deprecated in favour of `query` (#375): `query <path>` and
+    // `query <path> base=<ref>` subsume them — moved out of `stable`.
     assert_eq!(
         json_array_strings(&json["commands"], "deprecated"),
-        vec!["scan"]
+        vec!["review", "scan"]
     );
     assert_eq!(json["schemas"]["capabilities"][0], 1);
     assert_eq!(json["schemas"]["scan_json"][0], 1);

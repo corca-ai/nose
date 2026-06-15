@@ -46,15 +46,17 @@ deprecated.** All changes below are staged; the release is not yet cut.
     surfaced under query. Detects families at the ref and flags the ones a diff changed in one
     copy but not its siblings (a likely un-propagated fix), each item carrying `fire_eligible`
     (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate, firing only
-    on the proven case. Reuses review's detection verbatim, so the fire precision is identical
-    — the first step of folding `review` into `query` (deprecation to follow once at parity).
+    on the proven case. Reuses review's detection verbatim, so the fire precision is identical.
 - **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run
   prints a one-line nudge); `capabilities` moves it from `commands.stable` to
   `commands.deprecated`; docs lead with `query`. Removal is slated for a later release.
+- **`nose review` is deprecated** in favour of `nose query <paths> base=<ref>` (which runs the
+  same detection — a parity test holds them identical). It still works (interactive nudge);
+  `capabilities` moves it to `commands.deprecated`. Removal is slated for a later release.
 
 ### Deprecated
-- `nose scan` (see above) and the scan-JSON v1 contract — migrate to `nose query` and the
-  query-JSON v2 contract.
+- `nose scan` (and the scan-JSON v1 contract) and `nose review` — migrate to `nose query`
+  (`query <path>`, `query <path> base=<ref>`) and the query-JSON v2 contract.
 
 ## [0.9.1] - 2026-06-15
 

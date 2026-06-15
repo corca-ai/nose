@@ -982,15 +982,8 @@ impl CapabilitiesReport {
                 doctor_json: false,
             },
             commands: CapabilitiesCommands {
-                stable: vec![
-                    "capabilities",
-                    "il",
-                    "query",
-                    "review",
-                    "semantic-pack",
-                    "stats",
-                ],
-                deprecated: vec!["scan"],
+                stable: vec!["capabilities", "il", "query", "semantic-pack", "stats"],
+                deprecated: vec!["review", "scan"],
             },
             schemas: CapabilitiesSchemas {
                 capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
@@ -1820,6 +1813,20 @@ fn run_review_cmd(cmd: Cmd) -> Result<()> {
         paths
     };
     require_paths_exist(&paths)?;
+    // `nose review` is deprecated in favour of `nose query <paths> base=<ref>` (#375), which
+    // runs this exact detection under the unified query surface (same findings, same gate).
+    // The nudge is interactive-only — gated on a TTY stderr — so machine/CI/test runs (piped
+    // stderr) are never spammed; `capabilities.commands.deprecated` is the machine signal.
+    if std::io::IsTerminal::is_terminal(&std::io::stderr()) {
+        eprintln!(
+            "note: `nose review` is deprecated — use `nose query {} base={}` (same divergent-edit \
+             detection; add --fail-on any for the gate). See `nose query --help`.",
+            paths
+                .first()
+                .map_or(".".into(), |p| p.display().to_string()),
+            base,
+        );
+    }
     review::cmd_review(review::ReviewArgs {
         paths,
         base,
