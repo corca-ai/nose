@@ -5606,15 +5606,49 @@ fn rust_constructor_pattern_variant_test_stays_distinct() {
     let i = Interner::new();
     // #390: a binding constructor pattern's variant test lowers to the constructor PATH (the
     // discriminant), not the whole pattern as an opaque Raw node. The discriminant must still
-    // discriminate — matching `Some(_)` vs `Ok(_)` are different variants and stay distinct.
-    // (Full whole-family convergence for copies differing only in the *bound name* additionally
-    // needs binding extraction — a separate lever; here the body bindings still differ.)
+    // discriminate — matching `Some(_)` vs `Ok(_)` are different variants and stay distinct, even
+    // now that binding extraction makes the *bodies* converge (see
+    // `rust_constructor_pattern_binding_extraction_converges`): the arm conditions still differ.
     let some = "pub fn f(x: Option<i32>) -> i32 { match x { Some(a) => a + 1, None => 0 } }\n";
     let ok = "pub fn f(x: Result<i32, i32>) -> i32 { match x { Ok(a) => a + 1, Err(_) => 0 } }\n";
     assert_ne!(
         value_fp(&i, some, Lang::Rust),
         value_fp(&i, ok, Lang::Rust),
         "Some(_) and Ok(_) are different variants — must stay distinct"
+    );
+}
+
+#[test]
+fn rust_constructor_pattern_binding_extraction_converges() {
+    // #390 follow-up: a match arm projects its payload binding (`Some(v)` → `v = x.0`) ahead of
+    // the body so the body's uses of it alpha-canonicalize. Two copies that differ ONLY in the
+    // bound name now converge — closing the split the #390 lowering left open.
+    let i = Interner::new();
+    let some_a =
+        "pub fn f(x: Option<i32>) -> i32 { match x { Some(a) => a * 2 + 1, None => 0 } }\n";
+    let some_b =
+        "pub fn g(x: Option<i32>) -> i32 { match x { Some(b) => b * 2 + 1, None => 0 } }\n";
+    assert_eq!(
+        value_fp(&i, some_a, Lang::Rust),
+        value_fp(&i, some_b, Lang::Rust),
+        "`Some(a) => a*2+1` and `Some(b) => b*2+1` differ only in the bound name — must converge"
+    );
+    // The body still gates: a different arm computation must NOT merge (no false merge).
+    let some_c =
+        "pub fn h(x: Option<i32>) -> i32 { match x { Some(c) => c * 3 + 1, None => 0 } }\n";
+    assert_ne!(
+        value_fp(&i, some_a, Lang::Rust),
+        value_fp(&i, some_c, Lang::Rust),
+        "different arithmetic in the arm body must stay distinct"
+    );
+    // Cross-variant stays distinct even though both bodies are now `v = x.0; …` (the arm
+    // *condition* — `x == Some` vs `x == Ok` — keeps them apart).
+    let ok_a =
+        "pub fn k(x: Result<i32, i32>) -> i32 { match x { Ok(a) => a * 2 + 1, Err(_) => 0 } }\n";
+    assert_ne!(
+        value_fp(&i, some_a, Lang::Rust),
+        value_fp(&i, ok_a, Lang::Rust),
+        "Some and Ok are different variants — must stay distinct after binding extraction"
     );
 }
 

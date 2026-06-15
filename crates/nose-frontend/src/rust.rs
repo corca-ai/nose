@@ -1034,7 +1034,12 @@ fn lower_match(lo: &mut Lowering, node: TsNode) -> NodeId {
     for arm in arms {
         let body_node = arm.child_by_field_name("value");
         let body_node_id = body_node.map(|v| v.id());
-        let body = body_node
+        let pattern = arm.child_by_field_name("pattern").or_else(|| {
+            Lowering::named_children(arm)
+                .into_iter()
+                .find(|child| Some(child.id()) != body_node_id && !is_match_guard(*child))
+        });
+        let mut body = body_node
             .map(|v| {
                 if v.kind() == "block" {
                     lower_block(lo, v)
@@ -1043,11 +1048,15 @@ fn lower_match(lo: &mut Lowering, node: TsNode) -> NodeId {
                 }
             })
             .unwrap_or_else(|| lo.empty_block(span));
-        let pattern = arm.child_by_field_name("pattern").or_else(|| {
-            Lowering::named_children(arm)
-                .into_iter()
-                .find(|child| Some(child.id()) != body_node_id && !is_match_guard(*child))
-        });
+        // Bind the pattern's payload locals (`Some(v)` → `v = scrutinee.0`) ahead of the arm
+        // body so its uses of them alpha-canonicalize — converging two copies that differ only
+        // in the binding name (`Some(a) => f(a)` with `Some(b) => f(b)`), the #390 follow-up.
+        if let Some(mut binds) =
+            pattern.and_then(|pattern| rust_bind_arm_pattern(lo, pattern, scrutinee, span))
+        {
+            binds.push(body);
+            body = lo.add(NodeKind::Block, Payload::None, span, &binds);
+        }
         let pattern_cond =
             pattern.and_then(|pattern| lower_match_pattern_condition(lo, scrutinee, pattern, span));
         let guard_cond = arm
@@ -1142,6 +1151,53 @@ fn lower_match_pattern_condition(
         span,
         &[scrutinee, pat],
     ))
+}
+
+/// Bind a constructor pattern's payload locals as assignment targets so the arm body's uses of
+/// them alpha-canonicalize (`alpha.rs` renames a `Var` only when it is *bound* in scope) —
+/// converging copies that differ only in the binding name. Returns the binding assignments to
+/// prepend to the arm body, or `None` to leave the body unchanged.
+///
+/// Deliberately conservative — it must never emit a *wrong* projection (an unsound binding could
+/// seed a false merge):
+/// - `struct_pattern` (`Point { x, y }`): reuse the field-named projection (position-independent).
+/// - `tuple_struct_pattern` with exactly ONE payload element that is a simple binding (`Some(v)`,
+///   `Ok(v)`, `Err(e)`): bind it to field `0`, an unambiguous position. Multi-element tuple
+///   structs (where a `_` wildcard could shift positions) and nested/complex payloads are left
+///   unbound — no convergence, but no soundness risk.
+fn rust_bind_arm_pattern(
+    lo: &mut Lowering,
+    pattern: TsNode,
+    scrutinee: NodeId,
+    span: Span,
+) -> Option<Vec<NodeId>> {
+    match pattern.kind() {
+        // A match arm's pattern is wrapped in `match_pattern` (with an optional `if` guard);
+        // unwrap to the inner pattern, like `lower_match_pattern_condition`. The guard adds no
+        // bindings we project, so binding from the inner pattern alone is correct.
+        "match_pattern" => {
+            let inner = pattern
+                .child_by_field_name("pattern")
+                .or_else(|| Lowering::named_children(pattern).into_iter().next())?;
+            rust_bind_arm_pattern(lo, inner, scrutinee, span)
+        }
+        "struct_pattern" => lower_static_projection_pattern(lo, pattern, scrutinee, span),
+        "tuple_struct_pattern" => {
+            let path_id = constructor_path_node(pattern).map(|p| p.id());
+            let payload: Vec<TsNode> = Lowering::named_children(pattern)
+                .into_iter()
+                .filter(|child| Some(child.id()) != path_id)
+                .collect();
+            let [only] = payload[..] else {
+                return None;
+            };
+            let name = rust_binding_name(lo, only)?;
+            Some(vec![rust_projection_assign(
+                lo, scrutinee, "0", &name, span,
+            )])
+        }
+        _ => None,
+    }
 }
 
 /// The constructor path of a tuple-struct / struct pattern (`Some`, `Ok`, `mod::Point`) — the
