@@ -3402,7 +3402,12 @@ fn cmd_value_census(paths: Vec<PathBuf>, no_cfg_norm: bool) -> Result<()> {
     };
     // Build the value graph (the dominant cost) for every unit in parallel, each file producing a
     // local census, then reduce. The census API builds a fresh per-unit graph, so this is safe.
-    type Census = (BTreeMap<(String, bool), u64>, BTreeMap<(String, bool), u64>, u64, u64);
+    type Census = (
+        BTreeMap<(String, bool), u64>,
+        BTreeMap<(String, bool), u64>,
+        u64,
+        u64,
+    );
     let (opaque_nodes, affected_units, total_units, units_with_opaque): Census = corpus
         .files
         .par_iter()
@@ -3416,7 +3421,8 @@ fn cmd_value_census(paths: Vec<PathBuf>, no_cfg_norm: bool) -> Result<()> {
                     continue; // count function-level units only (blocks would double-count)
                 }
                 tu += 1;
-                let census = nose_normalize::value_graph_opaque_census(&n, u.root, &corpus.interner);
+                let census =
+                    nose_normalize::value_graph_opaque_census(&n, u.root, &corpus.interner);
                 if !census.is_empty() {
                     uo += 1;
                 }

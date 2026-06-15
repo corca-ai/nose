@@ -11,14 +11,9 @@ impl<'a> Builder<'a> {
     pub(super) fn mk(&mut self, mut op: ValOp, mut args: Vec<ValueId>) -> ValueId {
         // Opaque-fallback census (#391 prevalence probe; only when enabled). Record before any
         // canonicalization — attributes the opaque to the IL construct that is being evaluated.
-        if self.opaque_census.is_some() && matches!(op, ValOp::Opaque(_)) {
-            if let Some(kind) = self.cur_il_kind {
-                *self
-                    .opaque_census
-                    .as_mut()
-                    .unwrap()
-                    .entry((kind, args.is_empty()))
-                    .or_insert(0) += 1;
+        if matches!(op, ValOp::Opaque(_)) {
+            if let (Some(census), Some(kind)) = (self.opaque_census.as_mut(), self.cur_il_kind) {
+                *census.entry((kind, args.is_empty())).or_insert(0) += 1;
             }
         }
         self.commute_numeric_reduce_contrib(&op, &mut args);

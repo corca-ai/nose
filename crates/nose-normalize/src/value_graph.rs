@@ -51,8 +51,7 @@ pub use api::{
     value_fingerprint_lits_anchors_laws, value_fingerprint_lits_anchors_laws_with_context,
     value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context,
     value_graph_opaque_census, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
-    ANCHOR_MIN_WEIGHT,
-    CONTAINMENT_ANCHOR_MIN_WEIGHT,
+    ANCHOR_MIN_WEIGHT, CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use context::ValueFingerprintContext;
 pub use value_dag::{

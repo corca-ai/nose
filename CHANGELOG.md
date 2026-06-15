@@ -13,6 +13,17 @@ break.
   agree, so `nose query <path> --format sarif top=0` is the complete-upload spelling and query
   fully subsumes scan's truncation control. No `top=` term still defaults to 30.
 
+### Changed
+- **tree-sitter core upgraded `0.24` → `0.25`, grammars `tree-sitter-c` → `0.24.2`,
+  `tree-sitter-python`/`tree-sitter-javascript` → `0.25.0`** (#403, unblocks the reverted
+  #399/#400/#401). The bumped grammars compile to grammar ABI 15; core 0.25 accepts ABI **14
+  and 15**, so the still-pinned 0.23 grammars (go/rust/java/ruby/typescript) keep loading
+  alongside them. Internal-only — no Rust API changes were needed, and `nose query --format
+  json` output is **byte-identical** across the bump on C/Python/JS corpora (the normalizer
+  absorbs the CST-shape deltas), with the soundness gate (`verify --max-violations 0`) clean.
+  Validated on a `cargo clean` release build (the stale-grammar-object trap that produced the
+  #402 false-green; with core at 0.25 both ABI versions load, so it can no longer recur).
+
 ## [0.10.0] - 2026-06-15
 
 Breaking: **`nose query` becomes the primary surface and `nose scan`/`nose review` are
