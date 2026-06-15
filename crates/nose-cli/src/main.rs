@@ -3458,32 +3458,43 @@ fn cmd_stats(paths: Vec<PathBuf>, top: usize, json: bool) -> Result<()> {
         return Ok(());
     }
 
+    let gap_raw = report.raw_nodes.saturating_sub(report.boundary_raw);
     println!(
-        "files: {}   IL nodes: {}   Raw nodes: {} ({:.3}%)",
+        "files: {}   IL nodes: {}   Raw nodes: {} ({:.3}%)   = {} lowering-gap + {} protocol-boundary",
         report.files,
         report.total_nodes,
         report.raw_nodes,
-        report.raw_ratio * 100.0
+        report.raw_ratio * 100.0,
+        gap_raw,
+        report.boundary_raw,
     );
     println!("\nper language (worst coverage first):");
     println!(
-        "  {:<12} {:>7} {:>10} {:>9} {:>8}",
-        "lang", "files", "nodes", "raw", "raw%"
+        "  {:<12} {:>7} {:>10} {:>9} {:>8} {:>9}",
+        "lang", "files", "nodes", "raw", "raw%", "gap"
     );
     for l in &report.per_lang {
         println!(
-            "  {:<12} {:>7} {:>10} {:>9} {:>7.3}%",
+            "  {:<12} {:>7} {:>10} {:>9} {:>7.3}% {:>9}",
             l.lang,
             l.files,
             l.nodes,
             l.raw_nodes,
-            l.raw_ratio * 100.0
+            l.raw_ratio * 100.0,
+            l.raw_nodes.saturating_sub(l.boundary_raw),
         );
     }
-    println!("\ntop unhandled constructs (surface kind → Raw):");
-    println!("  {:<12} {:<34} {:>8}", "lang", "surface_kind", "count");
+    println!("\ntop unhandled constructs (surface kind → Raw; `boundary` = by-design, not a gap):");
+    println!(
+        "  {:<12} {:<34} {:>8}  kind",
+        "lang", "surface_kind", "count"
+    );
     for u in &report.top_unhandled {
-        println!("  {:<12} {:<34} {:>8}", u.lang, u.surface_kind, u.count);
+        let kind = if u.boundary { "boundary" } else { "gap" };
+        println!(
+            "  {:<12} {:<34} {:>8}  {kind}",
+            u.lang, u.surface_kind, u.count
+        );
     }
     Ok(())
 }

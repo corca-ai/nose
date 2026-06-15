@@ -3,6 +3,7 @@
 //! *unhandled site*). The `Raw` ratio and a histogram of which surface kinds hit
 //! `Raw` per language tell us exactly where the IL is weak — and what to fix next.
 
+use crate::lower::is_protocol_boundary_tag;
 use nose_il::{Corpus, NodeKind, Payload};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -14,6 +15,9 @@ pub struct LangCoverage {
     pub nodes: usize,
     pub raw_nodes: usize,
     pub raw_ratio: f64,
+    /// `Raw` nodes that are deliberate protocol boundaries (async/channels/defer/try/yield) —
+    /// by design, not a lowering gap. `raw_nodes - boundary_raw` is the genuine fixable surface.
+    pub boundary_raw: usize,
 }
 
 #[derive(Serialize)]
@@ -21,6 +25,8 @@ pub struct UnhandledKind {
     pub lang: String,
     pub surface_kind: String,
     pub count: usize,
+    /// This surface kind is a deliberate protocol boundary, not a fixable lowering gap.
+    pub boundary: bool,
 }
 
 #[derive(Serialize)]
@@ -29,6 +35,9 @@ pub struct CoverageReport {
     pub total_nodes: usize,
     pub raw_nodes: usize,
     pub raw_ratio: f64,
+    /// Of `raw_nodes`, how many are deliberate protocol boundaries (by design). The genuine
+    /// fixable lowering gap is `raw_nodes - boundary_raw`.
+    pub boundary_raw: usize,
     pub per_lang: Vec<LangCoverage>,
     pub top_unhandled: Vec<UnhandledKind>,
 }
@@ -37,11 +46,13 @@ pub struct CoverageReport {
 pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
     let mut total_nodes = 0usize;
     let mut raw_nodes = 0usize;
+    let mut boundary_raw = 0usize;
 
     // per-language aggregates and (lang, surface-kind) -> count
     let mut lang_files: FxHashMap<&'static str, usize> = FxHashMap::default();
     let mut lang_nodes: FxHashMap<&'static str, usize> = FxHashMap::default();
     let mut lang_raw: FxHashMap<&'static str, usize> = FxHashMap::default();
+    let mut lang_boundary: FxHashMap<&'static str, usize> = FxHashMap::default();
     let mut unhandled: FxHashMap<(&'static str, String), usize> = FxHashMap::default();
 
     for il in &corpus.files {
@@ -58,6 +69,10 @@ pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
                     Payload::Name(s) => corpus.interner.resolve(s).to_string(),
                     _ => "<unknown>".to_string(),
                 };
+                if is_protocol_boundary_tag(&surface) {
+                    boundary_raw += 1;
+                    *lang_boundary.entry(lang).or_default() += 1;
+                }
                 *unhandled.entry((lang, surface)).or_default() += 1;
             }
         }
@@ -74,6 +89,7 @@ pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
                 nodes,
                 raw_nodes: raw,
                 raw_ratio: ratio(raw, nodes),
+                boundary_raw: lang_boundary.get(lang).copied().unwrap_or(0),
             }
         })
         .collect();
@@ -83,6 +99,7 @@ pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
         .into_iter()
         .map(|((lang, surface_kind), count)| UnhandledKind {
             lang: lang.to_string(),
+            boundary: is_protocol_boundary_tag(&surface_kind),
             surface_kind,
             count,
         })
@@ -95,6 +112,7 @@ pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
         total_nodes,
         raw_nodes,
         raw_ratio: ratio(raw_nodes, total_nodes),
+        boundary_raw,
         per_lang,
         top_unhandled,
     }

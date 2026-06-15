@@ -47,6 +47,14 @@ deprecated.** All changes below are staged; the release is not yet cut.
     copy but not its siblings (a likely un-propagated fix), each item carrying `fire_eligible`
     (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate, firing only
     on the proven case. Reuses review's detection verbatim, so the fire precision is identical.
+- **Analysis — `nose stats` separates protocol-boundary Raw from lowering-gap Raw (#390).**
+  Constructs lowered as deliberate fail-closed boundaries (`await`, `try`/`?`, `defer`, `go`,
+  `channel_*`, `select`, `yield`) are `Raw` by design, not coverage gaps. `stats` now reports
+  `boundary_raw` (overall + per-language) and tags each unhandled kind `boundary`/`gap`, so the
+  lowering worklist (`coverage_attribution.py`) isn't misled into unsoundly "fixing" a boundary.
+  Corrected corpus picture: rust/go genuine lowering gap is **0.37%/0.18%** (the rest is
+  boundaries); the remaining fixable mass is parse-failure `ERROR` (a grammar axis) and
+  low-value C type-level declarations. See experiments §CR.
 - **Analysis — Rust constructor patterns now lower as variant tests (#390).** A `match`/`if
   let`/`while let` test on `Some(v)`/`Ok(_)`/`Point { x, y }` lowered the whole pattern to an
   opaque `Raw` node (and split copies differing only in binding name); it now lowers to the

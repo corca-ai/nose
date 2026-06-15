@@ -2,6 +2,34 @@
 //! Language-specific walks build IL through this, so the arena/span/intern
 //! mechanics live in one place.
 
+/// Surface tags that [`Lowering::protocol_boundary`] (and the `await`/`yield` helpers) emit.
+/// These `Raw` nodes are a **deliberate fail-closed boundary** — async, channels, defer,
+/// try-propagation, generators — preserving effect/protocol semantics until a contract proves
+/// they can be erased safely; they are NOT unlowered constructs. Coverage reporting separates
+/// them from genuine lowering gaps so the worklist isn't misled into "fixing" a boundary
+/// (which would be unsound). `protocol_boundary` debug-asserts membership, so a new boundary
+/// tag must be added here.
+pub(crate) const PROTOCOL_BOUNDARY_TAGS: &[&str] = &[
+    "async_block",
+    "await",
+    "channel_receive",
+    "channel_receive_status",
+    "channel_send",
+    "defer",
+    "go",
+    "select",
+    "select_case",
+    "select_default",
+    "try",
+    "yield",
+];
+
+/// Whether a `Raw` node's surface tag is a deliberate protocol boundary (vs a lowering gap).
+#[must_use]
+pub(crate) fn is_protocol_boundary_tag(tag: &str) -> bool {
+    PROTOCOL_BOUNDARY_TAGS.contains(&tag)
+}
+
 use crate::type_domain_aliases::{
     ResolvedTypeDomain, TypeDomainAliases, TypeDomainEvidenceProvenance,
 };
@@ -1235,6 +1263,11 @@ impl<'a> Lowering<'a> {
         tag: &str,
         children: &[NodeId],
     ) -> NodeId {
+        debug_assert!(
+            is_protocol_boundary_tag(tag),
+            "protocol boundary tag `{tag}` missing from PROTOCOL_BOUNDARY_TAGS — coverage \
+             reporting would misclassify it as a lowering gap",
+        );
         self.record_source_fact(span, SourceFactKind::Protocol(protocol));
         self.raw(tag, span, children)
     }

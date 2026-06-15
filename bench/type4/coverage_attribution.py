@@ -76,7 +76,9 @@ def main() -> int:
     # Per-language node/raw totals, and Raw counts summed by (lang, surface_kind).
     lang_nodes: dict[str, int] = defaultdict(int)
     lang_raw: dict[str, int] = defaultdict(int)
+    lang_boundary: dict[str, int] = defaultdict(int)
     kind_raw: dict[tuple[str, str], int] = defaultdict(int)
+    kind_boundary: dict[tuple[str, str], bool] = {}
     missing = []
     for rid, _primary, path in repos:
         if not path.exists():
@@ -89,8 +91,10 @@ def main() -> int:
         for pl in st.get("per_lang", []):
             lang_nodes[pl["lang"]] += pl["nodes"]
             lang_raw[pl["lang"]] += pl["raw_nodes"]
+            lang_boundary[pl["lang"]] += pl.get("boundary_raw", 0)
         for u in st.get("top_unhandled", []):
             kind_raw[(u["lang"], u["surface_kind"])] += u["count"]
+            kind_boundary[(u["lang"], u["surface_kind"])] = u.get("boundary", False)
         print(f"  {rid:<24} raw {st['raw_nodes']:>6} / {st['total_nodes']:>8}", file=sys.stderr)
 
     langs = sorted(
@@ -104,14 +108,27 @@ def main() -> int:
             "nodes": lang_nodes[l],
             "raw_nodes": lang_raw[l],
             "raw_ratio": round(lang_raw[l] / lang_nodes[l], 5) if lang_nodes[l] else 0.0,
+            "boundary_raw": lang_boundary[l],
+            "gap_raw": lang_raw[l] - lang_boundary[l],
+            "gap_ratio": round((lang_raw[l] - lang_boundary[l]) / lang_nodes[l], 5)
+            if lang_nodes[l]
+            else 0.0,
         }
         for l in langs
     ]
-    # Top unhandled kinds overall and per language, ranked by Raw mass (the lowering worklist).
+    # Rank by Raw mass; tag each kind boundary (by-design) vs gap (fixable lowering target).
     top_overall = sorted(kind_raw.items(), key=lambda kv: kv[1], reverse=True)
     top_kinds = [
-        {"lang": lang, "surface_kind": kind, "raw": n} for (lang, kind), n in top_overall
+        {
+            "lang": lang,
+            "surface_kind": kind,
+            "raw": n,
+            "boundary": kind_boundary.get((lang, kind), False),
+        }
+        for (lang, kind), n in top_overall
     ]
+    # The genuine fixable lowering worklist: gaps only (boundaries are by design).
+    gap_kinds = [k for k in top_kinds if not k["boundary"]]
 
     result = {
         "instrument": "coverage_attribution",
@@ -123,13 +140,19 @@ def main() -> int:
     out_path = ROOT / "bench" / "type4" / f"coverage_attribution.{args.date}.json"
     out_path.write_text(json.dumps(result, indent=2) + "\n")
 
-    print(f"\ncoverage attribution — {result['repos']} repos (IL-lowering loss)\n")
-    print(f"{'language':<14}{'nodes':>12}{'raw':>10}{'raw%':>9}")
+    print(f"\ncoverage attribution — {result['repos']} repos (Raw = lowering-gap + protocol-boundary)\n")
+    print(f"{'language':<14}{'nodes':>12}{'raw':>10}{'raw%':>9}{'gap':>10}{'gap%':>9}")
     for pl in per_lang:
-        print(f"{pl['lang']:<14}{pl['nodes']:>12}{pl['raw_nodes']:>10}{pl['raw_ratio'] * 100:>8.3f}%")
-    print("\ntop unhandled constructs (Raw mass, the lowering worklist):")
+        print(
+            f"{pl['lang']:<14}{pl['nodes']:>12}{pl['raw_nodes']:>10}{pl['raw_ratio'] * 100:>8.3f}%"
+            f"{pl['gap_raw']:>10}{pl['gap_ratio'] * 100:>8.3f}%"
+        )
+    print("\ngenuine lowering gaps (boundaries excluded — the fixable worklist):")
     print(f"  {'lang':<12}{'surface_kind':<34}{'raw':>9}")
-    for k in top_kinds[:30]:
+    for k in gap_kinds[:25]:
+        print(f"  {k['lang']:<12}{k['surface_kind']:<34}{k['raw']:>9}")
+    print("\nlargest protocol boundaries (by design — NOT lowering targets):")
+    for k in [k for k in top_kinds if k["boundary"]][:8]:
         print(f"  {k['lang']:<12}{k['surface_kind']:<34}{k['raw']:>9}")
     if missing:
         print(f"\n(skipped {len(missing)} repos not checked out / failed: {', '.join(missing[:8])}…)")

@@ -2830,3 +2830,36 @@ the leak to the binding cases (match-arm / if-let / while-let), not let-destruct
 any edit. Re-run `coverage_attribution.py` to watch the ratio; next §CP levers: async `await`
 (cross-language), rust `try`/`?`, and tuple-struct binding extraction (the alpha-convergence
 follow-up).
+
+## CR. The §CP worklist correction — boundary Raw vs lowering-gap Raw (#390, 2026-06-15)
+
+Pursuing the §CP worklist's next levers exposed a flaw in the worklist itself: its top "Raw
+mass" is dominated by **deliberate protocol boundaries**, not fixable lowering gaps. `await`,
+`try`/`?`, `defer`, `go`, `channel_*`, `select`, `yield` all lower via `protocol_boundary` — a
+`Raw` node that is a *fail-closed effect/protocol boundary* (async, channels, defer,
+try-propagation, generators), kept "until a contract proves it can be erased safely." Erasing
+them to cut Raw would be **unsound** (e.g. a `Future` is not its resolved value); that is the
+deferred protocol-contract work, not a lowering fix. The §CP instrument counted them as fixable.
+
+Fix: `nose stats` now classifies each `Raw` node as **protocol-boundary** (by design) or
+**lowering-gap** (fixable), authoritatively — the frontend owns `PROTOCOL_BOUNDARY_TAGS`
+(`is_protocol_boundary_tag`), and `protocol_boundary` `debug_assert!`s membership so a new
+boundary tag can't silently misclassify (it caught `channel_receive_status` during this work).
+`stats` JSON gains `boundary_raw` (overall + per-lang) and a `boundary: bool` per unhandled
+kind; `coverage_attribution.py` reports the **gap** ratio (boundaries excluded).
+
+**Corrected corpus picture** (`coverage_attribution.2026-06-15.json`, gap% = boundaries
+excluded): rust raw 1.347% → **gap 0.372%**, go 0.650% → **gap 0.176%** — those languages are
+essentially done; their residual Raw is `try`/`await`/`defer`/`channel`. The genuine fixable
+gap is now led by **`ERROR` (tree-sitter parse failures, ~50k corpus-wide)** — a grammar axis,
+not lowering — and **C type-level declarations** (`declaration`/`field_declaration`/`preproc_def`/
+`pointer_declarator`/`type_definition`, ~42k; low clone-value), with a modest tail of JS/TS
+statement wrappers (`statement_block`, `spread_element`) and java `variable_declarator`.
+`expression_statement` is *not* a leak (a bare `f();` lowers to 0 Raw — its corpus count is
+parse-error-adjacent).
+
+**Verdict for #390.** The safe lowering headroom is now characterized and largely captured: the
+biggest genuine accidental leak (Rust patterns) shipped in §CQ; after that, rust/go lowering is
+near-complete and the remaining `Raw` is either deliberate boundaries (a separate, soundness-
+contract-gated effort), parse failures (a grammar axis), or low-value type-level declarations.
+Driving the *raw* ratio lower is mostly NOT a safe lowering task — the instrument now says so.
