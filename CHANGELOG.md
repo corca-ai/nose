@@ -47,6 +47,14 @@ deprecated.** All changes below are staged; the release is not yet cut.
     copy but not its siblings (a likely un-propagated fix), each item carrying `fire_eligible`
     (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate, firing only
     on the proven case. Reuses review's detection verbatim, so the fire precision is identical.
+- **Analysis — Rust constructor patterns now lower as variant tests (#390).** A `match`/`if
+  let`/`while let` test on `Some(v)`/`Ok(_)`/`Point { x, y }` lowered the whole pattern to an
+  opaque `Raw` node (and split copies differing only in binding name); it now lowers to the
+  constructor *path* (the discriminant), parallel to a unit variant like `None`. Measured: corpus
+  Rust `Raw` ratio **2.623% → 1.347%**, soundness clean (0 false merges), gold-set Rust
+  worthy-recall +1 with no regression elsewhere. (The variant *condition* is now Raw-free;
+  whole-family convergence for copies differing only in the bound name needs binding extraction,
+  a follow-up.) See experiments §CP (the coverage worklist) and §CQ.
 - **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run
   prints a one-line nudge); `capabilities` moves it from `commands.stable` to
   `commands.deprecated`; docs lead with `query`. Removal is slated for a later release.

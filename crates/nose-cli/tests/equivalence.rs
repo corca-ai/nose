@@ -5602,6 +5602,23 @@ fn map_default_lookup_keeps_alias_and_guard_boundaries() {
 }
 
 #[test]
+fn rust_constructor_pattern_variant_test_stays_distinct() {
+    let i = Interner::new();
+    // #390: a binding constructor pattern's variant test lowers to the constructor PATH (the
+    // discriminant), not the whole pattern as an opaque Raw node. The discriminant must still
+    // discriminate — matching `Some(_)` vs `Ok(_)` are different variants and stay distinct.
+    // (Full whole-family convergence for copies differing only in the *bound name* additionally
+    // needs binding extraction — a separate lever; here the body bindings still differ.)
+    let some = "pub fn f(x: Option<i32>) -> i32 { match x { Some(a) => a + 1, None => 0 } }\n";
+    let ok = "pub fn f(x: Result<i32, i32>) -> i32 { match x { Ok(a) => a + 1, Err(_) => 0 } }\n";
+    assert_ne!(
+        value_fp(&i, some, Lang::Rust),
+        value_fp(&i, ok, Lang::Rust),
+        "Some(_) and Ok(_) are different variants — must stay distinct"
+    );
+}
+
+#[test]
 fn option_defaulting_converges_with_nullish_default_boundaries() {
     let i = Interner::new();
     let js = "function f(value, fallback, other, otherDefault) { return value ?? fallback; }";

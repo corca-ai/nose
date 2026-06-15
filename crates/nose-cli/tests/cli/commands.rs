@@ -2106,6 +2106,49 @@ fn query_dashboard_filter_and_family() {
 }
 
 #[test]
+fn rust_binding_patterns_lower_without_raw() {
+    // #390 lowering fidelity: a `match`/`if let`/`while let` test on a binding constructor
+    // pattern (`Some(v)`, `Ok(v)`, `Point { x, y }`) used to lower the whole pattern to an
+    // opaque Raw node. It now lowers to the constructor path, so stats reports no
+    // tuple_struct_pattern / struct_pattern Raw for these sites.
+    let dir = std::env::temp_dir().join(format!("nose_pat_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("p.rs"),
+        "fn a(x: Option<i32>) -> i32 { match x { Some(v) => v + 1, None => 0 } }\n\
+         fn b(x: Option<i32>) -> i32 { if let Some(v) = x { v } else { 0 } }\n\
+         fn c(p: P) -> i32 { match p { Point { x, y } => x + y, _ => 0 } }\n",
+    )
+    .unwrap();
+    let stats: serde_json::Value = serde_json::from_str(&run(&[
+        "stats",
+        dir.to_str().unwrap(),
+        "--json",
+        "--top",
+        "50",
+    ]))
+    .unwrap();
+    let pattern_raw: u64 = stats["top_unhandled"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| {
+            matches!(
+                u["surface_kind"].as_str(),
+                Some("tuple_struct_pattern" | "struct_pattern")
+            )
+        })
+        .map(|u| u["count"].as_u64().unwrap())
+        .sum();
+    assert_eq!(
+        pattern_raw, 0,
+        "binding constructor patterns must not lower to Raw: {stats}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn query_reinvented_view_lists_call_the_helper_findings() {
     // A function that reimplements an existing pure helper inline (the reinvented channel),
     // surfaced as a query view — the action is "call the helper", complementing the clustered

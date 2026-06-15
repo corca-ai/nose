@@ -1111,19 +1111,55 @@ fn lower_match_pattern_condition(
     if pattern.kind() == "range_pattern" {
         return lower_range_pattern_condition(lo, scrutinee, pattern, span);
     }
-    if rust_tuple_struct_wildcard_pattern(lo, pattern) {
+    // `Some(_)`-style single-wildcard patterns are a recognized *presence* test: the source
+    // fact lets a downstream idiom converge `if let Some(_)` with `.is_some()`. Keep their
+    // existing lowering untouched so that convergence holds.
+    let presence_wildcard = rust_tuple_struct_wildcard_pattern(lo, pattern);
+    if presence_wildcard {
         lo.record_source_fact(
             lo.span(pattern),
             SourceFactKind::Pattern(SourcePatternKind::RustTupleStructSingleWildcardPattern),
         );
     }
-    let pat = lower_expr(lo, pattern);
+    // A *binding* constructor pattern (`Some(v)`, `Ok(_)` with payload, `Point { x, y }`) tests
+    // the scrutinee's VARIANT; the inner bindings bind in the arm body and are not part of the
+    // discriminant. Lower the constructor PATH as the comparison value — parallel to a unit
+    // variant like `None` — rather than the whole pattern as an expression, which (a) emits an
+    // opaque `Raw` node (the dominant Rust pattern coverage loss, #390 §CP) and (b) keys the
+    // test on the binding name's subtree hash, splitting two copies that differ only in
+    // `Some(x)` vs `Some(y)`. Lowering the path makes the variant test binding-name-invariant.
+    let pat = if !presence_wildcard
+        && matches!(pattern.kind(), "tuple_struct_pattern" | "struct_pattern")
+    {
+        let target = constructor_path_node(pattern).unwrap_or(pattern);
+        lower_expr(lo, target)
+    } else {
+        lower_expr(lo, pattern)
+    };
     Some(lo.add(
         NodeKind::BinOp,
         Payload::Op(Op::Eq),
         span,
         &[scrutinee, pat],
     ))
+}
+
+/// The constructor path of a tuple-struct / struct pattern (`Some`, `Ok`, `mod::Point`) — the
+/// discriminant a variant test keys on, with the inner bindings dropped. `None` if no path
+/// child is present (the caller then falls back to lowering the whole pattern).
+fn constructor_path_node(pattern: TsNode) -> Option<TsNode> {
+    pattern.child_by_field_name("type").or_else(|| {
+        Lowering::named_children(pattern).into_iter().find(|c| {
+            matches!(
+                c.kind(),
+                "identifier"
+                    | "scoped_identifier"
+                    | "type_identifier"
+                    | "scoped_type_identifier"
+                    | "qualified_type"
+            )
+        })
+    })
 }
 
 fn lower_range_bounds(lo: &mut Lowering, node: TsNode) -> (Option<NodeId>, Option<NodeId>, bool) {

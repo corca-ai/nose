@@ -2788,3 +2788,45 @@ more matching machinery. Method note: the value-graph `Opaque` loss (the collect
 gap, #391) is a *separate* dimension this instrument does not yet attribute — `Opaque` carries
 no construct provenance today, so attributing it needs light instrumentation (tracked on #391),
 not this script. Re-run after each lowering change to watch the ratio fall.
+
+## CQ. Lowering fidelity — Rust constructor patterns as variant tests (#390, 2026-06-15)
+
+The §CP worklist's single biggest, most coherent lever was Rust pattern-destructuring (~40k
+`Raw` nodes, led by `tuple_struct_pattern` at 21.6k). Root cause: `lower_match_pattern_condition`
+lowered a constructor pattern *as an expression* to build `scrutinee == lower_expr(pattern)` —
+and `lower_expr` on `Some(v)`/`Ok(_)`/`Point { x, y }` hits the `Raw` catch-all. Worse, `Raw` is
+keyed by subtree hash, so `Some(x)` and `Some(y)` (differing only in binding name) produced
+*different* conditions and split otherwise-identical copies.
+
+#390 lowers a binding constructor pattern to its **constructor path** (the discriminant) instead
+— `scrutinee == Some`, parallel to how the unit variant `None` already lowered. The inner
+bindings bind in the arm body and are not part of the variant test, so the condition no longer
+splits on the binding name's subtree hash. The recognized `Some(_)`-style single-wildcard
+*presence* pattern is left untouched (a downstream idiom converges `if let Some(_)` with
+`.is_some()`; the fix is scoped to *binding* patterns).
+
+**Measured:**
+- **Coverage:** corpus rust `Raw` ratio **2.623% → 1.347%** (74.7k → 37.6k `Raw` nodes);
+  `tuple_struct_pattern` `Raw` 21.6k → 3.4k (the residue is the preserved wildcard-presence
+  cases). The single largest §CP lever, ~halved.
+- **Soundness:** `nose verify --max-violations 0` clean on nose's crates + alacritty + bat +
+  ripgrep — **0 false merges**. The change makes the variant test *more* specific, not less.
+- **Recall (gold set, `eval_by_language.py --rank extractability`):** Rust worthy-recall **+1**
+  (dev 369→370/411; held-out flat 245/255); every non-Rust language's worthy/recall byte-
+  identical (the change is Rust-only, confirmed). Base (value-order) P@10 identical across all
+  languages including Rust (69%/69%); the extractability re-rank P@10 column fluctuates run-to-
+  run for *all* languages (non-Rust ones move with identical binaries; `n` shifts), so the Rust
+  re-rank wobble (dev 69→72, held-out 64→59) is eval nondeterminism inside wide overlapping CIs,
+  not a ranking change.
+- **Scope honesty:** the variant *condition* is now path-based (Raw-free), but two copies that
+  differ only in the *bound name* (`Some(a)` vs `Some(b)`) still split — the body's `a`/`b` are
+  not alpha-canonicalized because tuple-struct bindings aren't registered as locals. Full
+  whole-family convergence needs binding *extraction* (project the payload into a canonical
+  local), a separate lever; an early test asserting that convergence was *falsified* and the
+  claim dropped. This PR is the coverage fix, not the alpha-convergence fix.
+
+Method: empirical leak isolation (probe each pattern position with `nose stats --json`) pinned
+the leak to the binding cases (match-arm / if-let / while-let), not let-destructuring, before
+any edit. Re-run `coverage_attribution.py` to watch the ratio; next §CP levers: async `await`
+(cross-language), rust `try`/`?`, and tuple-struct binding extraction (the alpha-convergence
+follow-up).
