@@ -400,6 +400,19 @@ enum Cmd {
         #[arg(long)]
         no_blocks: bool,
     },
+    /// Value-graph coverage census (#391 prevalence probe): per IL construct, how many
+    /// `Opaque` fallbacks the value graph mints — the value-graph analog of `stats`'s lowering
+    /// `Raw` ratio. Ranks which constructs the fingerprint cannot model (map reads, dynamic
+    /// dispatch, …) by unproven mass. JSON only. (Hidden — research.)
+    #[command(hide = true)]
+    ValueCensus {
+        /// Paths to source files or directories (recursively scanned).
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+        /// Disable control-flow normalization (ablation).
+        #[arg(long)]
+        no_cfg_norm: bool,
+    },
     /// Soundness oracle: verify that value-fingerprint-equal units actually compute
     /// the same thing. Interprets each function on a battery of inputs and reports any
     /// fingerprint-equal pair whose behavior differs (a false merge — the cardinal sin
@@ -1680,6 +1693,7 @@ fn run() -> Result<()> {
             no_cfg_norm,
             no_blocks,
         } => cmd_features(paths, min_lines, min_tokens, no_cfg_norm, no_blocks),
+        Cmd::ValueCensus { paths, no_cfg_norm } => cmd_value_census(paths, no_cfg_norm),
         Cmd::Verify {
             paths,
             no_cfg_norm,
@@ -3369,6 +3383,91 @@ fn cmd_features(
     println!(
         "{}",
         serde_json::to_string(&serde_json::json!({ "units": units }))?
+    );
+    Ok(())
+}
+
+/// #391 prevalence probe: walk every function unit, build its value graph with the opaque
+/// census on, and aggregate per IL construct how many `Opaque` fallbacks were minted (the
+/// value-graph analog of `stats`'s lowering `Raw`). `total_fallback` opaques are full coverage
+/// gaps (the construct could not be modeled at all); the rest are partial/semantic opaques.
+fn cmd_value_census(paths: Vec<PathBuf>, no_cfg_norm: bool) -> Result<()> {
+    use std::collections::{BTreeMap, HashSet};
+    let refs = paths_as_refs(&paths);
+    let corpus = nose_frontend::lower_corpus_many(&refs);
+    warn_if_empty(&corpus, &paths);
+    let opts = nose_normalize::NormalizeOptions {
+        cfg_norm: !no_cfg_norm,
+        ..Default::default()
+    };
+    // Build the value graph (the dominant cost) for every unit in parallel, each file producing a
+    // local census, then reduce. The census API builds a fresh per-unit graph, so this is safe.
+    type Census = (BTreeMap<(String, bool), u64>, BTreeMap<(String, bool), u64>, u64, u64);
+    let (opaque_nodes, affected_units, total_units, units_with_opaque): Census = corpus
+        .files
+        .par_iter()
+        .map(|il| {
+            let n = nose_normalize::normalize(il, &corpus.interner, &opts);
+            let mut on: BTreeMap<(String, bool), u64> = BTreeMap::new();
+            let mut au: BTreeMap<(String, bool), u64> = BTreeMap::new();
+            let (mut tu, mut uo): (u64, u64) = (0, 0);
+            for u in &n.units {
+                if n.kind(u.root) != nose_il::NodeKind::Func {
+                    continue; // count function-level units only (blocks would double-count)
+                }
+                tu += 1;
+                let census = nose_normalize::value_graph_opaque_census(&n, u.root, &corpus.interner);
+                if !census.is_empty() {
+                    uo += 1;
+                }
+                let mut seen: HashSet<(String, bool)> = HashSet::new();
+                for (kind, total, count) in census {
+                    let key = (format!("{kind:?}"), total);
+                    *on.entry(key.clone()).or_insert(0) += u64::from(count);
+                    if seen.insert(key.clone()) {
+                        *au.entry(key).or_insert(0) += 1;
+                    }
+                }
+            }
+            (on, au, tu, uo)
+        })
+        .reduce(
+            || (BTreeMap::new(), BTreeMap::new(), 0, 0),
+            |mut a, b| {
+                for (k, v) in b.0 {
+                    *a.0.entry(k).or_insert(0) += v;
+                }
+                for (k, v) in b.1 {
+                    *a.1.entry(k).or_insert(0) += v;
+                }
+                (a.0, a.1, a.2 + b.2, a.3 + b.3)
+            },
+        );
+    let mut by_construct: Vec<_> = opaque_nodes
+        .iter()
+        .map(|((kind, total), n)| {
+            serde_json::json!({
+                "construct": kind,
+                "total_fallback": total,
+                "opaque_nodes": n,
+                "units": affected_units.get(&(kind.clone(), *total)).copied().unwrap_or(0),
+            })
+        })
+        .collect::<Vec<_>>();
+    by_construct.sort_by(|a, b| {
+        b["opaque_nodes"]
+            .as_u64()
+            .cmp(&a["opaque_nodes"].as_u64())
+            .then_with(|| a["construct"].as_str().cmp(&b["construct"].as_str()))
+    });
+    println!(
+        "{}",
+        serde_json::to_string(&serde_json::json!({
+            "files": corpus.files.len(),
+            "function_units": total_units,
+            "units_with_opaque": units_with_opaque,
+            "by_construct": by_construct,
+        }))?
     );
     Ok(())
 }

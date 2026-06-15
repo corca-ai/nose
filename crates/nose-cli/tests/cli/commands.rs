@@ -2142,6 +2142,37 @@ fn query_dashboard_filter_and_family() {
 }
 
 #[test]
+fn value_census_attributes_opaque_to_constructs() {
+    // #391 prevalence probe: `nose value-census` reports, per IL construct, how many value-graph
+    // `Opaque` fallbacks were minted. JS `instanceof` is an unmodeled BinOp → a semantic opaque;
+    // a plain numeric function mints none.
+    let dir = std::env::temp_dir().join(format!("nose_vgcensus_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("a.js"),
+        "function f(x, y) { return x instanceof y; }\nfunction g(a, b) { return a + b * 2; }\n",
+    )
+    .unwrap();
+    let census: serde_json::Value =
+        serde_json::from_str(&run(&["value-census", dir.to_str().unwrap()])).unwrap();
+    assert_eq!(census["function_units"], 2, "two functions: {census}");
+    assert_eq!(
+        census["units_with_opaque"], 1,
+        "only the instanceof function mints an opaque: {census}"
+    );
+    let has_binop_opaque = census["by_construct"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["construct"] == "BinOp" && r["opaque_nodes"].as_u64().unwrap_or(0) >= 1);
+    assert!(
+        has_binop_opaque,
+        "instanceof attributes an opaque to the BinOp construct: {census}"
+    );
+}
+
+#[test]
 fn rust_binding_patterns_lower_without_raw() {
     // #390 lowering fidelity: a `match`/`if let`/`while let` test on a binding constructor
     // pattern (`Some(v)`, `Ok(v)`, `Point { x, y }`) used to lower the whole pattern to an

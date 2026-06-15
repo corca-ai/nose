@@ -2863,3 +2863,39 @@ biggest genuine accidental leak (Rust patterns) shipped in §CQ; after that, rus
 near-complete and the remaining `Raw` is either deliberate boundaries (a separate, soundness-
 contract-gated effort), parse failures (a grammar axis), or low-value type-level declarations.
 Driving the *raw* ratio lower is mostly NOT a safe lowering task — the instrument now says so.
+
+## CS. Value-graph coverage census — map reads are not an opaque gap (#391, 2026-06-15)
+
+§CP/§CR characterized the **lowering** dimension (`Raw` nodes). The §CP note flagged a second,
+unmeasured dimension: value-graph **modeling** loss (`ValOp::Opaque` fallbacks), the #391
+collections/map question — `Opaque` carried no construct provenance, so attributing it needed
+instrumentation. This is that instrument and its first measurement.
+
+**Instrument.** A `cur_il_kind` field mirrors the existing `cur_span` (set by `eval`'s
+save/restore), and `mk` records, into an env-gated census, every `ValOp::Opaque` it builds keyed
+by `(IL construct, total-fallback)` — `total-fallback` = an argless opaque (a full coverage gap)
+vs a semantic opaque with structure (`instanceof`). Zero fingerprint impact (inert when off;
+equivalence/determinism unchanged). Surfaced as `nose value-census`; the corpus probe is
+`bench/type4/value_graph_attribution.py`, the value-graph analog of `coverage_attribution.py`.
+
+**The #391 premise was wrong.** The audit memory framed map reads as bailing to `Value::Err` —
+but that is the *oracle* (`interp.rs`), not the *fingerprint*. In the value graph `m[k]` and
+`m.get(k)` are both **modeled** (`Index` / `Call`) — they mint **no opaque** — but they get
+**different fingerprints** (their normalized IL diverges). So #391 is a **convergence /
+form-canonicalization** problem (`m[k]` ≡ `m.get(k)` ≡ `k in m`), not an opaque-coverage gap.
+
+**Measured (py/js/go/rust subset, 6128 function units).** 27% of units carry ≥1 opaque. The
+opaque mass is led by **`Raw` propagation** (1557 nodes / 906 units — the already-characterized
+§CR lowering frontier, surfacing in the fingerprint), **`Block`** (1464 / 687 — unmodeled
+statement blocks/closures), and **`Func`** (344 / 181 — nested functions). `BinOp`-semantic
+opaques (`instanceof`/strict-null-cmp) and a small `Call`/`Splat`/`HoF`/`Loop` tail follow. The
+map-read constructs **`Index` / `Field` / membership carry ~0 opaque mass** — confirming map
+reads are not a value-graph coverage gap.
+
+**Verdict for #391.** Modeling `Value::Map` reads would not reduce opaque mass; it is narrow
+convergence work (canonicalize the read forms) with the soundness cost of key-equality /
+missing-key / language-variance semantics, and `--falsify` cannot even construct an input for it.
+With map reads below the opaque threshold, #391 is **audited, below the bar** — the value-graph
+opaque worklist is `Block`/`Func` (closures/nested) and the propagated lowering `Raw` (already a
+characterized, mostly-boundary/grammar frontier), not collections. The analysis engine remains at
+its measured frontier.

@@ -172,6 +172,14 @@ pub(super) struct Builder<'a> {
     /// The source span of the expression currently being evaluated (set by `eval`), used to stamp
     /// `node_span` for every node `mk` creates while evaluating it.
     pub(super) cur_span: Option<Span>,
+    /// The IL node kind currently being evaluated (set by `eval`, mirroring `cur_span`), so the
+    /// opaque census can attribute each `Opaque` fallback to the construct that minted it.
+    pub(super) cur_il_kind: Option<NodeKind>,
+    /// Research instrument (env-gated; `None` in production): per `(IL kind, total-fallback)`
+    /// count of `ValOp::Opaque` nodes minted — the value-graph coverage-attribution census (the
+    /// #391 prevalence probe). `total-fallback` = an argless opaque (a "can't model this at all"
+    /// node, the coverage gap) vs a semantic opaque carrying structure (`instanceof`, partial).
+    pub(super) opaque_census: Option<FxHashMap<(NodeKind, bool), u32>>,
     pub(super) intern: FxHashMap<(ValOp, Vec<ValueId>), ValueId>,
     pub(super) sinks: Vec<Sink>,
     pub(super) opaque_ctr: u32,

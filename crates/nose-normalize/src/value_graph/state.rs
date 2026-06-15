@@ -21,6 +21,8 @@ impl<'a> Builder<'a> {
             vhash: Vec::new(),
             node_span: Vec::new(),
             cur_span: None,
+            cur_il_kind: None,
+            opaque_census: None,
             intern: FxHashMap::default(),
             sinks: Vec::new(),
             opaque_ctr: 0,

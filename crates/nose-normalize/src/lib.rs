@@ -42,9 +42,9 @@ pub use value_graph::{
     value_fingerprint_and_contracts, value_fingerprint_and_contracts_with_context,
     value_fingerprint_contracts, value_fingerprint_lits, value_fingerprint_lits_anchors,
     value_fingerprint_lits_anchors_laws, value_fingerprint_lits_anchors_laws_with_context,
-    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context, Anchor,
-    Anchors, FingerprintBundle, FingerprintLawBundle, ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
-    CONTAINMENT_ANCHOR_MIN_WEIGHT,
+    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context,
+    value_graph_opaque_census, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
+    ValueFingerprintContext, ANCHOR_MIN_WEIGHT, CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use value_graph::{
     bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,

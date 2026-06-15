@@ -19,9 +19,9 @@ Output: coverage_attribution.<date>.json — per-language Raw ratio + the preval
 top unhandled surface kinds, aggregated across the corpus. Deterministic and corpus-pinned.
 
 NOTE (scope): this measures IL-lowering loss (`Raw` nodes). Value-graph modeling loss
-(`Opaque` nodes — the collections/mutation gap) is a separate dimension; `Opaque` carries no
-construct provenance today, so attributing it needs light instrumentation (tracked on the
-collection-modeling issue), not this script.
+(`Opaque` nodes — the collections/mutation/#391 gap) is a separate dimension, now measured by
+the sibling `value_graph_attribution.py`, which consumes the `nose value-census` opaque census
+(the "light instrumentation" this note used to defer).
 """
 
 from __future__ import annotations

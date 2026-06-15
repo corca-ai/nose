@@ -137,8 +137,13 @@ impl<'a> Builder<'a> {
         // at creation — those intermediates are exactly what a heavy sub-DAG anchor points at.
         let prev = self.cur_span;
         self.cur_span = Some(self.il.node(expr).span);
+        // Mirror `cur_span` for the opaque census (#391 probe): the save/restore makes the
+        // current kind the node whose handler mints an `Opaque`, not a just-evaluated child.
+        let prev_kind = self.cur_il_kind;
+        self.cur_il_kind = Some(self.il.node(expr).kind);
         let v = self.eval_inner(expr, env);
         self.cur_span = prev;
+        self.cur_il_kind = prev_kind;
         v
     }
 

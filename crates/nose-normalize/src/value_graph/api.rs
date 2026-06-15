@@ -53,6 +53,35 @@ pub fn value_fingerprint_lits(
     b.fingerprint_lits()
 }
 
+/// Research instrument (the #391 prevalence probe): the value-graph opaque-fallback census for the
+/// unit at `root` — per `(IL node kind, total_fallback)`, how many `ValOp::Opaque` nodes the build
+/// minted. `total_fallback` (argless opaque) is a full coverage gap — the construct could not be
+/// modeled at all — while a semantic opaque (with args, e.g. `instanceof`) is a partial model.
+/// Attributes value-graph coverage loss to the construct that produced it, the way `nose stats`
+/// attributes lowering `Raw` loss. Returned sorted by count desc (deterministic).
+pub fn value_graph_opaque_census(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> Vec<(NodeKind, bool, u32)> {
+    let mut b = Builder::new(il, interner);
+    b.opaque_census = Some(FxHashMap::default());
+    b.build_unit(root);
+    let mut out: Vec<(NodeKind, bool, u32)> = b
+        .opaque_census
+        .take()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|((kind, total), n)| (kind, total, n))
+        .collect();
+    out.sort_by(|a, b| {
+        b.2.cmp(&a.2)
+            .then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0)))
+            .then(a.1.cmp(&b.1))
+    });
+    out
+}
+
 /// The default minimum sub-computation size (in value-nodes) for a node to be an extractable
 /// anchor. Below this a shared sub-DAG is a common idiom (`x+1`, `len(xs)`), not a refactor.
 /// The #248 sweep (experiments §BW) measured the §BJ 8–20 band: floor 8 gains real

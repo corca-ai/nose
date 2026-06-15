@@ -49,8 +49,9 @@ pub use api::{
     value_fingerprint_and_contracts, value_fingerprint_and_contracts_with_context,
     value_fingerprint_contracts, value_fingerprint_lits, value_fingerprint_lits_anchors,
     value_fingerprint_lits_anchors_laws, value_fingerprint_lits_anchors_laws_with_context,
-    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context, Anchor,
-    Anchors, FingerprintBundle, FingerprintLawBundle, ANCHOR_MIN_WEIGHT,
+    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context,
+    value_graph_opaque_census, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
+    ANCHOR_MIN_WEIGHT,
     CONTAINMENT_ANCHOR_MIN_WEIGHT,
 };
 pub use context::ValueFingerprintContext;
