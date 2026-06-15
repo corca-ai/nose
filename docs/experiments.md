@@ -2751,3 +2751,40 @@ reads **PRESERVED ✓** with the soundness lane byte-identical — the benchmark
 violations" claim is true again. Lesson: an oracle that models `Err` as an observable
 value must still treat *aborted* executions as resultless, or impossible inputs (which a
 global positional battery cannot avoid) manufacture phantom behavior differences.
+
+## CP. Coverage-loss attribution — where recall is actually bounded (#389, 2026-06-15)
+
+§BS measured the behavior-keyed recall frontier **NO-GO** and stated the boundary plainly:
+*"worthy-recall is bounded by **unit extraction** and judgment, not by missing matching
+machinery,"* with the instrument limited to the ~29% of units that interpret. That makes the
+gating question not "what normalization is missing" but "what never gets modeled in the first
+place." `bench/type4/coverage_attribution.py` answers it: `nose stats --json` over the pinned
+105-repo corpus, with the `Raw`-node loss (constructs that lower to an opaque node, invisible
+to value-matching) ranked by (language, surface-kind) prevalence
+(`coverage_attribution.2026-06-15.json`).
+
+**IL-lowering loss by language** (worst first): javascript 2.83%, rust 2.62%, typescript
+1.20%, c 0.89%, go 0.65%, ruby 0.33%, python 0.22%, java 0.22%. So the two front-runner
+languages for nose's own positioning (rust, js/ts) carry the most unmodeled mass.
+
+**The lowering worklist** (top Raw mass, the #390 targets), three clusters dominate:
+- **Rust pattern-destructuring** — `tuple_struct_pattern` 21.6k + `field_pattern` 5.4k +
+  `struct_pattern` 5.2k + `remaining_field_pattern` 4.2k + `shorthand_field_identifier` 4.1k
+  ≈ **40k** Raw nodes. The single biggest, most coherent lever; pure Rust.
+- **async `await`** — typescript 21.0k + rust 7.9k + javascript 6.8k ≈ **36k**. The biggest
+  *cross-language* lever.
+- **error/control flow** — rust `try`/`?` 18.3k; go `defer` 17.6k, `channel_receive` 4.3k,
+  `select_case` 3.6k. Language-idiomatic control constructs.
+
+**Separate axis — parse coverage, not lowering.** `ERROR` nodes (tree-sitter parse failures)
+are large (c 25.3k, js 11.2k, ts 3.7k, java 3.5k, go 3.4k, rust 2.6k) and several C entries
+are declaration forms (`declaration`, `field_declaration`, `preproc_def`, `pointer_declarator`,
+`type_definition`) that may be inherently low-value to model. These belong to a grammar/parse
+triage, not the value-lowering worklist — flagged so they don't inflate the lever estimate.
+
+**Verdict.** The measured worklist confirms §BS from the other side: recall headroom is in
+**coverage** (modeling more constructs), led by Rust destructuring and async/await, not in
+more matching machinery. Method note: the value-graph `Opaque` loss (the collection/mutation
+gap, #391) is a *separate* dimension this instrument does not yet attribute — `Opaque` carries
+no construct provenance today, so attributing it needs light instrumentation (tracked on #391),
+not this script. Re-run after each lowering change to watch the ratio fall.

@@ -1,0 +1,6617 @@
+{
+  "instrument": "coverage_attribution",
+  "repos": 105,
+  "missing": [],
+  "per_lang": [
+    {
+      "lang": "javascript",
+      "nodes": 1226725,
+      "raw_nodes": 34721,
+      "raw_ratio": 0.0283
+    },
+    {
+      "lang": "rust",
+      "nodes": 2850144,
+      "raw_nodes": 74746,
+      "raw_ratio": 0.02623
+    },
+    {
+      "lang": "typescript",
+      "nodes": 3533471,
+      "raw_nodes": 42304,
+      "raw_ratio": 0.01197
+    },
+    {
+      "lang": "c",
+      "nodes": 9906285,
+      "raw_nodes": 87910,
+      "raw_ratio": 0.00887
+    },
+    {
+      "lang": "go",
+      "nodes": 6677646,
+      "raw_nodes": 43422,
+      "raw_ratio": 0.0065
+    },
+    {
+      "lang": "ruby",
+      "nodes": 2358882,
+      "raw_nodes": 7730,
+      "raw_ratio": 0.00328
+    },
+    {
+      "lang": "python",
+      "nodes": 7074449,
+      "raw_nodes": 15683,
+      "raw_ratio": 0.00222
+    },
+    {
+      "lang": "java",
+      "nodes": 9631654,
+      "raw_nodes": 21200,
+      "raw_ratio": 0.0022
+    }
+  ],
+  "top_unhandled": [
+    {
+      "lang": "c",
+      "surface_kind": "ERROR",
+      "raw": 25262
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "tuple_struct_pattern",
+      "raw": 21580
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "await",
+      "raw": 21012
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "try",
+      "raw": 18292
+    },
+    {
+      "lang": "go",
+      "surface_kind": "defer",
+      "raw": 17625
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "ERROR",
+      "raw": 11243
+    },
+    {
+      "lang": "c",
+      "surface_kind": "declaration",
+      "raw": 10213
+    },
+    {
+      "lang": "c",
+      "surface_kind": "field_declaration",
+      "raw": 9590
+    },
+    {
+      "lang": "python",
+      "surface_kind": "line_continuation",
+      "raw": 8780
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_def",
+      "raw": 8472
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "await",
+      "raw": 7863
+    },
+    {
+      "lang": "c",
+      "surface_kind": "function_definition",
+      "raw": 7487
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "await",
+      "raw": 6814
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "field_pattern",
+      "raw": 5367
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "struct_pattern",
+      "raw": 5240
+    },
+    {
+      "lang": "go",
+      "surface_kind": "channel_receive",
+      "raw": 4329
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "remaining_field_pattern",
+      "raw": 4243
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "shorthand_field_identifier",
+      "raw": 4056
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "ERROR",
+      "raw": 3704
+    },
+    {
+      "lang": "go",
+      "surface_kind": "select_case",
+      "raw": 3642
+    },
+    {
+      "lang": "java",
+      "surface_kind": "ERROR",
+      "raw": 3544
+    },
+    {
+      "lang": "c",
+      "surface_kind": "pointer_declarator",
+      "raw": 3509
+    },
+    {
+      "lang": "go",
+      "surface_kind": "ERROR",
+      "raw": 3421
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "expression_statement",
+      "raw": 3208
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "statement_block",
+      "raw": 2693
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "ERROR",
+      "raw": 2583
+    },
+    {
+      "lang": "c",
+      "surface_kind": "type_definition",
+      "raw": 2467
+    },
+    {
+      "lang": "java",
+      "surface_kind": "variable_declarator",
+      "raw": 2414
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "spread_element",
+      "raw": 2412
+    },
+    {
+      "lang": "python",
+      "surface_kind": "yield",
+      "raw": 2343
+    },
+    {
+      "lang": "c",
+      "surface_kind": "expression_statement",
+      "raw": 2222
+    },
+    {
+      "lang": "python",
+      "surface_kind": "ERROR",
+      "raw": 2100
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "expression_statement",
+      "raw": 2071
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "formal_parameters",
+      "raw": 2027
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "method_definition",
+      "raw": 1976
+    },
+    {
+      "lang": "go",
+      "surface_kind": "go",
+      "raw": 1952
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "ERROR",
+      "raw": 1950
+    },
+    {
+      "lang": "go",
+      "surface_kind": "select",
+      "raw": 1944
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "statement_block",
+      "raw": 1922
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_directive",
+      "raw": 1902
+    },
+    {
+      "lang": "go",
+      "surface_kind": "pointer_type",
+      "raw": 1844
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "variable_declarator",
+      "raw": 1842
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "lexical_declaration",
+      "raw": 1754
+    },
+    {
+      "lang": "java",
+      "surface_kind": "formal_parameters",
+      "raw": 1745
+    },
+    {
+      "lang": "python",
+      "surface_kind": "await",
+      "raw": 1735
+    },
+    {
+      "lang": "java",
+      "surface_kind": "constant_declaration",
+      "raw": 1674
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_ifdef",
+      "raw": 1620
+    },
+    {
+      "lang": "java",
+      "surface_kind": "assert_statement",
+      "raw": 1581
+    },
+    {
+      "lang": "go",
+      "surface_kind": "channel_send",
+      "raw": 1549
+    },
+    {
+      "lang": "java",
+      "surface_kind": "formal_parameter",
+      "raw": 1540
+    },
+    {
+      "lang": "c",
+      "surface_kind": "compound_literal_expression",
+      "raw": 1499
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "formal_parameters",
+      "raw": 1490
+    },
+    {
+      "lang": "java",
+      "surface_kind": "method_declaration",
+      "raw": 1436
+    },
+    {
+      "lang": "c",
+      "surface_kind": "struct_specifier",
+      "raw": 1382
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "method_definition",
+      "raw": 1271
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "return_statement",
+      "raw": 1240
+    },
+    {
+      "lang": "java",
+      "surface_kind": "synchronized_statement",
+      "raw": 1163
+    },
+    {
+      "lang": "java",
+      "surface_kind": "scoped_type_identifier",
+      "raw": 1114
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "async_block",
+      "raw": 1089
+    },
+    {
+      "lang": "java",
+      "surface_kind": "binary_expression >>>",
+      "raw": 1049
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "ref_pattern",
+      "raw": 988
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "variable_declarator",
+      "raw": 909
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "lexical_declaration",
+      "raw": 878
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "macro_rule_body",
+      "raw": 858
+    },
+    {
+      "lang": "c",
+      "surface_kind": "macro_type_specifier",
+      "raw": 838
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_if",
+      "raw": 778
+    },
+    {
+      "lang": "c",
+      "surface_kind": "field_declaration_list",
+      "raw": 773
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "computed_property_name",
+      "raw": 772
+    },
+    {
+      "lang": "c",
+      "surface_kind": "init_declarator",
+      "raw": 764
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "binary",
+      "raw": 757
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "spread_element",
+      "raw": 749
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "crate",
+      "raw": 717
+    },
+    {
+      "lang": "go",
+      "surface_kind": "int_literal",
+      "raw": 711
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_params",
+      "raw": 704
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_identifier",
+      "raw": 685
+    },
+    {
+      "lang": "java",
+      "surface_kind": "enum_body_declarations",
+      "raw": 671
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_function_def",
+      "raw": 665
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_call",
+      "raw": 651
+    },
+    {
+      "lang": "java",
+      "surface_kind": "field_declaration",
+      "raw": 629
+    },
+    {
+      "lang": "c",
+      "surface_kind": "case_statement",
+      "raw": 601
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "then",
+      "raw": 589
+    },
+    {
+      "lang": "java",
+      "surface_kind": "static_initializer",
+      "raw": 588
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "string_content",
+      "raw": 566
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_include",
+      "raw": 559
+    },
+    {
+      "lang": "go",
+      "surface_kind": "select_default",
+      "raw": 558
+    },
+    {
+      "lang": "c",
+      "surface_kind": "array_declarator",
+      "raw": 548
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "mutable_specifier",
+      "raw": 527
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "return_statement",
+      "raw": 512
+    },
+    {
+      "lang": "go",
+      "surface_kind": "label_name",
+      "raw": 511
+    },
+    {
+      "lang": "go",
+      "surface_kind": "goto_statement",
+      "raw": 510
+    },
+    {
+      "lang": "c",
+      "surface_kind": "if_statement",
+      "raw": 505
+    },
+    {
+      "lang": "c",
+      "surface_kind": "parenthesized_declarator",
+      "raw": 498
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "if_statement",
+      "raw": 497
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "jsx_opening_element",
+      "raw": 472
+    },
+    {
+      "lang": "c",
+      "surface_kind": "statement_identifier",
+      "raw": 471
+    },
+    {
+      "lang": "go",
+      "surface_kind": "iota",
+      "raw": 468
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "void",
+      "raw": 436
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "mut_pattern",
+      "raw": 428
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "rescue",
+      "raw": 411
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "decorator",
+      "raw": 399
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "computed_property_name",
+      "raw": 398
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "or_pattern",
+      "raw": 395
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "delete",
+      "raw": 386
+    },
+    {
+      "lang": "c",
+      "surface_kind": "enum_specifier",
+      "raw": 374
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "interpolation",
+      "raw": 369
+    },
+    {
+      "lang": "c",
+      "surface_kind": "system_lib_string",
+      "raw": 349
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_instantiation_expression",
+      "raw": 333
+    },
+    {
+      "lang": "c",
+      "surface_kind": "enumerator_list",
+      "raw": 322
+    },
+    {
+      "lang": "c",
+      "surface_kind": "goto_statement",
+      "raw": 317
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_else",
+      "raw": 314
+    },
+    {
+      "lang": "java",
+      "surface_kind": "constructor_body",
+      "raw": 306
+    },
+    {
+      "lang": "java",
+      "surface_kind": "constructor_declaration",
+      "raw": 306
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "exceptions",
+      "raw": 303
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "subshell",
+      "raw": 277
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "if_statement",
+      "raw": 260
+    },
+    {
+      "lang": "java",
+      "surface_kind": "labeled_statement",
+      "raw": 258
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "ensure",
+      "raw": 256
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "yield",
+      "raw": 242
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "pattern",
+      "raw": 242
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "comment",
+      "raw": 234
+    },
+    {
+      "lang": "c",
+      "surface_kind": "break_statement",
+      "raw": 232
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "character",
+      "raw": 227
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "class_variable",
+      "raw": 224
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "yield",
+      "raw": 221
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "lambda",
+      "raw": 220
+    },
+    {
+      "lang": "go",
+      "surface_kind": "qualified_type",
+      "raw": 206
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "exception_variable",
+      "raw": 200
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "when",
+      "raw": 199
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "captured_pattern",
+      "raw": 197
+    },
+    {
+      "lang": "go",
+      "surface_kind": "slice_type",
+      "raw": 193
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "delete",
+      "raw": 192
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "class_body",
+      "raw": 189
+    },
+    {
+      "lang": "c",
+      "surface_kind": "declaration_list",
+      "raw": 181
+    },
+    {
+      "lang": "java",
+      "surface_kind": "requires_module_directive",
+      "raw": 178
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_output_operand",
+      "raw": 178
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "class",
+      "raw": 171
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "lambda_parameters",
+      "raw": 166
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "delimited_symbol",
+      "raw": 165
+    },
+    {
+      "lang": "python",
+      "surface_kind": "comment",
+      "raw": 158
+    },
+    {
+      "lang": "c",
+      "surface_kind": "preproc_elif",
+      "raw": 157
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_expression",
+      "raw": 157
+    },
+    {
+      "lang": "c",
+      "surface_kind": "labeled_statement",
+      "raw": 154
+    },
+    {
+      "lang": "python",
+      "surface_kind": "dictionary_splat",
+      "raw": 145
+    },
+    {
+      "lang": "java",
+      "surface_kind": "exports_module_directive",
+      "raw": 141
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_input_operand",
+      "raw": 133
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "try_statement",
+      "raw": 131
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "void",
+      "raw": 130
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_output_operand_list",
+      "raw": 123
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "throw_statement",
+      "raw": 119
+    },
+    {
+      "lang": "c",
+      "surface_kind": "comment",
+      "raw": 119
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "let_condition",
+      "raw": 118
+    },
+    {
+      "lang": "java",
+      "surface_kind": "requires_modifier",
+      "raw": 117
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_qualifier",
+      "raw": 112
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "throw_statement",
+      "raw": 111
+    },
+    {
+      "lang": "java",
+      "surface_kind": "while_statement",
+      "raw": 108
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "comment",
+      "raw": 108
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "super",
+      "raw": 105
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_input_operand_list",
+      "raw": 104
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case string",
+      "raw": 103
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "class_body",
+      "raw": 102
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "while_modifier",
+      "raw": 100
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "public_field_definition",
+      "raw": 97
+    },
+    {
+      "lang": "python",
+      "surface_kind": "type",
+      "raw": 90
+    },
+    {
+      "lang": "c",
+      "surface_kind": "else_clause",
+      "raw": 89
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "catch_clause",
+      "raw": 87
+    },
+    {
+      "lang": "go",
+      "surface_kind": "fallthrough_statement",
+      "raw": 87
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "class",
+      "raw": 86
+    },
+    {
+      "lang": "python",
+      "surface_kind": "python_wildcard_import",
+      "raw": 80
+    },
+    {
+      "lang": "java",
+      "surface_kind": "for_statement",
+      "raw": 78
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "binary_expression >>>",
+      "raw": 76
+    },
+    {
+      "lang": "go",
+      "surface_kind": "map_type",
+      "raw": 76
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "variable_declaration",
+      "raw": 75
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "else_clause",
+      "raw": 74
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "for_in_statement",
+      "raw": 73
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "class_heritage",
+      "raw": 72
+    },
+    {
+      "lang": "c",
+      "surface_kind": "return_statement",
+      "raw": 72
+    },
+    {
+      "lang": "c",
+      "surface_kind": "gnu_asm_clobber_list",
+      "raw": 67
+    },
+    {
+      "lang": "java",
+      "surface_kind": "local_variable_declaration",
+      "raw": 66
+    },
+    {
+      "lang": "c",
+      "surface_kind": "character",
+      "raw": 66
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "case",
+      "raw": 65
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "jsx_attribute",
+      "raw": 58
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "export_statement",
+      "raw": 58
+    },
+    {
+      "lang": "java",
+      "surface_kind": "compound_assignment >>>=",
+      "raw": 57
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "rescue_modifier",
+      "raw": 54
+    },
+    {
+      "lang": "c",
+      "surface_kind": "union_specifier",
+      "raw": 54
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "module",
+      "raw": 53
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "private_property_identifier",
+      "raw": 51
+    },
+    {
+      "lang": "c",
+      "surface_kind": "bitfield_clause",
+      "raw": 50
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "finally_clause",
+      "raw": 49
+    },
+    {
+      "lang": "go",
+      "surface_kind": "channel_receive_status",
+      "raw": 48
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "class_static_block",
+      "raw": 48
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case int64",
+      "raw": 47
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "else",
+      "raw": 47
+    },
+    {
+      "lang": "c",
+      "surface_kind": "ms_declspec_modifier",
+      "raw": 47
+    },
+    {
+      "lang": "python",
+      "surface_kind": "class_pattern",
+      "raw": 45
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "body_statement",
+      "raw": 44
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[string]any",
+      "raw": 43
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "for_in_statement",
+      "raw": 40
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "range_pattern",
+      "raw": 38
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case float64",
+      "raw": 38
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "for_statement",
+      "raw": 38
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "jsx_namespace_name",
+      "raw": 37
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []any",
+      "raw": 36
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "field_definition",
+      "raw": 35
+    },
+    {
+      "lang": "java",
+      "surface_kind": "module_body",
+      "raw": 35
+    },
+    {
+      "lang": "java",
+      "surface_kind": "module_declaration",
+      "raw": 35
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "return",
+      "raw": 34
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []byte",
+      "raw": 34
+    },
+    {
+      "lang": "java",
+      "surface_kind": "spread_parameter",
+      "raw": 34
+    },
+    {
+      "lang": "java",
+      "surface_kind": "opens_module_directive",
+      "raw": 34
+    },
+    {
+      "lang": "java",
+      "surface_kind": "pattern",
+      "raw": 34
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "rest_assignment",
+      "raw": 33
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "until_modifier",
+      "raw": 32
+    },
+    {
+      "lang": "python",
+      "surface_kind": "type_alias_statement",
+      "raw": 32
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case bool",
+      "raw": 32
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "with_statement",
+      "raw": 32
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EIdentifier",
+      "raw": 31
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "variable_declaration",
+      "raw": 31
+    },
+    {
+      "lang": "c",
+      "surface_kind": "for_statement",
+      "raw": 30
+    },
+    {
+      "lang": "python",
+      "surface_kind": "binary_operator @",
+      "raw": 29
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EString",
+      "raw": 29
+    },
+    {
+      "lang": "python",
+      "surface_kind": "keyword_pattern",
+      "raw": 28
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []string",
+      "raw": 28
+    },
+    {
+      "lang": "java",
+      "surface_kind": "type_pattern",
+      "raw": 28
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "singleton_class",
+      "raw": 27
+    },
+    {
+      "lang": "python",
+      "surface_kind": "dict_pattern",
+      "raw": 27
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EDot",
+      "raw": 27
+    },
+    {
+      "lang": "java",
+      "surface_kind": "if_statement",
+      "raw": 26
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "decorator",
+      "raw": 26
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "uninterpreted",
+      "raw": 26
+    },
+    {
+      "lang": "python",
+      "surface_kind": "type_parameter",
+      "raw": 25
+    },
+    {
+      "lang": "python",
+      "surface_kind": "generic_type",
+      "raw": 25
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "string",
+      "raw": 24
+    },
+    {
+      "lang": "c",
+      "surface_kind": "while_statement",
+      "raw": 24
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case int",
+      "raw": 24
+    },
+    {
+      "lang": "c",
+      "surface_kind": "argument_list",
+      "raw": 24
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "label",
+      "raw": 24
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "else_clause",
+      "raw": 23
+    },
+    {
+      "lang": "go",
+      "surface_kind": "parenthesized_type",
+      "raw": 23
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_elem",
+      "raw": 22
+    },
+    {
+      "lang": "c",
+      "surface_kind": "attribute_specifier",
+      "raw": 22
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case nil",
+      "raw": 22
+    },
+    {
+      "lang": "java",
+      "surface_kind": "guard",
+      "raw": 22
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "statement_identifier",
+      "raw": 22
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "labeled_statement",
+      "raw": 22
+    },
+    {
+      "lang": "java",
+      "surface_kind": "enhanced_for_statement",
+      "raw": 21
+    },
+    {
+      "lang": "java",
+      "surface_kind": "class_body",
+      "raw": 21
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EArray",
+      "raw": 21
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "destructured_left_assignment",
+      "raw": 21
+    },
+    {
+      "lang": "java",
+      "surface_kind": "class_declaration",
+      "raw": 20
+    },
+    {
+      "lang": "python",
+      "surface_kind": "as_pattern",
+      "raw": 20
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EIndex",
+      "raw": 20
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SLocal",
+      "raw": 20
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "for_statement",
+      "raw": 20
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "function_declaration",
+      "raw": 20
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "escape_sequence",
+      "raw": 20
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "class_heritage",
+      "raw": 19
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "retry",
+      "raw": 19
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case time.Time",
+      "raw": 19
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "internal_module",
+      "raw": 19
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ENull",
+      "raw": 18
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "extends_clause",
+      "raw": 18
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "binary_expression >>>",
+      "raw": 18
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "class_declaration",
+      "raw": 18
+    },
+    {
+      "lang": "java",
+      "surface_kind": "annotation_type_declaration",
+      "raw": 18
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "private_property_identifier",
+      "raw": 17
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ENumber",
+      "raw": 16
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SExpr",
+      "raw": 16
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "class_declaration",
+      "raw": 16
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "jsx_attribute",
+      "raw": 16
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "switch_case",
+      "raw": 15
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "nested_identifier",
+      "raw": 15
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EObject",
+      "raw": 15
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EString",
+      "raw": 15
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ENull",
+      "raw": 15
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "visibility_modifier",
+      "raw": 15
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "method",
+      "raw": 14
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EInlinedEnum",
+      "raw": 14
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "switch_case",
+      "raw": 14
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SFunction",
+      "raw": 13
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "break_statement",
+      "raw": 13
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.MatrixSelector",
+      "raw": 13
+    },
+    {
+      "lang": "go",
+      "surface_kind": "expression_statement",
+      "raw": 12
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case uint64",
+      "raw": 12
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case uint",
+      "raw": 12
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ENumber",
+      "raw": 12
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SClass",
+      "raw": 12
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EBoolean",
+      "raw": 12
+    },
+    {
+      "lang": "java",
+      "surface_kind": "compact_constructor_declaration",
+      "raw": 12
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "function_declaration",
+      "raw": 12
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.VectorSelector",
+      "raw": 12
+    },
+    {
+      "lang": "java",
+      "surface_kind": "superclass",
+      "raw": 11
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case uint8",
+      "raw": 11
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EAnnotation",
+      "raw": 11
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "method_parameters",
+      "raw": 11
+    },
+    {
+      "lang": "c",
+      "surface_kind": "continue_statement",
+      "raw": 11
+    },
+    {
+      "lang": "java",
+      "surface_kind": "uses_module_directive",
+      "raw": 11
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "import_alias",
+      "raw": 11
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case int32",
+      "raw": 10
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EBinary",
+      "raw": 10
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EImportIdentifier",
+      "raw": 10
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ECall",
+      "raw": 10
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "catch_clause",
+      "raw": 10
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "try_statement",
+      "raw": 10
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "class_static_block",
+      "raw": 10
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "break_statement",
+      "raw": 10
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pageState",
+      "raw": 10
+    },
+    {
+      "lang": "java",
+      "surface_kind": "provides_module_directive",
+      "raw": 10
+    },
+    {
+      "lang": "c",
+      "surface_kind": "switch_statement",
+      "raw": 10
+    },
+    {
+      "lang": "java",
+      "surface_kind": "template_expression",
+      "raw": 10
+    },
+    {
+      "lang": "python",
+      "surface_kind": "splat_pattern",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case uint16",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SIf",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EUndefined",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EBinary",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *graph.JSRepr",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EBoolean",
+      "raw": 9
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "jsx_opening_element",
+      "raw": 9
+    },
+    {
+      "lang": "java",
+      "surface_kind": "do_statement",
+      "raw": 9
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "continue_statement",
+      "raw": 9
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.SubqueryExpr",
+      "raw": 9
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "break",
+      "raw": 8
+    },
+    {
+      "lang": "c",
+      "surface_kind": "do_statement",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.StructType",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case int16",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case uint32",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case int8",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EDot",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SEmpty",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EUnary",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EBigInt",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[string]interface{}",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.RequestOp_RequestDeleteRange",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.RequestOp_RequestPut",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.RequestOp_RequestRange",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case float32",
+      "raw": 8
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodesMap",
+      "raw": 8
+    },
+    {
+      "lang": "python",
+      "surface_kind": "union_pattern",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.Ident",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "parameter_list",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SReturn",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SBreak",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SFor",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EUnary",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SImport",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EPrivateIdentifier",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EObject",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *graph.CSSRepr",
+      "raw": 7
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "string",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.ResponseOp_ResponseRange",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.RequestOp_RequestTxn",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[string]string",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hmaps.Params",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Params",
+      "raw": 7
+    },
+    {
+      "lang": "c",
+      "surface_kind": "string_content",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectNotFound",
+      "raw": 7
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "interface_body",
+      "raw": 7
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "interface_declaration",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *tsdb.DB",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *MatrixSelector",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SubqueryExpr",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *agent.DB",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.Call",
+      "raw": 7
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "keyword_pattern",
+      "raw": 7
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.BasicLit",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ENameOfSymbol",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RAtLayer",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EIf",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SExportDefault",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SThrow",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SExportFrom",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SExportClause",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ETemplate",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EArrow",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EFunction",
+      "raw": 6
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "augmented_assignment_expression >>>=",
+      "raw": 6
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "while_statement",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.ResponseOp_ResponsePut",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.ResponseOp_ResponseDeleteRange",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *time.Time",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[any]any",
+      "raw": 6
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "regex_pattern",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case jstream.KVS",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefSample",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *VectorSelector",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.BinaryExpr",
+      "raw": 6
+    },
+    {
+      "lang": "java",
+      "surface_kind": "record_pattern",
+      "raw": 6
+    },
+    {
+      "lang": "java",
+      "surface_kind": "record_pattern_component",
+      "raw": 6
+    },
+    {
+      "lang": "java",
+      "surface_kind": "record_pattern_body",
+      "raw": 6
+    },
+    {
+      "lang": "go",
+      "surface_kind": "empty_statement",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.SliceType",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.TerminatedEvent",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.IntType",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.StoppedEvent",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.UintType",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "parameter_declaration",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "function_type",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case error",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SExportStar",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RSelector",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ESpread",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ETemplate",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ECall",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SDirective",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SSwitch",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SBlock",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EBigInt",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EInlinedEnum",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case fmt.Stringer",
+      "raw": 5
+    },
+    {
+      "lang": "java",
+      "surface_kind": "block_comment",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.PipeNode",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodes",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pageMetaSource",
+      "raw": 5
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "continue_statement",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InsufficientReadQuorum",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []Value",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case simdjson.Object",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *net.IPNet",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *net.IPAddr",
+      "raw": 5
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "const_block",
+      "raw": 5
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "while_statement",
+      "raw": 5
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "debugger_statement",
+      "raw": 5
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "export_specifier",
+      "raw": 5
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "export_clause",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.AggregateExpr",
+      "raw": 5
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefSeries",
+      "raw": 5
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "token_tree",
+      "raw": 4
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "switch_body",
+      "raw": 4
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "switch_statement",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.PtrType",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.ComplexType",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.StringType",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case loong64asm.OffsetSimm",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case starlark.String",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.FloatType",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.SelectorExpr",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []int",
+      "raw": 4
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "constraint",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.STry",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EUndefined",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EMissing",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SEnum",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EIndex",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *BIdentifier",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.SSPseudoClass",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RAtMedia",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SLabel",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.BObject",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EIf",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RKnownAt",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.SSPseudoClassWithSelectorList",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.STypeScript",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EArray",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EThis",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EFunction",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SForIn",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SForOf",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SComment",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.BArray",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SWhile",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.Column",
+      "raw": 4
+    },
+    {
+      "lang": "java",
+      "surface_kind": "throw_statement",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *any",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.RGBA64",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.WithNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.ListNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.RangeNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.IfNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.VariableNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.IdentifierNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.FieldNode",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.NRGBA64",
+      "raw": 4
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "empty_statement",
+      "raw": 4
+    },
+    {
+      "lang": "java",
+      "surface_kind": "line_comment",
+      "raw": 4
+    },
+    {
+      "lang": "c",
+      "surface_kind": "seh_try_statement",
+      "raw": 4
+    },
+    {
+      "lang": "c",
+      "surface_kind": "seh_except_clause",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidUploadID",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case RemoteTargetConnectionErr",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *nats.APIError",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *fileStore",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *memStore",
+      "raw": 4
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "export_statement",
+      "raw": 4
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "enum_body",
+      "raw": 4
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "enum_declaration",
+      "raw": 4
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "import_clause",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.NumberLiteral",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case promql.Vector",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case fhSample",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hSample",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.ParenExpr",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []tombstones.Stone",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefHistogramSample",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefMetadata",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.UnaryExpr",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefFloatHistogramSample",
+      "raw": 4
+    },
+    {
+      "lang": "c",
+      "surface_kind": "attributed_statement",
+      "raw": 4
+    },
+    {
+      "lang": "c",
+      "surface_kind": "attribute",
+      "raw": 4
+    },
+    {
+      "lang": "c",
+      "surface_kind": "attribute_declaration",
+      "raw": 4
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrorNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case TerminalNode",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "redo",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "superclass",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.FuncDecl",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.BoolType",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.ArrayType",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.OutputEvent",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case starlark.Float",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case starlark.Bool",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *altError",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case starlark.Int",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.ParenExpr",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EAwait",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SWith",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *chunkReprJS",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EIdentifier",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ENew",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.TSNamespaceMemberNamespace",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EYield",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ERegExp",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SExpr",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RAtImport",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EImportMeta",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.TSNamespaceMemberEnumNumber",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SExportEquals",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SContinue",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SDoWhile",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EImportCall",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *BArray",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.TSNamespaceMemberEnumString",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *chunkReprCSS",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RAtCharset",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.BIdentifier",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []interface{}",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *rsa.PrivateKey",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ecdsa.PrivateKey",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "while",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case time.Duration",
+      "raw": 3
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "declaration_list",
+      "raw": 3
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "foreign_mod_item",
+      "raw": 3
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "extern_modifier",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.Expression",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *int",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.TemplateNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.ChainNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.DotNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.BreakNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.NilNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *shortcode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.Gray",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.NRGBA",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.ActionNode",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case PageGroup",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.HTML",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *map[string]any",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodeSampleProvider",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "hash_splat_argument",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case VersionNotFound",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *naughtyDisk",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ReplicateObjectInfo",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Missing",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *token",
+      "raw": 3
+    },
+    {
+      "lang": "java",
+      "surface_kind": "enum_declaration",
+      "raw": 3
+    },
+    {
+      "lang": "java",
+      "surface_kind": "enum_body",
+      "raw": 3
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "switch_statement",
+      "raw": 3
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "switch_body",
+      "raw": 3
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "import_specifier",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case promql.Scalar",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.StringLiteral",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.DurationExpr",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *NumberLiteral",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *literalPrefixSensitiveStringMatcher",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *literalPrefixInsensitiveStringMatcher",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case promql.Matrix",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Expressions",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "match_pattern",
+      "raw": 3
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "type_item",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "hash_pattern",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "optional_parameter",
+      "raw": 3
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "in_clause",
+      "raw": 3
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *LoopEndState",
+      "raw": 2
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "class",
+      "raw": 2
+    },
+    {
+      "lang": "python",
+      "surface_kind": "complex_pattern",
+      "raw": 2
+    },
+    {
+      "lang": "python",
+      "surface_kind": "print_statement",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case dwarf.Offset",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.DataBreakpointInfoRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.PauseResponse",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *starlark.Builtin",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.StarExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *Jump",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.TypedefType",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetBreakpointsRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetInstructionBreakpointsRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ThreadsRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *TypedefType",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.IndexExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.BinaryExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.File",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *compositeMemory",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.DisconnectRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case riscv64asm.Simm",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.CallExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.RestartRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetFunctionBreakpointsRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.ArrayType",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetDataBreakpointsRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.InterfaceType",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.MapType",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case uintptr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case reflect.Value",
+      "raw": 2
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "implements_clause",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SFunction",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ENewTarget",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *BObject",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *BMissing",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.MQRange",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RAtKeyframes",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.MQNot",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.MQBinary",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ESuper",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EClass",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ERegExp",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SClass",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RComment",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SNamespace",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ENew",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.SSAttribute",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.BMissing",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EJSXElement",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SReturn",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.SDebugger",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "expression_list",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *jwt.SigningMethodEd25519",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *jwt.SigningMethodRSA",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.WatchRequest_CancelRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.ResponseOp_ResponseTxn",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.WatchRequest_CreateRequest",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *jwt.SigningMethodECDSA",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.TypeSpec",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case multipart.FileHeader",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case sql.NamedArg",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *map[string]interface{}",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **time.Time",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []map[string]interface{}",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case driver.Valuer",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []clause.Expression",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *[]map[string]interface{}",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case OrConditions",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "method_elem",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "interface_type",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *uint",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Expr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case identity.IdentityProvider",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case pageparser.Item",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case testSlicerInterface",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case libsasserrors.Error",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case types.Unwrapper",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.ContinueNode",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case WeightedPages",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.Gray16",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodeForSite",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.CommentNode",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.StringNode",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.JS",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.InterfaceType",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.JSStr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.JSStr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.HTMLAttr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *passthrough.PassthroughInline",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.RGBA",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.NumberNode",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Pages",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.TextNode",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case reflect.StructField",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *AnimatedImage",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *texttemplate.Template",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case pageContentReplacement",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.CSS",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.JS",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodeSingle",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.BoolNode",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case godartsass.SassError",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case reflect.Method",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case css.QuotedString",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *htmltemplate.Template",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case resource.Resources",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []map[string]any",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case runtime.Error",
+      "raw": 2
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "type_predicate_annotation",
+      "raw": 2
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "type_alias_declaration",
+      "raw": 2
+    },
+    {
+      "lang": "c",
+      "surface_kind": "linkage_specification",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *streamingBitrotReader",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case KV",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case log.Entry",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case noncurrentVersionsTask",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidVersionID",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *NoPayload",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *wholeBitrotReader",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case DeletedObjectReplicationInfo",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case expiryTask",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *MSS",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case policy.Error",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *net.TCPConn",
+      "raw": 2
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "named_imports",
+      "raw": 2
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "namespace_import",
+      "raw": 2
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "ambient_declaration",
+      "raw": 2
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "namespace_export",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case discovery.StaticConfig",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *equalStringMatcher",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *loadCmd",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *BinaryExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case orStringMatcher",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *UnaryExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *AggregateExpr",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefMmapMarker",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *file.SDConfig",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *Call",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EvalStmt",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case fSample",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []record.RefExemplar",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ParenExpr",
+      "raw": 2
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "file",
+      "raw": 2
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "singleton_method",
+      "raw": 2
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "if_guard",
+      "raw": 2
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case RuleNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *PlusBlockStartState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StarLoopbackState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *NoViableAltException",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BlockStartState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *FailedPredicateException",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case DecisionState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StarLoopEntryState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *RuleStartState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StarBlockStartState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *BlockEndState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *InputMisMatchException",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "alias",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *expvar.String",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *expvar.Map",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *expvar.Int",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *expvar.Float",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "complex",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.FuncLit",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "escape_sequence",
+      "raw": 1
+    },
+    {
+      "lang": "python",
+      "surface_kind": "exec_statement",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "escape_sequence",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "string_fragment",
+      "raw": 1
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "switch_default",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.FuncType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.CallInjectionStart",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.StepInRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.ConvertAllocToString",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.CancelRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *starlark.Dict",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.QualType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *locspec.NormalLocationSpec",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *InterfaceType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetVariableRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ExceptionInfoRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ThreadsResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.StackTraceRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *MapType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Address",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.CompletionsRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.AttachRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.CallInjectionStartSpecial",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushIdent",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case arm64asm.Imm",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.SetDebugPinner",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.TerminateThreadsRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.VoidType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ErrFunctionNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.IndexListExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ScopesRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.DisassembleRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.EvaluateRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case func(*proc.Target)",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case arm64asm.Reg",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *PtrType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case arm64asm.PCRel",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.TypeAssertExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *locspec.RegexLocationSpec",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[string]uint64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.TypeCast",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *linuxRISCV64Thread",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushFrameoff",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.TerminateRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ppc64asm.Imm",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.StepOutRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushBreakpointHitCount",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.FuncType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case x86asm.Mem",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.ChanType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case structVariableAsStarlarkValue",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ChanType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.CallInjectionSetTarget",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushThreadID",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case loong64asm.Reg",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case locationFinder2",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Dup",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.TypeAssert",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Binary",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case op.Opcode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Pop",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.StepBackRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.CallInjectionComplete2",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.VariablesRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ContinueRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushNewFakeVariable",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.StepInTargetsRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.IfStmt",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetExceptionBreakpointsRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BreakpointExistsError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *CallInjectionComplete",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ReadMemoryRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Reslice",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case locationFinder1",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.RestartFrameRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.UnaryExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.MapType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.NextRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Roll",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.UcharType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushLocal",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushPinAddress",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []LocEntry",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case x86asm.Imm",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case func(*proc.TargetGroup, *proc.Target)",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ErrorResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.CharType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.CallInjectionCopyArg",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushPackageVarOrSelect",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.GotoTargetsRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.DisconnectResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.KeyValueExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.DisableErrors",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.LaunchRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ContinueResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushNil",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.UnspecifiedType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.InitializeRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Select",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case riscv64asm.RegOffset",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.BreakpointLocationsRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.CallInjectionComplete",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushRuntimeType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushLen",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushCurg",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.SliceExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SourceRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ppc64asm.Reg",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PointerDeref",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *memCache",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case starlark.Bytes",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.LoadedSourcesRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *FuncType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.SetExpressionRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.GotoRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Index",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushRangeParentOffset",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *CallInjectionStartSpecial",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.PauseRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.CompositeLit",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *godwarf.ChanType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *starlark.Function",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Unary",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushDebugPinner",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.BuiltinCall",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.PushConst",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *starlark.List",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ConfigurationDoneRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ppc64asm.PCRel",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *linuxARM64Thread",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ModulesRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.BoolToConst",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dap.ReverseContinueRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *linuxLOONG64Thread",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.Jump",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.SetValue",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case structAsStarlarkValue",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *QualType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalop.AddrOf",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case x86asm.Reg",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "block_parameters",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.SSClass",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EClass",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.MQPlainOrBoolean",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ERequireResolveString",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EAnnotation",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *graph.CopyRepr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RQualified",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RAtScope",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *CSSRepr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.SSHash",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.MQType",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RUnknownAt",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RBadDeclaration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SLocal",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *STry",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.EImportString",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *JSRepr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *js_ast.ERequireString",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EArrow",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *css_ast.RDeclaration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SExportDefault",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SExportClause",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SExportFrom",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *EImportIdentifier",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *SImport",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *watchRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *RequestOp_RequestPut",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ed25519.PrivateKey",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.TxnRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *clientv3.MemberAddResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *jwt.SigningMethodHMAC",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.GenDecl",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *clientv3.MemberRemoveResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *clientv3.MemberListResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.PutResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case protoreflect.EnumNumber",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *progressRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.StatusRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.WatchRequest_ProgressRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *Compare_Value",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *fileutil.LockedFile",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *RequestOp_RequestTxn",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *clientv3.MemberUpdateResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case protoreflect.Message",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.TxnResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.LeaseGrantRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.PutRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "assignment_statement",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.RangeRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case proto.Message",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.ValueSpec",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.DeleteRangeResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *pb.RangeResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *os.File",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *clientv3.MemberPromoteResponse",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "undef",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *tcell.EventMouse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *tcell.EventPaste",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *tcell.EventResize",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *tcell.EventKey",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case MatchRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case searchRequest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case MatchResult",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *multipart.FileHeader",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BindUnmarshaler",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **uint8",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.OrderBy",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **int",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **int64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.Interface",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **bool",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **string",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **uint16",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case AndConditions",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *schema.Constraint",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.Expr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[interface{}]interface{}",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.OrderByColumn",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **float64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **int8",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case clause.Table",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *DB",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **uint32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **uint",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **int16",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **int32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case TxBeginner",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *schema.CheckConstraint",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **uint64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []clause.Column",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case NamedExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case **float32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Tx",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ConnPoolBeginner",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Valuer",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case interface{ getInstance() *DB }",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *WithNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case gift.Filter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.Text",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []PageGroup",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case FileError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case resource.ResourcesConverter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *afero.MemMapFs",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case func(name any) Resource",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.CSS",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case PagesGroup",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *TemplateNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *TextNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodePage",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.Srcset",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *tstSlicer",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ExecError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case VectorStore",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case keyer",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *json.SyntaxError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ActionNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *Pages",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case interface{ PathInfo() *paths.Path }",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.Heading",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *east.DefinitionTerm",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *passthrough.PassthroughBlock",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case toml.LocalDateTime",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *image.Paletted",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.HTML",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.RawHTML",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.CommandNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodeLookupContentNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case toml.LocalDate",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case json.RawMessage",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case IdentityProvider",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []filter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case colorGoProvider",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []Page",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parse.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case media.Type",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case AsTimeProvider",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *toml.DecodeError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ToVectorStoreProvider",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case writeError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *create.HTTPError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_arguments",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *partials.Namespace",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case fs.FileInfo",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []map[any]any",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case contentNodeSeq",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case resource.ReadSeekCloserResource",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *genericResource",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.URL",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case func() Pages",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case func(*commandeer)",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case json.Marshaler",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case pageWrapper",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ListNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *json.UnmarshalTypeError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *RangeNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.Srcset",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *CommentNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case resource.Resource",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case htmltemplate.HTMLAttr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *IfNode",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Manager",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case DependencyManagerProvider",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *ast.String",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "generic_type",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case related.Document",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case template.URL",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case fs.DirEntry",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case io.Reader",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *resourceAdapter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *resourceSource",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *east.Emoji",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ResourceGetter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Version",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case himage.AnimatedImage",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *resourcestpl.Namespace",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case map[string]bool",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case (*passthrough.PassthroughBlock)",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ResourcesProvider",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case imagemeta.Rat[uint32]",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hmaps.ParamsMergeStrategy",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case page.Page",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []gift.Filter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *afero.OsFs",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "catch_clause",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "try_statement",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "interface_body",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "catch_formal_parameter",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "interface_declaration",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "catch_type",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "begin_block",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "end_block",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "setter",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "block_parameter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case replication.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case config.ErrConfigGeneric",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrInvalidARN",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteArnTypeInvalid",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrDuplicateQueueConfiguration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case minio.ErrorResponse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrUnknownRegion",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteTargetNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketLifecycleNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case batchReplicationJobError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case PartTooSmall",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case [12]byte",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hash.SizeTooSmall",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrFilterNameSuffix",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrInvalidEventName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketTaggingNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case AllAccessDisabled",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketExists",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrFilterNamePrefix",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrARNNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrInvalidEventName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidRange",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case RawJSON",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hash.SizeTooLarge",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case url.EscapeError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *wholeBitrotWriter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrFilterNamePrefix",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteDestinationNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketQuotaExceeded",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case jentry",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrFilterNameSuffix",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrDuplicateEventName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case OperationTimedOut",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectNameInvalid",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case json.Number",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketNotEmpty",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteLabelInUse",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketReplicationConfigNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case dns.ErrBucketConflict",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidObjectState",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case IncompleteBody",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case versioning.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectAlreadyExists",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case MethodNotAllowed",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectNamePrefixAsSlash",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *bytes.Reader",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectNameTooLong",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case decomError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case kms.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case AdminError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrARNNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case NotImplemented",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hash.SHA256Mismatch",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "array_type",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case SRError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectExistsAsDirectory",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case StorageFull",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrInvalidFilterValue",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *streamingBitrotWriter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case UnsupportedMetadata",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BackendDown",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case MalformedUploadID",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrDuplicateEventName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrInvalidARN",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *MapClaims",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StandardClaims",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteRemoveDisallowed",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketAlreadyOwnedByYou",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketReplicationSourceNotVersioned",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *googleapi.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketPolicyNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketSSEConfigNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidPart",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrInvalidFilterName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case badConfigErr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketAlreadyExists",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case PartTooBig",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketQuotaConfigNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case crypto.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case freeVersionTask",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *azcore.ResponseError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrInvalidFilterValue",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hash.BadDigest",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketNameInvalid",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case dns.ErrInvalidBucketName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrDuplicateQueueConfiguration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case config.ErrConfigNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *levent.ErrInvalidARN",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case hash.ChecksumMismatch",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case PreConditionFailed",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ObjectLocked",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrUnsupportedConfiguration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrUnknownRegion",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case TransitionStorageClassNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case StorageErr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteIdenticalToSource",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteTargetNotVersioned",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrUnsupportedConfiguration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InsufficientWriteQuorum",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *bytes.Buffer",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case tags.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *xml.SyntaxError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketObjectLockConfigNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case SignatureDoesNotMatch",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteAlreadyExists",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidArgument",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case lifecycle.Error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *URLValues",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *event.ErrInvalidFilterName",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case BucketRemoteArnInvalid",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case InvalidUploadIDKeyCombination",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *strings.Reader",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case PrefixAccessDenied",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *levent.ErrARNNotFound",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *AuthCallout",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case LogUTC",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case JSTpmOpts",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *DirAccResolver",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []*User",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []*NkeyUser",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *exec.ExitError",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *rsa.PSSOptions",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case token",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case any",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []*url.URL",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *processConfigErr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []*jwt.OperatorClaims",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case GatewayOpts",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case WebsocketOpts",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *DeleteRange",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *avl.SequenceSet",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []*Account",
+      "raw": 1
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "regex_pattern",
+      "raw": 1
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "finally_clause",
+      "raw": 1
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "function_signature",
+      "raw": 1
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "augmented_assignment_expression >>>=",
+      "raw": 1
+    },
+    {
+      "lang": "javascript",
+      "surface_kind": "html_comment",
+      "raw": 1
+    },
+    {
+      "lang": "typescript",
+      "surface_kind": "override_modifier",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case emptyStringMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dns.MX",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case trueMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *querierAdapter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *literalSuffixStringMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StepInvariantExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dns.A",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case parser.TestStmt",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *RecordingRule",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case anyStringWithoutNewlineMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case AlertingRule",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dns.AAAA",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *mockQuerier",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case warningsOnlySeriesSet",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case allStaleSeriesPostings",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case errWithWarnings",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case promql.String",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *FloatHistogram",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case RecordingRule",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.EvalStmt",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *chunkenc.FloatHistogramChunk",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *evalCmd",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Config",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *clearCmd",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case String",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *mergeGenericQuerier",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *parser.StepInvariantExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *AlertingRule",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dns.SRV",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *targetgroup.Group",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *DurationExpr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dns.CNAME",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *Histogram",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *dns.NS",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *rules.RecordingRule",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *containsStringMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *anyNonEmptyStringMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *kubernetes.SDConfig",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *equalMultiStringMapMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *equalMultiStringSliceMatcher",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case Matrix",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *genericQuerierAdapter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *rules.AlertingRule",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *secondaryQuerier",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *chunkenc.HistogramChunk",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "array_pattern",
+      "raw": 1
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "shebang",
+      "raw": 1
+    },
+    {
+      "lang": "java",
+      "surface_kind": "record_declaration",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "case_match",
+      "raw": 1
+    },
+    {
+      "lang": "ruby",
+      "surface_kind": "next",
+      "raw": 1
+    },
+    {
+      "lang": "rust",
+      "surface_kind": "const_item",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StringSliceFlag",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case (*mutuallyExclusiveGroup)",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case ErrorFormatter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *StringFlag",
+      "raw": 1
+    },
+    {
+      "lang": "c",
+      "surface_kind": "abstract_function_declarator",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *string",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *time.Duration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []complex64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []int16",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case complex64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []uint16",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *uint64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []uintptr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []time.Time",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case zapcore.ArrayMarshaler",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *uint8",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *complex128",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []int64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []complex128",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []Field",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *uintptr",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []int8",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case errorGroup",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case fmt.Formatter",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *uint32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case complex128",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []error",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []int32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []uint64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *bool",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *int64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *complex64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *int32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case zapcore.ObjectMarshaler",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *uint16",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *float32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *int16",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []uint",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []time.Duration",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *float64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []float64",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case *int8",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case WriteSyncer",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []uint32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []float32",
+      "raw": 1
+    },
+    {
+      "lang": "go",
+      "surface_kind": "type_case []bool",
+      "raw": 1
+    }
+  ]
+}
