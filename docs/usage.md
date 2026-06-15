@@ -71,7 +71,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 | `base=REF` | the **divergent-edit** view (the [`nose review`](review.md) pipeline, surfaced in query): detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. Each item carries `fire_eligible` (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate (fires only on the proven case) |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status=new --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
-| `top=N` | show the first N rows (default 30) |
+| `top=N` | show the first N rows (default 30); `top=0` shows **all** (like the deprecated `scan --top 0`) |
 | `full` | on `id=` or a list, render the all-copies extraction skeletons inline (batched); each varying spot is `⟨param N: class⟩` — a coarse value-class hint (`literal`/`name`/`call`/`expr`/`block`) for the helper signature |
 | `all` | widen past the curated default surface to the full raw universe (demoted families labeled) |
 

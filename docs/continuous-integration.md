@@ -177,23 +177,15 @@ for the file format and selector semantics.
 findings as inline PR annotations:
 
 ```sh
-nose query src --format sarif > nose.sarif    # then upload via github/codeql-action/upload-sarif
+nose query src --format sarif top=0 > nose.sarif   # then upload via github/codeql-action/upload-sarif
 ```
 
-`nose query --format sarif` emits the same SARIF over the same dataset, but it caps
-output with the `top=` DSL term (default 30) and has **no all-escape**, so for a complete
-upload prefer `nose scan`'s `--top 0`:
-
-```sh
-nose scan src --format sarif --top 0 > nose.sarif   # deprecated, but the guaranteed-complete upload
-```
-
-**Pass `--top 0` (scan) for a complete upload.** `--top` (default 30) truncates *every*
-output format, SARIF included — without `--top 0` a repo with more than 30 families
-uploads only the first 30. The SARIF run records the full count in
-`runs[].properties` (`total_families` / `shown_families`) and, when families were
-hidden, adds a `note` notification under `runs[].invocations[]`, so a truncated upload
-is at least detectable; `--top 0` avoids the cap entirely.
+**Pass `top=0` for a complete upload.** Every output format truncates to the row limit —
+`top=N` (default 30); `top=0` means *all* (matching the deprecated `nose scan --top 0`).
+Without it a repo with more than 30 families uploads only the first 30. The SARIF run records
+the full count in `runs[].properties` (`total_families` / `shown_families`) and, when families
+were hidden, adds a `note` notification under `runs[].invocations[]`, so a truncated upload is
+at least detectable; `top=0` avoids the cap entirely.
 
 `--format json` is the general machine-readable form for any other tooling. The forward
 versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v2);

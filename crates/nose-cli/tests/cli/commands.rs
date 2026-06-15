@@ -1886,6 +1886,42 @@ fn proposal_aligns_across_all_copies() {
 }
 
 #[test]
+fn query_top_zero_shows_all_families() {
+    // Regression for the v0.10.0 query-subsumes-scan gap: `top=0` must mean *all* (matching
+    // `scan --top 0`, and the `top: Some(0)` the dataset build already uses for "every
+    // family"), not "zero rows". The display paths previously truncated it to an empty set.
+    let dir = make_mode_project("top_zero");
+    let p = dir.to_str().unwrap();
+    let count = |term: &str| -> usize {
+        let v: serde_json::Value = serde_json::from_str(&run(&[
+            "query",
+            p,
+            "all",
+            term,
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "--format",
+            "json",
+        ]))
+        .unwrap();
+        v["families"].as_array().unwrap().len()
+    };
+    let total = count("top=999");
+    assert!(
+        total >= 2,
+        "fixture should surface multiple families (got {total})"
+    );
+    assert_eq!(
+        count("top=0"),
+        total,
+        "query top=0 shows ALL families, like scan --top 0"
+    );
+    assert_eq!(count("top=1"), 1, "a finite top still truncates");
+}
+
+#[test]
 #[allow(clippy::too_many_lines, clippy::cognitive_complexity)] // one end-to-end walk of the query surface
 fn query_dashboard_filter_and_family() {
     // A sizeable 3-copy near family (one operator each) survives the default size floor.

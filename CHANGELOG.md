@@ -6,6 +6,13 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **`nose query top=0` now shows *all* families** (matching `nose scan --top 0`), instead of
+  returning an empty result. The dataset build already used `top=0` for "every family"; the
+  display paths (`list`, `base`, `reinvented`, and the `--format markdown`/`sarif` report) now
+  agree, so `nose query <path> --format sarif top=0` is the complete-upload spelling and query
+  fully subsumes scan's truncation control. No `top=` term still defaults to 30.
+
 ## [0.10.0] - 2026-06-15
 
 Breaking: **`nose query` becomes the primary surface and `nose scan`/`nose review` are

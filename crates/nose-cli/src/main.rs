@@ -4427,6 +4427,17 @@ fn run_query_base(args: &ScanArgs, base_ref: &str, q: &Query, path_arg: &str) ->
 /// Render the `base=` divergence view: query's v2 envelope around review's shared finding
 /// JSON, or a concise human report keyed on which copy changed and whether the edit touched
 /// shared logic (the propagation hazard).
+/// Resolve how many rows a query view shows. `top=N` shows N; `top=0` means *all*
+/// (matching `scan --top 0`, and the `top: Some(0)` the dataset build already uses for
+/// "every family"); an absent `top=` defaults to 30.
+fn query_row_limit(top: Option<usize>) -> usize {
+    match top {
+        Some(0) => usize::MAX,
+        Some(n) => n,
+        None => 30,
+    }
+}
+
 fn render_query_base(
     flagged: &[review::Divergence],
     changed_files: usize,
@@ -4435,7 +4446,7 @@ fn render_query_base(
     top: Option<usize>,
     json: bool,
 ) {
-    let limit = top.unwrap_or(30);
+    let limit = query_row_limit(top);
     let fire_eligible = flagged.iter().filter(|d| d.fire_eligible).count();
     if json {
         let items: Vec<_> = review::divergence_items_json(flagged)
@@ -4622,7 +4633,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         ReportFormat::Markdown | ReportFormat::Sarif => {
             let selected =
                 query_selection(&dataset.families, &overrides, &opp, &q, &path_arg, since)?;
-            let top = q.top.unwrap_or(30);
+            let top = query_row_limit(q.top);
             let shown: Vec<&nose_detect::RefactorFamily> =
                 selected.iter().take(top).copied().collect();
             if matches!(format, ReportFormat::Sarif) {
@@ -4898,7 +4909,7 @@ fn render_query_reinvented(
     let shown: Vec<&nose_detect::ReinventedHelper> =
         reinvented.iter().filter(|r| !r.container_in_test).collect();
     let in_test = reinvented.len() - shown.len();
-    let limit = top.unwrap_or(30);
+    let limit = query_row_limit(top);
     if json {
         let items: Vec<_> = shown
             .iter()
@@ -4979,7 +4990,7 @@ fn render_query_list(
     json: bool,
     since: Option<&BaselineComparison>,
 ) {
-    let top = q.top.unwrap_or(30);
+    let top = query_row_limit(q.top);
     let shown = sel.len().min(top);
     if json {
         let fams: Vec<_> = sel
