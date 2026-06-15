@@ -31,10 +31,10 @@ python3 bench/labels/eval_by_language.py --rank extractability  # P@10 + worthy-
 
 `eval_by_language.py` still prints its historical `value` baseline and
 anti-unification re-rank columns. The current default `extractability` order is the native
-`nose scan --format json` family order; the snapshot below uses that same label matching
+`nose query --format json` family order; the snapshot below uses that same label matching
 with the native order kept.
 
-**Current reproducible snapshot (v0.9.0):** with the default `extractability` order — after
+**Reproducible snapshot (v0.9.0 baseline):** with the default `extractability` order — after
 the all-copies `shared_lines` (#366, §CL) and the member-span heterogeneity penalty (#365,
 §CM) — an audit run over the checked-out `bench/repos` corpus measured overall precision@10 at
 about **61% dev [56–66] / 59% held-out [54–64]**. Worthy-recall in that run was roughly
@@ -72,15 +72,17 @@ are counted in the summary without failing the run.
 The detector is parallel at every stage and designed for deterministic output; tests cover
 repeat runs and thread-count variation on the local platform. The archived §T run measured
 about **19,500 files/sec** warm on its pinned corpus/hardware, with frontend parse+lower
-dominating and scaling about 11.6x on 18 cores. `NOSE_TIME=1 nose scan <path> --top 0`
-prints the per-stage breakdown for your machine. The default mode already runs
+dominating and scaling about 11.6x on 18 cores. `NOSE_TIME=1 nose query <path>`
+prints the per-stage breakdown for your machine (the timing covers the whole scan
+regardless of how many families are displayed). The default mode already runs
 the full `syntax,semantic,near` surface. See
 experiments §T for the throughput work.
 
 ## The research commands
 
-The everyday surfaces are `nose query` (interactive exploration) and `nose scan` (one-shot
-report + CI gate) — both over the same dataset ([usage](usage.md)). The default mix is
+The everyday surface is `nose query` (interactive exploration, carrying the
+`--fail-on`/`--baseline` CI gate); `nose scan` is the deprecated one-shot alias over the
+same dataset ([usage](usage.md)). The default mix is
 `syntax,semantic,near` (experiments §BM priced the flip); benchmark runs that need the
 pre-flip exact-only surface pin `--mode syntax,semantic` explicitly. The benchmark also
 uses a hidden research surface:

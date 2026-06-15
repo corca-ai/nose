@@ -12,11 +12,11 @@ fingerprints, or approve clone pairs.
 
 ## Local entry points
 
-Use `--semantic-pack <file-or-dir>` on `nose scan` to opt into local pack
-metadata for one run:
+Use `--semantic-pack <file-or-dir>` on `nose query` (the primary surface) or the
+deprecated `nose scan` to opt into local pack metadata for one run:
 
 ```sh
-nose scan src --format json --semantic-pack semantic-packs/python-math-prod.json
+nose query src --format json --semantic-pack semantic-packs/python-math-prod.json
 ```
 
 Commit stable project opt-ins in `nose.toml`:

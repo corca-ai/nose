@@ -23,12 +23,14 @@ use std::path::PathBuf;
     about = "Find duplicated code worth refactoring — exact, semantic (Type-4), and near-duplicate clone families",
     long_about = "nose lowers each language into one normalized IL, groups duplicated code into\n\
                   clone families, and ranks them by how cleanly each folds into one shared helper.\n\
-                  • `nose scan <paths>`                — find refactoring candidates (copy-paste + exact semantic + near-duplicates)\n\
-                  • `nose scan <paths> --show diff`    — also show exactly what differs inside each family\n\
-                  • `nose review --base origin/main`   — flag a change applied to one clone copy but not its siblings\n\
-                  • `nose stats <paths>`               — IL lowering coverage per language\n\
-                  • `nose il <file>`                   — inspect the IL (why two snippets do/don't converge)\n\
-                  • `nose capabilities`                — machine-readable integration contract"
+                  • `nose query <paths>`                  — explore the duplication interactively (the everyday command)\n\
+                  • `nose query <paths> id=<fam> full`    — open one family: every copy + its extraction skeleton\n\
+                  • `nose query <paths> base=origin/main` — flag a change applied to one clone copy but not its siblings\n\
+                  • `nose query <paths> --fail-on any`    — gate CI (exit non-zero on duplication); add `--format json` for the contract\n\
+                  • `nose stats <paths>`                  — IL lowering coverage per language\n\
+                  • `nose il <file>`                      — inspect the IL (why two snippets do/don't converge)\n\
+                  • `nose capabilities`                   — machine-readable integration contract\n\
+                  `nose scan` and `nose review` still work but are deprecated in favour of `nose query`."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -97,13 +99,15 @@ enum Cmd {
         #[arg(long)]
         dump: Option<PathBuf>,
     },
-    /// Find duplicated code and rank refactoring candidates (the everyday command).
+    /// Rank refactoring candidates as a one-shot report. DEPRECATED — use `nose query`.
     ///
     /// Scans files/directories (respecting .gitignore), groups duplicated code into
     /// clone families, and ranks them by extractability — how cleanly each family
     /// folds into one shared helper. Default channels: `syntax,semantic,near`
     /// (copy-paste runs + exact semantic Type-4 + fuzzy near-duplicates). Passing
     /// --mode replaces that default with exactly the channels listed.
+    /// `nose query` reads the same dataset and carries the gate, baselines, and a
+    /// structured `--format json` contract; `scan` still works but will be removed later.
     Scan {
         /// Paths to source files or directories (recursively scanned).
         #[arg(required = true)]
@@ -194,10 +198,11 @@ enum Cmd {
         #[arg(long, value_enum, default_value_t = ScopeFilter::All)]
         scope: ScopeFilter,
     },
-    /// Explore the duplication dataset (#359) — a stateless, self-describing query
-    /// surface for an agent loop. `nose query <path>` prints a landing dashboard; add
-    /// terms to slice, facet, or open one family. Every result suggests runnable next
-    /// commands. Opt-in: it does not change `nose scan`.
+    /// Explore the duplication dataset — the everyday command (#359). A stateless,
+    /// self-describing query surface: `nose query <path>` prints a landing dashboard; add
+    /// terms to slice, facet, or open one family, and every result suggests runnable next
+    /// commands. Carries the analysis flags, the `--fail-on` CI gate, and a versioned
+    /// `--format json` contract — it subsumes the deprecated `scan`/`review`.
     Query {
         /// Path to a file or directory (recursively scanned).
         #[arg(required = true)]

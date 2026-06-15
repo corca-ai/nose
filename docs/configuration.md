@@ -33,6 +33,7 @@ format, `--show` views, baselines, cache location, and CI failure mode.
 
 All keys are optional; an absent key means "no opinion — use the CLI value or
 the built-in default". Keys are kebab-case and live under the `[scan]` table.
+`nose query` reads the same `[scan]` config keys as `nose scan`.
 
 | key | type | default | same as flag |
 |---|---|---|---|
@@ -72,7 +73,7 @@ they must name the same threshold because both modes share one fuzzy acceptance
 cutoff.
 
 ```sh
-nose scan src --mode syntax,semantic,near:0.70
+nose query src --mode syntax,semantic,near:0.70
 ```
 
 Config file paths are resolved from the config file's directory, so committed

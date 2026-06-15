@@ -17,7 +17,7 @@ Every response is an object with:
 |---|---|
 | `schema_version` | `2` |
 | `tool` | `"nose"` |
-| `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` |
+| `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the scanned path, as given |
 
 plus the view-specific body below. Like the human surface, a result is a pure function of

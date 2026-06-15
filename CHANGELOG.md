@@ -6,8 +6,11 @@ break.
 
 ## [Unreleased]
 
-The 0.10.0 line (breaking): **`nose query` becomes the primary surface and `nose scan` is
-deprecated.** All changes below are staged; the release is not yet cut.
+## [0.10.0] - 2026-06-15
+
+Breaking: **`nose query` becomes the primary surface and `nose scan`/`nose review` are
+deprecated** (both still work, with an interactive one-line nudge; removal is slated for a
+later release).
 
 ### Added
 - **`nose query` is now a complete surface** over the same dataset `scan` computes:
@@ -73,6 +76,23 @@ deprecated.** All changes below are staged; the release is not yet cut.
 ### Deprecated
 - `nose scan` (and the scan-JSON v1 contract) and `nose review` — migrate to `nose query`
   (`query <path>`, `query <path> base=<ref>`) and the query-JSON v2 contract.
+
+### Documentation
+- **The docs lead with `nose query`.** README, the wiki [home](docs/home.md),
+  [getting-started](docs/getting-started.md), and the full [usage](docs/usage.md) reference now
+  present `nose query` as the everyday command — explore, one-shot report (`--format markdown`),
+  PR check (`base=<ref>`), CI gate (`--fail-on`), and the versioned JSON contract. `nose
+  scan`/`nose review` are documented as deprecated aliases, and usage is reordered so the
+  primary command and the shared Ranking / detection-mode sections come before the deprecated
+  `scan` reference. The CLI `--help` text (`long_about`, the `scan`/`query` summaries) was
+  updated to match.
+- **Code↔docs drift sweep.** Fixed the [capabilities](docs/capabilities.md) example
+  (`commands.stable` no longer lists `review`; `deprecated` adds it; `schemas.query_json` added);
+  migrated the [agent-recipe](docs/agent-recipe.md) decision procedure to query-JSON v2 field
+  names; added a deprecation banner to [scan-json](docs/scan-json.md) pointing to query-JSON v2;
+  corrected [clone-types](docs/clone-types.md) (`near` is part of the default surface, not
+  opt-in); updated [languages](docs/languages.md) for the #390 boundary/gap Raw split; and
+  refreshed the stale `nose query` dashboard examples against the shipped output.
 
 ## [0.9.1] - 2026-06-15
 

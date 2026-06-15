@@ -133,9 +133,9 @@ is held to proof discipline (§1). Actionability splits by **decidability, not c
 ### 2c. The bare default is the product
 
 A no-flags invocation is the first-user experience: `nose query <path>` (the interactive
-landing dashboard) for an exploring agent or human, `nose scan <path>` (the one-shot report)
-for a batch read or CI. Both render the **same default surface**, and its head is nose's one
-chance to demonstrate value. Two consequences:
+landing dashboard) for an exploring agent or human, or the deprecated `nose scan <path>`
+(the one-shot report) for a batch read or CI. Both render the **same default surface**, and
+its head is nose's one chance to demonstrate value. Two consequences:
 
 - The default surface must be **dominated by actionable findings**. A finding class leaves
   the default surface only when its non-actionability is *decidable* (§2b) or *measured*
@@ -155,9 +155,11 @@ chance to demonstrate value. Two consequences:
 
 - **Institutionalize adversarial per-rule batteries.** zero-false-merge is the premise both
   consumers depend on; this is what makes the guarantee scale as rules are added.
-- **scan-json evidence richness.** The real lever for consumer 1 — make equivalence
-  *explainable and actionable* in machine-readable form.
-- **`review`-as-gate.** The natural high-precision bottom-line for consumer 2; harden it past
+- **query-JSON v2 evidence richness.** The real lever for consumer 1 — make equivalence
+  *explainable and actionable* in machine-readable form (the shipped `nose query --format
+  json` contract; scan-JSON v1 deprecated).
+- **`query base=<ref>`-as-gate.** The natural high-precision bottom-line for consumer 2
+  (the shipped divergent-edit view, formerly `nose review`); harden it past
   v1 and define a conservative fire policy. *Measured 2026-06-11
   ([experiments §BR](experiments.md)): on replayed merged PRs the default arm fires on 33%
   of changes at ~4% top-1 strict precision — real catches exist but the fire policy work

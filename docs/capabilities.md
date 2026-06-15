@@ -2,8 +2,9 @@
 
 `nose capabilities` emits the stable machine-readable contract for the installed
 binary. Use it from installers, editor integrations, CI wrappers, and doctor
-commands before invoking `nose scan`. For the human command guide see
-[usage](usage.md); for scan result JSON see [scan-json](scan-json.md).
+commands before invoking `nose query` (or the deprecated `nose scan`). For the
+human command guide see [usage](usage.md); for the result JSON see
+[query-json](query-json.md) (the forward contract) and [scan-json](scan-json.md).
 
 ## Why this is not help text
 
@@ -42,12 +43,13 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["capabilities", "il", "query", "review", "semantic-pack", "stats"],
-    "deprecated": ["scan"]
+    "stable": ["capabilities", "il", "query", "semantic-pack", "stats"],
+    "deprecated": ["review", "scan"]
   },
   "schemas": {
     "capabilities": [1],
     "scan_json": [1],
+    "query_json": [2],
     "semantic_packs": ["nose.semantic-pack.v0"],
     "semantic_pack_conformance": [1]
   },
@@ -134,9 +136,10 @@ release so it can't drift.
 | `interfaces.version_json` | boolean | Whether `nose --version --json` is supported. Version 1 reports `false`. |
 | `interfaces.doctor_json` | boolean | Whether `nose doctor --json` is supported. Version 1 reports `false`. |
 | `commands.stable` | array | Stable user-facing commands that integrations may invoke (incl. `query`, the interactive exploration surface — see [usage › nose query](usage.md#nose-query), with its versioned [query-JSON](query-json.md) contract). Hidden research commands are intentionally omitted. |
-| `commands.deprecated` | array | Commands that still work but are being retired; integrations should migrate. `scan` → `nose query` (same dataset + gate + a structured `--format json` contract). |
+| `commands.deprecated` | array | Commands that still work but are being retired; integrations should migrate. `scan` → `nose query` (same dataset + gate + a structured `--format json` contract); `review` → `nose query <paths> base=<ref>` (same divergent-edit detection + gate). |
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
-| `schemas.scan_json` | array | Supported `nose scan --format json` schema versions. |
+| `schemas.scan_json` | array | Supported `nose scan --format json` schema versions (deprecated; see `query_json`). |
+| `schemas.query_json` | array | Supported `nose query --format json` schema versions — the forward machine contract ([query-json](query-json.md)). |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0`. |
 | `schemas.semantic_pack_conformance` | array | Supported `nose semantic-pack check --format json` schema versions. |
 | `scan.modes` | array | Supported `--mode` values. |

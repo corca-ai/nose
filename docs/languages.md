@@ -44,15 +44,20 @@ shows up as one cross-container family (confirmed on real projects in
 
 Lowering quality is measured by the **Raw-node ratio** — the fraction of CST
 nodes that fall through to an opaque `Raw` IL node instead of a real one. Lower
-is better; on the current pinned `bench/repos` corpus the overall ratio is about
-0.57%, with language-specific gaps visible in `nose stats`. Check it per language with:
+is better. `nose stats` distinguishes two kinds of Raw: by-design
+**protocol-boundary** Raw (await, try/`?`, defer, go, channel operations, select,
+yield — fail-closed boundaries, not coverage gaps) from genuine **lowering-gap**
+Raw. It reports `boundary_raw` and tags each unhandled construct `boundary` or
+`gap`. On the current pinned `bench/repos` corpus the overall ratio is in the low
+single-digit percent; run `nose stats` for the current figure, with
+language-specific gaps visible per construct. Check it per language with:
 
 ```sh
 nose stats <paths…>
 ```
 
-A high Raw ratio for a construct means that construct isn't lowering to a
-meaningful IL shape, so clones involving it won't converge. Closing those gaps
+A high *gap* ratio for a construct (not a by-design boundary) means that construct
+isn't lowering to a meaningful IL shape, so clones involving it won't converge. Closing those gaps
 (e.g. the Go composite-literal/`slice_expression`/`type_assertion` work that took
 Go from 0.40% to 0.03%, or Java local record/annotation declarations being erased
 as type metadata instead of surfacing as opaque statements, or Rust `async { ... }`

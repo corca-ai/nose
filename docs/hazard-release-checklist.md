@@ -28,8 +28,9 @@ miss.
 | **Performance / refactor with identical output** | No | No | Nothing (confirm output is byte-identical first) |
 
 **How to tell if detection output changed**, if unsure: scan a fixed fixture corpus with
-the old and new binary and diff the JSON `families` (`nose scan <fixtures> --mode
-semantic,near --format json --top 0`), comparing **sort-independently** and looking only at
+the old and new binary and diff the JSON `families` (`nose query <fixtures> --mode
+semantic,near --format json top=10000`, a cap above the fixture family count since `query`
+has no uncapped escape), comparing **sort-independently** and looking only at
 the calibrated inputs — family identity, member sets, fingerprints, and the feature values in
 the row above (`mean_sem`, `shared_weight`, `params`, `mean_lines`, `modules`, `scope`). A
 change there → refresh. **Ignore** pure-display fields and ordering: a reorder of the

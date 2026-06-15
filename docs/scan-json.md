@@ -1,14 +1,21 @@
 # Scan JSON schema
 
+> **Deprecated (0.10.0).** scan-JSON v1 is the legacy machine contract.
+> [query-JSON v2](query-json.md) (`nose query --format json`) is the forward,
+> view-shaped contract over the same family dataset — it mirrors the exploration
+> surface so a caller drives the same dashboard → slice → open-family loop. scan-JSON
+> v1 stays documented and emitted for back-compat; it will be removed in a later
+> release.
+
 `nose scan --format json` emits a versioned machine-readable report for CI,
 dashboards, editor integrations, and baselines that need clone families as data.
 For the command context see [usage](usage.md); for CI-oriented formats see
 [continuous-integration](continuous-integration.md). Tools can discover supported
 scan JSON schema versions with [capabilities](capabilities.md). An LLM agent
 consuming this schema should follow the validated triage protocol in
-[agent-recipe](agent-recipe.md). This is the one-shot batch contract; for *interactive*
-exploration of the same dataset, [`nose query`](usage.md#nose-query) is its companion
-surface (also `--format json`).
+[agent-recipe](agent-recipe.md). This is the deprecated one-shot batch contract; the
+forward, view-shaped machine contract over the same dataset is
+[query-JSON v2](query-json.md) (`nose query --format json`).
 
 ## Version 1
 

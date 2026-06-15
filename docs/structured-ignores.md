@@ -24,11 +24,13 @@ anything going through CI — prefer the structured file, because it stays audit
 
 ## Quick start
 
-Run a scan and copy the family ID from the human, markdown, or JSON report:
+Run nose and copy the family ID from the human, markdown, or JSON report:
 
 ```sh
-nose scan src --format json --top 0
+nose query src --format json all
 ```
+
+(`nose scan src --format json --top 0` is the deprecated equivalent.)
 
 Create `nose.ignore.json` in the directory where you invoke nose, or pass an explicit
 path with `--ignore-file`:
@@ -47,10 +49,10 @@ path with `--ignore-file`:
 }
 ```
 
-Then run `nose scan` from that directory. nose automatically reads
-`nose.ignore.json` when it exists. Use `--ignore-file <file>` or
-`ignore-file = "path/to/file.json"` in [configuration](configuration.md) when the
-file lives elsewhere.
+Then run `nose query` from that directory. nose automatically reads
+`nose.ignore.json` when it exists (`nose scan`, the deprecated equivalent, reads it the same
+way). Use `--ignore-file <file>` or `ignore-file = "path/to/file.json"` in
+[configuration](configuration.md) when the file lives elsewhere.
 
 Ignored families are removed from the active report and do not trip `--fail-on any` or
 `--fail-on new`. JSON output still carries them under `ignored_families` with the

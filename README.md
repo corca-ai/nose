@@ -31,36 +31,39 @@ scanned 23 files · python 14 · typescript 9
   by confidence: exact 1 · subdag 0 · copy-paste 1 · similar 2
 
 cleanest to extract (production first):
-  src/loaders/users.py:1  2 copies · 8/10 shared, 2p · ~8 removable · similar   nose query src id=b221962180
+  src/loaders/users.py:1  load_users  2 copies · 8/10 shared, 2p · ~8 removable · similar   nose query src id=b221962180
   …
-grammar:  nose query <path> [field=value | field>N | field~substr …] [group=FIELD | id=FAM] [sort=KEY] [top=N] [full] [all]
+grammar:  nose query <path> [field=value | field>N | field~substr …] [group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] [top=N] [full] [all]
 ```
 
 Then drill: `nose query src witness=exact` (only behavior-proven families), `nose query src
 group=dir` (by directory), `nose query src id=b221962180 full` (open one family with its
 all-copies extraction skeleton).
 
-For a **one-shot ranked report** — to read top-down, paste into a PR, or gate CI — use
-`nose scan`:
+`nose query` is the **one command** for every workflow over that dataset — explore, report,
+gate a PR, or feed a machine:
 
 ```sh
-nose scan src                              # the ranked report, cleanest-to-fold first
-nose scan src --show diff                  # also show exactly what differs inside each family
-nose scan src --format markdown            # a report to paste into a PR or issue
-nose review --base origin/main             # PR check: a change applied to one clone copy but not its siblings
-nose scan src --mode syntax --fail-on any  # jscpd-style copy-paste gate for CI
-nose scan src --format json                # the versioned machine-readable contract for batch tooling and CI
+nose query src                               # the landing dashboard, cleanest-to-fold first
+nose query src id=<fam> full                 # open one family: every copy + extraction skeleton
+nose query src base=origin/main              # PR check: a change applied to one copy but not its siblings
+nose query src --mode syntax --fail-on any   # jscpd-style copy-paste gate for CI
+nose query src --format markdown             # a ranked report to paste into a PR or issue
+nose query src --format json                 # the versioned machine-readable contract (query-JSON v2)
 ```
 
-`query` and `scan` read the **same** dataset: `query` is the interactive/agent surface,
-`scan` is the one-shot report plus the frozen JSON contract and the `--fail-on` CI gate. By
-default both run all three channels — `syntax` (copy-paste runs), `semantic` (exact
-same-logic Type-4 clones), and `near` (fuzzy near-duplicates) — and respect `.gitignore`.
-Pass `--mode` to run exactly the channels you list.
+By default it runs all three channels — `syntax` (copy-paste runs), `semantic` (exact
+same-logic Type-4 clones), and `near` (fuzzy near-duplicates) — and respects `.gitignore`;
+pass `--mode` to run exactly the channels you list.
+
+> `nose scan` (the one-shot ranked report + scan-JSON v1) and `nose review --base <ref>` (the
+> PR check) still work but are **deprecated** in favour of `nose query` and `nose query
+> base=<ref>`, which read the same dataset and now carry the CI gate and a versioned JSON
+> contract. See [usage](docs/usage.md).
 
 ## Documentation
 
-- [Getting started](docs/getting-started.md) — first scan and how to read the report.
+- [Getting started](docs/getting-started.md) — your first `nose query` and how to read the report.
 - [Documentation home](docs/home.md) — entry point for using, integrating, and contributing.
 - [Usage](docs/usage.md) — command and flag reference.
 - [Configuration](docs/configuration.md) — `nose.toml`, excludes, modes, thresholds, ignores.
@@ -77,7 +80,7 @@ wiki so claims have one source of truth:
 - [Benchmark](docs/benchmark.md)
 - [Architecture](docs/architecture.md)
 - [Semantic kernel](docs/semantic-kernel.md)
-- [Scan JSON schema](docs/scan-json.md)
+- [Query JSON contract](docs/query-json.md)
 
 ## License
 

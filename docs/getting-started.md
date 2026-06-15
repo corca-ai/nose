@@ -3,7 +3,7 @@
 nose finds duplicated code — literal copy-paste, renamed copies, and the same
 logic rewritten in a different style (and, occasionally, a different language) — and ranks each
 group by how cleanly you could fold it into one shared helper. Point it at a
-directory, read the list, refactor from the top.
+directory, read what it found, refactor from the top.
 
 This page takes you from install to a report you can act on in a few minutes. When
 you want the exact flag for something, the [usage](usage.md) reference has all of
@@ -25,11 +25,13 @@ Silicon + Intel) and Linux (x86_64 + arm64) are attached to every
 [release](https://github.com/corca-ai/nose/releases). To build from source
 instead, see [usage → Install](usage.md#install).
 
-## Explore interactively: `nose query`
+## Your first run: `nose query`
 
-The quickest way in is `nose query <path>`. It prints a **landing dashboard** of what nose
-found, and every result suggests the next command to run — so you (or an agent) navigate by
-following links instead of memorizing flags:
+`nose query <path>` is the one command you need. Point it at any file or directory
+and it prints a **landing dashboard** of what it found — and every result suggests the
+next command to run, so you (or an agent) navigate by following links instead of
+memorizing flags. It recurses, respects `.gitignore` files inside the scanned tree, and
+nothing is written to disk.
 
 ```
 $ nose query examples
@@ -37,150 +39,170 @@ nose — finds duplicated & refactorable code across languages.
 scanned 3 files · go 1 · python 1 · typescript 1
 
 1 duplicated-code families on the default surface.
-  by confidence: exact 0 · subdag 1 · copy-paste 0 · similar 0
+  by confidence: exact 1 · subdag 0 · copy-paste 0 · similar 0
+                 (exact/subdag = behavior-proven, value-graph-verified · copy-paste = token-identical · similar = fuzzy)
 
 cleanest to extract (production first):
-  examples/sum.go:3  6 copies · same logic in 3 languages · ~30 removable · subdag   nose query examples id=b658f483dc
-  …
-grammar:  nose query <path> [field=value | field>N | field~substr …] [group=FIELD | id=FAM] [sort=KEY] [top=N] [full] [all]
+  examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
+  nose query examples sort=extractability       # all 1 (default surface), cleanest first
+
+highest confidence — exact 1 (proven-identical) + shared-core 0:
+  examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
+
+most-duplicated directories:
+  nose query examples group=dir                 # full breakdown
+
+~30 duplicated lines on the default surface.
+
+grammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr …] [group=FIELD | id=FAM | at=FILE:LINE]
+          fields: scope witness same_symbol lang path members files value params shared dir
+          · sort=extractability(default)|value|members  · top=N  · `full` expands the skeleton  · `all` widens past the default surface
 ```
 
-From there you **slice** (`nose query examples witness=exact`, `scope=prod`, `params<2`),
-**facet** (`group=dir`), or **open one family** (`nose query examples id=b658f483dc full`
-shows its copies and the all-copies extraction skeleton). Each result is a pure function of
-(repo state, command), and an unknown field or value is a hard error — so a typo can never
-read as "no duplication." It explores the *same* dataset `nose scan` computes; nothing is
-written and `nose scan` / CI are unaffected.
+That's the whole loop in one screen: a summary, the cleanest candidates, and a runnable
+command on every line. From here you **open** a family, **slice** the list, or **facet** it.
 
-## Your first scan
+## How to read the report
 
-For a **one-shot ranked report** — to read top-down, paste into a PR, or gate CI —
-use `nose scan`.
+**The first line — `scanned 3 files · go 1 · python 1 · typescript 1`** — is what nose
+actually analyzed. If `.gitignore` or `--exclude` pruned vendored deps or build output, this
+count is far smaller than the files on disk; glance at it to confirm nose looked where you
+expected. (The *ignored* count is deliberately not shown — counting it would mean walking into
+the very trees `.gitignore` exists to skip.)
 
-Run `nose scan` on any file or directory. It recurses, respects `.gitignore` files inside
-the scanned tree, and prints the duplication it found, most worth-refactoring first:
+**The confidence line** breaks the families down by *why* their copies merged — the evidence,
+strongest first:
 
-```sh
-nose scan path/to/project
+- `exact` / `subdag` — a **value-graph proof**: the copies provably compute the same thing
+  (`exact` = the whole unit; `subdag` = a shared heavy sub-computation). A shared *decision*.
+- `copy-paste` — a token-identical run; classic copy-paste (identifiers/literals may vary).
+- `similar` — fuzzy structural likeness. A shared *shape*, not a proven shared decision.
+
+**Each candidate row is one _family_** — one refactoring decision (extract a helper, base
+class, or data table). Read it left to right:
+
+```
+examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
+└─ first copy ──┘  └sym─┘  └ sites ┘  └─ payoff economics ──┘  witness   └─ the runnable drill command ─┘
 ```
 
-```
-$ nose scan examples --min-size 8
-scanned 3 files · go 1 · python 1 · typescript 1
-1 clone family, ranked by extractability (cleanest to fold into one helper)  ·  ~30 duplicated lines  (showing 1)
+- `6 copies` — how many places this code appears.
+- `0/7 shared, 0p` — the **honest** overlap across *all* the copies: 0 of the 7 representative
+  lines are invariant, with 0 varying spots (`p`) to parameterize. A family that looks identical
+  but really shares few lines is obvious at a glance. (This family is **cross-language** — copies
+  in Go, Python, and TypeScript share no *source* lines, so `shared` is 0 even though the logic is
+  proven identical; that's why the headline capability shows up as `exact` with `~0 removable`.)
+- `~0 removable` — roughly how much code a clean extraction would delete (`(copies − 1) × shared`).
+- `exact` — the evidence tag from the confidence line above.
+- The trailing `nose query … id=…` is the command to **open** this family.
 
-#1  id b658f483dcc2b097 · 6 copies · same logic in 3 languages (go, python, typescript) · ~30 lines removable
-    → local duplication — extract a helper (cross-language)
+**Scope tags.** A family may be tagged `prod`, `test`, or `mixed` (the same logic in a test
+*and* in production). These are context for *where* to refactor, not a penalty — duplication in
+tests is still a smell. Slice with `scope=prod` or `scope=test`.
+
+## Open one family
+
+Add `id=<id>` (any unambiguous prefix) to open a family — its copies, the all-copies extraction
+skeleton, and a diff. Add `full` to render the skeleton inline:
+
+```
+$ nose query examples id=a47c37baa1 full
+a47c37baa1 — exact · prod · 6 copies · 0/7 shared, 0p · ~0 removable
+  → local duplication — extract a helper (cross-language)
+  copies:
     examples/sum.go:3-9  SumFor
     examples/sum.go:11-17  SumRange
     examples/sum.py:1-7  sum_while
     examples/sum.ts:1-7  sumFor
     examples/sum.ts:9-15  sumOf
     examples/sum.py:10-14  sum_for
+     proposal  extract a shared helper · 0 shared lines · 1 parameter(s) vary (across all 6 copies)
+       │ ⟨param 1: block⟩
+     diff  examples/sum.go:3-9  vs  examples/sum.go:11-17
+       …
 ```
 
-That's the whole loop: scan, look at `#1`, decide whether to extract it, move on.
+The `→` line is a **hint** grounded in facts (a shared symbol name, how many directories it
+spans), never a guess about what the code means. Every site is listed with its exact
+`file:line-range` — you can't act on a clone you can't see. Each varying spot in the skeleton is
+a `⟨param N: class⟩` placeholder (the coarse value-class — `literal`/`name`/`call`/`expr`/`block`
+— a hint for the helper's signature).
 
-## How to read the report
+## Slice, facet, and follow links
 
-**The first line — for example, `scanned 3 files · go 1 · python 1 · typescript 1`** — is what
-nose actually analyzed. If `.gitignore` or `--exclude` pruned vendored deps or
-build output, this count will be far smaller than the files on disk. Glance at it
-to confirm nose looked where you expected. (The *ignored* count is deliberately
-not shown — counting it would mean walking into the very trees `.gitignore` exists
-to skip.)
-
-**The summary line** tells you how many groups were found, how they're ranked, and
-the total duplicated volume. By default nose shows the top 30 (`--top N` to change,
-`--top 0` for all).
-
-**Each numbered entry is one _family_** — one refactoring decision (extract a
-shared helper, base class, or data table). Read it left to right:
-
-- `3 copies` — how many places this code appears.
-- `same logic in 2 languages …` — what's shared. For copies in one language this
-  instead reads `N of M lines identical` (or `… shared, K spots differ`) — the
-  *honest* overlap counted across **all** the copies (not just two), so a family that
-  looks identical but really shares few lines is obvious. Cross-language copies have no
-  shared *source* lines, so they report the language list instead.
-- `~134 lines removable` — roughly how much code you'd delete by consolidating.
-- The **`→` line is a hint**, grounded in facts (a shared symbol name, how many
-  directories it spans), never a guess about what the code means.
-- Then **every site is listed** with its exact `file:line-range` — you can't act on
-  a clone you can't see.
-
-**Scope tags.** A family may end with `· in test code` (all copies in test code) or
-`· same code in tests and prod` (the same logic in a test *and* in production). These are context
-for *where* to refactor, not a penalty — duplication in tests is still a smell.
-(`--scope prod` or `--scope test` keeps one side only.)
-
-**Evidence tags.** Each entry names *why* its members merged: `exact behavior
-match` is a value-graph proof (the copies compute the same thing), `shared core
-computation` is a common heavy sub-computation, `copy-paste` is a
-token-identical run, and `near-duplicate` is fuzzy structural similarity. A
-shared *decision* reads differently from a shared *shape*.
-
-**Folded slices.** A `↳ N overlapping slice families fold into this entry` note
-means nearby families are overlapping slices of the same duplicated region —
-read the numbered entry as one refactoring opportunity, not several.
-
-### See more per family
-
-The `--show` option adds views so you can see the code, not just where it lives
-(repeatable / comma-list):
-
-```sh
-nose scan src --show diff       # show each family as a unified diff of its two copies
-nose scan src --show proposal   # show the extracted helper skeleton, varying spots as parameters
-```
-
-## Common recipes
+Every dashboard ends in runnable next-commands; the grammar is also printed each run. The moves:
 
 | You want… | Command |
 |---|---|
-| Explore interactively (or drive from an agent loop) | `nose query src` → follow the next-commands |
-| Only the behavior-proven families, interactively | `nose query src witness=exact` |
-| A report to paste into a PR or issue | `nose scan src --format markdown > REFACTOR.md` |
-| Only the biggest, cleanest wins | `nose scan src --min-value 300 --min-members 3` |
-| A copy-paste gate for CI (jscpd-style) | `nose scan src --mode syntax --fail-on any` |
-| High-confidence "same logic" clones only | `nose scan src --mode semantic` |
-| Fuzzy near-duplicates for review | `nose scan src --mode near:0.70` |
-| Machine-readable output | `nose scan src --format json` |
-| Faster repeated runs | `nose scan src --cache-dir .nose-cache` |
+| Only the behavior-proven families | `nose query src witness=exact` |
+| Production scope only | `nose query src scope=prod` |
+| Families in one area | `nose query src path~loaders` |
+| The duplication **hotspot** map (by directory) | `nose query src group=dir` |
+| Open one family with its skeleton | `nose query src id=<id> full` |
+| A ranked report to paste into a PR/issue | `nose query src --format markdown` |
+| The versioned machine contract | `nose query src --format json` |
+| Faster repeated runs | `nose query src --cache-dir .nose-cache` |
 
-`nose scan` runs `syntax` + `semantic` + `near` by default (literal copy-paste,
-exact same-logic clones, and fuzzy near-duplicates). Passing `--mode` replaces
-that default with exactly the channels you list — see
-[clone-types](clone-types.md) for what each one finds.
+Each result is a **pure function of (repo state, command)**, and an unknown field or value is a
+hard error — so a typo can never read as "no duplication." A typical loop is just
+`nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 
-## The second command: `nose review`
+By default nose runs all three channels — `syntax` (copy-paste runs), `semantic` (exact
+same-logic Type-4 clones), and `near` (fuzzy near-duplicates). Pass `--mode` to run exactly the
+channels you list — see [clone-types](clone-types.md) for what each finds.
 
-Once a codebase has clones, the risky moment is editing one of them: a fix
-applied to one copy and missed in its siblings ships a half-fixed bug.
-`nose review` compares the working tree to a git ref and flags exactly that
-situation in your diff:
+## Catch a missed sibling edit: `nose query base=<ref>`
+
+Once a codebase has clones, the risky moment is editing one of them: a fix applied to one copy
+and missed in its siblings ships a half-fixed bug. `nose query <path> base=<git-ref>` compares
+the working tree to a git ref and flags exactly that — a clone family changed in one copy but
+not the others:
 
 ```sh
-nose review                      # review uncommitted local changes (vs HEAD)
-nose review --base origin/main   # review a PR branch, e.g. in CI
+nose query .                            # explore the duplication first
+nose query . base=HEAD                  # review uncommitted local changes
+nose query . base=origin/main           # review a PR branch (e.g. in CI)
+nose query . base=origin/main --fail-on any   # the CI gate (fires only on the proven case)
 ```
 
-See [review](review.md) for how findings are ranked, the conservative `--fail`
-gate policy, and CI wiring.
+See [review](review.md) for how these findings are ranked and the gate policy.
+
+## Gate CI
+
+`--fail-on any` makes nose exit non-zero when families survive the filters; `--baseline` plus
+`--fail-on new` ignores accepted debt and fails only on *new* duplication. Pin `--mode` in a
+gate so its surface stays stable across upgrades:
+
+```sh
+nose query src --mode syntax --fail-on any          # jscpd-style copy-paste gate
+nose query src --baseline .nose-baseline.json --write-baseline   # accept today's state
+nose query src --baseline .nose-baseline.json --fail-on new      # then fail only on new/changed
+```
+
+The full gate, baselines, SARIF, and fast re-runs are in
+[continuous-integration](continuous-integration.md).
+
+> **`nose scan` and `nose review` are deprecated.** `nose scan` (the one-shot ranked report +
+> scan-JSON v1 contract) and `nose review --base <ref>` (the PR check) still work but are
+> superseded by `nose query` and `nose query base=<ref>`, which read the same dataset and now
+> carry the gate and a versioned JSON contract. An interactive run of either prints a one-line
+> nudge; both will be removed in a later release.
 
 ## Where to go next
 
 - **[usage › nose query](usage.md#nose-query)** — the full query grammar: filters,
-  facets, drill-into-one-family, and the agent loop.
-- **[usage](usage.md)** — every command and flag, the ranking keys, and the scan
+  facets, drill-into-one-family, the CI gate, and the agent loop.
+- **[usage](usage.md)** — every command and flag, the ranking keys, and the detection
   modes in full.
-- **[review](review.md)** — the git-aware companion command: catch a clone
-  changed in one copy but not its siblings.
+- **[review](review.md)** — the divergent-edit check (`nose query base=<ref>`): catch a
+  clone changed in one copy but not its siblings.
 - **[configuration](configuration.md)** — commit a `nose.toml` so CI and teammates
   don't retype long flag lists.
-- **[continuous-integration](continuous-integration.md)** — turn a scan into a
+- **[continuous-integration](continuous-integration.md)** — turn a query into a
   pass/fail gate that flags only *new* duplication, with baselines and SARIF.
 - **[clone-types](clone-types.md)** — what `syntax` / `semantic` / `near` cover
   across the Type-1–4 taxonomy, and the honest limits.
 - **[languages](languages.md)** — the supported languages and the embedded
   `<script>` extraction for Vue/Svelte/HTML.
+</content>
+</invoke>

@@ -14,9 +14,9 @@ The four types:
   syntactic variants (semantic clones).
 
 This page states what nose does for each — including where it stops. The scan modes are
-detector channels, not perfect taxonomy buckets: the default combines `syntax` and
-`semantic`, and `near` is the opt-in fuzzy Type-3 surface. The engine is described in
-[architecture](architecture.md).
+detector channels, not perfect taxonomy buckets: the default combines `syntax`,
+`semantic`, and `near` (the fuzzy Type-3 channel is part of the default). The engine is
+described in [architecture](architecture.md).
 
 ## Type-1 — fully
 

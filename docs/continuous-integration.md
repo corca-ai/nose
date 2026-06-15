@@ -4,6 +4,12 @@ nose is built to run in CI as a duplication gate. The pieces below turn the
 report from [usage](usage.md) into a pass/fail check that flags only *new* duplication
 and runs fast on every push.
 
+The gate command is now [`nose query`](usage.md#nose-query): it carries the same
+`--fail-on`/`--baseline`/`--ignore-file`/`--cache-dir` workflow flags and the same
+`--format sarif` output as the old `nose scan`. `nose scan` takes the same flags and
+still works, but it is **deprecated (0.10.0)** in favour of `nose query`; the examples
+below lead with the `query` spelling and note the `scan` equivalent where it differs.
+
 ## The `--fail-on any` gate
 
 `--fail-on any` makes nose exit non-zero if **any** family survives the filters.
@@ -15,13 +21,13 @@ closest jscpd replacement.
 For a jscpd-style copy-paste gate:
 
 ```sh
-nose scan src --mode syntax --fail-on any
+nose query src --mode syntax --fail-on any
 ```
 
 For a broader exact gate, pin both exact channels and keep only substantial findings:
 
 ```sh
-nose scan src --mode syntax,semantic --min-value 300 --min-members 3 --fail-on any
+nose query src --mode syntax,semantic --min-value 300 --min-members 3 --fail-on any
 ```
 
 To include Type-3 near-duplicates in a review ratchet, add `near` and tune the fuzzy
@@ -29,13 +35,13 @@ threshold. This is usually better as a report or ratchet with `--min-value` than
 bare "any finding fails" gate:
 
 ```sh
-nose scan src --mode syntax,semantic,near:0.70 --min-value 300 --min-members 3 --fail-on any
+nose query src --mode syntax,semantic,near:0.70 --min-value 300 --min-members 3 --fail-on any
 ```
 
 For an exact semantic-only gate, use `--mode semantic`. It does not use a
 similarity threshold.
 
-With committed settings in `nose.toml`, the CI command can be just `nose scan src --fail-on any`.
+With committed settings in `nose.toml`, the CI command can be just `nose query src --fail-on any`.
 If a wrapper needs to support multiple installed nose versions, have it query
 `nose capabilities` first instead of scraping `--help`; the JSON contract is
 documented in [capabilities](capabilities.md).
@@ -106,13 +112,13 @@ the gate can flag only duplication introduced *after* adoption.
 
 ```sh
 # 1. Accept today's state (writes the baseline file and exits):
-nose scan src --baseline .nose-baseline.json --write-baseline
+nose query src --baseline .nose-baseline.json --write-baseline
 
 # 2. From now on, show only NEW or CHANGED families:
-nose scan src --baseline .nose-baseline.json
+nose query src --baseline .nose-baseline.json
 
 # 3. Make CI fail only when NEW or CHANGED families exist:
-nose scan src --baseline .nose-baseline.json --fail-on new
+nose query src --baseline .nose-baseline.json --fail-on new
 ```
 
 `--baseline` by itself keeps the historical behavior and reports only families not
@@ -152,7 +158,7 @@ next to the code, or point to another file with `--ignore-file` / `ignore-file`
 in [configuration](configuration.md):
 
 ```sh
-nose scan src --ignore-file nose.ignore.json --fail-on any
+nose query src --ignore-file nose.ignore.json --fail-on any
 ```
 
 Ignored families are removed from the active report, so they do not fail `--fail-on any`
@@ -171,20 +177,28 @@ for the file format and selector semantics.
 findings as inline PR annotations:
 
 ```sh
-nose scan src --format sarif --top 0 > nose.sarif
-# then upload nose.sarif via github/codeql-action/upload-sarif
+nose query src --format sarif > nose.sarif    # then upload via github/codeql-action/upload-sarif
 ```
 
-**Pass `--top 0` for a complete upload.** `--top` (default 30) truncates *every*
+`nose query --format sarif` emits the same SARIF over the same dataset, but it caps
+output with the `top=` DSL term (default 30) and has **no all-escape**, so for a complete
+upload prefer `nose scan`'s `--top 0`:
+
+```sh
+nose scan src --format sarif --top 0 > nose.sarif   # deprecated, but the guaranteed-complete upload
+```
+
+**Pass `--top 0` (scan) for a complete upload.** `--top` (default 30) truncates *every*
 output format, SARIF included — without `--top 0` a repo with more than 30 families
 uploads only the first 30. The SARIF run records the full count in
 `runs[].properties` (`total_families` / `shown_families`) and, when families were
 hidden, adds a `note` notification under `runs[].invocations[]`, so a truncated upload
 is at least detectable; `--top 0` avoids the cap entirely.
 
-`--format json` is the general machine-readable form for any other tooling. Its
-versioned contract is documented in [scan-json](scan-json.md); it is truncated by
-`--top` in the same way.
+`--format json` is the general machine-readable form for any other tooling. The forward
+versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v2);
+the deprecated equivalent is documented in [scan-json](scan-json.md) (schema v1). Both are
+truncated by their respective top limit in the same way.
 
 ## Fast re-runs: `--cache-dir`
 
@@ -194,7 +208,7 @@ extraction — which makes repeated invocations (CI, pre-commit, local iteration
 much faster. Point it at a directory your CI caches between runs.
 
 ```sh
-nose scan src --cache-dir .nose-cache --fail-on any
+nose query src --cache-dir .nose-cache --fail-on any
 ```
 
 ## Nightly pinned-corpus verify

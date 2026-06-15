@@ -35,47 +35,54 @@ For non-interactive consumption — a CI gate, a one-shot triage of the whole tr
 the versioned contract to other tooling — read the JSON directly:
 
 ```sh
-nose scan <path> --format json --top 30        # the ranked triage surface (versioned contract)
-nose review --base origin/main --format json   # PR-time divergence findings
+nose query <path> --format json                    # the ranked triage surface (query-JSON v2 contract)
+nose query <path> base=origin/main --format json   # PR-time divergence (the base view)
 ```
 
-Parse `families[]` ([scan JSON](scan-json.md)). Do not scrape human output. The per-family
-decision procedure below applies to both a `nose query` row and a `scan` JSON family — they
-carry the same evidence fields.
+The deprecated equivalents are `nose scan <path> --format json` and `nose review --base
+origin/main --format json`. Parse the family objects — `top_candidates[]` in the dashboard
+view, `families[]` in a list view (a filter/`sort=`/`top=` term), `items[]` in the `base` view
+([query JSON](query-json.md)). Do not scrape human output. The per-family decision procedure
+below applies to both a `nose query` row and a JSON family — they carry the same evidence fields.
 
 ## Per-family decision procedure
 
 Read the fields in this order — each step either decides or narrows:
 
-1. **Surface filter.** Act on `recommended_surface == "default"` only;
-   `review`/`hidden`/`shallow`/`generated`/`declaration` are diagnostic surfaces. If you
-   widen past the default, `actionability_reason` names *why* a family was demoted — `trivial`
-   (too small to extract), `shallow-extraction` (the helper would be mostly
-   parameters), `declaration-run` (only import/include/use/re-export spans), or
-   `generated-source` — each a decidable classification, not a worthiness verdict.
-   A default-surface family has no `actionability_reason`.
-2. **Generated/vendored.** Drop the family if every location has
-   `looks_generated: true` or the paths are vendored (`vendor/`, `.min.`,
-   `*.pb.go`, lockfiles). A *partly* generated family is a real leak — keep it.
-3. **Why did it merge — `witness.kind`.**
-   - `exact-value-graph`: a behavioral proof (identical value graphs, literal
-     values included). Treat the members as computing the same thing; the only
+1. **Surface filter.** Act on `surface == "default"` only;
+   `review`/`hidden`/`shallow`/`generated`/`declaration` are diagnostic surfaces. The
+   non-default `surface` value *is* the demotion reason — a decidable classification, not a
+   worthiness verdict: `shallow` (the extracted helper would be mostly parameters), `declaration`
+   (only import/include/use/re-export spans), `generated` (every location in generated-header
+   source), and `review`/`hidden` (review-hazard or proof-only diagnostics, too small to extract).
+   A default-surface family carries `surface == "default"`.
+2. **Generated/vendored.** The `generated` surface already flags families whose every location
+   sits in generated-header source; also drop families whose paths are vendored (`vendor/`,
+   `.min.`, `*.pb.go`, lockfiles). A *partly* generated family keeps a ranked surface — it is a
+   real leak, so keep it.
+3. **Why did it merge — `witness`.**
+   - `exact`: a behavioral proof (identical value graphs, literal values included; `value_nodes`
+     is *how much* was proven). Treat the members as computing the same thing; the only
      question left is whether merging them couples unrelated concerns.
-   - `copy-paste-run`: token-identical run — classic copy-paste; identifiers and
-     literals may still vary per copy.
-   - `structural-similarity`: fuzzy. Read `mean_value_jaccard` vs
-     `mean_shape_jaccard`: high value + low shape = behaviorally convergent
-     (interesting); high shape + low value = surface likeness (skeptical).
-4. **What differs — `varying_spots` + `params` + `shared_lines`.** An all-literal
-   spot list over near-identical lines is a data table (`extract-data-table` or
-   not-worthy locale/i18n parallel data — check whether the literals are *content*
-   or *parameters*). Many spots (`params` high) relative to `shared_lines` means a
-   costly, ugly extraction. `extraction_shape` names the decidable shape of the fix
-   for a clean candidate (`call-existing-helper` is the strongest — an existing
+   - `subdag`: a common heavy anchor (shared sub-DAG core) is behavior-proven — each member's
+     `shared_subdag: [start, end]` shows where that computation lives.
+   - `copy-paste`: token-identical run — classic copy-paste; identifiers and literals may still
+     vary per copy.
+   - `similar`: the fuzzy near channel. Grade it with `spotclass` (next step) before trusting it.
+4. **What differs — `params` + `shared` + `spotclass`.** `params` counts the varying spots the
+   extracted helper would parameterize; with `full`, `skeleton` renders each as a
+   `⟨param N: class⟩` placeholder (`class` = literal/name/call/expr/block). An all-literal
+   placeholder list over near-identical lines is a data table (`extract-data-table` or not-worthy
+   locale/i18n parallel data — check whether the literals are *content* or *parameters*). Many
+   `params` relative to `shared` (the lines invariant across **all** copies) means a costly, ugly
+   extraction. For a near (`similar`) family, `spotclass` says whether those spots are `leaf-only`
+   (clean value-leaves to parameterize — interesting) or `structural` (a shape/arity/referent
+   divergence — genuine logic difference, be skeptical). `extraction_shape` names the decidable
+   shape of the fix for a clean candidate (`call-existing-helper` is the strongest — an existing
    helper is reinvented inline, so the action is to *call* it, not extract anew).
-5. **Where it lives — `scope` + `in_test_module`.** Test-scaffolding duplication is
-   still worthy (a test helper is the refactor) — but weigh it below production
-   logic when budgeting attention.
+5. **Where it lives — `scope`.** `scope` is `prod` / `test` / `mixed` (a Rust inline `mod tests`
+   counts as test scope even in a production file). Test-scaffolding duplication is still worthy
+   (a test helper is the refactor) — but weigh it below production logic when budgeting attention.
 6. **The core question** (the same rubric the v5 labels use,
    [bench/labels/RUBRIC.md](../bench/labels/RUBRIC.md)): *would extracting one
    shared abstraction reduce duplication without coupling unrelated concerns or
@@ -99,19 +106,22 @@ Read the fields in this order — each step either decides or narrows:
 
 ## Acting on a verdict
 
-- **Worthy** → propose the refactor. `varying_spots` are the helper's parameters;
-  `--show proposal` renders an extraction skeleton; `shared_lines` is the helper
-  body size. Reference locations by `file:start_line`.
+- **Worthy** → propose the refactor. The `params` are the helper's parameters;
+  `nose query <path> id=<fam> full` (or `full` on a list) renders the all-copies extraction
+  `skeleton`; `shared` is the helper body size. Reference locations by `file:start` (each
+  `locations[]` entry is `{file, start, end, name, lang}`).
 - **Not worthy, recurring** → write a [structured ignore](structured-ignores.md)
   entry (`family_id`, `reason`, `owner`, optional `expires`) so the family stops
   resurfacing.
-- **Unsure** → leave it; never auto-refactor on `structural-similarity` alone.
+- **Unsure** → leave it; never auto-refactor on a `similar` witness alone.
 
-## PR-time: review findings
+## PR-time: divergent-edit findings
 
-`nose review --format json` findings carry the #245 gate fields: `fire_eligible`
-(the conservative policy verdict), `witness_kind`, `scope`, and per-changed-site
-`touches_shared`. For a harm pass over the top findings, judge each as
+`nose query <path> base=<ref> --format json` (the `base` view — `nose review --format json` is
+the deprecated alias) emits one `items[]` finding per divergence, each carrying the #245 gate
+fields: `fire_eligible` (the conservative shared-logic policy verdict the gate fires on),
+`witness_kind`, `scope`, and per-changed-site `touches_shared`. For a harm pass over the top
+findings, judge each as
 should-propagate / intentional-divergence / not-a-clone using the changed member's
 diff and the un-updated sibling's body — the §BG-gold method; experiments §BR/§BV
 measured the base rates (most fires are not propagation hazards; the gate tier is
@@ -124,5 +134,6 @@ following this page over a deterministic top-K sample of v5-labeled families
 reproduced the human-audited worthy/not-worthy verdicts — see
 [experiments §BX](experiments.md) for the run and its agreement numbers.
 
-*See also: [usage › nose query](usage.md#nose-query) · [scan JSON](scan-json.md) ·
-[review](review.md) · [structured-ignores](structured-ignores.md) · [design](design.md).*
+*See also: [usage › nose query](usage.md#nose-query) · [query JSON](query-json.md) ·
+[scan JSON](scan-json.md) · [review](review.md) · [structured-ignores](structured-ignores.md) ·
+[design](design.md).*
