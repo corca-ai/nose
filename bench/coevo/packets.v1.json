@@ -756,6 +756,54 @@
    "summary": "GREEN with teeth. jedis (2508 families, 1063 near+graded): 2560 per-family witness comparisons across --top {0,5,30} + a 6-entry ignore file spanning near ranks 2..2507 — zero witness loss, all 6 ignored families keep graded at --top 5. Determinism 9/9 byte-identical (cmp) across RAYON_NUM_THREADS=1 vs default and repeats on jedis/commons-lang/flask.",
    "verdict": "green-confirmed",
    "defense": "n/a — the merge-time content-invariance and determinism claims hold."
+  },
+  {
+   "packet_id": "s10-vm-rust-pattern-variant",
+   "series": 10,
+   "campaign": "S1",
+   "persona": "soundness-skeptic",
+   "mode": "blind",
+   "surface": "value-model-rust-patterns",
+   "claim": "the #390/#404 Rust pattern lowering (constructor pattern → variant test; single-payload → field-0 projection; struct-field → named projection) never makes two behaviorally-distinct Rust functions share a clone family",
+   "summary": "Attacker reported variant-swap (route_first/route_second) and single-variant-token (select_foo/select_bar) near-family merges. On ISOLATED reproduction the merges did not occur (zero families) — the reported merges were contamination from extra harness files in the attacker's dir, and even as reported were near-channel (witness=similar) with verify clean. The exact equivalence channel and the projection rules held.",
+   "verdict": "green-confirmed",
+   "defense": "n/a — the new lowering rules produced no reproducible exact-channel false merge; field/payload projections were never wrong in probes."
+  },
+  {
+   "packet_id": "s10-vm-map-nullish-vs-presence",
+   "series": 10,
+   "campaign": "S2",
+   "persona": "language-specialist",
+   "mode": "blind",
+   "surface": "value-model-collections",
+   "claim": "nose models map/dict reads soundly — `m.get(k) ?? d` is not silently equated with the absence-only default",
+   "summary": "CONFIRMED latent false merge (witness=exact). `m.get(k) ?? d` (coalesce: d on absent OR present-null) folds to the same fingerprint as `m.has(k) ? m.get(k) : d` and `m.get(k) === undefined ? d : g` (absence-only). Diverge on a present key whose value is null: `Map<string,number|null>` with m['x']=null → ?? gives 0, presence gives null (verified with node). Oracle-blind: verify gate green though its calibration prints vj[1.0]:0/1 = 0% behavior-equal. Root = mk_value_or_map_default upgrading a null-guarded coalesce to GetOrDefault, plus the value model's null/undefined conflation collapsing `=== undefined` (absence) into `== null` (coalesce).",
+   "verdict": "deferred-issue",
+   "defense": "DEFERRED #410. The sound fix needs (a) a map-value non-null proof so the convergence survives only for provably-non-null maps — a blunt split breaks the provably-sound literal-map class (equivalence.rs::literal_map_default_lookup_converges_with_js_map_construction_boundaries) — and (b) de-conflation of null/undefined to re-home `=== undefined` with the absence class. Both are value-model-core + interp work beyond the campaign's surgical scope. Fixture: bench/coevo/false_merges/map_nullish_default.ts; oracle-value-model §7.4."
+  },
+  {
+   "packet_id": "s10-vm-map-nullish-vs-undefined",
+   "series": 10,
+   "campaign": "S2",
+   "persona": "language-specialist",
+   "mode": "blind",
+   "surface": "value-model-collections",
+   "claim": "`m.get(k) ?? d` ≡ `m.get(k) === undefined ? d : g` (the eval.rs §7 comment's stated equivalence)",
+   "summary": "The stated equivalence is itself unsound for nullable maps: `=== undefined` is the true absence check (keeps present-null) while `??` is coalesce (replaces present-null with d). The value model's null/undefined conflation makes the two indistinguishable, so they share a fingerprint. Sharpens the s10-map-nullish-vs-presence root cause.",
+   "verdict": "deferred-issue",
+   "defense": "DEFERRED #410 (same fix). Recorded as the second arm of the conflation gap."
+  },
+  {
+   "packet_id": "s10-grammar-bump-lowering",
+   "series": 10,
+   "campaign": "S3",
+   "persona": "grammar-lawyer",
+   "mode": "measurement",
+   "surface": "grammar-parsing",
+   "claim": "the today (#406/#407) tree-sitter bumps (c/python/javascript→0.25, go→0.25 statement_list, rust→0.24) preserve lowering fidelity and parse stability — assessor-run measurement, not a blind attacker (pricing IS the measurement, CI is rust-only)",
+   "summary": "Assessor measurement surface; not separately reported a violation this session. Covered indirectly: the value-model and collections attacks ran clean parses on c/python/javascript/ts fixtures post-bump. Per-language Raw-ratio + byte-identical query sweep recommended as the standing validation (nose-ci-gotchas).",
+   "verdict": "green-confirmed",
+   "defense": "n/a — no parse regression surfaced in the campaign's fixtures; full per-language sweep tracked as standing release validation."
   }
  ]
 }

@@ -2899,3 +2899,65 @@ With map reads below the opaque threshold, #391 is **audited, below the bar** �
 opaque worklist is `Block`/`Func` (closures/nested) and the propagated lowering `Raw` (already a
 characterized, mostly-boundary/grammar frontier), not collections. The analysis engine remains at
 its measured frontier.
+
+## CT. Adversarial co-evolution, series 10 — the nullish-coalesce map-default false merge (#409)
+
+One campaign (tracking #409), commit 9301beb, surfaces chosen by freshness: (S1) the
+1-day-old Rust pattern lowering (#390 constructor-pattern-as-variant-test, #404 match-arm
+payload binding — *merge-creating*, so soundness-class); (S2) the value-graph collection /
+map-read model (#391/#405 §CS); (S3) the same-day tree-sitter grammar bumps (#406/#407,
+c/python/javascript→0.25, go→0.25 `statement_list`, rust→0.24), priced as a measurement
+because CI is rust-only. Two blind persona-rotated attackers (soundness-skeptic on S1,
+language-specialist on S2); S3 run by the assessor.
+
+**S1 — Rust pattern lowering: green.** The attacker reported two near-family merges
+(variant-swap `route_first`/`route_second`; single-variant-token `select_foo`/`select_bar`).
+On *isolated* reproduction both produced **zero families** — the reported merges were
+contamination from extra harness files in the attacker's directory, and even as reported were
+near-channel (`witness=similar`) with `verify` clean. The exact equivalence channel and the
+field/payload projections held. The merge-creating #390/#404 rules came back clean.
+
+**S2 — the priced packet: `m.get(k) ?? d` false-merges with the absence-only default.** A
+real LATENT false merge (`witness=exact`). nose gives ONE fingerprint to the nullish-coalesce
+`m.get(k) ?? d` (default on absent **or** present-null) and the genuine **absence** forms
+`m.has(k) ? m.get(k) : d`, `m.get(k) === undefined ? d : g`, Python `d.get(k, d)`. They
+diverge on a present key whose value is null: `Map<string, number|null>` with `m["x"]=null`
+→ `??` gives `0`, presence gives `null` (verified with node). **Oracle-blind** — the
+interpreter shares the null/undefined conflation, so `nose verify --max-violations 0` stays
+green even as its own calibration prints `vj[1.0]: 0/1 = 0% behavior-equal`. The §AS scenario
+again: only a crafted attack finds it.
+
+Root cause has two coupled layers. `mk_value_or_map_default`
+(`value_graph/collections.rs`) **upgrades** a null-guarded coalesce to the absence-only
+`GetOrDefault`; and the value model **conflates `null` with `undefined`** (`eval.rs` §7
+comment), collapsing the true-absence `=== undefined` into the same `Eq(MapGet, null)` guard
+as `?? `/`== null`. The membership guards (`has`/`in`) fold to `GetOrDefault` through a
+separate, non-conflated path — they are the only forms the model can *prove* are absence.
+
+**Defense: deferred (#410), and deliberately not patched.** The fold is uniform across map
+kinds; soundness depends on the map's value-type **nullability**, which the IL erases. A blunt
+fix (route the null-guard fold to the faithful `ValueOrDefault`) was built and measured — it
+splits the attacker's parameter-map false merge, but it also **breaks the provably-sound
+literal-map convergence** (`equivalence.rs::literal_map_default_lookup_converges_with_js_map_
+construction_boundaries`: `new Map([["red",1]]).get(k) ?? 0` ≡ the `has` form IS sound, the
+values are non-null literals — already a distinct fingerprint class), and it cannot separate
+`??` from `=== undefined` (both null-guards, conflated). The sound fix needs a *map-value
+non-null proof* plus *null/undefined de-conflation* — value-model-core + interpreter work past
+this campaign's surgical scope. Recorded as `bench/coevo/false_merges/map_nullish_default.ts`,
+the third oracle-blind row beside `float_assoc.py` and `array_element_mutation.py`; see
+oracle-value-model §7.4. Same disposition as §250's #269/#270 deferrals: a priced packet whose
+sound defense exceeds scope closes as `deferred: #410` with fixture and measurement attached.
+
+**S3 — grammar bumps: no regression surfaced** in the campaign's c/python/javascript/ts
+fixtures (all parsed and lowered clean post-bump). The standing per-language validation
+(per-language Raw-ratio + byte-identical `query top=0`, run against a pre-bump baseline binary)
+remains the gate for the bumps, since the rust-only dogfood signal cannot see non-rust grammar
+regressions.
+
+**Lessons.** (1) A blind attacker's directory hygiene matters — S1's reported merges were a
+scratch-dir contamination artifact; always reproduce a submitted packet in isolation before
+pricing (the assessor's reproduction, not the attacker's report, is the verdict). (2) A
+soundness fix that would break a *provably-sound* sibling merge is not the largest sound
+generalization — it is the wrong axis; the value model must gain the missing proof
+(nullability) first. The campaign found nothing it could ship and that is the green-with-teeth
+result: one well-characterized latent false merge, scoped to #410.

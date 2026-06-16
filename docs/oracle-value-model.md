@@ -483,6 +483,32 @@ toward dynamic-language repos. Type-domain-aware input feeding remains the floor
 follow-up (§3); the rest of `verify_battery` stays hand-curated **on purpose** (the guard
 comment there points here).
 
+### 7.4 Nullish-coalesce map default ≡ absence default — OPEN (coevo series 10, #410)
+
+A LATENT, oracle-blind false merge found by adversarial co-evolution series 10 (experiments
+§CT). `m.get(k) ?? d` — replace the value with `d` when it is absent **or** present-null — gets
+the **same fingerprint** as the absence-only defaults `m.has(k) ? m.get(k) : d`,
+`m.get(k) === undefined ? d : g`, and Python `d.get(k, d)`. They diverge on a present key whose
+stored value is null: for `Map<string, number|null>` with `m["x"]=null`, `?? ` yields `0` while
+the presence forms yield `null`. Reproducer `bench/coevo/false_merges/map_nullish_default.ts`.
+
+Two coupled root causes. (1) `mk_value_or_map_default` (`value_graph/collections.rs`) upgrades a
+**null-guarded coalesce** to the absence-only `GetOrDefault`; the guards `has`/`in` reach
+`GetOrDefault` through a separate, non-conflated path and ARE provable absence, but the
+`?? `/`== null` null-equality guard is not. (2) The value model **conflates `null` and
+`undefined`** into one constant (eval.rs §7), so the true-absence `=== undefined` is
+indistinguishable from the coalesce `== null`.
+
+Oracle-blind: the interpreter shares the conflation, so `verify` cannot witness the divergence
+(its calibration prints `vj[1.0]: 0/1 = 0% behavior-equal` but the gate stays green) — same
+limitation as §7.3 before #337 and as `float_assoc.py`. **Not surgically patchable**: the fold
+is uniform across map kinds and the IL erases value-type nullability, so de-merging blindly
+breaks the *provably-sound* literal-map convergence (`equivalence.rs::
+literal_map_default_lookup_converges_with_js_map_construction_boundaries` — non-null literal
+values). The sound fix needs a **map-value non-null proof** (re-converge only where provable)
+plus **null/undefined de-conflation** (re-home `=== undefined` with the absence class), carried
+through the interpreter so `verify` can witness it. Tracked at #410.
+
 ---
 
 *See also: [design & direction](design.md) · [formal soundness](formal-soundness.md) ·
