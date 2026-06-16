@@ -303,6 +303,8 @@ fn collapse_two_axis(v: &[String]) -> Vec<String> {
 /// The full CSS named-color → spec hex table (lowercase keys). These mappings are
 /// EXACT (the spec defines the hex), so converting a name to hex is sound — it never
 /// merges colors that render differently; an unknown name is left untouched.
+// A flat data table, not branching logic — the line-count cap doesn't apply.
+#[allow(clippy::too_many_lines)]
 fn named_color(name: &str) -> Option<String> {
     let hex = match name {
         "transparent" => "#00000000",
