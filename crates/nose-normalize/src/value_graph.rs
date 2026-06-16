@@ -56,7 +56,7 @@ pub use api::{
 pub use context::ValueFingerprintContext;
 pub use value_dag::{
     bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,
-    VgSinkKind,
+    VgSinkKind, VG_PROTOCOL_AWAIT,
 };
 
 use crate::combine;

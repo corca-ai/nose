@@ -25,6 +25,17 @@ use nose_il::{CallTargetEvidenceKind, EvidenceKind, ImportEvidenceKind};
 /// near-identical bodies (which would falsely differ).
 const SELF_REFERENT: u64 = 0x5e1f_5e1f_5e1f_5e1f;
 
+/// Reserved `Opaque` key for the `await` protocol boundary. An `await e` lowers to an
+/// `Opaque(VG_PROTOCOL_AWAIT, [eval(e)])` wrapper that PRESERVES the awaited operand as a
+/// child (unlike the childless `Opaque(subtree_hash)` every other `Raw` gets) — so the
+/// near/graded witness can see *through* the wrapper to align an async fn with its sync
+/// twin, while the wrapper itself keeps `await e` ≠ `e` so the EXACT channel never merges
+/// a Future with its resolved value (async units are non-`exact_safe` regardless, the
+/// load-bearing guard). The `args.len() == 1` shape is the witness's safety gate against
+/// the (2⁻⁶⁴) chance a real `Raw`'s `subtree_hash` equals this key — a colliding `Raw` is
+/// childless. See `crates/nose-detect/src/witness.rs` (the `async-mirror` pattern).
+pub const VG_PROTOCOL_AWAIT: u64 = 0xA5A5_0A17_C0DE_0001;
+
 /// The operator family of a [`VgNode`]. Mirrors the private `ValOp`; the paired `key`
 /// disambiguates within a family (the operator code for `Bin`/`Un`, the builtin
 /// discriminant for `Call`, the field-name hash for `Field`, …).
@@ -519,6 +530,10 @@ pub fn value_dag(
         Some(ctx) => Builder::new_with_context(il, interner, ctx),
         None => Builder::new(il, interner),
     };
+    // The witness build keeps the `await` wrapper visible (vs the fingerprint build's transparency)
+    // so the graded anti-unification can align an async fn with its sync twin and label it
+    // `async-mirror` — see `crates/nose-detect/src/witness.rs`.
+    b.await_transparent = false;
     b.build_unit_with_context(root, context);
     let nodes = b
         .nodes

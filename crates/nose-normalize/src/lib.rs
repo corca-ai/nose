@@ -48,7 +48,7 @@ pub use value_graph::{
 };
 pub use value_graph::{
     bin_is_commutative, value_dag, FileReferents, ValueDag, VgNode, VgOp, VgReferent, VgSink,
-    VgSinkKind,
+    VgSinkKind, VG_PROTOCOL_AWAIT,
 };
 
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Payload, Symbol, Unit};

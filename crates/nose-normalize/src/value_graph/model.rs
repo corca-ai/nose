@@ -175,6 +175,13 @@ pub(super) struct Builder<'a> {
     /// The IL node kind currently being evaluated (set by `eval`, mirroring `cur_span`), so the
     /// opaque census can attribute each `Opaque` fallback to the construct that minted it.
     pub(super) cur_il_kind: Option<NodeKind>,
+    /// Dual-view flag for the `await` protocol boundary. `true` (the default, used by the
+    /// FINGERPRINT build) evaluates `await e` to `e`'s value directly so an async fn's fingerprint
+    /// matches its sync twin's (near-channel `vj` convergence — the #1 Type-4 gap, §K). `false`
+    /// (set only by `value_dag`, the WITNESS build) keeps the `Opaque(VG_PROTOCOL_AWAIT,[e])`
+    /// wrapper so the graded witness can label the difference `async-mirror`. Both are exact-safe:
+    /// `await`→`Raw` in the IL ⇒ the unit is non-`exact_safe`, excluded from exact families.
+    pub(super) await_transparent: bool,
     /// Research instrument (env-gated; `None` in production): per `(IL kind, total-fallback)`
     /// count of `ValOp::Opaque` nodes minted — the value-graph coverage-attribution census (the
     /// #391 prevalence probe). `total-fallback` = an argless opaque (a "can't model this at all"

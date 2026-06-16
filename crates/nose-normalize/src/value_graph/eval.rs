@@ -145,6 +145,12 @@ impl<'a> Builder<'a> {
         v
     }
 
+    /// Whether a `Raw` node is the `await` protocol boundary (the one `Raw` we model as a
+    /// value-preserving wrapper, see the `NodeKind::Raw` arm in `eval_inner`).
+    fn is_await_raw(&self, payload: &Payload) -> bool {
+        matches!(payload, Payload::Name(s) if self.interner.resolve(*s) == "await")
+    }
+
     pub(super) fn eval_inner(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {
         let node = *self.il.node(expr);
         match node.kind {
@@ -190,7 +196,32 @@ impl<'a> Builder<'a> {
                     .unwrap_or_else(|| self.mk(ValOp::Opaque(0), vec![]));
                 self.mk(ValOp::KwArg(name_hash), vec![value])
             }
-            // Any unlowered / unhandled construct — notably `Raw`, which wraps a
+            // `await e` is the ONE `Raw` we key as a wrapper that KEEPS its operand as a
+            // child — `Opaque(VG_PROTOCOL_AWAIT, [eval(e)])` — so the near/graded witness can
+            // align an async fn with its sync twin through the wrapper (the `async-mirror`
+            // pattern). The wrapper still makes `await e` ≠ `e` and ≠ `await f`, so the EXACT
+            // channel never merges a Future with its resolved value — and async units are
+            // non-`exact_safe` anyway (a `Raw` in the IL ⇒ `strict_exact` returns false), the
+            // load-bearing guard. Every OTHER `Raw` stays on the childless arm below.
+            NodeKind::Raw if self.is_await_raw(&node.payload) => {
+                let operand = self
+                    .il
+                    .children(expr)
+                    .first()
+                    .map(|&v| self.eval(v, env))
+                    .unwrap_or_else(|| self.mk(ValOp::Opaque(VG_PROTOCOL_AWAIT), vec![]));
+                if self.await_transparent {
+                    // Fingerprint build: `await e` ≡ `e`'s value, so the operand identity flows
+                    // downstream and an async fn's fingerprint matches its sync twin (vj↑).
+                    operand
+                } else {
+                    // Witness build: keep the wrapper so `value_dag`'s graded anti-unification can
+                    // see the await and label the difference `async-mirror` (a transformation, not
+                    // a behavioral equivalence).
+                    self.mk(ValOp::Opaque(VG_PROTOCOL_AWAIT), vec![operand])
+                }
+            }
+            // Any other unlowered / unhandled construct — notably `Raw`, which wraps a
             // macro, C compound literal, `#ifdef`, parse-ERROR, etc. Key it by its full
             // subtree hash (surface kind + lowered children), exactly like `Lambda`, so
             // behaviorally-different unlowered constructs produce DIFFERENT fingerprints.

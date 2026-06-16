@@ -17,7 +17,7 @@
 //!
 //! proof-obligation: detect.graded_witness
 
-use nose_normalize::{bin_is_commutative, ValueDag, VgOp, VgSinkKind};
+use nose_normalize::{bin_is_commutative, ValueDag, VgOp, VgSinkKind, VG_PROTOCOL_AWAIT};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 
@@ -42,7 +42,8 @@ pub struct GradedWitness {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub spots: Vec<WitnessHole>,
     /// Recognized divergence shapes: `effects-reordered`, `sink-superset-a/b`,
-    /// `fragment-containment`, `low-substance`, `referent-mismatch`.
+    /// `fragment-containment`, `low-substance`, `referent-mismatch`, `async-mirror`
+    /// (one side awaits where the other does not — an async↔sync transformation twin).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub patterns: Vec<&'static str>,
     /// Names BOTH units consume that resolve to different referents (same-named but
@@ -73,7 +74,8 @@ pub struct GradedWitness {
 pub struct WitnessHole {
     /// `literal` / `input` / `field` / `call` / `lambda` / `operator` / `expr` =
     /// value-leaf differences (clean parameters); `arity` / `shape` / `unmodeled` /
-    /// `extra-sink` = structural divergence (not a clean parameter).
+    /// `extra-sink` = structural divergence (not a clean parameter); `async-mirror` =
+    /// an `await` present on one side only (the async↔sync twin point).
     pub class: &'static str,
     /// Source line range of the spot in the first copy, when known.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -155,6 +157,10 @@ struct Au<'a> {
     matched_b: FxHashSet<u32>,
     /// Set when recursion hit [`MAX_DEPTH`] — the witness fails closed.
     truncated: bool,
+    /// Set when the alignment saw an `await` wrapper on exactly one side (an async↔sync
+    /// twin). The family is then a *transformation* (`async-mirror`), never
+    /// `equal_modulo_holes` — async code is not behaviorally equal to its sync twin.
+    async_mirror: bool,
 }
 
 impl<'a> Au<'a> {
@@ -168,6 +174,7 @@ impl<'a> Au<'a> {
             matched_a: FxHashSet::default(),
             matched_b: FxHashSet::default(),
             truncated: false,
+            async_mirror: false,
         }
     }
 
@@ -223,22 +230,59 @@ impl<'a> Au<'a> {
         if !self.visited.insert((x, y)) {
             return;
         }
-        let nx = &self.a.dag.nodes[x as usize];
-        let ny = &self.b.dag.nodes[y as usize];
-        if nx.hash == ny.hash {
+        // Snapshot the two nodes' identity into scalars so no `&self.a/b` borrow is held across
+        // the `&mut self` recursive calls below (the async-mirror gate recurses mid-node).
+        let (x_hash, x_op, x_key, x_arity, x_arg0) = {
+            let nx = &self.a.dag.nodes[x as usize];
+            (
+                nx.hash,
+                nx.op,
+                nx.key,
+                nx.args.len(),
+                nx.args.first().copied(),
+            )
+        };
+        let (y_hash, y_op, y_key, y_arity, y_arg0) = {
+            let ny = &self.b.dag.nodes[y as usize];
+            (
+                ny.hash,
+                ny.op,
+                ny.key,
+                ny.args.len(),
+                ny.args.first().copied(),
+            )
+        };
+        if x_hash == y_hash {
             self.mark_subtree(x, y);
             return;
         }
-        if nx.op != ny.op || nx.key != ny.key {
+        // async-mirror: `await e` (kept as `Opaque(VG_PROTOCOL_AWAIT,[e])` in the witness build)
+        // aligns with the bare operand on the sync-twin side. Recurse into the operand so the
+        // alignment propagates downstream, and record the await itself as a one-sided hole. This
+        // never fires when BOTH sides await (both wrappers fall through to the same-op recurse).
+        let x_await = x_op == VgOp::Opaque && x_key == VG_PROTOCOL_AWAIT && x_arity == 1;
+        let y_await = y_op == VgOp::Opaque && y_key == VG_PROTOCOL_AWAIT && y_arity == 1;
+        if x_await != y_await {
+            self.async_mirror = true;
+            if x_await {
+                self.one_sided(x, true);
+                self.unify(x_arg0.unwrap_or(x), y, depth + 1);
+            } else {
+                self.one_sided(y, false);
+                self.unify(x, y_arg0.unwrap_or(y), depth + 1);
+            }
+            return;
+        }
+        if x_op != y_op || x_key != y_key {
             self.hole(x, y);
             return;
         }
         // Same op and key.
-        if nx.op == VgOp::Bin && bin_is_commutative(nx.key) {
+        if x_op == VgOp::Bin && bin_is_commutative(x_key) {
             self.unify_commutative(x, y, depth);
             return;
         }
-        if nx.args.len() != ny.args.len() {
+        if x_arity != y_arity {
             self.hole(x, y);
             return;
         }
@@ -410,6 +454,14 @@ fn pair_sinks(a: &Dag<'_>, b: &Dag<'_>, kind: VgSinkKind) -> SinkPairing {
 
 fn classify(a: &Dag<'_>, b: &Dag<'_>, x: u32, y: u32) -> &'static str {
     if x == NONE || y == NONE {
+        let present = if x == NONE {
+            &b.dag.nodes[y as usize]
+        } else {
+            &a.dag.nodes[x as usize]
+        };
+        if present.op == VgOp::Opaque && present.key == VG_PROTOCOL_AWAIT {
+            return "async-mirror";
+        }
         return "arity";
     }
     let (ta, tb) = (a.dag.nodes[x as usize].op, b.dag.nodes[y as usize].op);
@@ -487,6 +539,8 @@ struct Alignment {
     holes: Vec<(u32, u32)>,
     extra: Vec<(u32, bool)>,
     reordered: bool,
+    /// One side awaited where the other did not (an async↔sync twin).
+    async_mirror: bool,
 }
 
 /// Pair every sink kind and anti-unify the matched roots. `None` if the alignment hit
@@ -517,6 +571,7 @@ fn align(da: &Dag<'_>, db: &Dag<'_>) -> Option<Alignment> {
         holes: std::mem::take(&mut au.holes),
         extra,
         reordered,
+        async_mirror: au.async_mirror,
     })
 }
 
@@ -616,15 +671,23 @@ pub fn graded_witness(
     let low_substance = k > 0 && na.min(nb) < 10;
     let mut patterns = derive_patterns(&al, na, nb, low_substance);
 
+    if al.async_mirror {
+        patterns.push("async-mirror");
+    }
+
     let (referent_mismatches, caveat_names) = compare_referents(a, b);
     if !referent_mismatches.is_empty() {
         patterns.push("referent-mismatch");
     }
 
+    // `async-mirror` is a *transformation* twin (async ↔ sync), never a behavioral equivalence —
+    // a coroutine is not its resolved value. So it can never be `equal_modulo_holes`, regardless
+    // of how cleanly the rest aligns.
     let equal_modulo_holes = al.extra.is_empty()
         && !al.reordered
         && all_leafy
         && !low_substance
+        && !al.async_mirror
         && referent_mismatches.is_empty();
 
     Some(GradedWitness {
@@ -641,7 +704,7 @@ pub fn graded_witness(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_normalize::{ValueDag, VgNode, VgReferent, VgSink};
+    use nose_normalize::{ValueDag, VgNode, VgReferent, VgSink, VG_PROTOCOL_AWAIT};
 
     fn node(op: VgOp, key: u64, args: &[u32], hash: u64) -> VgNode {
         VgNode {
@@ -703,6 +766,71 @@ mod tests {
         assert_eq!(w.holes, 1);
         assert_eq!(w.spots.len(), 1);
         assert_eq!(w.spots[0].class, "literal");
+        assert!(w.equal_modulo_holes);
+    }
+
+    /// An async↔sync twin pair: side A wraps the inner `Call` in `await`
+    /// (`Opaque(VG_PROTOCOL_AWAIT,[call])`), side B uses the bare call; both return a `len`-deep
+    /// `Un` chain over that value, so they sit above the low-substance floor and differ ONLY at
+    /// the await point.
+    fn async_sync_twin(len: u32) -> (ValueDag, ValueDag) {
+        let mk = |nodes: Vec<VgNode>, top: u32| ValueDag {
+            sinks: vec![VgSink {
+                kind: VgSinkKind::Return,
+                value: top,
+                effect_ord: None,
+            }],
+            referents: vec![],
+            nodes,
+        };
+        // sync (B): Const -> Call -> Un chain over the Call.
+        let mut sync = vec![
+            node(VgOp::Const, 5, &[], 100),
+            node(VgOp::Call, 42, &[0], 200),
+        ];
+        for i in 0..len {
+            let arg = sync.len() as u32 - 1;
+            sync.push(node(VgOp::Un, 7, &[arg], 300 + u64::from(i)));
+        }
+        let sync_top = sync.len() as u32 - 1;
+        // async (A): Const -> Call -> await(Call) -> Un chain over the await. Same Call hash as
+        // B's (so the operand matches after the gate); the Un chain uses distinct hashes so the
+        // witness recurses down to the await point instead of fast-matching.
+        let mut asy = vec![
+            node(VgOp::Const, 5, &[], 100),
+            node(VgOp::Call, 42, &[0], 200),
+            node(VgOp::Opaque, VG_PROTOCOL_AWAIT, &[1], 250),
+        ];
+        for i in 0..len {
+            let arg = asy.len() as u32 - 1;
+            asy.push(node(VgOp::Un, 7, &[arg], 400 + u64::from(i)));
+        }
+        let asy_top = asy.len() as u32 - 1;
+        (mk(asy, asy_top), mk(sync, sync_top))
+    }
+
+    #[test]
+    fn async_await_aligns_with_sync_twin_as_async_mirror() {
+        let (a, b) = async_sync_twin(12);
+        let w = graded_witness(&a, &b, false, false).unwrap();
+        assert!(
+            w.patterns.contains(&"async-mirror"),
+            "expected async-mirror, got {:?}",
+            w.patterns
+        );
+        assert!(
+            !w.equal_modulo_holes,
+            "async↔sync is a transformation twin, never a behavioral equivalence"
+        );
+        assert!(w.spots.iter().any(|s| s.class == "async-mirror"));
+    }
+
+    #[test]
+    fn both_sides_await_is_not_async_mirror() {
+        // Two identical async copies (both await) align cleanly — no one-sided await, no mirror.
+        let (a, _) = async_sync_twin(12);
+        let w = graded_witness(&a, &a, false, false).unwrap();
+        assert!(!w.patterns.contains(&"async-mirror"));
         assert!(w.equal_modulo_holes);
     }
 

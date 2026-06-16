@@ -55,6 +55,45 @@ fn detection_is_deterministic() {
 }
 
 #[test]
+fn async_sync_twin_converges_candidate_mode() {
+    // An async fn and its sync twin (identical body modulo `await`) are a Type-4 *transformation*
+    // twin — they must surface as a near/candidate family (#K, the async↔sync gap). A function with
+    // DIFFERENT logic must not match.
+    let asy = "async def handle(records, threshold):\n    out = []\n    total = 0\n    for rec in records:\n        parsed = await parse(rec)\n        score = await evaluate(parsed)\n        if score > threshold:\n            total = total + score\n            out.append(parsed)\n    return summarize(out, total)\n";
+    let sync = "def handle(records, threshold):\n    out = []\n    total = 0\n    for rec in records:\n        parsed = parse(rec)\n        score = evaluate(parsed)\n        if score > threshold:\n            total = total + score\n            out.append(parsed)\n    return summarize(out, total)\n";
+    let decoy = "def tally(ballots, base):\n    seen = {}\n    running = base\n    for b in ballots:\n        w = weight(b)\n        running = running - w * 2\n        seen[b] = running\n    return finalize(seen, running)\n";
+    let corpus = build(&[
+        ("asy.py", asy, Lang::Python),
+        ("sync.py", sync, Lang::Python),
+        ("decoy.py", decoy, Lang::Python),
+    ]);
+    let opts = DetectOptions {
+        threshold: 0.70,
+        min_tokens: 12,
+        ..Default::default()
+    };
+    let report = detect(
+        &corpus,
+        &opts,
+        &StructuralDetector::candidates(opts.jaccard_weight),
+    );
+    assert!(
+        report.duplicates.iter().any(|d| {
+            (d.left.file == "asy.py" && d.right.file == "sync.py")
+                || (d.left.file == "sync.py" && d.right.file == "asy.py")
+        }),
+        "the async fn and its sync twin must converge as a candidate family"
+    );
+    assert!(
+        report
+            .duplicates
+            .iter()
+            .all(|d| d.left.file != "decoy.py" && d.right.file != "decoy.py"),
+        "a function with different logic must not match the twins"
+    );
+}
+
+#[test]
 fn rust_clones_group_decoy_excluded() {
     // Two structurally-identical Rust functions (renamed) + an unrelated decoy.
     let a = "fn run(items: &[i32]) -> i32 {\n    let mut total = 0;\n    for x in items {\n        if *x > 0 {\n            total += x;\n        }\n    }\n    total\n}\n";
