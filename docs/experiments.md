@@ -2961,3 +2961,28 @@ soundness fix that would break a *provably-sound* sibling merge is not the large
 generalization — it is the wrong axis; the value model must gain the missing proof
 (nullability) first. The campaign found nothing it could ship and that is the green-with-teeth
 result: one well-characterized latent false merge, scoped to #410.
+
+**Resolution (#410, same session) — the deferral was lifted; the fix is corpus-inert.** The
+defer reasoning had a measurement gap: it assumed splitting the coalesce form from the absence
+form would cost real recall. It does not. The two GetOrDefault feeders are *separable without
+any nullability proof*: the **membership** guard (`has`/`in`, and Java/Go/Rust/Python's typed
+`getOrDefault`/comma-ok/`.get(k,d)`) folds to `GetOrDefault` through `map_presence_condition`,
+a path the null/undefined conflation never touches; only the **null-equality** guard
+(`?? `, `== null`) reached `GetOrDefault` via `mk_value_or_map_default`. The fix is two splits
+that can only *remove* merges (never create one, so no new proof obligation): (1) route the
+null-guarded map default to the faithful `ValueOrDefault` (`mk_nullish_map_default`) instead of
+`GetOrDefault`; (2) drop the eval.rs `=== undefined`-over-map-get exception so the strict guard
+stays a distinct opaque rather than the conflated null `Eq`. Result: `{?? , == null}` = coalesce,
+`{has, in, getOrDefault, .get(k,d), comma-ok, unwrap_or}` = absence, `=== undefined` = its own
+opaque — all false merges gone, the coalesce and absence classes each still converge internally.
+**Corpus impact: byte-identical** `query top=0 --format json` across 15 JS/TS repos (5825 families)
+AND the Python/Java/Go/Rust repos — the lost merges (`?? `≡absence, `=== undefined`≡`has`) fire
+only in the synthetic convergence tests, never on real code, so the "provably-sound literal
+merge" the deferral worried about has zero real-world prevalence. Regression:
+`equivalence.rs::nullish_coalesce_map_default_is_distinct_from_absence_default`; the cross-language
+and CLI map-default tests now assert the sound partition (coalesce family distinct from absence).
+**Lesson:** "soundness costs recall" is a hypothesis to *measure*, not assume — here the recall
+cost was a synthetic-test artifact and the sound fix shipped clean. Residual (still #410, now a
+pure recall enhancement): a map-value non-null proof would re-converge the coalesce forms with the
+absence family where it is provably sound (literal non-null maps), and null/undefined de-conflation
+would re-home `=== undefined` with the absence class — neither is a soundness obligation.

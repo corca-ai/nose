@@ -21,7 +21,7 @@ moved into the permanent regression battery.
 | (cross-lang shift) | JS `a<<b`/`a>>b` (int32) ≡ Python arbitrary-precision `<<`/`>>` | n/a (cross-language — no single-file repro) | FIXED series 9 — JS shift operand int32-narrowed |
 | float_assoc.py | `(a+b)+c≡a+(b+c)` for floats | NO — oracle blind | OPEN (C/float) — needs the `Float` value kind (D-div) |
 | array_element_mutation.py | `swap` ≡ `clobber` — `a[i]` read after an indexed write re-derives the pre-write value | NO — oracle blind | OPEN — needs in-place element-mutation modeling (value graph + interp), see oracle-value-model §7.3 |
-| map_nullish_default.ts | `m.get(k) ?? d` (coalesce: d on absent **or** present-null) ≡ `m.has(k) ? m.get(k) : d` / `=== undefined` (absence-only) | NO — oracle blind (`vj[1.0]:0/1` but gate green) | OPEN (series 10/§CT, #410) — needs map-value non-null proof + null/undefined de-conflation |
+| map_nullish_default.ts | `m.get(k) ?? d` (coalesce: d on absent **or** present-null) ≡ `m.has(k) ? m.get(k) : d` / `=== undefined` (absence-only) | NO — oracle blind (`vj[1.0]:0/1` but gate green) | FIXED series 10/§CT (#410) — null-guard map default → faithful `ValueOrDefault` (split from the membership-guarded `GetOrDefault`); `=== undefined` kept opaque. Corpus byte-identical. Regression `nullish_coalesce_map_default_is_distinct_from_absence_default` |
 
 FIXED rows are now covered by permanent regression tests (effect cases in the
 value-graph suite; `-(-a)`/`a&a`/`a+b` in `crates/nose-cli/tests/equivalence.rs`,
@@ -33,6 +33,7 @@ value-graph suite; `-(-a)`/`a&a`/`a+b` in `crates/nose-cli/tests/equivalence.rs`
 inline-soundness cases in `dataflow_does_not_unsoundly_inline_a_temp_past_a_write_or_into_a_lambda`).
 The OPEN rows are oracle-blind value-model gaps: `float_assoc.py` needs the `Float` value
 kind (D-div, #283-D); `array_element_mutation.py` needs in-place element-mutation modeling
-(oracle-value-model §7.3); `map_nullish_default.ts` needs a map-value non-null proof plus
-null/undefined de-conflation (#410, oracle-value-model §7.4). All three share the limitation
-that the interpreter cannot witness them, so no battery row distinguishes the merged pair.
+(oracle-value-model §7.3). `map_nullish_default.ts` was the same oracle-blind class but is now
+FIXED by SPLITTING the merged pair (the null-guarded coalesce no longer folds to the absence-only
+`GetOrDefault`), so the interpreter never needs to witness it; it is kept here as a split-asserting
+reproducer (#410, oracle-value-model §7.4).

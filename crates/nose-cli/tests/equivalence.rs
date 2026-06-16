@@ -4990,10 +4990,15 @@ fn literal_map_default_lookup_converges_with_js_map_construction_boundaries() {
 
     let fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
-    assert_eq!(fp, value_fp(&i, js_inline, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, js_local, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, js_has_get, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_inline, Lang::TypeScript));
+    assert_eq!(fp, value_fp(&i, js_has_get, Lang::JavaScript)); // membership absence — stays in family
+                                                                // `m.get(k) ?? d` is nullish COALESCE (default on absent OR present-null), NOT the absence-only
+                                                                // default; it must not merge with the family — unsound for a null-valued map, and the value
+                                                                // type's nullability is erased from the IL (#410, experiments §CT). The `?? ` forms converge
+                                                                // with each other as their own class.
+    let coalesce_fp = value_fp(&i, js_inline, Lang::JavaScript);
+    assert_eq!(coalesce_fp, value_fp(&i, js_local, Lang::JavaScript));
+    assert_eq!(coalesce_fp, value_fp(&i, ts_inline, Lang::TypeScript));
+    assert_ne!(fp, coalesce_fp);
     assert_ne!(fp, value_fp(&i, js_call, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_key, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_default, Lang::JavaScript));
@@ -5181,9 +5186,11 @@ fn literal_map_default_lookup_converges_with_module_map_bindings() {
     let java_shadowed = "class C { static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2); static int f(String key, String other) { return LOOKUP.getOrDefault(key, 0); } }\nclass Map { static java.util.Map<String, Integer> of(Object... values) { return java.util.Map.of(); } }\n";
 
     let fp = value_fp(&i, py_literal, Lang::Python);
-    assert_eq!(fp, value_fp(&i, js_module, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_module, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, java_static, Lang::Java));
+    assert_eq!(fp, value_fp(&i, java_static, Lang::Java)); // getOrDefault absence — stays in family
+                                                           // `?? ` is nullish coalesce, distinct from the absence-default family (#410, experiments §CT):
+    let coalesce_fp = value_fp(&i, js_module, Lang::JavaScript);
+    assert_eq!(coalesce_fp, value_fp(&i, ts_module, Lang::TypeScript));
+    assert_ne!(fp, coalesce_fp);
     assert_ne!(fp, value_fp(&i, js_wrong_key, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, ts_wrong_default, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, java_wrong_map, Lang::Java));
@@ -5529,10 +5536,13 @@ fn map_default_lookup_converges_cross_language() {
     assert_eq!(fp, value_fp(&i, java_guard_return, Lang::Java));
     assert_eq!(fp, value_fp(&i, rust_explicit, Lang::Rust));
     assert_eq!(fp, value_fp(&i, rust_unwrap, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, ts_nullish, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, ts_has_get, Lang::TypeScript));
-    assert_eq!(fp, value_fp(&i, ts_temp_guard, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, ts_guard_return, Lang::TypeScript));
+    // `lookup.get(key) ?? fallback` is nullish COALESCE; the strict `selected === undefined ? …`
+    // guard is conflated with `== null` by the null/undefined value model. Neither merges with the
+    // absence-default family — they diverge on a present null-valued key (#410, experiments §CT).
+    assert_ne!(fp, value_fp(&i, ts_nullish, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, ts_temp_guard, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, py_dict, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_guard_return, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_mapping, Lang::Python));
@@ -5540,6 +5550,31 @@ fn map_default_lookup_converges_cross_language() {
     assert_eq!(fp, value_fp(&i, py_alias_mapping, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_alias_mutable_mapping, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_alias_dict, Lang::Python));
+}
+
+#[test]
+fn nullish_coalesce_map_default_is_distinct_from_absence_default() {
+    // #410 / experiments §CT: `m.get(k) ?? d` (nullish coalesce — default on absent OR present-null)
+    // must NOT share a fingerprint with the absence-only default `m.has(k) ? m.get(k) : d` /
+    // `dict.get(k, d)`. They diverge on a present key whose value is null:
+    //   const m = new Map<string, number | null>([["x", null]]);
+    //   m.get("x") ?? 0             // 0     (?? replaces present-null)
+    //   m.has("x") ? m.get("x") : 0 // null  (presence keeps the stored null)
+    // The value model erases the map's value-type nullability, so the merge can never be proven
+    // sound; it was the LATENT false merge recorded in bench/coevo/false_merges/map_nullish_default.ts.
+    let i = Interner::new();
+    let coalesce = "function f(m: Map<string, number | null>, k: string): number | null { return m.get(k) ?? 0; }\n";
+    let coalesce_eqnull = "function f(m: Map<string, number | null>, k: string): number | null { const g = m.get(k); return g == null ? 0 : g; }\n";
+    let presence_has = "function f(m: Map<string, number | null>, k: string): number | null { if (m.has(k)) { return m.get(k); } return 0; }\n";
+    let py_get_default = "def f(m, k):\n    return m.get(k, 0)\n";
+
+    let coalesce_fp = value_fp(&i, coalesce, Lang::TypeScript);
+    // the two nullish-coalesce spellings still converge as their own class
+    assert_eq!(coalesce_fp, value_fp(&i, coalesce_eqnull, Lang::TypeScript));
+    // …but coalesce is DISTINCT from the membership-guarded absence default (the fixed false merge)
+    assert_ne!(coalesce_fp, value_fp(&i, presence_has, Lang::TypeScript));
+    // …and distinct cross-language from Python's absence-only `dict.get(k, default)`
+    assert_ne!(coalesce_fp, value_fp(&i, py_get_default, Lang::Python));
 }
 
 #[test]

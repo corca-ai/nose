@@ -778,8 +778,8 @@
    "surface": "value-model-collections",
    "claim": "nose models map/dict reads soundly — `m.get(k) ?? d` is not silently equated with the absence-only default",
    "summary": "CONFIRMED latent false merge (witness=exact). `m.get(k) ?? d` (coalesce: d on absent OR present-null) folds to the same fingerprint as `m.has(k) ? m.get(k) : d` and `m.get(k) === undefined ? d : g` (absence-only). Diverge on a present key whose value is null: `Map<string,number|null>` with m['x']=null → ?? gives 0, presence gives null (verified with node). Oracle-blind: verify gate green though its calibration prints vj[1.0]:0/1 = 0% behavior-equal. Root = mk_value_or_map_default upgrading a null-guarded coalesce to GetOrDefault, plus the value model's null/undefined conflation collapsing `=== undefined` (absence) into `== null` (coalesce).",
-   "verdict": "deferred-issue",
-   "defense": "DEFERRED #410. The sound fix needs (a) a map-value non-null proof so the convergence survives only for provably-non-null maps — a blunt split breaks the provably-sound literal-map class (equivalence.rs::literal_map_default_lookup_converges_with_js_map_construction_boundaries) — and (b) de-conflation of null/undefined to re-home `=== undefined` with the absence class. Both are value-model-core + interp work beyond the campaign's surgical scope. Fixture: bench/coevo/false_merges/map_nullish_default.ts; oracle-value-model §7.4."
+   "verdict": "violation-fixed",
+   "defense": "FIXED #410 (same session). The deferral's recall worry was a measurement error: the coalesce and absence GetOrDefault feeders are separable WITHOUT a nullability proof — only the null-equality guard (??/==null) reached GetOrDefault via mk_value_or_map_default; the membership guards (has/in/getOrDefault/.get(k,d)) use a separate non-conflated path. Fix = two merge-removing splits (no new proof obligation): (1) null-guarded map default → faithful ValueOrDefault (mk_nullish_map_default), (2) drop the eval.rs `=== undefined`-over-map-get exception so the strict guard stays a distinct opaque. Corpus byte-identical (15 JS/TS repos / 5825 families + py/java/go/rust). Regression equivalence.rs::nullish_coalesce_map_default_is_distinct_from_absence_default; cross-language + CLI map-default tests now assert the sound partition."
   },
   {
    "packet_id": "s10-vm-map-nullish-vs-undefined",
@@ -790,8 +790,8 @@
    "surface": "value-model-collections",
    "claim": "`m.get(k) ?? d` ≡ `m.get(k) === undefined ? d : g` (the eval.rs §7 comment's stated equivalence)",
    "summary": "The stated equivalence is itself unsound for nullable maps: `=== undefined` is the true absence check (keeps present-null) while `??` is coalesce (replaces present-null with d). The value model's null/undefined conflation makes the two indistinguishable, so they share a fingerprint. Sharpens the s10-map-nullish-vs-presence root cause.",
-   "verdict": "deferred-issue",
-   "defense": "DEFERRED #410 (same fix). Recorded as the second arm of the conflation gap."
+   "verdict": "violation-fixed",
+   "defense": "FIXED #410 (same session). The deferral's recall worry was a measurement error: the coalesce and absence GetOrDefault feeders are separable WITHOUT a nullability proof — only the null-equality guard (??/==null) reached GetOrDefault via mk_value_or_map_default; the membership guards (has/in/getOrDefault/.get(k,d)) use a separate non-conflated path. Fix = two merge-removing splits (no new proof obligation): (1) null-guarded map default → faithful ValueOrDefault (mk_nullish_map_default), (2) drop the eval.rs `=== undefined`-over-map-get exception so the strict guard stays a distinct opaque. Corpus byte-identical (15 JS/TS repos / 5825 families + py/java/go/rust). Regression equivalence.rs::nullish_coalesce_map_default_is_distinct_from_absence_default; cross-language + CLI map-default tests now assert the sound partition."
   },
   {
    "packet_id": "s10-grammar-bump-lowering",

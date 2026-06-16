@@ -62,24 +62,22 @@ impl<'a> Builder<'a> {
             if !strict {
                 return Some(self.mk(ValOp::Bin(op), vec![a, b]));
             }
-            // Exception: `=== undefined` against a value that provably cannot be
-            // null IS the faithful absence check — a typed `Map.get` result is
-            // `V | undefined`. Keep the model's Eq shape there so the map-default
-            // fold still proves `m.get(k) ?? d` ≡ the `=== undefined` guarded form.
-            let undefined_spelling = matches!(
-                (self.il.kind(null_kid), self.il.node(null_kid).payload),
-                (NodeKind::Var, Payload::Name(_))
-            );
-            let undefined_only_absence = self.proven_map_get_value(value_side).is_some();
-            if !(undefined_spelling && undefined_only_absence) {
-                let salt = combine(JS_STRICT_NULL_CMP_TAG, self.valued_subtree_hash(null_kid));
-                let eq = self.mk(ValOp::Opaque(salt), vec![value_side]);
-                return Some(if op == Op::Ne as u32 {
-                    self.mk(ValOp::Un(Op::Not as u32), vec![eq])
-                } else {
-                    eq
-                });
-            }
+            // Strict `=== null` / `=== undefined` is NOT the loose nullish check — keep it a
+            // distinct opaque keyed by the spelled operand. Earlier this carved out
+            // `=== undefined` over a map-get as a "faithful" absence `Eq` so it would fold to the
+            // map default like `m.get(k) ?? d`. But the value model conflates `null`/`undefined`
+            // into one constant, so that `Eq` was indistinguishable from `== null`/`?? ` and
+            // false-merged the COALESCE form (default on absent OR present-null) with the
+            // ABSENCE form (default on absent only) — they diverge on a present null-valued key
+            // (#410, experiments §CT). Keeping it opaque splits the two; `=== undefined` no longer
+            // claims equivalence with either `?? ` or the membership-guarded `GetOrDefault`.
+            let salt = combine(JS_STRICT_NULL_CMP_TAG, self.valued_subtree_hash(null_kid));
+            let eq = self.mk(ValOp::Opaque(salt), vec![value_side]);
+            return Some(if op == Op::Ne as u32 {
+                self.mk(ValOp::Un(Op::Not as u32), vec![eq])
+            } else {
+                eq
+            });
         }
         if loose {
             let tag = if op == Op::Ne as u32 {
@@ -757,7 +755,7 @@ impl<'a> Builder<'a> {
             if let [value, default] = kids {
                 let value = self.eval(*value, env);
                 let default = self.eval(*default, env);
-                return Some(self.mk_value_or_map_default(value, default));
+                return Some(self.mk_nullish_map_default(value, default));
             }
         }
         if let Payload::Builtin(b) = payload {

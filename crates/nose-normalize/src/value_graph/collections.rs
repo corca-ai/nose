@@ -773,7 +773,7 @@ impl<'a> Builder<'a> {
             }
             then_v
         };
-        Some(self.mk_value_or_map_default(value, default))
+        Some(self.mk_nullish_map_default(value, default))
     }
 
     pub(super) fn value_default_call(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
@@ -807,13 +807,16 @@ impl<'a> Builder<'a> {
         )
     }
 
-    pub(super) fn mk_value_or_map_default(&mut self, value: ValueId, default: ValueId) -> ValueId {
-        if let Some((map, key)) = self.proven_map_get_value(value) {
-            return self.mk(
-                ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
-                vec![map, key, default],
-            );
-        }
+    /// A NULL-guarded map default (`m.get(k) ?? d`, `m.get(k) == null ? d : …`) is the faithful
+    /// nullish coalesce — it replaces BOTH absent (`undefined`) AND a stored `null` with the
+    /// default. Model it as `ValueOrDefault`; do NOT upgrade it to `GetOrDefault(map, key, d)`,
+    /// the absence-only fold ("d iff the key is absent, else the stored value — null included").
+    /// The two diverge on a present key whose value is null, and the map's value-type nullability
+    /// is erased from the IL, so the upgrade cannot be proven sound — it false-merged the coalesce
+    /// form with the genuine presence-default `m.has(k) ? m.get(k) : d` (#410, experiments §CT).
+    /// The provable-absence forms (`m.has(k)`, `k in m`, Python `d.get(k, d)`) fold to
+    /// `GetOrDefault` through `map_presence_condition`, a separate path this never touches.
+    pub(super) fn mk_nullish_map_default(&mut self, value: ValueId, default: ValueId) -> ValueId {
         self.mk_value_default(value, default)
     }
 

@@ -281,7 +281,7 @@ impl<'a> Builder<'a> {
             }
             (value_a, ret_a)
         };
-        Some(self.mk_value_or_map_default(value, default))
+        Some(self.mk_nullish_map_default(value, default))
     }
 
     pub(super) fn value_default_from_guarded_fallthrough(
@@ -302,7 +302,7 @@ impl<'a> Builder<'a> {
             }
             guarded_ret
         };
-        Some(self.mk_value_or_map_default(value, default))
+        Some(self.mk_nullish_map_default(value, default))
     }
 
     pub(super) fn guarded_return_parts(&self, value: ValueId) -> Option<(ValueId, ValueId)> {

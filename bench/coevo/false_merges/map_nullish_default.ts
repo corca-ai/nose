@@ -1,6 +1,9 @@
-// Confirmed LATENT false merge (coevo series 10, §CT). nose gives `coalesce`,
-// `presence`, and `undef_check` ONE exact-value-graph fingerprint, but they are
-// behaviorally distinct on a present key whose stored value is null.
+// FIXED (coevo series 10, §CT, #410) — kept as a split-asserting reproducer. nose USED TO give
+// `coalesce`, `presence`, and `undef_check` ONE exact-value-graph fingerprint, but they are
+// behaviorally distinct on a present key whose stored value is null. After the fix the
+// null-guarded coalesce folds to the faithful `ValueOrDefault` (split from the membership-guarded
+// `GetOrDefault`) and `=== undefined` stays a distinct opaque, so all three get distinct
+// fingerprints — `nose query <this file> top=0` now reports NO multi-member family.
 //
 //   const m = new Map<string, number | null>([["x", null]]);
 //   coalesce(m, "x")    // 0     —  null ?? 0  →  0   (?? replaces present-null)

@@ -1901,9 +1901,7 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
     let semantic_families = scan_families(&semantic_json);
     let expected = [
         "map_default.go",
-        "ts_nullish.ts",
         "ts_has_get.ts",
-        "ts_temp_guard.ts",
         "ts_guard_return.ts",
         "java_guard_return.java",
         "py_dict.py",
@@ -1933,6 +1931,10 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
         );
     }
     for unexpected in [
+        // `ts_nullish` (`?? `) is nullish COALESCE and `ts_temp_guard` (`=== undefined`) is conflated
+        // with `== null` — neither merges with the absence-only default family (#410, experiments §CT).
+        "ts_nullish.ts",
+        "ts_temp_guard.ts",
         "ts_wrong_key.ts",
         "ts_wrong_default.ts",
         "ts_wrong_map.ts",
@@ -2384,12 +2386,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "map_default_java_entries.java",
         "map_default_java_local.java",
         "map_default_module.java",
-        "map_default_inline.js",
-        "map_default_local.js",
         "map_default_has_get.js",
-        "map_default_inline.ts",
-        "map_default_module.js",
-        "map_default_module.ts",
         "map_default_rust_hashmap.rs",
         "map_default_rust_btreemap.rs",
         "map_default_go_inline.go",
@@ -2417,6 +2414,37 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
             "semantic mode should include {expected}: {semantic}"
         );
     }
+    // The nullish-coalesce `?? ` forms split into their OWN family — `m.get(k) ?? d` defaults on
+    // absent OR present-null, unsound to merge with the absence-only default (#410, experiments §CT).
+    let coalesce_expected = [
+        "map_default_inline.js",
+        "map_default_local.js",
+        "map_default_inline.ts",
+        "map_default_module.js",
+        "map_default_module.ts",
+    ];
+    let coalesce_family = semantic_families
+        .iter()
+        .find(|family| {
+            let family_text = family.to_string();
+            coalesce_expected
+                .iter()
+                .all(|expected| family_text.contains(expected))
+        })
+        .unwrap_or_else(|| {
+            panic!("semantic mode should report one nullish-coalesce family: {semantic}")
+        });
+    let coalesce_text = coalesce_family.to_string();
+    for expected in coalesce_expected {
+        assert!(
+            coalesce_text.contains(expected),
+            "semantic mode should include nullish-coalesce {expected}: {semantic}"
+        );
+    }
+    assert!(
+        !positive_text.contains("map_default_inline.js"),
+        "absence-default family must exclude the nullish-coalesce forms: {semantic}"
+    );
     let string_expected = [
         "map_default_string.py",
         "map_default_string.rb",
