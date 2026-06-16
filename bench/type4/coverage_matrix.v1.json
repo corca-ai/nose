@@ -5,7 +5,7 @@
       "go": "n/a",
       "java": "n/a",
       "javascript": "none",
-      "python": "none",
+      "python": "covered",
       "ruby": "n/a",
       "rust": "none",
       "typescript": "none"
@@ -380,7 +380,7 @@
     },
     "python": {
       "applicable": 26,
-      "covered": 16
+      "covered": 17
     },
     "ruby": {
       "applicable": 24,

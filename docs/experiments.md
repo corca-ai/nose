@@ -3036,6 +3036,20 @@ twin recall goes **0/6 → 6/6** (baseline binary vs this change), **HN-FP 0/3**
 negative — two async fns differing only `+`/`-` — was dropped: candidate mode surfaces
 same-shape-different-operator BY DESIGN, on the baseline too, so it is not an async-twin miss.)
 
-**Follow-up (not soundness):** mine REAL-corpus twin instances to flip the `coverage_matrix`
-`async_sync_twin` cells none→covered (the matrix tracks real-corpus coverage, not synthetic
-fixtures), and extend to Rust `.await` and the other protocol boundaries.
+**Real-corpus lift — measured, and modest.** Mining = run nose (with this feature) on
+async/sync-mirror-rich repos and keep the families whose members span an `async def` and a plain
+`def`. httpx (`Client`/`AsyncClient`) surfaces **8** such twin families, including the production
+`Response.read` / `aread` (`_models.py:468`/`482`). But the **differential** (FIX vs the baseline
+binary) is small: httpx **+1** new twin (`test_*_auth_reads_response_body`), scrapy re-grouped,
+sqlalchemy +0 — because most real twins ALREADY converge via the sub-DAG/anchor path (their shared
+non-await body is a big enough common anchor; `read`/`aread` itself converges on the baseline too).
+So the synthetic 0→6/6 proves the *mechanism*; the marginal real-corpus recall is **+1-ish**, and
+the durable wins are the explicit candidate-mode convergence + the honest `async-mirror` witness
+label (which the anchor path does not give). The `coverage_matrix` `async_sync_twin` **python** cell
+is flipped none→covered (evidence: the hand-verified httpx `read`/`aread`, `real_frontier.v1.json`).
+Lesson, the twin of §CU's first: a new recall feature's *real-corpus lift* is also a hypothesis to
+measure, not assume — here it is small.
+
+**Follow-up (not soundness):** real-corpus evidence for the js/ts/rust cells (js/ts libraries keep
+parallel sync/async versions far less often than Python ones, so no clean mined twin yet), and
+extending the mechanism to Rust `.await` and the other protocol boundaries.
