@@ -92,7 +92,12 @@ fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool) -> NodeId {
         }
     }
     let tag_sym = tag.unwrap_or_else(|| lo.sym(""));
-    let el = lo.add(NodeKind::HtmlElement, Payload::Name(tag_sym), span, &children);
+    let el = lo.add(
+        NodeKind::HtmlElement,
+        Payload::Name(tag_sym),
+        span,
+        &children,
+    );
     lo.push_unit(el, UnitKind::Block, tag);
     el
 }

@@ -1,16 +1,21 @@
 //! Sound, conservative CSS value canonicalization toward **computed equivalence**.
 //!
-//! These are the low-level primitives shared by the CSS fingerprint
-//! ([`crate::css`]) and the computed-style oracle: parse a color to a canonical hex,
-//! parse a number/length to a canonical spelling, and collapse box shorthands. They
-//! are deliberately conservative — a token that is not *provably* equivalent to its
-//! canonical form is returned UNCHANGED, so the worst case is a missed merge (recall),
-//! never a false merge (soundness). Each rule has hard-negative tests below.
+//! These are the low-level primitives the CSS/HTML declarative fingerprint
+//! ([`crate::css`], [`crate::html`]) uses to canonicalize value tokens: parse a color
+//! to a canonical hex, parse a number/length to a canonical spelling, and collapse box
+//! shorthands. They are deliberately conservative — a token that is not *provably*
+//! equivalent to its canonical form is returned UNCHANGED, so the worst case is a missed
+//! merge (recall), never a false merge (soundness).
 //!
-//! Independence note: the fingerprint COLLAPSES box shorthands toward the shortest
-//! form; the oracle EXPANDS them to longhands. Both ride this same table, but they are
-//! inverse computations producing different representations, so an over-aggressive
-//! collapse surfaces as a longhand-map mismatch in the oracle.
+//! This is the soundness-bearing step of the declarative fingerprint: the fingerprint
+//! IS the canonical computed style (no IL rewrite), so *equal fingerprint ⟹ equal
+//! computed style* holds by construction PROVIDED every canonicalization here is
+//! meaning-preserving. That precondition is `empirical-only` — defended by the
+//! adversarial per-rule batteries (the tests below plus the CSS/HTML convergence and
+//! hard-negative tests in `crates/nose-cli/tests/equivalence.rs`), not by Lean. See the
+//! obligation registered in `formal/obligations/normalize/css/computed_style/`.
+//!
+//! proof-obligation: normalize.css.computed_style
 
 /// Canonicalize a declaration's value (a list of raw tokens) toward computed
 /// equivalence: normalize each token, then collapse a box-model shorthand if the
@@ -163,7 +168,11 @@ fn canonical_number_text(num: &str) -> Option<String> {
     };
     let int_trimmed = int_part.trim_start_matches('0');
     let frac_trimmed = frac_part.trim_end_matches('0');
-    let int_canon = if int_trimmed.is_empty() { "0" } else { int_trimmed };
+    let int_canon = if int_trimmed.is_empty() {
+        "0"
+    } else {
+        int_trimmed
+    };
     let mut out = String::new();
     if !frac_trimmed.is_empty() {
         out.push_str(int_canon);
@@ -222,7 +231,10 @@ fn is_box_shorthand(p: &str) -> bool {
 
 /// Two-axis shorthands (`gap`, `overflow`, …): `a a` ≡ `a`.
 fn is_two_axis_shorthand(p: &str) -> bool {
-    matches!(p, "gap" | "overflow" | "overscroll-behavior" | "place-items" | "place-content")
+    matches!(
+        p,
+        "gap" | "overflow" | "overscroll-behavior" | "place-items" | "place-content"
+    )
 }
 
 /// Collapse a 1–4 value box shorthand to its canonical shortest form (CSS rules):
@@ -303,7 +315,17 @@ mod tests {
     #[test]
     fn colors_canonicalize_to_one_form() {
         for eq in [
-            vec!["#fff", "#ffffff", "#FFFFFF", "#FFFF", "white", "WHITE", "rgb(255,255,255)", "rgb(255 255 255)", "#ffffffff"],
+            vec![
+                "#fff",
+                "#ffffff",
+                "#FFFFFF",
+                "#FFFF",
+                "white",
+                "WHITE",
+                "rgb(255,255,255)",
+                "rgb(255 255 255)",
+                "#ffffffff",
+            ],
             vec!["#000", "#000000", "black", "rgb(0,0,0)", "rgba(0,0,0,1)"],
             vec!["#ff0000", "red", "RED", "#f00", "rgb(255, 0, 0)"],
         ] {
@@ -351,8 +373,14 @@ mod tests {
         }
         assert_eq!(canonicalize_value("margin", &v("0 0 0 0")), vec!["0"]);
         assert_eq!(canonicalize_value("margin", &v("0px 0 0em 0")), vec!["0"]);
-        assert_eq!(canonicalize_value("padding", &v("1px 2px 1px 2px")), vec!["1px", "2px"]);
-        assert_eq!(canonicalize_value("margin", &v("1px 2px 3px 2px")), vec!["1px", "2px", "3px"]);
+        assert_eq!(
+            canonicalize_value("padding", &v("1px 2px 1px 2px")),
+            vec!["1px", "2px"]
+        );
+        assert_eq!(
+            canonicalize_value("margin", &v("1px 2px 3px 2px")),
+            vec!["1px", "2px", "3px"]
+        );
         // Hard negatives: these must NOT collapse to the same thing.
         assert_ne!(
             canonicalize_value("margin", &v("0 1px")),
@@ -365,7 +393,10 @@ mod tests {
         // A non-box property is never collapsed.
         assert_eq!(
             canonicalize_value("transition", &v("0 0 0 0")),
-            v("0 0 0 0").iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            v("0 0 0 0")
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>(),
         );
     }
 }

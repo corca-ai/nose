@@ -298,12 +298,7 @@ pub fn type_domain_from_source_text(lang: Lang, text: &str) -> Option<DomainEvid
         Lang::Go => go_type_domain(text),
         Lang::C => c_type_domain(text),
         // CSS is declarative — no type annotations.
-        Lang::Css
-        | Lang::JavaScript
-        | Lang::Ruby
-        | Lang::Vue
-        | Lang::Svelte
-        | Lang::Html => None,
+        Lang::Css | Lang::JavaScript | Lang::Ruby | Lang::Vue | Lang::Svelte | Lang::Html => None,
     }
 }
 

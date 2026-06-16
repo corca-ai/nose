@@ -1,0 +1,8 @@
+id = "normalize.css.computed_style"
+status = "empirical-only"
+kind = "soundness"
+summary = "The declarative (CSS/HTML) fingerprint asserts equal fingerprint ⟹ equal computed style / rendered DOM. Unlike an imperative canon it does NOT rewrite the IL — the fingerprint IS the canonical denotation (a CSS rule's computed declaration set, an HTML element's rendered DOM), so the contract holds by construction. The soundness-bearing step is the value canonicalization `canonicalize_value` (color → canonical hex, number/length → canonical spelling, box-shorthand collapse), which must be meaning-preserving: an over-aggressive collapse or a wrong color/unit equivalence would merge computed-distinct rules. That precondition is empirical, NOT proven — it is defended by adversarial per-rule batteries (css_value unit tests plus the CSS/HTML convergence and hard-negative tests in crates/nose-cli/tests/equivalence.rs: distinct colors, value-order, repeated-property and shorthand/longhand cascade, at-rule condition, domain disjointness), not by Lean. Required-EXISTENCE is enforced here so the canon can never be silently dropped; when a Lean proof is written, flip the status to `proven` and the standard [lean] checks take over."
+
+[rust]
+files = ["crates/nose-normalize/src/css_value.rs"]
+symbols = ["canonicalize_value"]

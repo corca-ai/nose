@@ -57,8 +57,11 @@ fn collect_rules(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
                     out.push(rule);
                 }
             }
-            "media_statement" | "supports_statement" | "keyframes_statement"
-            | "keyframe_block_list" | "at_rule" => {
+            "media_statement"
+            | "supports_statement"
+            | "keyframes_statement"
+            | "keyframe_block_list"
+            | "at_rule" => {
                 lower_at_rule(lo, child, out, register);
             }
             // Declaration-level statements with no clone value (and handled, not Raw).
@@ -171,7 +174,12 @@ fn lower_declaration(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             lo.add(NodeKind::Lit, Payload::Name(sym), vspan, &[])
         })
         .collect();
-    Some(lo.add(NodeKind::CssDecl, Payload::Name(prop_sym), span, &value_children))
+    Some(lo.add(
+        NodeKind::CssDecl,
+        Payload::Name(prop_sym),
+        span,
+        &value_children,
+    ))
 }
 
 /// An at-rule (`@media`/`@supports`/`@keyframes`) → a `CssRule` whose `CssSelector`

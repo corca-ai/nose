@@ -126,6 +126,16 @@ REQUIRED_OBLIGATIONS = (
         ("crates/nose-detect/src/witness.rs",),
         ("graded_witness", "equal_modulo_holes", "compare_referents"),
     ),
+    # The declarative (CSS/HTML) fingerprint's value canonicalization. Like
+    # `detect.graded_witness` this is `empirical-only`: the fingerprint IS the canonical
+    # computed style (no IL rewrite), so soundness reduces to `canonicalize_value` being
+    # meaning-preserving, defended by adversarial batteries rather than Lean. Required
+    # here so the canon can never be silently dropped.
+    RequiredObligation(
+        "normalize.css.computed_style",
+        ("crates/nose-normalize/src/css_value.rs",),
+        ("canonicalize_value",),
+    ),
 )
 
 

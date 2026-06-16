@@ -163,7 +163,9 @@ fn style_close(src: &[u8], content_start: usize) -> Option<usize> {
             continue;
         }
         if src[i..].starts_with(b"/*") {
-            i = find_ci(src, b"*/", i + 2).map(|e| e + 2).unwrap_or(src.len());
+            i = find_ci(src, b"*/", i + 2)
+                .map(|e| e + 2)
+                .unwrap_or(src.len());
             continue;
         }
         if matches!(src[i], b'"' | b'\'') {
@@ -460,7 +462,11 @@ mod style_region_tests {
     #[test]
     fn html_style_block_lowers_to_a_css_rule_unit() {
         let html = b"<!doctype html><html><head>\n<style>\n.panel { display: flex; gap: 8px; padding: 12px; }\n</style>\n</head></html>";
-        assert_eq!(css_rule_units(html, Lang::Html), 1, "one CSS rule from <style>");
+        assert_eq!(
+            css_rule_units(html, Lang::Html),
+            1,
+            "one CSS rule from <style>"
+        );
     }
 
     #[test]
@@ -479,6 +485,10 @@ mod style_region_tests {
     #[test]
     fn scss_style_blocks_are_skipped() {
         let html = b"<style lang=\"scss\">\n.a { .nested { color: red; } }\n</style>";
-        assert_eq!(css_rule_units(html, Lang::Html), 0, "preprocessor <style> skipped");
+        assert_eq!(
+            css_rule_units(html, Lang::Html),
+            0,
+            "preprocessor <style> skipped"
+        );
     }
 }

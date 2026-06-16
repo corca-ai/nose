@@ -8524,7 +8524,11 @@ fn css_differing_value_does_not_converge() {
     let i = Interner::new();
     let a = ".btn { display: flex; align-items: center; gap: 8px; padding: 12px; }";
     let c = ".btn { display: flex; align-items: center; gap: 8px; padding: 16px; }";
-    assert_ne!(css_fp(&i, a), css_fp(&i, c), "a differing value must not merge");
+    assert_ne!(
+        css_fp(&i, a),
+        css_fp(&i, c),
+        "a differing value must not merge"
+    );
 }
 
 #[test]
@@ -8590,7 +8594,11 @@ fn css_distinct_colors_do_not_converge() {
     let i = Interner::new();
     let red = ".a { color: #ff0000; display: block; padding: 1px; }";
     let blue = ".b { color: #0000ff; display: block; padding: 1px; }";
-    assert_ne!(css_fp(&i, red), css_fp(&i, blue), "#f00 vs #00f must stay distinct");
+    assert_ne!(
+        css_fp(&i, red),
+        css_fp(&i, blue),
+        "#f00 vs #00f must stay distinct"
+    );
 }
 
 #[test]
@@ -8646,8 +8654,13 @@ fn css_independent_non_overlapping_properties_stay_order_free() {
 
 /// The declarative DOM fingerprint of the first top-level `HtmlElement` in `src`.
 fn html_fp(interner: &Interner, src: &str) -> Vec<u64> {
-    let ils =
-        nose_frontend::lower_source_regions(FileId(0), "t.html", src.as_bytes(), Lang::Html, interner);
+    let ils = nose_frontend::lower_source_regions(
+        FileId(0),
+        "t.html",
+        src.as_bytes(),
+        Lang::Html,
+        interner,
+    );
     let markup = ils
         .iter()
         .find(|il| il.meta.lang == Lang::Html)
@@ -8668,7 +8681,11 @@ fn html_same_dom_converges_under_attr_order_boolean_whitespace_class_set() {
     let a = r#"<div class="card x"><img src="a.png" alt="p"><button type="button" disabled>Go</button></div>"#;
     // attrs reordered, boolean form `disabled=""`, class tokens reordered, extra whitespace
     let b = "<div class=\"x card\">\n  <img alt=\"p\"   src=\"a.png\">\n  <button disabled=\"\" type=\"button\">Go</button>\n</div>";
-    assert_eq!(html_fp(&i, a), html_fp(&i, b), "same rendered DOM must converge");
+    assert_eq!(
+        html_fp(&i, a),
+        html_fp(&i, b),
+        "same rendered DOM must converge"
+    );
 }
 
 #[test]
@@ -8677,8 +8694,16 @@ fn html_text_and_value_differences_do_not_converge() {
     let a = r#"<div class="card"><h3>Title</h3><a href="/a">Link</a></div>"#;
     let b = r#"<div class="card"><h3>Other</h3><a href="/a">Link</a></div>"#; // different text
     let c = r#"<div class="card"><h3>Title</h3><a href="/b">Link</a></div>"#; // different href
-    assert_ne!(html_fp(&i, a), html_fp(&i, b), "different text must not merge");
-    assert_ne!(html_fp(&i, a), html_fp(&i, c), "different attr value must not merge");
+    assert_ne!(
+        html_fp(&i, a),
+        html_fp(&i, b),
+        "different text must not merge"
+    );
+    assert_ne!(
+        html_fp(&i, a),
+        html_fp(&i, c),
+        "different attr value must not merge"
+    );
 }
 
 #[test]
@@ -8686,7 +8711,11 @@ fn html_child_order_is_significant() {
     let i = Interner::new();
     let a = r#"<ul class="m"><li>one</li><li>two</li></ul>"#;
     let b = r#"<ul class="m"><li>two</li><li>one</li></ul>"#;
-    assert_ne!(html_fp(&i, a), html_fp(&i, b), "DOM child order must be significant");
+    assert_ne!(
+        html_fp(&i, a),
+        html_fp(&i, b),
+        "DOM child order must be significant"
+    );
 }
 
 #[test]
@@ -8697,8 +8726,16 @@ fn html_inline_style_is_computed_canonicalized() {
     let a = r#"<div style="margin: 0 0 0 0; color: #ffffff; padding: 4px"><span>x</span></div>"#;
     let b = r#"<div style="color: white; padding: 4px; margin: 0"><span>x</span></div>"#;
     let c = r#"<div style="color: black; padding: 4px; margin: 0"><span>x</span></div>"#;
-    assert_eq!(html_fp(&i, a), html_fp(&i, b), "computed-equal inline styles converge");
-    assert_ne!(html_fp(&i, a), html_fp(&i, c), "different inline style must not merge");
+    assert_eq!(
+        html_fp(&i, a),
+        html_fp(&i, b),
+        "computed-equal inline styles converge"
+    );
+    assert_ne!(
+        html_fp(&i, a),
+        html_fp(&i, c),
+        "different inline style must not merge"
+    );
 }
 
 #[test]
@@ -8707,17 +8744,27 @@ fn html_vue_directive_shorthand_canonicalizes() {
     let i = Interner::new();
     let short = r#"<button :class="c" @click="f"><i class="ico"></i>Go</button>"#;
     let long = r#"<button v-bind:class="c" v-on:click="f"><i class="ico"></i>Go</button>"#;
-    assert_eq!(html_fp(&i, short), html_fp(&i, long), "directive shorthand must canonicalize");
+    assert_eq!(
+        html_fp(&i, short),
+        html_fp(&i, long),
+        "directive shorthand must canonicalize"
+    );
 }
 
 #[test]
 fn html_fingerprint_is_domain_disjoint_from_css_and_imperative() {
     let i = Interner::new();
-    let html = html_fp(&i, r#"<div class="card"><h3>Title</h3><p>body text</p></div>"#);
+    let html = html_fp(
+        &i,
+        r#"<div class="card"><h3>Title</h3><p>body text</p></div>"#,
+    );
     let css = css_fp(&i, ".card { display: flex; gap: 8px; padding: 12px; }");
     let py = value_fp(&i, "def f(x):\n    return x + 5\n", Lang::Python);
     assert_ne!(html, css, "HTML and CSS fingerprints must be disjoint");
-    assert_ne!(html, py, "HTML and imperative fingerprints must be disjoint");
+    assert_ne!(
+        html, py,
+        "HTML and imperative fingerprints must be disjoint"
+    );
 }
 
 #[test]
@@ -8725,7 +8772,10 @@ fn css_fingerprint_is_domain_disjoint_from_imperative() {
     // Cross-domain false-merge guard: a CSS fingerprint must never equal an imperative
     // one, so the (language-blind) exact channel can never merge CSS with code.
     let i = Interner::new();
-    let css = css_fp(&i, ".a { display: flex; align-items: center; gap: 8px; padding: 12px; }");
+    let css = css_fp(
+        &i,
+        ".a { display: flex; align-items: center; gap: 8px; padding: 12px; }",
+    );
     let py = value_fp(&i, "def f(x):\n    return x + 5\n", Lang::Python);
     assert_ne!(css, py, "CSS and imperative fingerprints must be disjoint");
 }

@@ -100,7 +100,10 @@ pub fn lower_source_regions(
         Lang::Vue | Lang::Svelte | Lang::Html => {
             embedded::lower_regions(file, path, src, lang, interner)
         }
-        _ => lower_source(file, path, src, lang, interner).ok().into_iter().collect(),
+        _ => lower_source(file, path, src, lang, interner)
+            .ok()
+            .into_iter()
+            .collect(),
     }
 }
 
