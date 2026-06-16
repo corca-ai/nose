@@ -182,17 +182,21 @@ fn lower_declaration(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 fn lower_at_rule(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, register: bool) {
     let span = lo.span(node);
     let mut inner = Vec::new();
-    let mut prelude = None;
+    // The prelude is the ENTIRE at-rule head (every non-block child), not just the
+    // keyword — `@container foo (max-width: 768px)` and `@container foo (min-width:
+    // 769px)` are different CONDITIONS and must not merge. Capturing only the first
+    // child (`@container`) was a false merge surfaced on the bulma corpus.
+    let mut prelude_parts: Vec<String> = Vec::new();
     for c in Lowering::named_children(node) {
         match c.kind() {
             "block" | "keyframe_block_list" => collect_at_rule_body(lo, c, &mut inner),
-            _ if prelude.is_none() => prelude = Some(lo.sym(normalize_ws(lo.text(c)).as_str())),
-            _ => {}
+            _ => prelude_parts.push(normalize_ws(lo.text(c))),
         }
     }
     if inner.is_empty() {
         return;
     }
+    let prelude = (!prelude_parts.is_empty()).then(|| lo.sym(&prelude_parts.join(" ")));
     let mut children = Vec::new();
     if let Some(sym) = prelude {
         children.push(lo.add(NodeKind::CssSelector, Payload::Name(sym), span, &[]));

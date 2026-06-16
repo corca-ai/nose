@@ -8610,6 +8610,21 @@ fn css_shorthand_longhand_cascade_is_order_sensitive() {
 }
 
 #[test]
+fn css_at_rule_full_condition_distinguishes_blocks() {
+    // Soundness (regression: a bulma `@container` false merge). The WHOLE at-rule head
+    // is the context — two blocks differing only in their condition (and selectors,
+    // which the fingerprint excludes) compute different styles and must NOT merge.
+    let i = Interner::new();
+    let a = "@container foo (max-width: 768px) { .a > .grid { --c: 1; } .a2 > .grid { --c: 2; } }";
+    let b = "@container foo (min-width: 769px) { .b > .grid { --c: 1; } .b2 > .grid { --c: 2; } }";
+    assert_ne!(
+        css_fp(&i, a),
+        css_fp(&i, b),
+        "at-rule blocks with different conditions must not merge",
+    );
+}
+
+#[test]
 fn css_independent_non_overlapping_properties_stay_order_free() {
     // The guard must NOT over-fire: non-overlapping properties (no shorthand/longhand
     // relation) remain order-independent.
