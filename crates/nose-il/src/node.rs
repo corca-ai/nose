@@ -103,6 +103,28 @@ pub enum NodeKind {
     /// closed on a spread (the arity is dynamic). Declared LAST, like `KwArg`, so the
     /// discriminants stay stable.
     Splat,
+
+    // ----- declarative (CSS / HTML) -----
+    // These model declarative markup/style, which has no imperative behavior: a CSS
+    // rule's meaning is its *computed style*, an HTML element's is its *rendered DOM*.
+    // They are NOT lowered through the imperative value graph (GVN) — the exact
+    // `semantic` fingerprint for a declarative unit is computed by a domain-specific
+    // canonicalizer (see `nose-normalize::css_canon`) and dispatched in
+    // `value_graph::api` by the unit-root kind. The GVN treats any declarative node it
+    // somehow reaches as `Opaque` (it never should — fingerprinting is dispatched away).
+    // Declared LAST so adding them does not shift the discriminants (and thus the shape
+    // hashes / feature cache) of every kind above.
+    /// A CSS rule-set: a selector list plus a declaration block. The unit root for
+    /// CSS clone families. Children: `[CssSelector..., CssDecl...]` (or nested rules
+    /// for at-rules like `@media`).
+    CssRule,
+    /// A CSS selector (one entry of a rule's selector list). Payload: `Name` (the
+    /// canonicalized selector text). No children.
+    CssSelector,
+    /// A CSS declaration `property: value`. Payload: `Name` (the lowercased property).
+    /// Children: the value tokens (`Lit`/`Var`), already shorthand/color/unit
+    /// canonicalized.
+    CssDecl,
 }
 
 /// Per-node data. Most nodes carry [`Payload::None`]; the variant in use is

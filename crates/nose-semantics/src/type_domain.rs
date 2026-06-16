@@ -297,7 +297,13 @@ pub fn type_domain_from_source_text(lang: Lang, text: &str) -> Option<DomainEvid
         Lang::Java => java_type_domain(text),
         Lang::Go => go_type_domain(text),
         Lang::C => c_type_domain(text),
-        Lang::JavaScript | Lang::Ruby | Lang::Vue | Lang::Svelte | Lang::Html => None,
+        // CSS is declarative — no type annotations.
+        Lang::Css
+        | Lang::JavaScript
+        | Lang::Ruby
+        | Lang::Vue
+        | Lang::Svelte
+        | Lang::Html => None,
     }
 }
 

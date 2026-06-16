@@ -1,7 +1,8 @@
 # nose documentation
 
 **nose** finds syntax, semantic, and near-duplicate code clones across
-eight languages — plus the `<script>` logic inside Vue, Svelte, and HTML — by
+eight imperative languages — plus declarative **CSS** (matched by computed-style
+equivalence) and the `<script>` logic inside Vue, Svelte, and HTML — by
 lowering every language into one normalized intermediate language (IL) and
 ranking duplicated code by how much it's worth refactoring. The repository
 [README](../README.md) is the one-screen overview; this wiki is the full guide.

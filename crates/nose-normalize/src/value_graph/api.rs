@@ -48,6 +48,9 @@ pub fn value_fingerprint_lits(
     root: NodeId,
     interner: &Interner,
 ) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+    if let Some(fp) = crate::css::declarative_fingerprint(il, root, interner) {
+        return fp;
+    }
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
     b.fingerprint_lits()
@@ -107,6 +110,10 @@ pub fn anchor_min_weight() -> u32 {
 /// Heavy sub-DAG anchor hashes of a unit — see `Builder::anchors`. Two units sharing a (rare)
 /// anchor share an extractable sub-computation: a partial / sub-DAG clone.
 pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Anchors {
+    // Declarative (CSS) units have no extractable sub-DAG anchors.
+    if crate::css::declarative_fingerprint(il, root, interner).is_some() {
+        return Vec::new();
+    }
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
     b.anchors(anchor_min_weight())
@@ -130,6 +137,9 @@ pub fn value_fingerprint_lits_anchors_laws(
     root: NodeId,
     interner: &Interner,
 ) -> FingerprintLawBundle {
+    if let Some((v, l, r)) = crate::css::declarative_fingerprint(il, root, interner) {
+        return (v, l, r, Vec::new(), Vec::new(), (false, Vec::new(), false));
+    }
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
     finish_fingerprint_law_bundle(b)
@@ -154,6 +164,9 @@ pub fn value_fingerprint_lits_anchors_laws_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> FingerprintLawBundle {
+    if let Some((v, l, r)) = crate::css::declarative_fingerprint(il, root, interner) {
+        return (v, l, r, Vec::new(), Vec::new(), (false, Vec::new(), false));
+    }
     let mut b = Builder::new_with_context(il, interner, context);
     b.build_unit_with_context(root, Some(context));
     finish_fingerprint_law_bundle(b)
@@ -195,6 +208,9 @@ pub fn value_fingerprint_lits_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+    if let Some(fp) = crate::css::declarative_fingerprint(il, root, interner) {
+        return fp;
+    }
     let mut b = Builder::new_with_context(il, interner, context);
     b.build_unit_with_context(root, Some(context));
     b.fingerprint_lits()
@@ -216,6 +232,9 @@ pub fn value_fingerprint_and_contracts(
     root: NodeId,
     interner: &Interner,
 ) -> (Vec<u64>, Vec<(u32, u32)>) {
+    if let Some((v, _, _)) = crate::css::declarative_fingerprint(il, root, interner) {
+        return (v, Vec::new());
+    }
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
     finish_fingerprint_contracts(b)
@@ -228,6 +247,9 @@ pub fn value_fingerprint_and_contracts_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> (Vec<u64>, Vec<(u32, u32)>) {
+    if let Some((v, _, _)) = crate::css::declarative_fingerprint(il, root, interner) {
+        return (v, Vec::new());
+    }
     let mut b = Builder::new_with_context(il, interner, context);
     b.build_unit_with_context(root, Some(context));
     finish_fingerprint_contracts(b)

@@ -89,6 +89,11 @@ pub enum Lang {
     Java,
     C,
     Ruby,
+    /// CSS stylesheet — rules are lowered to a declarative IL and matched by
+    /// computed-style equivalence (its own canonicalization + oracle), not the
+    /// imperative value graph. Also the analysis language of `<style>` blocks
+    /// extracted from HTML/Vue/Svelte.
+    Css,
     /// Vue single-file component — the `<script>` block is analyzed as JS/TS.
     Vue,
     /// Svelte component — the `<script>` block is analyzed as JS/TS.
@@ -110,6 +115,7 @@ impl Lang {
             Lang::Java => "java",
             Lang::C => "c",
             Lang::Ruby => "ruby",
+            Lang::Css => "css",
             Lang::Vue => "vue",
             Lang::Svelte => "svelte",
             Lang::Html => "html",
@@ -127,6 +133,7 @@ impl Lang {
             "java" => Lang::Java,
             "c" | "h" => Lang::C,
             "rb" => Lang::Ruby,
+            "css" => Lang::Css,
             "vue" => Lang::Vue,
             "svelte" => Lang::Svelte,
             "html" | "htm" => Lang::Html,

@@ -31,6 +31,11 @@ tree-sitter-rust = "0.24"
 tree-sitter-java = "0.23"
 tree-sitter-c = "0.24"
 tree-sitter-ruby = "0.23"
+# CSS grammar (ABI-15, matches core 0.25). CSS rules are lowered to a DECLARATIVE
+# IL and matched by computed-style equivalence (its own canonicalization + oracle),
+# not the imperative value graph. See css.rs. VALIDATE on a `cargo clean` release
+# build like every other grammar (#403).
+tree-sitter-css = "0.25"
 
 [lints]
 workspace = true

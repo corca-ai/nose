@@ -429,3 +429,44 @@ Naive PDG-style slicing was below the noise floor in an earlier token-based
 prototype. nose runs these analyses on a genuinely parsed, type-erased,
 alpha-renamed IL, so dataflow and value identities are recoverable. Same idea,
 different substrate.
+
+---
+
+## Declarative languages (CSS): the computed-style fingerprint
+
+The pipeline above is for **imperative** code, where the fingerprint is the
+behavioral value graph (GVN). [CSS is declarative](languages.md): a rule's meaning is
+its *computed style*, so it does not ride any of the tracks above. In
+[`normalize`](architecture.md) a CSS file branches off right after `desugar` — the
+whole imperative semantic phase (recursion→iteration, dataflow, DCE, CFG/algebra) is
+skipped — and the exact `semantic` fingerprint of each `CssRule` unit is computed by
+`nose-normalize::css` (dispatched in `value_graph::api` by the unit-root kind, not the
+file language, so a future mixed file can hold CSS, JS, and markup units side by side).
+
+The CSS fingerprint is the **canonical computed/declared style** of the rule's
+declaration block, as a sorted, domain-namespaced hash multiset:
+
+- each declaration binds its **property** to its **ordered, canonicalized value
+  tokens** (`nose-normalize::css_value`: color → canonical hex, number/length →
+  canonical spelling, box shorthands collapsed) — so `#fff` ≡ `#ffffff` ≡ `white` and
+  `margin: 0 0 0 0` ≡ `margin: 0`, while value-token order within a declaration stays
+  significant (`margin: 1px 2px` ≢ `2px 1px`);
+- the multiset is order-INdependent **across** declarations and excludes the selector,
+  so a duplicated declaration block under different selectors is one exact family;
+- **cascade soundness:** a repeated property keeps the last, and when a shorthand and
+  one of its longhands co-occur (`margin` + `margin-top`) the rule is detected as
+  cascade-ambiguous (purely structurally — one property is a `prefix-` of another) and
+  an order-sensitive sequence hash is added, so a reorder that changes the computed
+  style cannot merge;
+- **at-rule context** (`@media (...)`) is folded in, so a conditional rule never merges
+  with an unconditional one;
+- every hash is mixed with a CSS domain tag, so a CSS fingerprint can never equal an
+  imperative one (the cross-domain false-merge guard for the language-blind exact
+  channel).
+
+Soundness here is **by construction** — the fingerprint *is* the canonical computed
+style, so *equal fingerprint ⟺ equal computed style* holds definitionally — backed by
+adversarial per-rule batteries (`css_value` unit tests plus convergence/hard-negative
+tests; the project's primary trust mechanism, see [design](design.md)). A separate
+interpreter oracle, as run for imperative code, is redundant for a declarative domain
+where the fingerprint is the denotation.

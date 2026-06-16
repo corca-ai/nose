@@ -11,7 +11,7 @@ semantic matching fail-closed unless the required facts and contracts are presen
 
 ## Supported languages
 
-Eight base languages, each with its own CST→IL lowering:
+Eight **imperative** base languages, each with its own CST→IL lowering:
 
 | language | extensions |
 |---|---|
@@ -26,6 +26,47 @@ Eight base languages, each with its own CST→IL lowering:
 
 JSX and TSX are handled by the JavaScript/TypeScript lowering path (the type
 syntax is erased during [normalization](normalization.md)).
+
+## Declarative languages: CSS
+
+| language | extensions |
+|---|---|
+| CSS | `.css` |
+
+CSS is **declarative**: a rule's meaning is its *computed style*, not imperative
+execution. So CSS does not ride the imperative value graph (GVN). Instead each CSS
+**rule** is a detection unit whose exact `semantic` fingerprint is the **canonical
+computed/declared style** of its declaration block — see
+[normalization › declarative (CSS) fingerprint](normalization.md). Two rules are an
+exact clone when they compute the same style, so the same duplicated declaration block
+under different selectors is one family. Concretely the fingerprint is invariant to:
+
+- **selector** — `.btn { … }` and `.cta { … }` with the same declarations merge (a
+  duplicated declaration block is the canonical CSS clone);
+- **declaration order** — except where it changes the cascade (see below);
+- **value spelling** — `#fff` ≡ `#ffffff` ≡ `white` ≡ `rgb(255 255 255)`; `0px` ≡ `0`;
+  `margin: 0 0 0 0` ≡ `margin: 0`; trailing-zero/sign noise.
+
+It is deliberately kept apart (no false merge) by:
+
+- **cascade** — a repeated property keeps the last (`color:red; color:blue` ≢ reverse),
+  and a shorthand mixed with one of its longhands cascades by order
+  (`margin:0; margin-top:5px` ≢ reverse);
+- **at-rule context** — a `@media`-scoped rule never merges with an unconditional one;
+- **domain disjointness** — a CSS fingerprint can never equal an imperative one, so the
+  (language-blind) exact channel cannot merge CSS with code.
+
+Soundness for CSS is **by construction** (the fingerprint *is* the canonical computed
+style) plus adversarial per-rule batteries (the project's primary trust mechanism — see
+[design](design.md)); the value normalizations live in `nose-normalize::css_value`, each
+with positive and hard-negative tests. A standalone interpreter oracle (as for the
+imperative languages) is redundant for a declarative domain where the fingerprint is the
+denotation. Lowering coverage is first-class: the [Raw-node ratio](#coverage-and-adding-a-language)
+on real-world `.css` is ~0.2% (the residue is non-standard PostCSS at-statements, left
+as honest `Raw`).
+
+CSS embedded in `<style>` blocks (HTML/Vue/Svelte) and HTML markup-tree clones are
+planned follow-ups; today CSS detection covers standalone `.css` files.
 
 ## Embedded `<script>` in Vue / Svelte / HTML
 

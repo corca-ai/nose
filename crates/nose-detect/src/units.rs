@@ -703,9 +703,14 @@ fn gate_unit(
         return None;
     }
 
+    // A declarative unit (a CSS rule; HTML element later) is a `Block`, but unlike an
+    // imperative block its value fingerprint IS its meaning (the canonical declaration
+    // set), so — like a dense functional one-liner — it may pass the size gate on the
+    // `value.len() >= EXACT_VALUE_MIN` floor below rather than the syntactic floor.
+    let declarative = matches!(ctx.il.kind(root), NodeKind::CssRule);
     let syntactically_small = lines < ctx.min_lines || pre.len() < ctx.min_tokens;
     let can_use_dense_gate =
-        matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;
+        declarative || matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;
     if syntactically_small && !can_use_dense_gate {
         skip(unit_timer, None, None);
         return None;
@@ -758,10 +763,13 @@ fn gate_unit(
     // AUC 0.42→0.17) faster than noise. Exact statement fragments are the narrow
     // exception: they may pass the dense gate only after `exact_safe` and the value
     // fingerprint floor prove that the fragment itself is a usable semantic unit.
+    // A declarative unit is admitted on the same `value.len() >= EXACT_VALUE_MIN` floor
+    // as a dense functional one-liner (a 1-declaration rule stays below it — intended).
     let dense_exact_unit = if exact_fragment {
         exact_safe && value.len() >= EXACT_VALUE_MIN
     } else {
-        matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN
+        (declarative || matches!(kind, UnitKind::Function | UnitKind::Method))
+            && value.len() >= EXACT_VALUE_MIN
     };
     if (syntactically_small || exact_fragment) && !dense_exact_unit {
         skip(unit_timer, safe_ms, value_ms);

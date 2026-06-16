@@ -4,6 +4,7 @@
 
 mod c;
 mod coverage;
+mod css;
 mod declaration_facts;
 mod embedded;
 mod go;
@@ -77,6 +78,7 @@ pub fn lower_source(
         Lang::Java => java::lower(file, path, src, interner),
         Lang::C => c::lower(file, path, src, interner),
         Lang::Ruby => ruby::lower(file, path, src, interner),
+        Lang::Css => css::lower(file, path, src, interner),
         Lang::Vue | Lang::Svelte | Lang::Html => embedded::lower(file, path, src, lang, interner),
     }
 }
