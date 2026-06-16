@@ -17,12 +17,24 @@ break.
 - **tree-sitter core upgraded `0.24` → `0.25`, grammars `tree-sitter-c` → `0.24.2`,
   `tree-sitter-python`/`tree-sitter-javascript` → `0.25.0`** (#403, unblocks the reverted
   #399/#400/#401). The bumped grammars compile to grammar ABI 15; core 0.25 accepts ABI **14
-  and 15**, so the still-pinned 0.23 grammars (go/rust/java/ruby/typescript) keep loading
+  and 15**, so the still-pinned 0.23 grammars (java/ruby/typescript) keep loading
   alongside them. Internal-only — no Rust API changes were needed, and `nose query --format
   json` output is **byte-identical** across the bump on C/Python/JS corpora (the normalizer
   absorbs the CST-shape deltas), with the soundness gate (`verify --max-violations 0`) clean.
   Validated on a `cargo clean` release build (the stale-grammar-object trap that produced the
   #402 false-green; with core at 0.25 both ABI versions load, so it can no longer recur).
+- **`tree-sitter-rust` upgraded `0.23` → `0.24.2`** (ABI 15; follows #403). Behavior-neutral:
+  `nose query --format json` is **byte-identical** before/after on the Rust dogfood tree
+  (`crates/`) and a Rust corpus (alacritty), with the dup-gate and soundness gate clean.
+- **`tree-sitter-go` upgraded `0.23` → `0.25.0`** (ABI 15; follows #403), with the required
+  **`go.rs` migration**: go 0.25's one structural change is wrapping `block` / switch-case /
+  select-case statements in a new `statement_list` node, so the frontend now flattens that
+  wrapper (`stmt_children`) — without it every nested statement orphans to Raw, spiking the go
+  Raw ratio 0.7% → 29%. With the migration the Raw ratio is **restored to 0.7%** and `nose query`
+  output is **byte-identical** to go 0.23 on 12/16 go corpus repos; the remaining four differ by
+  ≤4 families from go 0.25's own parse-behaviour refinements (Raw ratio equal-or-lower, soundness
+  gate clean — not a lowering regression). (`type_alias` also gained a `type_parameters` field for
+  generic aliases; the frontend ignores type declarations, so it has no effect.)
 
 ## [0.10.0] - 2026-06-15
 

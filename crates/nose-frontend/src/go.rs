@@ -34,8 +34,32 @@ fn lower_source(lo: &mut Lowering, node: TsNode) -> NodeId {
     crate::lower::collect_into(lo, node, NodeKind::Module, lower_stmt)
 }
 
+/// The statements of a `block` / switch-case / select-case. go 0.25 wraps them in
+/// a single `statement_list` node (go 0.23 listed them directly under the parent);
+/// flatten that wrapper — without an extra block level — so both grammar shapes
+/// lower identically. Non-`statement_list` children (e.g. a case's `value` field)
+/// pass through untouched for the caller to handle.
+fn stmt_children(node: TsNode) -> Vec<TsNode> {
+    let mut out = Vec::new();
+    for c in Lowering::named_children(node) {
+        if c.kind() == "statement_list" {
+            out.extend(Lowering::named_children(c));
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 fn lower_block(lo: &mut Lowering, node: TsNode) -> NodeId {
-    crate::lower::collect_into(lo, node, NodeKind::Block, lower_stmt)
+    let span = lo.span(node);
+    let mut stmts = Vec::new();
+    for c in stmt_children(node) {
+        if let Some(id) = lower_stmt(lo, c) {
+            stmts.push(id);
+        }
+    }
+    lo.add(NodeKind::Block, Payload::None, span, &stmts)
 }
 
 fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -156,7 +180,7 @@ fn lower_select_child(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     match node.kind() {
         "communication_case" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
+            let kids: Vec<NodeId> = stmt_children(node)
                 .into_iter()
                 .filter_map(|child| lower_stmt(lo, child))
                 .collect();
@@ -168,7 +192,7 @@ fn lower_select_child(lo: &mut Lowering, node: TsNode) -> NodeId {
             )
         }
         "default_case" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
+            let kids: Vec<NodeId> = stmt_children(node)
                 .into_iter()
                 .filter_map(|child| lower_stmt(lo, child))
                 .collect();
@@ -771,7 +795,7 @@ fn lower_case_body(lo: &mut Lowering, case: TsNode) -> NodeId {
     // body. Skip the test so it doesn't land in the body block.
     let value_id = case.child_by_field_name("value").map(|v| v.id());
     let mut stmts = Vec::new();
-    for c in Lowering::named_children(case) {
+    for c in stmt_children(case) {
         if Some(c.id()) == value_id {
             continue;
         }
@@ -1082,6 +1106,36 @@ mod tests {
     fn switch_cases_compare_scrutinee_to_all_case_labels() {
         let src = "package main\nfunc f(x int) int { switch x { case 1, 2: return 3; default: return 4 } }\n";
         assert_eq!(switch_case_rhs_ints(src), vec![1, 2]);
+    }
+
+    #[test]
+    fn block_switch_select_bodies_survive_statement_list_wrapper() {
+        // go 0.25 wraps block / switch-case / select-case statements in a single
+        // `statement_list` node (go 0.23 listed them directly). `stmt_children` must
+        // flatten that wrapper, else every nested statement is orphaned to Raw — the
+        // go-0.25 Raw-ratio blowup (0.7% → 29%) this migration fixes. Each op below
+        // lives inside one of the three wrapper sites.
+        let block = ops("package main\nfunc f(a int, b int) int { c := a + b; return c }\n");
+        assert!(
+            block.contains(&Op::Add),
+            "block-body op orphaned, got {block:?}"
+        );
+
+        let sw = ops(
+            "package main\nfunc f(a int, b int, x int) int { switch x { case 1: return a - b; default: return a * b } }\n",
+        );
+        assert!(
+            sw.contains(&Op::Sub) && sw.contains(&Op::Mul),
+            "switch-case-body ops orphaned, got {sw:?}"
+        );
+
+        let sel = ops(
+            "package main\nfunc f(ch chan int, a int, b int) int { select { case <-ch: return a / b; default: return a + b } }\n",
+        );
+        assert!(
+            sel.contains(&Op::Div) && sel.contains(&Op::Add),
+            "select-case-body ops orphaned, got {sel:?}"
+        );
     }
 
     #[test]

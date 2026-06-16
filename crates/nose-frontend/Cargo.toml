@@ -15,15 +15,19 @@ anyhow = { workspace = true }
 serde = { workspace = true }
 
 # Core 0.25 accepts grammar ABI 14 AND 15, so the ABI-15 grammars below (python/
-# javascript 0.25, c 0.24) load alongside the ABI-14 grammars still pinned at 0.23.
+# javascript 0.25, c 0.24, go 0.25, rust 0.24) load alongside the ABI-14 grammars
+# still pinned at 0.23 (java/ruby/typescript — no newer upstream line exists).
+# NOTE: go 0.25 wraps block / switch-case / select-case statements in a new
+# `statement_list` node; go.rs flattens that wrapper (see `stmt_children`) so the
+# lowering is byte-identical to go 0.23 — required, else the go Raw ratio explodes.
 # See #403. VALIDATE any bump on a `cargo clean` release build — incremental builds
 # reuse stale cc-compiled grammar objects and pass falsely (#399/#400/#401 → #402).
 tree-sitter = "0.25"
 tree-sitter-python = "0.25"
 tree-sitter-javascript = "0.25"
 tree-sitter-typescript = "0.23"
-tree-sitter-go = "0.23"
-tree-sitter-rust = "0.23"
+tree-sitter-go = "0.25"
+tree-sitter-rust = "0.24"
 tree-sitter-java = "0.23"
 tree-sitter-c = "0.24"
 tree-sitter-ruby = "0.23"
