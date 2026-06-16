@@ -83,6 +83,26 @@ pub fn lower_source(
     }
 }
 
+/// Lower every analyzable region of a file into separate [`Il`]s. For most languages
+/// this is one `Il` (delegating to [`lower_source`]); for `<script>`/`<style>`-bearing
+/// containers (Vue/Svelte/HTML) it is one per embedded region (JS/TS for `<script>`, CSS
+/// for `<style>`), all sharing the container's [`FileId`] and path. This is the corpus
+/// lowering entry; single-file helpers that want one `Il` still use [`lower_source`].
+pub fn lower_source_regions(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    lang: Lang,
+    interner: &Interner,
+) -> Vec<Il> {
+    match lang {
+        Lang::Vue | Lang::Svelte | Lang::Html => {
+            embedded::lower_regions(file, path, src, lang, interner)
+        }
+        _ => lower_source(file, path, src, lang, interner).ok().into_iter().collect(),
+    }
+}
+
 /// Walk `root` (respecting .gitignore) and collect supported source files, skipping
 /// any matching an `exclude` glob. The walk runs on multiple threads (`ignore`'s
 /// parallel walker), so .gitignore parsing and traversal don't serialize before
@@ -179,12 +199,15 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
     }
 
     let t1 = std::time::Instant::now();
+    // `flat_map`, not `filter_map`: an embedded container (Vue/Svelte/HTML) lowers to
+    // SEVERAL region `Il`s (JS/TS `<script>` + CSS `<style>`), all sharing its `FileId`.
+    // rayon's indexed `flat_map` preserves path order, so `FileId`s stay deterministic.
     let mut files: Vec<Il> = paths
         .par_iter()
         .enumerate()
-        .filter_map(|(i, (path, lang))| {
-            let src = std::fs::read(path).ok()?;
-            lower_source(FileId(i as u32), path, &src, *lang, &interner).ok()
+        .flat_map(|(i, (path, lang))| match std::fs::read(path) {
+            Ok(src) => lower_source_regions(FileId(i as u32), path, &src, *lang, &interner),
+            Err(_) => Vec::new(),
         })
         .collect();
     if timing {

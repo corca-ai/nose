@@ -38,6 +38,153 @@ pub(crate) fn lower(
     crate::js_ts::lower(file, path, &blanked, script_lang, interner)
 }
 
+/// Lower ALL analyzable regions of an embedded-script file into separate `Il`s: the
+/// `<script>` block(s) as JS/TS (as [`lower`]) and the `<style>` block(s) as CSS. Each
+/// region `Il` shares the container's `FileId` and `path` (so two regions of the same
+/// file are correctly treated as the SAME file by the path-keyed detector, while a clone
+/// between a component's `<style>` and a standalone `.css` is cross-file). Markup-tree
+/// analysis is a separate follow-up. Returns an empty vec if nothing analyzable is found.
+pub(crate) fn lower_regions(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    container: Lang,
+    interner: &Interner,
+) -> Vec<Il> {
+    let mut out = Vec::new();
+
+    let (scripts, is_ts) = extract_scripts(src);
+    if !scripts.is_empty() {
+        let blanked = blank_except(src, &scripts);
+        let script_lang = if is_ts {
+            Lang::TypeScript
+        } else {
+            Lang::JavaScript
+        };
+        if let Ok(il) = crate::js_ts::lower(file, path, &blanked, script_lang, interner) {
+            out.push(il);
+        }
+    }
+
+    let styles = extract_styles(src);
+    if !styles.is_empty() {
+        let blanked = blank_except(src, &styles);
+        if let Ok(il) = crate::css::lower(file, path, &blanked, interner) {
+            out.push(il);
+        }
+    }
+
+    let _ = container;
+    out
+}
+
+/// Byte ranges of every plain-CSS `<style>…</style>` block's *content*. Mirrors
+/// [`extract_scripts`]: skips HTML comments, finds the opening tag's real `>` (not one
+/// inside a quoted attribute), and finds `</style>` ignoring CSS strings/comments.
+/// Preprocessor blocks (`<style lang="scss"|"sass"|"less"|"stylus">`) are SKIPPED — they
+/// are not plain CSS and would lower to noise.
+fn extract_styles(src: &[u8]) -> Vec<(usize, usize)> {
+    let mut ranges = Vec::new();
+    let mut pos = 0;
+    while pos < src.len() {
+        if src[pos..].starts_with(b"<!--") {
+            pos = find_ci(src, b"-->", pos + 4)
+                .map(|c| c + 3)
+                .unwrap_or(src.len());
+            continue;
+        }
+        let Some(open) = find_style_open(src, pos) else {
+            break;
+        };
+        let Some(tag_end) = tag_end(src, open) else {
+            break;
+        };
+        let content_start = tag_end + 1;
+        let plain = open_tag_is_plain_css(&src[open..tag_end]);
+        let close = style_close(src, content_start).unwrap_or(src.len());
+        if plain && close > content_start {
+            ranges.push((content_start, close));
+        }
+        pos = (close + b"</style".len())
+            .min(src.len())
+            .max(content_start + 1);
+    }
+    ranges
+}
+
+/// The next `<style` that starts a tag (followed by whitespace, `>`, or EOF), skipping
+/// HTML comments encountered along the way.
+fn find_style_open(src: &[u8], mut pos: usize) -> Option<usize> {
+    loop {
+        let open = find_ci(src, b"<style", pos)?;
+        if let Some(c) = find_ci(src, b"<!--", pos) {
+            if c < open {
+                let end = find_ci(src, b"-->", c + 4)
+                    .map(|e| e + 3)
+                    .unwrap_or(src.len());
+                if open < end {
+                    pos = end;
+                    continue;
+                }
+            }
+        }
+        match src.get(open + b"<style".len()) {
+            Some(b) if b.is_ascii_whitespace() || *b == b'>' => return Some(open),
+            None => return Some(open),
+            _ => pos = open + b"<style".len(),
+        }
+    }
+}
+
+/// The index of the `</style` closing the block whose content starts at `content_start`,
+/// ignoring `</style` inside a CSS string literal or `/* … */` comment.
+fn style_close(src: &[u8], content_start: usize) -> Option<usize> {
+    let mut i = content_start;
+    let mut quote: Option<u8> = None;
+    while i < src.len() {
+        if let Some(q) = quote {
+            if src[i] == b'\\' {
+                i += 2;
+                continue;
+            }
+            if src[i] == q {
+                quote = None;
+            }
+            i += 1;
+            continue;
+        }
+        if src[i..].starts_with(b"/*") {
+            i = find_ci(src, b"*/", i + 2).map(|e| e + 2).unwrap_or(src.len());
+            continue;
+        }
+        if matches!(src[i], b'"' | b'\'') {
+            quote = Some(src[i]);
+            i += 1;
+            continue;
+        }
+        if src[i..].starts_with(b"</style") {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Does a `<style …>` tag select plain CSS (no preprocessor `lang`)?
+fn open_tag_is_plain_css(tag: &[u8]) -> bool {
+    !(contains_ci(tag, b"lang=\"scss\"")
+        || contains_ci(tag, b"lang='scss'")
+        || contains_ci(tag, b"lang=scss")
+        || contains_ci(tag, b"lang=\"sass\"")
+        || contains_ci(tag, b"lang='sass'")
+        || contains_ci(tag, b"lang=sass")
+        || contains_ci(tag, b"lang=\"less\"")
+        || contains_ci(tag, b"lang='less'")
+        || contains_ci(tag, b"lang=less")
+        || contains_ci(tag, b"lang=\"stylus\"")
+        || contains_ci(tag, b"lang=\"postcss\""))
+}
+
 /// Byte ranges of every `<script>…</script>` block's *content*, plus whether any
 /// block declares TypeScript (`lang="ts"`/`tsx` or a TypeScript `type`).
 ///
@@ -111,9 +258,11 @@ fn find_script_open(src: &[u8], mut pos: usize) -> Option<usize> {
 }
 
 /// The index of the `>` that closes the opening tag at `open`, skipping any `>`
-/// inside a quoted attribute value.
+/// inside a quoted attribute value. Scans from `open + 1` (just past `<`) so it works
+/// for both `<script` and the one-shorter `<style` (a hardcoded `"<script".len()`
+/// offset overran the `>` of a bare `<style>`).
 fn tag_end(src: &[u8], open: usize) -> Option<usize> {
-    let mut i = open + b"<script".len();
+    let mut i = open + 1;
     let mut quote: Option<u8> = None;
     while i < src.len() {
         let b = src[i];
@@ -277,5 +426,50 @@ mod tests {
         assert_eq!(two.len(), 2);
         // Import-only / plain content unaffected; markup between blocks ignored.
         assert!(scripts("<template><div/></template>\n<script>x();</script>")[0].contains("x()"));
+    }
+}
+
+#[cfg(test)]
+mod style_region_tests {
+    use super::*;
+    use nose_il::NodeKind;
+
+    fn css_rule_units(src: &[u8], container: Lang) -> usize {
+        let i = Interner::new();
+        lower_regions(FileId(0), "c", src, container, &i)
+            .iter()
+            .filter(|il| il.meta.lang == Lang::Css)
+            .flat_map(|il| {
+                il.units
+                    .iter()
+                    .filter(|u| il.node(u.root).kind == NodeKind::CssRule)
+                    .map(move |_| ())
+            })
+            .count()
+    }
+
+    #[test]
+    fn html_style_block_lowers_to_a_css_rule_unit() {
+        let html = b"<!doctype html><html><head>\n<style>\n.panel { display: flex; gap: 8px; padding: 12px; }\n</style>\n</head></html>";
+        assert_eq!(css_rule_units(html, Lang::Html), 1, "one CSS rule from <style>");
+    }
+
+    #[test]
+    fn vue_extracts_both_script_and_style_regions() {
+        let i = Interner::new();
+        let vue = b"<template><div/></template>\n<script>export function f(n){return n+1;}</script>\n<style>.a { color: red; padding: 4px; }</style>";
+        let ils = lower_regions(FileId(0), "C.vue", vue, Lang::Vue, &i);
+        assert!(ils.iter().any(|il| il.meta.lang == Lang::Css), "css region");
+        assert!(
+            ils.iter()
+                .any(|il| matches!(il.meta.lang, Lang::JavaScript | Lang::TypeScript)),
+            "script region",
+        );
+    }
+
+    #[test]
+    fn scss_style_blocks_are_skipped() {
+        let html = b"<style lang=\"scss\">\n.a { .nested { color: red; } }\n</style>";
+        assert_eq!(css_rule_units(html, Lang::Html), 0, "preprocessor <style> skipped");
     }
 }
