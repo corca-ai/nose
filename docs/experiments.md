@@ -3029,6 +3029,13 @@ provably inert:** `verify --max-violations 0` clean (axios/rxjs/trpc/flask/guava
 the change only ADDs near families. Deterministic. Tests: witness `async-mirror`/`both-sides-await`
 units + an end-to-end detection test (twin converges, different-logic decoy excluded).
 
-**Follow-up (not soundness):** the formal eval substrate — gold `production_async_sync` pairs +
-hard-negatives mined from the corpus, the `nose eval` `near_exact_or_structural` recall number, and
-flipping the `coverage_matrix` cells none→covered — plus extending to Rust `.await`.
+**Recall (eval substrate).** A first `production_async_sync` gold set — 6 Python+JS/TS twin pairs
+(`bench/type4/fixtures/async_sync/`, gold `bench/labels/async_sync_twins.v1.json`) + 3
+async-vs-different-logic hard-negatives — measured with `nose eval`: the `near_exact_or_structural`
+twin recall goes **0/6 → 6/6** (baseline binary vs this change), **HN-FP 0/3**. (A 4th would-be
+negative — two async fns differing only `+`/`-` — was dropped: candidate mode surfaces
+same-shape-different-operator BY DESIGN, on the baseline too, so it is not an async-twin miss.)
+
+**Follow-up (not soundness):** mine REAL-corpus twin instances to flip the `coverage_matrix`
+`async_sync_twin` cells none→covered (the matrix tracks real-corpus coverage, not synthetic
+fixtures), and extend to Rust `.await` and the other protocol boundaries.

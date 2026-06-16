@@ -1,0 +1,49 @@
+{
+ "hard_negatives": [
+  {
+   "repo": "async_sync",
+   "left": {
+    "repo": "async_sync",
+    "file": "hn1_a.py",
+    "start_line": 1,
+    "end_line": 12
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "hn1_b.py",
+    "start_line": 1,
+    "end_line": 8
+   }
+  },
+  {
+   "repo": "async_sync",
+   "left": {
+    "repo": "async_sync",
+    "file": "hn2_a.ts",
+    "start_line": 1,
+    "end_line": 13
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "hn2_b.ts",
+    "start_line": 1,
+    "end_line": 10
+   }
+  },
+  {
+   "repo": "async_sync",
+   "left": {
+    "repo": "async_sync",
+    "file": "hn3_a.py",
+    "start_line": 1,
+    "end_line": 12
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "hn3_b.py",
+    "start_line": 1,
+    "end_line": 9
+   }
+  }
+ ]
+}

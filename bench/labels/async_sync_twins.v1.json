@@ -1,0 +1,106 @@
+{
+ "duplicates": [
+  {
+   "repo": "async_sync",
+   "kind": "production_async_sync",
+   "clone_type": "type4_semantic",
+   "left": {
+    "repo": "async_sync",
+    "file": "t1_handle_async.py",
+    "start_line": 1,
+    "end_line": 12
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "t1_handle_sync.py",
+    "start_line": 1,
+    "end_line": 12
+   }
+  },
+  {
+   "repo": "async_sync",
+   "kind": "production_async_sync",
+   "clone_type": "type4_semantic",
+   "left": {
+    "repo": "async_sync",
+    "file": "t2_loadall_async.ts",
+    "start_line": 1,
+    "end_line": 13
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "t2_loadall_sync.ts",
+    "start_line": 1,
+    "end_line": 13
+   }
+  },
+  {
+   "repo": "async_sync",
+   "kind": "production_async_sync",
+   "clone_type": "type4_semantic",
+   "left": {
+    "repo": "async_sync",
+    "file": "t3_aggregate_async.py",
+    "start_line": 1,
+    "end_line": 10
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "t3_aggregate_sync.py",
+    "start_line": 1,
+    "end_line": 10
+   }
+  },
+  {
+   "repo": "async_sync",
+   "kind": "production_async_sync",
+   "clone_type": "type4_semantic",
+   "left": {
+    "repo": "async_sync",
+    "file": "t4_collect_async.ts",
+    "start_line": 1,
+    "end_line": 13
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "t4_collect_sync.ts",
+    "start_line": 1,
+    "end_line": 13
+   }
+  },
+  {
+   "repo": "async_sync",
+   "kind": "production_async_sync",
+   "clone_type": "type4_semantic",
+   "left": {
+    "repo": "async_sync",
+    "file": "t5_pipeline_async.py",
+    "start_line": 1,
+    "end_line": 12
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "t5_pipeline_sync.py",
+    "start_line": 1,
+    "end_line": 12
+   }
+  },
+  {
+   "repo": "async_sync",
+   "kind": "production_async_sync",
+   "clone_type": "type4_semantic",
+   "left": {
+    "repo": "async_sync",
+    "file": "t6_retry_async.ts",
+    "start_line": 1,
+    "end_line": 14
+   },
+   "right": {
+    "repo": "async_sync",
+    "file": "t6_retry_sync.ts",
+    "start_line": 1,
+    "end_line": 14
+   }
+  }
+ ]
+}
