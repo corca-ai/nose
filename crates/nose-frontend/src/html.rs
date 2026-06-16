@@ -14,7 +14,7 @@
 //! same way. Anything unrecognized becomes `Raw` (no panics).
 
 use crate::lower::Lowering;
-use nose_il::{FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, Symbol, UnitKind};
+use nose_il::{FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, Span, Symbol, UnitKind};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
@@ -137,7 +137,16 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> NodeId {
             _ => {}
         }
     }
-    let nsym = lo.sym(&name.unwrap_or_default());
+    let name = canonical_attr_name(&name.unwrap_or_default());
+    // Inline `style="…"` is a CSS declaration block — lower it as a (selector-less)
+    // `CssRule` child so the markup fingerprint reuses the full CSS computed-style
+    // canonicalization (color/shorthand/unit/cascade) for it.
+    if name == "style" {
+        let rule = lower_inline_style(lo, value.as_deref().unwrap_or(""), span);
+        let nsym = lo.sym(&name);
+        return lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &[rule]);
+    }
+    let nsym = lo.sym(&name);
     let children: Vec<NodeId> = match value {
         Some(v) => {
             let vsym = lo.sym(&normalize_ws(&v));
@@ -146,6 +155,45 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> NodeId {
         None => Vec::new(),
     };
     lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children)
+}
+
+/// Canonicalize Vue/Svelte directive shorthands so the two spellings of one binding
+/// match: `:x` ≡ `v-bind:x`, `@x` ≡ `v-on:x`. Other names pass through (already
+/// lowercased). Svelte's explicit `bind:`/`on:` are left as-is.
+fn canonical_attr_name(name: &str) -> String {
+    if let Some(rest) = name.strip_prefix(':') {
+        format!("v-bind:{rest}")
+    } else if let Some(rest) = name.strip_prefix('@') {
+        format!("v-on:{rest}")
+    } else {
+        name.to_string()
+    }
+}
+
+/// Parse an inline-style value (`color: red; margin: 0`) into a selector-less `CssRule`
+/// of `CssDecl(prop)[Lit(Name=token)…]`, mirroring the CSS frontend so value tokens keep
+/// their RAW text and the CSS fingerprint can canonicalize them.
+fn lower_inline_style(lo: &mut Lowering, value: &str, span: Span) -> NodeId {
+    let mut decls = Vec::new();
+    for part in value.split(';') {
+        let Some((prop, val)) = part.split_once(':') else {
+            continue;
+        };
+        let prop = prop.trim().to_ascii_lowercase();
+        if prop.is_empty() {
+            continue;
+        }
+        let psym = lo.sym(&prop);
+        let tokens: Vec<NodeId> = val
+            .split_whitespace()
+            .map(|t| {
+                let tsym = lo.sym(t);
+                lo.add(NodeKind::Lit, Payload::Name(tsym), span, &[])
+            })
+            .collect();
+        decls.push(lo.add(NodeKind::CssDecl, Payload::Name(psym), span, &tokens));
+    }
+    lo.add(NodeKind::CssRule, Payload::None, span, &decls)
 }
 
 fn lower_text(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {

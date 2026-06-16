@@ -117,6 +117,22 @@ fn attr_hash(il: &Il, interner: &nose_il::Interner, attr: NodeId, lits: &mut Vec
         Payload::Name(s) => interner.resolve(s),
         _ => "",
     };
+    // Inline `style="…"` is lowered to a CssRule child — fold in the FULL CSS
+    // computed-style fingerprint so inline styles get color/shorthand/cascade canon
+    // (`style="margin:0 0 0 0;color:#fff"` ≡ `style="color:white;margin:0"`).
+    if let Some(&css) = il
+        .children(attr)
+        .iter()
+        .find(|&&c| il.kind(c) == NodeKind::CssRule)
+    {
+        let mut h = stable_symbol_hash(name);
+        if let Some((value, _, _)) = crate::css::declarative_fingerprint(il, css, interner) {
+            for v in value {
+                h = combine(h, v);
+            }
+        }
+        return h;
+    }
     let raw = il
         .children(attr)
         .iter()

@@ -8690,6 +8690,27 @@ fn html_child_order_is_significant() {
 }
 
 #[test]
+fn html_inline_style_is_computed_canonicalized() {
+    // Inline `style="…"` reuses the CSS computed-style canon: order-independent,
+    // color/shorthand/unit normalized.
+    let i = Interner::new();
+    let a = r#"<div style="margin: 0 0 0 0; color: #ffffff; padding: 4px"><span>x</span></div>"#;
+    let b = r#"<div style="color: white; padding: 4px; margin: 0"><span>x</span></div>"#;
+    let c = r#"<div style="color: black; padding: 4px; margin: 0"><span>x</span></div>"#;
+    assert_eq!(html_fp(&i, a), html_fp(&i, b), "computed-equal inline styles converge");
+    assert_ne!(html_fp(&i, a), html_fp(&i, c), "different inline style must not merge");
+}
+
+#[test]
+fn html_vue_directive_shorthand_canonicalizes() {
+    // `:x` ≡ `v-bind:x` and `@x` ≡ `v-on:x` — same binding, different spelling.
+    let i = Interner::new();
+    let short = r#"<button :class="c" @click="f"><i class="ico"></i>Go</button>"#;
+    let long = r#"<button v-bind:class="c" v-on:click="f"><i class="ico"></i>Go</button>"#;
+    assert_eq!(html_fp(&i, short), html_fp(&i, long), "directive shorthand must canonicalize");
+}
+
+#[test]
 fn html_fingerprint_is_domain_disjoint_from_css_and_imperative() {
     let i = Interner::new();
     let html = html_fp(&i, r#"<div class="card"><h3>Title</h3><p>body text</p></div>"#);
