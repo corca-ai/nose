@@ -36,6 +36,10 @@ tree-sitter-ruby = "0.23"
 # not the imperative value graph. See css.rs. VALIDATE on a `cargo clean` release
 # build like every other grammar (#403).
 tree-sitter-css = "0.25"
+# HTML grammar (ABI-14, accepted by core 0.25). HTML markup is lowered to a
+# DECLARATIVE element tree and matched by rendered-DOM equivalence; <script>/<style>
+# internals are analyzed separately as JS/CSS regions (see embedded.rs / html.rs).
+tree-sitter-html = "0.23"
 
 [lints]
 workspace = true

@@ -125,6 +125,16 @@ pub enum NodeKind {
     /// Children: the value tokens (`Lit`/`Var`), already shorthand/color/unit
     /// canonicalized.
     CssDecl,
+
+    /// An HTML element. Payload: `Name` (the lowercased tag). Children:
+    /// `[HtmlAttr..., (child element / HtmlText)...]`. The unit root for markup clone
+    /// families; matched by rendered-DOM equivalence (see `nose-normalize::html`).
+    HtmlElement,
+    /// An HTML attribute `name="value"`. Payload: `Name` (lowercased attribute name).
+    /// Children: `[Lit(Name=value)]`, or none for a boolean attribute.
+    HtmlAttr,
+    /// HTML text content (collapsed whitespace). Payload: `Name` (the text).
+    HtmlText,
 }
 
 /// Per-node data. Most nodes carry [`Payload::None`]; the variant in use is

@@ -50,10 +50,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    algebraic and operator canonicalization, and a hash-consed **value graph** (GVN) that
    captures *what the code computes*, invariant to temporaries, statement order, and common
    subexpressions. See [normalization](normalization.md) for the exact pass order.
-   **Declarative languages** ([CSS](languages.md)) branch off after desugar and skip the
-   imperative phase entirely: their exact fingerprint is a domain-specific
-   *computed-style* canonicalization, dispatched by the unit-root kind rather than the
-   GVN — see [normalization › declarative (CSS)](normalization.md).
+   **Declarative languages** ([CSS and HTML markup](languages.md)) branch off after
+   desugar and skip the imperative phase entirely: their exact fingerprint is a
+   domain-specific *computed-style* / *rendered-DOM* canonicalization, dispatched by the
+   unit-root kind rather than the GVN — see
+   [normalization › declarative (CSS/HTML)](normalization.md).
 3. **Extract units & features**: frontend units are augmented with bounded
    sub-function units: control-flow blocks (`loop` / statement `if` / `try`) and
    exact-safe statement fragments whose whole value subtree stays inside the reported

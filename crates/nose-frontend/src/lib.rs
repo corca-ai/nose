@@ -8,6 +8,7 @@ mod css;
 mod declaration_facts;
 mod embedded;
 mod go;
+mod html;
 mod java;
 mod js_ts;
 mod lower;

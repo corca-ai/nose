@@ -86,5 +86,8 @@ fn kind_name(k: NodeKind) -> &'static str {
         CssRule => "css-rule",
         CssSelector => "css-selector",
         CssDecl => "css-decl",
+        HtmlElement => "html-element",
+        HtmlAttr => "html-attr",
+        HtmlText => "html-text",
     }
 }

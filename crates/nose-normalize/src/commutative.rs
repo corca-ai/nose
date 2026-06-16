@@ -71,6 +71,16 @@ pub fn node_tag(kind: NodeKind, payload: Payload, interner: &Interner) -> u64 {
         Payload::HoF(h) => 500 + h as u64,
         Payload::Loop(l) => 600 + l as u64,
         Payload::Cid(c) => 1_000_000 + c as u64,
+        // Declarative LEAF VALUES (a CSS value token `Lit(Name)`, an `HtmlText` run)
+        // abstract to a generic class for SHAPE, so the structural `near` channel scores
+        // markup/style by STRUCTURE (a repeated component shell or rule shape with
+        // different content/values is "similar"). Their EXACT value is not lost — it
+        // lives in the declarative fingerprint (`css`/`html`), which reads the payload
+        // directly, not this shape tag. Element/attribute/property/selector NAMES stay
+        // value-specific (a `div` vs a `span`, `class` vs `src`, are structural).
+        Payload::Name(_) if matches!(kind, NodeKind::Lit | NodeKind::HtmlText) => {
+            100 + nose_il::LitClass::Str as u64
+        }
         Payload::Name(s) => 2_000_000 ^ interner.symbol_hash(s),
     };
     combine(k.wrapping_mul(0xF00D), p)

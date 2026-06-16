@@ -2858,6 +2858,7 @@ pub(crate) mod grammar {
     pub(crate) const C: u16 = 7;
     pub(crate) const RUBY: u16 = 8;
     pub(crate) const CSS: u16 = 9;
+    pub(crate) const HTML: u16 = 10;
 }
 
 /// Comment / trivia node kinds across the supported grammars.

@@ -707,7 +707,7 @@ fn gate_unit(
     // imperative block its value fingerprint IS its meaning (the canonical declaration
     // set), so — like a dense functional one-liner — it may pass the size gate on the
     // `value.len() >= EXACT_VALUE_MIN` floor below rather than the syntactic floor.
-    let declarative = matches!(ctx.il.kind(root), NodeKind::CssRule);
+    let declarative = matches!(ctx.il.kind(root), NodeKind::CssRule | NodeKind::HtmlElement);
     let syntactically_small = lines < ctx.min_lines || pre.len() < ctx.min_tokens;
     let can_use_dense_gate =
         declarative || matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;

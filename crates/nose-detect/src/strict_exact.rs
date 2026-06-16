@@ -228,11 +228,11 @@ pub(crate) fn strict_exact_safe_tree(
         // is exact-safe iff it has no unparsed (`Raw`) construct, so recurse into the
         // rule but treat a declaration / selector (whose leaves are constant value
         // tokens, lowered as `Lit(Name=raw text)`) as safe outright.
-        NodeKind::CssRule => il
+        NodeKind::CssRule | NodeKind::HtmlElement => il
             .children(node)
             .iter()
             .all(|&c| strict_exact_safe_tree(il, interner, facts, c)),
-        NodeKind::CssDecl | NodeKind::CssSelector => true,
+        NodeKind::CssDecl | NodeKind::CssSelector | NodeKind::HtmlAttr | NodeKind::HtmlText => true,
         NodeKind::Seq => {
             strict_exact_safe_seq(il, interner, node)
                 && il

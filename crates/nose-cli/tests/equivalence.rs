@@ -8623,6 +8623,67 @@ fn css_independent_non_overlapping_properties_stay_order_free() {
     );
 }
 
+// ----- HTML (declarative markup) exact-channel semantics -----
+//
+// Markup units are fingerprinted by their canonical rendered DOM (see
+// `nose-normalize::html`): attribute order/boolean-form/whitespace/class-set are
+// normalized, but tag/structure/text/value differences are kept distinct.
+
+/// The declarative DOM fingerprint of the first top-level `HtmlElement` in `src`.
+fn html_fp(interner: &Interner, src: &str) -> Vec<u64> {
+    let ils =
+        nose_frontend::lower_source_regions(FileId(0), "t.html", src.as_bytes(), Lang::Html, interner);
+    let markup = ils
+        .iter()
+        .find(|il| il.meta.lang == Lang::Html)
+        .expect("a markup (html) region");
+    let n = normalize(markup, interner, &NormalizeOptions::default());
+    let root = n
+        .children(n.root)
+        .iter()
+        .copied()
+        .find(|&c| n.node(c).kind == nose_il::NodeKind::HtmlElement)
+        .expect("a top-level HtmlElement unit");
+    nose_normalize::value_fingerprint(&n, root, interner)
+}
+
+#[test]
+fn html_same_dom_converges_under_attr_order_boolean_whitespace_class_set() {
+    let i = Interner::new();
+    let a = r#"<div class="card x"><img src="a.png" alt="p"><button type="button" disabled>Go</button></div>"#;
+    // attrs reordered, boolean form `disabled=""`, class tokens reordered, extra whitespace
+    let b = "<div class=\"x card\">\n  <img alt=\"p\"   src=\"a.png\">\n  <button disabled=\"\" type=\"button\">Go</button>\n</div>";
+    assert_eq!(html_fp(&i, a), html_fp(&i, b), "same rendered DOM must converge");
+}
+
+#[test]
+fn html_text_and_value_differences_do_not_converge() {
+    let i = Interner::new();
+    let a = r#"<div class="card"><h3>Title</h3><a href="/a">Link</a></div>"#;
+    let b = r#"<div class="card"><h3>Other</h3><a href="/a">Link</a></div>"#; // different text
+    let c = r#"<div class="card"><h3>Title</h3><a href="/b">Link</a></div>"#; // different href
+    assert_ne!(html_fp(&i, a), html_fp(&i, b), "different text must not merge");
+    assert_ne!(html_fp(&i, a), html_fp(&i, c), "different attr value must not merge");
+}
+
+#[test]
+fn html_child_order_is_significant() {
+    let i = Interner::new();
+    let a = r#"<ul class="m"><li>one</li><li>two</li></ul>"#;
+    let b = r#"<ul class="m"><li>two</li><li>one</li></ul>"#;
+    assert_ne!(html_fp(&i, a), html_fp(&i, b), "DOM child order must be significant");
+}
+
+#[test]
+fn html_fingerprint_is_domain_disjoint_from_css_and_imperative() {
+    let i = Interner::new();
+    let html = html_fp(&i, r#"<div class="card"><h3>Title</h3><p>body text</p></div>"#);
+    let css = css_fp(&i, ".card { display: flex; gap: 8px; padding: 12px; }");
+    let py = value_fp(&i, "def f(x):\n    return x + 5\n", Lang::Python);
+    assert_ne!(html, css, "HTML and CSS fingerprints must be disjoint");
+    assert_ne!(html, py, "HTML and imperative fingerprints must be disjoint");
+}
+
 #[test]
 fn css_fingerprint_is_domain_disjoint_from_imperative() {
     // Cross-domain false-merge guard: a CSS fingerprint must never equal an imperative

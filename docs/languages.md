@@ -65,21 +65,42 @@ denotation. Lowering coverage is first-class: the [Raw-node ratio](#coverage-and
 on real-world `.css` is ~0.2% (the residue is non-standard PostCSS at-statements, left
 as honest `Raw`).
 
-CSS embedded in `<style>` blocks (HTML/Vue/Svelte) and HTML markup-tree clones are
-planned follow-ups; today CSS detection covers standalone `.css` files.
+## Declarative languages: HTML markup
 
-## Embedded `<script>` in Vue / Svelte / HTML
+| language | extensions |
+|---|---|
+| HTML | `.html`, `.htm` (markup) |
 
-`.vue`, `.svelte`, and `.html`/`.htm` files carry their logic inside `<script>`
-blocks. nose extracts those regions and lowers them as JS/TS, so duplication
-between a component's script and a plain `.ts` file is found like any other
-clone. Extraction **blanks** the non-script bytes (replacing them with spaces
-while keeping newlines), so reported line numbers point at the exact lines in the
-original `.vue`/`.svelte`/`.html` file.
+HTML markup is also **declarative**: an element's meaning is the **rendered DOM** it
+produces. Each `HtmlElement` subtree is a detection unit whose exact `semantic`
+fingerprint is the canonical DOM of that subtree (`nose-normalize::html`), so two
+markup blocks are an exact clone when they render the same DOM. The fingerprint
+normalizes the DOM-insignificant: **attribute order**, **boolean-attribute form**
+(`disabled` ≡ `disabled=""`), **`class` token order** (a set), tag/attribute-name case,
+and insignificant whitespace. It keeps **tag/structure**, **child order**, **text**, and
+**attribute values** distinct, so a content difference never merges. As with CSS, the
+structural `near` channel additionally scores **structure-only** similarity (text and
+volatile values abstracted), which is what surfaces "the same repeated component shell
+with different content" — the highest-value markup clone. Soundness is by construction
+plus adversarial batteries; HTML and CSS fingerprints are domain-disjoint from each other
+and from imperative code. Real-world markup lowers at a first-class Raw-node ratio (~0.4%;
+the rare residue is malformed/generated pages, left as honest `Raw`).
 
-This is why a helper duplicated across a Svelte component and a TypeScript module
-shows up as one cross-container family (confirmed on real projects in
-[field-evaluation](field-evaluation.md)).
+## Embedded `<script>` / `<style>` in HTML / Vue / Svelte
+
+`.html`/`.htm`, `.vue`, and `.svelte` files mix logic, style, and markup. nose lowers
+each file into **several regions**, analyzed independently and all sharing the file's
+path: `<script>` blocks as JS/TS, `<style>` blocks as CSS, and the markup tree as HTML
+(a `.vue`/`.svelte` `<template>` parses as markup too). Region extraction **blanks** the
+other bytes (replacing them with spaces while keeping newlines), so reported line numbers
+point at the exact lines in the original file; `<script>`/`<style>` *internals* are not
+double-counted in the markup tree. Preprocessor `<style lang="scss"|"less"|…>` blocks are
+skipped (out of scope).
+
+So a helper duplicated across a Svelte component and a TypeScript module — or a
+declaration block shared between a component's `<style>` and a plain `.css` file, or a
+repeated card across two HTML pages — shows up as one cross-container family (script
+cross-container confirmed on real projects in [field-evaluation](field-evaluation.md)).
 
 ## Coverage and adding a language
 

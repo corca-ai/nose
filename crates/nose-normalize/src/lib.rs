@@ -23,6 +23,7 @@ mod commutative;
 mod css;
 mod css_value;
 mod dataflow;
+mod html;
 mod dce;
 mod desugar;
 mod effect_evidence;
@@ -244,6 +245,18 @@ impl<'a> NormalizeTimer<'a> {
 
 /// Normalize one lowered file, returning a fresh canonical [`Il`] (the input is
 /// left untouched). Unit roots are remapped onto the new arena.
+/// Declarative fingerprint dispatch by unit-root kind: a CSS rule or an HTML element
+/// bypasses the imperative value graph and is fingerprinted by its canonical
+/// computed-style / rendered-DOM. `None` for imperative units (caller uses the GVN).
+pub(crate) fn declarative_fingerprint(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> Option<(Vec<u64>, Vec<u64>, Vec<u64>)> {
+    css::declarative_fingerprint(il, root, interner)
+        .or_else(|| html::declarative_fingerprint(il, root, interner))
+}
+
 pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     let mut timer = NormalizeTimer::new(&il.meta.path);
     let mut out = desugar::run(il, interner, opts);
@@ -257,7 +270,7 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     // emitted by `desugar` is what the (future) computed-style oracle reads, so this
     // returns the same pre-canonicalization tree under both `opts.oracle` settings
     // until a behavior-changing declarative canon exists to gate.
-    if matches!(il.meta.lang, nose_il::Lang::Css) {
+    if matches!(il.meta.lang, nose_il::Lang::Css | nose_il::Lang::Html) {
         debug_assert!(out.validate().is_ok());
         return out;
     }

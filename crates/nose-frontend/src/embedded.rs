@@ -74,6 +74,15 @@ pub(crate) fn lower_regions(
         }
     }
 
+    // Markup tree (the whole document parsed as HTML — a `.vue`/`.svelte` `<template>`
+    // parses as an element too). `<script>`/`<style>` internals are skipped by the HTML
+    // frontend, so they are not double-counted with the regions above.
+    if let Ok(il) = crate::html::lower(file, path, src, interner) {
+        if !il.units.is_empty() {
+            out.push(il);
+        }
+    }
+
     let _ = container;
     out
 }
