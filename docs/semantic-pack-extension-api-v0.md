@@ -1,22 +1,5 @@
 # Semantic pack extension API v0
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
-internal evidence substrate is described in
-[evidence-records](evidence-records.md), and source-origin evidence is described
-in [source-facts](source-facts.md).
-
-Schema artifacts:
-
-- [semantic-pack-v0 schema](schemas/semantic-pack-v0.schema.json)
-- [language-pack example](examples/semantic-packs/v0/language-pack.json)
-- [library-pack example](examples/semantic-packs/v0/library-pack.json)
-- [law-pack example](examples/semantic-packs/v0/law-pack.json)
-- [Python stdlib type-domain pack example](examples/semantic-packs/v0/python-typing-domain-pack.json)
-- [semantic-pack-conformance](semantic-pack-conformance.md)
-- [semantic-pack-loading](semantic-pack-loading.md)
-
 Status: design v0 plus local metadata loading and a local conformance harness.
 nose can load local manifests for explicit opt-in provenance reporting, and pack
 authors can run `nose semantic-pack check` against manifests and declared fixture
@@ -506,3 +489,22 @@ This issue is complete when:
 - the docs state that external pack correctness is provider/user responsibility;
 - the docs state that first-party built-in semantics use the same extension
   vocabulary even if they remain compiled in initially.
+
+## See also
+
+Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
+in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
+work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
+internal evidence substrate is described in
+[evidence-records](evidence-records.md), and source-origin evidence is described
+in [source-facts](source-facts.md).
+
+Schema artifacts:
+
+- [semantic-pack-v0 schema](schemas/semantic-pack-v0.schema.json)
+- [language-pack example](examples/semantic-packs/v0/language-pack.json)
+- [library-pack example](examples/semantic-packs/v0/library-pack.json)
+- [law-pack example](examples/semantic-packs/v0/law-pack.json)
+- [Python stdlib type-domain pack example](examples/semantic-packs/v0/python-typing-domain-pack.json)
+- [semantic-pack-conformance](semantic-pack-conformance.md)
+- [semantic-pack-loading](semantic-pack-loading.md)

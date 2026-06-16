@@ -1,18 +1,5 @@
 # Semantic kernel snapshot
 
-Back to [semantic-kernel](semantic-kernel.md). This page records the current
-implementation shape; planned work and decision history live in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
-record substrate is described in [evidence-records](evidence-records.md). The
-post-PR #147 raw/local pocket audit is recorded in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
-v0 provider-facing extension API is defined in
-[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md), and the
-local provider/user conformance workflow is in
-[semantic-pack-conformance](semantic-pack-conformance.md). The closeout for the
-#109 semantic-kernel migration is in
-[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
-
 Snapshot date: 2026-06-09. The current implementation has an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
@@ -831,4 +818,19 @@ Remaining migration targets are tracked in
 classification snapshot is in
 [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md), and
 the completed #109 foundation and follow-up tranche is in
+[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
+
+## See also
+
+Back to [semantic-kernel](semantic-kernel.md). This page records the current
+implementation shape; planned work and decision history live in
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
+record substrate is described in [evidence-records](evidence-records.md). The
+post-PR #147 raw/local pocket audit is recorded in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
+v0 provider-facing extension API is defined in
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md), and the
+local provider/user conformance workflow is in
+[semantic-pack-conformance](semantic-pack-conformance.md). The closeout for the
+#109 semantic-kernel migration is in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).

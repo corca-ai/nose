@@ -1,9 +1,5 @@
 # Demand and effect semantics
 
-Back to [semantic-kernel](semantic-kernel.md). The implemented code shape is
-summarized in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); remaining
-work is tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
-
 Demand/effect contracts describe how an already-admitted semantic operation
 evaluates its children, invokes callbacks, and exposes effects. They do not
 admit a source API by name. API admission still requires source, symbol, import,
@@ -123,3 +119,10 @@ work includes:
   exact-size/materialization, and callback-effect contracts;
 - report-level provenance for which demand/effect contract influenced an exact
   result.
+
+## See also
+
+- [semantic-kernel](semantic-kernel.md)
+- The implemented code shape is summarized in
+  [semantic-kernel-snapshot](semantic-kernel-snapshot.md); remaining work is
+  tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).

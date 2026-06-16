@@ -1,12 +1,5 @@
 # Source facts and semantic evidence
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-recorded in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and
-remaining work are tracked in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md). The shared internal record
-shape for all semantic evidence is described in
-[evidence-records](evidence-records.md).
-
 Source facts are the bridge between source syntax and semantic contracts. They
 preserve source-origin distinctions that the shared IL intentionally abstracts
 away, such as `new Set(...)` versus `Set(...)`, a JavaScript regex literal versus
@@ -181,3 +174,12 @@ claims exact eligibility for a source/API surface must declare:
 Meeting this shape is not nose certification. First-party default packs are
 validated by the nose project. External packs are provider/user responsibility
 and must be explicitly enabled by the user.
+
+## See also
+
+- [semantic-kernel](semantic-kernel.md)
+- Current implementation status is recorded in
+  [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
+  work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+- The shared internal record shape for all semantic evidence is described in
+  [evidence-records](evidence-records.md).

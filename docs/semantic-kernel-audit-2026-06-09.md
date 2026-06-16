@@ -1,11 +1,5 @@
 # Semantic kernel audit, 2026-06-09
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); remaining work is
-tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The later
-closeout for the #150-#157 foundation tranche is in
-[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
-
 This audit closes issue #150. It assumes PR #147 is merged and asks whether any
 remaining first-party semantic consumer still opens exact semantics from raw
 shape, selector spelling, raw `Seq`/payload tags, or local
@@ -186,4 +180,12 @@ tranches:
   provenance.
 
 The #109 closeout is recorded in
+[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
+
+## See also
+
+Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
+in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); remaining work is
+tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The later
+closeout for the #150-#157 foundation tranche is in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).

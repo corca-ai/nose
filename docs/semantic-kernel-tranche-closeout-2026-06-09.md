@@ -1,15 +1,11 @@
 # Semantic kernel #109 closeout, 2026-06-09
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); long-range phases
-and history are in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). This
-closeout updates the post-PR #147 audit recorded in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
+This page closes the semantic-kernel foundation work tracked under GitHub issue
+#109.
 
 ## Scope
 
-This page closes the semantic-kernel foundation work tracked under GitHub issue
-#109. The first tranche covered the follow-up issues created from the post-PR
+The first tranche covered the follow-up issues created from the post-PR
 #147 audit:
 
 | issue | PR | outcome |
@@ -83,3 +79,11 @@ work should be opened as new, scoped issues when a concrete language surface,
 producer family, LawPack family, or ecosystem-pack runtime slice is selected.
 The active companion issue is #149, which is a quality-gate ratchet and
 large-file cleanup track rather than a semantic-kernel behavior migration.
+
+## See also
+
+Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
+in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); long-range phases
+and history are in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). This
+closeout updates the post-PR #147 audit recorded in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).

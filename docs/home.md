@@ -5,7 +5,8 @@ eight imperative languages — plus declarative **CSS** (computed-style equivale
 and **HTML markup** (rendered-DOM equivalence), and the `<script>`/`<style>` regions
 inside Vue, Svelte, and HTML — by
 lowering every language into one normalized intermediate language (IL) and
-ranking duplicated code by how much it's worth refactoring. The repository
+ranking the candidates by refactoring value — a deterministic triage signal, not a
+worth-it verdict (that judgment is the consumer's). The repository
 [README](../README.md) is the one-screen overview; this wiki is the full guide.
 
 Every wiki page lives in `docs/` and links to its neighbours with relative links, so the

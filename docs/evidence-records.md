@@ -1,11 +1,5 @@
 # Semantic evidence records
 
-Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
-recorded in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and
-remaining work are tracked in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source-origin facts are
-covered in [source-facts](source-facts.md).
-
 Evidence records are the internal substrate that lets current first-party
 frontends, and future language/library packs, emit proof facts without giving
 those producers authority to approve exact clones. They are facts, not verdicts.
@@ -684,3 +678,11 @@ materialization, channels, async, call-by-need, and callback effects, full
 scope-resolution and namespace-member evidence, broader guard evidence, general
 cross-module dependency manifests, report-level provenance, and external
 manifest loading are still open work.
+
+## See also
+
+Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
+recorded in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and
+remaining work are tracked in
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source-origin facts are
+covered in [source-facts](source-facts.md).

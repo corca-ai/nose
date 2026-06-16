@@ -1,14 +1,5 @@
 # Semantic kernel roadmap
 
-Back to [semantic-kernel](semantic-kernel.md). Current code shape is recorded in
-[semantic-kernel-snapshot](semantic-kernel-snapshot.md). The post-PR #147 audit
-of remaining raw/local semantic pockets is in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
-provider-facing v0 extension API is in
-[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). The
-closeout for the #109 semantic-kernel migration is in
-[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
-
 This page tracks decisions, history, and remaining work for the semantic kernel
 and pack ecosystem.
 
@@ -970,3 +961,15 @@ considered successful because it:
 The next implementation slices should be judged by whether they remove another
 class of scattered semantic knowledge without widening exact acceptance beyond
 the available evidence.
+
+## See also
+
+- Back to [semantic-kernel](semantic-kernel.md).
+- Current code shape is recorded in
+  [semantic-kernel-snapshot](semantic-kernel-snapshot.md).
+- The post-PR #147 audit of remaining raw/local semantic pockets is in
+  [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
+- The provider-facing v0 extension API is in
+  [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md).
+- The closeout for the #109 semantic-kernel migration is in
+  [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).

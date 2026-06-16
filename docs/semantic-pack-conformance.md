@@ -1,9 +1,5 @@
 # Semantic pack conformance
 
-Back to [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md),
-[semantic-pack-loading](semantic-pack-loading.md), and
-[semantic-kernel](semantic-kernel.md).
-
 Status: nose provides a local semantic-pack v0 conformance harness for manifest
 structure and declared fixture assets. The harness is a provider/user workflow,
 not nose approval of third-party semantic correctness. External packs remain
@@ -133,3 +129,9 @@ Users who opt into external packs own the enablement decision. They should revie
 `metadata-only` influence today. Future producer
 execution must keep the same provenance and fail-closed behavior before external
 packs can affect `near` or exact results.
+
+## See also
+
+- [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md)
+- [semantic-pack-loading](semantic-pack-loading.md)
+- [semantic-kernel](semantic-kernel.md)

@@ -308,7 +308,7 @@ not replicate** on larger labelsets (next sections).
 
 A multi-section arc (per-language eval, bootstrap CIs, labelsets v2–v4 up to 4,615 families)
 that **dissolved its own narrative before anything shipped**. A per-language A/B first showed
-the §Y gain was +22pp on TypeScript and −5pp on Rust; bootstrap CIs (§AB) then showed *both*
+the §Y gain was +22pp on TypeScript and −5pp on Rust; bootstrap CIs (§Z–AD) then showed *both*
 were within noise and the re-rank gain never replicated heldout (62% → 62%). Two durable
 results: **do not ship the uniform re-rank** (recall-side levers are the real ones), and
 **per-language precision power is bounded by #repos × 10, not #labels** (P@10 samples only the
@@ -332,7 +332,7 @@ whole-file clones).
 
 ## AG. Lowering closure — every language to non-ERROR Raw ≤ 0.5%
 
-Closed the lowering campaign (begun in §AA, the per-language Raw-gap work) to target: all 9
+Closed the lowering campaign (begun in §Z–AD, the per-language Raw-gap work) to target: all 9
 languages at 0.01–0.25% non-ERROR Raw, no construct > 0.3%. Two disciplines: route stray
 statement kinds back through the statement path, and erase type-level nodes to `empty_block`,
 not `Raw`. The remaining Raw is essentially all ERROR (tree-sitter parse failures — the
@@ -676,7 +676,7 @@ interpreter oracle as an in-loop *acceptance gate*, then chased the lead it surf
   `Math.min(a,b)` now an opaque call, not `Builtin::Min`). **Obsoleted and dropped:** map-read and
   nullish/option modeling (depended on the deleted builtins) and two-arg scalar `min`/`max` (now
   inert). **Survived / re-validated:** the §BB lattice canon (`convergence_probe5` 10/10) and the
-  §BE pointer-length contract (re-measured 800 → 252). The durable lesson: **a soundness-oracle
+  §BC–BF pointer-length contract (re-measured 800 → 252). The durable lesson: **a soundness-oracle
   improvement is durable only insofar as the IL shape it keys on is durable** — canons keyed on
   stable value-graph structure survived; builtin-keyed modeling did not.
 
@@ -970,7 +970,7 @@ constructs* keep units out of the interpreter. `nose verify --exclusion-census`
 (`crates/nose-cli/src/verify_census.rs`) records every counted function unit's oracle
 outcome, fingerprint, and raw construct tags — for excluded AND interpretable
 populations, deriving the discriminating constructs at analysis time instead of
-hard-coding an "unsupported" list that would rot when lowerings change (the §BF
+hard-coding an "unsupported" list that would rot when lowerings change (the §BC–BF
 durability lesson). Run per repo (merge pairs counted within a repo, matching how scans
 run) and merged by `bench/labels/merge_exclusion_census.py`; artifact
 `bench/labels/oracle_exclusion_census_2026_06_10.json` (104 repos; `raylib` excluded —
@@ -995,7 +995,7 @@ mass).
 **Campaign order this fixes:** (1) uninterpreted-function handling for opaque calls
 and field reads — evaluate them as symbolic applications/projections recorded in the
 ordered effect trace, rather than bailing the whole unit; structure-keyed, so it
-survives lowering drift (§BF). (2) Statement coverage that rides on it (Throw/Try).
+survives lowering drift (§BC–BF). (2) Statement coverage that rides on it (Throw/Try).
 (3) Deprioritize unretained-literal units: their merges are already outside the exact
 channel.
 
@@ -1378,7 +1378,7 @@ value multiset, so "code that does X" fingerprinted like "code that doesn't":
    except {return x}` keeps its handler under an exception guard); element-free effects
    under a loop keyed by the loop's canonical element source (for-in over keys vs
    for-of over values no longer collide — prettier); and the oracle binds battery rows
-   under each parameter's DECLARED type domain, the §BE convention extended to types
+   under each parameter's DECLARED type domain, the §BC–BF convention extended to types
    (a typed `int` never receives a List, so rxjava's order-swapped typed field writes
    stop flagging on impossible type-states).
 

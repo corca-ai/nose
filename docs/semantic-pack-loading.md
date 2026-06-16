@@ -1,9 +1,5 @@
 # Semantic pack loading
 
-Back to [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md),
-[semantic-pack-conformance](semantic-pack-conformance.md), and
-[semantic-kernel](semantic-kernel.md).
-
 Status: nose can load local semantic-pack v0 manifests for provenance and trust
 reporting, and it can run a separate local conformance check for manifests and
 declared fixture assets. External packs are explicit opt-ins and are currently
@@ -84,3 +80,9 @@ The loader validates manifest shape and pack provenance only. It does not yet:
 Future loader work should keep this boundary: external pack claims can become
 usable only through dependency-backed evidence records and fail-closed kernel
 contracts, never through raw selectors or manifest presence alone.
+
+## See also
+
+- [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md)
+- [semantic-pack-conformance](semantic-pack-conformance.md)
+- [semantic-kernel](semantic-kernel.md)

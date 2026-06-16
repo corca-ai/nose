@@ -102,6 +102,13 @@ declaration block shared between a component's `<style>` and a plain `.css` file
 repeated card across two HTML pages — shows up as one cross-container family (script
 cross-container confirmed on real projects in [field-evaluation](field-evaluation.md)).
 
+Vue/Svelte directive shorthands are canonicalized in the markup tree (`:x` ≡
+`v-bind:x`, `@x` ≡ `v-on:x`), and inline `style="…"` is computed-canonicalized via the
+CSS path. Out of scope (see [clone-types](clone-types.md)): SCSS/Less/Sass, CSS `var()`
+resolution across files, and full Svelte `{#if}`/`{#each}`
+block control flow (template text/interpolation is structure-abstracted, the block
+grammar is not modeled).
+
 ## Coverage and adding a language
 
 Lowering quality is measured by the **Raw-node ratio** — the fraction of CST

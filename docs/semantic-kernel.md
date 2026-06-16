@@ -1,24 +1,10 @@
 # Semantic kernel and packs
 
-Back to [home](home.md). Current implementation status is in
-[semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
-post-PR #147 raw/local pocket audit is recorded in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md), and the
-#109 closeout is recorded in
-[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
-The versioned provider-facing extension surface is defined in
-[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Source
-origin evidence is detailed in [source-facts](source-facts.md); the shared
-internal evidence substrate is described in
-[evidence-records](evidence-records.md). The current demand/effect contract
-model is described in [demand-effect-semantics](demand-effect-semantics.md).
-
-## Context
-
 nose's long-term moat is not "more parsers". It is a precise, extensible model of
 what code means across many languages and libraries, strong enough to support exact
 semantic clone detection while still practical enough to run on real repositories.
+
+## Context
 
 The current engine already has the right instincts: fail-closed exact matching,
 language-specific lowering, a value graph, an interpreter oracle, hard negatives,
@@ -340,3 +326,19 @@ It should be:
 3. which semantic law applied;
 4. which domains, demand rules, and effect conditions were proven;
 5. which channel eligibility admitted the result.
+
+## See also
+
+Back to [home](home.md). Current implementation status is in
+[semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
+work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
+post-PR #147 raw/local pocket audit is recorded in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md), and the
+#109 closeout is recorded in
+[semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
+The versioned provider-facing extension surface is defined in
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Source
+origin evidence is detailed in [source-facts](source-facts.md); the shared
+internal evidence substrate is described in
+[evidence-records](evidence-records.md). The current demand/effect contract
+model is described in [demand-effect-semantics](demand-effect-semantics.md).
