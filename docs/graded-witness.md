@@ -48,6 +48,13 @@ Some divergences are better described than itemized as holes:
 - `fragment-containment` — the smaller copy is a sliver of the larger (a containment,
   not a clone claim);
 - `low-substance` — the units are too small for the claim to mean much.
+- `async-mirror` — one copy `await`s where the other does not: an async↔sync
+  *transformation* twin (§K / experiments §CU). The witness build keeps `await e` as an
+  `Opaque(VG_PROTOCOL_AWAIT,[e])` wrapper; the alignment recurses *through* it (matching the
+  operand against the bare sync value) and records the await as a one-sided hole. Always sets
+  `equal_modulo_holes = false` — a coroutine is not its resolved value, so this is a refactoring
+  lead, never a behavioral-equivalence claim. (The fingerprint build, by contrast, makes `await e`
+  transparent so the twin's `vj` converges — see the dual view in `value_graph/eval.rs`.)
 
 ## Soundness — the referent check
 

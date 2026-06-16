@@ -2986,3 +2986,49 @@ cost was a synthetic-test artifact and the sound fix shipped clean. Residual (st
 pure recall enhancement): a map-value non-null proof would re-converge the coalesce forms with the
 absence family where it is provably sound (literal non-null maps), and null/undefined de-conflation
 would re-home `=== undefined` with the absence class — neither is a soundness obligation.
+
+## CU. async↔sync twins — the dual-view await (the #1 Type-4 gap, §K)
+
+§K named **async ↔ sync twins** "the real Type-4 gap in production code": an `async def f` and
+its sync twin (identical body modulo `await`) are duplicated logic a maintainer would want
+surfaced, but nose detected **0 families** for them (`async_sync_twin: none` in
+`coverage_matrix.v1.json`). The convergence was deliberately gated: `await` lowers to a
+`Raw("await")` protocol boundary the value graph turns into a **childless** `Opaque(subtree_hash)`
+(eval.rs), so twins share no value-DAG structure. Erasing `await` was the *old* unsound path (it
+removed the IL `Raw` → the unit became `exact_safe` → an exact false merge of a Future with its
+resolved value).
+
+**The channel was wrong.** async↔sync twins are NOT behaviorally equal (a coroutine ≠ a value), so
+they belong in the **near/graded** channel (refactoring candidates — no equivalence claim), never
+the exact channel. Two empirical findings shaped the mechanism: (1) a wrapper that keeps the await
+visible **poisons downstream value identity** — `v = await f(x)` makes `v` the wrapper, so every
+later `v+1` diverges from the sync twin's, and family formation is pure `vj`/`sj` scoring (the
+witness only *labels*); so a wrapper alone never converges twins. (2) Full transparency (eval
+`await e → e`) DOES converge them and stays exact-safe (the IL `Raw` keeps the unit non-`exact_safe`
+— `strict_exact` returns false on `Raw` — so async units are excluded from exact families
+regardless of the fingerprint). "Soundness costs recall" was again a hypothesis to measure: it
+didn't, the exact channel is provably inert.
+
+**The fix is a DUAL VIEW** of the value graph, keyed by `Builder.await_transparent`:
+- **Fingerprint build** (default `true`): `await e` ≡ `e`'s value → an async fn's fingerprint
+  matches its sync twin → they converge on `vj` in candidate mode.
+- **ValueDag/witness build** (`false`, set in `value_dag()`): keeps an `Opaque(VG_PROTOCOL_AWAIT,[e])`
+  wrapper so the graded witness *sees* the await. `Au::unify` aligns the wrapper against the bare
+  operand on the sync side (recursing through it so the alignment propagates downstream), records a
+  one-sided **`async-mirror`** hole, and forces `equal_modulo_holes = false` — a transformation
+  twin is never an equivalence claim.
+
+So scoring sees *through* await (twins converge) while the witness *sees* await (honest
+`async-mirror` label + the precision gate). First increment: **Python + JS/TS** (both lower `await`
+through `await_boundary`); Rust `.await` and the other protocol boundaries (`yield`/`try`-`?`/
+channels — non-pass-through semantics) deferred.
+
+**Gates.** Full suite **1056 pass**; the dual-view broke no existing await test. **Exact-channel
+provably inert:** `verify --max-violations 0` clean (axios/rxjs/trpc/flask/guava), and the
+`exact-value-graph` families are **byte-identical** before/after on zod/prettier/flask/guava/gorm —
+the change only ADDs near families. Deterministic. Tests: witness `async-mirror`/`both-sides-await`
+units + an end-to-end detection test (twin converges, different-logic decoy excluded).
+
+**Follow-up (not soundness):** the formal eval substrate — gold `production_async_sync` pairs +
+hard-negatives mined from the corpus, the `nose eval` `near_exact_or_structural` recall number, and
+flipping the `coverage_matrix` cells none→covered — plus extending to Rust `.await`.
