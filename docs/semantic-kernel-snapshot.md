@@ -91,8 +91,9 @@ still being migrated toward it.
   compiled pilot is `nose.python.stdlib.type_domain`, a default first-party
   stdlib pack-shaped surface for Python `typing`, `collections.abc`, and
   `asyncio` type-domain alias evidence.
-- `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
-  `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/
+- `nose-frontend` owns tree-sitter parsing, per-language lowering (including the
+  declarative CSS/HTML frontends), `<script>`/`<style>`/markup region extraction for
+  Vue/Svelte/HTML, source/domain/import/symbol/type/guard/place/effect/API/
   sequence evidence emission, and Raw-node coverage.
 - `nose-normalize` owns desugaring, alpha-renaming, recursion normalization,
   immutable binding-domain evidence inference, dataflow, CFG/algebra

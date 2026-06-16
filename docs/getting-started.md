@@ -202,7 +202,7 @@ The full gate, baselines, SARIF, and fast re-runs are in
   pass/fail gate that flags only *new* duplication, with baselines and SARIF.
 - **[clone-types](clone-types.md)** — what `syntax` / `semantic` / `near` cover
   across the Type-1–4 taxonomy, and the honest limits.
-- **[languages](languages.md)** — the supported languages and the embedded
-  `<script>` extraction for Vue/Svelte/HTML.
+- **[languages](languages.md)** — the supported languages, declarative CSS and HTML
+  markup, and the `<script>`/`<style>`/markup region extraction for Vue/Svelte/HTML.
 </content>
 </invoke>

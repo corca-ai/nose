@@ -185,6 +185,40 @@ separately with `recommended_surface`: default, review, or hidden. See
 [fragment-contracts](fragment-contracts.md) for the exact-fragment contract and
 [scan-json](scan-json.md#fragment-metadata) for the stable output fields.
 
+## Declarative languages (CSS / HTML) — the taxonomy on a different denotation
+
+The taxonomy above is for imperative code, where Type-4 means *same computation*. For
+declarative languages it is re-based on the right denotation: **CSS** equivalence is
+*same computed style*, **HTML markup** equivalence is *same rendered DOM* (see
+[languages](languages.md), [normalization](normalization.md)). These ride the same
+channels but a declarative-specific fingerprint, dispatched by unit-root kind rather than
+the value graph.
+
+- **Type-1/2/3** behave as elsewhere: identical/whitespace-varied blocks converge; the
+  `near` channel scores *structural* similarity with leaf values (text, CSS values)
+  abstracted, so "the same repeated component shell or rule shape with different content"
+  surfaces as a near family — the highest-value declarative clone.
+- **Type-4 analog (the exact `semantic` channel)** is *computed-equivalence*, not
+  textual identity:
+  - **CSS** — selector- and declaration-order-independent, with value canonicalization
+    (`#fff` ≡ `#ffffff` ≡ `white`, `0px` ≡ `0`, `margin: 0 0 0 0` ≡ `margin: 0`); so a
+    duplicated declaration block under different selectors is one exact family.
+  - **HTML** — attribute-order/boolean-form/`class`-set/whitespace/case normalized, with
+    tag/structure, child order, text, and attribute values kept distinct; inline
+    `style="…"` is computed-canonicalized via the CSS path.
+- **Soundness** is by construction (the fingerprint *is* the canonical computed
+  style / rendered DOM, so equal fingerprint ⟺ equal denotation) plus adversarial
+  per-rule batteries; CSS, HTML, and imperative fingerprints are domain-disjoint, so the
+  language-blind exact channel can never merge across them. Cascade is preserved
+  (repeated-property last-wins; a shorthand mixed with its longhand is order-sensitive;
+  an at-rule's full condition is context).
+
+What declarative detection does **not** do: SCSS/Less/Sass (`<style lang="scss">` is
+skipped); CSS custom-property (`var()`) resolution across files; full Svelte
+`{#if}`/`{#each}` block grammar (template *text/interpolation* is structure-abstracted,
+but block control flow is not modeled). Lowering coverage is first-class — the Raw-node
+ratio on real `.css`/`.html` is sub-percent (generated/templated pages aside).
+
 ## Scan modes, and cross-language
 
 Each type maps to a detection channel by evidence surface: **Type-1 and token-level

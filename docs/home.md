@@ -42,7 +42,7 @@ You want to *run* nose on a codebase and act on what it finds.
 - [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.
 - [reinvented-helpers](reinvented-helpers.md) — the containment channel: code that reimplements an existing pure helper inline instead of calling it.
 - [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
-- [languages](languages.md) — the supported languages and the embedded `<script>` extraction for Vue/Svelte/HTML.
+- [languages](languages.md) — the supported languages, declarative CSS and HTML markup, and the `<script>`/`<style>`/markup region extraction for Vue/Svelte/HTML.
 
 ## Integrating nose
 

@@ -2,9 +2,10 @@
 
 **nose** finds duplicated code worth refactoring — literal copy-paste, renamed
 copies, and the same logic written in a different style or language — across
-Python, JavaScript, TypeScript, Go, Rust, Java, C, Ruby, and the embedded
-`<script>` logic in Vue, Svelte, and HTML. One self-contained Rust binary; no
-runtime, services, or network.
+Python, JavaScript, TypeScript, Go, Rust, Java, C, Ruby, plus declarative **CSS**
+(matched by computed-style equivalence) and **HTML markup** (rendered-DOM
+equivalence) — including the `<script>`/`<style>`/markup regions inside Vue,
+Svelte, and HTML. One self-contained Rust binary; no runtime, services, or network.
 
 ## Install
 
