@@ -8752,6 +8752,34 @@ fn html_vue_directive_shorthand_canonicalizes() {
 }
 
 #[test]
+fn html_preformatted_whitespace_is_significant() {
+    // Soundness: inside <pre>/<textarea> whitespace is preserved by the renderer, so
+    // two blocks differing only in indentation render differently and must NOT merge.
+    let i = Interner::new();
+    let a = "<pre>fn f() {\n    return 1;\n    return 2;\n}</pre>";
+    let b = "<pre>fn f() {\n  return 1;\n  return 2;\n}</pre>"; // 2-space indent
+    assert_ne!(
+        html_fp(&i, a),
+        html_fp(&i, b),
+        "<pre> whitespace must be significant"
+    );
+    let a2 = "<pre>fn f() {\n    return 1;\n    return 2;\n}</pre>";
+    assert_eq!(
+        html_fp(&i, a),
+        html_fp(&i, a2),
+        "identical <pre> still converges"
+    );
+    // Outside <pre>, flow whitespace stays INsignificant.
+    let p1 = "<p>hello world   again here friend</p>";
+    let p2 = "<p>hello world\n  again here friend</p>";
+    assert_eq!(
+        html_fp(&i, p1),
+        html_fp(&i, p2),
+        "flow whitespace stays insignificant"
+    );
+}
+
+#[test]
 fn html_fingerprint_is_domain_disjoint_from_css_and_imperative() {
     let i = Interner::new();
     let html = html_fp(

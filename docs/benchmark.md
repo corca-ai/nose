@@ -67,6 +67,41 @@ pinned corpus repo at a time and uploads per-repo logs if the zero-false-merge o
 canon-preservation gate trips. Symbolic-trace disagreements remain advisory and
 are counted in the summary without failing the run.
 
+## Declarative languages (CSS / HTML)
+
+[CSS and HTML markup](languages.md) are declarative — equivalence is *same computed style* /
+*same rendered DOM*, not imperative behavior — so they are measured by an analogous but
+separate instrument: a labeled benchmark of POSITIVE groups (computed-equivalent snippets
+that must share a fingerprint) and HARD-NEGATIVE pairs (computed-distinct snippets that must
+not), one per equivalence-class axis.
+
+```sh
+cargo test -p nose-cli --test css_html_quality -- --nocapture   # recall + soundness, per axis
+```
+
+Headline (current): **recall 11/11 positive groups converged (100%)** across the modeled
+axes — CSS color (hex/short/name/`rgb()`), extended named colors, `hsl()`/`url()` spelling,
+zero-units, number canon, box-shorthand collapse, declaration-order and selector
+independence; HTML DOM normalization (attribute order/boolean/`class`-set/whitespace/case),
+inline-`style=` canonicalization, and Vue/Svelte directive shorthand — and **soundness 12/12
+hard negatives kept distinct (100%)** (distinct colors/values, repeated-property and
+shorthand/longhand cascade order, box-not-all-equal, value-order, at-rule condition, `hsl`
+distinctness; HTML text/attr/child-order/`<pre>`-whitespace differences). CSS, HTML, and
+imperative fingerprints are domain-disjoint, so the language-blind exact channel can never
+merge across them.
+
+Coverage is first-class: the [Raw-node ratio](languages.md#coverage-and-adding-a-language)
+on real-world `.css`/`.html` is sub-percent (CSS ~0.002%, HTML ~0.4% on hand-written
+markup). Soundness is **by construction** — the fingerprint *is* the canonical computed
+style / rendered DOM, so equal fingerprint ⟺ equal denotation — backed by the adversarial
+per-rule batteries above plus the `css_value` unit tests (the project's primary trust
+mechanism, [design §1](design.md)); the obligation is registered `empirical-only`
+(`formal/obligations/normalize/css/computed_style/`), not yet Lean-proven. `nose verify`
+excludes declarative units (a declarative domain has no imperative behavior to interpret)
+and its imperative gate is unaffected. Modeled scope and honest limits (SCSS/Less, cross-file
+`var()`, shorthand↔longhand expansion, Svelte block grammar) are in
+[clone-types](clone-types.md) and [languages](languages.md).
+
 ## Throughput
 
 The detector is parallel at every stage and designed for deterministic output; tests cover

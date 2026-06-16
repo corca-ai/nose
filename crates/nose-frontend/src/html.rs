@@ -38,26 +38,29 @@ pub(crate) fn lower(
 fn lower_document(lo: &mut Lowering, root: TsNode) -> NodeId {
     let span = lo.span(root);
     let mut kids = Vec::new();
-    collect_nodes(lo, root, &mut kids);
+    collect_nodes(lo, root, &mut kids, false);
     lo.add(NodeKind::Module, Payload::None, span, &kids)
 }
 
-fn collect_nodes(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {
+fn collect_nodes(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, pre: bool) {
     for c in Lowering::named_children(node) {
-        if let Some(id) = lower_node(lo, c) {
+        if let Some(id) = lower_node(lo, c, pre) {
             out.push(id);
         }
     }
 }
 
-fn lower_node(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+/// `pre`: are we inside a whitespace-PRESERVING element (`<pre>`/`<textarea>`)? There
+/// the renderer keeps whitespace verbatim, so collapsing it would merge DOM-distinct
+/// blocks — a false merge. Elsewhere flow whitespace is insignificant and collapsed.
+fn lower_node(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
     match node.kind() {
-        "element" => Some(lower_element(lo, node, false)),
+        "element" => Some(lower_element(lo, node, false, pre)),
         // Script/style elements: keep the shell (tag + attrs), drop the raw_text body
         // (the JS/CSS is analyzed separately as its own region).
-        "script_element" | "style_element" => Some(lower_element(lo, node, true)),
+        "script_element" | "style_element" => Some(lower_element(lo, node, true, pre)),
         // Text and entities (`&amp;`, `&nbsp;`) are both content — fold to HtmlText.
-        "text" | "entity" => lower_text(lo, node),
+        "text" | "entity" => lower_text(lo, node, pre),
         "doctype" | "comment" | "erroneous_end_tag" => None,
         other => {
             let s = lo.span(node);
@@ -69,22 +72,29 @@ fn lower_node(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 /// Lower an element subtree → `HtmlElement(tag)`. When `raw_content`, child content is
 /// dropped (script/style bodies). Every element registers as a detection unit; the size
 /// gate keeps trivial single elements from matching.
-fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool) -> NodeId {
+fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) -> NodeId {
     let span = lo.span(node);
     let mut children = Vec::new();
     let mut tag = None;
+    // Whitespace is significant inside this element if we are already in a preformatted
+    // context OR this element is one (`<pre>`/`<textarea>`). The start tag is the first
+    // child, so `child_pre` is set before any text/child element is lowered.
+    let mut child_pre = pre;
     for c in Lowering::named_children(node) {
         match c.kind() {
             "start_tag" | "self_closing_tag" => {
                 let (t, attrs) = lower_tag(lo, c);
                 if tag.is_none() {
                     tag = t;
+                    if let Some(sym) = tag {
+                        child_pre = pre || matches!(lo.interner.resolve(sym), "pre" | "textarea");
+                    }
                 }
                 children.extend(attrs);
             }
             "end_tag" | "raw_text" => {}
             _ if !raw_content => {
-                if let Some(id) = lower_node(lo, c) {
+                if let Some(id) = lower_node(lo, c, child_pre) {
                     children.push(id);
                 }
             }
@@ -201,9 +211,17 @@ fn lower_inline_style(lo: &mut Lowering, value: &str, span: Span) -> NodeId {
     lo.add(NodeKind::CssRule, Payload::None, span, &decls)
 }
 
-fn lower_text(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+fn lower_text(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
     let span = lo.span(node);
-    let text = normalize_ws(lo.text(node));
+    // In a preformatted element keep whitespace VERBATIM (it is significant — collapsing
+    // it would merge DOM-distinct `<pre>`/`<textarea>` blocks); otherwise collapse it
+    // (flow whitespace is insignificant).
+    let raw = lo.text(node);
+    let text = if pre {
+        raw.to_string()
+    } else {
+        normalize_ws(raw)
+    };
     if text.is_empty() {
         return None;
     }
