@@ -194,6 +194,18 @@ fn lower_at_rule(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
     // keyword — `@container foo (max-width: 768px)` and `@container foo (min-width:
     // 769px)` are different CONDITIONS and must not merge. Capturing only the first
     // child (`@container`) was a false merge surfaced on the bulma corpus.
+    // Prefix the at-rule TYPE so the prelude always starts with `@<type>`: (1) it
+    // distinguishes a `@media (X)` context from a `@supports (X)` / `@container (X)` one
+    // — `media_statement`/`supports_statement` drop their keyword in the grammar, so
+    // without this their identical condition text would false-merge; and (2) it lets the
+    // fingerprint tell an at-rule prelude (canonicalizable as a query) from a CSS-nesting
+    // parent selector (case-sensitive, must stay raw — a selector never starts with `@`).
+    let at_type = match node.kind() {
+        "media_statement" => "@media ",
+        "supports_statement" => "@supports ",
+        "keyframes_statement" => "@keyframes ",
+        _ => "", // generic `at_rule` already carries its own `@keyword`
+    };
     let mut prelude_parts: Vec<String> = Vec::new();
     for c in Lowering::named_children(node) {
         match c.kind() {
@@ -204,7 +216,8 @@ fn lower_at_rule(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
     if inner.is_empty() {
         return;
     }
-    let prelude = (!prelude_parts.is_empty()).then(|| lo.sym(&prelude_parts.join(" ")));
+    let prelude_text = format!("{at_type}{}", prelude_parts.join(" "));
+    let prelude = (!prelude_text.trim().is_empty()).then(|| lo.sym(prelude_text.trim()));
     let mut children = Vec::new();
     if let Some(sym) = prelude {
         children.push(lo.add(NodeKind::CssSelector, Payload::Name(sym), span, &[]));

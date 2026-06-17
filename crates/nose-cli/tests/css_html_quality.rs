@@ -96,6 +96,16 @@ const POSITIVES: &[(&str, Fp, &[&str])] = &[
         ".cta { padding: 12px; gap: 8px; align-items: center; display: flex }",
         "button.primary { gap: 8px; display: flex; padding: 12px; align-items: center }",
     ]),
+    ("css/media-query-canon", css_fp, &[
+        "@media screen and (max-width: 600px) { .a { color: red; padding: 1px } }",
+        "@media screen and (max-width:600px) { .b { color: red; padding: 1px } }",
+        "@media (max-width: 600px) and screen { .c { color: red; padding: 1px } }",
+        "@media ( max-width : 600px ) and screen { .d { color: red; padding: 1px } }",
+    ]),
+    ("css/media-query-value-canon", css_fp, &[
+        "@media (min-width: 0px) { .a { color: red; padding: 1px } }",
+        "@media (min-width: 0) { .b { color: red; padding: 1px } }",
+    ]),
     ("html/dom-normalize", html_fp, &[
         r#"<div class="card x"><img src="a.png" alt="p"><button type="button" disabled>Go</button></div>"#,
         "<div class=\"x card\">\n <img alt=\"p\"  src=\"a.png\">\n <button disabled=\"\" type=\"button\">Go</button>\n</div>",
@@ -159,6 +169,20 @@ const NEGATIVES: &[(&str, Fp, &str, &str)] = &[
         css_fp,
         ".a { color: hsl(0, 100%, 50%); padding: 1px }",
         ".b { color: hsl(120, 100%, 50%); padding: 1px }",
+    ),
+    (
+        // @media (X) and @supports (X) share a condition string but mean different
+        // things — must not merge (the at-rule type prefix keeps them apart).
+        "css/media-vs-supports",
+        css_fp,
+        "@media (min-width: 600px) { .a { color: red; padding: 1px } }",
+        "@supports (min-width: 600px) { .b { color: red; padding: 1px } }",
+    ),
+    (
+        "css/media-distinct-condition",
+        css_fp,
+        "@media (max-width: 600px) { .a { color: red; padding: 1px } }",
+        "@media (max-width: 900px) { .b { color: red; padding: 1px } }",
     ),
     (
         "html/distinct-text",

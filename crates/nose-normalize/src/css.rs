@@ -135,9 +135,13 @@ fn collect_rule(
             }
             NodeKind::CssSelector if has_nested => {
                 // At-rule prelude / nesting context — keep it so a `@media`-scoped rule
-                // does not merge with an unconditional one.
+                // does not merge with an unconditional one. An at-rule prelude (`@…`) is
+                // canonicalized as a query (whitespace/value/and-order) so equivalent
+                // media/supports/container conditions converge; a nesting parent selector
+                // (non-`@`) is left raw (case-sensitive). See `css_value`.
                 if let Payload::Name(s) = il.node(c).payload {
-                    let ch = tagged(TAG_CTX, stable_symbol_hash(interner.resolve(s)));
+                    let canon = crate::css_value::canonicalize_at_rule_prelude(interner.resolve(s));
+                    let ch = tagged(TAG_CTX, stable_symbol_hash(&canon));
                     value.push(ch);
                     returns.push(ch);
                 }

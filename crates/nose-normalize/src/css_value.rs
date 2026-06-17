@@ -80,6 +80,76 @@ fn normalize_color_function_spelling(tok: &str) -> Option<String> {
     Some(format!("{name}{})", parts.join(" ")))
 }
 
+// ----- at-rule preludes (media / supports / container queries) -----
+
+/// Canonicalize an at-rule prelude so equivalent queries converge: whitespace around
+/// `( ) : ,` removed, `and`-joined terms and `,`-joined query-list entries sorted (both
+/// commutative), and each `(feature: value)`'s value canonicalized. Case is PRESERVED
+/// (keyframe/container names are case-sensitive). A non-`@` string (a CSS-nesting parent
+/// selector) is returned UNCHANGED — selectors are case-sensitive and order-significant.
+pub(crate) fn canonicalize_at_rule_prelude(s: &str) -> String {
+    if !s.starts_with('@') {
+        return s.to_string();
+    }
+    let (at, rest) = match s.split_once(' ') {
+        Some((a, r)) => (a.to_ascii_lowercase(), r.trim()),
+        None => (s.to_ascii_lowercase(), ""),
+    };
+    // Only the query-bearing at-rules get condition canonicalization; for others (e.g.
+    // `@keyframes name`, `@font-face`, `@page`) the rest is a case-sensitive name — keep it.
+    if !matches!(at.as_str(), "@media" | "@supports" | "@container") {
+        return if rest.is_empty() {
+            at
+        } else {
+            format!("{at} {rest}")
+        };
+    }
+    let cond = canonicalize_query(rest);
+    if cond.is_empty() {
+        at
+    } else {
+        format!("{at} {cond}")
+    }
+}
+
+fn canonicalize_query(s: &str) -> String {
+    let mut t = s.split_whitespace().collect::<Vec<_>>().join(" ");
+    for (a, b) in [
+        ("( ", "("),
+        (" )", ")"),
+        (" :", ":"),
+        (": ", ":"),
+        (" ,", ","),
+        (", ", ","),
+    ] {
+        t = t.replace(a, b);
+    }
+    // `,` = a media-query LIST (a set → order-independent).
+    let mut queries: Vec<String> = t.split(',').map(canon_and_terms).collect();
+    queries.sort();
+    queries.join(",")
+}
+
+/// Sort the `and`-joined terms of one query (logical AND is commutative) and
+/// canonicalize each term's parenthesized value.
+fn canon_and_terms(q: &str) -> String {
+    let mut terms: Vec<String> = q.split(" and ").map(canon_term).collect();
+    terms.sort();
+    terms.join(" and ")
+}
+
+/// Canonicalize one query term: a `(feature:value)` has its value normalized; a bare
+/// media type / container name is kept verbatim.
+fn canon_term(t: &str) -> String {
+    if let Some(inner) = t.strip_prefix('(').and_then(|x| x.strip_suffix(')')) {
+        if let Some((feat, val)) = inner.split_once(':') {
+            return format!("({}:{})", feat, normalize_token(val));
+        }
+        return format!("({inner})");
+    }
+    t.to_string()
+}
+
 // ----- colors -----
 
 /// A color token → canonical `#rrggbb` / `#rrggbbaa` (lowercase). `None` if `tok` is
