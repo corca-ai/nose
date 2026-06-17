@@ -139,8 +139,9 @@ dates, or entries with no selector. Silent ignore mistakes would make the report
 untrustworthy.
 
 Expired entries are different: they are valid historical decisions whose date has
-passed. nose prints a warning, does not apply the entry, and includes the expired
-entry in the JSON `ignore.expired` list.
+passed. nose prints a warning on stderr and does not apply the entry (the deprecated
+`nose scan --format json` additionally lists it under `ignore.expired`; query-JSON v2
+carries no `ignore` object).
 
 ## Which suppression to use
 

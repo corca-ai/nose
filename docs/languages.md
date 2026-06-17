@@ -11,7 +11,8 @@ semantic matching fail-closed unless the required facts and contracts are presen
 
 ## Supported languages
 
-Eight **imperative** base languages, each with its own CST→IL lowering:
+Eight **imperative** base languages, each with its own CST→IL lowering (JavaScript and
+TypeScript share one path):
 
 | language | extensions |
 |---|---|
@@ -90,6 +91,11 @@ and from imperative code. Real-world markup lowers at a first-class Raw-node rat
 the rare residue is malformed/generated pages, left as honest `Raw`).
 
 ## Embedded `<script>` / `<style>` in HTML / Vue / Svelte
+
+| language | extensions |
+|---|---|
+| Vue component | `.vue` |
+| Svelte component | `.svelte` |
 
 `.html`/`.htm`, `.vue`, and `.svelte` files mix logic, style, and markup. nose lowers
 each file into **several regions**, analyzed independently and all sharing the file's

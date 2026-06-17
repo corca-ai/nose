@@ -50,7 +50,7 @@ below applies to both a `nose query` row and a JSON family — they carry the sa
 Read the fields in this order — each step either decides or narrows:
 
 1. **Surface filter.** Act on `surface == "default"` only;
-   `review`/`hidden`/`shallow`/`generated`/`declaration` are diagnostic surfaces. The
+   `review`/`hidden`/`shallow`/`generated`/`declaration`/`debug` are diagnostic surfaces. The
    non-default `surface` value *is* the demotion reason — a decidable classification, not a
    worthiness verdict: `shallow` (the extracted helper would be mostly parameters), `declaration`
    (only import/include/use/re-export spans), `generated` (every location in generated-header

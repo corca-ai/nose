@@ -173,37 +173,31 @@ contract (deprecated, but still the reference for these fragment fields).
 
 The taxonomy above is for imperative code, where Type-4 means *same computation*. For
 declarative languages it is re-based on the right denotation: **CSS** equivalence is
-*same computed style*, **HTML markup** equivalence is *same rendered DOM* (see
-[languages](languages.md), [normalization](normalization.md)). These ride the same
-channels but a declarative-specific fingerprint, dispatched by unit-root kind rather than
-the value graph.
+*same computed style*, **HTML markup** equivalence is *same rendered DOM*. These ride the
+same channels but a declarative-specific fingerprint, dispatched by unit-root kind rather
+than the value graph. The fingerprints, value canonicalization, cascade rules, and the
+out-of-scope list live in [languages](languages.md); the taxonomy mapping is:
 
 - **Type-1/2/3** behave as elsewhere: identical/whitespace-varied blocks converge; the
   `near` channel scores *structural* similarity with leaf values (text, CSS values)
   abstracted, so "the same repeated component shell or rule shape with different content"
   surfaces as a near family — the highest-value declarative clone.
-- **Type-4 analog (the exact `semantic` channel)** is *computed-equivalence*, not
-  textual identity:
-  - **CSS** — selector- and declaration-order-independent, with value canonicalization
-    (`#fff` ≡ `#ffffff` ≡ `white`, `0px` ≡ `0`, `margin: 0 0 0 0` ≡ `margin: 0`); so a
-    duplicated declaration block under different selectors is one exact family.
-  - **HTML** — attribute-order/boolean-form/`class`-set/whitespace/case normalized, with
-    tag/structure, child order, text, and attribute values kept distinct; inline
-    `style="…"` is computed-canonicalized via the CSS path.
-- **Soundness** is by construction (the fingerprint *is* the canonical computed
-  style / rendered DOM, so equal fingerprint ⟺ equal denotation) plus adversarial
-  per-rule batteries; CSS, HTML, and imperative fingerprints are domain-disjoint, so the
-  language-blind exact channel can never merge across them. Cascade is preserved
-  (repeated-property last-wins; a shorthand mixed with its longhand is order-sensitive;
-  an at-rule's full condition is context).
+- **Type-4 analog (the exact `semantic` channel)** is *computed-equivalence*, not textual
+  identity: a CSS declaration block duplicated under different selectors is one exact
+  family even when values are spelled differently, and two markup blocks that render the
+  same DOM are one exact family. The canonicalization and cascade rules that keep this
+  sound — and where it deliberately refuses to merge — are in
+  [languages › declarative CSS](languages.md#declarative-languages-css) and
+  [HTML markup](languages.md#declarative-languages-html-markup).
 
-What declarative detection does **not** do: SCSS/Less/Sass (`<style lang="scss">` is
-skipped); CSS custom-property (`var()`) resolution across files; full Svelte
-`{#if}`/`{#each}` block grammar (template *text/interpolation* is structure-abstracted,
-but block control flow is not modeled). Lowering coverage is first-class — the Raw-node
-ratio on real `.css`/`.html` is sub-percent (generated/templated pages aside).
+**Soundness** is by construction (the fingerprint *is* the canonical computed style /
+rendered DOM, so equal fingerprint ⟺ equal denotation) plus adversarial per-rule
+batteries; CSS, HTML, and imperative fingerprints are domain-disjoint, so the
+language-blind exact channel can never merge across them. What declarative detection does
+**not** do (SCSS/Less, cross-file `var()` resolution, full Svelte block grammar) is in
+[languages › cross-dialect markup](languages.md#cross-dialect-markup-htmlvuesveltejsxtsx).
 
-## Scan modes, and cross-language
+## Detection modes, and cross-language
 
 Each type maps to a detection channel by evidence surface: **Type-1 and token-level
 copy floors → `syntax`**, identifier/type-normalized **Type-2 → `semantic` or `near`**,
@@ -211,7 +205,7 @@ literal-varied Type-2 and **Type-3 → `near`** (fuzzy; the threshold rides on t
 `near:0.70` by default), and exact **Type-4 → `semantic`**. The experimental
 `abstraction[:T]` mode is a weak family-wide witness layer over a narrow `near` subset;
 it does not feed `semantic` or `verify`. The default is `syntax,semantic,near`; see
-[usage → Scan modes](usage.md#scan-modes) for the full table and how to compose channels.
+[usage → Detection modes](usage.md#detection-modes) for the full table and how to compose channels.
 
 The taxonomy is usually stated within a single language; because every language lowers to
 one shared IL, nose applies Type-1–4 **across languages** as well — though in practice

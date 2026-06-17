@@ -16,7 +16,7 @@ sort        = "extractability"
 min-value   = 200
 min-members = 3
 min-size    = 30
-top         = 50
+top         = 50            # bounds `nose scan` only; `nose query` uses the `top=` term
 ignore-file = "nose.ignore.json"
 semantic-packs = ["semantic-packs/python-math-prod.json"]
 ```
@@ -34,7 +34,9 @@ CI failure mode.
 
 All keys are optional; an absent key means "no opinion — use the CLI value or
 the built-in default". Keys are kebab-case and live under the `[scan]` table.
-`nose query` reads the same `[scan]` config keys as `nose scan`.
+`nose query` reads the same `[scan]` config keys as `nose scan`, with one exception:
+`top` has no effect under `nose query` (its row limit is the `top=` query term, default
+30); it only bounds the deprecated `nose scan`'s report.
 
 The **CLI override** column gives the per-run flag (or, where they differ, the `nose query`
 term — `nose query` spells `sort`/`top` as the DSL terms `sort=`/`top=`, not `--sort`/`--top`).
@@ -48,7 +50,7 @@ term — `nose query` spells `sort`/`top` as the DSL terms `sort=`/`top=`, not `
 | `min-members` | int | `2` | `--min-members` |
 | `min-size` | int (IL tokens) | `24` | `--min-size` |
 | `min-lines` | int (advanced) | `5` | `--min-lines` |
-| `top` | int | `30` | `top=` (query term); `--top` (deprecated scan) |
+| `top` | int | `30` | `top=` (query term); `--top` (deprecated scan). **Config key bounds `scan` only** — `nose query`'s limit is the `top=` term |
 | `ignore-file` | string path | auto-read `nose.ignore.json` when present | `--ignore-file` |
 | `semantic-packs` | list of file or directory paths | `[]` | `--semantic-pack` |
 

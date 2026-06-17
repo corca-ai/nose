@@ -26,7 +26,10 @@ plus the view-specific body below. Like the human surface, a result is a pure fu
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`
-`{exact,subdag,copy_paste,similar}`, `reinvented` = non-test reinvented-helper findings),
+`{exact,subdag,copy_paste,similar}`, `reinvented` = non-test reinvented-helper findings).
+Note the copy-paste bucket key is `copy_paste` (underscore), while the per-family `witness`
+enum value spells it `copy-paste` (hyphen) — so don't index `by_confidence[family.witness]`
+for that one channel.
 `top_candidates[]` (the top 5 families ranked by extractability — scope-blind, so test and
 production are ranked alike; each a *family object*), and `next[]` (runnable follow-up
 commands).
@@ -46,10 +49,11 @@ value, approximate}` — code that reimplements an existing helper; the action i
 
 **`base`** (`base=<git-ref>`) — the divergent-edit view (the [`nose review`](review.md)
 pipeline). `base` (the ref), `summary` (`changed_files`, `divergences`, `fire_eligible`), and
-`items[]` of `{family_id, similarity, scope, witness_kind, fire_eligible, graded, changed[],
-not_updated[]}` — each `changed`/`not_updated` site carries `{file, name, start_line, end_line,
-…, touches_shared}`. `fire_eligible` is the conservative proven-shared-logic verdict the gate
-fires on. This is the same per-finding shape as the deprecated `nose review --format json`.
+`items[]` of `{family_id, similarity, complexity, scope, witness_kind, fire_eligible, graded,
+changed[], not_updated[]}` — each `changed`/`not_updated` site carries `{file, name,
+start_line, end_line, …, touches_shared}`. `fire_eligible` is the conservative
+proven-shared-logic verdict the gate fires on. This is the same per-finding shape as the
+deprecated `nose review --format json`.
 
 ## The family object
 
@@ -58,7 +62,7 @@ fires on. This is the same per-finding shape as the deprecated `nose review --fo
 | `id` | family id (the `id=` handle; any unique prefix opens it) |
 | `scope` | `prod` \| `test` \| `mixed` (context, never a worthiness penalty) |
 | `witness` | why the copies merged: `exact` \| `subdag` (behavior-proven) \| `copy-paste` \| `similar` |
-| `surface` | `default` \| `review` \| `hidden` \| `shallow` \| `generated` \| `declaration` (curation tier) |
+| `surface` | `default` \| `review` \| `hidden` \| `shallow` \| `generated` \| `declaration` \| `debug` (curation tier; `debug` is a reserved diagnostic tier normal runs don't emit) |
 | `members` | number of copies |
 | `files` / `dirs` | distinct files / directories the copies span |
 | `shared` | lines invariant across **all** copies (the all-copies anti-unification count) |
@@ -73,8 +77,8 @@ fires on. This is the same per-finding shape as the deprecated `nose review --fo
 | `value_nodes` | (exact families) the size of the shared value multiset proven identical — *how much* is proven, not just that it is |
 | `status` | (only with `since=`) `new` \| `changed` \| `unchanged` against the snapshot — the temporal lens |
 | `folds` | count of overlapping slice families folded under this one |
-| `subsumes` | (in the `family` view) the `id=` handles of the slice families this one subsumes — open any to inspect |
-| `subsumed_by` | (in the `family` view) the `id=` handle of the fuller overlapping family this one is a slice of |
+| `subsumes` | (present when this family has folded slices, in any view) the `id=` handles of the slice families this one subsumes — open any to inspect |
+| `subsumed_by` | (present when this family is a slice, in any view) the `id=` handle of the fuller overlapping family this one is a slice of |
 | `locations[]` | every copy: `{file, start, end, name, lang}`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
 | `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, each varying spot a `⟨param N: class⟩` placeholder (`class` = `literal`/`name`/`call`/`expr`/`block` — a coarse value-class hint for the helper signature) |
 

@@ -12,7 +12,9 @@ below use the `query` spelling throughout.
 
 ## The `--fail-on any` gate
 
-`--fail-on any` makes nose exit non-zero if **any** family survives the filters.
+`--fail-on any` makes nose exit non-zero if any family is reported on the **default
+surface** (after filters) — families held back below that surface, visible only under
+`all`, never trip the gate. See [the default surface](usage.md#the-default-surface).
 **A gate should pin `--mode` explicitly** rather than ride the default: the default mix
 serves the report/agent surface and now includes fuzzy `near` candidates, and a pinned
 mode keeps the gate's surface stable across nose upgrades. `--mode syntax` is the
@@ -72,7 +74,7 @@ nose query src --baseline .nose-baseline.json --fail-on new
 accepted by the baseline (the default whenever `--baseline` is present). Use
 `--fail-on new` when you want a CI ratchet that ignores accepted debt but exits
 non-zero for new or changed clone families. Plain `--fail-on any` still means "fail if
-anything is reported after the active filters."
+anything is reported on the default surface after the active filters."
 
 Commit `.nose-baseline.json`. Families are keyed by their sorted reported member
 locations: displayed path, language, span, unit kind, symbol name, and fragment
@@ -94,8 +96,13 @@ When `--baseline` is present, the file must exist and parse as a valid baseline.
 Missing or malformed baselines are hard errors; otherwise a CI ratchet could
 silently compare against an empty accepted state.
 
-With `--format json`, the top-level `baseline` object carries those counts and each
-reported family gets `baseline_status: "new"` or `"changed"`.
+To read this temporal status from JSON under `nose query`, use the `since=<baseline>`
+query term: it leaves every family in place and exposes each one's `status`
+(`new`/`changed`/`unchanged`) as a queryable field — so `nose query src
+since=.nose-baseline.json status=new --format json` is the machine-readable "what's new"
+view. (The deprecated `nose scan --format json` instead carries a top-level `baseline`
+object with the counts and a per-family `baseline_status`; query-JSON v2 has neither — see
+[query-json](query-json.md).)
 
 ## Structured ignores — audited suppressions
 
@@ -113,10 +120,11 @@ or `--fail-on new`. The ignore file keeps each suppression's reason, note, owner
 selectors as the audit record. (The deprecated `nose scan --format json` also echoes the
 suppressed families back under an `ignored_families` array.)
 
-Malformed ignore files fail the run. Expired entries are reported as warnings and
-listed in `ignore.expired`, but are not applied. That makes stale waivers visible
-instead of silently hiding duplication. See [structured-ignores](structured-ignores.md)
-for the file format and selector semantics.
+Malformed ignore files fail the run. Expired entries are reported as warnings on stderr
+and are not applied (the deprecated `nose scan --format json` also lists them under
+`ignore.expired`). That makes stale waivers visible instead of silently hiding
+duplication. See [structured-ignores](structured-ignores.md) for the file format and
+selector semantics.
 
 ## SARIF for code scanning
 

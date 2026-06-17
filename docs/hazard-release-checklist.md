@@ -9,7 +9,7 @@
 features (`mean_lines`, `modules`, `mean_sem`, `params`, …) are produced by nose*. A
 change to detection can silently invalidate those weights. The **labels** (G0/G1/G2) come
 from git history and are version-independent — see
-[hazard-benchmark › Versioning and refresh](hazard-benchmark.md#versioning-and-refresh)
+[hazard-benchmark › Versioning and refresh](hazard-benchmark.md#versioning-and-refresh-coupling-to-nose)
 for the full coupling model. This checklist makes the re-calibration step impossible to
 miss.
 

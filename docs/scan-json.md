@@ -77,6 +77,28 @@ The top-level value is always an object:
         "positive_fixtures": 36,
         "hard_negatives": 2
       }
+    },
+    {
+      "id": "nose.value_graph.laws",
+      "hash": "f65998031968ccc9",
+      "kind": "LawPack",
+      "version": "<version>",
+      "display_name": "nose value-graph law pack",
+      "trust": "default-first-party",
+      "enabled_by_default": true,
+      "source": "compiled-first-party",
+      "influence": "evidence-and-contracts",
+      "provider": "Corca, Inc.",
+      "repository": "https://github.com/corca-ai/nose",
+      "license": "MIT",
+      "supported_languages": [],
+      "counts": {
+        "evidence_producers": 0,
+        "contracts": 0,
+        "value_laws": 2,
+        "positive_fixtures": 2,
+        "hard_negatives": 4
+      }
     }
   ],
   "ranking": {
@@ -116,7 +138,9 @@ A checked-in example lives at
 [crates/nose-cli/tests/fixtures/scan-json-v1.json](../crates/nose-cli/tests/fixtures/scan-json-v1.json)
 and is read by the CLI test suite. `tool_version` is shown above as the `<version>`
 placeholder: it always reports the installed binary's own version, so the example does not
-pin a release.
+pin a release. The `semantic_packs` array always lists the compiled first-party packs shown
+above; the `ignore` object appears **only** when an ignore file is read (via `--ignore-file`
+or an auto-detected `nose.ignore.json`), so a plain run omits it.
 
 > **`--top` truncates machine output too.** `families` contains only the top `--top`
 > families (default 30) from the active ranked set, so it is *not* the full set by

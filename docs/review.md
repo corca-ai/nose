@@ -1,6 +1,6 @@
 # Review — catch un-propagated changes
 
-> **Deprecated (0.10.0).** `nose review --base <ref>` is now `nose query <paths> base=<ref>`
+> **Deprecated since 0.10.0** (still works in 0.11.0). `nose review --base <ref>` is now `nose query <paths> base=<ref>`
 > — the same detection and the same `fire_eligible` gate, under the unified
 > [query](usage.md#nose-query) surface (`base=REF --fail-on any` is the gate). `review` still
 > works and `capabilities` lists it under `commands.deprecated`; it is slated for removal in a
@@ -15,9 +15,9 @@ siblings for you and asks: *should this change have gone there too?*
 Where plain [`nose query`](usage.md#nose-query) is stateless (point it at any source, no
 history), the `base=` view needs a **git repository** — it compares the working tree to a ref.
 It shares query's detection channels, size gates, excludes, config loading, structured
-ignores, and `top=`; report-shaping terms such as `sort=`, `min-value`, `min-members`, and
-baselines (`--baseline` / `--fail-on new`) do not carry over. For the standard clone taxonomy
-see [clone types](clone-types.md).
+ignores, and `top=`; report-shaping controls — the `sort=` term and the `--min-value` /
+`--min-members` flags — and baselines (`--baseline` / `--fail-on new`) do not carry over. For
+the standard clone taxonomy see [clone types](clone-types.md).
 
 ## Quick start
 
