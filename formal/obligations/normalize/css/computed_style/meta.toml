@@ -5,4 +5,4 @@ summary = "The declarative (CSS/HTML) fingerprint asserts equal fingerprint ⟹ 
 
 [rust]
 files = ["crates/nose-normalize/src/css_value.rs"]
-symbols = ["canonicalize_value"]
+symbols = ["canonicalize_value", "canonicalize_at_rule_prelude", "canonicalize_query"]

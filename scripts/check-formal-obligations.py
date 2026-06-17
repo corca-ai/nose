@@ -134,7 +134,7 @@ REQUIRED_OBLIGATIONS = (
     RequiredObligation(
         "normalize.css.computed_style",
         ("crates/nose-normalize/src/css_value.rs",),
-        ("canonicalize_value",),
+        ("canonicalize_value", "canonicalize_at_rule_prelude", "canonicalize_query"),
     ),
 )
 
