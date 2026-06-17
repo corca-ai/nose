@@ -164,8 +164,8 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         // A dynamic binding of a REAL DOM attribute (`:src`→`v-bind:src`, Svelte
         // `bind:value`, Vue `v-model`): keep the rendered attribute name, value is a hole.
         // This is what makes `:src="x"` (Vue) ≡ `src={x}` (Svelte/JSX) ≡ `src="..."` (HTML).
-        AttrKind::Bound(real) => (real, true),
-        AttrKind::Plain => (name, false),
+        AttrKind::Bound(real) => (canonical_rendered_attr(&real).to_string(), true),
+        AttrKind::Plain => (canonical_rendered_attr(&name).to_string(), false),
     };
     // Inline `style="…"` is a CSS declaration block — lower it as a (selector-less)
     // `CssRule` child so the markup fingerprint reuses the full CSS computed-style
@@ -199,6 +199,15 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 fn canonical_tag_name(name: &str) -> &str {
     match name {
         "router-link" | "nuxt-link" | "routerlink" => "a",
+        other => other,
+    }
+}
+
+/// SPIKE(markup-arch): map a framework component's prop to the DOM attribute it renders,
+/// so `<router-link :to="x">` (→ `<a href>`) converges with a hand-written `<a href>`.
+fn canonical_rendered_attr(name: &str) -> &str {
+    match name {
+        "to" => "href",
         other => other,
     }
 }
