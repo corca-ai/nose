@@ -24,8 +24,11 @@ Eight **imperative** base languages, each with its own CST→IL lowering:
 | C | `.c`, `.h` |
 | Ruby | `.rb` |
 
-JSX and TSX are handled by the JavaScript/TypeScript lowering path (the type
-syntax is erased during [normalization](normalization.md)).
+JSX and TSX are handled by the JavaScript/TypeScript lowering path (the type syntax is
+erased during [normalization](normalization.md)). Their **JSX markup** is lowered into
+the shared declarative markup IL (below), not an imperative call tree — so a React
+component's markup is clone-matched against HTML/Vue/Svelte markup (see
+[cross-dialect markup](#cross-dialect-markup-htmlvuesveltejsxtsx)).
 
 ## Declarative languages: CSS
 
@@ -102,12 +105,40 @@ declaration block shared between a component's `<style>` and a plain `.css` file
 repeated card across two HTML pages — shows up as one cross-container family (script
 cross-container confirmed on real projects in [field-evaluation](field-evaluation.md)).
 
-Vue/Svelte directive shorthands are canonicalized in the markup tree (`:x` ≡
-`v-bind:x`, `@x` ≡ `v-on:x`), and inline `style="…"` is computed-canonicalized via the
-CSS path. Out of scope (see [clone-types](clone-types.md)): SCSS/Less/Sass, CSS `var()`
-resolution across files, and full Svelte `{#if}`/`{#each}`
-block control flow (template text/interpolation is structure-abstracted, the block
-grammar is not modeled).
+## Cross-dialect markup (HTML/Vue/Svelte/JSX/TSX)
+
+The five markup dialects render to the same thing — a DOM tree — so nose lowers them all
+into the **one** declarative markup IL and clone-matches across them. The same component
+written in React, Vue, and Svelte converges. This works because each dialect's frontend
+normalizes its idioms into the shared IL:
+
+- **control flow** → an `HtmlControl` wrapper: Vue `v-for`/`v-if`, Svelte
+  `{#each}`/`{#if}`, and JSX `.map`/`&&`/ternary all become a `repeat`/`if` control. The
+  wrapper is structurally distinct from a plain element, so a loop never exact-merges with
+  a single element (sound), while the `near` channel abstracts it so the three control
+  idioms converge;
+- **directives** are classified: events/lifecycle/bookkeeping (`@click`/`v-on:`, `on:`,
+  `use:`, `key`, `ref`) are dropped (not rendered); a bound real attribute
+  (`:src`/`v-bind:`, Svelte `bind:value`, `v-model`) keeps the rendered attribute name
+  with its **expression as the value, verbatim** — so two different bound expressions stay
+  distinct on the exact channel;
+- **attribute/tag aliases** that render the same DOM are unified: JSX `className`→`class`,
+  `htmlFor`→`for`; routing components/props `router-link`/`<Link>`→`a`, `to`→`href`;
+- **interpolation** (`{x}`, `{{ x }}`) keeps its verbatim text on the exact channel (so
+  different expressions never merge) and is abstracted by `node_tag` on the `near` channel
+  (so same-shell-different-content components converge — the headline cross-dialect clone);
+- `<script>`/`<style>` elements are dropped from the markup tree (analyzed as their own
+  regions, above), and inline `style="…"` is computed-canonicalized via the CSS path.
+
+Soundness is preserved end-to-end: a cross-dialect match lands on the exact channel only
+when the rendered DOM is genuinely identical (e.g. a static nav link), otherwise on the
+structural `near` channel — never a false claim of behavioral equality. See the adversarial
+battery in `crates/nose-cli/tests/equivalence.rs` (`markup_*`).
+
+Out of scope (see [clone-types](clone-types.md)): SCSS/Less/Sass and CSS `var()`
+resolution across files. Component composition that differs across dialects (one dialect
+extracts a sub-component where another inlines it) is matched at the shared-subtree level,
+not whole-component, which is correct.
 
 ## Coverage and adding a language
 

@@ -171,7 +171,12 @@ fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) 
     let mut children = attrs;
     children.extend(lower_children(lo, &content, child_pre));
     let tag_sym = tag.unwrap_or_else(|| lo.sym(""));
-    let el = lo.add(NodeKind::HtmlElement, Payload::Name(tag_sym), span, &children);
+    let el = lo.add(
+        NodeKind::HtmlElement,
+        Payload::Name(tag_sym),
+        span,
+        &children,
+    );
     lo.push_unit(el, UnitKind::Block, tag);
     match control {
         Some(kind) => {
@@ -325,8 +330,19 @@ fn classify_attr(name: &str) -> AttrKind {
         || matches!(name, "key" | "slot" | "ref" | "is" | "bind:this")
         || matches!(
             name,
-            "v-for" | "v-if" | "v-else" | "v-else-if" | "v-show" | "v-pre" | "v-cloak"
-                | "v-once" | "v-html" | "v-text" | "v-slot" | "v-bind:key" | "v-bind:ref"
+            "v-for"
+                | "v-if"
+                | "v-else"
+                | "v-else-if"
+                | "v-show"
+                | "v-pre"
+                | "v-cloak"
+                | "v-once"
+                | "v-html"
+                | "v-text"
+                | "v-slot"
+                | "v-bind:key"
+                | "v-bind:ref"
                 | "v-bind:is"
         )
     {
@@ -335,7 +351,10 @@ fn classify_attr(name: &str) -> AttrKind {
     if name == "v-model" {
         return AttrKind::Bound("value".to_string());
     }
-    if let Some(real) = name.strip_prefix("v-bind:").or_else(|| name.strip_prefix("bind:")) {
+    if let Some(real) = name
+        .strip_prefix("v-bind:")
+        .or_else(|| name.strip_prefix("bind:"))
+    {
         return AttrKind::Bound(real.to_string());
     }
     AttrKind::Plain

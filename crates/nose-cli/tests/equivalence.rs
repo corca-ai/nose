@@ -8726,7 +8726,7 @@ fn html_child_order_is_significant() {
 /// Exact DOM fingerprint of the OUTERMOST markup element in `src`, lowered as `lang`
 /// (works for `.vue`/`.svelte` markup AND JSX/TSX, whose markup lives in the JS region).
 fn markup_fp(i: &Interner, path: &str, lang: Lang, src: &str) -> Vec<u64> {
-    fn outer(n: &nose_il::Il, node: nose_il::NodeId) -> Option<nose_il::NodeId> {
+    fn outer(n: &nose_il::Il, node: NodeId) -> Option<NodeId> {
         if n.node(node).kind == nose_il::NodeKind::HtmlElement {
             return Some(node);
         }
@@ -8776,7 +8776,8 @@ fn markup_control_converges_vue_directive_and_svelte_block() {
     // `{#each}` block render the SAME DOM (a repeat of an identical template) → converge.
     let i = Interner::new();
     let vue = r#"<ul class="list"><li class="item" v-for="x in xs" :key="x.id">row text</li></ul>"#;
-    let svelte = r#"<ul class="list">{#each xs as x (x.id)}<li class="item">row text</li>{/each}</ul>"#;
+    let svelte =
+        r#"<ul class="list">{#each xs as x (x.id)}<li class="item">row text</li>{/each}</ul>"#;
     assert_eq!(
         html_fp(&i, vue),
         html_fp(&i, svelte),
@@ -8818,7 +8819,8 @@ fn markup_jsx_map_does_not_merge_with_single_element() {
     // SOUNDNESS (JSX side): `{xs.map(x => <li/>)}` is a repeat — distinct from a single li.
     let i = Interner::new();
     let mapped = r#"export function L(){return <ul className="m">{xs.map(x => <li className="r">row</li>)}</ul>;}"#;
-    let single = r#"export function L(){return <ul className="m"><li className="r">row</li></ul>;}"#;
+    let single =
+        r#"export function L(){return <ul className="m"><li className="r">row</li></ul>;}"#;
     assert_ne!(
         markup_fp(&i, "a.jsx", Lang::JavaScript, mapped),
         markup_fp(&i, "b.jsx", Lang::JavaScript, single),

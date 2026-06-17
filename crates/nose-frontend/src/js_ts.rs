@@ -1890,13 +1890,23 @@ fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
                         tkids.push(lower_jsx(lo, j));
                     }
                     let ksym = lo.sym(if is_repeat { "repeat" } else { "if" });
-                    children.push(lo.add(NodeKind::HtmlControl, Payload::Name(ksym), cspan, &tkids));
+                    children.push(lo.add(
+                        NodeKind::HtmlControl,
+                        Payload::Name(ksym),
+                        cspan,
+                        &tkids,
+                    ));
                 }
             }
             _ => {}
         }
     }
-    let el = lo.add(NodeKind::HtmlElement, Payload::Name(tag_sym), span, &children);
+    let el = lo.add(
+        NodeKind::HtmlElement,
+        Payload::Name(tag_sym),
+        span,
+        &children,
+    );
     lo.push_unit(el, UnitKind::Block, Some(tag_sym));
     el
 }
