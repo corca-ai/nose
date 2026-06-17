@@ -4,6 +4,49 @@ All notable changes to nose are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); pre-1.0, so minor versions may
 break.
 
+## [0.12.0] - 2026-06-18
+
+Reworks the `nose query` terminal output to match the project's reporting philosophy —
+**scope-blind, plain-language, colour-aware** — and sweeps the user-facing docs for drift and
+consistency. Detection behavior and the machine contract are unchanged: `--format json` still
+emits query-JSON v2 and spells the witness `subdag`.
+
+### Changed
+- **`nose query` human-output redesign (#431).** Families now rank purely by extractability,
+  **scope-blind** — test and production are treated alike. The old prod-first partition, the
+  "(production first)" label, and the pushed `scope=prod` recommendation are gone; `scope`
+  stays a neutral filter. The opaque `subdag` witness reads as **`shared-core`** throughout the
+  human output, and the confidence line regroups as *proven* (exact + shared-core) /
+  *copy-paste* / *similar* with a one-line legend. New **TTY-gated colour** (zero-dependency
+  `mod style`): witness tags colour-coded, paths dimmed, symbols bold — disabled under
+  `NO_COLOR`, when piped, and for the JSON/Markdown/SARIF formats, with column alignment
+  computed on visible width so ANSI never skews the columns. The terse `grammar:` block
+  becomes a runnable `explore` cheatsheet.
+- **CLI surface cleanup (#431).** The deprecated `scan`/`review` and the experimental
+  `behavioral-gate` are hidden from top-level `--help` (they still work, still warn on a TTY,
+  and stay listed under `capabilities.commands.deprecated`); flag docs are self-contained
+  instead of "(same as scan)"; count nouns are pluralized; empty/single-directory dashboards
+  no longer emit dead next-commands.
+
+### Documentation
+- **User-facing docs drift, consistency, and IA sweep (#431, #432).** Re-verified every
+  user-facing page against the live CLI (clap help, query DSL parser, query/scan JSON,
+  capabilities). Reconciled the witness vocabulary (`shared-core` human ↔ `subdag` JSON);
+  corrected scan-JSON-v1-only fields wrongly attributed to query-JSON v2 (`baseline_status`,
+  `ignore.expired`, `ignored_families`) and pointed query users at the `since=<baseline>` term;
+  clarified that the `top` config key bounds `nose scan` only; documented that `sort=sites`/
+  `hazard` work under `query` and that `behavioral-gate` is hidden; renamed usage "Scan modes"
+  → "Detection modes"; added a canonical "default surface" section; de-duplicated the CSS/HTML
+  detail against `languages.md`; gave Vue/Svelte their own extension table; and fixed broken
+  cross-links (`awiki lint` clean).
+
+### Notes
+- **Control-flow lowering converged on shared `lower.rs` helpers (#430).** The per-language
+  `if`/`for`/`while`/`stmt-as-block` lowering for C/Java/JS/TS collapsed onto three
+  closure-parameterized helpers; the emitted IL is byte-identical by construction (verified on
+  redis/guava/axios/bat/black), eliminating three of nose's own flagged self-clones. No
+  behavior change.
+
 ## [0.11.0] - 2026-06-17
 
 Adds a **declarative clone-detection track** — CSS and HTML/markup, by computed-style and
