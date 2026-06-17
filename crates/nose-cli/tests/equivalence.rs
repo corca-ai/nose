@@ -8718,6 +8718,114 @@ fn html_child_order_is_significant() {
     );
 }
 
+// ---- cross-dialect markup (HTML/Vue/Svelte/JSX/TSX) ---------------------------------
+// The exact (semantic) fingerprint of a markup unit must stay FAITHFUL to the rendered
+// DOM even as the five dialects' idioms (control flow, directives, holes) are normalized
+// into the common IL — so the moat (equal fingerprint ⟹ equal rendered DOM) still holds.
+
+/// Exact DOM fingerprint of the OUTERMOST markup element in `src`, lowered as `lang`
+/// (works for `.vue`/`.svelte` markup AND JSX/TSX, whose markup lives in the JS region).
+fn markup_fp(i: &Interner, path: &str, lang: Lang, src: &str) -> Vec<u64> {
+    fn outer(n: &nose_il::Il, node: nose_il::NodeId) -> Option<nose_il::NodeId> {
+        if n.node(node).kind == nose_il::NodeKind::HtmlElement {
+            return Some(node);
+        }
+        n.children(node).iter().find_map(|&c| outer(n, c))
+    }
+    let ils = nose_frontend::lower_source_regions(FileId(0), path, src.as_bytes(), lang, i);
+    for il in &ils {
+        let n = normalize(il, i, &NormalizeOptions::default());
+        if let Some(root) = outer(&n, n.root) {
+            return nose_normalize::value_fingerprint(&n, root, i);
+        }
+    }
+    panic!("no markup unit lowered from {path}");
+}
+
+#[test]
+fn markup_loop_does_not_merge_with_single_element() {
+    // SOUNDNESS: a `{#each}`/`v-for`/`.map` repeat renders 0..N elements — it must NEVER
+    // share a fingerprint with a single static element (the HtmlControl wrapper keeps it
+    // distinct), or nose would claim a loop and one element have equal rendered DOM.
+    let i = Interner::new();
+    let loop_ = r#"<ul class="m">{#each items as x}<li class="r">row</li>{/each}</ul>"#;
+    let single = r#"<ul class="m"><li class="r">row</li></ul>"#;
+    assert_ne!(
+        html_fp(&i, loop_),
+        html_fp(&i, single),
+        "a repeat must not exact-merge with a single element"
+    );
+}
+
+#[test]
+fn markup_repeat_and_conditional_controls_are_distinct() {
+    // A repeat (`{#each}`) and a conditional (`{#if}`) are different rendered behavior.
+    let i = Interner::new();
+    let each = r#"<ul class="m">{#each xs as x}<li>z</li>{/each}</ul>"#;
+    let if_ = r#"<ul class="m">{#if cond}<li>z</li>{/if}</ul>"#;
+    assert_ne!(
+        html_fp(&i, each),
+        html_fp(&i, if_),
+        "repeat and conditional controls must not merge"
+    );
+}
+
+#[test]
+fn markup_control_converges_vue_directive_and_svelte_block() {
+    // CROSS-DIALECT (sound positive): a Vue `v-for` element and the equivalent Svelte
+    // `{#each}` block render the SAME DOM (a repeat of an identical template) → converge.
+    let i = Interner::new();
+    let vue = r#"<ul class="list"><li class="item" v-for="x in xs" :key="x.id">row text</li></ul>"#;
+    let svelte = r#"<ul class="list">{#each xs as x (x.id)}<li class="item">row text</li>{/each}</ul>"#;
+    assert_eq!(
+        html_fp(&i, vue),
+        html_fp(&i, svelte),
+        "v-for and {{#each}} of the same template must converge"
+    );
+}
+
+#[test]
+fn markup_bound_attribute_keeps_its_expression_distinct() {
+    // SOUNDNESS: a directive-bound attribute keeps its expression verbatim — two different
+    // bound expressions must not be claimed equal (no hole-collapse on the exact channel).
+    let i = Interner::new();
+    let a = r#"<img class="a" :src="hero" :alt="name">"#;
+    let b = r#"<img class="a" :src="thumb" :alt="name">"#;
+    assert_ne!(
+        html_fp(&i, a),
+        html_fp(&i, b),
+        "different bound expressions must not merge on the exact channel"
+    );
+}
+
+#[test]
+fn markup_jsx_converges_with_html_on_identical_static_dom() {
+    // CROSS-DIALECT (sound positive): a JSX element and a hand-written HTML element with
+    // the SAME rendered DOM (className→class, static text/attrs identical) converge — and
+    // JSX markup now lives in the common declarative IL, not an imperative Call-tree.
+    let i = Interner::new();
+    let jsx = r#"export function Nav(){return <li className="nav-item"><a className="nav-link" href="/login">Sign in</a></li>;}"#;
+    let html = r#"<li class="nav-item"><a class="nav-link" href="/login">Sign in</a></li>"#;
+    assert_eq!(
+        markup_fp(&i, "n.jsx", Lang::JavaScript, jsx),
+        markup_fp(&i, "n.html", Lang::Html, html),
+        "JSX and HTML with identical rendered DOM must converge"
+    );
+}
+
+#[test]
+fn markup_jsx_map_does_not_merge_with_single_element() {
+    // SOUNDNESS (JSX side): `{xs.map(x => <li/>)}` is a repeat — distinct from a single li.
+    let i = Interner::new();
+    let mapped = r#"export function L(){return <ul className="m">{xs.map(x => <li className="r">row</li>)}</ul>;}"#;
+    let single = r#"export function L(){return <ul className="m"><li className="r">row</li></ul>;}"#;
+    assert_ne!(
+        markup_fp(&i, "a.jsx", Lang::JavaScript, mapped),
+        markup_fp(&i, "b.jsx", Lang::JavaScript, single),
+        "a JSX .map repeat must not merge with a single element"
+    );
+}
+
 #[test]
 fn html_inline_style_is_computed_canonicalized() {
     // Inline `style="…"` reuses the CSS computed-style canon: order-independent,
