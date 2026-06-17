@@ -4,16 +4,80 @@ All notable changes to nose are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); pre-1.0, so minor versions may
 break.
 
-## [Unreleased]
+## [0.11.0] - 2026-06-17
 
-### Fixed
-- **`nose query top=0` now shows *all* families** (matching `nose scan --top 0`), instead of
-  returning an empty result. The dataset build already used `top=0` for "every family"; the
-  display paths (`list`, `base`, `reinvented`, and the `--format markdown`/`sarif` report) now
-  agree, so `nose query <path> --format sarif top=0` is the complete-upload spelling and query
-  fully subsumes scan's truncation control. No `top=` term still defaults to 30.
+Adds a **declarative clone-detection track** — CSS and HTML/markup, by computed-style and
+rendered-DOM equivalence — alongside the imperative value-graph engine, plus a cross-dialect
+markup model that converges the same component across HTML/Vue/Svelte/JSX/TSX.
+
+### Added
+- **Declarative CSS clone detection by computed-style equivalence (#413, #415, #416).** CSS is
+  now a first-class language on a new DECLARATIVE track that sits *alongside* (not inside) the
+  imperative value-graph moat. A new `Lang::Css` + `CssRule`/`CssSelector`/`CssDecl` IL feeds an
+  exact fingerprint that is the rule's **canonical computed/declared style** — value
+  canonicalization in `css_value` (color `#fff` ≡ `#ffffff` ≡ `white` over the full 148-entry
+  named-color table, length `0px` ≡ `0`, box-shorthand collapse, `url()`/`hsl()` spelling
+  normalization) and selector/order-independent matching, but **cascade-preserving** (repeated
+  property last-wins; shorthand+longhand co-occurrence kept order-sensitive). At-rule preludes
+  (`@media`/`@supports`/`@container`) are canonicalized so equivalent conditions converge while
+  distinct ones stay apart (closes a latent prelude false merge). Soundness is by construction
+  (fingerprint *is* the computed style, no IL rewrite) plus adversarial per-rule batteries and a
+  domain-namespaced hash that can never collide with an imperative one; registered as the
+  `normalize.css.computed_style` (`empirical-only`) obligation. Measured by a labeled
+  benchmark (`tests/css_html_quality.rs`): recall 13/13, soundness 14/14, verify gate 0 false
+  merges on the frontend corpus.
+- **Declarative HTML markup clone detection by rendered-DOM equivalence (#413).** New
+  `HtmlElement`/`HtmlAttr`/`HtmlText` IL; every element subtree is a unit. The exact fingerprint
+  is the **canonical rendered DOM** — a recursive subtree hash over lowercased tag + attribute
+  *set* + *ordered* children, canon over attribute order, boolean-attr form
+  (`disabled` ≡ `disabled=""`), class-token set, tag/attr case, and whitespace
+  (`<pre>`/`<textarea>` kept verbatim). Inline `style="…"` reuses the full CSS computed-style
+  canon. The structural `near` channel abstracts declarative leaf values, so a repeated component
+  shell with different content surfaces as *similar* while identical DOM surfaces as *exact*.
+- **`<script>`/`<style>`/markup multi-region files (#413).** A container file
+  (`.html`/`.vue`/`.svelte`) lowers to *several* region ILs — `<script>` as JS/TS, `<style>` as
+  CSS, the markup tree as HTML — all sharing the container's path, so a duplicated block in a
+  component's `<style>` and a standalone `.css` form one cross-file family.
+- **Cross-dialect markup clones across HTML/Vue/Svelte/JSX/TSX (#417).** All five dialects lower
+  into the *common* declarative markup IL so the same component converges across dialects. JSX/TSX
+  now lower to `HtmlElement`/`HtmlAttr`/`HtmlText` (was an imperative Call-tree); a new
+  `HtmlControl` node wraps repeat/conditional idioms (Vue `v-for`/`v-if`, Svelte
+  `{#each}`/`{#if}`, JSX `.map`/`&&`/ternary). Dialect-idiom normalization
+  (`className`→`class`, `htmlFor`→`for`, `router-link`/`Link`→`a`, `to`→`href`, `:src` ≡ `src`)
+  runs in the handlers. The exact channel stays sound — a loop wrapper is structurally distinct
+  from a single element and **never** exact-merges with it; bound-attribute expressions are kept
+  verbatim — so cross-dialect matches land on `near` unless the rendered DOM is genuinely
+  identical. Measured on a realworld React+Vue+Svelte corpus: cross-dialect markup families
+  0 → 9 (3 three-way), pinned by a six-test adversarial soundness battery.
+- **async↔sync twins converge in the near channel — dual-view `await` (#412).** The #1
+  real-world Type-4 gap (§K/§CU): an `async fn` and its sync twin (identical body modulo `await`)
+  were 0 families. A dual view of the value graph keyed by `Builder.await_transparent` evaluates
+  `await e → e` for the fingerprint (twins converge) while the witness keeps an
+  `Opaque(VG_PROTOCOL_AWAIT,[e])` wrapper so the graded witness labels them `async-mirror` (a
+  transformation, never `equal_modulo_holes`). The exact channel is provably inert
+  (`await`→Raw→`exact_safe=false`): verify clean, exact families byte-identical. Synthetic recall
+  0 → 6/6, hard-negative FP 0/3; modest real-corpus lift (httpx +1, most twins already converge
+  via the anchor path).
+- **Rust match-arm payload bindings now converge bound-name copies (#404, #390 follow-up).** A
+  match arm's payload binder (the `v` in `Some(v)`) lowers to a projection assignment prepended to
+  the body (`v = scrutinee.0`), so it is alpha-canonicalized and `Some(a) => f(a)` ≡
+  `Some(b) => f(b)`. Conservative (`rust_bind_arm_pattern`): only unambiguous single-payload
+  tuple-struct bindings and named struct-field projections; multi-element/nested patterns stay
+  unbound. `nose verify --max-violations 0` clean, cross-variant (`Some` vs `Ok`) stays distinct.
 
 ### Changed
+- **Compiled/distributed CSS is kept off the default surface (#424, #426).** The frontend gold
+  set measured the CSS-framework default surface at ~10% worthy, mostly preprocessor *output*. A
+  content-based filter (`looks_compiled_css`) now treats a `.css` carrying a build marker — a
+  preserved `/*!` license banner, a versioned header, a trailing `sourceMappingURL`, a sibling
+  `.css.map`, or a `.min.css` name — as `generated` (off the default surface), and
+  `family_is_compiled_css_pipeline` demotes an all-CSS family with at most one non-compiled member
+  (a source partial echoed through source→compiled→minified). Preprocessor *source* files stay on
+  the surface; a genuine dedup spanning ≥2 source files stays. Measured on the gold set:
+  **0 worthy** dropped, default-surface worthy-rate 20% → 41% (framework 11% → 31%).
+- **`nose stats` JSON moved under the tool-wide `--format json` (#420).** The one-off `--json`
+  flag is removed (not aliased — one way, not two; pre-1.0 diagnostic command, sole in-repo
+  consumer migrated), so `stats` follows the same `--format` contract as `query`/`scan`/`il`.
 - **tree-sitter core upgraded `0.24` → `0.25`, grammars `tree-sitter-c` → `0.24.2`,
   `tree-sitter-python`/`tree-sitter-javascript` → `0.25.0`** (#403, unblocks the reverted
   #399/#400/#401). The bumped grammars compile to grammar ABI 15; core 0.25 accepts ABI **14
@@ -35,6 +99,35 @@ break.
   ≤4 families from go 0.25's own parse-behaviour refinements (Raw ratio equal-or-lower, soundness
   gate clean — not a lowering regression). (`type_alias` also gained a `type_parameters` field for
   generic aliases; the frontend ignores type declarations, so it has no effect.)
+
+### Fixed
+- **False merge closed: JS nullish-coalesce map default (adversarial co-evolution series 10,
+  #411, §CT).** A latent oracle-blind merge — JS `m.get(k) ?? d` (nullish coalesce) shared an
+  exact fingerprint with the *absence-only* defaults (`has`/`in`/`getOrDefault`/`.get(k, d)`/
+  `=== undefined`), though they diverge on a present null-valued key. The null-guarded map default
+  now lowers to the faithful `ValueOrDefault` (not `GetOrDefault`), and the `eval.rs`
+  `=== undefined`-over-`map.get` exception is dropped. Corpus byte-identical; closes #409, #410.
+- **`nose query` report locations bounded to EOF + markdown drill-down (#428: #419, #421, #422).**
+  `Frontend::span()` read tree-sitter's `end_position().row + 1` verbatim, so a unit ending in a
+  trailing newline reported `end_line = content_lines + 1` (past EOF); the column-0 correction
+  already used in `declaration_facts.rs` is now applied, dropping out-of-bounds locations across
+  the corpus to 0 (family/location counts unchanged). `id=<fam> --format markdown` now renders the
+  all-copies extraction skeleton (and `full` the representative diff), composing with the
+  human/JSON views; help/usage/query-json wording corrected so the `value` sort key reads as
+  duplicated *volume*, not the `removable` field.
+- **`nose query top=0` now shows *all* families** (matching `nose scan --top 0`), instead of
+  returning an empty result. The dataset build already used `top=0` for "every family"; the
+  display paths (`list`, `base`, `reinvented`, and the `--format markdown`/`sarif` report) now
+  agree, so `nose query <path> --format sarif top=0` is the complete-upload spelling and query
+  fully subsumes scan's truncation control. No `top=` term still defaults to 30.
+
+### Notes
+- **value-graph opaque census instrument (#405, #391 prevalence probe).** A hidden
+  `nose value-census` (env-gated, zero fingerprint impact) attributes every `ValOp::Opaque` to its
+  IL construct — the value-graph analog of `coverage_attribution.py`. Finding (§CS): the #391
+  premise was wrong — `m[k]`/`m.get(k)` mint **no** opaque in the value graph (only the *oracle*
+  bails to `Value::Err`), so #391 is a convergence/canonicalization problem, not opaque-coverage;
+  Index/Field/membership carry ~0 opaque mass and #391 audits below the opaque bar.
 
 ## [0.10.0] - 2026-06-15
 
