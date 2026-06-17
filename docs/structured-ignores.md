@@ -114,14 +114,19 @@ nose versions whose IDs omitted span and fragment metadata. Use `paths` and
 `languages` selectors when the review decision should survive routine movement
 inside a file.
 
-Human output includes the ID on each family:
+`nose query`'s human rows carry a short family handle in each drill link
+(`id=` accepts any unambiguous prefix):
 
 ```text
-#1  id 479389f590c1234a · 3 copies · 12 of 14 lines shared, 1 spot differs · ~24 lines removable
+src/loaders/users.py:1  load_users  3 copies · 12/14 shared, 1p · ~24 removable · copy-paste   nose query src id=479389f590
 ```
 
-JSON output includes `family_id` on both active `families[]` and
-`ignored_families[]`.
+The full `family_id` to copy into an ignore entry is in `--format json` (on both active
+`families[]` and `ignored_families[]`):
+
+```json
+{ "family_id": "479389f590c1234a", "...": "..." }
+```
 
 ## Expired and malformed entries
 
