@@ -1831,35 +1831,123 @@ fn append_template_part(lo: &mut Lowering, acc: &mut Option<NodeId>, span: Span,
     });
 }
 
-/// Lower JSX to `Call(tag, attrs…, children…)` — structurally close to the
-/// `createElement(tag, props, ...children)` it compiles to.
+/// SPIKE(markup-arch / A1): lower JSX to the COMMON declarative markup IL
+/// (`HtmlElement`/`HtmlAttr`/`HtmlText`) — the same kinds the HTML/Vue/Svelte frontends
+/// emit — instead of an imperative `Call` tree. Because the exact fingerprint is
+/// dispatched by unit-root NodeKind, a JSX `<div className="card">` then converges with a
+/// Vue/Svelte/HTML `<div class="card">`. JS expressions become holes; `.map(cb→JSX)`,
+/// `cond && <JSX>` and `a ? <X> : <Y>` collapse to their JSX template child(ren).
 fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let mut kids = Vec::new();
-    let callee = match jsx_tag(node) {
-        Some(t) => {
-            let s = lo.span(t);
-            lo.var(lo.text(t), s)
-        }
-        None => lo.empty_block(span),
-    };
-    kids.push(callee);
+    let tag = jsx_tag(node)
+        .map(|t| canonical_jsx_tag(lo.text(t)))
+        .unwrap_or_default(); // fragment → ""
+    let tag_sym = lo.sym(&tag);
+    let mut children = Vec::new();
     for attr in jsx_attributes(node) {
-        kids.push(lower_jsx_attr(lo, attr));
+        if let Some(a) = lower_jsx_attr(lo, attr) {
+            children.push(a);
+        }
     }
+    for c in Lowering::named_children(node) {
+        match c.kind() {
+            "jsx_element" | "jsx_self_closing_element" | "jsx_fragment" => {
+                children.push(lower_jsx(lo, c));
+            }
+            "jsx_text" => {
+                let t = jsx_ws(lo.text(c));
+                if !t.is_empty() {
+                    let s = lo.sym(&t);
+                    children.push(lo.add(NodeKind::HtmlText, Payload::Name(s), lo.span(c), &[]));
+                }
+            }
+            "jsx_expression" => {
+                // `{title}` → hole text; `{items.map(x => <li/>)}` / `{c && <a/>}` /
+                // `{a ? <X/> : <Y/>}` → the JSX template child(ren) it wraps.
+                let mut jsxs = Vec::new();
+                collect_jsx_descendants(c, &mut jsxs);
+                if jsxs.is_empty() {
+                    let s = lo.sym("{}");
+                    children.push(lo.add(NodeKind::HtmlText, Payload::Name(s), lo.span(c), &[]));
+                } else {
+                    for j in jsxs {
+                        children.push(lower_jsx(lo, j));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let el = lo.add(NodeKind::HtmlElement, Payload::Name(tag_sym), span, &children);
+    lo.push_unit(el, UnitKind::Block, Some(tag_sym));
+    el
+}
+
+/// Collect the top-most JSX elements nested inside an expression (not recursing into the
+/// JSX itself) — finds the template child of a `.map`, `&&`, or ternary.
+fn collect_jsx_descendants<'a>(node: TsNode<'a>, out: &mut Vec<TsNode<'a>>) {
     for c in Lowering::named_children(node) {
         if matches!(
             c.kind(),
-            "jsx_element"
-                | "jsx_self_closing_element"
-                | "jsx_fragment"
-                | "jsx_expression"
-                | "jsx_text"
+            "jsx_element" | "jsx_self_closing_element" | "jsx_fragment"
         ) {
-            kids.push(lower_expr(lo, c));
+            out.push(c);
+        } else {
+            collect_jsx_descendants(c, out);
         }
     }
-    lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+/// Collapse JSX whitespace text (DOM-insignificant) and trim.
+fn jsx_ws(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// DOM tag for a JSX element name: lowercased (DOM tags already are; components become a
+/// stable lowercase token), with React-Router link components mapped to `a`.
+fn canonical_jsx_tag(name: &str) -> String {
+    match name {
+        "Link" | "NavLink" | "RouterLink" => "a".to_string(),
+        other => other.to_ascii_lowercase(),
+    }
+}
+
+/// Map a JSX attribute to its rendered DOM attribute, or `None` to drop it (events,
+/// React bookkeeping). `className`→`class`, `htmlFor`→`for`, router `to`→`href`.
+fn canonical_jsx_attr(name: &str) -> Option<String> {
+    match name {
+        "className" => Some("class".to_string()),
+        "htmlFor" => Some("for".to_string()),
+        "to" => Some("href".to_string()),
+        "key" | "ref" => None,
+        n if n.starts_with("on") && n.len() > 2 && n.as_bytes()[2].is_ascii_uppercase() => None,
+        n => Some(n.to_ascii_lowercase()),
+    }
+}
+
+/// `name="str"` → `HtmlAttr(name)[Lit(value)]`; `name={expr}` → hole value; bare → boolean.
+/// Returns `None` for dropped (event/bookkeeping) attributes.
+fn lower_jsx_attr(lo: &mut Lowering, attr: TsNode) -> Option<NodeId> {
+    let span = lo.span(attr);
+    let kids = Lowering::named_children(attr);
+    let raw_name = lo.text(*kids.first()?);
+    let name = canonical_jsx_attr(raw_name)?;
+    let children: Vec<NodeId> = match kids.get(1) {
+        None => Vec::new(), // boolean attribute
+        Some(v) if v.kind() == "string" => {
+            let raw = lo.text(*v);
+            let val = jsx_ws(raw.trim_matches('"').trim_matches('\''));
+            let s = lo.sym(&val);
+            vec![lo.add(NodeKind::Lit, Payload::Name(s), span, &[])]
+        }
+        Some(_) => {
+            // `{expr}` (or any non-string) value → hole, matching the other dialects.
+            let s = lo.sym("{}");
+            vec![lo.add(NodeKind::Lit, Payload::Name(s), span, &[])]
+        }
+    };
+    let nsym = lo.sym(&name);
+    Some(lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children))
 }
 
 fn jsx_tag(node: TsNode) -> Option<TsNode> {
@@ -1886,16 +1974,6 @@ fn jsx_attributes(node: TsNode) -> Vec<TsNode> {
             .filter(|c| c.kind() == "jsx_attribute")
             .collect(),
         None => Vec::new(),
-    }
-}
-
-fn lower_jsx_attr(lo: &mut Lowering, attr: TsNode) -> NodeId {
-    let span = lo.span(attr);
-    let kids = Lowering::named_children(attr);
-    if kids.len() >= 2 {
-        lower_expr(lo, kids[kids.len() - 1]) // the value (name is first)
-    } else {
-        lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]) // boolean attr
     }
 }
 
