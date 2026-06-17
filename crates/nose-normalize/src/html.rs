@@ -81,7 +81,7 @@ fn subtree_hash(
             for &c in il.children(node) {
                 match il.kind(c) {
                     NodeKind::HtmlAttr => attr_hashes.push(attr_hash(il, interner, c, lits)),
-                    NodeKind::HtmlElement | NodeKind::HtmlText => {
+                    NodeKind::HtmlElement | NodeKind::HtmlText | NodeKind::HtmlControl => {
                         let h = subtree_hash(il, interner, c, value, lits);
                         child_fold = combine(child_fold, h); // ordered
                     }
@@ -104,6 +104,27 @@ fn subtree_hash(
             let h = combine(0x7E47, t);
             value.push(tagged(TAG_TEXT, h));
             lits.push(tagged(TAG_TEXT, h));
+            h
+        }
+        // A control wrapper (repeat / conditional). Its hash mixes the control KIND with
+        // its template children, so a `{#each}<li>` (repeat of li) can NEVER collide with a
+        // single static `<li>` — the exact channel keeps a loop distinct from one element.
+        NodeKind::HtmlControl => {
+            let kind = match il.node(node).payload {
+                Payload::Name(s) => stable_symbol_hash(interner.resolve(s)),
+                _ => 0,
+            };
+            let mut child_fold = 0u64;
+            for &c in il.children(node) {
+                if matches!(
+                    il.kind(c),
+                    NodeKind::HtmlElement | NodeKind::HtmlText | NodeKind::HtmlControl
+                ) {
+                    child_fold = combine(child_fold, subtree_hash(il, interner, c, value, lits));
+                }
+            }
+            let h = combine(0xC02_0000 ^ kind, child_fold);
+            value.push(tagged(TAG_NODE, h));
             h
         }
         _ => 0,

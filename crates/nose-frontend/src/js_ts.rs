@@ -1862,17 +1862,35 @@ fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
                 }
             }
             "jsx_expression" => {
-                // `{title}` → hole text; `{items.map(x => <li/>)}` / `{c && <a/>}` /
-                // `{a ? <X/> : <Y/>}` → the JSX template child(ren) it wraps.
+                // `{title}` → a text node carrying the verbatim expression (exact keeps it
+                // distinct; near abstracts it). `{items.map(x => <li/>)}` → a `repeat`
+                // control wrapping the template; `{c && <a/>}` / `{a ? <X/> : <Y/>}` → an
+                // `if` control. The control node keeps a loop distinct from one element.
                 let mut jsxs = Vec::new();
                 collect_jsx_descendants(c, &mut jsxs);
                 if jsxs.is_empty() {
-                    let s = lo.sym("{}");
-                    children.push(lo.add(NodeKind::HtmlText, Payload::Name(s), lo.span(c), &[]));
-                } else {
-                    for j in jsxs {
-                        children.push(lower_jsx(lo, j));
+                    let txt = jsx_ws(lo.text(c));
+                    if !txt.is_empty() {
+                        let s = lo.sym(&txt);
+                        children.push(lo.add(
+                            NodeKind::HtmlText,
+                            Payload::Name(s),
+                            lo.span(c),
+                            &[],
+                        ));
                     }
+                } else {
+                    let cspan = lo.span(c);
+                    let is_repeat = {
+                        let t = lo.text(c);
+                        t.contains(".map(") || t.contains(".flatMap(")
+                    };
+                    let mut tkids = Vec::new();
+                    for j in jsxs {
+                        tkids.push(lower_jsx(lo, j));
+                    }
+                    let ksym = lo.sym(if is_repeat { "repeat" } else { "if" });
+                    children.push(lo.add(NodeKind::HtmlControl, Payload::Name(ksym), cspan, &tkids));
                 }
             }
             _ => {}
@@ -1940,9 +1958,11 @@ fn lower_jsx_attr(lo: &mut Lowering, attr: TsNode) -> Option<NodeId> {
             let s = lo.sym(&val);
             vec![lo.add(NodeKind::Lit, Payload::Name(s), span, &[])]
         }
-        Some(_) => {
-            // `{expr}` (or any non-string) value → hole, matching the other dialects.
-            let s = lo.sym("{}");
+        Some(v) => {
+            // `{expr}` value → keep the verbatim expression text (exact distinguishes
+            // different bound expressions; near abstracts the value node).
+            let val = jsx_ws(lo.text(*v));
+            let s = lo.sym(&val);
             vec![lo.add(NodeKind::Lit, Payload::Name(s), span, &[])]
         }
     };

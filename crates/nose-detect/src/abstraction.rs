@@ -321,6 +321,7 @@ fn token_label(token: &WitnessToken) -> &'static str {
             NodeKind::HtmlElement => "HtmlElement",
             NodeKind::HtmlAttr => "HtmlAttr",
             NodeKind::HtmlText => "HtmlText",
+            NodeKind::HtmlControl => "HtmlControl",
         },
     }
 }

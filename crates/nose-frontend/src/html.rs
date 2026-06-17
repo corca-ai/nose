@@ -4,14 +4,19 @@
 //! imperative behavior. So markup is NOT lowered through the imperative value graph —
 //! each `HtmlElement` subtree is a detection unit whose exact `semantic` fingerprint is
 //! the canonical DOM of that subtree (`nose-normalize::html`, dispatched in
-//! `value_graph::api` by the unit-root kind). The `<script>`/`<style>` *internals* are
-//! NOT lowered here — they are analyzed as their own JS/CSS regions (see `embedded.rs`);
-//! this frontend keeps only their element shells (tag + attributes).
+//! `value_graph::api` by the unit-root kind). `<script>`/`<style>` elements are dropped
+//! (analyzed as their own JS/CSS regions, see `embedded.rs`).
 //!
 //! Shape: `document` → a `Module` of `HtmlElement`s; each element is
-//! `HtmlElement(tag)[ HtmlAttr(name)[Lit(value)?]..., (child element | HtmlText)... ]`.
+//! `HtmlElement(tag)[ HtmlAttr(name)[Lit(value)?]..., (child element | HtmlText | HtmlControl)... ]`.
 //! A `.vue`/`.svelte` file parses as HTML too, so its `<template>` markup is lowered the
-//! same way. Anything unrecognized becomes `Raw` (no panics).
+//! same way. To make the markup family converge cross-dialect, dialect idioms are
+//! normalized into the common IL: framework directives are classified (events/bookkeeping
+//! dropped; `:src`/`bind:value`/`v-model` → the rendered attribute with its expression as
+//! value); routing components/props are mapped (`router-link`→`a`, `to`→`href`); and
+//! control flow (Vue `v-for`/`v-if`, Svelte `{#each}`/`{#if}`) becomes an `HtmlControl`
+//! wrapper — distinct from a single element so a loop never exact-merges with one element.
+//! Anything unrecognized becomes `Raw` (no panics).
 
 use crate::lower::Lowering;
 use nose_il::{FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, Span, Symbol, UnitKind};
@@ -37,17 +42,78 @@ pub(crate) fn lower(
 
 fn lower_document(lo: &mut Lowering, root: TsNode) -> NodeId {
     let span = lo.span(root);
-    let mut kids = Vec::new();
-    collect_nodes(lo, root, &mut kids, false);
+    let kids = lower_children(lo, &Lowering::named_children(root), false);
     lo.add(NodeKind::Module, Payload::None, span, &kids)
 }
 
-fn collect_nodes(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, pre: bool) {
-    for c in Lowering::named_children(node) {
+/// A Svelte block marker — which tree-sitter-html parses as plain `text`.
+#[derive(Clone, Copy)]
+enum SvelteMarker {
+    /// `{#each}` (repeat) / `{#if}`,`{#await}`,`{#key}` (conditional) — opens a control frame.
+    Open(&'static str),
+    /// `{/each}`,`{/if}`,… — closes the current control frame.
+    Close,
+    /// `{:else}`,`{:then}`,`{:catch}` — an in-block boundary; kept flat (no extra nesting).
+    Boundary,
+    None,
+}
+
+fn svelte_marker(text: &str) -> SvelteMarker {
+    let t = text.trim_start();
+    if t.starts_with("{#each") {
+        SvelteMarker::Open("repeat")
+    } else if t.starts_with("{#if") || t.starts_with("{#await") || t.starts_with("{#key") {
+        SvelteMarker::Open("if")
+    } else if t.starts_with("{/") {
+        SvelteMarker::Close
+    } else if t.starts_with("{:") {
+        SvelteMarker::Boundary
+    } else {
+        SvelteMarker::None
+    }
+}
+
+/// Lower a sibling sequence, grouping Svelte block markers (`{#each}`…`{/each}`,
+/// `{#if}`…`{/if}`) into [`NodeKind::HtmlControl`] wrappers around the enclosed template.
+/// Vue `v-for`/`v-if` (an attribute on the element) and JSX `.map`/`&&` are wrapped at
+/// their own sites; this handles only Svelte's text-marker form. A control wrapper keeps a
+/// loop/conditional structurally distinct from a single element (exact-channel soundness),
+/// while `node_tag` abstracts it so the three dialects' control idioms converge in `near`.
+fn lower_children(lo: &mut Lowering, nodes: &[TsNode], pre: bool) -> Vec<NodeId> {
+    // Stack of open control frames; frame 0 is the output.
+    let mut stack: Vec<(&'static str, Vec<NodeId>)> = vec![("", Vec::new())];
+    for &c in nodes {
+        if c.kind() == "text" {
+            match svelte_marker(lo.text(c)) {
+                SvelteMarker::Open(kind) => {
+                    stack.push((kind, Vec::new()));
+                    continue;
+                }
+                SvelteMarker::Close if stack.len() > 1 => {
+                    let span = lo.span(c);
+                    let (kind, kids) = stack.pop().unwrap();
+                    let ksym = lo.sym(kind);
+                    let ctl = lo.add(NodeKind::HtmlControl, Payload::Name(ksym), span, &kids);
+                    stack.last_mut().unwrap().1.push(ctl);
+                    continue;
+                }
+                SvelteMarker::Close | SvelteMarker::Boundary => continue,
+                SvelteMarker::None => {}
+            }
+        }
         if let Some(id) = lower_node(lo, c, pre) {
-            out.push(id);
+            stack.last_mut().unwrap().1.push(id);
         }
     }
+    // Defensive: fold any still-open frame (malformed markup) so nothing is dropped.
+    while stack.len() > 1 {
+        let span = lo.span(nodes[0]);
+        let (kind, kids) = stack.pop().unwrap();
+        let ksym = lo.sym(kind);
+        let ctl = lo.add(NodeKind::HtmlControl, Payload::Name(ksym), span, &kids);
+        stack.last_mut().unwrap().1.push(ctl);
+    }
+    stack.pop().unwrap().1
 }
 
 /// `pre`: are we inside a whitespace-PRESERVING element (`<pre>`/`<textarea>`)? There
@@ -56,9 +122,9 @@ fn collect_nodes(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, pre: bo
 fn lower_node(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
     match node.kind() {
         "element" => Some(lower_element(lo, node, false, pre)),
-        // SPIKE(markup-arch): drop <script>/<style> element shells from the markup region
-        // entirely — they are analyzed as their own regions and are pure cross-dialect
-        // noise (Svelte/Vue SFCs carry them inline). Was: lowered as shells.
+        // Drop <script>/<style> element shells from the markup region entirely — they are
+        // analyzed as their own JS/CSS regions and are pure cross-dialect noise (Svelte/Vue
+        // SFCs carry them inline).
         "script_element" | "style_element" => None,
         // Text and entities (`&amp;`, `&nbsp;`) are both content — fold to HtmlText.
         "text" | "entity" => lower_text(lo, node, pre),
@@ -75,42 +141,45 @@ fn lower_node(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
 /// gate keeps trivial single elements from matching.
 fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) -> NodeId {
     let span = lo.span(node);
-    let mut children = Vec::new();
+    let mut attrs = Vec::new();
     let mut tag = None;
+    // A Vue control directive (`v-for`/`v-if`) on this element wraps it in an HtmlControl.
+    let mut control: Option<&'static str> = None;
     // Whitespace is significant inside this element if we are already in a preformatted
     // context OR this element is one (`<pre>`/`<textarea>`). The start tag is the first
     // child, so `child_pre` is set before any text/child element is lowered.
     let mut child_pre = pre;
+    let mut content = Vec::new();
     for c in Lowering::named_children(node) {
         match c.kind() {
             "start_tag" | "self_closing_tag" => {
-                let (t, attrs) = lower_tag(lo, c);
+                let (t, a) = lower_tag(lo, c);
                 if tag.is_none() {
                     tag = t;
                     if let Some(sym) = tag {
                         child_pre = pre || matches!(lo.interner.resolve(sym), "pre" | "textarea");
                     }
+                    control = tag_control_kind(lo, c);
                 }
-                children.extend(attrs);
+                attrs.extend(a);
             }
             "end_tag" | "raw_text" => {}
-            _ if !raw_content => {
-                if let Some(id) = lower_node(lo, c, child_pre) {
-                    children.push(id);
-                }
-            }
+            _ if !raw_content => content.push(c),
             _ => {}
         }
     }
+    let mut children = attrs;
+    children.extend(lower_children(lo, &content, child_pre));
     let tag_sym = tag.unwrap_or_else(|| lo.sym(""));
-    let el = lo.add(
-        NodeKind::HtmlElement,
-        Payload::Name(tag_sym),
-        span,
-        &children,
-    );
+    let el = lo.add(NodeKind::HtmlElement, Payload::Name(tag_sym), span, &children);
     lo.push_unit(el, UnitKind::Block, tag);
-    el
+    match control {
+        Some(kind) => {
+            let ksym = lo.sym(kind);
+            lo.add(NodeKind::HtmlControl, Payload::Name(ksym), span, &[el])
+        }
+        None => el,
+    }
 }
 
 /// Extract `(tag, attributes)` from a `start_tag` / `self_closing_tag`.
@@ -132,6 +201,28 @@ fn lower_tag(lo: &mut Lowering, tag_node: TsNode) -> (Option<Symbol>, Vec<NodeId
         }
     }
     (tag, attrs)
+}
+
+/// The Vue control directive on a start tag, if any: `v-for` → a `repeat`, `v-if`/
+/// `v-else-if`/`v-else`/`v-show` → an `if`. Used to wrap the element in `HtmlControl`.
+fn tag_control_kind(lo: &Lowering, tag_node: TsNode) -> Option<&'static str> {
+    for c in Lowering::named_children(tag_node) {
+        if c.kind() != "attribute" {
+            continue;
+        }
+        let Some(n) = Lowering::named_children(c)
+            .into_iter()
+            .find(|x| x.kind() == "attribute_name")
+        else {
+            continue;
+        };
+        match canonical_attr_name(&lo.text(n).to_ascii_lowercase()).as_str() {
+            "v-for" => return Some("repeat"),
+            "v-if" | "v-else-if" | "v-else" | "v-show" => return Some("if"),
+            _ => {}
+        }
+    }
+    None
 }
 
 /// `name="value"` → `HtmlAttr(name)[Lit(Name=raw value)]`; a boolean attribute has no
@@ -158,42 +249,38 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
     }
     let name = canonical_attr_name(&name.unwrap_or_default());
-    // SPIKE(markup-arch): classify the (possibly dialect-specific) attribute.
-    let (name, dynamic) = match classify_attr(&name) {
+    // Classify the (possibly dialect-specific) attribute. A directive binding of a real
+    // DOM attribute (`:src`→`src`, Svelte `bind:value`→`value`, `v-model`→`value`) keeps
+    // the rendered attribute name; its value is the binding EXPRESSION text, kept verbatim
+    // (NOT collapsed to a hole) so the exact fingerprint stays faithful — two attributes
+    // with different bound expressions must not be claimed equal. The `near` channel
+    // abstracts the value (node_tag) so cross-dialect shells still converge structurally.
+    let (name, bound) = match classify_attr(&name) {
         AttrKind::Drop => return None,
-        // A dynamic binding of a REAL DOM attribute (`:src`→`v-bind:src`, Svelte
-        // `bind:value`, Vue `v-model`): keep the rendered attribute name, value is a hole.
-        // This is what makes `:src="x"` (Vue) ≡ `src={x}` (Svelte/JSX) ≡ `src="..."` (HTML).
         AttrKind::Bound(real) => (canonical_rendered_attr(&real).to_string(), true),
         AttrKind::Plain => (canonical_rendered_attr(&name).to_string(), false),
     };
     // Inline `style="…"` is a CSS declaration block — lower it as a (selector-less)
     // `CssRule` child so the markup fingerprint reuses the full CSS computed-style
-    // canonicalization (color/shorthand/unit/cascade) for it.
-    if name == "style" && !dynamic {
+    // canonicalization (color/shorthand/unit/cascade) for it. A *bound* `:style` is a
+    // dynamic expression, not a literal block — keep it as a plain attribute.
+    if name == "style" && !bound {
         let rule = lower_inline_style(lo, value.as_deref().unwrap_or(""), span);
         let nsym = lo.sym(&name);
         return Some(lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &[rule]));
     }
     let nsym = lo.sym(&name);
-    let children: Vec<NodeId> = if dynamic {
-        let vsym = lo.sym("{}");
-        vec![lo.add(NodeKind::Lit, Payload::Name(vsym), span, &[])]
-    } else {
-        match value {
-            Some(v) => {
-                // A dynamic value (`{...}` / mustache) is a hole — canonicalize so a
-                // bound and a static attribute of the same name converge structurally.
-                let vsym = lo.sym(&normalize_dynamic(&normalize_ws(&v)));
-                vec![lo.add(NodeKind::Lit, Payload::Name(vsym), span, &[])]
-            }
-            None => Vec::new(),
+    let children: Vec<NodeId> = match value {
+        Some(v) => {
+            let vsym = lo.sym(&normalize_ws(&v));
+            vec![lo.add(NodeKind::Lit, Payload::Name(vsym), span, &[])]
         }
+        None => Vec::new(),
     };
     Some(lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children))
 }
 
-/// SPIKE(markup-arch): map framework routing components that render a plain anchor to
+/// Map framework routing components that render a plain anchor to
 /// `a`, so a Vue `<router-link>` / Nuxt `<nuxt-link>` / SvelteKit usage converges with a
 /// hand-written `<a>`. Other tags pass through (already lowercased).
 fn canonical_tag_name(name: &str) -> &str {
@@ -203,7 +290,7 @@ fn canonical_tag_name(name: &str) -> &str {
     }
 }
 
-/// SPIKE(markup-arch): map a framework component's prop to the DOM attribute it renders,
+/// Map a framework component's prop to the DOM attribute it renders,
 /// so `<router-link :to="x">` (→ `<a href>`) converges with a hand-written `<a href>`.
 fn canonical_rendered_attr(name: &str) -> &str {
     match name {
@@ -212,7 +299,7 @@ fn canonical_rendered_attr(name: &str) -> &str {
     }
 }
 
-/// SPIKE(markup-arch): how an attribute maps onto rendered DOM.
+/// How an attribute maps onto rendered DOM.
 enum AttrKind {
     /// Framework control/event/bookkeeping — not a rendered attribute. Dropped.
     Drop,
@@ -307,53 +394,13 @@ fn lower_text(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
     if text.is_empty() {
         return None;
     }
-    // SPIKE(markup-arch): a Svelte block marker (`{#each}`, `{/each}`, `{:else}`, `{#if}`,
-    // `{/if}`, `{#await}`…) is control flow, not rendered text — drop it so the templated
-    // child becomes a direct child of its container (matching Vue's `v-for`-on-element and
-    // React's `.map()`-wrapped child after their own normalization).
-    let trimmed = text.trim_start();
-    if trimmed.starts_with("{#") || trimmed.starts_with("{/") || trimmed.starts_with("{:") {
-        return None;
-    }
-    let text = normalize_dynamic(&text);
-    if text.is_empty() {
-        return None;
-    }
+    // Interpolation text (`{x}`, `{{ x }}`) keeps its verbatim source: the exact
+    // fingerprint distinguishes different expressions; the `near` channel abstracts the
+    // text node (node_tag) so same-shell components still converge across dialects. Svelte
+    // block markers are restructured into `HtmlControl` upstream (see `collect_nodes`), so
+    // any `{#…}`/`{/…}` reaching here is left as text.
     let sym = lo.sym(&text);
     Some(lo.add(NodeKind::HtmlText, Payload::Name(sym), span, &[]))
-}
-
-/// SPIKE(markup-arch): collapse every `{ expression }` interpolation (Svelte/JSX `{x}`,
-/// Vue `{{ x }}`) to a single canonical hole token `{}`, so two components with the same
-/// markup skeleton but different dynamic content converge structurally. Static text is
-/// returned unchanged. This is intentionally crude (brace-run replacement) for the spike.
-fn normalize_dynamic(s: &str) -> String {
-    if !s.contains('{') {
-        return s.to_string();
-    }
-    let mut out = String::new();
-    let mut depth = 0usize;
-    let mut emitted_hole = false;
-    for ch in s.chars() {
-        match ch {
-            '{' => {
-                if depth == 0 && !emitted_hole {
-                    out.push_str("{}");
-                    emitted_hole = true;
-                }
-                depth += 1;
-            }
-            '}' => {
-                depth = depth.saturating_sub(1);
-                if depth == 0 {
-                    emitted_hole = false;
-                }
-            }
-            _ if depth == 0 => out.push(ch),
-            _ => {}
-        }
-    }
-    normalize_ws(&out)
 }
 
 /// Collapse internal whitespace runs to single spaces and trim — DOM-insignificant

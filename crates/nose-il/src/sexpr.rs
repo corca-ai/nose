@@ -89,5 +89,6 @@ fn kind_name(k: NodeKind) -> &'static str {
         HtmlElement => "html-element",
         HtmlAttr => "html-attr",
         HtmlText => "html-text",
+        HtmlControl => "html-control",
     }
 }

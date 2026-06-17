@@ -135,6 +135,14 @@ pub enum NodeKind {
     HtmlAttr,
     /// HTML text content (collapsed whitespace). Payload: `Name` (the text).
     HtmlText,
+    /// A markup CONTROL construct wrapping a templated subtree — a repeat (`v-for`,
+    /// Svelte `{#each}`, JSX `.map`) or a conditional (`v-if`, `{#if}`, JSX `&&`/ternary).
+    /// Payload: `Name` ("repeat"/"if") naming the kind. Children: the template element(s).
+    /// Distinct from a plain element so the exact fingerprint never equates a loop with a
+    /// single element (sound); the `near` channel abstracts it (node_tag) so the three
+    /// dialects' control idioms converge structurally. Appended LAST to keep NodeKind
+    /// discriminants — and therefore shape hashes and the on-disk cache — stable.
+    HtmlControl,
 }
 
 /// Per-node data. Most nodes carry [`Payload::None`]; the variant in use is
