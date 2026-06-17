@@ -16,6 +16,52 @@ use nose_il::{Corpus, FileId, Interner, Lang};
 use rayon::prelude::*;
 use std::path::PathBuf;
 
+/// Terminal styling for the human report. Colour is emitted only when stdout is a real
+/// terminal and `NO_COLOR` is unset (so piped/redirected output — JSON/markdown/SARIF, and
+/// the test harness — stays plain ASCII). Each helper returns its input unchanged when colour
+/// is off, so callers wrap freely without branching; widths are always measured on the plain
+/// text, never the wrapped string.
+mod style {
+    use std::io::IsTerminal;
+    use std::sync::OnceLock;
+
+    fn enabled() -> bool {
+        static ON: OnceLock<bool> = OnceLock::new();
+        *ON.get_or_init(|| {
+            std::env::var_os("NO_COLOR").is_none()
+                && std::env::var("TERM").map_or(true, |t| t != "dumb")
+                && std::io::stdout().is_terminal()
+        })
+    }
+
+    fn paint(code: &str, s: &str) -> String {
+        if s.is_empty() || !enabled() {
+            s.to_string()
+        } else {
+            format!("\x1b[{code}m{s}\x1b[0m")
+        }
+    }
+
+    pub(crate) fn bold(s: &str) -> String {
+        paint("1", s)
+    }
+    pub(crate) fn dim(s: &str) -> String {
+        paint("2", s)
+    }
+    pub(crate) fn green(s: &str) -> String {
+        paint("32", s)
+    }
+    pub(crate) fn yellow(s: &str) -> String {
+        paint("33", s)
+    }
+    pub(crate) fn blue(s: &str) -> String {
+        paint("34", s)
+    }
+    pub(crate) fn bold_green(s: &str) -> String {
+        paint("1;32", s)
+    }
+}
+
 #[derive(Parser)]
 #[command(
     name = "nose",
@@ -108,6 +154,7 @@ enum Cmd {
     /// --mode replaces that default with exactly the channels listed.
     /// `nose query` reads the same dataset and carries the gate, baselines, and a
     /// structured `--format json` contract; `scan` still works but will be removed later.
+    #[command(hide = true)]
     Scan {
         /// Paths to source files or directories (recursively scanned).
         #[arg(required = true)]
@@ -198,7 +245,7 @@ enum Cmd {
         #[arg(long, value_enum, default_value_t = ScopeFilter::All)]
         scope: ScopeFilter,
     },
-    /// Explore the duplication dataset — the everyday command (#359). A stateless,
+    /// Explore the duplication dataset — the everyday command. A stateless,
     /// self-describing query surface: `nose query <path>` prints a landing dashboard; add
     /// terms to slice, facet, or open one family, and every result suggests runnable next
     /// commands. Carries the analysis flags, the `--fail-on` CI gate, and a versioned
@@ -215,45 +262,46 @@ enum Cmd {
         /// Output format (`human` or `json`).
         #[arg(long, default_value = "human")]
         format: ReportFormat,
-        /// Detection channels (same as `nose scan --mode`); omit for `syntax,semantic,near`.
+        /// Detection channels to run; omit for `syntax,semantic,near`. Pass a comma-list
+        /// or repeat the flag; fuzzy channels take an inline threshold (`near:0.8`).
         #[arg(long, value_delimiter = ',')]
         mode: Vec<ScanMode>,
-        /// Minimum IL-token size for a unit to be considered (same as scan).
+        /// Ignore units smaller than this size, in IL tokens (the unit's node count). [default: 24]
         #[arg(long)]
         min_size: Option<usize>,
-        /// Minimum invariant-line floor (advanced; same as scan).
+        /// Advanced: also require this many source lines (most uses only need --min-size). [default: 5]
         #[arg(long, hide = true)]
         min_lines: Option<u32>,
-        /// Minimum family value to keep (same as scan).
+        /// Hide families whose refactoring value is below this (noise floor on large repos).
         #[arg(long, value_parser = parse_min_value)]
         min_value: Option<f64>,
-        /// Minimum copies per family (same as scan).
+        /// Keep only families with at least this many duplicated copies. [default: 2]
         #[arg(long)]
         min_members: Option<usize>,
-        /// Exclude paths by glob (repeatable; same as scan).
+        /// Skip paths matching a gitignore-style glob (repeatable). (.gitignore is already respected.)
         #[arg(long)]
         exclude: Vec<String>,
-        /// Cache per-file analysis under this directory (same as scan).
+        /// Cache per-file analysis under this directory; re-runs reuse it for unchanged files.
         #[arg(long, value_name = "DIR")]
         cache_dir: Option<PathBuf>,
-        /// Structured-ignore file (same as scan); auto-read `nose.ignore.json` when present.
+        /// Structured-ignore file for suppressed families; auto-read `nose.ignore.json` when present.
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
-        /// Local semantic-pack manifest(s) (same as scan).
+        /// Local semantic-pack v0 manifest file or directory to load (repeatable; explicit opt-in).
         #[arg(long = "semantic-pack", value_name = "FILE_OR_DIR")]
         semantic_pack: Vec<PathBuf>,
-        /// Config file (`nose.toml`; same as scan).
+        /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
         /// CI gate — exit non-zero when default-surface families are reported: `any`, or
-        /// `new` (only new/changed vs `--baseline`). Same gate as `nose scan --fail-on`.
+        /// `new` (only new/changed vs `--baseline`).
         #[arg(long, value_name = "WHAT")]
         fail_on: Option<FailOn>,
         /// Accepted-baseline file: hide already-recorded families so only new/changed
-        /// duplication is shown and gated (same as scan).
+        /// duplication is shown and gated.
         #[arg(long, value_name = "FILE")]
         baseline: Option<PathBuf>,
-        /// Write the current families to `--baseline` and exit (same as scan).
+        /// Write the current families to `--baseline` (accept today's state) and exit.
         #[arg(long, requires = "baseline")]
         write_baseline: bool,
     },
@@ -263,6 +311,7 @@ enum Cmd {
     /// inconsistently in that diff: a copy was edited but its sibling clones were
     /// not — a likely un-propagated change. Needs a git repository. e.g.
     /// `nose review --base origin/main` in CI, or `nose review` for local changes.
+    #[command(hide = true)]
     Review {
         /// Paths to scan (recursively). Defaults to the current directory.
         paths: Vec<PathBuf>,
@@ -351,7 +400,7 @@ enum Cmd {
         /// How many top unhandled surface kinds to list.
         #[arg(long, default_value_t = 30)]
         top: usize,
-        /// Output format (`human` or `json`) — same `--format` contract as `query`/`scan`/`il`.
+        /// Output format (`human` or `json`) — the same `--format` contract as `query` and `il`.
         #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
         format: StatsFormat,
     },
@@ -465,6 +514,7 @@ enum Cmd {
     /// on every input) and, against a Type-4 manifest, reports the recall it recovers
     /// BEYOND exact-fingerprint matching and the hard-negative false merges it would
     /// introduce. `--battery wide` is the larger bounded input domain.
+    #[command(hide = true)]
     BehavioralGate {
         /// Path to the generated Type-4 corpus `sources/` directory.
         #[arg(required = true)]
@@ -3872,6 +3922,16 @@ fn semantic_pack_summary_line(packs: &nose_semantics::SemanticPackSet) -> Option
 
 // ===================== `nose query`: the exploration surface (#359) =====================
 
+/// The right noun form for a count: singular when `n == 1`, plural otherwise (so `0`
+/// reads "0 families"). Returns just the noun — the caller prints the number.
+fn plural<'a>(n: usize, one: &'a str, many: &'a str) -> &'a str {
+    if n == 1 {
+        one
+    } else {
+        many
+    }
+}
+
 /// A parsed query: in-memory filters over the family dataset, plus the chosen view.
 #[derive(Default)]
 struct Query {
@@ -3981,7 +4041,8 @@ fn witness_alias(v: &str) -> &str {
     }
 }
 
-/// The friendly token for a `witness.kind` (for display / `group=witness`).
+/// The friendly token for a `witness.kind` — the machine value (`--format json`,
+/// `group=witness` keys, filter matching). Stable; do not change without a schema bump.
 fn witness_token(kind: Option<&str>) -> &'static str {
     match kind {
         Some("exact-value-graph") => "exact",
@@ -3989,6 +4050,30 @@ fn witness_token(kind: Option<&str>) -> &'static str {
         Some("copy-paste-run") => "copy-paste",
         Some("structural-similarity") => "similar",
         _ => "?",
+    }
+}
+
+/// The human-facing DISPLAY label for a `witness.kind` — same as [`witness_token`] except
+/// the opaque `subdag` reads as `shared-core` for people. Used only in the terminal report;
+/// the machine token (`witness_token`) stays `subdag`, and `witness=shared-core` is an
+/// accepted filter alias (see [`witness_alias`]), so the two spellings never collide.
+fn witness_label(kind: Option<&str>) -> &'static str {
+    match kind {
+        Some("shared-sub-dag") => "shared-core",
+        other => witness_token(other),
+    }
+}
+
+/// The witness label coloured by confidence: proven channels (exact, shared-core) green,
+/// copy-paste yellow, similar blue. Plain text when colour is off.
+fn witness_styled(kind: Option<&str>) -> String {
+    let label = witness_label(kind);
+    match kind {
+        Some("exact-value-graph") => style::bold_green(label),
+        Some("shared-sub-dag") => style::green(label),
+        Some("copy-paste-run") => style::yellow(label),
+        Some("structural-similarity") => style::blue(label),
+        _ => label.to_string(),
     }
 }
 
@@ -4295,35 +4380,89 @@ fn short_id(id: &str) -> &str {
     &id[..id.len().min(10)]
 }
 
-/// One concise list/preview row: where the largest copy is, what it is, and the **payoff
-/// economics** an agent needs to triage without opening the family — how much is shared,
-/// how many spots vary, how many lines an extraction removes (counts, not a verdict).
-fn query_row(f: &nose_detect::RefactorFamily) -> String {
+/// The location cell — `file:line  name` — coloured (path dim, symbol bold) with its
+/// *visible* width (sans ANSI) for column alignment.
+fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let l = &f.locations[0];
+    let pos = format!("{}:{}", l.file, l.start_line);
     let name = l
         .name
         .as_deref()
         .map(|n| format!("  {n}"))
         .unwrap_or_default();
+    let width = pos.chars().count() + name.chars().count();
+    (format!("{}{}", style::dim(&pos), style::bold(&name)), width)
+}
+
+/// The payoff-economics cell — copies, shared/varying lines, removable lines, witness — with
+/// the removable count bold and the witness coloured by confidence. Returns the coloured
+/// string and its *visible* width for alignment.
+fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let (shared, params) = all_copies_shared(f);
     let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
+    let witness = witness_label(f.witness.as_ref().map(|w| w.kind));
     // Flag non-production scope inline so a test/mixed family isn't mistaken for prod.
     let scope = if f.scope == "prod" {
         String::new()
     } else {
         format!(" · {}", f.scope)
     };
-    format!(
-        "{}:{}{name}  {} copies · {}/{} shared, {}p · ~{} removable · {}{scope}",
-        l.file,
-        l.start_line,
+    let rep = representative_lines(f);
+    let plain = format!(
+        "{} copies · {shared}/{rep} shared, {params}p · ~{removable} removable · {witness}{scope}",
         f.members,
-        shared,
-        representative_lines(f),
-        params,
-        removable,
-        witness_token(f.witness.as_ref().map(|w| w.kind))
-    )
+    );
+    let colored = format!(
+        "{} copies · {shared}/{rep} shared, {params}p · ~{} removable · {}{}",
+        f.members,
+        style::bold(&removable.to_string()),
+        witness_styled(f.witness.as_ref().map(|w| w.kind)),
+        style::yellow(&scope),
+    );
+    (colored, plain.chars().count())
+}
+
+/// One concise list/preview row: where the largest copy is, what it is, and the **payoff
+/// economics** an agent needs to triage without opening the family — how much is shared,
+/// how many spots vary, how many lines an extraction removes (counts, not a verdict).
+fn query_row(f: &nose_detect::RefactorFamily) -> String {
+    let (loc, _) = loc_cell(f);
+    let (metrics, _) = metrics_cell(f);
+    format!("{loc}  {metrics}")
+}
+
+/// Print a block of candidate rows in aligned columns (location · metrics · drill command),
+/// coloured. Widths are computed from each cell's visible length so the ANSI codes never
+/// skew the columns. The drill command is dimmed; an overlapping-slice fold note, if any,
+/// trails on its own line.
+fn print_candidates(rows: &[&nose_detect::RefactorFamily], path: &str, opp: &OpportunityGroups) {
+    let cells: Vec<(String, usize, String, usize, String, String)> = rows
+        .iter()
+        .map(|f| {
+            let (loc, lw) = loc_cell(f);
+            let (metrics, mw) = metrics_cell(f);
+            let cmd = style::dim(&format!(
+                "nose query {path} id={}",
+                short_id(&baseline::family_id(f))
+            ));
+            let fold = match opp.slices(f) {
+                Some(s) if !s.is_empty() => {
+                    format!("\n       ↳ +{} overlapping slice folds", s.len())
+                }
+                _ => String::new(),
+            };
+            (loc, lw, metrics, mw, cmd, fold)
+        })
+        .collect();
+    let wl = cells.iter().map(|c| c.1).max().unwrap_or(0);
+    let wm = cells.iter().map(|c| c.3).max().unwrap_or(0);
+    for (loc, lw, metrics, mw, cmd, fold) in &cells {
+        println!(
+            "  {loc}{}  {metrics}{}   {cmd}{fold}",
+            " ".repeat(wl - lw),
+            " ".repeat(wm - mw),
+        );
+    }
 }
 
 /// One family as the structured `nose query --format json` object (schema_version 2): all
@@ -4589,13 +4728,17 @@ fn render_query_base(
         return;
     }
     if flagged.is_empty() {
-        println!("no divergent edits vs `{base_ref}` ({changed_files} files changed).");
+        println!(
+            "no divergent edits vs `{base_ref}` ({changed_files} {} changed).",
+            plural(changed_files, "file", "files")
+        );
         return;
     }
     println!(
-        "{} divergent {} vs `{base_ref}` ({changed_files} files changed; {fire_eligible} touch shared logic):",
+        "{} divergent {} vs `{base_ref}` ({changed_files} {} changed; {fire_eligible} touch shared logic):",
         flagged.len(),
-        if flagged.len() == 1 { "family" } else { "families" },
+        plural(flagged.len(), "family", "families"),
+        plural(changed_files, "file", "files"),
     );
     let site = |s: &review::Site| {
         let name = s
@@ -4614,7 +4757,7 @@ fn render_query_base(
         println!(
             "  {}  {} · {} · {propagation}",
             short_id(&d.family_id),
-            witness_token(d.witness_kind),
+            witness_styled(d.witness_kind),
             d.scope,
         );
         for s in &d.changed {
@@ -4878,21 +5021,17 @@ fn render_query_dashboard(
     since: Option<&BaselineComparison>,
 ) {
     // Default surface, slice-folds removed (shown under their primary) — matches scan.
-    let mut def: Vec<&nose_detect::RefactorFamily> = families
+    let def: Vec<&nose_detect::RefactorFamily> = families
         .iter()
         .filter(|f| is_default_surface(f, ov) && !opp.is_slice(f))
         .collect();
-    // Production leads, test-scope ranked beneath — scan's #263/#264 ordering.
-    def.sort_by_key(|f| f.scope == "test");
+    // Scope-blind ranking: a family is ranked purely by extractability (the order it
+    // arrives in), test and production treated alike — scope is a tag and an optional
+    // filter, never a demotion.
     let count = |k: &str| {
         def.iter()
             .filter(|f| witness_token(f.witness.as_ref().map(|w| w.kind)) == k)
             .count()
-    };
-    let n_test = def.iter().filter(|f| f.scope == "test").count();
-    let fold = |f: &nose_detect::RefactorFamily| match opp.slices(f) {
-        Some(s) if !s.is_empty() => format!("\n       ↳ +{} overlapping slice folds", s.len()),
-        _ => String::new(),
     };
     if json {
         let top: Vec<_> = def
@@ -4916,37 +5055,46 @@ fn render_query_dashboard(
                 },
                 "top_candidates": top,
                 "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
-                    format!("nose query {path} scope=prod"), format!("nose query {path} witness=exact")],
+                    format!("nose query {path} witness=exact"), format!("nose query {path} all")],
             })
         );
         return;
     }
     println!("nose — finds duplicated & refactorable code across languages.");
     println!("{}", scope.summary());
+    let n_proven = count("exact") + count("subdag");
     println!(
-        "\n{} duplicated-code families on the default surface.\n  by confidence: exact {} · subdag {} · copy-paste {} · similar {}\n                 (exact/subdag = behavior-proven, value-graph-verified · copy-paste = token-identical · similar = fuzzy)",
-        def.len(),
+        "\n{} duplicated-code {}.",
+        style::bold(&def.len().to_string()),
+        plural(def.len(), "family", "families"),
+    );
+    println!(
+        "  {} {n_proven} ({} {} · {} {}) · {} {} · {} {}",
+        style::bold_green("proven"),
+        style::green("exact"),
         count("exact"),
+        style::green("shared-core"),
         count("subdag"),
+        style::yellow("copy-paste"),
         count("copy-paste"),
+        style::blue("similar"),
         count("similar"),
     );
-    println!("\ncleanest to extract (production first):");
-    for f in def.iter().take(3) {
-        println!(
-            "  {}   nose query {path} id={}{}",
-            query_row(f),
-            short_id(&baseline::family_id(f)),
-            fold(f)
-        );
-    }
     println!(
-        "  nose query {path} sort=extractability       # all {} (default surface), cleanest first",
-        def.len()
+        "  {}",
+        style::dim("proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape")
     );
-    if n_test > 0 && n_test < def.len() {
+    // The "cleanest to extract" lead only makes sense when the default surface has
+    // something on it. With an empty surface we skip it (a `sort=extractability` link into
+    // an empty list is a dead end); the closing footer still offers `all` when families
+    // were merely held back below the surface — the one genuinely useful next move.
+    if !def.is_empty() {
+        println!("\n{}", style::bold("cleanest to extract:"));
+        let top: Vec<&nose_detect::RefactorFamily> = def.iter().take(3).copied().collect();
+        print_candidates(&top, path, opp);
         println!(
-            "  nose query {path} scope=prod                # production only ({n_test} test-scope ranked beneath)"
+            "  nose query {path} sort=extractability       {}",
+            style::dim(&format!("# all {}, cleanest first", def.len()))
         );
     }
 
@@ -4968,23 +5116,24 @@ fn render_query_dashboard(
         .collect();
     if !proven.is_empty() {
         println!(
-            "\nhighest confidence — exact {n_exact} (proven-identical) + shared-core {n_subdag}:"
+            "\n{}",
+            style::bold("proven families (same behavior, not just similar shape):")
         );
-        for f in proven.iter().take(3) {
-            println!(
-                "  {}   nose query {path} id={}{}",
-                query_row(f),
-                short_id(&baseline::family_id(f)),
-                fold(f)
-            );
-        }
+        let top: Vec<&nose_detect::RefactorFamily> = proven.iter().take(3).map(|f| **f).collect();
+        print_candidates(&top, path, opp);
         if n_exact > 0 {
             println!(
-                "  nose query {path} witness=exact             # the {n_exact} proven-identical"
+                "  nose query {path} witness=exact             {}",
+                style::dim(&format!("# the {n_exact} proven byte-for-behavior identical"))
             );
         }
         if n_subdag > 0 {
-            println!("  nose query {path} witness=subdag            # the {n_subdag} shared-core");
+            println!(
+                "  nose query {path} witness=shared-core       {}",
+                style::dim(&format!(
+                    "# the {n_subdag} that share a proven core computation"
+                ))
+            );
         }
     }
 
@@ -4998,19 +5147,33 @@ fn render_query_dashboard(
     }
     let mut dirs: Vec<_> = by_dir.into_iter().collect();
     dirs.sort_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.0.cmp(&b.0)));
-    if !dirs.is_empty() {
-        println!("\nmost-duplicated directories:");
+    // Only worth surfacing when the duplication actually spans directories — with a single
+    // directory both the `path~` slice and the `group=dir` facet just re-run the same scan.
+    if dirs.len() > 1 {
+        println!("\n{}", style::bold("most-duplicated directories:"));
         for (d, (_dup, n)) in dirs.iter().take(3) {
-            println!("  nose query {path} path~{d}   # {n} families");
+            println!(
+                "  nose query {path} path~{d}   {}",
+                style::dim(&format!("# {n} {}", plural(*n, "family", "families")))
+            );
         }
-        println!("  nose query {path} group=dir                 # full breakdown");
+        println!(
+            "  nose query {path} group=dir                 {}",
+            style::dim("# full breakdown")
+        );
     }
     if reinvented_prod > 0 {
         println!(
-            "\n{reinvented_prod} place{} reimplement an existing helper — call it instead:",
-            if reinvented_prod == 1 { "" } else { "s" }
+            "\n{}",
+            style::bold(&format!(
+                "{reinvented_prod} place{} reimplement an existing helper — call it instead:",
+                if reinvented_prod == 1 { "" } else { "s" }
+            ))
         );
-        println!("  nose query {path} reinvented                 # the call-the-helper findings");
+        println!(
+            "  nose query {path} reinvented                 {}",
+            style::dim("# the call-the-helper findings")
+        );
     }
     // Repo-level magnitude + what the default surface omitted (scan's honesty footer).
     let omitted = surface_omission_note(families, ov);
@@ -5022,7 +5185,22 @@ fn render_query_dashboard(
             .unwrap_or_default()
     );
     println!(
-        "\ngrammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr ...] [group=FIELD | id=FAM | at=FILE:LINE]\n          fields: scope(prod|test) witness(exact|subdag|copy-paste|similar) same_symbol(true|false) lang path members files value(=duplicated volume) params shared dir\n          · sort=extractability(default)|value|members  · top=N  · `full` after id= or a list expands the all-copies skeleton  · `all` widens past the default surface"
+        "\n{}",
+        style::bold("explore — terms combine with AND; swap <path> for yours and run any line:")
+    );
+    for (verb, cmd, note) in [
+        ("filter", "nose query <path> witness=exact", "keep only the proven-identical families"),
+        ("", "nose query <path> members>3 path~api", "compare with > < , ~ (contains), != (negate)"),
+        ("group", "nose query <path> group=dir", "totals by directory (or: witness, lang, scope, same_symbol)"),
+        ("open", "nose query <path> id=<id> full", "one family: every copy + the extraction skeleton"),
+        ("sort", "nose query <path> sort=value", "by duplicated volume (or: extractability [default], members)"),
+        ("more", "nose query <path> all", "include families held back below the default surface"),
+    ] {
+        println!("  {}  {cmd:<37}  {}", style::bold(&format!("{verb:<6}")), style::dim(note));
+    }
+    println!(
+        "\n  {}",
+        style::dim("filter/group fields: scope · witness · lang · path · members · files · value · params · shared · dir · same_symbol")
     );
 }
 
@@ -5143,8 +5321,9 @@ fn render_query_list(
         return;
     }
     println!(
-        "{} families{}{}:",
+        "{} {}{}{}:",
         sel.len(),
+        plural(sel.len(), "family", "families"),
         if widen { " (full surface)" } else { "" },
         if shown < sel.len() {
             format!(" (showing {shown})")
@@ -5152,7 +5331,21 @@ fn render_query_list(
             String::new()
         }
     );
-    for f in sel.iter().take(top) {
+    // Align the location and metrics columns across the shown rows so the drill commands
+    // line up (widths from the visible text, so colour never skews them — same as the
+    // dashboard's `print_candidates`).
+    let shown_rows: Vec<&nose_detect::RefactorFamily> = sel.iter().take(top).copied().collect();
+    let cells: Vec<(String, usize, String, usize)> = shown_rows
+        .iter()
+        .map(|f| {
+            let (loc, lw) = loc_cell(f);
+            let (metrics, mw) = metrics_cell(f);
+            (loc, lw, metrics, mw)
+        })
+        .collect();
+    let wl = cells.iter().map(|c| c.1).max().unwrap_or(0);
+    let wm = cells.iter().map(|c| c.3).max().unwrap_or(0);
+    for (f, (loc, lw, metrics, mw)) in shown_rows.iter().zip(&cells) {
         // When widened past the default surface, label why a demoted family is here.
         let surf = if widen {
             match effective_surface(f, ov) {
@@ -5172,10 +5365,14 @@ fn render_query_list(
             Some(s @ ("new" | "changed")) => format!(" [{s}]"),
             _ => String::new(),
         };
-        println!(
-            "  {}{surf}{status}   nose query {path} id={}{fold}",
-            query_row(f),
+        let cmd = style::dim(&format!(
+            "nose query {path} id={}",
             short_id(&baseline::family_id(f))
+        ));
+        println!(
+            "  {loc}{}  {metrics}{}{surf}{status}   {cmd}{fold}",
+            " ".repeat(wl - lw),
+            " ".repeat(wm - mw),
         );
         // `full` on a list/filter batches the extraction skeletons — triage N candidates
         // in one stateless call (no per-family id= round-trip).
@@ -5285,7 +5482,11 @@ fn render_query_group(
         );
         return;
     }
-    println!("{} families by {field} (most removable first):", sel.len());
+    println!(
+        "{} {} by {field} (most removable first):",
+        sel.len(),
+        plural(sel.len(), "family", "families")
+    );
     let other: Vec<&str> = terms
         .iter()
         .filter(|t| !t.starts_with("group="))
@@ -5297,11 +5498,21 @@ fn render_query_group(
         format!("nose query {path} {}", other.join(" "))
     };
     for (k, g) in &rows {
+        // Display the friendly witness label (`subdag` → `shared-core`); the JSON `key`
+        // above stays the machine token. `witness=shared-core` is an accepted filter alias.
+        let label = if field == "witness" && k == "subdag" {
+            "shared-core"
+        } else {
+            k.as_str()
+        };
         println!(
-            "  {k:<16} ({:>3} families · ~{} removable)  e.g. {}",
-            g.count, g.removable, g.exemplar_row
+            "  {label:<16} ({:>3} {} · ~{} removable)  e.g. {}",
+            g.count,
+            plural(g.count, "family", "families"),
+            g.removable,
+            g.exemplar_row
         );
-        println!("        {base} {field}={k}");
+        println!("        {base} {field}={label}");
     }
 }
 
@@ -5368,7 +5579,7 @@ fn render_query_family(
     println!(
         "{} — {} · {} · {} copies · {}/{} shared, {}p · ~{} removable",
         short_id(&id),
-        witness_token(f.witness.as_ref().map(|w| w.kind)),
+        witness_styled(f.witness.as_ref().map(|w| w.kind)),
         f.scope,
         f.members,
         shared,
@@ -5414,8 +5625,9 @@ fn render_query_family(
         family_dir(f)
     );
     println!(
-        "  nose query {path} witness={}   # other families of the same confidence",
-        witness_token(f.witness.as_ref().map(|w| w.kind))
+        "  nose query {path} witness={}   {}",
+        witness_label(f.witness.as_ref().map(|w| w.kind)),
+        style::dim("# other families of the same confidence")
     );
 }
 
@@ -6941,10 +7153,11 @@ fn refactor_sarif(shown: &[&nose_detect::RefactorFamily], total: usize) -> Resul
         .iter()
         .map(|f| {
             let msg = format!(
-                "{} — {} sites, {} files, ~{} duplicated lines (sim {:.2})",
+                "{} — {} sites, {} {}, ~{} duplicated lines (sim {:.2})",
                 family_hint(f),
                 f.members,
                 f.files,
+                plural(f.files, "file", "files"),
                 f.dup_lines,
                 f.mean_score
             );
@@ -7859,8 +8072,9 @@ fn print_refactor_markdown(
 ) {
     println!("# {}\n", mode.markdown_title());
     println!(
-        "{} families · ~{} duplicated lines · showing top {}\n",
+        "{} {} · ~{} duplicated lines · showing top {}\n",
         all.len(),
+        plural(all.len(), "family", "families"),
         total_dup_lines_refs(all),
         shown.len()
     );
@@ -7879,12 +8093,14 @@ fn print_refactor_markdown(
             s => format!(" · cross-language: {s}"),
         };
         println!(
-            "## {}. `{}` — {} sites, {} files, {} directories — ~{} dup lines ({}){}",
+            "## {}. `{}` — {} sites, {} {}, {} {} — ~{} dup lines ({}){}",
             i + 1,
             baseline::family_id(f),
             f.members,
             f.files,
+            plural(f.files, "file", "files"),
             f.modules,
+            plural(f.modules, "directory", "directories"),
             f.dup_lines,
             similarity_cell(f),
             xlang

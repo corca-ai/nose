@@ -1943,8 +1943,16 @@ fn query_dashboard_filter_and_family() {
     // Dashboard: self-describing, with a real candidate carrying a runnable drill link.
     let dash = run(&["query", p]);
     assert!(
-        dash.contains("duplicated-code families"),
+        // The count noun is pluralized ("1 duplicated-code family" / "N … families"),
+        // so match the stem rather than a fixed plural.
+        dash.contains("duplicated-code famil"),
         "dashboard names the dataset: {dash}"
+    );
+    // Colour is TTY-gated: piped output (as the test harness captures it) must be plain ASCII
+    // with no ANSI escape sequences, so the JSON contract and these string checks stay stable.
+    assert!(
+        !dash.contains('\u{1b}'),
+        "piped human output must carry no ANSI colour codes: {dash:?}"
     );
     assert!(
         dash.contains("nose query"),
@@ -1957,9 +1965,10 @@ fn query_dashboard_filter_and_family() {
         "dashboard's drill links carry the path: {dash}"
     );
 
-    // A filter narrows to a ranked list; a facet groups it.
-    assert!(run(&["query", p, "members>1"]).contains("families"));
-    assert!(run(&["query", p, "group=dir"]).contains("families by dir"));
+    // A filter narrows to a ranked list; a facet groups it. (The count noun is
+    // pluralized — "1 family" / "N families" — so match the stem.)
+    assert!(run(&["query", p, "members>1"]).contains("famil"));
+    assert!(run(&["query", p, "group=dir"]).contains("famil") && run(&["query", p, "group=dir"]).contains("by dir"));
 
     // An unknown term is a hard error (a typo must not silently widen the result).
     assert!(run_fail(&["query", p, "wat"]).contains("unrecognized term"));
@@ -1972,7 +1981,7 @@ fn query_dashboard_filter_and_family() {
         "path!~m.py excludes the all-m.py family"
     );
     assert!(
-        run(&["query", p, "path!~zzz_absent"]).contains("families"),
+        run(&["query", p, "path!~zzz_absent"]).contains(&format!("nose query {p} id=")),
         "path!~<absent> keeps the family"
     );
     // Negated equality still validates the value (a typo errors, never silently matches).
@@ -1982,7 +1991,7 @@ fn query_dashboard_filter_and_family() {
     // includes `similar` keeps it and one that excludes it drops it — and a typo in any
     // comma-part errors (never silently narrows the set).
     assert!(
-        run(&["query", p, "witness=exact,similar"]).contains("families"),
+        run(&["query", p, "witness=exact,similar"]).contains(&format!("nose query {p} id=")),
         "witness=exact,similar matches the similar fixture (OR)"
     );
     let none = run(&["query", p, "witness=exact,copy-paste"]);
@@ -1991,7 +2000,7 @@ fn query_dashboard_filter_and_family() {
         "a set without `similar` excludes the only family"
     );
     assert!(
-        run(&["query", p, "witness!=exact,copy-paste"]).contains("families"),
+        run(&["query", p, "witness!=exact,copy-paste"]).contains(&format!("nose query {p} id=")),
         "witness!=<set> keeps a family outside the set"
     );
     assert!(run_fail(&["query", p, "witness=similar,bogus"]).contains("unknown witness value"));
@@ -2009,7 +2018,7 @@ fn query_dashboard_filter_and_family() {
 
     // same_symbol: the three `process` copies share a name → the parallel-variant signal.
     assert!(
-        run(&["query", p, "same_symbol=true"]).contains("families"),
+        run(&["query", p, "same_symbol=true"]).contains(&format!("nose query {p} id=")),
         "same_symbol=true matches the same-named family"
     );
     assert!(
@@ -2025,7 +2034,7 @@ fn query_dashboard_filter_and_family() {
         "query respects --min-members"
     );
     assert!(
-        run(&["query", p, "--mode", "syntax"]).contains("families"),
+        run(&["query", p, "--mode", "syntax"]).contains("duplicated-code famil"),
         "query accepts --mode"
     );
 
