@@ -9,7 +9,7 @@ use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
     contains_c_identifier, stable_symbol_hash, Builtin, CTypeTarget, DomainEvidence,
     EvidenceAnchor, EvidenceId, EvidenceKind, FileId, Il, ImportEvidenceKind, Interner, Lang,
-    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceFactKind, Span,
+    LitClass, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceFactKind, Span,
     TypeEvidenceKind, UnitKind,
 };
 use std::{fs, path::Path};
@@ -523,57 +523,27 @@ fn lower_preproc(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let then = node
-        .child_by_field_name("consequence")
-        .map(|c| stmt_as_block(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let mut kids = vec![cond, then];
-    if let Some(alt) = node.child_by_field_name("alternative") {
-        // `else` clause wraps the alternative statement
+    crate::lower::if_stmt(lo, node, lower_expr, stmt_as_block, |lo, alt| {
+        // `else` clause wraps the alternative statement.
         let inner = alt.named_child(0).unwrap_or(alt);
-        kids.push(stmt_as_block(lo, inner));
-    }
-    lo.add(NodeKind::If, Payload::None, span, &kids)
+        stmt_as_block(lo, inner)
+    })
 }
 
 fn stmt_as_block(lo: &mut Lowering, node: TsNode) -> NodeId {
-    if node.kind() == "compound_statement" {
-        lower_block(lo, node)
-    } else {
-        let span = lo.span(node);
-        let s = lower_stmt(lo, node);
-        lo.block_of_stmt(span, s)
-    }
+    crate::lower::stmt_as_block(lo, node, "compound_statement", lower_block, lower_stmt)
 }
 
 fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let init = node
-        .child_by_field_name("initializer")
-        .and_then(|n| lower_stmt(lo, n))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let update = node
-        .child_by_field_name("update")
-        .map(|u| lower_expr(lo, u))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let body = node
-        .child_by_field_name("body")
-        .map(|b| stmt_as_block(lo, b))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(
-        NodeKind::Loop,
-        Payload::Loop(LoopKind::CStyle),
-        span,
-        &[init, cond, update, body],
+    crate::lower::c_style_for(
+        lo,
+        node,
+        "initializer",
+        "update",
+        lower_stmt,
+        lower_expr,
+        lower_expr,
+        stmt_as_block,
     )
 }
 

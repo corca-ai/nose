@@ -76,8 +76,7 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
         "if_statement" => Some(lower_if(lo, node)),
         "for_statement" => Some(lower_for_c(lo, node)),
         "for_in_statement" => Some(lower_for_in(lo, node)),
-        "while_statement" => Some(lower_while(lo, node)),
-        "do_statement" => Some(lower_do(lo, node)),
+        "while_statement" | "do_statement" => Some(lower_while(lo, node)),
         "switch_statement" => Some(lower_switch(lo, node)),
         "return_statement" => {
             let mut kids = Vec::new();
@@ -546,63 +545,40 @@ fn lower_update(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, unwrap_paren(c)))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let then = node
-        .child_by_field_name("consequence")
-        .map(|c| lower_stmt_as_block(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let mut kids = vec![cond, then];
-    if let Some(alt) = node.child_by_field_name("alternative") {
-        // else_clause wraps either a block/statement or another if (else-if).
-        let inner = alt.named_child(0).unwrap_or(alt);
-        let else_node = if inner.kind() == "if_statement" {
-            lower_if(lo, inner)
-        } else {
-            lower_stmt_as_block(lo, inner)
-        };
-        kids.push(else_node);
-    }
-    lo.add(NodeKind::If, Payload::None, span, &kids)
+    crate::lower::if_stmt(
+        lo,
+        node,
+        |lo, c| lower_expr(lo, unwrap_paren(c)),
+        lower_stmt_as_block,
+        |lo, alt| {
+            // else_clause wraps either a block/statement or another if (else-if).
+            let inner = alt.named_child(0).unwrap_or(alt);
+            if inner.kind() == "if_statement" {
+                lower_if(lo, inner)
+            } else {
+                lower_stmt_as_block(lo, inner)
+            }
+        },
+    )
 }
 
 /// Lower a statement that may or may not be a block into a `Block`.
 fn lower_stmt_as_block(lo: &mut Lowering, node: TsNode) -> NodeId {
-    if node.kind() == "statement_block" {
-        lower_block(lo, node)
-    } else {
-        let span = lo.span(node);
-        let s = lower_stmt(lo, node, false);
-        lo.block_of_stmt(span, s)
-    }
+    crate::lower::stmt_as_block(lo, node, "statement_block", lower_block, |lo, n| {
+        lower_stmt(lo, n, false)
+    })
 }
 
 fn lower_for_c(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let init = match node.child_by_field_name("initializer") {
-        Some(i) => lower_for_clause_stmt(lo, i),
-        None => lo.empty_block(span),
-    };
-    let cond = match node.child_by_field_name("condition") {
-        Some(c) => lower_expr(lo, strip_expr_stmt(c)),
-        None => lo.empty_block(span),
-    };
-    let update = match node.child_by_field_name("increment") {
-        Some(u) => lower_for_clause_stmt(lo, u),
-        None => lo.empty_block(span),
-    };
-    let body = node
-        .child_by_field_name("body")
-        .map(|b| lower_stmt_as_block(lo, b))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(
-        NodeKind::Loop,
-        Payload::Loop(LoopKind::CStyle),
-        span,
-        &[init, cond, update, body],
+    crate::lower::c_style_for(
+        lo,
+        node,
+        "initializer",
+        "increment",
+        |lo, n| Some(lower_for_clause_stmt(lo, n)),
+        |lo, c| lower_expr(lo, strip_expr_stmt(c)),
+        lower_for_clause_stmt,
+        lower_stmt_as_block,
     )
 }
 
@@ -682,39 +658,15 @@ fn lower_for_in(lo: &mut Lowering, node: TsNode) -> NodeId {
     )
 }
 
+// `while` and `do…while` lower identically — both are a `condition`/`body` While
+// `Loop` (do-while's run-body-first semantics aren't modelled). One dispatch routes
+// both `while_statement` and `do_statement` here.
 fn lower_while(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, unwrap_paren(c)))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let body = node
-        .child_by_field_name("body")
-        .map(|b| lower_stmt_as_block(lo, b))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(
-        NodeKind::Loop,
-        Payload::Loop(LoopKind::While),
-        span,
-        &[cond, body],
-    )
-}
-
-fn lower_do(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, unwrap_paren(c)))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let body = node
-        .child_by_field_name("body")
-        .map(|b| lower_stmt_as_block(lo, b))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(
-        NodeKind::Loop,
-        Payload::Loop(LoopKind::While),
-        span,
-        &[cond, body],
+    crate::lower::while_loop(
+        lo,
+        node,
+        |lo, c| lower_expr(lo, unwrap_paren(c)),
+        lower_stmt_as_block,
     )
 }
 

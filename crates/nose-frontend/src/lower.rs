@@ -2821,6 +2821,97 @@ pub(crate) fn while_loop(
     )
 }
 
+/// Lower a statement that may *already* be a block into a canonical [`Block`].
+/// Frontends name their block node differently (`block`, `compound_statement`,
+/// `statement_block`) and lower a bare statement their own way, so the block kind
+/// and the two lowerings vary as params; the "already a block? lower it : wrap the
+/// single statement" decision is shared.
+pub(crate) fn stmt_as_block(
+    lo: &mut Lowering,
+    node: TsNode,
+    block_kind: &str,
+    lower_block: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+    lower_stmt: impl FnOnce(&mut Lowering, TsNode) -> Option<NodeId>,
+) -> NodeId {
+    if node.kind() == block_kind {
+        lower_block(lo, node)
+    } else {
+        let span = lo.span(node);
+        let s = lower_stmt(lo, node);
+        lo.block_of_stmt(span, s)
+    }
+}
+
+/// Lower a `condition`/`consequence`/`alternative`-shaped CST node into a canonical
+/// [`If`]. Those three field names are *shared* across the C-family grammars, so no
+/// grammar wart leaks in; only how each sub-node is lowered (and how the optional
+/// else branch is resolved — a bare block, or an else-if recursion) varies, so each
+/// frontend supplies those as closures and shares the field-extraction,
+/// empty-fallback, and `[cond, then, else?]` construction here.
+pub(crate) fn if_stmt(
+    lo: &mut Lowering,
+    node: TsNode,
+    lower_cond: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+    lower_then: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+    lower_else: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+) -> NodeId {
+    let span = lo.span(node);
+    let cond = node
+        .child_by_field_name("condition")
+        .map(|c| lower_cond(lo, c))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let then = node
+        .child_by_field_name("consequence")
+        .map(|c| lower_then(lo, c))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let mut kids = vec![cond, then];
+    if let Some(alt) = node.child_by_field_name("alternative") {
+        kids.push(lower_else(lo, alt));
+    }
+    lo.add(NodeKind::If, Payload::None, span, &kids)
+}
+
+/// Lower an `init`/`cond`/`update`/`body` C-style `for` into a canonical `CStyle`
+/// [`Loop`]. The four sub-node lowerings are closures; the two clause field names
+/// that differ across grammars (`initializer` vs `init`, `update` vs `increment`)
+/// are params. Every absent or empty clause falls back to an empty block so the
+/// `[init, cond, update, body]` arity is fixed.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn c_style_for(
+    lo: &mut Lowering,
+    node: TsNode,
+    init_field: &str,
+    update_field: &str,
+    lower_init: impl FnOnce(&mut Lowering, TsNode) -> Option<NodeId>,
+    lower_cond: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+    lower_update: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+    lower_body: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+) -> NodeId {
+    let span = lo.span(node);
+    let init = node
+        .child_by_field_name(init_field)
+        .and_then(|n| lower_init(lo, n))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let cond = node
+        .child_by_field_name("condition")
+        .map(|c| lower_cond(lo, c))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let update = node
+        .child_by_field_name(update_field)
+        .map(|u| lower_update(lo, u))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let body = node
+        .child_by_field_name("body")
+        .map(|b| lower_body(lo, b))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.add(
+        NodeKind::Loop,
+        Payload::Loop(LoopKind::CStyle),
+        span,
+        &[init, cond, update, body],
+    )
+}
+
 thread_local! {
     /// Per-thread, per-grammar parser cache. `tree_sitter::Parser::new` allocates
     /// the parser's internal scan stack and lexer caches; recreating one for every

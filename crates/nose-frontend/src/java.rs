@@ -236,55 +236,23 @@ fn is_type_decl(k: &str) -> bool {
 }
 
 fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let then = node
-        .child_by_field_name("consequence")
-        .map(|c| stmt_as_block(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let mut kids = vec![cond, then];
-    if let Some(alt) = node.child_by_field_name("alternative") {
-        kids.push(stmt_as_block(lo, alt));
-    }
-    lo.add(NodeKind::If, Payload::None, span, &kids)
+    crate::lower::if_stmt(lo, node, lower_expr, stmt_as_block, stmt_as_block)
 }
 
 fn stmt_as_block(lo: &mut Lowering, node: TsNode) -> NodeId {
-    if node.kind() == "block" {
-        lower_block(lo, node)
-    } else {
-        let span = lo.span(node);
-        let s = lower_stmt(lo, node);
-        lo.block_of_stmt(span, s)
-    }
+    crate::lower::stmt_as_block(lo, node, "block", lower_block, lower_stmt)
 }
 
 fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let init = node
-        .child_by_field_name("init")
-        .and_then(|n| lower_stmt(lo, n))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let cond = node
-        .child_by_field_name("condition")
-        .map(|c| lower_expr(lo, c))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let update = node
-        .child_by_field_name("update")
-        .map(|u| lower_expr(lo, u))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let body = node
-        .child_by_field_name("body")
-        .map(|b| stmt_as_block(lo, b))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(
-        NodeKind::Loop,
-        Payload::Loop(LoopKind::CStyle),
-        span,
-        &[init, cond, update, body],
+    crate::lower::c_style_for(
+        lo,
+        node,
+        "init",
+        "update",
+        lower_stmt,
+        lower_expr,
+        lower_expr,
+        stmt_as_block,
     )
 }
 
