@@ -13,6 +13,34 @@ detection changes honest (it has rejected several plausible-but-wrong ideas; see
 - **9,461 families** — 4,940 worthy / 4,521 not-worthy.
 - **105 repos, 7 languages**, with a dev (5,445) / **held-out** (4,016) split — held-out
   is a generalization gate; tune only on dev.
+
+## The declarative set — `frontend_families.v1.json`
+
+The same product metric for the **declarative track** (CSS + HTML/Vue/Svelte/JSX/TSX
+markup, incl. cross-dialect). Same schema, same RUBRIC, same 3-persona panel + 2-1
+tiebreak methodology; built by the `frontend-goldset-panel` workflow over a nose
+low-threshold pool (generated-filtered per `is_generated_loc`, capped ≤60/repo for
+diversity) across 19 frontend repos + the RealWorld trio for cross-dialect.
+
+- **448 families** — 71 worthy / 377 not-worthy. dev 386 / **heldout** 62.
+- **Worthy-rate by corpus kind** (the headline precision profile):
+  | kind | families | worthy |
+  |---|---|---|
+  | app (hand-written markup) | 44 | **50%** |
+  | cross-dialect (React≡Vue≡Svelte) | 10 | **70%** |
+  | CSS framework (dist) | 394 | **10%** |
+- **What it measures.** On real app markup, precision is ~50% — on par with the imperative
+  languages. On shipped CSS frameworks it is ~10%: the surface there is **69% `generated`**
+  (CSS compiled from SCSS — `css/bulma.css` etc., which `is_generated_loc` does NOT catch
+  because they are not `.min`/`dist/`) plus `parallel-by-design` utility scales. The
+  cross-dialect arm (nose's novel capability) is 70% worthy — genuinely-shared components
+  (TagList, article-meta, error-list, banner) across frameworks; the 30% not-worthy are
+  small generic shells (`li.nav-item`, a `<button>`) coincidentally same-shaped across
+  unrelated components. This says nothing is broken in the markup engine — it quantifies
+  that **the CSS-framework default surface needs a compiled-CSS filter** (a measured lever)
+  and that real-code/cross-dialect precision is healthy.
+- Each family records its 3-persona `votes`. **v1 is dev-grade** (panel-labeled, not yet
+  human-arbitrated); the 45 medium-confidence (2-1 split) families are the audit queue.
 - Each family records its 3-persona `votes`, so agreement is auditable. The format is
   defined in [`schema.json`](schema.json).
 
