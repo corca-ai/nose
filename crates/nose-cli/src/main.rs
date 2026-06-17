@@ -351,9 +351,9 @@ enum Cmd {
         /// How many top unhandled surface kinds to list.
         #[arg(long, default_value_t = 30)]
         top: usize,
-        /// Emit JSON instead of a human-readable table.
-        #[arg(long)]
-        json: bool,
+        /// Output format (`human` or `json`) — same `--format` contract as `query`/`scan`/`il`.
+        #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
+        format: StatsFormat,
     },
     /// Dump the IL for a source file — debug why two snippets do or don't converge.
     Il {
@@ -500,6 +500,15 @@ enum BatteryKind {
 #[derive(Clone, Copy, clap::ValueEnum)]
 enum Format {
     Sexpr,
+    Json,
+}
+
+#[derive(Clone, Copy, PartialEq, Default, clap::ValueEnum)]
+enum StatsFormat {
+    /// Human-readable coverage table.
+    #[default]
+    Human,
+    /// Machine-readable JSON.
     Json,
 }
 
@@ -777,8 +786,10 @@ enum SortKey {
     /// can actually fold into one helper, not the biggest block that merely *looks*
     /// similar (a *fixability* axis). The default.
     Extractability,
-    /// Raw duplicated volume: removable lines × similarity × spread. The most
-    /// *code* you'd delete, even if the copies diverge a lot (more manual work).
+    /// Raw duplicated volume: duplicated lines (mean span × copies) × similarity ×
+    /// spread. Ranks by how much *code* repeats, NOT by the `removable` field — a
+    /// structural (Type-4) family can have high volume yet `removable=0` when no
+    /// literal lines survive across all copies (nothing cleanly extractable).
     Value,
     /// Most copies first — the most-repeated patterns.
     Sites,
@@ -1685,7 +1696,7 @@ fn run() -> Result<()> {
             units,
             candidates,
         } => cmd_ceiling(gold, units, candidates),
-        Cmd::Stats { paths, top, json } => cmd_stats(paths, top, json),
+        Cmd::Stats { paths, top, format } => cmd_stats(paths, top, format == StatsFormat::Json),
         Cmd::Features {
             paths,
             min_lines,
@@ -4753,6 +4764,20 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                     0,
                     None,
                 );
+                // `id=<fam>` is a single-family drilldown: render the extraction skeleton
+                // (and, on `full`, the representative diff) so markdown composes with
+                // `id=`/`full` the way the human/JSON views do (#422). Bulk reports stay a
+                // compact location list — the skeleton is paid only on drilldown.
+                if q.id.is_some() {
+                    for f in &shown {
+                        if f.locations.len() >= 2 {
+                            markdown_member_proposal(&f.locations);
+                            if q.id_full {
+                                markdown_member_diff(&f.locations[0], &f.locations[1]);
+                            }
+                        }
+                    }
+                }
             }
         }
         _ => {
@@ -7775,6 +7800,52 @@ fn line_diff(a: &[&str], b: &[&str]) -> Vec<(char, String)> {
     out.extend(a[i..].iter().map(|l| ('-', l.to_string())));
     out.extend(b[j..].iter().map(|l| ('+', l.to_string())));
     out
+}
+
+/// Markdown form of the all-copies extraction skeleton (#360), rendered on an `id=<fam>`
+/// drilldown so `--format markdown` honors the help's "every copy + extraction skeleton"
+/// promise the same way the human/JSON views do (#422). The bulk report stays a compact
+/// location list; the skeleton is paid only when the consumer drills into one family.
+fn markdown_member_proposal(locations: &[nose_detect::Loc]) {
+    let members: Vec<Vec<String>> = locations
+        .iter()
+        .filter_map(|l| read_lines(&l.file, l.start_line, l.end_line))
+        .collect();
+    if members.len() < 2 {
+        return;
+    }
+    let (skeleton, shared, params) = anti_unify_all(&members);
+    let copies = members.len();
+    println!(
+        "**proposal** — extract a shared helper · {shared} shared lines · {params} parameter(s) vary (across all {copies} copies)\n"
+    );
+    println!("```text");
+    for line in skeleton.iter().take(40) {
+        println!("{line}");
+    }
+    println!("```\n");
+}
+
+/// Markdown form of the representative two-copy diff, added on `id=<fam> full` (the `full`
+/// view, mirroring the human renderer's extra diff line).
+fn markdown_member_diff(a: &nose_detect::Loc, b: &nose_detect::Loc) {
+    let (Some(la), Some(lb)) = (
+        read_lines(&a.file, a.start_line, a.end_line),
+        read_lines(&b.file, b.start_line, b.end_line),
+    ) else {
+        return;
+    };
+    println!(
+        "**diff** — `{}:{}-{}` vs `{}:{}-{}`\n",
+        a.file, a.start_line, a.end_line, b.file, b.start_line, b.end_line
+    );
+    let ar: Vec<&str> = la.iter().map(String::as_str).collect();
+    let br: Vec<&str> = lb.iter().map(String::as_str).collect();
+    println!("```diff");
+    for (tag, line) in line_diff(&ar, &br) {
+        println!("{tag} {line}");
+    }
+    println!("```\n");
 }
 
 fn print_refactor_markdown(

@@ -63,8 +63,8 @@ This is the same per-finding shape as `review --format json`.
 | `shared` | lines invariant across **all** copies (the all-copies anti-unification count) |
 | `rep_lines` | the representative copy's line count (`shared` of `rep_lines` are shared) |
 | `params` | varying spots the extracted helper would parameterize |
-| `removable` | `(members − 1) × shared` — lines a clean extraction would delete |
-| `value` | the raw duplicated-volume score |
+| `removable` | `(members − 1) × shared` — lines a clean extraction would delete (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them) |
+| `value` | the raw duplicated-volume score (mean span × copies × similarity × spread). Ranks by repeated *volume*, independent of `removable` — under `sort=value` a structural family can top the list with `removable=0` |
 | `extraction_shape` | the decidable fix shape (`extract-helper`, `call-existing-helper`, …) |
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
 | `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |

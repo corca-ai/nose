@@ -114,7 +114,7 @@ offers `sites` and the experimental `hazard`.
 | key | ranks by | use when |
 |---|---|---|
 | `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape) | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
-| `value` | raw duplicated volume: removable lines × similarity × spread | you want the most *code* deleted, accepting that divergent copies cost more to merge |
+| `value` | raw duplicated volume: duplicated lines (mean span × copies) × similarity × spread — ranks by repeated *volume*, not the `removable` field (a structural Type-4 family can rank high here yet show `removable=0` when no literal lines survive all copies) | you want the most *code* deleted, accepting that divergent copies cost more to merge |
 | `sites` / `members` | number of copies | hunting the most-repeated patterns |
 | `hazard` *(experimental, scan only)* | divergent-edit *propensity*: line span × spread × invisibility × scope | you want a view of which clones tend to get edited inconsistently — **not yet a validated *harm* ranker** (see [hazard-ranking](hazard-ranking.md)) |
 
@@ -306,10 +306,11 @@ and may change to improve readability. The stable contract is documented in
   [`nose query <paths> base=<ref>`](#nose-query) (same detection + gate). Flags clones changed
   inconsistently in a diff (a copy edited, its siblings missed); defaults to `HEAD`, use
   `base=origin/main` for a PR branch. Full guide in [review](review.md).
-- `nose stats <paths…> [--top N] [--json]` — per-language IL lowering coverage (the
+- `nose stats <paths…> [--top N] [--format human|json]` — per-language IL lowering coverage (the
   Raw-node ratio, split into by-design protocol boundaries vs genuine lowering gaps), with
-  the top unhandled surface kinds (`--top`, default 30; `--json` for machine output). Use it
-  to spot a language/construct that isn't lowering well; see [languages](languages.md).
+  the top unhandled surface kinds (`--top`, default 30; `--format json` for machine output —
+  the same `--format` contract as `query`/`scan`/`il`).
+  Use it to spot a language/construct that isn't lowering well; see [languages](languages.md).
 - `nose semantic-pack check <file-or-dir> [--format human|json]` — validate local
   semantic-pack v0 manifest structure and declared fixture assets. It is a
   pack-author/user workflow, not external pack certification; see

@@ -2113,6 +2113,39 @@ fn query_dashboard_filter_and_family() {
         md.contains("duplicated lines"),
         "markdown report has the header: {md}"
     );
+    // #422: the bulk markdown report stays a compact location list (no per-family skeleton)…
+    assert!(
+        !md.contains("**proposal**"),
+        "bulk markdown stays compact — no extraction skeleton: {md}"
+    );
+    // …but `id=<fam>` drills into one family and renders the extraction skeleton, and `full`
+    // adds the representative diff — so markdown composes with `id=`/`full` like human/JSON.
+    let fid = {
+        let j: serde_json::Value =
+            serde_json::from_str(&run(&["query", p, "top=0", "--format", "json"])).unwrap();
+        j["families"][0]["id"].as_str().unwrap().to_string()
+    };
+    let drill = run(&["query", p, &format!("id={fid}"), "--format", "markdown"]);
+    assert!(
+        drill.contains("**proposal**") && drill.contains("⟨param"),
+        "id=<fam> markdown renders the extraction skeleton with parameter slots: {drill}"
+    );
+    assert!(
+        !drill.contains("**diff**"),
+        "id=<fam> without `full` omits the representative diff: {drill}"
+    );
+    let drill_full = run(&[
+        "query",
+        p,
+        &format!("id={fid}"),
+        "full",
+        "--format",
+        "markdown",
+    ]);
+    assert!(
+        drill_full.contains("**proposal**") && drill_full.contains("**diff**"),
+        "id=<fam> full markdown adds the representative diff: {drill_full}"
+    );
     let sarif: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "--format", "sarif"])).unwrap();
     assert_eq!(
@@ -2191,7 +2224,8 @@ fn rust_binding_patterns_lower_without_raw() {
     let stats: serde_json::Value = serde_json::from_str(&run(&[
         "stats",
         dir.to_str().unwrap(),
-        "--json",
+        "--format",
+        "json",
         "--top",
         "50",
     ]))
@@ -2329,10 +2363,10 @@ fn query_since_status_classifies_against_a_snapshot() {
         !newfams.is_empty() && newfams.iter().all(|f| f["status"] == "new"),
         "status=new selects only new families, each tagged: {newj}"
     );
-    // The new family is Y (the post-snapshot `banner` copy-paste family in d/e/f), not the
-    // snapshotted `process` family (which is the `similar` witness in a/b/c).
+    // The new family is Y (the post-snapshot `banner` family in d/e/f — byte-identical copies,
+    // so the `exact` witness), not the snapshotted `process` family (the `similar` witness in a/b/c).
     assert!(
-        newfams.iter().all(|f| f["witness"] == "copy-paste"
+        newfams.iter().all(|f| f["witness"] == "exact"
             && f["locations"][0]["file"].as_str().unwrap().contains("/d/")),
         "the post-snapshot family (Y) is flagged new, not the snapshotted X: {newj}"
     );

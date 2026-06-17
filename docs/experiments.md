@@ -2758,7 +2758,7 @@ global positional battery cannot avoid) manufacture phantom behavior differences
 *"worthy-recall is bounded by **unit extraction** and judgment, not by missing matching
 machinery,"* with the instrument limited to the ~29% of units that interpret. That makes the
 gating question not "what normalization is missing" but "what never gets modeled in the first
-place." `bench/type4/coverage_attribution.py` answers it: `nose stats --json` over the pinned
+place." `bench/type4/coverage_attribution.py` answers it: `nose stats --format json` over the pinned
 105-repo corpus, with the `Raw`-node loss (constructs that lower to an opaque node, invisible
 to value-matching) ranked by (language, surface-kind) prevalence
 (`coverage_attribution.2026-06-15.json`).
@@ -2825,7 +2825,7 @@ splits on the binding name's subtree hash. The recognized `Some(_)`-style single
   local), a separate lever; an early test asserting that convergence was *falsified* and the
   claim dropped. This PR is the coverage fix, not the alpha-convergence fix.
 
-Method: empirical leak isolation (probe each pattern position with `nose stats --json`) pinned
+Method: empirical leak isolation (probe each pattern position with `nose stats --format json`) pinned
 the leak to the binding cases (match-arm / if-let / while-let), not let-destructuring, before
 any edit. Re-run `coverage_attribution.py` to watch the ratio; next §CP levers: async `await`
 (cross-language), rust `try`/`?`, and tuple-struct binding extraction (the alpha-convergence

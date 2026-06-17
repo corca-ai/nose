@@ -121,12 +121,21 @@ impl<'a> Lowering<'a> {
 
     /// Build a [`Span`] from a CST node (1-based inclusive lines).
     pub(crate) fn span(&self, n: TsNode) -> Span {
+        let start_line = n.start_position().row as u32 + 1;
+        // A node whose text ends in a newline "ends" at column 0 of the NEXT
+        // row; counting that row would over-claim a line past the node's
+        // content (and, for file-spanning units, past EOF — see #419).
+        let end_pos = n.end_position();
+        let mut end_line = end_pos.row as u32 + 1;
+        if end_pos.column == 0 && end_line > start_line {
+            end_line -= 1;
+        }
         Span::new(
             self.b.file(),
             n.start_byte() as u32,
             n.end_byte() as u32,
-            n.start_position().row as u32 + 1,
-            n.end_position().row as u32 + 1,
+            start_line,
+            end_line,
         )
     }
 

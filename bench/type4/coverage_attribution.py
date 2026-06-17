@@ -2,7 +2,7 @@
 
 §BS measured the behavior-keyed recall frontier NO-GO and concluded worthy-recall is bounded
 by **unit extraction / coverage**, not by missing matching machinery. This instrument makes
-that boundary actionable: it runs `nose stats --json` over the pinned corpus and ranks the
+that boundary actionable: it runs `nose stats --format json` over the pinned corpus and ranks the
 **IL-lowering loss** — the `Raw` nodes a construct lowers to, which are invisible to
 value-matching — by (language, surface-kind) prevalence. That ranked list is the worklist for
 lowering fidelity (the cheapest recall lever, zero soundness risk).
@@ -49,7 +49,7 @@ def stats_for(nose: str, path: Path) -> dict | None:
         # A high --top captures every unhandled surface kind per repo (for stats, --top 0
         # means "show none", not "all"); we re-rank by aggregated Raw mass below.
         out = subprocess.run(
-            [nose, "stats", str(path), "--json", "--top", "1000"],
+            [nose, "stats", str(path), "--format", "json", "--top", "1000"],
             capture_output=True,
             text=True,
             timeout=300,
