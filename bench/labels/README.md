@@ -40,7 +40,25 @@ diversity) across 19 frontend repos + the RealWorld trio for cross-dialect.
   that **the CSS-framework default surface needs a compiled-CSS filter** (a measured lever)
   and that real-code/cross-dialect precision is healthy.
 - Each family records its 3-persona `votes`. **v1 is dev-grade** (panel-labeled, not yet
-  human-arbitrated); the 45 medium-confidence (2-1 split) families are the audit queue.
+  arbitrated); the 45 medium-confidence (2-1 split) families are the audit queue.
+
+### `frontend_families.v2.json` — arbitrated + grown
+
+v2 grows the set and **resolves every 2-1 split with an LLM arbiter** (the authoritative
+final judge — replaces the human-arbitration step; `labeler: llm-arbiter`). Built by the
+`frontend-goldset-v2-panel` + `frontend-goldset-arbiter` workflows: 62 new candidates from
+added app/markup repos (excalidraw, solid/preact/angularjs RealWorld, svelte-sites) and the
+combined-RealWorld cross-dialect pool were panel-labeled, then all 55 non-high families (v1's
+46 + 9 new splits) went to a high-effort rubric-strict arbiter that re-read the code.
+
+- **510 families** — 107 worthy / 403 not. **505 high-confidence, 5 low** (genuinely
+  undecidable, marked so). `labeler`: 455 panel, 55 llm-arbiter.
+- Worthy-rate by kind: **app 45%** (85), **cross-dialect 77%** (31), **CSS framework 11%** (394).
+- The cross-dialect arm grew 10 → 31 by pooling the React/Vue/Svelte/Solid Conduit
+  implementations together (the same app across dialects). The arbiter decisively reclassified
+  the v1 medium families — notably tachyons `src/*.css` + compiled + min families as
+  `generated` (a build-pipeline artifact the compiled-CSS surface filter still under-catches:
+  a future lever).
 - Each family records its 3-persona `votes`, so agreement is auditable. The format is
   defined in [`schema.json`](schema.json).
 
