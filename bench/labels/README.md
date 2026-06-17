@@ -59,6 +59,22 @@ combined-RealWorld cross-dialect pool were panel-labeled, then all 55 non-high f
   the v1 medium families — notably tachyons `src/*.css` + compiled + min families as
   `generated` (a build-pipeline artifact the compiled-CSS surface filter still under-catches:
   a future lever).
+
+### `frontend_families.v3.json` — grown for per-dialect coverage
+
+v3 adds real app repos to lift the per-language CI bound (precision CIs are bounded by
+#repos × 10, not #labels) and labels them with the same panel + LLM-arbiter pipeline.
+Added: Vue (vitesse, vuero, vue-cli, vue-theme), Svelte (sveltesociety, svelte-core) — Vue
+2 → 6 repos, Svelte 2 → 4. 264 new candidates panel-labeled; the 39 non-high arbitrated.
+
+- **774 families** — 196 worthy / 578 not. 765 high / 8 low (undecidable) / 1 medium.
+  `labeler`: 681 panel, 93 llm-arbiter.
+- Worthy-rate by kind: **app 36%** (349), **cross-dialect 77%** (31), **CSS framework 11%** (394).
+- Repos per dialect: css 13, html 16, vue 6, svelte 4, react 5 (+ the cross-dialect pool).
+- **Measured NO-GO** recorded alongside: mechanically demoting `parallel-by-design` utility
+  scales / per-state demos from the surface is unsound — they are structurally identical to
+  the *worthy* `parameterize`/`extract-data-table` families (same member-count distribution
+  2–17, same selectors); the distinction is a semantic judgment only the panel can make.
 - Each family records its 3-persona `votes`, so agreement is auditable. The format is
   defined in [`schema.json`](schema.json).
 
