@@ -5124,7 +5124,9 @@ fn render_query_dashboard(
         if n_exact > 0 {
             println!(
                 "  nose query {path} witness=exact             {}",
-                style::dim(&format!("# the {n_exact} proven byte-for-behavior identical"))
+                style::dim(&format!(
+                    "# the {n_exact} proven byte-for-behavior identical"
+                ))
             );
         }
         if n_subdag > 0 {
@@ -5189,14 +5191,42 @@ fn render_query_dashboard(
         style::bold("explore — terms combine with AND; swap <path> for yours and run any line:")
     );
     for (verb, cmd, note) in [
-        ("filter", "nose query <path> witness=exact", "keep only the proven-identical families"),
-        ("", "nose query <path> members>3 path~api", "compare with > < , ~ (contains), != (negate)"),
-        ("group", "nose query <path> group=dir", "totals by directory (or: witness, lang, scope, same_symbol)"),
-        ("open", "nose query <path> id=<id> full", "one family: every copy + the extraction skeleton"),
-        ("sort", "nose query <path> sort=value", "by duplicated volume (or: extractability [default], members)"),
-        ("more", "nose query <path> all", "include families held back below the default surface"),
+        (
+            "filter",
+            "nose query <path> witness=exact",
+            "keep only the proven-identical families",
+        ),
+        (
+            "",
+            "nose query <path> members>3 path~api",
+            "compare with > < , ~ (contains), != (negate)",
+        ),
+        (
+            "group",
+            "nose query <path> group=dir",
+            "totals by directory (or: witness, lang, scope, same_symbol)",
+        ),
+        (
+            "open",
+            "nose query <path> id=<id> full",
+            "one family: every copy + the extraction skeleton",
+        ),
+        (
+            "sort",
+            "nose query <path> sort=value",
+            "by duplicated volume (or: extractability [default], members)",
+        ),
+        (
+            "more",
+            "nose query <path> all",
+            "include families held back below the default surface",
+        ),
     ] {
-        println!("  {}  {cmd:<37}  {}", style::bold(&format!("{verb:<6}")), style::dim(note));
+        println!(
+            "  {}  {cmd:<37}  {}",
+            style::bold(&format!("{verb:<6}")),
+            style::dim(note)
+        );
     }
     println!(
         "\n  {}",

@@ -1968,7 +1968,10 @@ fn query_dashboard_filter_and_family() {
     // A filter narrows to a ranked list; a facet groups it. (The count noun is
     // pluralized — "1 family" / "N families" — so match the stem.)
     assert!(run(&["query", p, "members>1"]).contains("famil"));
-    assert!(run(&["query", p, "group=dir"]).contains("famil") && run(&["query", p, "group=dir"]).contains("by dir"));
+    assert!(
+        run(&["query", p, "group=dir"]).contains("famil")
+            && run(&["query", p, "group=dir"]).contains("by dir")
+    );
 
     // An unknown term is a hard error (a typo must not silently widen the result).
     assert!(run_fail(&["query", p, "wat"]).contains("unrecognized term"));
