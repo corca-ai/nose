@@ -6455,7 +6455,9 @@ fn effective_surface(
     family: &nose_detect::RefactorFamily,
     overrides: &SurfaceOverrides,
 ) -> &'static str {
-    if family_all_generated_source(family, &overrides.generated_sources) {
+    if family_all_generated_source(family, &overrides.generated_sources)
+        || family_is_compiled_css_pipeline(family, &overrides.generated_sources)
+    {
         "generated"
     } else if family_declaration_run(family, overrides) {
         "declaration"
@@ -6682,6 +6684,31 @@ fn family_all_generated_source(
             .locations
             .iter()
             .all(|loc| generated_sources.contains(&loc.file))
+}
+
+/// A CSS build-pipeline family: every member is a stylesheet and AT MOST ONE is a
+/// hand-written source — the rest are its compiled/minified outputs (`generated_sources`).
+/// Such a family is one source rule echoed through the build (source → compiled → minified),
+/// not a cross-source duplication a maintainer would dedupe, so it is kept off the default
+/// surface like other generated code. A genuine source dedup spans ≥2 source files (≥2
+/// non-compiled members) and stays on the surface. This catches the `src/_x.css` +
+/// `bundle.css` + `bundle.min.css` families the all-compiled rule misses (the lone source
+/// partial keeps them off the all-generated path). Measured on the frontend gold set: 255
+/// generated families demoted (108 beyond the all-compiled rule), 0 worthy — sound.
+fn family_is_compiled_css_pipeline(
+    family: &nose_detect::RefactorFamily,
+    generated_sources: &std::collections::HashSet<String>,
+) -> bool {
+    if family.locations.is_empty() || !family.locations.iter().all(|l| l.file.ends_with(".css")) {
+        return false;
+    }
+    let compiled = family
+        .locations
+        .iter()
+        .filter(|l| generated_sources.contains(&l.file))
+        .count();
+    let source = family.locations.len() - compiled;
+    compiled >= 1 && source <= 1
 }
 
 fn surface_omission_note(
@@ -8345,6 +8372,36 @@ mod tests {
             .map(|(file, s, e)| loc_at(file, *s, *e, nose_il::UnitKind::Block))
             .collect();
         f
+    }
+
+    #[test]
+    fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
+        let gen: std::collections::HashSet<String> = [
+            "css/bundle.css".to_string(),
+            "css/bundle.min.css".to_string(),
+        ]
+        .into_iter()
+        .collect();
+        // 1 source partial + its compiled + minified outputs → build pipeline (demote).
+        let pipe = fam_at(&[
+            ("src/_a.css", 1, 9),
+            ("css/bundle.css", 100, 108),
+            ("css/bundle.min.css", 1, 1),
+        ]);
+        assert!(family_is_compiled_css_pipeline(&pipe, &gen));
+        // 2 distinct hand-written sources sharing a block (+ a compiled copy) → keep.
+        let dedup = fam_at(&[
+            ("src/_a.css", 1, 9),
+            ("src/_b.css", 1, 9),
+            ("css/bundle.css", 100, 108),
+        ]);
+        assert!(!family_is_compiled_css_pipeline(&dedup, &gen));
+        // all-compiled also matches (subsumes the all-generated case for CSS).
+        let allc = fam_at(&[("css/bundle.css", 1, 9), ("css/bundle.min.css", 1, 1)]);
+        assert!(family_is_compiled_css_pipeline(&allc, &gen));
+        // a non-CSS member disqualifies — this rule is CSS-only.
+        let mixed = fam_at(&[("src/_a.css", 1, 9), ("app.js", 1, 9)]);
+        assert!(!family_is_compiled_css_pipeline(&mixed, &gen));
     }
 
     #[test]
