@@ -99,6 +99,50 @@ accepted families are reviewed and recorded in [`docs/dogfooding.md`](docs/dogfo
 new substantial family, either factor it out or — with a one-line justification in
 the PR — raise the budget. It is a ratchet, not a fixed wall.
 
+## Repository CI and automation
+
+These are gates on *this* repository, distinct from running nose as a gate on your own
+project (that user-facing guide is [continuous-integration](docs/continuous-integration.md)).
+
+### Nightly pinned-corpus verify — the soundness moat
+
+The scheduled `.github/workflows/corpus-verify.yml` gate guards soundness. Every night, and
+on manual `workflow_dispatch`, it reconstructs the pinned benchmark corpus with
+`bench/setup_repos.sh`, verifies the prune manifest, builds `target/release/nose`, and runs
+every corpus repository through:
+
+```sh
+target/release/nose verify bench/repos/<repo> --max-violations 0
+```
+
+The runner is `scripts/corpus-verify-nightly.sh`. It shards by repository, keeps a per-repo
+log under `target/corpus-verify-logs/`, writes a Markdown summary to the GitHub step summary,
+and exits non-zero if any repo reports a hard false merge or a canon-preservation change.
+Symbolic-trace disagreements stay advisory: the summary counts them, but they do not fail the
+job. On failure the workflow uploads `target/corpus-verify-logs` as the `corpus-verify-logs`
+artifact so triage starts from the failing repo output. It caches `bench/repos` with a key
+derived from the pinned corpus manifest and prune scripts; a cold run still works because
+`bench/setup_repos.sh` reconstructs any missing or drifted checkout. For a local spot check:
+
+```sh
+./scripts/corpus-verify-nightly.sh --repo arrow --repo click --jobs 2
+```
+
+### External review bots
+
+CodeRabbit repository automation is disabled with the root `.coderabbit.yaml`. The file opts
+out of inherited CodeRabbit settings, turns off automatic and incremental review, leaves no
+keyword/label trigger for review opt-in, excludes all paths from review scope, and disables
+review statuses, summaries, chat auto-replies, finishing touches, pre-merge checks, issue
+enrichment, knowledge-base retention, external knowledge sources, and built-in review tools.
+
+That YAML is the repository-owned control. CodeRabbit documents that manual
+`@coderabbitai review` commands can still trigger a review regardless of auto-review settings
+while the app has repository access. The CodeRabbit GitHub App is installed at the `corca-ai`
+organization level, so a hard block still requires an organization owner to change the app
+installation from "all repositories" to a selected-repositories installation that excludes
+`corca-ai/nose`, or to uninstall CodeRabbit from the organization.
+
 ## Conventions
 
 - **No `unsafe`** — the workspace forbids it (`unsafe_code = "forbid"`).

@@ -72,7 +72,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, fold-graph links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
-| `base=REF` | the **divergent-edit** view (the [`nose review`](review.md) pipeline, surfaced in query): detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. Each item carries `fire_eligible` (the §BV proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate (fires only on the proven case) |
+| `base=REF` | the **divergent-edit** view (the [`nose review`](review.md) pipeline, surfaced in query): detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. Each item carries `fire_eligible` (the conservative proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate (fires only on the proven case) |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status=new --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, or `members` |
 | `top=N` | show the first N rows (default 30); `top=0` shows **all** (like the deprecated `scan --top 0`) |
@@ -132,7 +132,7 @@ invariant lines (a language idiom, or two unrelated type literals with the same 
 have nothing to extract and sink to the bottom, even at `sim 1.00`. Extractability also
 demotes families whose copies **vary widely in length**: 25 same-shaped-but-different
 `Serializer` methods are not one helper waiting to happen, however many copies there
-are — a measured proxy for signature heterogeneity (experiments §CM).
+are — a measured proxy for signature heterogeneity (see [experiments](experiments.md)).
 
 `--sort hazard` is an **experimental** severity-style ranking calibrated on mined
 divergent-edit history. It predicts *which clones get edited inconsistently* (divergence
@@ -331,4 +331,3 @@ integration surface; do not build automation around it without checking the curr
 Hidden `detect`, `verify`, `features`, `eval`, and `ceiling` commands exist for
 strict/research workflows. They are hidden from `--help` because `query` is the command for
 everyday use; the [benchmark](benchmark.md) page documents them.
-</content>

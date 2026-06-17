@@ -182,9 +182,9 @@ Version 1 defines these `scan.capabilities` keys:
 | `baseline_changed_detection` | Baseline comparisons can classify changed and resolved families. |
 | `cache` | `--cache-dir` file analysis caching is supported. |
 | `ci_fail_gate` | `--fail-on any|new` gate behavior is supported. |
-| `diff` | the `--show diff` review view is supported. |
-| `hotspots` | the `--show hotspots` directory duplicated-line summary is supported. |
+| `diff` | the per-family unified-diff view is supported (query: open a family with `id=<fam>`; deprecated `nose scan --show diff`). |
+| `hotspots` | the directory duplicated-line summary is supported (query: `group=dir`; deprecated `nose scan --show hotspots`). |
 | `inline_suppression` | Source-level `nose-ignore` markers are supported. |
-| `proposal` | the `--show proposal` extraction-skeleton view is supported. |
+| `proposal` | the all-copies extraction-skeleton view is supported (query: `full`; deprecated `nose scan --show proposal`). |
 | `semantic_pack_loading` | local semantic-pack v0 manifest files/directories can be loaded for provenance reporting. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |

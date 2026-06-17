@@ -152,38 +152,22 @@ core canonicalizations, but not a per-scan or whole-pipeline proof. See
   proof. Python free `abs(...)` and sign-test ternary absolute-value idioms also
   need integer-domain proof before they use the modeled Abs node. Float overloads
   need a signed-zero-aware numeric model before entering exact matching.
-- Sub-function semantic coverage is intentionally bounded: nose extracts control-flow
-  blocks and exact-safe single-statement fragments (return/throw expressions and simple
-  conditional return/throw/effect guards, including bare returns, explicit empty no-op
-  branches, and nested branches whose only non-empty statement is another exact
-  conditional, a single exact ForEach effect loop, or exactly two ordered exact effect
-  items drawn from ForEach effect loops, append effects, conditional direct effects, and
-  non-overloadable C/Go/Java index assignments, plus branches that assign one local
-  temporary and immediately consume it in a direct return/throw/effect statement or
-  assign two local temporaries as a linear chain and immediately consume the final
-  temporary in such a statement or a non-overloadable C/Go/Java index assignment whose
-  receiver does not depend on the temporary, plus ForEach loops whose only loop-body
-  effects are appends or non-overloadable C/Go/Java index assignments that depend on the
-  iteration binding,
-  optionally preceded by one loop-local temporary assignment or a two-temporary linear
-  chain whose first RHS depends on the iteration binding and whose final value is
-  immediately consumed by that effect, plus exact conditional branches containing two or
-  three ordered single-item append effects where each item is direct or immediately
-  consumes a branch-local temp/temp-chain, plus exact conditional branches containing two or
-  three ordered non-overloadable C/Go/Java index-assignment effects where each assignment is direct or
-  immediately consumes a branch-local temp/temp-chain, plus Java
-  `this.field = value` self-field assignments and all-self-field Java function-body blocks
-  with the receiver fixed to `this`, optionally ending in `return this`), not arbitrary
-  statement windows with unmodeled free-variable, live-out, receiver-overload, or effect
-  boundaries. Multiple statement-level effects are ordered through control-flow-aware
-  sink tags; swapping appends/emits on one execution path is a behavior change, not a
-  Type-4 clone.
+- Sub-function semantic coverage is intentionally bounded. nose extracts whole control-flow
+  blocks plus a fixed catalog of **exact-safe** fragments — direct return/throw expressions,
+  simple conditional return/throw/effect guards, bounded ForEach append/index-assign effect
+  loops, short local-temp chains that feed one such effect, and Java fixed-`this` self-field
+  bodies — never arbitrary statement windows with unmodeled free-variable, live-out,
+  receiver-overload, or effect boundaries. Effect order is significant: swapping appends/emits
+  on one execution path is a behavior change, not a Type-4 clone. The full grammar of admitted
+  fragment shapes is in [fragment-contracts](fragment-contracts.md).
+
 Exact fragment proof is not the same thing as user-facing refactorability. Fragment
 locations carry stable proof metadata (`is_fragment`, `fragment_kind`, `reason_code`,
 span size, and `enclosing_unit` when recoverable), but product placement is decided
-separately with `recommended_surface`: default, review, or hidden. See
-[fragment-contracts](fragment-contracts.md) for the exact-fragment contract and
-[scan-json](scan-json.md#fragment-metadata) for the stable output fields.
+separately with `recommended_surface` (`default`, `review`, `hidden`, and a few more curation
+tiers). See [fragment-contracts](fragment-contracts.md) for the exact-fragment contract; the
+stable output field names are documented under the [scan-JSON v1](scan-json.md#fragment-metadata)
+contract (deprecated, but still the reference for these fragment fields).
 
 ## Declarative languages (CSS / HTML) — the taxonomy on a different denotation
 

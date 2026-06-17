@@ -14,7 +14,7 @@ nose has two ways to say "this clone is fine"; they serve different needs, so pi
 |---|---|---|
 | Lives | next to the code, travels with it | one file in the scan working directory |
 | Carries | nothing — just "skip this site" | reason, owner, expiry, note |
-| Audit | invisible in reports | listed under `ignored_families` in JSON |
+| Audit | invisible in reports | the file records reason/owner/expiry for each suppression |
 | Best for | a quick, local, self-evident exception | team-level, reviewable, expiring debt |
 
 Rule of thumb: reach for the **inline marker** when the reason is obvious to anyone
@@ -24,7 +24,9 @@ anything going through CI — prefer the structured file, because it stays audit
 
 ## Quick start
 
-Run nose and copy the family ID from the human, markdown, or JSON report:
+Run nose and copy a family's full ID from the JSON report — the `id` field. (The human and
+markdown rows show only a short `id=` drill prefix, which works with `nose query … id=` but is
+*not* a valid `family_id` selector; an ignore entry needs the full 16-hex-digit ID.)
 
 ```sh
 nose query src --format json all
@@ -55,8 +57,9 @@ way). Use `--ignore-file <file>` or `ignore-file = "path/to/file.json"` in
 [configuration](configuration.md) when the file lives elsewhere.
 
 Ignored families are removed from the active report and do not trip `--fail-on any` or
-`--fail-on new`. JSON output still carries them under `ignored_families` with the
-ignore metadata, so suppressions remain auditable.
+`--fail-on new`. The ignore file itself is the durable audit record — every suppression keeps
+its reason, owner, and expiry there. (The deprecated `nose scan --format json` additionally
+echoes suppressed families back under an `ignored_families` array.)
 
 ## File shape
 
@@ -121,11 +124,11 @@ inside a file.
 src/loaders/users.py:1  load_users  3 copies · 12/14 shared, 1p · ~24 removable · copy-paste   nose query src id=479389f590
 ```
 
-The full `family_id` to copy into an ignore entry is in `--format json` (on both active
-`families[]` and `ignored_families[]`):
+The full ID to copy into an ignore entry's `family_id` is the `id` field in `--format json`
+(every family object carries it):
 
 ```json
-{ "family_id": "479389f590c1234a", "...": "..." }
+{ "id": "479389f590c1234a", "...": "..." }
 ```
 
 ## Expired and malformed entries

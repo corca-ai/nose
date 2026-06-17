@@ -211,5 +211,3 @@ The full gate, baselines, SARIF, and fast re-runs are in
   across the Type-1–4 taxonomy, and the honest limits.
 - **[languages](languages.md)** — the supported languages, declarative CSS and HTML
   markup, and the `<script>`/`<style>`/markup region extraction for Vue/Svelte/HTML.
-</content>
-</invoke>

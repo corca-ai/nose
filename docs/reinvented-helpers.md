@@ -1,7 +1,8 @@
 # Reinvented helpers — the containment channel
 
-An experimental, exact-grade finding class: a function that **reimplements an existing
-pure helper inline instead of calling it**. It is the dual of the clone channels — not
+An exact-grade finding class — on by default for non-test findings: a function that
+**reimplements an existing pure helper inline instead of calling it**. It is the dual of the
+clone channels — not
 "these two units are alike" but "this unit *contains*, as an interior sub-computation,
 exactly the whole body of that helper". The actionable fix is the inverse of
 extract-method: replace the matched lines with a call to the helper that already exists.
@@ -26,7 +27,7 @@ For a finding `container ⟵ helper`:
   would share a return hash though they compute different values — and the guard-
   inclusion check above is then vacuous. Contract-bound helpers are excluded fail-closed;
   genuine length iteration (`for x in xs`, `while i < len(xs)`) records no contract and
-  stays eligible (coevo series 6, S3-3).
+  stays eligible.
 
 Two exclusions keep the surface honest:
 
@@ -37,8 +38,8 @@ Two exclusions keep the surface honest:
   called helper's return hash — directly or via a behaviorally-equal twin — is skipped;
   and a matched anchor carrying a REAL source span OUTSIDE the container's own line
   range is rejected, since that span belongs to a different (inlined) function the unit
-  merely calls — the case a one-level call-target record misses on a two-hop chain
-  (coevo series 6, S3-2). Calling is the fix, not the smell.
+  merely calls — the case a one-level call-target record misses on a two-hop chain.
+  Calling is the fix, not the smell.
 - **Idiom-sized helpers are never matched.** The helper must clear both a value-graph
   floor (≥ 8 nodes) and a source floor (≥ 20 tokens). Value-graph weight alone cannot
   tell a compressed accumulator loop (a whole loop canonicalizes to a ~4-node `Reduce`
@@ -56,9 +57,9 @@ Two exclusions keep the surface honest:
   See [query-json](query-json.md).
 - **Human report**: the default report LISTS the non-test findings (top by weight) —
   promoted from a one-line count after a [field audit](reinvented-helper-audit-2026-06-13.md)
-  measured them at 94% genuine value-duplications / 71% directly actionable (design §2c).
+  measured them at 94% genuine value-duplications / 71% directly actionable ([design §2c](design.md)).
   Findings whose CONTAINER is a test file (`container_in_test`) are a decidable
-  judgment-deep class (§2b) — a test asserting the helper's value as a literal would be
+  judgment-deep class ([design §2b](design.md)) — a test asserting the helper's value as a literal would be
   circular to "fix" — so they are excluded from the default and shown only by the `reinvented`
   view (or the deprecated `nose scan --show reinvented`), which lists every finding.
 - **Machine JSON**: query-JSON's `reinvented` view (`items[]`) is the forward contract; the
@@ -71,11 +72,12 @@ Two exclusions keep the surface honest:
 
 The finding says *this computation already exists as a helper* — it does **not** promise
 that mechanically replacing the reported lines compiles or preserves behavior. Two
-boundaries the consumer must check (coevo series 6, S3-1/S3-4):
+boundaries the consumer must check:
 
 - **Approximate site.** When the matched computation is a synthesized loop fold (a
   `Reduce` with no precise source span), the site falls back to the WHOLE container range
-  and `site_approximate` is `true` in the JSON. The helper's computation is then a
+  and `approximate` is `true` in the JSON (`site_approximate` in the deprecated scan-JSON).
+  The helper's computation is then a
   *sub-part* of those lines (the container does more — e.g. `total * extra + 9` around
   the fold), so the fix is "call the helper for the matched part", not "delete these
   lines". The flagship `mean = sum(xs) / len(xs)` is exactly this shape: `sum` is the

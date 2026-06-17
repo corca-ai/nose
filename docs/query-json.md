@@ -26,9 +26,10 @@ plus the view-specific body below. Like the human surface, a result is a pure fu
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`
-`{exact,subdag,copy_paste,similar}`, `reinvented` = production reinvented-helper findings),
-`top_candidates[]` (curated production-first families, each a *family object*), and `next[]`
-(runnable follow-up commands).
+`{exact,subdag,copy_paste,similar}`, `reinvented` = non-test reinvented-helper findings),
+`top_candidates[]` (the top 5 families ranked by extractability — scope-blind, so test and
+production are ranked alike; each a *family object*), and `next[]` (runnable follow-up
+commands).
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.
@@ -47,8 +48,8 @@ value, approximate}` — code that reimplements an existing helper; the action i
 pipeline). `base` (the ref), `summary` (`changed_files`, `divergences`, `fire_eligible`), and
 `items[]` of `{family_id, similarity, scope, witness_kind, fire_eligible, graded, changed[],
 not_updated[]}` — each `changed`/`not_updated` site carries `{file, name, start_line, end_line,
-…, touches_shared}`. `fire_eligible` is the §BV proven-shared-logic verdict the gate fires on.
-This is the same per-finding shape as `review --format json`.
+…, touches_shared}`. `fire_eligible` is the conservative proven-shared-logic verdict the gate
+fires on. This is the same per-finding shape as the deprecated `nose review --format json`.
 
 ## The family object
 

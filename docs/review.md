@@ -14,10 +14,10 @@ siblings for you and asks: *should this change have gone there too?*
 
 Where plain [`nose query`](usage.md#nose-query) is stateless (point it at any source, no
 history), the `base=` view needs a **git repository** — it compares the working tree to a ref.
-It shares query's detection channels, size gates, excludes, and config loading; report-shaping
-terms such as
-`sort`, `min-value`, `min-members`, baselines, config `top`, and config `ignore-file` do
-not carry over. For the standard clone taxonomy see [clone types](clone-types.md).
+It shares query's detection channels, size gates, excludes, config loading, structured
+ignores, and `top=`; report-shaping terms such as `sort=`, `min-value`, `min-members`, and
+baselines (`--baseline` / `--fail-on new`) do not carry over. For the standard clone taxonomy
+see [clone types](clone-types.md).
 
 ## Quick start
 
@@ -63,11 +63,11 @@ decide whether the edit belongs there too, or whether the divergence is intentio
 This is a **candidate surfacer, not a proof**: nose tells you a sibling exists and wasn't
 touched, not that the change definitely belongs there. Review each flagged sibling.
 
-## The gate (`--fail`)
+## The gate (`--fail-on any`)
 
 The report and the gate are deliberately different surfaces. The report shows every
-inconsistently-changed family; **`--fail` fires only on findings that pass the
-conservative fire policy** ([experiments §BV](experiments.md)):
+inconsistently-changed family; on `nose query <path> base=<ref>`, **`--fail-on any` fires
+only on findings that pass the conservative shared-logic policy** ([experiments](experiments.md)):
 
 - the diff **provably touches lines the changed copy shares with its un-updated
   sibling** — by the family's own equivalence proof for `exact-value-graph` families
@@ -77,11 +77,13 @@ conservative fire policy** ([experiments §BV](experiments.md)):
   fires on proof, never on absence of one; and
 - the family is not all-test scaffolding (`scope != "test"`).
 
-Measured on replayed merged PRs against judge-labeled findings (§BR/§BV): the policy
+Measured on replayed merged PRs against judge-labeled findings: the policy
 keeps **every** genuine missed propagation while firing 73% less often than
 span-overlap firing (change-level: 15% of merged changes vs 33%), at 3.7× the
-precision. `--fail-on any` restores the old fire-on-anything behavior for
-ratchet-style use. Each JSON finding carries `fire_eligible`, `witness_kind`,
+precision. On the query spelling, `base=<ref> --fail-on any` *is* this conservative gate;
+the broad fire-on-every-flagged-finding tier survives only on the deprecated
+`nose review --fail --fail-on any`, for ratchet-style use. Each JSON finding carries
+`fire_eligible`, `witness_kind`,
 `scope`, per-changed-site `touches_shared`, and — for near families — the family's
 [graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`, `holes`,
 `patterns`, `referent_mismatches`, `caveat_names`), so a CI wrapper can apply its own
@@ -93,34 +95,38 @@ The graded witness is **evidence for the consumer, not a fire gate**: a clean
 the same logic (a likely false fire the consumer can down-rank). It deliberately does
 **not** gate `fire_eligible` — a decorator or a same-named-but-different-referent
 difference does not stop a shared-*body* fix from being a genuine missed propagation,
-so suppressing on it would risk the keep-every-propagation property the §BV policy is
-measured against. The fire decision stays the §BV shared-logic proof; the witness only
+so suppressing on it would risk the keep-every-propagation property the shared-logic policy
+is measured against. The fire decision stays the shared-logic proof; the witness only
 makes a borderline fire explainable.
 
-## Flags
+## Flags and terms
 
-The review command shares the detection flags with [scan](usage.md): `--mode`
+The `base=` view shares [`nose query`](usage.md#nose-query)'s detection flags — `--mode`
 (`syntax`/`semantic`/`near[:T]`), `--min-size`, advanced `--min-lines`, `--exclude`,
-`--config`. One deliberate difference: review's default mix stays the conservative
-`syntax,semantic` (scan's default also includes `near`) — review feeds a gate, where a
-false fire costs more than a missed candidate. Add `--mode syntax,semantic,near` to
-review with the fuzzy channel included.
+`--config` — plus `--format`, `--ignore-file`, and the gate `--fail-on any`. One deliberate
+difference from a plain `nose query`: when `--mode` is omitted the `base=` view defaults to
+the conservative `syntax,semantic` mix (a plain `nose query` also runs `near`) — it feeds a
+gate, where a false fire costs more than a missed candidate. Add `--mode syntax,semantic,near`
+to include the fuzzy channel.
 
-| flag | effect |
+| flag / term | effect |
 |---|---|
-| `--base <ref>` | compare the working tree against this git ref (default `HEAD` = uncommitted changes; `origin/main` for a PR branch) |
-| `--format human\|json\|markdown\|sarif` | output format (default `human`; `markdown` is accepted but currently uses the human-readable review report) |
-| `--fail` | exit non-zero when the gate fires (see *The gate* above) |
-| `--fail-on shared-logic\|any` | what `--fail` fires on: `shared-logic` (default, the conservative policy) or `any` flagged finding |
+| `base=<ref>` | compare the working tree against this git ref (`HEAD` = uncommitted changes; `origin/main` for a PR branch) |
+| `--fail-on any` | exit non-zero when the gate fires — the conservative shared-logic policy (see *The gate* above) |
+| `--format human\|json\|markdown\|sarif` | output format (default `human`; `markdown` currently renders the human-readable review report) |
 | `--ignore-file <file>` | suppress accepted divergences (auto-reads `nose.ignore.json`) |
-| `--top N` | show at most N findings (`0` = all; default 30) |
+| `top=N` | show at most N findings (`0` = all; default 30) |
+
+The deprecated `nose review` spells these as flags: `--base <ref>`, `--top N`, and a
+two-knob gate `--fail` with `--fail-on shared-logic|any` (default `shared-logic`, where `any`
+fires on every flagged finding).
 
 ## Exact fragment context
 
 Semantic mode can flag exact sub-function fragments, not only whole functions or methods.
 Those small fragments are often too small to be default refactoring candidates, but they
-are useful review hazards when the changed lines touch one copy and skip another. Review
-output therefore carries the same stable fragment metadata as scan JSON:
+are useful review hazards when the changed lines touch one copy and skip another. Each
+`base=` finding therefore carries stable per-site fragment metadata in `--format json`:
 `is_fragment`, `fragment_kind`, `reason_code`, `span_lines`, `span_tokens`, and
 `enclosing_unit` when a containing function/method/class is recovered exactly.
 
@@ -134,11 +140,11 @@ exact proof shape, not the broader family/actionability reasons (future work).
 ## Suppressing intentional divergences
 
 Some clones are *meant* to diverge (a fast path vs a clear path, a sync vs async variant).
-So a true fork doesn't re-fail every PR, `review` honors the same
-[structured ignores](structured-ignores.md) as `scan`: copy a finding's `family_id` (from
-`--format json`) into `nose.ignore.json`, with a reason. nose auto-reads that file from the
-current working directory, and the
-suppressed family no longer trips `--fail`.
+So a true fork doesn't re-fail every PR, the `base=` view honors the same
+[structured ignores](structured-ignores.md) as the rest of `nose query`: copy a finding's
+`id` (from `--format json`) into the `family_id` of a `nose.ignore.json` entry, with a reason.
+nose auto-reads that file from the current working directory, and the suppressed family no
+longer trips `--fail-on any`.
 
 ## In CI
 

@@ -157,22 +157,13 @@ nose stats <paths…>
 ```
 
 A high *gap* ratio for a construct (not a by-design boundary) means that construct
-isn't lowering to a meaningful IL shape, so clones involving it won't converge. Closing those gaps
-(e.g. the Go composite-literal/`slice_expression`/`type_assertion` work that took
-Go from 0.40% to 0.03%, or Java local record/annotation declarations being erased
-as type metadata instead of surfacing as opaque statements, or Rust `async { ... }`
-blocks lowering to their body instead of a `Raw` wrapper, or Rust
-literal/negative-literal/typed-integer/wildcard/range/tuple/slice/reference/OR/guarded
-`match` arms lowering to an if-chain, or Python
-literal/wildcard/capture/qualified/sequence/OR/as/guarded `match` cases lowering to an if-chain, or Go
-channel operations lowering to source-backed protocol boundaries, or Go multi-label `switch` cases lowering to
-ORed scrutinee comparisons, or JS/TS stacked `switch` case labels sharing the following
-body, or C/Java `switch` labels lowering to real scrutinee comparisons instead of
-placeholder branches, or Java `switch` expression rules, including block `yield` bodies,
-lowering to expression if-chains instead of `Raw`, or Ruby scrutinee-less `case` lowering
-its `when` predicates directly while preserving the `else` arm) is how a language becomes a
-first-class citizen —
-see the [experiments](experiments.md) log and the convergence-test discipline in
+isn't lowering to a meaningful IL shape, so clones involving it won't converge. Closing those
+gaps is how a language becomes a first-class citizen — for example, the Go
+composite-literal/`slice_expression`/`type_assertion` work that took Go from 0.40% to 0.03%,
+or lowering Rust and Python `match` arms to if-chains so pattern-matched code converges with
+its conditional equivalent. The [experiments](experiments.md) log records the full sequence of
+gap closures (Java records, Rust `async` blocks, Go/JS/TS/C/Java/Ruby `switch`/`case` shapes,
+and more); the convergence-test discipline that keeps each one honest is in
 [`CONTRIBUTING`](../CONTRIBUTING.md).
 
 For the planned pack-based language onboarding model, see

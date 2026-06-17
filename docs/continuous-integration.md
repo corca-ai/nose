@@ -8,7 +8,7 @@ The gate command is now [`nose query`](usage.md#nose-query): it carries the same
 `--fail-on`/`--baseline`/`--ignore-file`/`--cache-dir` workflow flags and the same
 `--format sarif` output as the old `nose scan`. `nose scan` takes the same flags and
 still works, but it is **deprecated (0.10.0)** in favour of `nose query`; the examples
-below lead with the `query` spelling and note the `scan` equivalent where it differs.
+below use the `query` spelling throughout.
 
 ## The `--fail-on any` gate
 
@@ -49,59 +49,6 @@ documented in [capabilities](capabilities.md).
 Use `--fail-on any` for a greenfield or low-noise gate. Use `--baseline` plus
 `--fail-on new` when adopting nose on an existing codebase, so old accepted duplication stays
 visible in the baseline while new or changed families fail the build.
-
-## Local CI mirror
-
-For nose itself, use the repository scripts before opening or updating a PR:
-
-```sh
-./scripts/check-ci-local.sh --fast
-```
-
-The fast gate runs rustfmt, clippy with `-D warnings`, the `nose-cli` test suite,
-and the docs wiki lint. It is also wired into `.githooks/pre-push` when hooks are
-enabled with:
-
-```sh
-git config core.hooksPath .githooks
-```
-
-Before merge or release-sensitive work, run the full local CI mirror:
-
-```sh
-./scripts/check-ci-local.sh --full
-# same as:
-./scripts/check.sh
-```
-
-The full gate mirrors the GitHub Actions jobs: format, clippy, rustdoc warnings,
-release build/tests, the `cargo-llvm-cov` coverage floor, the self-hosted
-duplication gate, MSRV check, supply-chain checks, docs wiki connectivity, the
-formal obligation registry, and Lean soundness proofs via
-[check-lean-proofs.sh](../scripts/check-lean-proofs.sh).
-
-The clippy complexity thresholds (`clippy.toml`) and the coverage floor
-(`--fail-under-lines`) are deliberately **ratchets**: they start lenient so
-today's code is green and are tightened over time, never loosened to pass a red
-build. See [CONTRIBUTING](../CONTRIBUTING.md) for the gate table and the current
-values.
-
-## External review bots
-
-CodeRabbit repository automation is disabled with the root `.coderabbit.yaml`.
-The file opts out of inherited CodeRabbit settings, turns off automatic and
-incremental review, leaves no keyword/label trigger for review opt-in, excludes
-all paths from review scope, disables review statuses, summaries, chat
-auto-replies, finishing touches, pre-merge checks, issue enrichment, knowledge
-base retention, external knowledge sources, and built-in review tools.
-
-That YAML is the repository-owned control. CodeRabbit documents that manual
-`@coderabbitai review` commands can still trigger a review regardless of
-auto-review settings while the app has repository access. The CodeRabbit GitHub
-App is installed at the `corca-ai` organization level, so a hard block still
-requires an organization owner to change the app installation from "all
-repositories" to a selected-repositories installation that excludes
-`corca-ai/nose`, or to uninstall CodeRabbit from the organization.
 
 ## Baselines — incremental adoption
 
@@ -162,9 +109,9 @@ nose query src --ignore-file nose.ignore.json --fail-on any
 ```
 
 Ignored families are removed from the active report, so they do not fail `--fail-on any`
-or `--fail-on new`. They are still present in `--format json` under
-`ignored_families`, with the ignore entry's reason, note, owner, expiry, matched
-selectors, and matched paths.
+or `--fail-on new`. The ignore file keeps each suppression's reason, note, owner, expiry, and
+selectors as the audit record. (The deprecated `nose scan --format json` also echoes the
+suppressed families back under an `ignored_families` array.)
 
 Malformed ignore files fail the run. Expired entries are reported as warnings and
 listed in `ignore.expired`, but are not applied. That makes stale waivers visible
@@ -203,34 +150,8 @@ much faster. Point it at a directory your CI caches between runs.
 nose query src --cache-dir .nose-cache --fail-on any
 ```
 
-## Nightly pinned-corpus verify
+---
 
-This repository also has a scheduled `.github/workflows/corpus-verify.yml` gate
-for the soundness moat. Every night, and on manual `workflow_dispatch`, it
-reconstructs the pinned benchmark corpus with `bench/setup_repos.sh`, verifies the
-prune manifest, builds `target/release/nose`, and runs every corpus repository
-through:
-
-```sh
-target/release/nose verify bench/repos/<repo> --max-violations 0
-```
-
-The runner is `scripts/corpus-verify-nightly.sh`. It shards by repository, keeps a
-per-repo log under `target/corpus-verify-logs/`, writes a Markdown summary to the
-GitHub step summary, and exits non-zero if any repo reports a hard false merge or
-a canon-preservation change. Symbolic-trace disagreements stay in the advisory
-lane: the summary counts them, but they do not fail the job.
-
-On failure, the workflow uploads `target/corpus-verify-logs` as the
-`corpus-verify-logs` artifact so triage starts from the failing repo output. The
-workflow caches `bench/repos` with a key derived from the pinned corpus manifest
-and prune scripts; a cold run still works because `bench/setup_repos.sh`
-reconstructs any missing or drifted checkout.
-
-For a local spot check:
-
-```sh
-./scripts/corpus-verify-nightly.sh --repo arrow --repo click --jobs 2
-```
-
-See [CONTRIBUTING](../CONTRIBUTING.md) for the full gate list.
+Contributing to nose itself? The repository's own CI — the local preflight, the duplication
+ratchet, the nightly soundness corpus-verify, and review-bot policy — lives in
+[CONTRIBUTING](../CONTRIBUTING.md), not here.

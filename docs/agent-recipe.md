@@ -3,7 +3,7 @@
 [design](design.md) §2: nose's primary consumer is an LLM coding agent that **calls
 nose and applies its own judgment on top**. nose surfaces candidates with
 deterministic, machine-readable evidence; the judgment-deep question — *worth
-refactoring, or parallel-by-design?* — belongs in the caller (experiments §AV/§AY
+refactoring, or parallel-by-design?* — belongs in the caller ([experiments](experiments.md)
 measured that ceiling; an internal LLM would be redundant for agents and harmful for
 gates). This page is the protocol for that caller: how to **explore** the findings, which
 fields to read, in what order, and what to do with each verdict. It was validated by
@@ -64,16 +64,18 @@ Read the fields in this order — each step either decides or narrows:
    - `exact`: a behavioral proof (identical value graphs, literal values included; `value_nodes`
      is *how much* was proven). Treat the members as computing the same thing; the only
      question left is whether merging them couples unrelated concerns.
-   - `subdag`: a common heavy anchor (shared sub-DAG core) is behavior-proven — each member's
-     `shared_subdag: [start, end]` shows where that computation lives.
+   - `subdag` (the human report labels this `shared-core`; both are accepted as `witness=`
+     filter values): a common heavy anchor (shared sub-DAG core) is behavior-proven — each
+     member's `shared_subdag: [start, end]` shows where that computation lives.
    - `copy-paste`: token-identical run — classic copy-paste; identifiers and literals may still
      vary per copy.
    - `similar`: the fuzzy near channel. Grade it with `spotclass` (next step) before trusting it.
 4. **What differs — `params` + `shared` + `spotclass`.** `params` counts the varying spots the
    extracted helper would parameterize; with `full`, `skeleton` renders each as a
    `⟨param N: class⟩` placeholder (`class` = literal/name/call/expr/block). An all-literal
-   placeholder list over near-identical lines is a data table (`extract-data-table` or not-worthy
-   locale/i18n parallel data — check whether the literals are *content* or *parameters*). Many
+   placeholder list over near-identical lines is a data table (a consolidate-into-a-table or
+   not-worthy locale/i18n parallel-data case — check whether the literals are *content* or
+   *parameters*). Many
    `params` relative to `shared` (the lines invariant across **all** copies) means a costly, ugly
    extraction. For a near (`similar`) family, `spotclass` says whether those spots are `leaf-only`
    (clean value-leaves to parameterize — interesting) or `structural` (a shape/arity/referent
@@ -111,7 +113,7 @@ Read the fields in this order — each step either decides or narrows:
   `skeleton`; `shared` is the helper body size. Reference locations by `file:start` (each
   `locations[]` entry is `{file, start, end, name, lang}`).
 - **Not worthy, recurring** → write a [structured ignore](structured-ignores.md)
-  entry (`family_id`, `reason`, `owner`, optional `expires`) so the family stops
+  entry (`family_id`, `reason`, `owner`, optional `expires_at`) so the family stops
   resurfacing.
 - **Unsure** → leave it; never auto-refactor on a `similar` witness alone.
 
@@ -123,9 +125,9 @@ fields: `fire_eligible` (the conservative shared-logic policy verdict the gate f
 `witness_kind`, `scope`, and per-changed-site `touches_shared`. For a harm pass over the top
 findings, judge each as
 should-propagate / intentional-divergence / not-a-clone using the changed member's
-diff and the un-updated sibling's body — the §BG-gold method; experiments §BR/§BV
-measured the base rates (most fires are not propagation hazards; the gate tier is
-the high-precision slice).
+diff and the un-updated sibling's body. Most fires are not propagation hazards; the
+gate's `fire_eligible` tier is the high-precision slice ([experiments](experiments.md)
+measured the base rates).
 
 ## Validation
 

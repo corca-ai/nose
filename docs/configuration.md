@@ -24,10 +24,11 @@ semantic-packs = ["semantic-packs/python-math-prod.json"]
 Pass an alternate file with `--config <file>`. A malformed config is a **hard
 error** — a silently-ignored typo'd setting would be worse than a crash.
 
-Put stable project policy in `nose.toml`: excludes, scan modes, ranking, size/value
+Put stable project policy in `nose.toml`: excludes, detection modes, ranking, size/value
 thresholds, report limits, the structured-ignore file, and explicit local
-semantic-pack opt-ins. Keep one-off workflow choices on the command line: output
-format, `--show` views, baselines, cache location, and CI failure mode.
+semantic-pack opt-ins. Keep one-off workflow choices on the command line or in query terms:
+output format, the drill/view terms (`id=`, `group=`, `full`), baselines, cache location, and
+CI failure mode.
 
 ### Keys
 
@@ -35,16 +36,19 @@ All keys are optional; an absent key means "no opinion — use the CLI value or
 the built-in default". Keys are kebab-case and live under the `[scan]` table.
 `nose query` reads the same `[scan]` config keys as `nose scan`.
 
-| key | type | default | same as flag |
+The **CLI override** column gives the per-run flag (or, where they differ, the `nose query`
+term — `nose query` spells `sort`/`top` as the DSL terms `sort=`/`top=`, not `--sort`/`--top`).
+
+| key | type | default | CLI override |
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
 | `mode` | list of `syntax`\|`semantic`\|`near[:T]` | `["syntax", "semantic", "near"]` | `--mode` |
-| `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `--sort` |
+| `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `sort=` (query term); `--sort` (deprecated scan) |
 | `min-value` | finite non-negative float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
 | `min-size` | int (IL tokens) | `24` | `--min-size` |
 | `min-lines` | int (advanced) | `5` | `--min-lines` |
-| `top` | int | `30` | `--top` |
+| `top` | int | `30` | `top=` (query term); `--top` (deprecated scan) |
 | `ignore-file` | string path | auto-read `nose.ignore.json` when present | `--ignore-file` |
 | `semantic-packs` | list of file or directory paths | `[]` | `--semantic-pack` |
 
@@ -113,8 +117,8 @@ ignore-file = "nose.ignore.json"
 When unset, nose automatically reads `nose.ignore.json` in the current working
 directory if it exists. Pass `--ignore-file <file>` to override the config for one
 run. Ignored families are hidden from the active report and from `--fail-on any` /
-`--fail-on new`, while `--format json` still includes them with their reason,
-owner, note, and expiry metadata.
+`--fail-on new`; the ignore file keeps the reason, owner, note, and expiry for each
+suppression as the audit record.
 
 The file format, selector semantics, and expiry behavior are documented in
 [structured-ignores](structured-ignores.md).
