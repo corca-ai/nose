@@ -118,7 +118,7 @@ Read the fields in this order — each step either decides or narrows:
 ## PR-time: divergent-edit findings
 
 `nose query <path> base=<ref> --format json` (the `base` view — `nose review --format json` is
-the deprecated alias) emits one `items[]` finding per divergence, each carrying the #245 gate
+the deprecated alias) emits one `items[]` finding per divergence, each carrying the gate
 fields: `fire_eligible` (the conservative shared-logic policy verdict the gate fires on),
 `witness_kind`, `scope`, and per-changed-site `touches_shared`. For a harm pass over the top
 findings, judge each as
@@ -129,7 +129,7 @@ the high-precision slice).
 
 ## Validation
 
-The recipe was validated the #227 way (decide from JSON only, then grade): an agent
+The recipe was validated decide-from-JSON-only, then grade: an agent
 following this page over a deterministic top-K sample of v5-labeled families
 reproduced the human-audited worthy/not-worthy verdicts — see
 [experiments §BX](experiments.md) for the run and its agreement numbers.

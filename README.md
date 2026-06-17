@@ -31,14 +31,20 @@ $ nose query src
 nose — finds duplicated & refactorable code across languages.
 scanned 23 files · python 14 · typescript 9
 
-4 duplicated-code families on the default surface.
-  by confidence: exact 1 · subdag 0 · copy-paste 1 · similar 2
+4 duplicated-code families.
+  proven 1 (exact 1 · shared-core 0) · copy-paste 1 · similar 2
+  proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape
 
-cleanest to extract (production first):
+cleanest to extract:
   src/loaders/users.py:1  load_users  2 copies · 8/10 shared, 2p · ~8 removable · similar   nose query src id=b221962180
   …
-grammar:  nose query <path> [field=value | field>N | field~substr …] [group=FIELD | id=FAM | at=FILE:LINE] [sort=KEY] [top=N] [full] [all]
+explore — terms combine with AND; swap <path> for yours and run any line:
+  filter  nose query <path> witness=exact   keep only the proven-identical families
+  group   nose query <path> group=dir       totals by directory (or: witness, lang, scope)
+  open    nose query <path> id=<id> full     one family: every copy + the extraction skeleton
 ```
+
+On a colour terminal the witness tags are colour-coded and paths dimmed (`NO_COLOR=1` disables it).
 
 Then drill: `nose query src witness=exact` (only behavior-proven families), `nose query src
 group=dir` (by directory), `nose query src id=b221962180 full` (open one family with its

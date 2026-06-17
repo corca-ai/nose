@@ -38,26 +38,31 @@ $ nose query examples
 nose — finds duplicated & refactorable code across languages.
 scanned 3 files · go 1 · python 1 · typescript 1
 
-1 duplicated-code families on the default surface.
-  by confidence: exact 1 · subdag 0 · copy-paste 0 · similar 0
-                 (exact/subdag = behavior-proven, value-graph-verified · copy-paste = token-identical · similar = fuzzy)
+1 duplicated-code family.
+  proven 1 (exact 1 · shared-core 0) · copy-paste 0 · similar 0
+  proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape
 
-cleanest to extract (production first):
+cleanest to extract:
   examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
-  nose query examples sort=extractability       # all 1 (default surface), cleanest first
+  nose query examples sort=extractability       # all 1, cleanest first
 
-highest confidence — exact 1 (proven-identical) + shared-core 0:
+proven families (same behavior, not just similar shape):
   examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
-
-most-duplicated directories:
-  nose query examples group=dir                 # full breakdown
+  nose query examples witness=exact             # the 1 proven byte-for-behavior identical
 
 ~30 duplicated lines on the default surface.
 
-grammar:  nose query <path> [field=value | field>N | field~substr | field!=value | field!~substr …] [group=FIELD | id=FAM | at=FILE:LINE]
-          fields: scope witness same_symbol lang path members files value params shared dir
-          · sort=extractability(default)|value|members  · top=N  · `full` expands the skeleton  · `all` widens past the default surface
+explore — terms combine with AND; swap <path> for yours and run any line:
+  filter  nose query <path> witness=exact        keep only the proven-identical families
+          nose query <path> members>3 path~api   compare with > < , ~ (contains), != (negate)
+  group   nose query <path> group=dir            totals by directory (or: witness, lang, scope, same_symbol)
+  open    nose query <path> id=<id> full         one family: every copy + the extraction skeleton
+  sort    nose query <path> sort=value           by duplicated volume (or: extractability [default], members)
+  more    nose query <path> all                  include families held back below the default surface
 ```
+
+On a colour terminal the witness tags are colour-coded (proven green, copy-paste yellow,
+similar blue), paths are dimmed, and the symbol names stand out — `NO_COLOR=1` turns that off.
 
 That's the whole loop in one screen: a summary, the cleanest candidates, and a runnable
 command on every line. From here you **open** a family, **slice** the list, or **facet** it.
@@ -71,12 +76,13 @@ expected. (The *ignored* count is deliberately not shown — counting it would m
 the very trees `.gitignore` exists to skip.)
 
 **The confidence line** breaks the families down by *why* their copies merged — the evidence,
-strongest first:
+strongest first. The two **proven** channels come first because they're verified, not guessed:
 
-- `exact` / `subdag` — a **value-graph proof**: the copies provably compute the same thing
-  (`exact` = the whole unit; `subdag` = a shared heavy sub-computation). A shared *decision*.
-- `copy-paste` — a token-identical run; classic copy-paste (identifiers/literals may vary).
-- `similar` — fuzzy structural likeness. A shared *shape*, not a proven shared decision.
+- **proven** — `exact` / `shared-core`: a **value-graph proof** that the copies compute the same
+  thing (`exact` = the whole unit; `shared-core` = a shared heavy sub-computation). A shared
+  *decision*. (In `--format json` the `shared-core` witness is spelled `subdag`.)
+- `copy-paste` — identical text; classic copy-paste (identifiers/literals may vary).
+- `similar` — similar *shape*, not a proven shared decision.
 
 **Each candidate row is one _family_** — one refactoring decision (extract a helper, base
 class, or data table). Read it left to right:
@@ -130,12 +136,13 @@ a `⟨param N: class⟩` placeholder (the coarse value-class — `literal`/`name
 
 ## Slice, facet, and follow links
 
-Every dashboard ends in runnable next-commands; the grammar is also printed each run. The moves:
+Every dashboard ends in runnable next-commands, and an `explore` cheatsheet of the query
+grammar is printed each run. The moves:
 
 | You want… | Command |
 |---|---|
-| Only the behavior-proven families | `nose query src witness=exact` |
-| Production scope only | `nose query src scope=prod` |
+| Only the proven families (exact + shared-core) | `nose query src witness=exact,shared-core` |
+| Narrow to one scope (test and prod rank equally otherwise) | `nose query src scope=prod` (or `scope=test`) |
 | Families in one area | `nose query src path~loaders` |
 | The duplication **hotspot** map (by directory) | `nose query src group=dir` |
 | Open one family with its skeleton | `nose query src id=<id> full` |
@@ -148,8 +155,9 @@ hard error — so a typo can never read as "no duplication." A typical loop is j
 `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 
 By default nose runs all three channels — `syntax` (copy-paste runs), `semantic` (exact
-same-logic Type-4 clones), and `near` (fuzzy near-duplicates). Pass `--mode` to run exactly the
-channels you list — see [clone-types](clone-types.md) for what each finds.
+same-logic clones — the Type-4 case: the same computation written differently), and `near`
+(fuzzy near-duplicates). Pass `--mode` to run exactly the channels you list — see
+[clone-types](clone-types.md) for what each finds.
 
 ## Catch a missed sibling edit: `nose query base=<ref>`
 
@@ -182,11 +190,10 @@ nose query src --baseline .nose-baseline.json --fail-on new      # then fail onl
 The full gate, baselines, SARIF, and fast re-runs are in
 [continuous-integration](continuous-integration.md).
 
-> **`nose scan` and `nose review` are deprecated.** `nose scan` (the one-shot ranked report +
-> scan-JSON v1 contract) and `nose review --base <ref>` (the PR check) still work but are
-> superseded by `nose query` and `nose query base=<ref>`, which read the same dataset and now
-> carry the gate and a versioned JSON contract. An interactive run of either prints a one-line
-> nudge; both will be removed in a later release.
+> **`nose scan` and `nose review` are deprecated** in favour of `nose query` and `nose query
+> base=<ref>`, which read the same dataset and add the gate, baselines, and a versioned JSON
+> contract. They still work (an interactive run prints a one-line nudge) but will be removed in
+> a later release — see [usage](usage.md#nose-query) for the migration.
 
 ## Where to go next
 

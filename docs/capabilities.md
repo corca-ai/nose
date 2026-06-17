@@ -160,6 +160,12 @@ release so it can't drift.
 | `il.cfg_norm_toggle` | boolean | Whether `nose il --no-cfg-norm` is supported. |
 | `stats.output_formats` | array | Supported stats output formats. |
 
+The `scan.*` keys describe the shared detection, ranking, and config surface, not just the
+deprecated `nose scan` command: `nose query` uses the same `--mode` values, the same default
+modes, the same `--format` and `sort` keys, and the same `[scan]` config block. The `scan.`
+prefix is retained for back-compatibility; treat these as the capabilities of the everyday
+[`nose query`](usage.md#nose-query) surface.
+
 Known unsupported capabilities or query interfaces should be represented as
 `false` when nose has a stable key for them. Unknown keys should be ignored by
 consumers. New fields may be added to existing objects without changing

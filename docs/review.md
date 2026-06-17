@@ -12,31 +12,35 @@ slips through — you fix one copy and never learn the others exist, because the
 renamed or restructured enough that grep and your IDE can't find them. `review` finds the
 siblings for you and asks: *should this change have gone there too?*
 
-Where [scan](usage.md) is stateless (point it at any source, no history), `review` needs
-a **git repository** — it compares the working tree to a ref. It shares scan's detection
-channels, size gates, excludes, and config loading; scan-only config/report shaping such as
-`sort`, `min-value`, `min-members`, baselines, config `top`, and config `ignore-file` does
+Where plain [`nose query`](usage.md#nose-query) is stateless (point it at any source, no
+history), the `base=` view needs a **git repository** — it compares the working tree to a ref.
+It shares query's detection channels, size gates, excludes, and config loading; report-shaping
+terms such as
+`sort`, `min-value`, `min-members`, baselines, config `top`, and config `ignore-file` do
 not carry over. For the standard clone taxonomy see [clone types](clone-types.md).
 
 ## Quick start
 
 ```sh
 # Review your uncommitted local changes (pre-commit):
-nose review
+nose query . base=HEAD
 
 # Review a PR branch against its merge target (CI):
-nose review --base origin/main
+nose query . base=origin/main
 ```
 
 ```
-reviewing changes vs `origin/main` · 3 files changed
+1 divergent family vs `origin/main` (3 files changed; 1 touch shared logic):
+  9f2c1a  similar · prod · shared-logic (likely missed propagation)
+    changed:      src/fs.rs:88-95  normalize_path
+    not updated:  src/router.py:212-220  clean_route
 
-⚠ 1 clone family changed inconsistently — a copy was edited but its sibling(s) were not:
-
-#1  changed: normalize_path (src/fs.rs:88-95)  (sim 0.94)
-    not updated: clean_route (src/router.py:212-220)
-    → review whether the change should also apply to the sibling(s)
+next:
+  nose query . base=origin/main --fail-on any   # fail CI on a proven divergence
 ```
+
+(The deprecated `nose review` / `nose review --base origin/main` spelling still works and
+prints the same findings in its own layout.)
 
 The location listed under **not updated** is the copy your change skipped — open it and
 decide whether the edit belongs there too, or whether the divergence is intentional.
@@ -125,7 +129,7 @@ span, while the context text names the enclosing unit. Human output prints fragm
 for both changed and not-updated sites so a one-line guard or effect is reviewed inside its
 surrounding function. JSON output includes the full fragment metadata for both `changed` and
 `not_updated` sites. `proof_facts` are not emitted; fragment `reason_code` explains the
-exact proof shape, not the broader family/actionability reasons planned in #11.
+exact proof shape, not the broader family/actionability reasons (future work).
 
 ## Suppressing intentional divergences
 
@@ -142,9 +146,9 @@ Run it on a pull request and fail the build (or post SARIF annotations) when a c
 lands in one copy but not its clones:
 
 ```sh
-nose review --base "origin/${GITHUB_BASE_REF}" --fail
+nose query . base="origin/${GITHUB_BASE_REF}" --fail-on any
 # or, for inline PR annotations on the un-updated copies:
-nose review --base "origin/${GITHUB_BASE_REF}" --format sarif > nose-review.sarif
+nose query . base="origin/${GITHUB_BASE_REF}" --format sarif > nose-review.sarif
 ```
 
 SARIF results are anchored on the **un-updated sibling** (where the fix may be missing),
