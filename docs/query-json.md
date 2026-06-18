@@ -1,4 +1,4 @@
-# nose query JSON (schema v2)
+# nose query JSON (schema v3)
 
 `nose query <path> [terms…] --format json` emits a structured, versioned contract over the
 same family dataset [`scan`](scan-json.md) computes — the **machine** form of the
@@ -7,7 +7,7 @@ dump), the query contract is *view-shaped*: it mirrors what the human surface sh
 caller drives the same dashboard → slice → open-family loop programmatically.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[2]`).
+versions the installed binary emits (currently `[3]`).
 
 ## Envelope
 
@@ -15,7 +15,7 @@ Every response is an object with:
 
 | field | meaning |
 |---|---|
-| `schema_version` | `2` |
+| `schema_version` | `3` |
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the scanned path, as given |
@@ -40,8 +40,9 @@ commands).
 **`group`** (`group=FIELD`) — `field` and `groups[]` of `{key, count, removable, exemplar_id}`,
 ranked by **removable lines** (so `group=dir`/`group=file` is the duplication hotspot map).
 
-**`family`** (`id=` / `at=`) — `hint` (the prose `→` recommendation) and a single `family`
-object; with `full`, that object carries `skeleton`.
+**`family`** (`id=` / `at=`) — `hint` (the prose `→` recommendation),
+`hint_reasons[]` (short human-readable facts behind that hint, when unit-origin metadata is
+available), and a single `family` object; with `full`, that object carries `skeleton`.
 
 **`reinvented`** (`reinvented`) — `summary` (`findings`, `shown`, `in_test`) and `items[]` of
 `{helper {name,file,start,end}, site {file,container,container_start,container_end,start,end},
@@ -79,7 +80,7 @@ deprecated `nose review --format json`.
 | `folds` | count of overlapping slice families folded under this one |
 | `subsumes` | (present when this family has folded slices, in any view) the `id=` handles of the slice families this one subsumes — open any to inspect |
 | `subsumed_by` | (present when this family is a slice, in any view) the `id=` handle of the fuller overlapping family this one is a slice of |
-| `locations[]` | every copy: `{file, start, end, name, lang}`; the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
+| `locations[]` | every copy: `{file, start, end, name, lang}`; when the frontend knows source-origin facts the location also carries `origin` (domains/body/region facets such as `type-contract`, `style`, `markup`, `declaration-only`, or `vue-sfc`); the `existing_helper` member also carries `role: "existing-helper"`; a sub-dag clone's member carries `shared_subdag: [start, end]` — where the proven shared computation lives at that site |
 | `skeleton` | (only with `full`) the all-copies extraction-skeleton lines, each varying spot a `⟨param N: class⟩` placeholder (`class` = `literal`/`name`/`call`/`expr`/`block` — a coarse value-class hint for the helper signature) |
 
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel

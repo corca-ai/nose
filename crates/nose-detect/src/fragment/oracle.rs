@@ -90,6 +90,7 @@ pub fn synthesize_wrapper(
         root: func,
         kind: UnitKind::Function,
         name: None,
+        origin: Default::default(),
     }];
     let mut synth = b.finish(func, meta, units, il.cid_names.clone());
     // Copied fragment nodes keep their original spans, so their semantic evidence

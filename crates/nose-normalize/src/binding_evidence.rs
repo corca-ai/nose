@@ -473,6 +473,7 @@ mod tests {
                 root,
                 kind: UnitKind::Function,
                 name: None,
+                origin: Default::default(),
             }],
             Vec::new(),
         )

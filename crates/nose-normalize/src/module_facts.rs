@@ -418,6 +418,7 @@ mod tests {
                 root: func,
                 kind: UnitKind::Function,
                 name: Some(grow),
+                origin: Default::default(),
             }],
             vec![arr],
         );

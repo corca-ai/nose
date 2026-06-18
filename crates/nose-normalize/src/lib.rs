@@ -162,6 +162,7 @@ pub(crate) fn finalize_rebuild(
                 root,
                 kind: u.kind,
                 name: u.name,
+                origin: u.origin,
             })
         })
         .collect();

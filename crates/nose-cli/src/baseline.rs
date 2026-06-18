@@ -315,6 +315,7 @@ mod tests {
             end_line: start_line,
             lang: "java".to_owned(),
             kind: UnitKind::Block,
+            origin: Default::default(),
             name: None,
             sem: 1,
             span_lines: 1,

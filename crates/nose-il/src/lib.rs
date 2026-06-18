@@ -42,6 +42,8 @@ pub struct Unit {
     pub root: NodeId,
     pub kind: UnitKind,
     pub name: Option<Symbol>,
+    #[serde(default, skip_serializing_if = "UnitOrigin::is_unknown")]
+    pub origin: UnitOrigin,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -50,6 +52,641 @@ pub enum UnitKind {
     Method,
     Class,
     Block,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct UnitDomains(u16);
+
+impl UnitDomains {
+    pub const fn empty() -> Self {
+        Self(0)
+    }
+
+    pub const fn of(domain: UnitDomain) -> Self {
+        Self(domain.bit())
+    }
+
+    pub const fn with(self, domain: UnitDomain) -> Self {
+        Self(self.0 | domain.bit())
+    }
+
+    pub const fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub const fn contains(self, domain: UnitDomain) -> bool {
+        self.0 & domain.bit() != 0
+    }
+
+    pub fn iter(self) -> impl Iterator<Item = UnitDomain> {
+        UnitDomain::ALL
+            .iter()
+            .copied()
+            .filter(move |domain| self.contains(*domain))
+    }
+}
+
+impl Serialize for UnitDomains {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_seq(self.iter())
+    }
+}
+
+impl<'de> Deserialize<'de> for UnitDomains {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let domains = Vec::<UnitDomain>::deserialize(deserializer)?;
+        Ok(domains
+            .into_iter()
+            .fold(UnitDomains::empty(), UnitDomains::with))
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnitDomain {
+    Unknown,
+    Imperative,
+    TypeContract,
+    ImplementationType,
+    Data,
+    Markup,
+    Style,
+    ModuleWiring,
+    Preprocessor,
+    Prose,
+}
+
+impl UnitDomain {
+    const ALL: [Self; 9] = [
+        Self::Imperative,
+        Self::TypeContract,
+        Self::ImplementationType,
+        Self::Data,
+        Self::Markup,
+        Self::Style,
+        Self::ModuleWiring,
+        Self::Preprocessor,
+        Self::Prose,
+    ];
+
+    const fn bit(self) -> u16 {
+        match self {
+            Self::Unknown => 0,
+            Self::Imperative => 1 << 0,
+            Self::TypeContract => 1 << 1,
+            Self::ImplementationType => 1 << 2,
+            Self::Data => 1 << 3,
+            Self::Markup => 1 << 4,
+            Self::Style => 1 << 5,
+            Self::ModuleWiring => 1 << 6,
+            Self::Preprocessor => 1 << 7,
+            Self::Prose => 1 << 8,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnitSubkind {
+    Unknown,
+    Function,
+    Method,
+    Constructor,
+    FunctionPrototype,
+    Class,
+    Module,
+    SingletonClass,
+    SingletonMethod,
+    StructRecord,
+    RecordContract,
+    Union,
+    Enum,
+    Actor,
+    InterfaceTraitProtocol,
+    TypeAlias,
+    DefinedType,
+    ExtensionImpl,
+    ImplBlock,
+    ObjectLiteral,
+    ArrayLiteral,
+    ConfigLiteral,
+    CssRule,
+    HtmlElement,
+    MarkupControl,
+    MarkdownSection,
+    MarkdownDocument,
+    DocMetadata,
+    ImportIncludeReexport,
+    Macro,
+    Schema,
+    DslBlock,
+    TestDsl,
+}
+
+impl UnitSubkind {
+    pub const fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
+impl Default for UnitSubkind {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnitBodyKind {
+    Unknown,
+    Implementation,
+    DeclarationOnly,
+    DeclarativeDenotation,
+    ModuleWiring,
+    Preprocessor,
+    ProseContent,
+    StructuredProse,
+    Mixed,
+}
+
+impl UnitBodyKind {
+    pub const fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
+impl Default for UnitBodyKind {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SourceGranularity {
+    Unknown,
+    WholeUnit,
+    Member,
+    ModuleItem,
+    DeclarationGroup,
+    Block,
+    Fragment,
+    Rule,
+    Element,
+    Section,
+    Document,
+    Mixed,
+}
+
+impl SourceGranularity {
+    pub const fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
+impl Default for SourceGranularity {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RegionKind {
+    Unknown,
+    Code,
+    Script,
+    Style,
+    Markup,
+    Preprocessor,
+    Frontmatter,
+    Prose,
+    CodeFence,
+    Mixed,
+}
+
+impl RegionKind {
+    pub const fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
+impl Default for RegionKind {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnitContainerKind {
+    Unknown,
+    StandaloneFile,
+    HtmlDocument,
+    Jsx,
+    Tsx,
+    VueSfc,
+    SvelteComponent,
+}
+
+impl UnitContainerKind {
+    pub const fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
+impl Default for UnitContainerKind {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct UnitEvidenceFlags(u128);
+
+impl UnitEvidenceFlags {
+    pub const fn empty() -> Self {
+        Self(0)
+    }
+
+    pub const fn of(flag: UnitEvidenceFlag) -> Self {
+        Self(flag.bit())
+    }
+
+    pub const fn with(self, flag: UnitEvidenceFlag) -> Self {
+        Self(self.0 | flag.bit())
+    }
+
+    pub const fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub const fn contains(self, flag: UnitEvidenceFlag) -> bool {
+        self.0 & flag.bit() != 0
+    }
+
+    pub fn iter(self) -> impl Iterator<Item = UnitEvidenceFlag> {
+        UnitEvidenceFlag::ALL
+            .iter()
+            .copied()
+            .filter(move |flag| self.contains(*flag))
+    }
+}
+
+impl Serialize for UnitEvidenceFlags {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_seq(self.iter())
+    }
+}
+
+impl<'de> Deserialize<'de> for UnitEvidenceFlags {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let flags = Vec::<UnitEvidenceFlag>::deserialize(deserializer)?;
+        Ok(flags
+            .into_iter()
+            .fold(UnitEvidenceFlags::empty(), UnitEvidenceFlags::with))
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UnitEvidenceFlag {
+    Unknown,
+    SameSymbol,
+    SameOwner,
+    SameReceiverType,
+    SameSelfType,
+    SameTraitTarget,
+    SameExtensionTarget,
+    SameRootTag,
+    SameSelector,
+    DifferentSelectors,
+    SelectorExcludedFromProof,
+    HasRuntimeBody,
+    HasReusableBody,
+    DeclarationOnly,
+    TypeOnly,
+    RuntimeValue,
+    Ambient,
+    DeclarationFile,
+    StubFile,
+    EllipsisBody,
+    PassOnly,
+    AbstractOnly,
+    DecoratedBinding,
+    HasDefaultBody,
+    HasAssociatedType,
+    FieldOnly,
+    DataShapeOnly,
+    SameFieldSet,
+    SchemaLike,
+    RuntimeValidation,
+    ProtocolRequirement,
+    ProtocolExtension,
+    ConcreteTypeExtension,
+    ConstrainedExtension,
+    InterfaceDefaultMethod,
+    InterfaceStaticMethod,
+    InterfacePrivateMethod,
+    RecordHeader,
+    CompactConstructor,
+    EnumConstantBody,
+    AliasDeclaration,
+    DefinedType,
+    FieldTags,
+    ActorIsolated,
+    SwiftuiView,
+    ResultBuilderBody,
+    ReturnsView,
+    Async,
+    Throws,
+    TestContext,
+    TestFixture,
+    TestSuite,
+    TestCase,
+    TestHook,
+    AssertionDsl,
+    TableDrivenTest,
+    FrameworkHook,
+    RailsRouteDsl,
+    ActiveRecordValidation,
+    ActiveRecordScope,
+    MigrationDsl,
+    FactoryBotDsl,
+    RspecExample,
+    MinitestTest,
+    ComputedStyleEquivalent,
+    SameDeclarationBlock,
+    SameAtRuleContext,
+    AtRuleContext,
+    SingleDeclaration,
+    UtilityLikeSelector,
+    ResetLikeSelector,
+    CustomPropertyToken,
+    EmbeddedStyleBlock,
+    StandaloneStylesheet,
+    InlineStyle,
+    StaticAttrsOnly,
+    BoundAttributes,
+    TextInterpolation,
+    BoundAttributeValue,
+    ControlFlowTemplate,
+    ContainsMarkupControl,
+    RepeatControl,
+    ConditionalControl,
+    ComponentTag,
+    SlotOutlet,
+    ScriptStyleSeparated,
+    CommonBoilerplateLike,
+    HeaderFile,
+    SourceFile,
+    StaticLinkage,
+    ExternLinkage,
+    Inline,
+    StaticInline,
+    AbiFacing,
+    LayoutContract,
+    PreprocConditioned,
+    SamePreprocCondition,
+    DifferentPreprocCondition,
+    MacroObjectLike,
+    MacroFunctionLike,
+    MacroVariadic,
+    MacroTokenPaste,
+    MacroStringify,
+    IncludeGuard,
+    PragmaOnce,
+}
+
+impl UnitEvidenceFlag {
+    const ALL: [Self; 104] = [
+        Self::SameSymbol,
+        Self::SameOwner,
+        Self::SameReceiverType,
+        Self::SameSelfType,
+        Self::SameTraitTarget,
+        Self::SameExtensionTarget,
+        Self::SameRootTag,
+        Self::SameSelector,
+        Self::DifferentSelectors,
+        Self::SelectorExcludedFromProof,
+        Self::HasRuntimeBody,
+        Self::HasReusableBody,
+        Self::DeclarationOnly,
+        Self::TypeOnly,
+        Self::RuntimeValue,
+        Self::Ambient,
+        Self::DeclarationFile,
+        Self::StubFile,
+        Self::EllipsisBody,
+        Self::PassOnly,
+        Self::AbstractOnly,
+        Self::DecoratedBinding,
+        Self::HasDefaultBody,
+        Self::HasAssociatedType,
+        Self::FieldOnly,
+        Self::DataShapeOnly,
+        Self::SameFieldSet,
+        Self::SchemaLike,
+        Self::RuntimeValidation,
+        Self::ProtocolRequirement,
+        Self::ProtocolExtension,
+        Self::ConcreteTypeExtension,
+        Self::ConstrainedExtension,
+        Self::InterfaceDefaultMethod,
+        Self::InterfaceStaticMethod,
+        Self::InterfacePrivateMethod,
+        Self::RecordHeader,
+        Self::CompactConstructor,
+        Self::EnumConstantBody,
+        Self::AliasDeclaration,
+        Self::DefinedType,
+        Self::FieldTags,
+        Self::ActorIsolated,
+        Self::SwiftuiView,
+        Self::ResultBuilderBody,
+        Self::ReturnsView,
+        Self::Async,
+        Self::Throws,
+        Self::TestContext,
+        Self::TestFixture,
+        Self::TestSuite,
+        Self::TestCase,
+        Self::TestHook,
+        Self::AssertionDsl,
+        Self::TableDrivenTest,
+        Self::FrameworkHook,
+        Self::RailsRouteDsl,
+        Self::ActiveRecordValidation,
+        Self::ActiveRecordScope,
+        Self::MigrationDsl,
+        Self::FactoryBotDsl,
+        Self::RspecExample,
+        Self::MinitestTest,
+        Self::ComputedStyleEquivalent,
+        Self::SameDeclarationBlock,
+        Self::SameAtRuleContext,
+        Self::AtRuleContext,
+        Self::SingleDeclaration,
+        Self::UtilityLikeSelector,
+        Self::ResetLikeSelector,
+        Self::CustomPropertyToken,
+        Self::EmbeddedStyleBlock,
+        Self::StandaloneStylesheet,
+        Self::InlineStyle,
+        Self::StaticAttrsOnly,
+        Self::BoundAttributes,
+        Self::TextInterpolation,
+        Self::BoundAttributeValue,
+        Self::ControlFlowTemplate,
+        Self::ContainsMarkupControl,
+        Self::RepeatControl,
+        Self::ConditionalControl,
+        Self::ComponentTag,
+        Self::SlotOutlet,
+        Self::ScriptStyleSeparated,
+        Self::CommonBoilerplateLike,
+        Self::HeaderFile,
+        Self::SourceFile,
+        Self::StaticLinkage,
+        Self::ExternLinkage,
+        Self::Inline,
+        Self::StaticInline,
+        Self::AbiFacing,
+        Self::LayoutContract,
+        Self::PreprocConditioned,
+        Self::SamePreprocCondition,
+        Self::DifferentPreprocCondition,
+        Self::MacroObjectLike,
+        Self::MacroFunctionLike,
+        Self::MacroVariadic,
+        Self::MacroTokenPaste,
+        Self::MacroStringify,
+        Self::IncludeGuard,
+        Self::PragmaOnce,
+    ];
+
+    const fn bit(self) -> u128 {
+        match self {
+            Self::Unknown => 0,
+            _ => 1u128 << (self as u8 - 1),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub struct UnitOrigin {
+    #[serde(default, skip_serializing_if = "UnitDomains::is_empty")]
+    pub domains: UnitDomains,
+    #[serde(default, skip_serializing_if = "UnitSubkind::is_unknown")]
+    pub subkind: UnitSubkind,
+    #[serde(default, skip_serializing_if = "UnitBodyKind::is_unknown")]
+    pub body_kind: UnitBodyKind,
+    #[serde(default, skip_serializing_if = "SourceGranularity::is_unknown")]
+    pub source_granularity: SourceGranularity,
+    #[serde(default, skip_serializing_if = "RegionKind::is_unknown")]
+    pub region_kind: RegionKind,
+    #[serde(default, skip_serializing_if = "UnitContainerKind::is_unknown")]
+    pub container_kind: UnitContainerKind,
+    #[serde(default, skip_serializing_if = "UnitEvidenceFlags::is_empty")]
+    pub evidence_flags: UnitEvidenceFlags,
+}
+
+impl UnitOrigin {
+    pub const fn unknown() -> Self {
+        Self {
+            domains: UnitDomains::empty(),
+            subkind: UnitSubkind::Unknown,
+            body_kind: UnitBodyKind::Unknown,
+            source_granularity: SourceGranularity::Unknown,
+            region_kind: RegionKind::Unknown,
+            container_kind: UnitContainerKind::Unknown,
+            evidence_flags: UnitEvidenceFlags::empty(),
+        }
+    }
+
+    pub const fn new(
+        domains: UnitDomains,
+        subkind: UnitSubkind,
+        body_kind: UnitBodyKind,
+        source_granularity: SourceGranularity,
+        region_kind: RegionKind,
+    ) -> Self {
+        Self {
+            domains,
+            subkind,
+            body_kind,
+            source_granularity,
+            region_kind,
+            container_kind: UnitContainerKind::Unknown,
+            evidence_flags: UnitEvidenceFlags::empty(),
+        }
+    }
+
+    pub const fn with_domain(self, domain: UnitDomain) -> Self {
+        Self {
+            domains: self.domains.with(domain),
+            ..self
+        }
+    }
+
+    pub const fn with_container(self, container_kind: UnitContainerKind) -> Self {
+        Self {
+            container_kind,
+            ..self
+        }
+    }
+
+    pub const fn with_evidence(self, flag: UnitEvidenceFlag) -> Self {
+        Self {
+            evidence_flags: self.evidence_flags.with(flag),
+            ..self
+        }
+    }
+
+    pub const fn has_domain(self, domain: UnitDomain) -> bool {
+        self.domains.contains(domain)
+    }
+
+    pub const fn has_evidence(self, flag: UnitEvidenceFlag) -> bool {
+        self.evidence_flags.contains(flag)
+    }
+
+    pub fn is_unknown(&self) -> bool {
+        self.domains.is_empty()
+            && self.subkind.is_unknown()
+            && self.body_kind.is_unknown()
+            && self.source_granularity.is_unknown()
+            && self.region_kind.is_unknown()
+            && self.container_kind.is_unknown()
+            && self.evidence_flags.is_empty()
+    }
+}
+
+impl Default for UnitOrigin {
+    fn default() -> Self {
+        Self::unknown()
+    }
 }
 
 /// One lowered source file. `nodes` is the arena; child links live out-of-line in

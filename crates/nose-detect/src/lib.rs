@@ -35,7 +35,7 @@ pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
     contiguous::stream(il, interner)
 }
 
-use nose_il::{Corpus, Il, Interner, NodeId, NodeKind, UnitKind};
+use nose_il::{Corpus, Il, Interner, NodeId, NodeKind, UnitKind, UnitOrigin};
 use nose_normalize::NormalizeOptions;
 use nose_semantics::ValueLaw;
 use rayon::prelude::*;
@@ -489,6 +489,8 @@ pub struct Loc {
     /// What kind of syntactic unit this site is (function/method/class/block) —
     /// lets the report suggest the right refactor (helper vs base class).
     pub kind: UnitKind,
+    #[serde(default, skip_serializing_if = "UnitOrigin::is_unknown")]
+    pub origin: UnitOrigin,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Size of this unit's value graph (number of distinct computed values). A
@@ -567,6 +569,8 @@ pub struct LocInit {
     pub lang: String,
     /// Syntactic unit kind at this location.
     pub kind: UnitKind,
+    /// Language-neutral facts about the source construct that produced this unit.
+    pub origin: UnitOrigin,
     /// Optional function/method/class name.
     pub name: Option<String>,
     /// Value-graph size for this location.
@@ -582,6 +586,7 @@ impl Loc {
             source_span,
             lang,
             kind,
+            origin,
             name,
             sem,
             span_tokens,
@@ -592,6 +597,7 @@ impl Loc {
             end_line: source_span.end_line,
             lang,
             kind,
+            origin,
             name,
             sem,
             span_lines: source_span.line_count(),
@@ -914,6 +920,7 @@ fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
         source_span: LineSpan::new(u.start_line, u.end_line),
         lang: u.lang.name().to_string(),
         kind: u.kind,
+        origin: u.origin,
         name: u.name.clone(),
         sem: u.value.len(),
         span_tokens: u.token_count,

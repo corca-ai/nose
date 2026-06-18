@@ -3999,6 +3999,7 @@ mod tests {
                 root: func,
                 kind: UnitKind::Function,
                 name: Some(func_name),
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -4039,6 +4040,7 @@ mod tests {
                 root: func,
                 kind: UnitKind::Function,
                 name: Some(func_name),
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -4236,11 +4238,13 @@ mod tests {
                     root: g_func,
                     kind: UnitKind::Function,
                     name: Some(g_name),
+                    origin: Default::default(),
                 },
                 Unit {
                     root: f_func,
                     kind: UnitKind::Function,
                     name: Some(f_name),
+                    origin: Default::default(),
                 },
             ],
             Vec::new(),

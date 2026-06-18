@@ -15,13 +15,27 @@
 //! Raw-node ratio (no panics, ever).
 
 use crate::lower::Lowering;
-use nose_il::{FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, UnitKind};
+use nose_il::{
+    FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, RegionKind, SourceGranularity,
+    UnitBodyKind, UnitContainerKind, UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind,
+    UnitOrigin, UnitSubkind,
+};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
     file: FileId,
     path: &str,
     src: &[u8],
+    interner: &Interner,
+) -> anyhow::Result<Il> {
+    lower_with_container(file, path, src, UnitContainerKind::StandaloneFile, interner)
+}
+
+pub(crate) fn lower_with_container(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    container_kind: UnitContainerKind,
     interner: &Interner,
 ) -> anyhow::Result<Il> {
     crate::lower::lower_file(
@@ -32,15 +46,15 @@ pub(crate) fn lower(
         crate::lower::grammar::CSS,
         || tree_sitter_css::LANGUAGE.into(),
         Lang::Css,
-        lower_stylesheet,
+        |lo, root| lower_stylesheet(lo, root, container_kind),
     )
 }
 
 /// The stylesheet root → a `Module` whose children are the top-level rules.
-fn lower_stylesheet(lo: &mut Lowering, root: TsNode) -> NodeId {
+fn lower_stylesheet(lo: &mut Lowering, root: TsNode, container_kind: UnitContainerKind) -> NodeId {
     let span = lo.span(root);
     let mut rules = Vec::new();
-    collect_rules(lo, root, &mut rules, true);
+    collect_rules(lo, root, &mut rules, true, container_kind);
     lo.add(NodeKind::Module, Payload::None, span, &rules)
 }
 
@@ -49,11 +63,17 @@ fn lower_stylesheet(lo: &mut Lowering, root: TsNode) -> NodeId {
 /// inner rules and CSS-nested rules roll into their enclosing rule's fingerprint
 /// instead, so a `@media`-scoped rule never false-merges with an identical
 /// unconditional one (the enclosing context is part of the fingerprint).
-fn collect_rules(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, register: bool) {
+fn collect_rules(
+    lo: &mut Lowering,
+    node: TsNode,
+    out: &mut Vec<NodeId>,
+    register: bool,
+    container_kind: UnitContainerKind,
+) {
     for child in Lowering::named_children(node) {
         match child.kind() {
             "rule_set" => {
-                if let Some(rule) = lower_rule_set(lo, child, register) {
+                if let Some(rule) = lower_rule_set(lo, child, register, container_kind) {
                     out.push(rule);
                 }
             }
@@ -62,7 +82,7 @@ fn collect_rules(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
             | "keyframes_statement"
             | "keyframe_block_list"
             | "at_rule" => {
-                lower_at_rule(lo, child, out, register);
+                lower_at_rule(lo, child, out, register, container_kind);
             }
             // Declaration-level statements with no clone value (and handled, not Raw).
             "import_statement" | "charset_statement" | "namespace_statement" => {}
@@ -77,7 +97,12 @@ fn collect_rules(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
 /// `selectors { block }` → a `CssRule`. Selectors become `CssSelector` children;
 /// declarations become `CssDecl` children. Registered as a unit only when `register`
 /// (top level); the first selector names the unit (cosmetic, for human reports).
-fn lower_rule_set(lo: &mut Lowering, node: TsNode, register: bool) -> Option<NodeId> {
+fn lower_rule_set(
+    lo: &mut Lowering,
+    node: TsNode,
+    register: bool,
+    container_kind: UnitContainerKind,
+) -> Option<NodeId> {
     let span = lo.span(node);
     let mut children = Vec::new();
     let mut name = None;
@@ -93,7 +118,7 @@ fn lower_rule_set(lo: &mut Lowering, node: TsNode, register: bool) -> Option<Nod
                     children.push(lo.add(NodeKind::CssSelector, Payload::Name(sym), sspan, &[]));
                 }
             }
-            "block" => collect_block(lo, c, &mut children),
+            "block" => collect_block(lo, c, &mut children, container_kind),
             // A single bare selector (some grammars omit the `selectors` wrapper).
             k if is_selector_kind(k) => {
                 let sym = lower_selector(lo, c);
@@ -111,7 +136,12 @@ fn lower_rule_set(lo: &mut Lowering, node: TsNode, register: bool) -> Option<Nod
     }
     let rule = lo.add(NodeKind::CssRule, Payload::None, span, &children);
     if register {
-        lo.push_unit(rule, UnitKind::Block, name);
+        lo.push_unit_with_origin(
+            rule,
+            UnitKind::Block,
+            name,
+            css_rule_origin(container_kind, false),
+        );
     }
     Some(rule)
 }
@@ -124,7 +154,12 @@ fn lower_selector(lo: &mut Lowering, sel: TsNode) -> nose_il::Symbol {
 }
 
 /// Collect a `{ ... }` block's declarations (and any nested rule sets) into `out`.
-fn collect_block(lo: &mut Lowering, block: TsNode, out: &mut Vec<NodeId>) {
+fn collect_block(
+    lo: &mut Lowering,
+    block: TsNode,
+    out: &mut Vec<NodeId>,
+    container_kind: UnitContainerKind,
+) {
     for c in Lowering::named_children(block) {
         match c.kind() {
             "declaration" => {
@@ -136,13 +171,13 @@ fn collect_block(lo: &mut Lowering, block: TsNode, out: &mut Vec<NodeId>) {
             // into the enclosing rule's fingerprint (which carries the parent selector
             // as context).
             "rule_set" => {
-                if let Some(rule) = lower_rule_set(lo, c, false) {
+                if let Some(rule) = lower_rule_set(lo, c, false, container_kind) {
                     out.push(rule);
                 }
             }
             // A nested at-rule (e.g. `@media` inside a rule, CSS nesting) — roll it in.
             "media_statement" | "supports_statement" | "keyframes_statement" | "at_rule" => {
-                lower_at_rule(lo, c, out, false);
+                lower_at_rule(lo, c, out, false, container_kind);
             }
             other => {
                 let span = lo.span(c);
@@ -187,7 +222,13 @@ fn lower_declaration(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 /// (registered only at top level); its inner rules are NOT separate units — they roll
 /// into the wrapper's fingerprint, which includes the prelude as context, so a
 /// `@media`-scoped rule cannot merge with an identical unconditional one.
-fn lower_at_rule(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, register: bool) {
+fn lower_at_rule(
+    lo: &mut Lowering,
+    node: TsNode,
+    out: &mut Vec<NodeId>,
+    register: bool,
+    container_kind: UnitContainerKind,
+) {
     let span = lo.span(node);
     let mut inner = Vec::new();
     // The prelude is the ENTIRE at-rule head (every non-block child), not just the
@@ -209,7 +250,9 @@ fn lower_at_rule(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
     let mut prelude_parts: Vec<String> = Vec::new();
     for c in Lowering::named_children(node) {
         match c.kind() {
-            "block" | "keyframe_block_list" => collect_at_rule_body(lo, c, &mut inner),
+            "block" | "keyframe_block_list" => {
+                collect_at_rule_body(lo, c, &mut inner, container_kind)
+            }
             _ => prelude_parts.push(normalize_ws(lo.text(c))),
         }
     }
@@ -225,15 +268,47 @@ fn lower_at_rule(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>, registe
     children.extend(inner);
     let wrapper = lo.add(NodeKind::CssRule, Payload::None, span, &children);
     if register {
-        lo.push_unit(wrapper, UnitKind::Block, prelude);
+        lo.push_unit_with_origin(
+            wrapper,
+            UnitKind::Block,
+            prelude,
+            css_rule_origin(container_kind, true),
+        );
     }
     out.push(wrapper);
+}
+
+fn css_rule_origin(container_kind: UnitContainerKind, at_rule: bool) -> UnitOrigin {
+    let mut origin = UnitOrigin::new(
+        UnitDomains::of(UnitDomain::Style),
+        UnitSubkind::CssRule,
+        UnitBodyKind::DeclarativeDenotation,
+        SourceGranularity::Rule,
+        RegionKind::Style,
+    )
+    .with_container(container_kind)
+    .with_evidence(UnitEvidenceFlag::ComputedStyleEquivalent)
+    .with_evidence(UnitEvidenceFlag::SelectorExcludedFromProof);
+    if container_kind == UnitContainerKind::StandaloneFile {
+        origin = origin.with_evidence(UnitEvidenceFlag::StandaloneStylesheet);
+    } else {
+        origin = origin.with_evidence(UnitEvidenceFlag::EmbeddedStyleBlock);
+    }
+    if at_rule {
+        origin = origin.with_evidence(UnitEvidenceFlag::AtRuleContext);
+    }
+    origin
 }
 
 /// An at-rule body holds a MIX depending on the at-rule: declarations directly
 /// (`@font-face`, `@page`), nested rule sets (`@media`, `@supports`), or keyframe
 /// blocks (`@keyframes`). Lower each into the wrapper's children so none fall to `Raw`.
-fn collect_at_rule_body(lo: &mut Lowering, body: TsNode, out: &mut Vec<NodeId>) {
+fn collect_at_rule_body(
+    lo: &mut Lowering,
+    body: TsNode,
+    out: &mut Vec<NodeId>,
+    container_kind: UnitContainerKind,
+) {
     for c in Lowering::named_children(body) {
         match c.kind() {
             "declaration" => {
@@ -242,12 +317,12 @@ fn collect_at_rule_body(lo: &mut Lowering, body: TsNode, out: &mut Vec<NodeId>) 
                 }
             }
             "rule_set" => {
-                if let Some(r) = lower_rule_set(lo, c, false) {
+                if let Some(r) = lower_rule_set(lo, c, false, container_kind) {
                     out.push(r);
                 }
             }
             "keyframe_block" => {
-                if let Some(r) = lower_keyframe_block(lo, c) {
+                if let Some(r) = lower_keyframe_block(lo, c, container_kind) {
                     out.push(r);
                 }
             }
@@ -262,13 +337,17 @@ fn collect_at_rule_body(lo: &mut Lowering, body: TsNode, out: &mut Vec<NodeId>) 
 /// A `@keyframes` step `0% { … }` / `from { … }` → a `CssRule`. The offset is SEMANTIC
 /// (a `0%` step ≠ a `100%` step), so it is lowered as a synthetic significant
 /// declaration (`@keyframe-offset: 0%`) rather than an excluded selector.
-fn lower_keyframe_block(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+fn lower_keyframe_block(
+    lo: &mut Lowering,
+    node: TsNode,
+    container_kind: UnitContainerKind,
+) -> Option<NodeId> {
     let span = lo.span(node);
     let mut decls = Vec::new();
     let mut offset = None;
     for c in Lowering::named_children(node) {
         if c.kind() == "block" {
-            collect_block(lo, c, &mut decls);
+            collect_block(lo, c, &mut decls, container_kind);
         } else if offset.is_none() {
             offset = Some(normalize_ws(lo.text(c)));
         }

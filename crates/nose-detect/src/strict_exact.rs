@@ -2113,6 +2113,7 @@ mod tests {
                 root: function,
                 kind: UnitKind::Function,
                 name: Some(helper),
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -2398,6 +2399,7 @@ mod tests {
                 root,
                 kind: UnitKind::Function,
                 name: None,
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -2441,6 +2443,7 @@ mod tests {
                 root: function,
                 kind: UnitKind::Function,
                 name: Some(helper),
+                origin: Default::default(),
             }],
             Vec::new(),
         );

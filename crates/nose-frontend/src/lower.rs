@@ -37,8 +37,10 @@ use nose_il::{
     stable_symbol_hash, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter,
     EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
     Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, LoopKind,
-    NodeId, NodeKind, Op, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, SourceProtocolKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+    NodeId, NodeKind, Op, Payload, PlaceEvidenceKind, RegionKind, SequenceSurfaceKind,
+    SourceCallKind, SourceFactKind, SourceGranularity, SourceProtocolKind, Span, Symbol,
+    SymbolEvidenceKind, Unit, UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind,
+    UnitOrigin, UnitSubkind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -1283,7 +1285,23 @@ impl<'a> Lowering<'a> {
 
     /// Tag a detection unit.
     pub(crate) fn push_unit(&mut self, root: NodeId, kind: UnitKind, name: Option<Symbol>) {
-        self.units.push(Unit { root, kind, name });
+        self.push_unit_with_origin(root, kind, name, UnitOrigin::unknown());
+    }
+
+    /// Tag a detection unit with language-neutral source-origin facets.
+    pub(crate) fn push_unit_with_origin(
+        &mut self,
+        root: NodeId,
+        kind: UnitKind,
+        name: Option<Symbol>,
+        origin: UnitOrigin,
+    ) {
+        self.units.push(Unit {
+            root,
+            kind,
+            name,
+            origin,
+        });
     }
 
     /// Collect a CST node's named children into a `Vec` (decouples from the
@@ -2649,8 +2667,8 @@ pub(crate) fn function_unit(
     if let Some(params) = node.child_by_field_name("parameters") {
         lower_params(lo, params, &mut kids);
     }
-    let body = node
-        .child_by_field_name("body")
+    let body_node = node.child_by_field_name("body");
+    let body = body_node
         .map(|b| lower_body(lo, b))
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
@@ -2660,8 +2678,35 @@ pub(crate) fn function_unit(
     } else {
         UnitKind::Function
     };
-    lo.push_unit(func, kind, name);
+    let origin = imperative_callable_origin(
+        if method {
+            UnitSubkind::Method
+        } else {
+            UnitSubkind::Function
+        },
+        body_node.is_some(),
+    );
+    lo.push_unit_with_origin(func, kind, name, origin);
     func
+}
+
+pub(crate) fn imperative_callable_origin(subkind: UnitSubkind, has_body: bool) -> UnitOrigin {
+    UnitOrigin::new(
+        UnitDomains::of(UnitDomain::Imperative),
+        subkind,
+        if has_body {
+            UnitBodyKind::Implementation
+        } else {
+            UnitBodyKind::DeclarationOnly
+        },
+        SourceGranularity::WholeUnit,
+        RegionKind::Code,
+    )
+    .with_evidence(if has_body {
+        UnitEvidenceFlag::HasReusableBody
+    } else {
+        UnitEvidenceFlag::DeclarationOnly
+    })
 }
 
 /// Lower a `left`/`operator`/`right` binary-expression node into a `BinOp`. Every

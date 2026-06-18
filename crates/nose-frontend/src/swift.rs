@@ -10,7 +10,9 @@
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
     stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, FileId, Il, Interner, Lang,
-    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceProtocolKind, Span, Symbol, UnitKind,
+    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind, SourceGranularity,
+    SourceProtocolKind, Span, Symbol, UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag,
+    UnitKind, UnitOrigin, UnitSubkind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -43,7 +45,8 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "init_declaration" | "deinit_declaration" | "subscript_declaration" => {
             Some(lower_function(lo, node, true))
         }
-        "class_declaration"
+        "actor_declaration"
+        | "class_declaration"
         | "struct_declaration"
         | "enum_declaration"
         | "protocol_declaration" => Some(lower_type(lo, node)),
@@ -91,7 +94,7 @@ fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     let block = lo.add(NodeKind::Block, Payload::None, span, &kids);
-    lo.push_unit(block, UnitKind::Class, name);
+    lo.push_unit_with_origin(block, UnitKind::Class, name, swift_type_origin(node));
     block
 }
 
@@ -111,7 +114,7 @@ fn lower_extension(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     let block = lo.add(NodeKind::Block, Payload::None, span, &kids);
-    lo.push_unit(block, UnitKind::Class, None);
+    lo.push_unit_with_origin(block, UnitKind::Class, None, swift_extension_origin(node));
     block
 }
 
@@ -125,22 +128,170 @@ fn lower_function(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     {
         lower_param(lo, param, &mut kids);
     }
-    let body = node
-        .child_by_field_name("body")
+    let body_node = node.child_by_field_name("body");
+    let body = body_node
         .map(|body| lower_function_body(lo, body))
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
     let func = lo.add(NodeKind::Func, Payload::None, span, &kids);
-    lo.push_unit(
-        func,
-        if method {
-            UnitKind::Method
-        } else {
-            UnitKind::Function
-        },
-        name,
-    );
+    let kind = if method {
+        UnitKind::Method
+    } else {
+        UnitKind::Function
+    };
+    let origin = swift_callable_origin(node, method, body_node.is_some());
+    lo.push_unit_with_origin(func, kind, name, origin);
     func
+}
+
+fn swift_callable_origin(node: TsNode, method: bool, has_body: bool) -> UnitOrigin {
+    if node.kind().starts_with("protocol_") && !has_body {
+        return UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::FunctionPrototype,
+            UnitBodyKind::DeclarationOnly,
+            SourceGranularity::Member,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::ProtocolRequirement)
+        .with_evidence(UnitEvidenceFlag::DeclarationOnly)
+        .with_evidence(UnitEvidenceFlag::TypeOnly);
+    }
+    crate::lower::imperative_callable_origin(
+        if method {
+            UnitSubkind::Method
+        } else {
+            UnitSubkind::Function
+        },
+        has_body,
+    )
+}
+
+fn swift_type_origin(node: TsNode) -> UnitOrigin {
+    match node.kind() {
+        "protocol_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::InterfaceTraitProtocol,
+            UnitBodyKind::DeclarationOnly,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::ProtocolRequirement)
+        .with_evidence(UnitEvidenceFlag::DeclarationOnly)
+        .with_evidence(UnitEvidenceFlag::TypeOnly),
+        "class_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::ImplementationType),
+            UnitSubkind::Class,
+            if swift_node_has_reusable_body(node) {
+                UnitBodyKind::Implementation
+            } else {
+                UnitBodyKind::DeclarationOnly
+            },
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(if swift_node_has_reusable_body(node) {
+            UnitEvidenceFlag::HasReusableBody
+        } else {
+            UnitEvidenceFlag::DeclarationOnly
+        }),
+        "actor_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::ImplementationType),
+            UnitSubkind::Actor,
+            if swift_node_has_reusable_body(node) {
+                UnitBodyKind::Implementation
+            } else {
+                UnitBodyKind::DeclarationOnly
+            },
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::ActorIsolated)
+        .with_evidence(if swift_node_has_reusable_body(node) {
+            UnitEvidenceFlag::HasReusableBody
+        } else {
+            UnitEvidenceFlag::DeclarationOnly
+        }),
+        "enum_declaration" => {
+            let body = if swift_node_has_reusable_body(node) {
+                UnitBodyKind::Mixed
+            } else {
+                UnitBodyKind::DeclarativeDenotation
+            };
+            UnitOrigin::new(
+                UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
+                UnitSubkind::Enum,
+                body,
+                SourceGranularity::WholeUnit,
+                RegionKind::Code,
+            )
+            .with_domain(if swift_node_has_reusable_body(node) {
+                UnitDomain::ImplementationType
+            } else {
+                UnitDomain::Unknown
+            })
+            .with_evidence(if swift_node_has_reusable_body(node) {
+                UnitEvidenceFlag::HasReusableBody
+            } else {
+                UnitEvidenceFlag::DataShapeOnly
+            })
+        }
+        "struct_declaration" => {
+            let body = if swift_node_has_reusable_body(node) {
+                UnitBodyKind::Mixed
+            } else {
+                UnitBodyKind::DeclarativeDenotation
+            };
+            UnitOrigin::new(
+                UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
+                UnitSubkind::StructRecord,
+                body,
+                SourceGranularity::WholeUnit,
+                RegionKind::Code,
+            )
+            .with_domain(if swift_node_has_reusable_body(node) {
+                UnitDomain::ImplementationType
+            } else {
+                UnitDomain::Unknown
+            })
+            .with_evidence(if swift_node_has_reusable_body(node) {
+                UnitEvidenceFlag::HasReusableBody
+            } else {
+                UnitEvidenceFlag::DataShapeOnly
+            })
+        }
+        _ => UnitOrigin::unknown(),
+    }
+}
+
+fn swift_extension_origin(node: TsNode) -> UnitOrigin {
+    let has_body = swift_node_has_reusable_body(node);
+    UnitOrigin::new(
+        UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::ImplementationType),
+        UnitSubkind::ExtensionImpl,
+        if has_body {
+            UnitBodyKind::Mixed
+        } else {
+            UnitBodyKind::DeclarationOnly
+        },
+        SourceGranularity::WholeUnit,
+        RegionKind::Code,
+    )
+    .with_evidence(if has_body {
+        UnitEvidenceFlag::HasDefaultBody
+    } else {
+        UnitEvidenceFlag::DeclarationOnly
+    })
+}
+
+fn swift_node_has_reusable_body(node: TsNode) -> bool {
+    Lowering::named_children(node).into_iter().any(|child| {
+        matches!(
+            child.kind(),
+            "function_body" | "getter_effects" | "setter_effects" | "code_block"
+        ) || child.child_by_field_name("body").is_some()
+            || swift_node_has_reusable_body(child)
+    })
 }
 
 fn swift_decl_name(lo: &mut Lowering, node: TsNode) -> Option<Symbol> {

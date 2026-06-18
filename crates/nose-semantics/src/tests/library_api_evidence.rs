@@ -1121,6 +1121,7 @@ fn library_api_evidence_resolution_rejects_shadowed_java_static_members() {
         root,
         kind: UnitKind::Class,
         name: Some(local),
+        origin: Default::default(),
     });
     assert_eq!(
         library_api_contract_evidence_for_call(

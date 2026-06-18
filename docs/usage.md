@@ -58,7 +58,7 @@ re-reading a schema or hand-writing `jq`.
 
 `nose query` is the **everyday command** — the primary surface over the family dataset. It
 carries the analysis flags, the `--fail-on` CI gate, and a structured contract: with
-`--format json` every view emits the versioned [query-JSON v2 contract](query-json.md), and
+`--format json` every view emits the versioned [query-JSON v3 contract](query-json.md), and
 `--format markdown`/`sarif` produce a ranked report. The deprecated `nose scan`/`nose review`
 read the same dataset.
 

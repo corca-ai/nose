@@ -512,6 +512,7 @@ mod tests {
                 root: func,
                 kind: UnitKind::Function,
                 name: Some(f),
+                origin: Default::default(),
             }],
             Vec::new(),
         );

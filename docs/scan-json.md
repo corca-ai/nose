@@ -1,7 +1,7 @@
 # Scan JSON schema
 
 > **Deprecated (0.10.0).** scan-JSON v1 is the legacy machine contract.
-> [query-JSON v2](query-json.md) (`nose query --format json`) is the forward,
+> [query-JSON v3](query-json.md) (`nose query --format json`) is the forward,
 > view-shaped contract over the same family dataset — it mirrors the exploration
 > surface so a caller drives the same dashboard → slice → open-family loop. scan-JSON
 > v1 stays documented and emitted for back-compat; it will be removed in a later
@@ -15,7 +15,7 @@ scan JSON schema versions with [capabilities](capabilities.md). An LLM agent
 consuming this schema should follow the validated triage protocol in
 [agent-recipe](agent-recipe.md). This is the deprecated one-shot batch contract; the
 forward, view-shaped machine contract over the same dataset is
-[query-JSON v2](query-json.md) (`nose query --format json`).
+[query-JSON v3](query-json.md) (`nose query --format json`).
 
 ## Version 1
 
@@ -261,7 +261,7 @@ schema version 1:
 
 | field | type | meaning |
 |---|---|---|
-| `family_id` | string | Stable family key used by baselines and structured ignores. Unique for distinct reported families in one scan; derived from each member's displayed path, language, source span, unit kind, symbol name, and fragment proof metadata. The ID is stable across run order and thread count, but changes when the reported locations or spans change. |
+| `family_id` | string | Stable family key used by baselines and structured ignores. Unique for distinct reported families in one scan; derived from each member's displayed path, language, source span, unit kind, symbol name, and fragment proof metadata. Unit-origin facets are intentionally **not** part of this key. The ID is stable across run order and thread count, but changes when the reported locations or spans change. |
 | `value` | number | Raw refactoring value: duplicated volume scaled by similarity and spread. |
 | `members` | integer | Number of duplicated sites. |
 | `files` | integer | Distinct files spanned by the family. |
@@ -297,6 +297,7 @@ Each `locations[]` item has:
 | `end_line` | integer | 1-based inclusive end line. |
 | `lang` | string | Lowered source language. |
 | `kind` | string | Unit kind, such as `Function`, `Method`, `Class`, or `Block`. |
+| `origin` | object, optional | Source-origin facets for this location when the frontend can prove them. This is evidence for hint rendering and future filters, not a verdict and not part of family ids or structured-ignore matching. Fields may include `domains` (`imperative`, `type-contract`, `implementation-type`, `data`, `style`, `markup`, `preprocessor`, …), `subkind` (`interface-trait-protocol`, `class`, `impl-block`, `css-rule`, `html-element`, …), `body_kind` (`implementation`, `declaration-only`, `declarative-denotation`, `mixed`, …), `source_granularity`, `region_kind`, `container_kind` (`standalone-file`, `vue-sfc`, `svelte-component`, `html-document`, `jsx`, `tsx`), and `evidence_flags`. Missing `origin` means unknown and falls back to legacy hints. |
 | `name` | string, optional | Symbol name when the frontend can recover one. |
 | `sem` | integer | Value-graph size for the site. |
 | `span_lines` | integer | Inclusive source-line span for this location. |

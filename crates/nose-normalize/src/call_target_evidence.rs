@@ -647,12 +647,14 @@ mod tests {
             root: func,
             kind: UnitKind::Function,
             name: Some(func_sym),
+            origin: Default::default(),
         }];
         if duplicate_unit {
             units.push(Unit {
                 root: func,
                 kind: UnitKind::Function,
                 name: Some(func_sym),
+                origin: Default::default(),
             });
         }
         let il = b.finish(
@@ -697,6 +699,7 @@ mod tests {
                 root: func,
                 kind: UnitKind::Function,
                 name: Some(f),
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -734,6 +737,7 @@ mod tests {
                 root: method,
                 kind: UnitKind::Method,
                 name: Some(method_sym),
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -765,6 +769,7 @@ mod tests {
                 root: nested,
                 kind: UnitKind::Function,
                 name: Some(f),
+                origin: Default::default(),
             }],
             Vec::new(),
         );
@@ -810,11 +815,13 @@ mod tests {
                     root: target,
                     kind: UnitKind::Function,
                     name: Some(f),
+                    origin: Default::default(),
                 },
                 Unit {
                     root: outer,
                     kind: UnitKind::Function,
                     name: Some(g),
+                    origin: Default::default(),
                 },
             ],
             Vec::new(),

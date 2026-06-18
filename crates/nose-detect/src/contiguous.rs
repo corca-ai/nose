@@ -205,6 +205,7 @@ impl LocSeed {
             source_span: LineSpan::new(self.start_line, self.end_line),
             lang: s.lang.name().to_string(),
             kind: UnitKind::Block,
+            origin: Default::default(),
             name: None,
             sem: self.sem,
             span_tokens: self.sem,

@@ -10,9 +10,10 @@ use crate::lower::Lowering;
 use nose_il::{
     contains_js_identifier, is_js_identifier_continue, stable_symbol_hash, Builtin, EvidenceAnchor,
     EvidenceKind, FileId, GuardEvidenceKind, Il, Interner, JsRecordGuardComparison,
-    JsRecordGuardNullCheck, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span,
-    SymbolEvidenceKind, UnitKind,
+    JsRecordGuardNullCheck, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind,
+    SourceCallKind, SourceFactKind, SourceGranularity, SourceLiteralKind, SourceOperatorKind, Span,
+    SymbolEvidenceKind, UnitBodyKind, UnitContainerKind, UnitDomain, UnitDomains, UnitEvidenceFlag,
+    UnitKind, UnitOrigin, UnitSubkind,
 };
 use nose_semantics::{
     js_array_is_array_contract, js_boolean_coercion_contract, qualified_global_symbol_contract,
@@ -254,8 +255,42 @@ fn lower_type_decl(lo: &mut Lowering, node: TsNode) -> NodeId {
         .unwrap_or(node);
     let body = lower_type_skeleton(lo, target);
     let block = lo.add(NodeKind::Block, Payload::None, span, &[body]);
-    lo.push_unit(block, UnitKind::Class, name);
+    lo.push_unit_with_origin(block, UnitKind::Class, name, ts_type_decl_origin(node));
     block
+}
+
+fn ts_type_decl_origin(node: TsNode) -> UnitOrigin {
+    match node.kind() {
+        "interface_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::InterfaceTraitProtocol,
+            UnitBodyKind::DeclarationOnly,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::TypeOnly)
+        .with_evidence(UnitEvidenceFlag::DeclarationOnly),
+        "type_alias_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::TypeAlias,
+            UnitBodyKind::DeclarationOnly,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::TypeOnly)
+        .with_evidence(UnitEvidenceFlag::AliasDeclaration)
+        .with_evidence(UnitEvidenceFlag::DeclarationOnly),
+        "enum_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
+            UnitSubkind::Enum,
+            UnitBodyKind::DeclarativeDenotation,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::RuntimeValue)
+        .with_evidence(UnitEvidenceFlag::DataShapeOnly),
+        _ => UnitOrigin::unknown(),
+    }
 }
 
 /// Recursively skeletonize a type node: identifiers / property names / type keywords →
@@ -320,7 +355,19 @@ fn lower_class(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         None => lo.empty_block(span),
     };
-    lo.push_unit(block, UnitKind::Class, name);
+    lo.push_unit_with_origin(
+        block,
+        UnitKind::Class,
+        name,
+        UnitOrigin::new(
+            UnitDomains::of(UnitDomain::ImplementationType),
+            UnitSubkind::Class,
+            UnitBodyKind::Implementation,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::HasReusableBody),
+    );
     block
 }
 
@@ -1859,8 +1906,30 @@ fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
         span,
         &children,
     );
-    lo.push_unit(el, UnitKind::Block, Some(tag_sym));
+    lo.push_unit_with_origin(
+        el,
+        UnitKind::Block,
+        Some(tag_sym),
+        jsx_markup_origin(lo.lang),
+    );
     el
+}
+
+fn jsx_markup_origin(lang: Lang) -> UnitOrigin {
+    UnitOrigin::new(
+        UnitDomains::of(UnitDomain::Markup),
+        UnitSubkind::HtmlElement,
+        UnitBodyKind::DeclarativeDenotation,
+        SourceGranularity::Element,
+        RegionKind::Markup,
+    )
+    .with_container(if lang == Lang::TypeScript {
+        UnitContainerKind::Tsx
+    } else {
+        UnitContainerKind::Jsx
+    })
+    .with_evidence(UnitEvidenceFlag::ComponentTag)
+    .with_evidence(UnitEvidenceFlag::BoundAttributes)
 }
 
 /// Collect the top-most JSX elements nested inside an expression (not recursing into the

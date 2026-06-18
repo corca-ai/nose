@@ -101,7 +101,7 @@ query term: it leaves every family in place and exposes each one's `status`
 (`new`/`changed`/`unchanged`) as a queryable field — so `nose query src
 since=.nose-baseline.json status=new --format json` is the machine-readable "what's new"
 view. (The deprecated `nose scan --format json` instead carries a top-level `baseline`
-object with the counts and a per-family `baseline_status`; query-JSON v2 has neither — see
+object with the counts and a per-family `baseline_status`; query-JSON v3 has neither — see
 [query-json](query-json.md).)
 
 ## Structured ignores — audited suppressions
@@ -143,7 +143,7 @@ were hidden, adds a `note` notification under `runs[].invocations[]`, so a trunc
 at least detectable; `top=0` avoids the cap entirely.
 
 `--format json` is the general machine-readable form for any other tooling. The forward
-versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v2);
+versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v3);
 the deprecated equivalent is documented in [scan-json](scan-json.md) (schema v1). Both are
 truncated by their respective top limit in the same way.
 

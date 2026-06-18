@@ -49,11 +49,13 @@ fn pure_inline_caller_il(interner: &Interner, with_target_evidence: bool) -> (Il
                 root: helper,
                 kind: UnitKind::Function,
                 name: Some(helper_name),
+                origin: Default::default(),
             },
             Unit {
                 root: caller,
                 kind: UnitKind::Function,
                 name: Some(caller_name),
+                origin: Default::default(),
             },
         ],
         Vec::new(),
@@ -94,6 +96,7 @@ fn pure_inline_direct_il(interner: &Interner) -> (Il, NodeId) {
             root: caller,
             kind: UnitKind::Function,
             name: Some(caller_name),
+            origin: Default::default(),
         }],
         Vec::new(),
     );

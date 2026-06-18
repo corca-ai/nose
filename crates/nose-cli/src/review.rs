@@ -878,6 +878,7 @@ index 1111111..2222222 100644
             source_span: LineSpan::new(start, end),
             lang: "rust".into(),
             kind: nose_il::UnitKind::Block,
+            origin: Default::default(),
             name: None,
             sem: 4,
             span_tokens: 8,

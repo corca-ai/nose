@@ -101,6 +101,7 @@ fn finish_il(builder: IlBuilder, root: NodeId, lang: Lang) -> Il {
             root,
             kind: UnitKind::Function,
             name: None,
+            origin: Default::default(),
         }],
         Vec::new(),
     )

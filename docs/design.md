@@ -155,7 +155,7 @@ its head is nose's one chance to demonstrate value. Two consequences:
 
 - **Institutionalize adversarial per-rule batteries.** zero-false-merge is the premise both
   consumers depend on; this is what makes the guarantee scale as rules are added.
-- **query-JSON v2 evidence richness.** The real lever for consumer 1 — make equivalence
+- **query-JSON v3 evidence richness.** The real lever for consumer 1 — make equivalence
   *explainable and actionable* in machine-readable form (the shipped `nose query --format
   json` contract; scan-JSON v1 deprecated).
 - **`query base=<ref>`-as-gate.** The natural high-precision bottom-line for consumer 2

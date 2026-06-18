@@ -9,8 +9,9 @@
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
     stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, Il, ImportEvidenceKind, Interner,
-    Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCallKind, SourceFactKind, Span,
-    UnitKind,
+    Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind, SourceCallKind,
+    SourceFactKind, SourceGranularity, Span, UnitBodyKind, UnitDomain, UnitDomains,
+    UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
 };
 use nose_semantics::{
     library_java_collection_constructor_contract, LibraryApiCalleeContract,
@@ -110,7 +111,7 @@ fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     let block = lo.add(NodeKind::Block, Payload::None, span, &kids);
-    lo.push_unit(block, UnitKind::Class, name);
+    lo.push_unit_with_origin(block, UnitKind::Class, name, java_type_origin(node));
     block
 }
 
@@ -135,14 +136,110 @@ fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
             ));
         }
     }
-    let body = node
-        .child_by_field_name("body")
+    let body_node = node.child_by_field_name("body");
+    let body = body_node
         .map(|b| lower_block(lo, b))
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
     let func = lo.add(NodeKind::Func, Payload::None, span, &kids);
-    lo.push_unit(func, UnitKind::Method, name);
+    lo.push_unit_with_origin(
+        func,
+        UnitKind::Method,
+        name,
+        java_method_origin(node, body_node.is_some()),
+    );
     func
+}
+
+fn java_type_origin(node: TsNode) -> UnitOrigin {
+    match node.kind() {
+        "interface_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::InterfaceTraitProtocol,
+            if java_node_has_method_body(node) {
+                UnitBodyKind::Mixed
+            } else {
+                UnitBodyKind::DeclarationOnly
+            },
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(if java_node_has_method_body(node) {
+            UnitEvidenceFlag::InterfaceDefaultMethod
+        } else {
+            UnitEvidenceFlag::DeclarationOnly
+        })
+        .with_evidence(UnitEvidenceFlag::TypeOnly),
+        "enum_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
+            UnitSubkind::Enum,
+            if java_node_has_method_body(node) {
+                UnitBodyKind::Mixed
+            } else {
+                UnitBodyKind::DeclarativeDenotation
+            },
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_domain(if java_node_has_method_body(node) {
+            UnitDomain::ImplementationType
+        } else {
+            UnitDomain::Unknown
+        })
+        .with_evidence(if java_node_has_method_body(node) {
+            UnitEvidenceFlag::HasReusableBody
+        } else {
+            UnitEvidenceFlag::DataShapeOnly
+        }),
+        _ => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::ImplementationType),
+            UnitSubkind::Class,
+            if java_node_has_method_body(node) {
+                UnitBodyKind::Implementation
+            } else {
+                UnitBodyKind::DeclarationOnly
+            },
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(if java_node_has_method_body(node) {
+            UnitEvidenceFlag::HasReusableBody
+        } else {
+            UnitEvidenceFlag::DeclarationOnly
+        }),
+    }
+}
+
+fn java_method_origin(node: TsNode, has_body: bool) -> UnitOrigin {
+    if !has_body {
+        return UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::FunctionPrototype,
+            UnitBodyKind::DeclarationOnly,
+            SourceGranularity::Member,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::DeclarationOnly)
+        .with_evidence(UnitEvidenceFlag::TypeOnly);
+    }
+    crate::lower::imperative_callable_origin(
+        if node.kind() == "constructor_declaration" {
+            UnitSubkind::Constructor
+        } else {
+            UnitSubkind::Method
+        },
+        true,
+    )
+}
+
+fn java_node_has_method_body(node: TsNode) -> bool {
+    Lowering::named_children(node).into_iter().any(|child| {
+        matches!(
+            child.kind(),
+            "method_declaration" | "constructor_declaration"
+        ) && child.child_by_field_name("body").is_some()
+            || java_node_has_method_body(child)
+    })
 }
 
 fn lower_field(lo: &mut Lowering, node: TsNode) -> NodeId {

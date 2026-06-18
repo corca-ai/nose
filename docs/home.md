@@ -53,8 +53,8 @@ of nose's machine-readable output.
 
 - [capabilities](capabilities.md) — the `nose capabilities` JSON contract: what an installed binary supports, so a wrapper never has to scrape `--help`.
 - [agent-recipe](agent-recipe.md) — the validated protocol for an LLM agent: explore interactively with `nose query` (follow the emitted next-commands), then read the `nose query --format json` contract for the batch/gate path.
-- [query-json](query-json.md) — the versioned `nose query --format json` contract (schema v2): the structured, view-shaped machine form of the exploration surface. **The forward machine contract.**
-- [scan-json](scan-json.md) — the versioned `nose scan --format json` v1 contract — **deprecated** in favour of query-JSON v2, documented for back-compat.
+- [query-json](query-json.md) — the versioned `nose query --format json` contract (schema v3): the structured, view-shaped machine form of the exploration surface. **The forward machine contract.**
+- [scan-json](scan-json.md) — the versioned `nose scan --format json` v1 contract — **deprecated** in favour of query-JSON v3, documented for back-compat.
 
 ## Contributing
 

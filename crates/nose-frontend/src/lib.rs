@@ -239,6 +239,9 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::{
+        UnitBodyKind, UnitContainerKind, UnitDomain, UnitEvidenceFlag, UnitKind, UnitSubkind,
+    };
     use std::fs;
 
     fn temp_dir(tag: &str) -> std::path::PathBuf {
@@ -271,5 +274,102 @@ mod tests {
 
         assert!(discover_paths(&file, &[]).is_empty());
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn swift_protocol_unit_origin_is_type_contract() {
+        let interner = Interner::new();
+        let il = lower_source(
+            FileId(0),
+            "P.swift",
+            b"protocol P {\n  func run()\n}\n",
+            Lang::Swift,
+            &interner,
+        )
+        .expect("lower swift protocol");
+        let unit = il
+            .units
+            .iter()
+            .find(|unit| unit.kind == UnitKind::Class)
+            .expect("protocol unit");
+        assert!(unit.origin.has_domain(UnitDomain::TypeContract));
+        assert_eq!(unit.origin.subkind, UnitSubkind::InterfaceTraitProtocol);
+        assert_eq!(unit.origin.body_kind, UnitBodyKind::DeclarationOnly);
+        assert!(unit.origin.has_evidence(UnitEvidenceFlag::TypeOnly));
+    }
+
+    #[test]
+    fn swift_class_unit_origin_is_behavior_bearing() {
+        let interner = Interner::new();
+        let il = lower_source(
+            FileId(0),
+            "C.swift",
+            b"class C {\n  func run() { print(1) }\n}\n",
+            Lang::Swift,
+            &interner,
+        )
+        .expect("lower swift class");
+        let unit = il
+            .units
+            .iter()
+            .find(|unit| unit.kind == UnitKind::Class)
+            .expect("class unit");
+        assert!(unit.origin.has_domain(UnitDomain::ImplementationType));
+        assert_eq!(unit.origin.subkind, UnitSubkind::Class);
+        assert!(unit.origin.has_evidence(UnitEvidenceFlag::HasReusableBody));
+    }
+
+    #[test]
+    fn css_rule_unit_origin_is_style_denotation() {
+        let interner = Interner::new();
+        let il = lower_source(
+            FileId(0),
+            "style.css",
+            b".card { color: red; }\n",
+            Lang::Css,
+            &interner,
+        )
+        .expect("lower css");
+        let unit = il.units.first().expect("css rule unit");
+        assert!(unit.origin.has_domain(UnitDomain::Style));
+        assert_eq!(unit.origin.subkind, UnitSubkind::CssRule);
+        assert_eq!(
+            unit.origin.container_kind,
+            UnitContainerKind::StandaloneFile
+        );
+        assert!(unit
+            .origin
+            .has_evidence(UnitEvidenceFlag::ComputedStyleEquivalent));
+    }
+
+    #[test]
+    fn vue_regions_preserve_style_and_markup_container_origin() {
+        let interner = Interner::new();
+        let regions = lower_source_regions(
+            FileId(0),
+            "Comp.vue",
+            b"<template><div v-if=\"ok\">Hi</div></template><style>.card { color: red; }</style>",
+            Lang::Vue,
+            &interner,
+        );
+        let css = regions
+            .iter()
+            .find(|il| il.meta.lang == Lang::Css)
+            .expect("css style region");
+        assert_eq!(
+            css.units.first().expect("css unit").origin.container_kind,
+            UnitContainerKind::VueSfc
+        );
+        let markup = regions
+            .iter()
+            .find(|il| il.meta.lang == Lang::Html)
+            .expect("markup region");
+        assert!(markup.units.iter().any(|unit| {
+            unit.origin.has_domain(UnitDomain::Markup)
+                && unit.origin.container_kind == UnitContainerKind::VueSfc
+                && unit
+                    .origin
+                    .has_evidence(UnitEvidenceFlag::ContainsMarkupControl)
+        }));
     }
 }

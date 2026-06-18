@@ -956,7 +956,7 @@ impl ScanScope {
 }
 
 const SCAN_JSON_SCHEMA_VERSION: u32 = 1;
-const QUERY_JSON_SCHEMA_VERSION: u32 = 2;
+const QUERY_JSON_SCHEMA_VERSION: u32 = 3;
 const CAPABILITIES_SCHEMA_VERSION: u32 = 1;
 
 #[derive(serde::Serialize)]
@@ -4466,7 +4466,7 @@ fn print_candidates(rows: &[&nose_detect::RefactorFamily], path: &str, opp: &Opp
     }
 }
 
-/// One family as the structured `nose query --format json` object (schema_version 2): all
+/// One family as the structured `nose query --format json` object (schema_version 3): all
 /// the evidence a consumer needs to triage without re-parsing a human row. `shared`/`params`
 /// are the all-copies counts (the same the human row shows); `skeleton` is the all-copies
 /// extraction proposal, included only on `full`.
@@ -4497,6 +4497,10 @@ fn query_family_json(
             // at this site — so the caller can see what is provably equal, not just the unit.
             if let Some((s, e)) = l.shared_subdag {
                 o["shared_subdag"] = serde_json::json!([s, e]);
+            }
+            if !l.origin.is_unknown() {
+                o["origin"] =
+                    serde_json::to_value(l.origin).expect("UnitOrigin JSON serialization");
             }
             o
         })
@@ -5430,7 +5434,7 @@ fn render_query_list(
         // `full` on a list/filter batches the extraction skeletons — triage N candidates
         // in one stateless call (no per-family id= round-trip).
         if q.id_full {
-            print_member_proposal(&f.locations);
+            print_member_proposal(&f.locations, proposal_action_label(f));
         }
     }
     if !q.id_full {
@@ -5622,6 +5626,7 @@ fn render_query_family(
                 "view": "family",
                 "path": path,
                 "hint": family_hint(f),
+                "hint_reasons": hint_reasons(f),
                 "family": query_family_json(f, ov, opp, full, since),
             })
         );
@@ -5642,6 +5647,13 @@ fn render_query_family(
     );
     print!("{fold_note}");
     println!("  → {}", family_hint(f));
+    let reasons = hint_reasons(f);
+    if !reasons.is_empty() {
+        println!("  why this hint:");
+        for reason in reasons {
+            println!("    - {reason}");
+        }
+    }
     println!("  copies:");
     let helper = family_existing_helper(f);
     for l in f.locations.iter().take(30) {
@@ -5662,7 +5674,7 @@ fn render_query_family(
     // Lead with the decision-grade artifact: the extraction skeleton aligned across ALL
     // copies (#360), with the differing spots as parameters — not a raw 2-copy token diff.
     if f.locations.len() >= 2 {
-        print_member_proposal(&f.locations);
+        print_member_proposal(&f.locations, proposal_action_label(f));
     }
     if full && f.locations.len() >= 2 {
         print_member_diff(&f.locations[0], &f.locations[1]);
@@ -7349,7 +7361,9 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
     // declaration (lowered to a `Class` skeleton); its refactor is "move to one shared
     // type", not "extract a function with parameters".
     let type_decl = all_classes && f.mean_sem < 12.0;
-    let extract = if type_decl {
+    let extract = if let Some(origin_hint) = origin_extract_hint(f) {
+        origin_hint
+    } else if type_decl {
         "consolidate into one shared type"
     } else if all_classes {
         "extract a shared base class / mixin"
@@ -7392,6 +7406,185 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
         );
     }
     base
+}
+
+fn origin_extract_hint(f: &nose_detect::RefactorFamily) -> Option<&'static str> {
+    use nose_il::{UnitBodyKind, UnitDomain, UnitSubkind};
+
+    if f.locations.iter().all(|loc| loc.origin.is_unknown()) {
+        return None;
+    }
+    let all_have_domain = |domain| f.locations.iter().all(|loc| loc.origin.has_domain(domain));
+    let all_subkind = |subkind| f.locations.iter().all(|loc| loc.origin.subkind == subkind);
+    let any_body = |body_kind| {
+        f.locations
+            .iter()
+            .any(|loc| loc.origin.body_kind == body_kind)
+    };
+
+    if all_have_domain(UnitDomain::Style) {
+        return Some(
+            "merge selectors or move the declarations to a shared class/token if these elements should be coupled",
+        );
+    }
+    if all_have_domain(UnitDomain::Markup) {
+        return Some("share a component/template only if the data shape matches");
+    }
+    if all_have_domain(UnitDomain::Preprocessor) {
+        return Some("review macro expansion and conditional context before sharing");
+    }
+    if all_have_domain(UnitDomain::TypeContract)
+        && !f
+            .locations
+            .iter()
+            .any(|loc| loc.origin.has_domain(UnitDomain::ImplementationType))
+    {
+        if all_subkind(UnitSubkind::InterfaceTraitProtocol) {
+            return Some("consolidate one shared interface/protocol contract");
+        }
+        return Some("consolidate one shared type/API contract");
+    }
+    if all_have_domain(UnitDomain::TypeContract)
+        && f.locations
+            .iter()
+            .any(|loc| loc.origin.has_domain(UnitDomain::ImplementationType))
+    {
+        return Some(
+            "consolidate the type contract; review whether shared behavior should move too",
+        );
+    }
+    if all_have_domain(UnitDomain::ImplementationType) {
+        if all_subkind(UnitSubkind::Class)
+            && (any_body(UnitBodyKind::Implementation) || any_body(UnitBodyKind::Mixed))
+        {
+            return Some("extract a shared base class / mixin");
+        }
+        return Some("consolidate shared type implementation");
+    }
+    if all_have_domain(UnitDomain::Imperative) {
+        return Some("extract a helper");
+    }
+    None
+}
+
+fn proposal_action_label(f: &nose_detect::RefactorFamily) -> &'static str {
+    use nose_il::UnitKind;
+
+    if let Some(origin_hint) = origin_extract_hint(f) {
+        return match origin_hint {
+            "extract a helper" => "extract a shared helper",
+            other => other,
+        };
+    }
+    let all_classes = f.locations.iter().all(|loc| loc.kind == UnitKind::Class);
+    let all_blocks = f.locations.iter().all(|loc| loc.kind == UnitKind::Block);
+    let type_decl = all_classes && f.mean_sem < 12.0;
+    if type_decl {
+        "consolidate into one shared type"
+    } else if all_classes {
+        "extract a shared base class / mixin"
+    } else if all_blocks {
+        "extract a method from the repeated block"
+    } else {
+        "extract a shared helper"
+    }
+}
+
+fn hint_reasons(f: &nose_detect::RefactorFamily) -> Vec<String> {
+    use nose_il::{UnitBodyKind, UnitDomain, UnitSubkind};
+
+    if f.locations.iter().all(|loc| loc.origin.is_unknown()) {
+        return Vec::new();
+    }
+    let all_have_domain = |domain| f.locations.iter().all(|loc| loc.origin.has_domain(domain));
+    let all_subkind = |subkind| f.locations.iter().all(|loc| loc.origin.subkind == subkind);
+    let all_body = |body_kind| {
+        f.locations
+            .iter()
+            .all(|loc| loc.origin.body_kind == body_kind)
+    };
+    let any_body = |body_kind| {
+        f.locations
+            .iter()
+            .any(|loc| loc.origin.body_kind == body_kind)
+    };
+
+    let mut reasons = Vec::new();
+    if all_have_domain(UnitDomain::TypeContract) {
+        if all_subkind(UnitSubkind::InterfaceTraitProtocol) {
+            reasons.push(format!(
+                "all copies are {} interface/protocol contracts",
+                family_language_label(f)
+            ));
+        } else {
+            reasons.push("all copies are type/API contract regions".to_string());
+        }
+    } else if all_have_domain(UnitDomain::ImplementationType) {
+        reasons.push("all copies are behavior-bearing type implementation regions".to_string());
+    } else if all_have_domain(UnitDomain::Style) {
+        reasons.push("all copies are declarative style rules".to_string());
+    } else if all_have_domain(UnitDomain::Markup) {
+        reasons.push("all copies are rendered markup/template regions".to_string());
+    } else if all_have_domain(UnitDomain::Preprocessor) {
+        reasons.push("all copies are macro/preprocessor regions".to_string());
+    } else if all_have_domain(UnitDomain::Imperative) {
+        reasons.push("all copies are imperative callable regions".to_string());
+    }
+
+    if all_body(UnitBodyKind::DeclarationOnly) {
+        reasons.push("no implementation body was found".to_string());
+    } else if all_body(UnitBodyKind::DeclarativeDenotation) {
+        reasons
+            .push("the duplicate is a declaration/denotation, not an imperative body".to_string());
+    } else if any_body(UnitBodyKind::Mixed) {
+        reasons.push("some copied regions mix declarations with reusable behavior".to_string());
+    } else if any_body(UnitBodyKind::Implementation) {
+        reasons.push("an implementation body was found".to_string());
+    }
+
+    let mut names = f.locations.iter().filter_map(|loc| loc.name.as_deref());
+    if let Some(first) = names.next() {
+        if f.locations.iter().filter(|loc| loc.name.is_some()).count() == f.members
+            && names.all(|name| name == first)
+        {
+            reasons.push("every copy has the same symbol name".to_string());
+        }
+    }
+    reasons
+}
+
+fn family_language_label(f: &nose_detect::RefactorFamily) -> String {
+    let mut langs = f
+        .locations
+        .iter()
+        .map(|loc| loc.lang.as_str())
+        .collect::<Vec<_>>();
+    langs.sort_unstable();
+    langs.dedup();
+    if langs.len() == 1 {
+        language_label(langs[0]).to_string()
+    } else {
+        "cross-language".to_string()
+    }
+}
+
+fn language_label(lang: &str) -> &'static str {
+    match lang {
+        "css" => "CSS",
+        "go" => "Go",
+        "html" => "HTML",
+        "javascript" => "JavaScript",
+        "typescript" => "TypeScript",
+        "rust" => "Rust",
+        "swift" => "Swift",
+        "java" => "Java",
+        "python" => "Python",
+        "ruby" => "Ruby",
+        "c" => "C",
+        "vue" => "Vue",
+        "svelte" => "Svelte",
+        _ => "same-language",
+    }
 }
 
 /// At this many varying spots an extraction stops being clean (issue #264's
@@ -7493,7 +7686,7 @@ fn print_family_entry(
         print_member_diff(&f.locations[0], &f.locations[1]);
     }
     if proposal && f.locations.len() >= 2 {
-        print_member_proposal(&f.locations);
+        print_member_proposal(&f.locations, proposal_action_label(f));
     }
 }
 
@@ -7597,7 +7790,7 @@ fn print_member_diff(a: &nose_detect::Loc, b: &nose_detect::Loc) {
 /// parameterize these N spots", and — unlike a pairwise skeleton — the result is safe to
 /// apply to *every* member, not just the two largest, so it never claims a shared line a
 /// third copy actually diverges on. Bounded to one family, paid only on `--show proposal`.
-fn print_member_proposal(locations: &[nose_detect::Loc]) {
+fn print_member_proposal(locations: &[nose_detect::Loc], action: &str) {
     // Read every copy's source; align across all of them. A copy whose source can't be
     // read is dropped, and the count reflects the copies actually aligned.
     let members: Vec<Vec<String>> = locations
@@ -7609,9 +7802,7 @@ fn print_member_proposal(locations: &[nose_detect::Loc]) {
     }
     let (skeleton, shared, params) = anti_unify_all(&members);
     let copies = members.len();
-    println!(
-        "     proposal  extract a shared helper · {shared} shared lines · {params} parameter(s) vary (across all {copies} copies)"
-    );
+    println!("     proposal  {action} · {shared} shared lines · {params} parameter(s) vary (across all {copies} copies)");
     for line in skeleton.iter().take(40) {
         println!("       │ {line}");
     }
@@ -8527,6 +8718,7 @@ mod tests {
                     source_span: LineSpan::new(1, 10),
                     lang: "rust".into(),
                     kind,
+                    origin: Default::default(),
                     name: n.map(|s| s.to_string()),
                     sem: 50,
                     span_tokens: 50,
@@ -8599,6 +8791,7 @@ mod tests {
                 source_span: LineSpan::new(1, 3),
                 lang: "rust".into(),
                 kind: nose_il::UnitKind::Function,
+                origin: Default::default(),
                 name: None,
                 sem: 50,
                 span_tokens: 50,
@@ -8688,6 +8881,79 @@ mod tests {
     }
 
     #[test]
+    fn hint_origin_protocol_contract_avoids_base_class() {
+        use nose_il::{
+            RegionKind, SourceGranularity, UnitBodyKind, UnitDomain, UnitDomains, UnitSubkind,
+        };
+        let mut f = fam_kind(
+            1,
+            2,
+            &[Some("TraceReadable"), Some("TraceWritable")],
+            nose_il::UnitKind::Class,
+        );
+        for loc in &mut f.locations {
+            loc.lang = "swift".into();
+            loc.origin = nose_il::UnitOrigin::new(
+                UnitDomains::of(UnitDomain::TypeContract),
+                UnitSubkind::InterfaceTraitProtocol,
+                UnitBodyKind::DeclarationOnly,
+                SourceGranularity::WholeUnit,
+                RegionKind::Code,
+            );
+        }
+        assert_eq!(
+            family_hint(&f),
+            "duplicated across 2 directories — consolidate one shared interface/protocol contract"
+        );
+        assert!(hint_reasons(&f)
+            .iter()
+            .any(|reason| reason == "no implementation body was found"));
+    }
+
+    #[test]
+    fn hint_origin_behavior_class_keeps_base_class() {
+        use nose_il::{
+            RegionKind, SourceGranularity, UnitBodyKind, UnitDomain, UnitDomains, UnitSubkind,
+        };
+        let mut f = fam_kind(1, 2, &[None, None], nose_il::UnitKind::Class);
+        for loc in &mut f.locations {
+            loc.origin = nose_il::UnitOrigin::new(
+                UnitDomains::of(UnitDomain::ImplementationType),
+                UnitSubkind::Class,
+                UnitBodyKind::Implementation,
+                SourceGranularity::WholeUnit,
+                RegionKind::Code,
+            );
+        }
+        assert_eq!(
+            family_hint(&f),
+            "duplicated across 2 directories — extract a shared base class / mixin"
+        );
+    }
+
+    #[test]
+    fn hint_origin_style_is_declarative() {
+        use nose_il::{
+            RegionKind, SourceGranularity, UnitBodyKind, UnitDomain, UnitDomains, UnitSubkind,
+        };
+        let mut f = fam_kind(1, 1, &[None, None], nose_il::UnitKind::Block);
+        for loc in &mut f.locations {
+            loc.lang = "css".into();
+            loc.origin = nose_il::UnitOrigin::new(
+                UnitDomains::of(UnitDomain::Style),
+                UnitSubkind::CssRule,
+                UnitBodyKind::DeclarativeDenotation,
+                SourceGranularity::Rule,
+                RegionKind::Style,
+            );
+        }
+        assert_eq!(
+            family_hint(&f),
+            "local duplication — merge selectors or move the declarations to a shared class/token if these elements should be coupled"
+        );
+    }
+
+    #[test]
     fn hint_block_family_suggests_method() {
         let f = fam_kind(1, 1, &[None, None], nose_il::UnitKind::Block);
         assert_eq!(
@@ -8702,6 +8968,7 @@ mod tests {
             source_span: LineSpan::new(start, end),
             lang: "go".into(),
             kind,
+            origin: Default::default(),
             name: None,
             sem: 50,
             span_tokens: 50,

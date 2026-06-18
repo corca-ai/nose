@@ -19,13 +19,27 @@
 //! Anything unrecognized becomes `Raw` (no panics).
 
 use crate::lower::Lowering;
-use nose_il::{FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, Span, Symbol, UnitKind};
+use nose_il::{
+    FileId, Il, Interner, Lang, NodeId, NodeKind, Payload, RegionKind, SourceGranularity, Span,
+    Symbol, UnitBodyKind, UnitContainerKind, UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind,
+    UnitOrigin, UnitSubkind,
+};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
     file: FileId,
     path: &str,
     src: &[u8],
+    interner: &Interner,
+) -> anyhow::Result<Il> {
+    lower_with_container(file, path, src, UnitContainerKind::HtmlDocument, interner)
+}
+
+pub(crate) fn lower_with_container(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    container_kind: UnitContainerKind,
     interner: &Interner,
 ) -> anyhow::Result<Il> {
     crate::lower::lower_file(
@@ -36,13 +50,13 @@ pub(crate) fn lower(
         crate::lower::grammar::HTML,
         || tree_sitter_html::LANGUAGE.into(),
         Lang::Html,
-        lower_document,
+        |lo, root| lower_document(lo, root, container_kind),
     )
 }
 
-fn lower_document(lo: &mut Lowering, root: TsNode) -> NodeId {
+fn lower_document(lo: &mut Lowering, root: TsNode, container_kind: UnitContainerKind) -> NodeId {
     let span = lo.span(root);
-    let kids = lower_children(lo, &Lowering::named_children(root), false);
+    let kids = lower_children(lo, &Lowering::named_children(root), false, container_kind);
     lo.add(NodeKind::Module, Payload::None, span, &kids)
 }
 
@@ -79,7 +93,12 @@ fn svelte_marker(text: &str) -> SvelteMarker {
 /// their own sites; this handles only Svelte's text-marker form. A control wrapper keeps a
 /// loop/conditional structurally distinct from a single element (exact-channel soundness),
 /// while `node_tag` abstracts it so the three dialects' control idioms converge in `near`.
-fn lower_children(lo: &mut Lowering, nodes: &[TsNode], pre: bool) -> Vec<NodeId> {
+fn lower_children(
+    lo: &mut Lowering,
+    nodes: &[TsNode],
+    pre: bool,
+    container_kind: UnitContainerKind,
+) -> Vec<NodeId> {
     // Stack of open control frames; frame 0 is the output.
     let mut stack: Vec<(&'static str, Vec<NodeId>)> = vec![("", Vec::new())];
     for &c in nodes {
@@ -101,7 +120,7 @@ fn lower_children(lo: &mut Lowering, nodes: &[TsNode], pre: bool) -> Vec<NodeId>
                 SvelteMarker::None => {}
             }
         }
-        if let Some(id) = lower_node(lo, c, pre) {
+        if let Some(id) = lower_node(lo, c, pre, container_kind) {
             stack.last_mut().unwrap().1.push(id);
         }
     }
@@ -119,9 +138,14 @@ fn lower_children(lo: &mut Lowering, nodes: &[TsNode], pre: bool) -> Vec<NodeId>
 /// `pre`: are we inside a whitespace-PRESERVING element (`<pre>`/`<textarea>`)? There
 /// the renderer keeps whitespace verbatim, so collapsing it would merge DOM-distinct
 /// blocks — a false merge. Elsewhere flow whitespace is insignificant and collapsed.
-fn lower_node(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
+fn lower_node(
+    lo: &mut Lowering,
+    node: TsNode,
+    pre: bool,
+    container_kind: UnitContainerKind,
+) -> Option<NodeId> {
     match node.kind() {
-        "element" => Some(lower_element(lo, node, false, pre)),
+        "element" => Some(lower_element(lo, node, false, pre, container_kind)),
         // Drop <script>/<style> element shells from the markup region entirely — they are
         // analyzed as their own JS/CSS regions and are pure cross-dialect noise (Svelte/Vue
         // SFCs carry them inline).
@@ -139,7 +163,13 @@ fn lower_node(lo: &mut Lowering, node: TsNode, pre: bool) -> Option<NodeId> {
 /// Lower an element subtree → `HtmlElement(tag)`. When `raw_content`, child content is
 /// dropped (script/style bodies). Every element registers as a detection unit; the size
 /// gate keeps trivial single elements from matching.
-fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) -> NodeId {
+fn lower_element(
+    lo: &mut Lowering,
+    node: TsNode,
+    raw_content: bool,
+    pre: bool,
+    container_kind: UnitContainerKind,
+) -> NodeId {
     let span = lo.span(node);
     let mut attrs = Vec::new();
     let mut tag = None;
@@ -169,7 +199,7 @@ fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) 
         }
     }
     let mut children = attrs;
-    children.extend(lower_children(lo, &content, child_pre));
+    children.extend(lower_children(lo, &content, child_pre, container_kind));
     let tag_sym = tag.unwrap_or_else(|| lo.sym(""));
     let el = lo.add(
         NodeKind::HtmlElement,
@@ -177,7 +207,12 @@ fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) 
         span,
         &children,
     );
-    lo.push_unit(el, UnitKind::Block, tag);
+    lo.push_unit_with_origin(
+        el,
+        UnitKind::Block,
+        tag,
+        html_element_origin(container_kind, control),
+    );
     match control {
         Some(kind) => {
             let ksym = lo.sym(kind);
@@ -185,6 +220,32 @@ fn lower_element(lo: &mut Lowering, node: TsNode, raw_content: bool, pre: bool) 
         }
         None => el,
     }
+}
+
+fn html_element_origin(
+    container_kind: UnitContainerKind,
+    control: Option<&'static str>,
+) -> UnitOrigin {
+    let mut origin = UnitOrigin::new(
+        UnitDomains::of(UnitDomain::Markup),
+        UnitSubkind::HtmlElement,
+        UnitBodyKind::DeclarativeDenotation,
+        SourceGranularity::Element,
+        RegionKind::Markup,
+    )
+    .with_container(container_kind);
+    if control.is_some() {
+        origin = origin
+            .with_evidence(UnitEvidenceFlag::ContainsMarkupControl)
+            .with_evidence(match control {
+                Some("repeat") => UnitEvidenceFlag::RepeatControl,
+                Some("if") => UnitEvidenceFlag::ConditionalControl,
+                _ => UnitEvidenceFlag::ControlFlowTemplate,
+            });
+    } else {
+        origin = origin.with_evidence(UnitEvidenceFlag::StaticAttrsOnly);
+    }
+    origin
 }
 
 /// Extract `(tag, attributes)` from a `start_tag` / `self_closing_tag`.

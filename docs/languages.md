@@ -36,6 +36,23 @@ the shared declarative markup IL (below), not an imperative call tree — so a R
 component's markup is clone-matched against HTML/Vue/Svelte markup (see
 [cross-dialect markup](#cross-dialect-markup-htmlvuesveltejsxtsx)).
 
+## Unit-origin facets
+
+Every clone still has a coarse detector boundary (`Function`, `Method`, `Class`, or
+`Block`), but some frontends now attach optional **unit-origin facets** that keep source
+domain, body shape, region, and embedded-container facts separate from that boundary. This
+prevents one syntactic decomposition from dominating the hint: for example, Swift
+`protocol`, Java `interface`, Rust `trait`, and TypeScript `interface` units may still use
+the `Class` boundary for detection while reporting `type-contract` /
+`declaration-only`, so they render as shared API contracts rather than inheritance advice.
+
+The same facet model marks CSS rules as `style` / `declarative-denotation`, HTML/JSX/Vue/
+Svelte elements as `markup`, and Vue/Svelte `<style>` or markup regions with their
+container (`vue-sfc` or `svelte-component`). Unknown origin is normal; it falls back to the
+legacy hint and never changes actionability, baselines, family ids, or structured ignores.
+Machine consumers can read the additive `locations[].origin` object in
+[query-JSON](query-json.md) and [scan-JSON](scan-json.md).
+
 ## Declarative languages: CSS
 
 | language | extensions |

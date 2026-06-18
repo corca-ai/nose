@@ -18,7 +18,9 @@ use crate::strict_exact::{
 use crate::strict_exact::{strict_exact_safe_tree, StrictFacts};
 #[cfg(test)]
 use nose_il::Builtin;
-use nose_il::{Il, Interner, Lang, LoopKind, NodeId, NodeKind, Payload, Span, Symbol, UnitKind};
+use nose_il::{
+    Il, Interner, Lang, LoopKind, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin,
+};
 use nose_normalize::node_tag;
 use nose_semantics::{
     admitted_builtin_semantics_at_call, builder_append_call_args, exact_java_return_this,
@@ -40,6 +42,8 @@ pub struct UnitFeat {
     pub path: String,
     pub lang: Lang,
     pub kind: UnitKind,
+    #[serde(default, skip_serializing_if = "UnitOrigin::is_unknown")]
+    pub origin: UnitOrigin,
     pub name: Option<String>,
     pub start_line: u32,
     pub end_line: u32,
@@ -408,6 +412,7 @@ struct UnitRoot {
     root: NodeId,
     kind: UnitKind,
     name: Option<Symbol>,
+    origin: UnitOrigin,
     /// The exact-fragment classification, when this root was admitted as an exact
     /// sub-function fragment. `None` for ordinary function/method/class/block units.
     /// `Some(_)` is the authoritative "this is an exact fragment" signal; the boolean
@@ -478,6 +483,7 @@ pub(crate) fn extract(
             root: u.root,
             kind: u.kind,
             name: u.name,
+            origin: u.origin,
             fragment_kind: None,
         })
         .collect();
@@ -555,6 +561,7 @@ pub fn unit_dags_at(
             root: u.root,
             kind: u.kind,
             name: u.name,
+            origin: u.origin,
             fragment_kind: None,
         })
         .collect();
@@ -670,6 +677,7 @@ fn gate_unit(
         root,
         kind,
         name: _,
+        origin: _,
         fragment_kind,
     } = unit_root;
     let exact_fragment = fragment_kind.is_some();
@@ -803,6 +811,7 @@ fn extract_unit(
         root: _,
         kind,
         name: uname,
+        origin,
         fragment_kind,
     } = unit_root;
     let GatedUnit {
@@ -856,6 +865,7 @@ fn extract_unit(
         path: ctx.il.meta.path.clone(),
         lang: ctx.il.meta.lang,
         kind,
+        origin,
         name: uname.map(|s| ctx.interner.resolve(s).to_string()),
         start_line: span.start_line,
         end_line: span.end_line,
@@ -992,6 +1002,7 @@ fn collect_extra_unit_root_candidates(
             root: node,
             kind: UnitKind::Block,
             name: None,
+            origin: UnitOrigin::unknown(),
             fragment_kind: None,
         });
     }
@@ -1045,6 +1056,7 @@ fn push_or_upgrade_exact_fragment_root(out: &mut Vec<UnitRoot>, root: NodeId, ki
             root,
             kind: UnitKind::Block,
             name: None,
+            origin: UnitOrigin::unknown(),
             fragment_kind: Some(kind),
         });
     }

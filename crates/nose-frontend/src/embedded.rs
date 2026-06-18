@@ -8,7 +8,7 @@
 //! buffer is valid JS/TS (the markup becomes whitespace). Reported spans therefore
 //! point at the right lines in the original `.vue`/`.svelte`/`.html` file.
 
-use nose_il::{FileId, Il, Interner, Lang};
+use nose_il::{FileId, Il, Interner, Lang, UnitContainerKind};
 
 /// Lower an embedded-script file: extract its `<script>` blocks, parse them as
 /// JS/TS in place, and tag the IL with the script language. The path still preserves
@@ -69,7 +69,13 @@ pub(crate) fn lower_regions(
     let styles = extract_styles(src);
     if !styles.is_empty() {
         let blanked = blank_except(src, &styles);
-        if let Ok(il) = crate::css::lower(file, path, &blanked, interner) {
+        if let Ok(il) = crate::css::lower_with_container(
+            file,
+            path,
+            &blanked,
+            container_kind(container),
+            interner,
+        ) {
             out.push(il);
         }
     }
@@ -77,7 +83,12 @@ pub(crate) fn lower_regions(
     // Markup tree (the whole document parsed as HTML — a `.vue`/`.svelte` `<template>`
     // parses as an element too). `<script>`/`<style>` internals are skipped by the HTML
     // frontend, so they are not double-counted with the regions above.
-    if let Ok(il) = crate::html::lower(file, path, src, interner) {
+    let markup = if container == Lang::Html {
+        crate::html::lower(file, path, src, interner)
+    } else {
+        crate::html::lower_with_container(file, path, src, container_kind(container), interner)
+    };
+    if let Ok(il) = markup {
         if !il.units.is_empty() {
             out.push(il);
         }
@@ -85,6 +96,15 @@ pub(crate) fn lower_regions(
 
     let _ = container;
     out
+}
+
+fn container_kind(container: Lang) -> UnitContainerKind {
+    match container {
+        Lang::Vue => UnitContainerKind::VueSfc,
+        Lang::Svelte => UnitContainerKind::SvelteComponent,
+        Lang::Html => UnitContainerKind::HtmlDocument,
+        _ => UnitContainerKind::Unknown,
+    }
 }
 
 /// Byte ranges of every plain-CSS `<style>…</style>` block's *content*. Mirrors

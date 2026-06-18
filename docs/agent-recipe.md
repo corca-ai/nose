@@ -35,7 +35,7 @@ For non-interactive consumption — a CI gate, a one-shot triage of the whole tr
 the versioned contract to other tooling — read the JSON directly:
 
 ```sh
-nose query <path> --format json                    # the ranked triage surface (query-JSON v2 contract)
+nose query <path> --format json                    # the ranked triage surface (query-JSON v3 contract)
 nose query <path> base=origin/main --format json   # PR-time divergence (the base view)
 ```
 

@@ -1638,7 +1638,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
     );
     assert_eq!(json["schemas"]["capabilities"][0], 1);
     assert_eq!(json["schemas"]["scan_json"][0], 1);
-    assert_eq!(json["schemas"]["query_json"][0], 2);
+    assert_eq!(json["schemas"]["query_json"][0], 3);
     assert_eq!(
         json["schemas"]["semantic_packs"][0],
         "nose.semantic-pack.v0"
@@ -2052,12 +2052,12 @@ fn query_dashboard_filter_and_family() {
         "query --fail-on new requires --baseline"
     );
 
-    // The JSON form is the structured, versioned query-v2 contract (every view).
+    // The JSON form is the structured, versioned query-v3 contract (every view).
     let dash: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "--format", "json"])).unwrap();
     assert_eq!(
-        dash["schema_version"], 2,
-        "dashboard json is schema v2: {dash}"
+        dash["schema_version"], 3,
+        "dashboard json is schema v3: {dash}"
     );
     assert_eq!(dash["view"], "dashboard");
     assert!(dash["summary"]["families"].is_number());

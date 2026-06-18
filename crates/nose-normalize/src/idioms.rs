@@ -1773,6 +1773,7 @@ mod tests {
                 root,
                 kind: UnitKind::Class,
                 name: Some(interner.intern("std")),
+                origin: Default::default(),
             }]
         } else {
             Vec::new()

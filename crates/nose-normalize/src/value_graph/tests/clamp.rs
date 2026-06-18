@@ -133,6 +133,7 @@ fn guarded_function(
             root: func,
             kind: UnitKind::Function,
             name: None,
+            origin: Default::default(),
         }],
         Vec::new(),
     );
@@ -180,6 +181,7 @@ fn literal_bound_function(
             root: func,
             kind: UnitKind::Function,
             name: None,
+            origin: Default::default(),
         }],
         Vec::new(),
     );

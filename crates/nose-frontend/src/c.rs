@@ -10,7 +10,7 @@ use nose_il::{
     contains_c_identifier, stable_symbol_hash, Builtin, CTypeTarget, DomainEvidence,
     EvidenceAnchor, EvidenceId, EvidenceKind, FileId, Il, ImportEvidenceKind, Interner, Lang,
     LitClass, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceFactKind, Span,
-    TypeEvidenceKind, UnitKind,
+    TypeEvidenceKind, UnitKind, UnitSubkind,
 };
 use std::{fs, path::Path};
 use tree_sitter::Node as TsNode;
@@ -274,7 +274,12 @@ fn lower_func(lo: &mut Lowering, node: TsNode) -> NodeId {
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
     let func = lo.add(NodeKind::Func, Payload::None, span, &kids);
-    lo.push_unit(func, UnitKind::Function, name);
+    lo.push_unit_with_origin(
+        func,
+        UnitKind::Function,
+        name,
+        crate::lower::imperative_callable_origin(UnitSubkind::Function, true),
+    );
     func
 }
 

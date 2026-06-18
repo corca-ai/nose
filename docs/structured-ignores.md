@@ -140,7 +140,7 @@ untrustworthy.
 
 Expired entries are different: they are valid historical decisions whose date has
 passed. nose prints a warning on stderr and does not apply the entry (the deprecated
-`nose scan --format json` additionally lists it under `ignore.expired`; query-JSON v2
+`nose scan --format json` additionally lists it under `ignore.expired`; query-JSON v3
 carries no `ignore` object).
 
 ## Which suppression to use

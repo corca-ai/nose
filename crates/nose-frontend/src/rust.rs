@@ -11,8 +11,10 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCallKind,
-    SourceFactKind, SourcePatternKind, SourceProtocolKind, SourceRangeKind, Span, Symbol, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind,
+    SourceCallKind, SourceFactKind, SourceGranularity, SourcePatternKind, SourceProtocolKind,
+    SourceRangeKind, Span, Symbol, UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag,
+    UnitKind, UnitOrigin, UnitSubkind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -111,9 +113,54 @@ fn lower_type_block(lo: &mut Lowering, node: TsNode, methods: bool) -> NodeId {
     // call/control/value signal, so any two same-arity types look "similar" and
     // flood the candidate report with false positives (see docs/dogfooding.md).
     if methods {
-        lo.push_unit(block, UnitKind::Class, name);
+        lo.push_unit_with_origin(block, UnitKind::Class, name, rust_type_origin(node));
     }
     block
+}
+
+fn rust_type_origin(node: TsNode) -> UnitOrigin {
+    match node.kind() {
+        "trait_item" => {
+            let has_body = rust_node_has_function_body(node);
+            UnitOrigin::new(
+                UnitDomains::of(UnitDomain::TypeContract).union(if has_body {
+                    UnitDomains::of(UnitDomain::ImplementationType)
+                } else {
+                    UnitDomains::empty()
+                }),
+                UnitSubkind::InterfaceTraitProtocol,
+                if has_body {
+                    UnitBodyKind::Mixed
+                } else {
+                    UnitBodyKind::DeclarationOnly
+                },
+                SourceGranularity::WholeUnit,
+                RegionKind::Code,
+            )
+            .with_evidence(if has_body {
+                UnitEvidenceFlag::HasDefaultBody
+            } else {
+                UnitEvidenceFlag::DeclarationOnly
+            })
+            .with_evidence(UnitEvidenceFlag::TypeOnly)
+        }
+        "impl_item" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::ImplementationType),
+            UnitSubkind::ImplBlock,
+            UnitBodyKind::Implementation,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::HasReusableBody),
+        _ => UnitOrigin::unknown(),
+    }
+}
+
+fn rust_node_has_function_body(node: TsNode) -> bool {
+    Lowering::named_children(node).into_iter().any(|child| {
+        child.kind() == "function_item" && child.child_by_field_name("body").is_some()
+            || rust_node_has_function_body(child)
+    })
 }
 
 fn lower_mod_item(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -784,7 +831,19 @@ fn lower_macro_rule_body_unit(
     let body = lo.raw("macro_rule_body", span, &atoms);
     let block = lo.add(NodeKind::Block, Payload::None, span, &[body]);
     let unit_name = lo.sym(&format!("{macro_name}:arm{arm_index}"));
-    lo.push_unit(block, UnitKind::Block, Some(unit_name));
+    lo.push_unit_with_origin(
+        block,
+        UnitKind::Block,
+        Some(unit_name),
+        UnitOrigin::new(
+            UnitDomains::of(UnitDomain::Preprocessor),
+            UnitSubkind::Macro,
+            UnitBodyKind::Preprocessor,
+            SourceGranularity::Block,
+            RegionKind::Preprocessor,
+        )
+        .with_evidence(UnitEvidenceFlag::MacroFunctionLike),
+    );
     block
 }
 

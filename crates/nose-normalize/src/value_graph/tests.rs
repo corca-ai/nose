@@ -1083,6 +1083,7 @@ fn scalar_integer_method_value_graph_requires_library_api_evidence() {
             root: func,
             kind: UnitKind::Function,
             name: Some(interner.intern("f")),
+            origin: Default::default(),
         }],
         vec![x],
     );
@@ -1865,6 +1866,7 @@ fn normalized_java_static_import_map_binding_feeds_get_or_default() {
             root: func,
             kind: UnitKind::Method,
             name: Some(lookup_method),
+            origin: Default::default(),
         }],
         vec![map, lookup],
     );
