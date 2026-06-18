@@ -3053,3 +3053,44 @@ measure, not assume — here it is small.
 **Follow-up (not soundness):** real-corpus evidence for the js/ts/rust cells (js/ts libraries keep
 parallel sync/async versions far less often than Python ones, so no clean mined twin yet), and
 extending the mechanism to Rust `.await` and the other protocol boundaries.
+
+## CV. Swift lowering gap tranche from trace dogfood (#452, 2026-06-18)
+
+The `../trace` Swift app dogfood run made the Swift Raw tail concrete: baseline
+`nose stats ../trace` showed Swift at **18,083 Raw / 325,423 nodes = 5.557%**, with
+`prefix_expression` alone contributing **8,522** gap nodes. Inspecting the raw IL showed the
+dominant prefix shape was Swift's implicit member shorthand (`.vertical`, `.named(...)`,
+`.top`, etc.), especially in SwiftUI call sites. Treating that as an ordinary bare identifier
+would be unsound (`.vertical` is contextual enum/member syntax, not `vertical`), but keeping it
+as a generic `Raw("prefix_expression")` lost useful structure and made every shorthand look like
+the same lowering gap.
+
+**Fix shipped in this tranche.** Swift implicit member shorthand now lowers to a distinct
+sentinel receiver shape (`swift_implicit_member.member`), so it is not equal to a bare variable
+and does not claim a concrete enum type. Protocol function/property requirements also lower as
+signature/declaration structure instead of raw protocol declaration nodes, which directly
+addresses the protocol-heavy duplication seen in `../trace`.
+
+**Measured result.** Re-running the same dogfood command with the patched binary:
+
+```text
+swift 344 files · 330,442 nodes · 7,056 Raw · 2.135% raw · 2,062 boundary Raw
+```
+
+The total Swift Raw count drops **18,083 → 7,056** and `prefix_expression` /
+`protocol_function_declaration` leave the top gap list. The remaining largest Swift gaps are
+`value_binding_pattern` (1,963), `switch_pattern` (1,235), `enum_entry` (434),
+`key_path_expression` (213), and `ternary_expression` (127). `await` and `try` remain protocol
+boundaries, not lowering misses.
+
+**Query quality check.** `nose query ../trace lang=swift sort=extractability top=5` still leads
+with the previously hand-verified refactoring candidates (`sectionTitle`, `CurrentTimeLineView`,
+`EventsView`, the low-shared input/settings UI pattern, and `handleRecurringEventUpdate`), while
+the default Swift family count moves from 415 to 388 because the implicit-member structure changes
+some structural similarity grouping. This is acceptable for a lowering change; the top actionable
+signal did not disappear.
+
+**Next safe tranche.** `value_binding_pattern` and `switch_pattern` need pattern-aware lowering,
+not a blind Raw erase: `if let`, `case let`, wildcard, enum-associated-value, and binding
+patterns carry different control-flow and binding semantics. They should be closed with focused
+convergence fixtures before being generalized.

@@ -39,6 +39,7 @@ fn lower_items(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     match node.kind() {
         "function_declaration" => Some(lower_function(lo, node, false)),
+        "protocol_function_declaration" => Some(lower_function(lo, node, true)),
         "init_declaration" | "deinit_declaration" | "subscript_declaration" => {
             Some(lower_function(lo, node, true))
         }
@@ -47,7 +48,9 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         | "enum_declaration"
         | "protocol_declaration" => Some(lower_type(lo, node)),
         "extension_declaration" => Some(lower_extension(lo, node)),
-        "property_declaration" => Some(lower_property(lo, node)),
+        "property_declaration"
+        | "protocol_property_declaration"
+        | "protocol_property_requirements" => Some(lower_property(lo, node)),
         "import_declaration" => Some(lower_import(lo, node)),
         "typealias_declaration"
         | "associatedtype_declaration"
@@ -225,12 +228,15 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     match node.kind() {
         "statements" | "function_body" => Some(lower_block(lo, node)),
         "function_declaration" => Some(lower_function(lo, node, false)),
+        "protocol_function_declaration" => Some(lower_function(lo, node, true)),
         "class_declaration"
         | "struct_declaration"
         | "enum_declaration"
         | "protocol_declaration" => Some(lower_type(lo, node)),
         "extension_declaration" => Some(lower_extension(lo, node)),
-        "property_declaration" => Some(lower_property(lo, node)),
+        "property_declaration"
+        | "protocol_property_declaration"
+        | "protocol_property_requirements" => Some(lower_property(lo, node)),
         "assignment" => Some(lower_assignment(lo, node)),
         "control_transfer_statement" => lower_control_transfer(lo, node),
         "if_statement" | "guard_statement" => Some(lower_if(lo, node)),
@@ -913,9 +919,26 @@ fn lower_prefix(lo: &mut Lowering, node: TsNode) -> NodeId {
         lo.add(NodeKind::UnOp, Payload::Op(Op::Neg), span, &[operand])
     } else if op_text.starts_with('+') || op_text == "&" {
         operand
+    } else if op_text.starts_with('.') {
+        lower_implicit_member(lo, span, operand)
     } else {
         lo.raw("prefix_expression", span, &[operand])
     }
+}
+
+fn lower_implicit_member(lo: &mut Lowering, span: Span, member: NodeId) -> NodeId {
+    if lo.b.kind(member) == NodeKind::Var {
+        if let Payload::Name(field) = lo.b.payload(member) {
+            let base = lo.var("swift_implicit_member", span);
+            return lo.add(NodeKind::Field, Payload::Name(field), span, &[base]);
+        }
+    }
+    lo.add(
+        NodeKind::Seq,
+        Payload::Name(lo.sym("swift_implicit_member")),
+        span,
+        &[member],
+    )
 }
 
 fn lower_postfix(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1363,6 +1386,21 @@ mod tests {
         il_with_interner(src).0
     }
 
+    fn raw_names(il: &Il, interner: &Interner) -> Vec<String> {
+        il.nodes
+            .iter()
+            .filter_map(|node| {
+                if node.kind != NodeKind::Raw {
+                    return None;
+                }
+                let Payload::Name(name) = node.payload else {
+                    return None;
+                };
+                Some(interner.resolve(name).to_string())
+            })
+            .collect()
+    }
+
     #[test]
     fn function_lowers_to_unit() {
         let il = il(r#"
@@ -1526,5 +1564,69 @@ func mapped(_ xs: [Int]) -> [Int] {
         assert!(!il.nodes.iter().any(|node| {
             node.kind == NodeKind::Seq && matches!(node.payload, Payload::Name(_))
         }));
+    }
+
+    #[test]
+    fn implicit_member_shorthand_lowers_without_raw_prefix() {
+        let (il, interner) = il_with_interner(
+            r#"
+func axis() -> Any {
+    return .vertical
+}
+
+func space() -> Any {
+    return .named("scroll")
+}
+"#,
+        );
+        assert!(
+            !raw_names(&il, &interner)
+                .iter()
+                .any(|name| name == "prefix_expression"),
+            "implicit member syntax should not stay as a generic Raw prefix"
+        );
+        let implicit = interner.intern("swift_implicit_member");
+        assert!(il.nodes.iter().enumerate().any(|(idx, node)| {
+            if node.kind != NodeKind::Field {
+                return false;
+            }
+            let children = il.children(NodeId(idx as u32));
+            matches!(
+                children,
+                [receiver]
+                    if il.kind(*receiver) == NodeKind::Var
+                        && il.node(*receiver).payload == Payload::Name(implicit)
+            )
+        }));
+    }
+
+    #[test]
+    fn protocol_requirements_lower_as_signature_units() {
+        let (il, interner) = il_with_interner(
+            r#"
+protocol Store {
+    var count: Int { get }
+    func fetch(_ key: String) async throws -> Int
+}
+"#,
+        );
+        let raw = raw_names(&il, &interner);
+        assert!(
+            !raw.iter().any(|name| matches!(
+                name.as_str(),
+                "protocol_function_declaration"
+                    | "protocol_property_declaration"
+                    | "protocol_property_requirements"
+            )),
+            "protocol requirements should lower as declaration/signature structure, got {raw:?}"
+        );
+        assert!(
+            il.units
+                .iter()
+                .any(|unit| unit.kind == UnitKind::Method
+                    && unit.name == Some(interner.intern("fetch"))),
+            "protocol function requirement should be a method-like unit"
+        );
+        assert!(il.nodes.iter().any(|node| node.kind == NodeKind::Param));
     }
 }
