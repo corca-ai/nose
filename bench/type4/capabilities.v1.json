@@ -119,7 +119,7 @@
       "record_shape_guard": "unsupported",
       "string_prefix_suffix": "supported",
       "table_access": "unsupported",
-      "total_order_compare": "unsupported",
+      "total_order_compare": "supported",
       "unsafe_boundary": "supported"
     },
     "javascript": {
@@ -206,6 +206,7 @@
       "map_default_lookup": "supported",
       "map_key_membership": "supported",
       "null_presence_predicate": "supported",
+      "numeric_clamp": "supported",
       "numeric_minmax_abs": "supported",
       "nullish_default": "supported",
       "own_property_guard": "unsupported",

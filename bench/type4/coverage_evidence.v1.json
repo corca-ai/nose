@@ -147,7 +147,62 @@
     {
       "axis": "extract_method_inline",
       "gen_axis": "probe:extract_method_inline",
+      "language": "javascript",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
+      "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
       "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
+      "language": "typescript",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "filter_fusion",
+      "gen_axis": "probe:filter_fusion",
+      "language": "java",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -272,6 +327,17 @@
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "identity_value_soundness",
+      "gen_axis": "probe:identity_value_soundness",
+      "language": "swift",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
       "false_merges": 0,
       "neg": 1,
       "source": "probe"
@@ -574,6 +640,94 @@
       "source": "sweep"
     },
     {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "c",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "go",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "javascript",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "python",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "ruby",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "rust",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "swift",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "loop_extent_soundness",
+      "gen_axis": "probe:loop_extent_soundness",
+      "language": "typescript",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
       "axis": "map_default_lookup",
       "gen_axis": "literal_map_default_lookup",
       "language": "python",
@@ -671,6 +825,17 @@
       "false_merges": 0,
       "neg": 1,
       "source": "sweep"
+    },
+    {
+      "axis": "map_fusion",
+      "gen_axis": "probe:map_fusion",
+      "language": "java",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "map_fusion",
@@ -1034,6 +1199,17 @@
       "false_merges": 0,
       "neg": 4,
       "source": "sweep"
+    },
+    {
+      "axis": "numeric_clamp",
+      "gen_axis": "probe:numeric_clamp",
+      "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "numeric_minmax_abs",
@@ -1664,6 +1840,17 @@
     },
     {
       "axis": "total_order_compare",
+      "gen_axis": "probe:total_order_compare",
+      "language": "java",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "total_order_compare",
       "gen_axis": "total_order_compare",
       "language": "c",
       "status": "covered",
@@ -1672,6 +1859,94 @@
       "false_merges": 0,
       "neg": 5,
       "source": "sweep"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "go",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "java",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "javascript",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "python",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "ruby",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "rust",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "swift",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "typed_concat_soundness",
+      "gen_axis": "probe:typed_concat_soundness",
+      "language": "typescript",
+      "status": "no-positive",
+      "pos_hit": 0,
+      "pos": 0,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     }
   ],
   "oracle": [

@@ -10,6 +10,9 @@ Layout:
   coverage_probes/<axis>/<lang>/pos/{a,b}.<ext>
   coverage_probes/<axis>/<lang>/neg-<tag>/{a,b}.<ext>
 
+Soundness-family axes may omit `pos/` and provide only `neg-*` siblings. Those cells are
+recorded as `no-positive`, which the matrix counts only as a soundness hard-negative.
+
   python3 coverage_probe.py [--nose target/debug/nose] [--axis reduce_minmax_anyall]
 """
 
@@ -21,6 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import coverage_taxonomy as tax
 from eval_manifest import scan_families
 
 HERE = Path(__file__).resolve().parent
@@ -50,20 +54,27 @@ def converges(nose: str, pair_dir: Path) -> bool:
 def probe_cell(nose: str, axis_dir: Path, lang: str) -> dict | None:
     lang_dir = axis_dir / lang
     pos = lang_dir / "pos"
-    if not pos.is_dir():
-        return None
-    pos_ok = converges(nose, pos)
     neg_dirs = sorted(d for d in lang_dir.iterdir() if d.is_dir() and d.name.startswith("neg"))
+    has_pos = pos.is_dir()
+    if not has_pos:
+        axis = tax.axis_index().get(axis_dir.name)
+        if not neg_dirs or not axis or axis.get("family") != "soundness":
+            return None
+        pos_ok = False
+    else:
+        pos_ok = converges(nose, pos)
     merged = [d.name for d in neg_dirs if converges(nose, d)]
     if merged:
         status = "false-merge"
     elif pos_ok:
         status = "covered"
+    elif not has_pos:
+        status = "no-positive"
     else:
         status = "gap"
     return {
         "axis": axis_dir.name, "gen_axis": f"probe:{axis_dir.name}", "language": lang,
-        "status": status, "pos_hit": int(pos_ok), "pos": 1,
+        "status": status, "pos_hit": int(pos_ok), "pos": int(has_pos),
         "false_merges": len(merged), "neg": len(neg_dirs), "source": "probe",
     }
 
@@ -94,7 +105,8 @@ def main() -> int:
             flag = "  <-- SOUNDNESS BUG" if cell["status"] == "false-merge" else (
                 "  <-- GAP" if cell["status"] == "gap" else "")
             print(f"{cell['axis']:26s} {cell['language']:11s} {cell['status']:12s} "
-                  f"{cell['pos_hit']}/1  {cell['neg'] - cell['false_merges']}/{cell['neg']}{flag}")
+                  f"{cell['pos_hit']}/{cell['pos']}  "
+                  f"{cell['neg'] - cell['false_merges']}/{cell['neg']}{flag}")
 
     # merge into evidence (probe rows keyed distinct from sweep via gen_axis="probe:<axis>")
     prev = json.loads(EVIDENCE.read_text()) if EVIDENCE.exists() else {}
@@ -106,9 +118,12 @@ def main() -> int:
     EVIDENCE.write_text(json.dumps(
         {"schema_version": 1, "evidence": out, "oracle": prev.get("oracle", [])}, indent=2) + "\n")
     covered = sum(1 for r in rows if r["status"] == "covered")
+    hard_negatives = sum(1 for r in rows if r["status"] == "no-positive")
     bugs = [r for r in rows if r["status"] == "false-merge"]
     gaps = [r for r in rows if r["status"] == "gap"]
-    print(f"\nprobed {len(rows)} cells: {covered} covered, {len(gaps)} gaps, {len(bugs)} soundness bugs")
+    print(f"\nprobed {len(rows)} cells: {covered} covered, "
+          f"{hard_negatives} soundness hard-negatives, {len(gaps)} gaps, "
+          f"{len(bugs)} soundness bugs")
     if bugs:
         print("SOUNDNESS BUGS (hard negative converged — must fix):")
         for r in bugs:

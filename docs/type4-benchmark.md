@@ -88,15 +88,17 @@ unsafe boundaries), and the shared strict engine consumes them.
 `capabilities.v1.json` records which surfaces emit which facts, so unsupported cells stay
 visible.
 
-The checked-in matrix keeps every primary language at or above 50% applicable-cell
-coverage. Pure hard-negative sweep rows count only for soundness-family axes, where the
-cell claim is precisely that adjacent non-equivalent forms stay unmerged.
+The checked-in matrix keeps every primary language at or above 56% applicable-cell
+coverage. Pure hard-negative sweep/probe rows count only for soundness-family axes, where
+the cell claim is precisely that adjacent non-equivalent forms stay unmerged. The probe
+harness permits `pos/`-less hard-negative fixtures only for those soundness-family axes.
 
 Swift participates as a first-party surface in the capability matrix and generator. Its
-evidence-backed Type-4 matrix coverage is 12/24 applicable cells: collection emptiness,
+evidence-backed Type-4 matrix coverage is 15/24 applicable cells: collection emptiness,
 string affix, membership, option presence, for-in/indexed reduction, immutable binding,
 proven callee identity, extract-method inline, tail numeric recursion, scalar min/max,
-filter fusion, and map fusion. Swift flat-map/filter-map, map-default, clamp, import
+filter fusion, map fusion, and hard-negative guards for identity/value, loop extent, and
+typed concatenation soundness. Swift flat-map/filter-map, map-default, clamp, import
 identity, and scalar abs sign-ternary surfaces remain visible as unsupported or partial
 until their receiver, demand, or proof boundaries are modeled.
 

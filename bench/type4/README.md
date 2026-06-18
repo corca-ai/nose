@@ -19,12 +19,15 @@ The factory is evidence-carrying by design:
 - generated source paths and metadata are written into a manifest.
 
 Swift is included as a first-party surface. Its checked-in coverage probes currently cover
-12/24 applicable matrix cells: collection emptiness, string prefix/suffix, collection
+15/24 applicable matrix cells: collection emptiness, string prefix/suffix, collection
 membership, option presence, for-in/indexed reduction, immutable binding, proven callee
 identity, extract-method inline, tail numeric recursion, scalar min/max, filter fusion, and
-map fusion, with adjacent hard negatives recorded in `coverage_evidence.v1.json`.
-The checked-in matrix now keeps every primary language at or above 50% covered applicable
-cells; pure hard-negative rows are counted only on soundness-family axes.
+map fusion, plus hard-negative guards for identity/value, loop extent, and typed
+concatenation soundness, with adjacent hard negatives recorded in
+`coverage_evidence.v1.json`.
+The checked-in matrix now keeps every primary language at or above 56% covered applicable
+cells; pure hard-negative rows are counted only on soundness-family axes. The focused probe
+harness permits `pos/`-less hard-negative fixtures only for those soundness-family axes.
 
 The generated manifest is a candidate benchmark artifact. A case becomes gold only after it
 passes the promotion rules in the docs.

@@ -70,17 +70,17 @@
       "c": "covered",
       "go": "covered",
       "java": "none",
-      "javascript": "none",
-      "python": "none",
+      "javascript": "covered",
+      "python": "covered",
       "ruby": "none",
-      "rust": "none",
+      "rust": "covered",
       "swift": "covered",
-      "typescript": "none"
+      "typescript": "covered"
     },
     "filter_fusion": {
       "c": "none",
       "go": "none",
-      "java": "none",
+      "java": "covered",
       "javascript": "covered",
       "python": "covered",
       "ruby": "covered",
@@ -107,7 +107,7 @@
       "python": "hard-negative",
       "ruby": "hard-negative",
       "rust": "hard-negative",
-      "swift": "none",
+      "swift": "hard-negative",
       "typescript": "hard-negative"
     },
     "immutable_binding": {
@@ -155,15 +155,15 @@
       "typescript": "n/a"
     },
     "loop_extent_soundness": {
-      "c": "none",
-      "go": "none",
+      "c": "hard-negative",
+      "go": "hard-negative",
       "java": "hard-negative",
-      "javascript": "none",
-      "python": "none",
-      "ruby": "none",
-      "rust": "none",
-      "swift": "none",
-      "typescript": "none"
+      "javascript": "hard-negative",
+      "python": "hard-negative",
+      "ruby": "hard-negative",
+      "rust": "hard-negative",
+      "swift": "hard-negative",
+      "typescript": "hard-negative"
     },
     "map_default_lookup": {
       "c": "n/a",
@@ -179,7 +179,7 @@
     "map_fusion": {
       "c": "none",
       "go": "none",
-      "java": "none",
+      "java": "covered",
       "javascript": "covered",
       "python": "covered",
       "ruby": "covered",
@@ -216,7 +216,7 @@
       "javascript": "none",
       "python": "covered",
       "ruby": "none",
-      "rust": "none",
+      "rust": "covered",
       "swift": "none",
       "typescript": "none"
     },
@@ -355,7 +355,7 @@
     "total_order_compare": {
       "c": "covered",
       "go": "covered",
-      "java": "none",
+      "java": "covered",
       "javascript": "none",
       "python": "none",
       "ruby": "none",
@@ -365,14 +365,14 @@
     },
     "typed_concat_soundness": {
       "c": "none",
-      "go": "none",
-      "java": "none",
-      "javascript": "none",
-      "python": "none",
-      "ruby": "none",
-      "rust": "none",
-      "swift": "none",
-      "typescript": "none"
+      "go": "hard-negative",
+      "java": "hard-negative",
+      "javascript": "hard-negative",
+      "python": "hard-negative",
+      "ruby": "hard-negative",
+      "rust": "hard-negative",
+      "swift": "hard-negative",
+      "typescript": "hard-negative"
     },
     "value_domain_algebra": {
       "c": "out",
@@ -400,39 +400,39 @@
   "per_language": {
     "c": {
       "applicable": 23,
-      "covered": 12
+      "covered": 13
     },
     "go": {
       "applicable": 24,
-      "covered": 14
+      "covered": 16
     },
     "java": {
       "applicable": 27,
-      "covered": 15
+      "covered": 19
     },
     "javascript": {
       "applicable": 27,
-      "covered": 17
+      "covered": 20
     },
     "python": {
       "applicable": 26,
-      "covered": 18
+      "covered": 21
     },
     "ruby": {
       "applicable": 24,
-      "covered": 14
+      "covered": 16
     },
     "rust": {
       "applicable": 25,
-      "covered": 14
+      "covered": 18
     },
     "swift": {
       "applicable": 24,
-      "covered": 12
+      "covered": 15
     },
     "typescript": {
       "applicable": 27,
-      "covered": 17
+      "covered": 20
     }
   }
 }
