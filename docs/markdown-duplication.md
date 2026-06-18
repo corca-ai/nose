@@ -60,8 +60,7 @@ Quality is measured against frozen, **LLM-built golden sets** (no human in the l
 detector **PR-AUC 0.995** single-genre (CoC) / **0.944** multi-domain, candidate-recall 1.0,
 deterministic (byte-identical across runs). See [`bench/markdown/`](../bench/markdown/README.md)
 for the corpora, the deterministic build procedure, the dev `mddup` example commands, and the full
-κ / PR-AUC / ROC-AUC / recall tables. (The user surface is `nose query`; `mddup` is a dev-only
-example.)
+κ / PR-AUC / ROC-AUC / recall tables.
 
 ## Related
 

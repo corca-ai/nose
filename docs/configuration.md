@@ -131,7 +131,6 @@ comment syntax all work). nose drops that unit from detection, so that site cann
 family. Use this for a duplicate you've consciously decided to live with, rather than
 excluding the whole file.
 
-For a finding that should stay visible to audit tooling, prefer a structured
-ignore entry. For accepting *all* of today's existing duplication at once — so
-only *new* duplication is reported — use a baseline instead; see
-[continuous-integration](continuous-integration.md).
+For when to reach for this inline marker vs a structured ignore entry vs a
+baseline, see [Which suppression to use](structured-ignores.md#which-suppression-to-use).
+Baselines are set up in [continuous-integration](continuous-integration.md).

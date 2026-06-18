@@ -12,7 +12,7 @@ Run nose and copy a family's full `id` field from the JSON report. Do not paste 
 See [Family IDs](#family-ids).
 
 ```sh
-nose query src --format json all
+nose query src --format json all top=0
 ```
 
 (`nose scan src --format json --top 0` is the deprecated equivalent.)

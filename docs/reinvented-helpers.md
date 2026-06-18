@@ -92,6 +92,10 @@ boundaries the consumer must check:
 
 16 findings across 8 repos ([experiments §CF](experiments.md)): 16/16 value-exact on
 hand-labeling, ~13/16 directly actionable; the remainder are test/vendored containers.
+This was the initial §CF pass; the later [2026-06-13 field audit](reinvented-helper-audit-2026-06-13.md)
+re-ran the channel on the same corpus (17 findings / 9 repos; 94% genuine value-duplication,
+71% directly actionable on the non-test default surface) and is what drove the default-list
+promotion described in [Surface](#surface).
 One finding surfaced a real upstream bug — h2database's `getGarbageCollectionCount()`
 copy-pasted from the time variant and still calls `getCollectionTime()`, which is
 *why* it exactly contains the time helper's computation. Tuning knob:
