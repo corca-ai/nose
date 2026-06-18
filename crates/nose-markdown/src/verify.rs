@@ -52,7 +52,8 @@ impl CorpusModel {
         if a.shingles.is_empty() || b.shingles.is_empty() {
             return 0.0;
         }
-        let norm = |s: &[u64]| -> f64 { s.iter().map(|&g| self.idf(g).powi(2)).sum::<f64>().sqrt() };
+        let norm =
+            |s: &[u64]| -> f64 { s.iter().map(|&g| self.idf(g).powi(2)).sum::<f64>().sqrt() };
         let (na, nb) = (norm(&a.shingles), norm(&b.shingles));
         if na == 0.0 || nb == 0.0 {
             return 0.0;

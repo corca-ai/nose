@@ -131,7 +131,8 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
     for &(i, j, _) in &accepted {
         uf.union(i, j);
     }
-    let mut groups: std::collections::BTreeMap<usize, Vec<usize>> = std::collections::BTreeMap::new();
+    let mut groups: std::collections::BTreeMap<usize, Vec<usize>> =
+        std::collections::BTreeMap::new();
     for idx in 0..units.len() {
         let r = uf.find(idx);
         // only keep indices that participate in at least one accepted pair
@@ -180,7 +181,9 @@ fn build_family(
         .map(|&&(i, j, _)| model.commonness(&fps[i], &fps[j]))
         .sum::<f64>()
         / inpairs.len() as f64;
-    let exact = members.iter().all(|&m| units[m].norm == units[members[0]].norm);
+    let exact = members
+        .iter()
+        .all(|&m| units[m].norm == units[members[0]].norm);
     let rep = inpairs
         .iter()
         .max_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
@@ -201,7 +204,8 @@ fn build_family(
             heading: units[m].heading.clone(),
         })
         .collect();
-    fam_members.sort_by(|a, b| (a.path.as_str(), a.start_line).cmp(&(b.path.as_str(), b.start_line)));
+    fam_members
+        .sort_by(|a, b| (a.path.as_str(), a.start_line).cmp(&(b.path.as_str(), b.start_line)));
 
     let files = fam_members
         .iter()
@@ -250,7 +254,8 @@ mod tests {
 
     #[test]
     fn finds_exact_copy_family() {
-        let body = "# Install\n\nDownload the binary from the releases page and place it on your PATH. \
+        let body =
+            "# Install\n\nDownload the binary from the releases page and place it on your PATH. \
                     Then run the version command to confirm the installation succeeded correctly.";
         let docs = vec![doc("a.md", body), doc("b.md", body), doc("c.md", body)];
         let fams = detect(&docs, &Options::default());
@@ -265,13 +270,17 @@ mod tests {
 
     #[test]
     fn finds_near_dup_not_unrelated() {
-        let a = "# Guide\n\nThe configuration loader reads the settings file at startup and validates \
+        let a =
+            "# Guide\n\nThe configuration loader reads the settings file at startup and validates \
                  every field before the server begins accepting incoming network connections.";
         let b = "# Guide\n\nThe configuration loader reads the settings file on startup and validates \
                  each field before the service starts accepting incoming network connections today.";
         let c = "# Other\n\nQuantum entanglement lets distant particles share correlated measurement \
                  outcomes instantaneously across arbitrarily large separating spatial distances now.";
-        let fams = detect(&[doc("a.md", a), doc("b.md", b), doc("c.md", c)], &Options::default());
+        let fams = detect(
+            &[doc("a.md", a), doc("b.md", b), doc("c.md", c)],
+            &Options::default(),
+        );
         assert_eq!(fams.len(), 1, "only a/b should form a family");
         assert_eq!(fams[0].members.len(), 2);
         assert!(!fams[0].exact);
@@ -285,6 +294,9 @@ mod tests {
         let docs = vec![doc("a.md", body), doc("b.md", body)];
         let a = detect(&docs, &Options::default());
         let b = detect(&docs, &Options::default());
-        assert_eq!(serde_json::to_string(&a).unwrap(), serde_json::to_string(&b).unwrap());
+        assert_eq!(
+            serde_json::to_string(&a).unwrap(),
+            serde_json::to_string(&b).unwrap()
+        );
     }
 }

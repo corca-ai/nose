@@ -42,7 +42,10 @@ fn main() {
     let mut docs: Vec<(String, String)> = Vec::new();
     for p in &paths {
         if let Ok(bytes) = fs::read(p) {
-            docs.push((p.to_string_lossy().into_owned(), String::from_utf8_lossy(&bytes).into_owned()));
+            docs.push((
+                p.to_string_lossy().into_owned(),
+                String::from_utf8_lossy(&bytes).into_owned(),
+            ));
         }
     }
 
@@ -59,10 +62,20 @@ fn main() {
         fams.len()
     );
     for (n, f) in fams.iter().take(25).enumerate() {
-        let common = if f.commonness > 0.25 { "  [common/boilerplate]" } else { "" };
+        let common = if f.commonness > 0.25 {
+            "  [common/boilerplate]"
+        } else {
+            ""
+        };
         println!(
             "\n#{n} [{}] score={:.2} members={} files={} removable~{} commonness={:.2}{}",
-            f.tier, f.score, f.members.len(), f.files, f.removable, f.commonness, common
+            f.tier,
+            f.score,
+            f.members.len(),
+            f.files,
+            f.removable,
+            f.commonness,
+            common
         );
         if let Some(h) = f.members.first().and_then(|m| m.heading.as_deref()) {
             println!("   heading: {h}");
@@ -73,8 +86,13 @@ fn main() {
         if let Some(w) = &f.witness {
             println!(
                 "   witness: {} shared lines ({} {}-{} ~ {} {}-{})",
-                w.span.matched_lines, w.a_path, w.span.a_start, w.span.a_end,
-                w.b_path, w.span.b_start, w.span.b_end
+                w.span.matched_lines,
+                w.a_path,
+                w.span.a_start,
+                w.span.a_end,
+                w.b_path,
+                w.span.b_start,
+                w.span.b_end
             );
         }
     }

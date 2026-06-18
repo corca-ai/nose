@@ -6,9 +6,9 @@
 //! duplication is, not just a score. Line granularity is the Markdown-natural unit and doubles as
 //! the Myers-diff-style render.
 
+use crate::fingerprint::fnv1a;
 use crate::norm;
 use crate::unit::Unit;
-use crate::fingerprint::fnv1a;
 
 /// A duplicated span, in original 1-based inclusive line numbers of each unit's file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]

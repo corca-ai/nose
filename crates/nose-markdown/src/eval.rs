@@ -81,7 +81,10 @@ pub struct Metrics {
     pub candidate_recall: f64,
 }
 
-fn build(docs: &[(String, String)], min_words: usize) -> (Vec<Unit>, Vec<Fingerprint>, CorpusModel) {
+fn build(
+    docs: &[(String, String)],
+    min_words: usize,
+) -> (Vec<Unit>, Vec<Fingerprint>, CorpusModel) {
     let mut units: Vec<Unit> = Vec::new();
     for (path, src) in docs {
         for u in unit::split_units(path, src) {
@@ -284,9 +287,11 @@ mod tests {
 
     #[test]
     fn evaluate_against_golden() {
-        let body = "# Install\n\nDownload the release binary and put it on your PATH, then run the \
+        let body =
+            "# Install\n\nDownload the release binary and put it on your PATH, then run the \
                     version subcommand to confirm the installation completed without any errors.";
-        let other = "# Topic\n\nQuantum entanglement correlates distant particles so a measurement \
+        let other =
+            "# Topic\n\nQuantum entanglement correlates distant particles so a measurement \
                      on one instantly constrains the outcome of the other across vast distances.";
         let docs = vec![
             ("a.md".to_string(), body.to_string()),
@@ -298,14 +303,30 @@ mod tests {
         let g = Golden {
             pairs: vec![
                 GoldPair {
-                    a: Ref { path: "a.md".into(), start: 1, end: 3 },
-                    b: Ref { path: "b.md".into(), start: 1, end: 3 },
+                    a: Ref {
+                        path: "a.md".into(),
+                        start: 1,
+                        end: 3,
+                    },
+                    b: Ref {
+                        path: "b.md".into(),
+                        start: 1,
+                        end: 3,
+                    },
                     label: true,
                     source: "construction".into(),
                 },
                 GoldPair {
-                    a: Ref { path: "a.md".into(), start: 1, end: 3 },
-                    b: Ref { path: "c.md".into(), start: 1, end: 3 },
+                    a: Ref {
+                        path: "a.md".into(),
+                        start: 1,
+                        end: 3,
+                    },
+                    b: Ref {
+                        path: "c.md".into(),
+                        start: 1,
+                        end: 3,
+                    },
                     label: false,
                     source: "construction".into(),
                 },

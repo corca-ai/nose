@@ -103,7 +103,11 @@ fn print_human(scanned: usize, families: &[Family], top: usize) {
         "scanned {scanned} markdown files \u{2192} {} near-duplicate {} \
          (near-dup score + span witness + commonness; not a judgment of intent)",
         families.len(),
-        if families.len() == 1 { "family" } else { "families" }
+        if families.len() == 1 {
+            "family"
+        } else {
+            "families"
+        }
     );
     for (n, f) in families.iter().take(top).enumerate() {
         let common = if f.commonness > 0.25 {
