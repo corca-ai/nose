@@ -232,8 +232,7 @@ fuzzy Type-3 near-duplicates.
 nose scan path/to/project
 ```
 
-How to read the resulting report — the `scanned …` scope line, the per-family
-breakdown, scope tags, and the `→` hint — is covered in
+How to read the resulting report is covered in
 [getting-started → How to read the report](getting-started.md#how-to-read-the-report).
 Like `nose query`, `scan` shows only the curated [default surface](#the-default-surface)
 of action-oriented findings and omits the held-back categories with a short count line;

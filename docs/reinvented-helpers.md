@@ -99,4 +99,4 @@ copy-pasted from the time variant and still calls `getCollectionTime()`, which i
 `NOSE_REINVENTED_MIN_WEIGHT` (research surface) adjusts the anchor collection floor.
 
 *See also: [normalization](normalization.md) · [clone-types](clone-types.md) ·
-[scan-json](scan-json.md) · [design](design.md) · [experiments](experiments.md).*
+[query-json](query-json.md) · [scan-json](scan-json.md) · [design](design.md) · [experiments](experiments.md).*

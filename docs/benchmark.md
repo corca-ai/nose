@@ -137,7 +137,7 @@ uses a hidden research surface:
 - `nose eval` / `nose ceiling` — score predictions against a gold set / split recall across
   the extraction and candidate-generation stages.
 
-`nose behavioral-gate` is a visible experimental Type-4 benchmark command for measuring a
+`nose behavioral-gate` is a hidden experimental Type-4 benchmark command for measuring a
 behavioral-equivalence acceptance gate against a generated manifest; it is not a stable
 integration surface.
 

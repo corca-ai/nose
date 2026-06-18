@@ -77,8 +77,9 @@ non-zero for new or changed clone families. Plain `--fail-on any` still means "f
 anything is reported on the default surface after the active filters."
 
 Commit `.nose-baseline.json`. Families are keyed by their sorted reported member
-locations: displayed path, language, span, unit kind, symbol name, and fragment
-metadata. **The key is deliberately span- and path-sensitive**, which has three
+locations — the same key structured ignores use (see [structured-ignores ›
+Family IDs](structured-ignores.md#family-ids)). **The key is deliberately span-
+and path-sensitive**, which has three
 honest consequences (measured in [experiments §CB](experiments.md)): editing lines
 *above* an accepted clone re-keys it (it resurfaces as `new`/`changed`); renaming
 its file re-keys it; and the key embeds the detecting channel's unit shape, so a
