@@ -468,7 +468,7 @@ mod tests {
         let il = lower_source(
             FileId(0),
             "View.tsx",
-            b"export const View = () => <section><div className=\"plain\" /><Card title={name} /></section>;\n",
+            b"export const View = (props) => <section><div className=\"plain\" /><Card title={name} /><Panel {...props} /></section>;\n",
             Lang::TypeScript,
             &interner,
         )
@@ -484,6 +484,12 @@ mod tests {
         assert!(card.origin.has_evidence(UnitEvidenceFlag::ComponentTag));
         assert!(card.origin.has_evidence(UnitEvidenceFlag::BoundAttributes));
         assert!(!card.origin.has_evidence(UnitEvidenceFlag::StaticAttrsOnly));
+
+        let panel = unit_named(&il, &interner, UnitKind::Block, "panel");
+        assert_eq!(panel.origin.subkind, UnitSubkind::HtmlElement);
+        assert!(panel.origin.has_evidence(UnitEvidenceFlag::ComponentTag));
+        assert!(panel.origin.has_evidence(UnitEvidenceFlag::BoundAttributes));
+        assert!(!panel.origin.has_evidence(UnitEvidenceFlag::StaticAttrsOnly));
     }
 
     #[test]

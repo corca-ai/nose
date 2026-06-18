@@ -1843,7 +1843,7 @@ fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
     let tag_sym = lo.sym(&tag);
     let mut children = Vec::new();
     let mut has_rendered_attrs = false;
-    let mut has_bound_attrs = false;
+    let mut has_bound_attrs = jsx_has_spread_attribute(node);
     for attr in jsx_attributes(node) {
         if let Some(a) = lower_jsx_attr(lo, attr) {
             has_rendered_attrs = true;
@@ -2054,21 +2054,35 @@ fn jsx_tag(node: TsNode) -> Option<TsNode> {
         .and_then(|o| o.child_by_field_name("name"))
 }
 
-fn jsx_attributes(node: TsNode) -> Vec<TsNode> {
-    let host = if node.kind() == "jsx_element" {
+fn jsx_attr_host(node: TsNode) -> Option<TsNode> {
+    if node.kind() == "jsx_element" {
         Lowering::named_children(node)
             .into_iter()
             .find(|c| c.kind() == "jsx_opening_element")
     } else {
         Some(node)
-    };
-    match host {
+    }
+}
+
+fn jsx_attributes(node: TsNode) -> Vec<TsNode> {
+    match jsx_attr_host(node) {
         Some(h) => Lowering::named_children(h)
             .into_iter()
             .filter(|c| c.kind() == "jsx_attribute")
             .collect(),
         None => Vec::new(),
     }
+}
+
+fn jsx_has_spread_attribute(node: TsNode) -> bool {
+    jsx_attr_host(node).is_some_and(|host| {
+        Lowering::named_children(host).into_iter().any(|child| {
+            child.kind() == "jsx_expression"
+                && Lowering::named_children(child)
+                    .into_iter()
+                    .any(|inner| inner.kind() == "spread_element")
+        })
+    })
 }
 
 /// TypeScript type-syntax node kinds (erased in value positions).
