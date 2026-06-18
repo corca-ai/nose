@@ -38,6 +38,7 @@ from-source `./target/release/nose`.
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
 | Inspect lowering coverage for a language | `nose stats <paths...>` |
+| Find near-duplicate Markdown **prose** | `nose query <path>` — see [markdown-duplication](markdown-duplication.md) |
 | Debug why two snippets do or do not converge | `nose il <file> --normalized` |
 | One-shot ranked report (**deprecated**) | `nose scan <paths...>` — prefer `nose query --format markdown` |
 

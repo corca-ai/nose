@@ -1,6 +1,11 @@
-//! Smoke/eval runner: `cargo run --example mddup -- <paths...> [--json]`
-//! Recursively finds `.md`/`.markdown` files under the given paths, runs the pipeline, and
-//! prints ranked families (human summary, or `--json` for the machine contract).
+//! Dev runner / golden-build tooling for the markdown near-dup engine.
+//!
+//!   cargo run -p nose-markdown --example mddup -- <paths...>            # human summary
+//!   cargo run -p nose-markdown --example mddup -- <paths...> --json     # families as JSON
+//!   cargo run -p nose-markdown --example mddup -- <paths...> --dump-pairs   # candidate pairs (golden build)
+//!   cargo run -p nose-markdown --example mddup -- <paths...> --eval <golden.json>  # metrics
+//!
+//! (User-facing markdown detection lives in `nose query`; this is the dev/benchmark surface.)
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -24,11 +29,20 @@ fn collect_md(root: &Path, out: &mut Vec<PathBuf>) {
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let json = args.iter().any(|a| a == "--json");
-    let roots: Vec<&String> = args.iter().filter(|a| !a.starts_with("--")).collect();
+    let raw: Vec<String> = std::env::args().skip(1).collect();
+    let json = raw.iter().any(|a| a == "--json");
+    let dump = raw.iter().any(|a| a == "--dump-pairs");
+    let eval_idx = raw.iter().position(|a| a == "--eval");
+    let eval_golden = eval_idx.and_then(|i| raw.get(i + 1).cloned());
+    // roots = positional args, excluding flags and the value after `--eval`.
+    let roots: Vec<&String> = raw
+        .iter()
+        .enumerate()
+        .filter(|(i, a)| !a.starts_with("--") && Some(*i) != eval_idx.map(|e| e + 1))
+        .map(|(_, a)| a)
+        .collect();
     if roots.is_empty() {
-        eprintln!("usage: mddup <paths...> [--json]");
+        eprintln!("usage: mddup <paths...> [--json | --dump-pairs | --eval <golden.json>]");
         std::process::exit(2);
     }
 
@@ -49,6 +63,23 @@ fn main() {
         }
     }
 
+    // Golden-build: dump all scored candidate pairs (with text).
+    if dump {
+        let pairs = nose_markdown::dump_pairs(&docs, 8);
+        let out = serde_json::json!({ "scanned_files": docs.len(), "pairs": pairs });
+        println!("{}", serde_json::to_string_pretty(&out).unwrap());
+        return;
+    }
+    // Measurement: evaluate the detector against a labeled golden.
+    if let Some(golden_path) = eval_golden {
+        let golden: nose_markdown::Golden =
+            serde_json::from_str(&fs::read_to_string(&golden_path).expect("read golden"))
+                .expect("parse golden");
+        let metrics = nose_markdown::evaluate(&nose_markdown::score_pairs(&docs, 8), &golden);
+        println!("{}", serde_json::to_string_pretty(&metrics).unwrap());
+        return;
+    }
+
     let fams = nose_markdown::detect(&docs, &nose_markdown::Options::default());
 
     if json {
@@ -57,7 +88,7 @@ fn main() {
     }
 
     eprintln!(
-        "scanned {} markdown files → {} near-duplicate families",
+        "scanned {} markdown files \u{2192} {} near-duplicate families",
         docs.len(),
         fams.len()
     );

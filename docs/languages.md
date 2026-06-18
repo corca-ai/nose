@@ -9,9 +9,9 @@ first-party and external languages to enter through the same pack extension
 boundary described in [semantic-kernel](semantic-kernel.md), while keeping exact
 semantic matching fail-closed unless the required facts and contracts are present.
 
-> **Markdown prose** is handled by a separate engine, not this IL: `nose markdown`
-> finds same-language near-duplicate *prose* via a character-n-gram pipeline (prose is
-> not code). See [markdown-duplication](markdown-duplication.md).
+> **Markdown prose** is handled by a separate engine, not this IL: `nose query` reports
+> same-language near-duplicate *prose* via a character-n-gram pipeline (prose is not code),
+> as one of its domains. See [markdown-duplication](markdown-duplication.md).
 
 ## Supported languages
 

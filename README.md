@@ -60,6 +60,7 @@ nose query src base=origin/main              # PR check: a change applied to one
 nose query src --mode syntax --fail-on any   # jscpd-style copy-paste gate for CI
 nose query src --format markdown             # a ranked report to paste into a PR or issue
 nose query src --format json                 # the versioned machine-readable contract (query-JSON v2)
+nose query docs                              # also reports same-language near-duplicate Markdown prose
 ```
 
 By default it runs all three channels — `syntax` (copy-paste runs), `semantic` (exact
@@ -86,6 +87,7 @@ Pre-1.0. Current capability, language, JSON, benchmark, and soundness details li
 wiki so claims have one source of truth:
 
 - [Languages](docs/languages.md)
+- [Markdown duplication](docs/markdown-duplication.md)
 - [Clone types](docs/clone-types.md)
 - [Benchmark](docs/benchmark.md)
 - [Architecture](docs/architecture.md)

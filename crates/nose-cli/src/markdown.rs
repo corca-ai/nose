@@ -1,16 +1,17 @@
-//! `nose markdown` — same-language near-duplicate detection for Markdown documents.
+//! Markdown near-duplicate detection as a **`nose query` domain** (epic #435).
 //!
-//! Runs the `nose-markdown` pipeline (units → MinHash/winnowing candidates → TF-IDF/containment
-//! verify → local-alignment witness) and surfaces ranked near-duplicate families with a span
-//! witness + orthogonal evidence (commonness, removable, files). Honesty contract (epic #435):
-//! it reports near-duplication, never "same meaning" and never "worth removing".
+//! Converged from the former standalone `nose markdown` subcommand: per "capabilities over
+//! features", duplication has one entry point (`nose query`). `nose query` discovers `.md` and
+//! reports markdown near-duplicate families alongside code clones, using the separate
+//! `nose-markdown` engine (char-n-gram MinHash/winnowing/TF-IDF/alignment — prose is not code).
+//! Honesty contract: near-dup score + span witness + commonness evidence, never "same meaning"
+//! or "worth removing". Dev golden-build/eval tooling lives in `nose-markdown`'s `mddup` example.
 
-use anyhow::{Context, Result};
 use nose_markdown::{detect, Family, Options};
 use std::path::{Path, PathBuf};
 
-/// Vendor/build directories never worth scanning for prose duplication. Excluded even without a
-/// `.gitignore` — the field eval hit a non-git project whose `node_modules` flooded the report.
+/// Vendor/build directories never worth scanning for prose duplication — excluded even without a
+/// `.gitignore` (a non-git project's `node_modules` otherwise floods the report).
 const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
     "node_modules",
     "vendor",
@@ -30,44 +31,38 @@ const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
     ".git",
 ];
 
-/// Discover `.md`/`.markdown` files under the given paths, respecting `.gitignore`, default
-/// vendor-dir excludes, and `nose.toml` `exclude` globs.
-fn discover(paths: &[PathBuf]) -> Vec<PathBuf> {
+/// Discover `.md`/`.markdown` files under `root`, respecting `.gitignore`, default vendor-dir
+/// excludes, and the query's `exclude` globs (config + `--exclude`).
+fn discover(root: &Path, excludes: &[String]) -> Vec<PathBuf> {
     use ignore::overrides::OverrideBuilder;
-    let cfg_excludes = crate::config::load_scan(None)
-        .map(|c| c.exclude)
-        .unwrap_or_default();
-
+    let mut builder = ignore::WalkBuilder::new(root);
+    builder.parents(false).require_git(false);
+    let mut ob = OverrideBuilder::new(root);
+    for d in DEFAULT_EXCLUDE_DIRS {
+        let _ = ob.add(&format!("!**/{d}/**"));
+        let _ = ob.add(&format!("!**/{d}"));
+    }
+    for g in excludes {
+        let _ = ob.add(&format!("!{g}"));
+    }
+    if let Ok(ov) = ob.build() {
+        builder.overrides(ov);
+    }
     let mut out = Vec::new();
-    for root in paths {
-        let mut builder = ignore::WalkBuilder::new(root);
-        builder.parents(false).require_git(false);
-        let mut ob = OverrideBuilder::new(root);
-        for d in DEFAULT_EXCLUDE_DIRS {
-            let _ = ob.add(&format!("!**/{d}/**"));
-            let _ = ob.add(&format!("!**/{d}"));
-        }
-        for g in &cfg_excludes {
-            let _ = ob.add(&format!("!{g}"));
-        }
-        if let Ok(ov) = ob.build() {
-            builder.overrides(ov);
-        }
-        for dent in builder.build().flatten() {
-            let p = dent.path();
-            let is_md = matches!(
-                p.extension().and_then(|e| e.to_str()),
-                Some("md") | Some("markdown")
-            );
-            // Safety net: never report files under a vendor dir even if the override missed it.
-            let vendored = p.components().any(|c| {
-                c.as_os_str()
-                    .to_str()
-                    .is_some_and(|s| DEFAULT_EXCLUDE_DIRS.contains(&s))
-            });
-            if dent.file_type().is_some_and(|t| t.is_file()) && is_md && !vendored {
-                out.push(p.to_path_buf());
-            }
+    for dent in builder.build().flatten() {
+        let p = dent.path();
+        let is_md = matches!(
+            p.extension().and_then(|e| e.to_str()),
+            Some("md") | Some("markdown")
+        );
+        // Safety net: never report files under a vendor dir even if the override missed it.
+        let vendored = p.components().any(|c| {
+            c.as_os_str()
+                .to_str()
+                .is_some_and(|s| DEFAULT_EXCLUDE_DIRS.contains(&s))
+        });
+        if dent.file_type().is_some_and(|t| t.is_file()) && is_md && !vendored {
+            out.push(p.to_path_buf());
         }
     }
     out.sort();
@@ -75,8 +70,10 @@ fn discover(paths: &[PathBuf]) -> Vec<PathBuf> {
     out
 }
 
-fn read_docs(files: &[PathBuf]) -> Vec<(String, String)> {
-    files
+/// Detect markdown near-duplicate families under `root` for the `nose query` dashboard.
+pub(crate) fn detect_under(root: &Path, excludes: &[String]) -> Vec<Family> {
+    let files = discover(root, excludes);
+    let docs: Vec<(String, String)> = files
         .iter()
         .filter_map(|p| {
             std::fs::read(p).ok().map(|b| {
@@ -86,143 +83,79 @@ fn read_docs(files: &[PathBuf]) -> Vec<(String, String)> {
                 )
             })
         })
-        .collect()
+        .collect();
+    detect(&docs, &Options::default())
 }
 
-pub(crate) struct Args {
-    pub paths: Vec<PathBuf>,
-    pub json: bool,
-    pub min_words: usize,
-    pub threshold: f64,
-    pub top: usize,
-    pub dump_pairs: bool,
-    pub eval: Option<PathBuf>,
+/// The `markdown` array for the query-JSON dashboard (additive, backwards-compatible). `Family`
+/// already derives `Serialize`, so this is its faithful structured form.
+pub(crate) fn families_json(fams: &[Family]) -> serde_json::Value {
+    serde_json::to_value(fams).unwrap_or(serde_json::Value::Array(vec![]))
 }
 
-pub(crate) fn cmd_markdown(args: Args) -> Result<()> {
-    let files = discover(&args.paths);
-    let docs = read_docs(&files);
-
-    // Golden-building mode: emit all scored candidate pairs (with text) as JSON.
-    if args.dump_pairs {
-        let pairs = nose_markdown::dump_pairs(&docs, args.min_words);
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "scanned_files": docs.len(),
-                "pairs": pairs,
-            }))?
-        );
-        return Ok(());
+/// Human "Markdown near-duplicates" section appended to the `nose query` dashboard.
+pub(crate) fn print_section(fams: &[Family], path: &str) {
+    if fams.is_empty() {
+        return;
     }
-
-    // Measurement mode: score candidates and evaluate against a labeled golden.
-    if let Some(golden_path) = args.eval {
-        let golden: nose_markdown::Golden =
-            serde_json::from_str(&std::fs::read_to_string(&golden_path)?)
-                .with_context(|| format!("parsing golden {}", golden_path.display()))?;
-        let scored = nose_markdown::score_pairs(&docs, args.min_words);
-        let metrics = nose_markdown::evaluate(&scored, &golden);
-        println!("{}", serde_json::to_string_pretty(&metrics)?);
-        return Ok(());
-    }
-
-    let opts = Options {
-        min_words: args.min_words,
-        threshold: args.threshold,
-        ..Options::default()
-    };
-    let families = detect(&docs, &opts);
-    if args.json {
-        let out = serde_json::json!({ "scanned_files": docs.len(), "families": families });
-        println!("{}", serde_json::to_string_pretty(&out)?);
-    } else {
-        print_human(docs.len(), &families, args.top);
-    }
-    Ok(())
-}
-
-fn print_human(scanned: usize, families: &[Family], top: usize) {
-    let (templates, dups): (Vec<&Family>, Vec<&Family>) = families.iter().partition(|f| f.template);
+    let (templates, dups): (Vec<&Family>, Vec<&Family>) = fams.iter().partition(|f| f.template);
     println!(
-        "scanned {scanned} markdown files \u{2192} {} near-duplicate {}, {} templated {} \
-         (score + span witness + commonness; not a judgment of intent)",
-        dups.len(),
-        if dups.len() == 1 {
-            "family"
-        } else {
-            "families"
-        },
+        "\n{} ({}, {} templated)",
+        crate::style::bold("markdown near-duplicates"),
+        plural(dups.len(), "family", "families"),
         templates.len(),
-        if templates.len() == 1 {
-            "section"
-        } else {
-            "sections"
-        },
     );
-    for (n, f) in dups.iter().take(top).enumerate() {
-        print_family(n, f);
+    println!(
+        "  {}",
+        crate::style::dim(
+            "prose near-dup: score + span witness + commonness; not a worth-it verdict"
+        )
+    );
+    for f in dups.iter().take(5) {
+        let common = if f.commonness > 0.25 {
+            "  [common]"
+        } else {
+            ""
+        };
+        let head = f
+            .members
+            .first()
+            .and_then(|m| m.heading.as_deref())
+            .map(|h| short(h, 48))
+            .unwrap_or_default();
+        let loc = f
+            .members
+            .first()
+            .map(|m| format!("{}:{}-{}", file_only(&m.path), m.start_line, m.end_line))
+            .unwrap_or_default();
+        println!(
+            "  {loc:<40}  {} copies · {} · ~{} removable · {}{}",
+            f.members.len(),
+            crate::style::blue(f.tier),
+            f.removable,
+            short(&head, 40),
+            crate::style::dim(common),
+        );
     }
     if !templates.is_empty() {
         println!(
-            "\n\u{2014} templated sections (one section skeleton repeated across files; \
-             consider a single source / generator) \u{2014}"
+            "  {}",
+            crate::style::dim(&format!(
+                "+ {} templated section(s) (one skeleton repeated across files)",
+                templates.len()
+            ))
         );
-        for f in templates.iter().take(top) {
-            let h = f
-                .members
-                .first()
-                .and_then(|m| m.heading.as_deref())
-                .unwrap_or("(section)");
-            println!(
-                "  \u{2022} \"{}\" repeated {}\u{00d7} across {} files (score {:.2}, removable~{})",
-                short(h, 60),
-                f.members.len(),
-                f.files,
-                f.score,
-                f.removable
-            );
-        }
     }
+    println!(
+        "  {}",
+        crate::style::dim(&format!(
+            "see all: nose query {path} --format json  # markdown[] array"
+        ))
+    );
 }
 
-fn print_family(n: usize, f: &Family) {
-    let common = if f.commonness > 0.25 {
-        "  [common / likely boilerplate]"
-    } else {
-        ""
-    };
-    println!(
-        "\n#{n} [{}] score={:.2}  members={} files={} removable~{} commonness={:.2}{}",
-        f.tier,
-        f.score,
-        f.members.len(),
-        f.files,
-        f.removable,
-        f.commonness,
-        common
-    );
-    if let Some(h) = f.members.first().and_then(|m| m.heading.as_deref()) {
-        println!("   heading: {}", short(h, 70));
-    }
-    for m in f.members.iter().take(6) {
-        println!("   - {}:{}-{}", m.path, m.start_line, m.end_line);
-    }
-    if f.members.len() > 6 {
-        println!("   \u{2026} and {} more", f.members.len() - 6);
-    }
-    if let Some(w) = &f.witness {
-        println!(
-            "   witness: {} shared lines (e.g. {}:{}-{} \u{2248} {}:{}-{})",
-            w.span.matched_lines,
-            file_only(&w.a_path),
-            w.span.a_start,
-            w.span.a_end,
-            file_only(&w.b_path),
-            w.span.b_start,
-            w.span.b_end,
-        );
-    }
+fn plural(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
 }
 
 fn short(s: &str, n: usize) -> String {

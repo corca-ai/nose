@@ -4,9 +4,64 @@ All notable changes to nose are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); pre-1.0, so minor versions may
 break.
 
-## [Unreleased]
+## [0.13.0] - 2026-06-18
+
+Adds a **Swift** language frontend and brings **Markdown near-duplicate prose** detection into
+`nose query` as a new domain (alongside code, CSS, and HTML), plus a Type-4 soundness fix and a
+higher cross-language Type-4 coverage floor. Detection of the existing languages and the
+`--format json` query-JSON v2 contract are unchanged.
 
 ### Added
+- **Swift language frontend (#442).** Swift joins the first-party languages (Python, JavaScript,
+  TypeScript, Go, Rust, Java, C, Ruby) with tree-sitter lowering and semantic coverage, so Swift
+  copy-paste, renamed, and Type-4 same-logic clones are detected and proven like the others.
+- **Markdown same-language near-duplicate prose as a `nose query` domain (epic #435).** `nose
+  query` now reports near-duplicate **prose** across Markdown documents alongside code clones. Per
+  *capabilities over features*, duplication has **one entry point**, so markdown is surfaced
+  through `nose query` exactly as the CSS/HTML declarative track is — a "markdown near-duplicates"
+  section in the human dashboard and a top-level `markdown` array under `--format json` — not as a
+  separate command. Prose is not code, so it uses a deliberately separate `nose-markdown` engine:
+  a character-n-gram pipeline (MinHash-LSH + winnowing + containment candidate generation →
+  IDF-weighted TF-IDF verify/rank → line-level Smith-Waterman span witness), not the value-graph
+  IL. Reports ranked families with a relation tier + score, an exact **span witness**, and
+  orthogonal evidence (**commonness**/DF, removable lines, files). Honesty contract:
+  "near-duplicate (score + witness + commonness)", never "same meaning" or "worth removing" —
+  boilerplate copies are true duplicates surfaced with high commonness, never suppressed.
+  Same-language only (cross-lingual/paraphrase need an LLM, out of scope). Deterministic
+  (byte-identical output). Measured against frozen, **LLM-built goldens** (`bench/markdown/`, no
+  human in the loop: 3 heterogeneous judges, Fleiss κ 0.70/0.71, anchor self-calibration 1.0):
+  PR-AUC 0.995 / R@P95 0.96 on the code-of-conduct corpus, and an honest multi-genre baseline of
+  PR-AUC **0.944** / R@P95 **0.74** across 5 doc genres, candidate-recall 1.0. Built on the
+  algorithm survey in `docs/markdown-dup-detection-algorithm-survey-2026-06-18.md`. See
+  [docs/markdown-duplication.md](docs/markdown-duplication.md).
+  (#435 #436 #437 #438 #439 #440 #441 #444)
+  - **Field-evaluation precision/usefulness fixes (#443, #447).** (P0) default vendor-dir excludes
+    (`node_modules`, `vendor`, `target`, …) + `nose.toml` `exclude` globs, so a non-git project's
+    `node_modules` no longer floods the report (one field project went 145 noise families → 0); a
+    **min-shared-grams** match-substance floor drops thin overlaps. (P1) strip GFM table
+    scaffolding (pipes/separator rows are format, not content); **strong-edge clustering** (weak
+    edges corroborate but don't chain mega-families); confidence-weighted ranking. (P2) large
+    multi-file clusters are reported as **templated sections** ("skeleton repeated N× across M
+    files"), not a clone family — so a templated-doc blob no longer masquerades as one family.
+  - **Containment-witness gate (P3, #449).** A size-disparate small-in-large containment match
+    must now have a real *contiguous* shared-line block, not just scattered char-gram overlap — a
+    small generic stub no longer gets pulled into a large unrelated doc by common-morpheme
+    coincidence. Surgical: one field project's spurious mixed-granularity families dropped 8 → 5
+    with genuine small-in-large and reworded same-size near-dups preserved.
+  - **Synthetic recall-vs-edit-ratio benchmark + recall gate (#443, #450).** The golden gates
+    precision; this adds the missing **recall** gate — a deterministic, self-contained benchmark
+    (`nose-markdown::synth`, committed base corpus) that injects controlled edits at known ratios
+    and asserts recall floors (1.00 / 0.95 / 0.85 / 0.65 at 0/0.1/0.2/0.35 edit ratio), so a
+    future change that silently sacrifices recall fails CI.
+  - **Multi-domain precision golden + regression gate (#443, #454).** The original precision
+    golden was single-genre boilerplate (Contributor Covenant CoC), which over-stated precision.
+    Added a frozen **multi-domain** golden — `bench/markdown/corpus-docs/` (165 files across 5
+    genres: CLI reference, function/API reference, guides, framework docs, READMEs) +
+    `golden.docs.v1.json`, built the same no-human way (Fleiss κ 0.71), wired into a precision
+    regression gate (`eval::docs_golden_precision_floor`). The golden-build scripts now take paths
+    so any corpus can be golden'd.
+
+### Changed
 - **Swift Type-4 exact coverage parity slice.** Swift now has evidence-backed exact-query
   coverage for five previously-open matrix cells: typed `flatMap` vs nested append builders,
   module import identity, `Dictionary[key, default:]` map-default lookup, literal `Int`
@@ -16,53 +71,21 @@ break.
   comparisons remain adjacent hard negatives. The checked-in Type-4 matrix moves Swift from
   15/24 to 20/24 applicable cells, and focused probes now run through
   `nose query ... witness=exact` rather than the deprecated scan path.
-- **Markdown same-language near-duplicate detection (`nose markdown`, epic #435).** A new,
-  deliberately separate `nose-markdown` engine finds near-duplicate **prose** across Markdown
-  documents — prose is not code, so it uses a character-n-gram pipeline (MinHash-LSH + winnowing
-  + containment candidate generation → IDF-weighted TF-IDF verify/rank → line-level
-  Smith-Waterman span witness), not the value-graph IL. Reports ranked families with a relation
-  tier + score, an exact **span witness**, and orthogonal evidence (**commonness**/DF, removable
-  lines, files). Honesty contract: "near-duplicate (score + witness + commonness)", never "same
-  meaning" or "worth removing" — boilerplate copies are true duplicates surfaced with high
-  commonness, never suppressed. Same-language only (cross-lingual/paraphrase need an LLM, out of
-  scope). Deterministic (byte-identical output). Measured against a frozen, **LLM-built golden**
-  (`bench/markdown/`, no human in the loop: 3 heterogeneous judges, Fleiss κ 0.70, anchor
-  self-calibration 1.0): PR-AUC 0.995, R@P95 0.96, candidate-recall 1.0. Built on the algorithm
-  survey in `docs/markdown-dup-detection-algorithm-survey-2026-06-18.md`. See
-  [docs/markdown-duplication.md](docs/markdown-duplication.md). (#436 #437 #438 #439 #440 #441)
-- **`nose markdown` precision/usefulness fixes from the cross-project field evaluation.**
-  (P0) default vendor-dir excludes (`node_modules`, `vendor`, `target`, …) + `nose.toml`
-  `exclude` globs, so a non-git project's `node_modules` no longer floods the report (one field
-  project went 145 noise families → 0); a **min-shared-grams** match-substance floor drops
-  thin overlaps. (P1) strip GFM table scaffolding (pipes/separator rows are format, not content);
-  **strong-edge clustering** (weak edges corroborate but don't chain mega-families);
-  confidence-weighted ranking. (P2) large multi-file clusters are reported as **templated
-  sections** ("skeleton repeated N× across M files"), not a clone family — so a templated-doc
-  blob no longer masquerades as one family or tops the list. Field deltas: a templated Korean
-  spec repo went 206 incoherent families → 140 families + 14 templates; nose's own docs' jargon
-  over-merge is now a template, surfacing the real drift finding at #0. Golden metrics unchanged
-  (PR-AUC 0.995). Addresses #443.
-- **`nose markdown` containment-witness gate (P3, from the second field eval).** A genuine
-  small-in-large (size-disparate) containment match must now have a real *contiguous* shared-line
-  block, not just scattered char-gram overlap — a small generic stub doc no longer gets pulled
-  into a large unrelated doc by common-morpheme coincidence. Surgical: one field project's
-  spurious mixed-granularity families dropped (8 → 5, all remaining coherent) with zero change to
-  any other project, genuine small-in-large and reworded same-size near-dups preserved, golden
-  metrics unchanged (PR-AUC 0.995).
-- **Synthetic recall-vs-edit-ratio benchmark (#443).** The golden gates precision; this adds the
-  missing **recall** gate — a deterministic, self-contained benchmark (`nose-markdown::synth`,
-  committed base corpus) that injects controlled edits at known ratios and asserts recall floors
-  (1.00 / 0.95 / 0.85 / 0.65 at 0/0.1/0.2/0.35 edit ratio), so a future change that silently
-  sacrifices recall fails CI. Closes the actionable remainder of #443.
-- **Multi-domain precision golden (#443).** The original precision golden was single-genre
-  boilerplate (Contributor Covenant CoC), which over-stated precision. Added a frozen, committed
-  **multi-domain** golden — `bench/markdown/corpus-docs/` (165 files across 5 genres: CLI
-  reference, function/API reference, guides, framework docs, READMEs) + `golden.docs.v1.json`,
-  built the same no-human way (3 heterogeneous judges, Fleiss κ 0.71, anchor self-calibration
-  1.0). It is the honest baseline: PR-AUC **0.944** / R@P95 **0.74** (vs 0.995 / 0.96 on CoC),
-  candidate-recall 1.0 — the templated-but-different pairs across real doc genres are genuinely
-  harder. Wired into a **precision regression gate** (`eval::docs_golden_precision_floor`). The
-  golden-build scripts now take paths so any corpus can be golden'd.
+- **Type-4 coverage floor raised to ≥50%.** The checked-in coverage matrix
+  (`bench/type4/coverage_matrix.v1.json`) now keeps every primary language at or above 56% of
+  covered applicable cells, backed by new evidence-carrying probes (extract-method-inline,
+  numeric tail recursion, …) for C, Go, and others.
+
+### Fixed
+- **`structural_fold` reassociation gated to integer heads (#434).** A Lean obligation audit (all
+  24) found the right-fold→left-fold loop rewrite — proven sound over `Int` only — could admit a
+  float-valued head via the coarse `ValueDomain::Number`, and float `+`/`*` is non-associative, so
+  results could change. Added `head_possibly_float` (rejects float literal / `Op::TrueDiv` /
+  float-typed param), measured **byte-identical on all 135 corpus repos** (0 recall cost,
+  soundness gain), plus added Lean theorems for previously-unproven firing rewrites
+  (`eq_commutes`/`ne_commutes`, guard merges, and a `structural_fold` float counterexample).
+- **Swift implicit-member lowering gap (#452, #455).** Swift implicit-member expressions now lower
+  correctly, closing a coverage gap.
 
 ## [0.12.0] - 2026-06-18
 

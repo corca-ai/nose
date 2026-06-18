@@ -1,10 +1,13 @@
 # Markdown duplication
 
-`nose markdown` finds **same-language near-duplicate prose** across Markdown documents —
-sections that are copied or near-copied across files (drifting copy-paste, repeated boilerplate,
-single-source-of-truth candidates). It is a deliberately **separate engine** from the code-clone
-pipeline: prose is not code, so it does not go through the value-graph IL. Instead it runs the
-character-n-gram pipeline validated by the
+`nose query` reports **same-language near-duplicate prose** across Markdown documents as one of its
+domains — sections that are copied or near-copied across files (drifting copy-paste, repeated
+boilerplate, single-source-of-truth candidates). Per [capabilities over features](design.md),
+duplication has **one entry point** (`nose query`); markdown is surfaced there exactly as the
+CSS/HTML declarative track is, not as a separate command.
+
+It is a deliberately **separate engine** from the code-clone pipeline: prose is not code, so it does
+not go through the value-graph IL. Instead it runs the character-n-gram pipeline validated by the
 [algorithm survey](markdown-dup-detection-algorithm-survey-2026-06-18.md).
 
 Scope (fixed): **same-language only.** Cross-lingual / translation duplication is out of scope (it
@@ -13,13 +16,13 @@ needs an LLM). Paraphrase / Type-4 semantic equivalence is also out of scope for
 ## Usage
 
 ```
-nose markdown <paths...>            # human report (ranked families)
-nose markdown <paths...> --format json
-nose markdown <paths...> --min-words 8 --threshold 0.5 --top 50
+nose query <paths...>                 # dashboard: a "markdown near-duplicates" section
+nose query <paths...> --format json   # a top-level "markdown" array of families
 ```
 
-Walks `.md`/`.markdown` under the paths (respecting `.gitignore`) and reports ranked
-near-duplicate **families**, each with:
+`nose query` discovers `.md`/`.markdown` under the paths (respecting `.gitignore` and the same
+`exclude` globs as code) and reports ranked near-duplicate **families** alongside the code clones,
+each with:
 
 - a **relation tier** (`exact` / `near-high` / `near-med` / `near-low` / `partial`) + score,
 - a **span witness** — the exact duplicated line range in each file (local alignment),
@@ -52,16 +55,20 @@ and the maintainer's call (see [design](design.md)). Consequences:
 
 ## Measurement
 
-Quality is measured against a frozen, **LLM-built golden set** (no human in the loop;
+Quality is measured against frozen, **LLM-built golden sets** (no human in the loop;
 3 heterogeneous judges, majority vote, self-calibrated on construction-truth anchors) — see
-[`bench/markdown/`](../bench/markdown/README.md):
+[`bench/markdown/`](../bench/markdown/README.md). The detector engine is exercised directly through
+the `nose-markdown` dev example (the user surface is `nose query`):
 
 ```
-nose markdown bench/markdown/corpus --eval bench/markdown/golden.v1.json
+cargo run -p nose-markdown --example mddup -- bench/markdown/corpus --eval bench/markdown/golden.v1.json
+cargo run -p nose-markdown --example mddup -- bench/markdown/corpus-docs --eval bench/markdown/golden.docs.v1.json
 ```
 
-Headline (golden v1): panel Fleiss κ 0.70, anchor self-calibration 1.0; detector **PR-AUC 0.995**,
-ROC-AUC 0.992, recall@P95 0.96, recall@P99 0.93, candidate-recall 1.0; byte-identical across runs.
+Headline (golden v1, code-of-conduct corpus): panel Fleiss κ 0.70, anchor self-calibration 1.0;
+detector **PR-AUC 0.995**, ROC-AUC 0.992, recall@P95 0.96, recall@P99 0.93, candidate-recall 1.0.
+Multi-genre golden (docs v1, 5 genres): κ 0.71; **PR-AUC 0.944**, ROC-AUC 0.970, recall@P95 0.74,
+candidate-recall 1.0. Byte-identical across runs.
 
 ## Related
 

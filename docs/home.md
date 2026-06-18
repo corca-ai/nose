@@ -44,7 +44,7 @@ You want to *run* nose on a codebase and act on what it finds.
 - [reinvented-helpers](reinvented-helpers.md) — the containment channel: code that reimplements an existing pure helper inline instead of calling it.
 - [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
 - [languages](languages.md) — the supported languages, declarative CSS and HTML markup, and the `<script>`/`<style>`/markup region extraction for Vue/Svelte/HTML.
-- [markdown-duplication](markdown-duplication.md) — `nose markdown`: same-language near-duplicate **prose** detection across Markdown documents (a separate char-n-gram engine; span witness + commonness evidence; no LLM, same-language only).
+- [markdown-duplication](markdown-duplication.md) — same-language near-duplicate **prose** detection across Markdown documents, surfaced as a `nose query` domain (a separate char-n-gram engine; span witness + commonness evidence; no LLM, same-language only).
 
 ## Integrating nose
 

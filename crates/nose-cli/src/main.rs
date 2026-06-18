@@ -405,32 +405,6 @@ enum Cmd {
         #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
         format: StatsFormat,
     },
-    /// Find same-language near-duplicate prose across Markdown documents — sections copied or
-    /// near-copied across files. Reports a span witness + commonness evidence; it does NOT judge
-    /// whether a repetition is intentional or worth removing (that is the maintainer's call).
-    Markdown {
-        /// Markdown files or directories (recursively scanned; .gitignore respected).
-        #[arg(required = true)]
-        paths: Vec<PathBuf>,
-        /// Output format (`human` or `json`) — same `--format` contract as `query`/`stats`.
-        #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
-        format: StatsFormat,
-        /// Minimum normalized prose words for a section to participate (trivial-fragment floor).
-        #[arg(long, default_value_t = 8)]
-        min_words: usize,
-        /// Relation acceptance threshold in 0..1 (IDF-cosine / containment).
-        #[arg(long, default_value_t = 0.5)]
-        threshold: f64,
-        /// Limit how many families to print (human format only).
-        #[arg(long, default_value_t = 50)]
-        top: usize,
-        /// Dump all scored candidate pairs (with text) as JSON — for building a golden set.
-        #[arg(long)]
-        dump_pairs: bool,
-        /// Evaluate against a labeled golden JSON (`{"pairs":[{a,b,label}]}`) and print metrics.
-        #[arg(long)]
-        eval: Option<PathBuf>,
-    },
     /// Dump the IL for a source file — debug why two snippets do or don't converge.
     Il {
         /// Path to a source file.
@@ -1774,23 +1748,6 @@ fn run() -> Result<()> {
             candidates,
         } => cmd_ceiling(gold, units, candidates),
         Cmd::Stats { paths, top, format } => cmd_stats(paths, top, format == StatsFormat::Json),
-        Cmd::Markdown {
-            paths,
-            format,
-            min_words,
-            threshold,
-            top,
-            dump_pairs,
-            eval,
-        } => markdown::cmd_markdown(markdown::Args {
-            paths,
-            json: format == StatsFormat::Json,
-            min_words,
-            threshold,
-            top,
-            dump_pairs,
-            eval,
-        }),
         Cmd::Features {
             paths,
             min_lines,
@@ -3939,7 +3896,7 @@ fn warn_no_files(paths: &[PathBuf]) {
         .join(", ");
     eprintln!(
         "warning: no supported source files found under: {joined}\n  \
-         (supported extensions: py/pyi, js/jsx/mjs/cjs, ts/tsx/mts/cts, go, rs, java, c/h, rb, swift, css, vue/svelte/html/htm)"
+         (supported extensions: py/pyi, js/jsx/mjs/cjs, ts/tsx/mts/cts, go, rs, java, c/h, rb, swift, css, vue/svelte/html/htm, md/markdown)"
     );
 }
 
@@ -4929,6 +4886,9 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
         .filter(|f| is_default_surface(f, &overrides))
         .collect();
     let opp = OpportunityGroups::from_ranked(&default_fams);
+    // Markdown is a query domain: a docs-only tree (no code, but real `.md` near-dups) is not
+    // "nothing found". The dashboard sets this so the empty-corpus warning below stays accurate.
+    let mut markdown_found = false;
     match format {
         // Report formats (for PRs / code-scanning, like scan's): non-interactive, so they
         // ignore dashboard/group navigation and just render the family set the query selects,
@@ -4981,6 +4941,11 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                     .iter()
                     .filter(|r| !r.container_in_test)
                     .count();
+                // Markdown near-duplicate prose is a query domain (converged from the former
+                // `nose markdown` command): the dashboard reports `.md` near-dup families
+                // alongside code clones, via the separate `nose-markdown` engine.
+                let md = markdown::detect_under(&args.paths[0], &dataset.settings.exclude);
+                markdown_found = !md.is_empty();
                 render_query_dashboard(
                     &dataset.families,
                     &overrides,
@@ -4990,6 +4955,7 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
                     reinvented_prod,
                     json,
                     since,
+                    &md,
                 );
             } else if let Some(at) = &q.at {
                 // `at=file:line` → the family whose member span covers that location (stable
@@ -5034,6 +5000,13 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
             }
         }
     }
+    // Warn when discovery found nothing to report, so a mistyped path or unsupported tree
+    // doesn't masquerade as "no duplication found" (and a CI `--fail-on` gate doesn't silently
+    // pass on a bad path). A docs-only tree with markdown near-dups is a real result, so the
+    // dashboard's `markdown_found` suppresses it there.
+    if dataset.scope.files == 0 && !markdown_found {
+        warn_no_files(&args.paths);
+    }
     // CI gate (same as scan): a non-empty default-report family set fails `--fail-on`.
     let reportable: Vec<&nose_detect::RefactorFamily> = dataset
         .families
@@ -5063,6 +5036,7 @@ fn render_query_dashboard(
     reinvented_prod: usize,
     json: bool,
     since: Option<&BaselineComparison>,
+    markdown: &[nose_markdown::Family],
 ) {
     // Default surface, slice-folds removed (shown under their primary) — matches scan.
     let def: Vec<&nose_detect::RefactorFamily> = families
@@ -5098,6 +5072,9 @@ fn render_query_dashboard(
                     "reinvented": reinvented_prod,
                 },
                 "top_candidates": top,
+                // Markdown near-duplicate families (separate prose engine). Additive key —
+                // existing query-JSON v2 consumers ignore it.
+                "markdown": markdown::families_json(markdown),
                 "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
                     format!("nose query {path} witness=exact"), format!("nose query {path} all")],
             })
@@ -5276,6 +5253,8 @@ fn render_query_dashboard(
         "\n  {}",
         style::dim("filter/group fields: scope · witness · lang · path · members · files · value · params · shared · dir · same_symbol")
     );
+    // Markdown near-duplicate prose, reported as a query domain (separate `nose-markdown` engine).
+    markdown::print_section(markdown, path);
 }
 
 /// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`
@@ -5806,6 +5785,11 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         reinvented,
         opts,
     } = build_scan_dataset(&args, &refs)?;
+    // Warn when discovery found no code, so a mistyped path doesn't masquerade as "no
+    // duplication found". (`nose scan` is code-only; the markdown domain lives in `nose query`.)
+    if scope.files == 0 {
+        warn_no_files(&args.paths);
+    }
     // Baseline: write the current state, or hide already-accepted families so only
     // new/changed duplication is reported and gated.
     if args.write_baseline {
@@ -5946,7 +5930,6 @@ fn scan_report(
         // the non-cached path including imported-immutable-literal convergence
         // (#275), which the old per-file source-content cache skipped.
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
-        warn_if_empty(&corpus, &args.paths);
         let scope = ScanScope::from_corpus(&corpus);
         let cache::CachedUnits {
             units,
@@ -5957,7 +5940,6 @@ fn scan_report(
         (report, scope)
     } else {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
-        warn_if_empty(&corpus, &args.paths);
         let scope = ScanScope::from_corpus(&corpus);
         (nose_detect::detect(&corpus, opts, detector), scope)
     }

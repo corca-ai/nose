@@ -30,7 +30,7 @@ options that share a skeleton), not just one boilerplate family.
 
 ## How a golden is built (no human labeling)
 
-1. `nose markdown <corpus> --dump-pairs` → scored candidate pairs (with text).
+1. `cargo run -p nose-markdown --example mddup -- <corpus> --dump-pairs` → scored candidate pairs (with text).
 2. `sample_golden.py <pairs> <sample> <anchors>` → deterministic stratified sample across score
    bands + construction-identical anchors (normalized-identical pairs → certain positives).
 3. **3 heterogeneous LLM judges** (opus / sonnet / haiku — distinct models to decorrelate bias)
@@ -55,7 +55,7 @@ trust signal). The multi-domain set is genuinely harder to label (more `not`, mo
 
 ## Detector measurement
 
-`nose markdown <corpus> --eval <golden>`:
+`cargo run -p nose-markdown --example mddup -- <corpus> --eval <golden>`:
 
 | | golden.v1 (CoC) | golden.docs.v1 (multi-domain) |
 |---|---|---|
