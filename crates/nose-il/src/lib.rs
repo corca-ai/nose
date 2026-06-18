@@ -155,9 +155,10 @@ impl UnitDomain {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum UnitSubkind {
+    #[default]
     Unknown,
     Function,
     Method,
@@ -199,15 +200,10 @@ impl UnitSubkind {
     }
 }
 
-impl Default for UnitSubkind {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum UnitBodyKind {
+    #[default]
     Unknown,
     Implementation,
     DeclarationOnly,
@@ -225,15 +221,10 @@ impl UnitBodyKind {
     }
 }
 
-impl Default for UnitBodyKind {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SourceGranularity {
+    #[default]
     Unknown,
     WholeUnit,
     Member,
@@ -254,15 +245,10 @@ impl SourceGranularity {
     }
 }
 
-impl Default for SourceGranularity {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RegionKind {
+    #[default]
     Unknown,
     Code,
     Script,
@@ -281,15 +267,10 @@ impl RegionKind {
     }
 }
 
-impl Default for RegionKind {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum UnitContainerKind {
+    #[default]
     Unknown,
     StandaloneFile,
     HtmlDocument,
@@ -302,12 +283,6 @@ pub enum UnitContainerKind {
 impl UnitContainerKind {
     pub const fn is_unknown(&self) -> bool {
         matches!(self, Self::Unknown)
-    }
-}
-
-impl Default for UnitContainerKind {
-    fn default() -> Self {
-        Self::Unknown
     }
 }
 

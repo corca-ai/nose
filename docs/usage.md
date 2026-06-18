@@ -292,7 +292,7 @@ mode flags are documented under [Ranking](#ranking) and [Detection modes](#detec
 `--format json` emits a versioned object with `schema_version`, `tool_version`,
 scan scope, ranking metadata, and a `families` array. The stable contract and
 compatibility rule are documented in [scan-json](scan-json.md) (v1, deprecated; the
-forward contract is [query-json](query-json.md) v2).
+forward contract is [query-json](query-json.md) v3).
 
 **Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--semantic-pack`) is covered in
 [continuous-integration](continuous-integration.md), [configuration](configuration.md), and

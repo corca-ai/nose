@@ -152,11 +152,12 @@ fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn java_type_origin(node: TsNode) -> UnitOrigin {
+    let has_body = java_node_has_method_body(node);
     match node.kind() {
         "interface_declaration" => UnitOrigin::new(
             UnitDomains::of(UnitDomain::TypeContract),
             UnitSubkind::InterfaceTraitProtocol,
-            if java_node_has_method_body(node) {
+            if has_body {
                 UnitBodyKind::Mixed
             } else {
                 UnitBodyKind::DeclarationOnly
@@ -164,16 +165,35 @@ fn java_type_origin(node: TsNode) -> UnitOrigin {
             SourceGranularity::WholeUnit,
             RegionKind::Code,
         )
-        .with_evidence(if java_node_has_method_body(node) {
+        .with_evidence(if has_body {
             UnitEvidenceFlag::InterfaceDefaultMethod
         } else {
             UnitEvidenceFlag::DeclarationOnly
         })
         .with_evidence(UnitEvidenceFlag::TypeOnly),
-        "enum_declaration" => UnitOrigin::new(
-            UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
-            UnitSubkind::Enum,
-            if java_node_has_method_body(node) {
+        // An annotation type (`@interface`) is a declaration-only type contract, not an
+        // implementation-inheritance candidate — it must not read as `extract-base-class`.
+        "annotation_type_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract),
+            UnitSubkind::DefinedType,
+            UnitBodyKind::DeclarationOnly,
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_evidence(UnitEvidenceFlag::DeclarationOnly)
+        .with_evidence(UnitEvidenceFlag::TypeOnly),
+        // A `record` is a data/struct contract (its canonical body is the component header);
+        // it gains an implementation facet only when it carries real method bodies.
+        "record_declaration" => UnitOrigin::new(
+            if has_body {
+                UnitDomains::of(UnitDomain::TypeContract)
+                    .with(UnitDomain::Data)
+                    .with(UnitDomain::ImplementationType)
+            } else {
+                UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data)
+            },
+            UnitSubkind::StructRecord,
+            if has_body {
                 UnitBodyKind::Mixed
             } else {
                 UnitBodyKind::DeclarativeDenotation
@@ -181,20 +201,38 @@ fn java_type_origin(node: TsNode) -> UnitOrigin {
             SourceGranularity::WholeUnit,
             RegionKind::Code,
         )
-        .with_domain(if java_node_has_method_body(node) {
-            UnitDomain::ImplementationType
-        } else {
-            UnitDomain::Unknown
-        })
-        .with_evidence(if java_node_has_method_body(node) {
+        .with_evidence(UnitEvidenceFlag::RecordHeader)
+        .with_evidence(if has_body {
             UnitEvidenceFlag::HasReusableBody
         } else {
             UnitEvidenceFlag::DataShapeOnly
         }),
+        "enum_declaration" => UnitOrigin::new(
+            UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
+            UnitSubkind::Enum,
+            if has_body {
+                UnitBodyKind::Mixed
+            } else {
+                UnitBodyKind::DeclarativeDenotation
+            },
+            SourceGranularity::WholeUnit,
+            RegionKind::Code,
+        )
+        .with_domain(if has_body {
+            UnitDomain::ImplementationType
+        } else {
+            UnitDomain::Unknown
+        })
+        .with_evidence(if has_body {
+            UnitEvidenceFlag::HasReusableBody
+        } else {
+            UnitEvidenceFlag::DataShapeOnly
+        }),
+        // class_declaration — the only remaining type construct routed here.
         _ => UnitOrigin::new(
             UnitDomains::of(UnitDomain::ImplementationType),
             UnitSubkind::Class,
-            if java_node_has_method_body(node) {
+            if has_body {
                 UnitBodyKind::Implementation
             } else {
                 UnitBodyKind::DeclarationOnly
@@ -202,7 +240,7 @@ fn java_type_origin(node: TsNode) -> UnitOrigin {
             SourceGranularity::WholeUnit,
             RegionKind::Code,
         )
-        .with_evidence(if java_node_has_method_body(node) {
+        .with_evidence(if has_body {
             UnitEvidenceFlag::HasReusableBody
         } else {
             UnitEvidenceFlag::DeclarationOnly

@@ -4,6 +4,29 @@ All notable changes to nose are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); pre-1.0, so minor versions may
 break.
 
+## [Unreleased]
+
+### Added
+- **Faceted unit-origin metadata + origin-aware clone hints (#453).** IL units now carry compact,
+  language-neutral `UnitOrigin` facets — domains (non-exclusive), subkind, body-kind,
+  source-granularity, region-kind, container-kind, and evidence-flags — populated conservatively by
+  each frontend (Swift, Rust, Java, TypeScript/JSX/TSX, C, CSS, HTML/Vue/Svelte markup). Extraction
+  hints are now **projections** from those facets rather than from `UnitKind` alone, so
+  declaration/contract clones stop misrendering as implementation inheritance: a Swift `protocol`, a
+  Java `interface`/`@interface`, or a Java `record` now reads as "consolidate one shared …
+  contract" instead of "extract a shared base class / mixin". Facets are **evidence, not a worth-it
+  verdict and not a demotion**: `unknown` is a normal value, missing metadata falls back to the
+  legacy hint with no new demotion, and origin is not part of family ids, baselines, or ignore keys.
+  Surfaced additively as `locations[].origin` plus a family-view `hint_reasons[]` ("why this hint").
+
+### Changed
+- **query-JSON schema bumped to v3** for the additive `locations[].origin` and `hint_reasons[]`
+  fields. Existing fields and the `extraction_shape` enum values are unchanged; `nose capabilities`
+  advertises `query_json: [3]`. scan-JSON (v1, deprecated) also surfaces `origin` per location when
+  known.
+- Swift `actor` declarations are now lowered as type units, so duplicate actors are detected like
+  classes/structs (small additive recall; actors lower the same way as other reference types).
+
 ## [0.13.0] - 2026-06-18
 
 Adds a **Swift** language frontend and brings **Markdown near-duplicate prose** detection into

@@ -299,6 +299,51 @@ mod tests {
     }
 
     #[test]
+    fn java_record_unit_origin_is_data_contract_not_base_class() {
+        // A Java `record` is a data/struct contract — it must not read as an
+        // implementation-inheritance candidate (would render `extract-base-class`, #453).
+        let interner = Interner::new();
+        let il = lower_source(
+            FileId(0),
+            "Point.java",
+            b"public record Point(int x, int y) {}\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("lower java record");
+        let unit = il
+            .units
+            .iter()
+            .find(|unit| unit.kind == UnitKind::Class)
+            .expect("record unit");
+        assert_eq!(unit.origin.subkind, UnitSubkind::StructRecord);
+        assert!(unit.origin.has_domain(UnitDomain::TypeContract));
+        assert!(unit.origin.has_domain(UnitDomain::Data));
+        assert!(!unit.origin.has_domain(UnitDomain::ImplementationType));
+    }
+
+    #[test]
+    fn java_annotation_type_unit_origin_is_type_contract() {
+        let interner = Interner::new();
+        let il = lower_source(
+            FileId(0),
+            "Anno.java",
+            b"public @interface Anno { String value(); }\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("lower java annotation type");
+        let unit = il
+            .units
+            .iter()
+            .find(|unit| unit.kind == UnitKind::Class)
+            .expect("annotation-type unit");
+        assert!(unit.origin.has_domain(UnitDomain::TypeContract));
+        assert!(!unit.origin.has_domain(UnitDomain::ImplementationType));
+        assert_eq!(unit.origin.body_kind, UnitBodyKind::DeclarationOnly);
+    }
+
+    #[test]
     fn swift_class_unit_origin_is_behavior_bearing() {
         let interner = Interner::new();
         let il = lower_source(

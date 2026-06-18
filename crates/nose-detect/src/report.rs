@@ -241,9 +241,11 @@ impl RefactorFamily {
 
     /// The structural shape of the fix IF this family is acted upon — a **decidable**
     /// classification from unit kinds and channel, NOT a worth-it verdict (that is the
-    /// consumer's, §2). Promotes the same structural decision `family_hint` renders in
-    /// prose to a stable machine field (#11). The consumer reads it only for a clean
-    /// candidate (`actionability_reason` absent).
+    /// consumer's, §2). A stable machine field (#11) parallel to the prose hint. The prose
+    /// hint (`family_hint`) additionally refines its wording from per-unit origin facets
+    /// (#453) when present, so the two can read slightly differently (e.g. a type/API
+    /// contract); this enum stays origin-independent so the machine contract is stable.
+    /// The consumer reads it only for a clean candidate (`actionability_reason` absent).
     pub fn extraction_shape(&self) -> &'static str {
         use nose_il::UnitKind;
         // call-existing-helper: exactly one named whole function/method, every other

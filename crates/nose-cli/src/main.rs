@@ -5077,7 +5077,7 @@ fn render_query_dashboard(
                 },
                 "top_candidates": top,
                 // Markdown near-duplicate families (separate prose engine). Additive key —
-                // existing query-JSON v2 consumers ignore it.
+                // query-JSON consumers that don't know it simply ignore it.
                 "markdown": markdown::families_json(markdown),
                 "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
                     format!("nose query {path} witness=exact"), format!("nose query {path} all")],
@@ -5574,6 +5574,17 @@ fn render_query_group(
     }
 }
 
+/// Render the origin-derived "why this hint" reasons (#453) under a family's hint, if any.
+fn print_hint_reasons(f: &nose_detect::RefactorFamily) {
+    let reasons = hint_reasons(f);
+    if !reasons.is_empty() {
+        println!("  why this hint:");
+        for reason in reasons {
+            println!("    - {reason}");
+        }
+    }
+}
+
 /// Open one family: its copies, the extraction hint, the representative-pair diff, and —
 /// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
 #[allow(clippy::too_many_arguments)] // dataset + view + selection state for one family render
@@ -5648,13 +5659,7 @@ fn render_query_family(
     );
     print!("{fold_note}");
     println!("  → {}", family_hint(f));
-    let reasons = hint_reasons(f);
-    if !reasons.is_empty() {
-        println!("  why this hint:");
-        for reason in reasons {
-            println!("    - {reason}");
-        }
-    }
+    print_hint_reasons(f);
     println!("  copies:");
     let helper = family_existing_helper(f);
     for l in f.locations.iter().take(30) {
@@ -8929,6 +8934,35 @@ mod tests {
         assert_eq!(
             family_hint(&f),
             "duplicated across 2 directories — extract a shared base class / mixin"
+        );
+    }
+
+    #[test]
+    fn hint_origin_data_record_is_type_contract_not_base_class() {
+        // A data record (TypeContract + Data, no implementation facet) must render as a
+        // type/API contract, never "extract a shared base class / mixin" (#453).
+        use nose_il::{
+            RegionKind, SourceGranularity, UnitBodyKind, UnitDomain, UnitDomains, UnitSubkind,
+        };
+        let mut f = fam_kind(
+            1,
+            2,
+            &[Some("Point"), Some("Coord")],
+            nose_il::UnitKind::Class,
+        );
+        for loc in &mut f.locations {
+            loc.lang = "java".into();
+            loc.origin = nose_il::UnitOrigin::new(
+                UnitDomains::of(UnitDomain::TypeContract).with(UnitDomain::Data),
+                UnitSubkind::StructRecord,
+                UnitBodyKind::DeclarativeDenotation,
+                SourceGranularity::WholeUnit,
+                RegionKind::Code,
+            );
+        }
+        assert_eq!(
+            family_hint(&f),
+            "duplicated across 2 directories — consolidate one shared type/API contract"
         );
     }
 
