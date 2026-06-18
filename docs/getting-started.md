@@ -132,7 +132,7 @@ a `⟨param N: class⟩` placeholder (the coarse value-class — `literal`/`name
 
 ## Slice, facet, and follow links
 
-Every dashboard ends in runnable next-commands, and an `explore` cheatsheet of the query
+Every dashboard ends in runnable next-commands, and a cheatsheet of the query
 grammar is printed each run. The moves:
 
 | You want… | Command |

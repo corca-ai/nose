@@ -1,6 +1,6 @@
 # Review — catch un-propagated changes
 
-> **Deprecated since 0.10.0** (still works in 0.11.0). `nose review --base <ref>` is now `nose query <paths> base=<ref>`
+> **Deprecated since 0.10.0** (still works). `nose review --base <ref>` is now `nose query <paths> base=<ref>`
 > — the same detection and the same `fire_eligible` gate, under the unified
 > [query](usage.md#nose-query) surface (`base=REF --fail-on any` is the gate). `review` still
 > works and `capabilities` lists it under `commands.deprecated`; it is slated for removal in a
@@ -14,10 +14,10 @@ siblings for you and asks: *should this change have gone there too?*
 
 Where plain [`nose query`](usage.md#nose-query) is stateless (point it at any source, no
 history), the `base=` view needs a **git repository** — it compares the working tree to a ref.
-It shares query's detection channels, size gates, excludes, config loading, structured
-ignores, and `top=`; report-shaping controls — the `sort=` term and the `--min-value` /
-`--min-members` flags — and baselines (`--baseline` / `--fail-on new`) do not carry over. For
-the standard clone taxonomy see [clone types](clone-types.md).
+It shares most of `nose query`'s surface (the shared flags are listed under [Flags and
+terms](#flags-and-terms)); the report-shaping controls — the `sort=` term and the
+`--min-value` / `--min-members` flags — and baselines (`--baseline` / `--fail-on new`) do not
+carry over. For the standard clone taxonomy see [clone types](clone-types.md).
 
 ## Quick start
 
@@ -39,8 +39,8 @@ next:
   nose query . base=origin/main --fail-on any   # fail CI on a proven divergence
 ```
 
-(The deprecated `nose review` / `nose review --base origin/main` spelling still works and
-prints the same findings in its own layout.)
+(The deprecated `nose review` / `nose review --base origin/main` spelling prints the same
+findings in its own layout.)
 
 The location listed under **not updated** is the copy your change skipped — open it and
 decide whether the edit belongs there too, or whether the divergence is intentional.

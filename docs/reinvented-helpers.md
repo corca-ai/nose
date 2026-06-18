@@ -61,12 +61,13 @@ Two exclusions keep the surface honest:
   Findings whose CONTAINER is a test file (`container_in_test`) are a decidable
   judgment-deep class ([design §2b](design.md)) — a test asserting the helper's value as a literal would be
   circular to "fix" — so they are excluded from the default and shown only by the `reinvented`
-  view (or the deprecated `nose scan --show reinvented`), which lists every finding.
+  view.
 - **Machine JSON**: query-JSON's `reinvented` view (`items[]`) is the forward contract; the
   deprecated equivalent is scan-JSON's additive `reinvented_helpers` array (omitted when empty)
   — see [scan-json](scan-json.md#reinvented-helpers).
-- The container being a test file or vendored code is *judgment-deep* non-action
-  ([design §2b](design.md)): the consumer decides; nose carries the locations.
+- A **vendored** (non-test) container is, like a test container, a consumer judgment
+  call — but unlike `container_in_test` it is *not* auto-excluded from the default: nose
+  lists it and carries the locations, so the consumer filters by path.
 
 ## The suggested fix is advisory, not mechanical
 

@@ -6,8 +6,8 @@ and runs fast on every push.
 
 The gate command is now [`nose query`](usage.md#nose-query): it carries the same
 `--fail-on`/`--baseline`/`--ignore-file`/`--cache-dir` workflow flags and the same
-`--format sarif` output as the old `nose scan`. `nose scan` takes the same flags and
-still works, but it is **deprecated (0.10.0)** in favour of `nose query`; the examples
+`--format sarif` output as the old `nose scan`. `nose scan` still works, but it is
+**deprecated (0.10.0)** in favour of `nose query`; the examples
 below use the `query` spelling throughout.
 
 ## The `--fail-on any` gate

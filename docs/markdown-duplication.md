@@ -16,11 +16,11 @@ needs an LLM). Paraphrase / Type-4 semantic equivalence is also out of scope for
 ## Usage
 
 ```
-nose query <paths...>                 # dashboard: a "markdown near-duplicates" section
-nose query <paths...> --format json   # a top-level "markdown" array of families
+nose query <path>                     # dashboard: a "markdown near-duplicates" section
+nose query <path> --format json       # a top-level "markdown" array of families
 ```
 
-`nose query` discovers `.md`/`.markdown` under the paths (respecting `.gitignore` and the same
+`nose query` discovers `.md`/`.markdown` under the path (respecting `.gitignore` and the same
 `exclude` globs as code) and reports ranked near-duplicate **families** alongside the code clones,
 each with:
 
@@ -56,19 +56,12 @@ and the maintainer's call (see [design](design.md)). Consequences:
 ## Measurement
 
 Quality is measured against frozen, **LLM-built golden sets** (no human in the loop;
-3 heterogeneous judges, majority vote, self-calibrated on construction-truth anchors) — see
-[`bench/markdown/`](../bench/markdown/README.md). The detector engine is exercised directly through
-the `nose-markdown` dev example (the user surface is `nose query`):
-
-```
-cargo run -p nose-markdown --example mddup -- bench/markdown/corpus --eval bench/markdown/golden.v1.json
-cargo run -p nose-markdown --example mddup -- bench/markdown/corpus-docs --eval bench/markdown/golden.docs.v1.json
-```
-
-Headline (golden v1, code-of-conduct corpus): panel Fleiss κ 0.70, anchor self-calibration 1.0;
-detector **PR-AUC 0.995**, ROC-AUC 0.992, recall@P95 0.96, recall@P99 0.93, candidate-recall 1.0.
-Multi-genre golden (docs v1, 5 genres): κ 0.71; **PR-AUC 0.944**, ROC-AUC 0.970, recall@P95 0.74,
-candidate-recall 1.0. Byte-identical across runs.
+3 heterogeneous judges, majority vote, self-calibrated on construction-truth anchors). Headline:
+detector **PR-AUC 0.995** single-genre (CoC) / **0.944** multi-domain, candidate-recall 1.0,
+deterministic (byte-identical across runs). See [`bench/markdown/`](../bench/markdown/README.md)
+for the corpora, the deterministic build procedure, the dev `mddup` example commands, and the full
+κ / PR-AUC / ROC-AUC / recall tables. (The user surface is `nose query`; `mddup` is a dev-only
+example.)
 
 ## Related
 

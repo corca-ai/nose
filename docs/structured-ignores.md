@@ -24,9 +24,9 @@ anything going through CI — prefer the structured file, because it stays audit
 
 ## Quick start
 
-Run nose and copy a family's full ID from the JSON report — the `id` field. (The human and
-markdown rows show only a short `id=` drill prefix, which works with `nose query … id=` but is
-*not* a valid `family_id` selector; an ignore entry needs the full 16-hex-digit ID.)
+Run nose and copy a family's full `id` field from the JSON report. Do not paste the short
+`id=` prefix shown in the human drill links — that is a drill handle, not a valid `family_id`.
+See [Family IDs](#family-ids).
 
 ```sh
 nose query src --format json all
@@ -117,15 +117,16 @@ nose versions whose IDs omitted span and fragment metadata. Use `paths` and
 `languages` selectors when the review decision should survive routine movement
 inside a file.
 
-`nose query`'s human rows carry a short family handle in each drill link
-(`id=` accepts any unambiguous prefix):
+`nose query`'s human rows carry only a short family handle in each drill link. That prefix
+works with `nose query … id=` (which accepts any unambiguous prefix) but is *not* a valid
+`family_id` selector for an ignore entry:
 
 ```text
 src/loaders/users.py:1  load_users  3 copies · 12/14 shared, 1p · ~24 removable · copy-paste   nose query src id=479389f590
 ```
 
-The full ID to copy into an ignore entry's `family_id` is the `id` field in `--format json`
-(every family object carries it):
+The full ID to copy into an ignore entry's `family_id` is the 16-hex-digit `id` field in
+`--format json` (every family object carries it):
 
 ```json
 { "id": "479389f590c1234a", "...": "..." }

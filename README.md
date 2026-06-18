@@ -43,10 +43,6 @@ next commands — replace <path> with your path; terms combine with AND:
   open    nose query <path> id=<id> full     one family: every copy + the extraction skeleton
 ```
 
-Then drill: `nose query src witness=exact` (only behavior-proven families), `nose query src
-group=dir` (by directory), `nose query src id=b221962180 full` (open one family with its
-all-copies extraction skeleton).
-
 `nose query` is the **one command** for every workflow over that dataset — explore, report,
 gate a PR, or feed a machine:
 

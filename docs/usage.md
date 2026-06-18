@@ -103,6 +103,11 @@ configured by flag while scope/sort/top are the DSL's `scope=`/`sort=`/`top=`. I
 drops structured-ignored families, so `nose query <path> --fail-on any` is a drop-in gate (see
 [continuous-integration](continuous-integration.md)).
 
+A named path that doesn't exist is an error (exit non-zero) — a typo'd path in a
+CI gate must fail loudly. A path that exists but contains no supported source
+files warns on stderr and reports an empty scan. This holds for `nose query`,
+`nose stats`, and the deprecated `nose scan` alike.
+
 How to read the resulting dashboard — the `scanned …` scope line, the confidence breakdown,
 the per-family economics, scope tags, and the `→` hint — is covered in
 [getting-started → How to read the report](getting-started.md#how-to-read-the-report).
@@ -242,11 +247,6 @@ dropped: the families stay ranked, in `--format json`, and one `--scope test` aw
 `--scope prod` hides them entirely; `--scope test` focuses on them. (This prod-first
 ordering is specific to the deprecated `scan` view; `nose query` is **scope-blind** —
 it ranks test and production purely by extractability and slices with `scope=`.)
-
-A named path that doesn't exist is an error (exit non-zero) — a typo'd path in a
-CI gate must fail loudly. A path that exists but contains no supported source
-files warns on stderr and reports an empty scan. The same rule applies to
-`nose query` and `nose stats`.
 
 Families whose members are overlapping slices of the same source regions are
 one refactoring *opportunity*: the best-ranked family keeps its numbered entry
