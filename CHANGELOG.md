@@ -33,6 +33,13 @@ break.
   spec repo went 206 incoherent families → 140 families + 14 templates; nose's own docs' jargon
   over-merge is now a template, surfacing the real drift finding at #0. Golden metrics unchanged
   (PR-AUC 0.995). Addresses #443.
+- **`nose markdown` containment-witness gate (P3, from the second field eval).** A genuine
+  small-in-large (size-disparate) containment match must now have a real *contiguous* shared-line
+  block, not just scattered char-gram overlap — a small generic stub doc no longer gets pulled
+  into a large unrelated doc by common-morpheme coincidence. Surgical: one field project's
+  spurious mixed-granularity families dropped (8 → 5, all remaining coherent) with zero change to
+  any other project, genuine small-in-large and reworded same-size near-dups preserved, golden
+  metrics unchanged (PR-AUC 0.995).
 
 ## [0.12.0] - 2026-06-18
 

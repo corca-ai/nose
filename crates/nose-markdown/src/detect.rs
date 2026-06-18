@@ -61,6 +61,9 @@ pub struct Options {
     /// floor that drops thin overlaps without requiring identical lines (so reworded near-dups,
     /// which have no identical line but share many grams, are preserved).
     pub min_shared_grams: usize,
+    /// A containment-rescued (small-in-large) pair must have a contiguous span witness of at least
+    /// this many lines — proof of a real shared block, not scattered-vocabulary coincidence.
+    pub min_containment_witness: u32,
 }
 
 impl Default for Options {
@@ -70,6 +73,7 @@ impl Default for Options {
             threshold: 0.5,
             cluster_threshold: 0.7,
             min_shared_grams: 24,
+            min_containment_witness: 2,
         }
     }
 }
@@ -132,12 +136,27 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
     for (i, j) in cands {
         let cos = model.tfidf_cosine(&fps[i], &fps[j]);
         let cont = fingerprint::containment(&fps[i].shingles, &fps[j].shingles);
-        // TF-IDF is the primary relation score; containment rescues small-in-large.
+        // TF-IDF is the primary relation score; containment rescues small-in-large (unchanged).
         let rel = if cont >= 0.8 && cont > cos { cont } else { cos };
         let shared = fingerprint::shared_grams(&fps[i].shingles, &fps[j].shingles);
-        if rel >= opts.threshold && shared >= opts.min_shared_grams {
-            accepted.push((i, j, rel));
+        if rel < opts.threshold || shared < opts.min_shared_grams {
+            continue;
         }
+        // Genuine SMALL-IN-LARGE (a real size disparity) only: a small unit's grams are
+        // "contained" in a large one even by mere common-morpheme coincidence between unrelated
+        // docs. Require a real CONTIGUOUS shared block (line witness) before trusting it — so a
+        // tiny stub doc is not pulled into a big unrelated doc. Same-size high-overlap pairs are
+        // left to the score above (cosine/containment), so reworded near-dups are unaffected.
+        let (la, lb) = (fps[i].shingles.len(), fps[j].shingles.len());
+        let small_in_large = la.min(lb) * 2 < la.max(lb) && cont >= 0.8 && cont > cos;
+        if small_in_large {
+            let has_block = witness::witness(&units[i], &units[j])
+                .is_some_and(|w| w.matched_lines >= opts.min_containment_witness);
+            if !has_block {
+                continue;
+            }
+        }
+        accepted.push((i, j, rel));
     }
     if accepted.is_empty() {
         return Vec::new();
@@ -361,5 +380,25 @@ mod tests {
             fams.is_empty(),
             "thin shared phrase must not form a family: {fams:?}"
         );
+    }
+
+    #[test]
+    fn genuine_small_in_large_still_detected() {
+        // A real multi-line block pasted into a larger doc must still be found (P3 must not
+        // break true small-in-large — only scattered-vocabulary containment is dropped).
+        let block = "The configuration loader reads the settings file at startup.\n\
+                     It validates every required field before continuing.\n\
+                     Then the server begins accepting incoming network connections.";
+        let small = format!("# Note\n\n{block}");
+        let large = format!(
+            "# Host\n\nAn unrelated introduction about entirely different matters here.\n\n\
+             {block}\n\nAn unrelated conclusion about other separate topics here too."
+        );
+        let fams = detect(
+            &[doc("small.md", &small), doc("large.md", &large)],
+            &Options::default(),
+        );
+        assert_eq!(fams.len(), 1, "pasted block should be found: {fams:?}");
+        assert!(fams[0].witness.is_some());
     }
 }
