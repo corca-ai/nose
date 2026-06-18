@@ -1,0 +1,2029 @@
+{
+ "pairs": [
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/black__.github__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 17,
+    "path": "bench/markdown/corpus/commons-lang__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 6,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 1
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 132,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 115
+   },
+   "b": {
+    "end": 8,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/black__.github__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 8,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus/commons-lang__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 20,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 7
+   },
+   "b": {
+    "end": 56,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 48
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 94,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 86
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus/commons-lang__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/black__.github__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/black__.github__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 24,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 21
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 106,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 94,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 83
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 8,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 24,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 21
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 6,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 1
+   },
+   "b": {
+    "end": 5,
+    "path": "bench/markdown/corpus/jest__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/black__.github__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 94,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 83
+   },
+   "b": {
+    "end": 8,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus/commons-lang__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 48,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 34
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/black__.github__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 38,
+    "path": "bench/markdown/corpus/curl__docs__CODE_OF_CONDUCT.md",
+    "start": 7
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/curl__docs__CODE_OF_CONDUCT.md",
+    "start": 7
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 7
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 126,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 118
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 25
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 1,
+    "path": "bench/markdown/corpus/marshmallow__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 126,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 114
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 7
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 22,
+    "path": "bench/markdown/corpus/devise__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 49,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 38
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 113,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 101
+   },
+   "b": {
+    "end": 1,
+    "path": "bench/markdown/corpus/marshmallow__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/curl__docs__CODE_OF_CONDUCT.md",
+    "start": 7
+   },
+   "b": {
+    "end": 8,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 7
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 7
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 20,
+    "path": "bench/markdown/corpus/httpx__docs__code_of_conduct.md",
+    "start": 7
+   },
+   "b": {
+    "end": 38,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 1,
+    "path": "bench/markdown/corpus/marshmallow__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 76,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 5,
+    "path": "bench/markdown/corpus/jest__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 76,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 22,
+    "path": "bench/markdown/corpus/devise__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 48,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 34
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 80,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 71
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 29
+   },
+   "b": {
+    "end": 94,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 83
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 7,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 82,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 74
+   },
+   "b": {
+    "end": 5,
+    "path": "bench/markdown/corpus/jest__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 5,
+    "path": "bench/markdown/corpus/jest__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 77,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 69
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 49,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 38
+   },
+   "b": {
+    "end": 56,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 50
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 29
+   },
+   "b": {
+    "end": 73,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 65
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 29
+   },
+   "b": {
+    "end": 94,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 86
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 40,
+    "path": "bench/markdown/corpus/preact-www__CODE_OF_CONDUCT.md",
+    "start": 35
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 27,
+    "path": "bench/markdown/corpus/fastlane__CODE_OF_CONDUCT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 70,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 58
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 74,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "b": {
+    "end": 56,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 50
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 23,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 8
+   },
+   "b": {
+    "end": 24,
+    "path": "bench/markdown/corpus/html5-boilerplate__.github__CODE_OF_CONDUCT.md",
+    "start": 7
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 23,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 8
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 23,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 8
+   },
+   "b": {
+    "end": 27,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 10
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 74,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "b": {
+    "end": 80,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 71
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 46,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 41
+   },
+   "b": {
+    "end": 74,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 23,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 8
+   },
+   "b": {
+    "end": 44,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 21
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 7,
+    "path": "bench/markdown/corpus/axios__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 94,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 83
+   },
+   "b": {
+    "end": 105,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 126,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 114
+   },
+   "b": {
+    "end": 77,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 69
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 48,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 34
+   },
+   "b": {
+    "end": 50,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 113,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 101
+   },
+   "b": {
+    "end": 74,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 82,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 74
+   },
+   "b": {
+    "end": 105,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 92,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 83
+   },
+   "b": {
+    "end": 106,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 105,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "b": {
+    "end": 94,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 83
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 105,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "b": {
+    "end": 106,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 126,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 114
+   },
+   "b": {
+    "end": 76,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 9,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 6
+   },
+   "b": {
+    "end": 14,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 14,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 6,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 14,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 14,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 6,
+    "path": "bench/markdown/corpus/preact-www__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 13,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 9,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 6
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 14,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 6,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 9
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 46,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 41
+   },
+   "b": {
+    "end": 74,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 24,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 7
+   },
+   "b": {
+    "end": 38,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 12
+   },
+   "b": {
+    "end": 38,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 14
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 14
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 38,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 15
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 44,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 21
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 9
+   },
+   "b": {
+    "end": 14,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 43,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 14,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 43,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/meilisearch__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 30,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 25
+   },
+   "b": {
+    "end": 50,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 56,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 45
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 14,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 34,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 31
+   },
+   "b": {
+    "end": 58,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 58,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "b": {
+    "end": 54,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 46,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 41
+   },
+   "b": {
+    "end": 82,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 74
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 76,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "b": {
+    "end": 74,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 44
+   },
+   "b": {
+    "end": 54,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 44
+   },
+   "b": {
+    "end": 54,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 58,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "b": {
+    "end": 37,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 58,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "b": {
+    "end": 60,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 52
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 34,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 31
+   },
+   "b": {
+    "end": 64,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 57
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 64,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 57
+   },
+   "b": {
+    "end": 54,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 34,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 31
+   },
+   "b": {
+    "end": 58,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 58,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "b": {
+    "end": 54,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 132,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 115
+   },
+   "b": {
+    "end": 76,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 74,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "b": {
+    "end": 76,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 113,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 101
+   },
+   "b": {
+    "end": 82,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 74
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 128,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 115
+   },
+   "b": {
+    "end": 76,
+    "path": "bench/markdown/corpus/meilisearch__CODE_OF_CONDUCT.md",
+    "start": 68
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 128,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 115
+   },
+   "b": {
+    "end": 126,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 114
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 40,
+    "path": "bench/markdown/corpus/html5-boilerplate__.github__CODE_OF_CONDUCT.md",
+    "start": 35
+   },
+   "b": {
+    "end": 49,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 38
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 67,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 55
+   },
+   "b": {
+    "end": 40,
+    "path": "bench/markdown/corpus/preact-www__CODE_OF_CONDUCT.md",
+    "start": 35
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 58,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "b": {
+    "end": 54,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 67,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 55
+   },
+   "b": {
+    "end": 70,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 58
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 68,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 59
+   },
+   "b": {
+    "end": 68,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 59
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 67,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 55
+   },
+   "b": {
+    "end": 67,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 55
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 73,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 61
+   },
+   "b": {
+    "end": 67,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 55
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 40,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 35
+   },
+   "b": {
+    "end": 70,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 58
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 70,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 58
+   },
+   "b": {
+    "end": 40,
+    "path": "bench/markdown/corpus/preact-www__CODE_OF_CONDUCT.md",
+    "start": 35
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 105,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "b": {
+    "end": 105,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 95
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 45,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 6,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/meilisearch__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 30,
+    "path": "bench/markdown/corpus/html5-boilerplate__.github__CODE_OF_CONDUCT.md",
+    "start": 25
+   },
+   "b": {
+    "end": 48,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 13,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 14,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 82,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 74
+   },
+   "b": {
+    "end": 94,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 86
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 24,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 7
+   },
+   "b": {
+    "end": 39,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 18
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 30,
+    "path": "bench/markdown/corpus/faraday__.github__CODE_OF_CONDUCT.md",
+    "start": 25
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 6,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 30,
+    "path": "bench/markdown/corpus/gin__CODE_OF_CONDUCT.md",
+    "start": 25
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 94,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 86
+   },
+   "b": {
+    "end": 82,
+    "path": "bench/markdown/corpus/nginx__CODE_OF_CONDUCT.md",
+    "start": 74
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 30,
+    "path": "bench/markdown/corpus/html5-boilerplate__.github__CODE_OF_CONDUCT.md",
+    "start": 25
+   },
+   "b": {
+    "end": 51,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 40
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus/poetry__CODE_OF_CONDUCT.md",
+    "start": 3
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 54,
+    "path": "bench/markdown/corpus/httpie__CODE_OF_CONDUCT.md",
+    "start": 46
+   },
+   "b": {
+    "end": 60,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 52
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 39,
+    "path": "bench/markdown/corpus/jekyll__docs___docs__code_of_conduct.md",
+    "start": 18
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/marked__docs__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/meilisearch__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/meilisearch__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/minio__code_of_conduct.md",
+    "start": 12
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus/nushell__CODE_OF_CONDUCT.md",
+    "start": 12
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus/nes.css__CODE_OF_CONDUCT.md",
+    "start": 28
+   },
+   "b": {
+    "end": 30,
+    "path": "bench/markdown/corpus/preact-www__CODE_OF_CONDUCT.md",
+    "start": 25
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 45,
+    "path": "bench/markdown/corpus/pixijs__.github__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus/puma__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 43,
+    "path": "bench/markdown/corpus/badger__CODE_OF_CONDUCT.md",
+    "start": 34
+   },
+   "b": {
+    "end": 50,
+    "path": "bench/markdown/corpus/gorm__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 50,
+    "path": "bench/markdown/corpus/bootstrap__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "b": {
+    "end": 50,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 39
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 58,
+    "path": "bench/markdown/corpus/drizzle-orm__CODE_OF_CONDUCT.md",
+    "start": 51
+   },
+   "b": {
+    "end": 64,
+    "path": "bench/markdown/corpus/git__CODE_OF_CONDUCT.md",
+    "start": 57
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  }
+ ]
+}

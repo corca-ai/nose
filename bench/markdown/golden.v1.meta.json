@@ -1,0 +1,15 @@
+{
+ "pairs": 135,
+ "positives": 84,
+ "negatives": 51,
+ "fleiss_kappa": 0.702,
+ "unanimous": 106,
+ "split_2_1": 29,
+ "anchors": 18,
+ "anchor_panel_calibration": 1.0,
+ "judge_positive_rates": [
+  0.622,
+  0.696,
+  0.481
+ ]
+}
