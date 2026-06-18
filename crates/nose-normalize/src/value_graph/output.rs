@@ -154,6 +154,11 @@ impl<'a> Builder<'a> {
 
     pub(super) fn seq_tag(&self, node: NodeId) -> u64 {
         if let Payload::Name(tag) = self.il.node(node).payload {
+            if self.il.meta.lang == Lang::Swift
+                && self.interner.resolve(tag) == "swift_subscript_default"
+            {
+                return stable_symbol_hash("swift_subscript_default");
+            }
             if self.interner.resolve(tag) == "record_guard" {
                 return if record_shape_guard_for_node(self.il, self.interner, node) {
                     SEQ_VALUE_RECORD_GUARD

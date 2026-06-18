@@ -3,7 +3,7 @@
 
 Each axis/language carries a checked-in POSITIVE pair (must converge — recall) and one or
 more adjacent HARD-NEGATIVE pairs (must NOT converge — the soundness guard). The runner
-scans each pair and records the cell to coverage_evidence.v1.json (source="probe"),
+queries each pair and records the cell to coverage_evidence.v1.json (source="probe"),
 advancing BOTH arms at once. A hard-negative that converges is a soundness bug.
 
 Layout:
@@ -25,7 +25,6 @@ import sys
 from pathlib import Path
 
 import coverage_taxonomy as tax
-from eval_manifest import scan_families
 
 HERE = Path(__file__).resolve().parent
 PROBES = HERE / "coverage_probes"
@@ -34,13 +33,22 @@ NOSE_DEFAULT = str(HERE.parents[1] / "target" / "debug" / "nose")
 
 
 def converges(nose: str, pair_dir: Path) -> bool:
-    """True iff nose reports a semantic family spanning the two files in pair_dir."""
-    cmd = [nose, "scan", str(pair_dir), "--mode", "semantic", "--format", "json",
-           "--top", "1000000", "--min-size", "1", "--min-lines", "1"]
+    """True iff nose reports an exact semantic family spanning the two files in pair_dir."""
+    cmd = [
+        nose, "query", str(pair_dir), "all", "witness=exact",
+        "--mode", "semantic", "--format", "json", "--min-size", "1",
+    ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
-    families = scan_families(json.loads(proc.stdout or "[]"))
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"nose query failed for {pair_dir} (exit {proc.returncode}):\n"
+            f"{proc.stderr[-2000:]}"
+        )
+    families = json.loads(proc.stdout or "{}").get("families", [])
     files = {f.name for f in pair_dir.iterdir() if f.is_file()}
     for fam in families:
+        if fam.get("witness") != "exact":
+            continue
         # Skip Block sub-units (eval_manifest convention): a bare loop block with no escaping
         # effect is observably a no-op, so two of them are vacuously equivalent — that is a
         # SOUND collision, not a clone of the intended whole-unit. Count only real units.

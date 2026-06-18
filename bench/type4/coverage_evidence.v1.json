@@ -280,8 +280,8 @@
       "axis": "flat_map",
       "gen_axis": "probe:flat_map",
       "language": "javascript",
-      "status": "covered",
-      "pos_hit": 1,
+      "status": "gap",
+      "pos_hit": 0,
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
@@ -302,8 +302,8 @@
       "axis": "flat_map",
       "gen_axis": "probe:flat_map",
       "language": "ruby",
-      "status": "covered",
-      "pos_hit": 1,
+      "status": "gap",
+      "pos_hit": 0,
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
@@ -313,8 +313,8 @@
       "axis": "flat_map",
       "gen_axis": "probe:flat_map",
       "language": "rust",
-      "status": "covered",
-      "pos_hit": 1,
+      "status": "gap",
+      "pos_hit": 0,
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
@@ -323,9 +323,20 @@
     {
       "axis": "flat_map",
       "gen_axis": "probe:flat_map",
-      "language": "typescript",
+      "language": "swift",
       "status": "covered",
       "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 2,
+      "source": "probe"
+    },
+    {
+      "axis": "flat_map",
+      "gen_axis": "probe:flat_map",
+      "language": "typescript",
+      "status": "gap",
+      "pos_hit": 0,
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
@@ -618,6 +629,17 @@
       "source": "sweep"
     },
     {
+      "axis": "import_identity",
+      "gen_axis": "probe:import_identity",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 3,
+      "source": "probe"
+    },
+    {
       "axis": "java_integer_low_bit_toggle",
       "gen_axis": "java_integer_low_bit_toggle",
       "language": "java",
@@ -781,6 +803,17 @@
       "false_merges": 0,
       "neg": 4,
       "source": "sweep"
+    },
+    {
+      "axis": "map_default_lookup",
+      "gen_axis": "probe:map_default_lookup",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 3,
+      "source": "probe"
     },
     {
       "axis": "map_default_lookup",
@@ -1209,6 +1242,17 @@
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "numeric_clamp",
+      "gen_axis": "probe:numeric_clamp",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 2,
       "source": "probe"
     },
     {
@@ -1847,6 +1891,17 @@
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "total_order_compare",
+      "gen_axis": "probe:total_order_compare",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 2,
       "source": "probe"
     },
     {

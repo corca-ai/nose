@@ -5,8 +5,8 @@
 //! orchestration in `units.rs`; proof policy lives here.
 
 use nose_il::{
-    Builtin, CallTargetEvidenceKind, HoFKind, Il, Interner, LitClass, NodeId, NodeKind, Op,
-    Payload, SourceComprehensionKind, Symbol,
+    stable_symbol_hash, Builtin, CallTargetEvidenceKind, HoFKind, Il, Interner, Lang, LitClass,
+    NodeId, NodeKind, Op, Payload, SourceComprehensionKind, Symbol,
 };
 use nose_normalize::module_facts::collect_module_mutations;
 use nose_semantics::{
@@ -243,7 +243,8 @@ pub(crate) fn strict_exact_safe_tree(
         NodeKind::Call => strict_exact_safe_call(il, interner, facts, node),
         NodeKind::HoF => strict_exact_safe_hof(il, interner, facts, node),
         NodeKind::Index
-            if strict_exact_go_literal_zero_map_index_safe(il, interner, facts, node) =>
+            if strict_exact_go_literal_zero_map_index_safe(il, interner, facts, node)
+                || strict_exact_swift_default_subscript_index_safe(il, interner, facts, node) =>
         {
             true
         }
@@ -1562,6 +1563,38 @@ fn strict_exact_go_literal_zero_map_index_safe(
         && strict_exact_safe_tree(il, interner, facts, kids[1])
 }
 
+fn strict_exact_swift_default_subscript_index_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.meta.lang != Lang::Swift || il.kind(node) != NodeKind::Index {
+        return false;
+    }
+    let [receiver, index] = il.children(node) else {
+        return false;
+    };
+    if !strict_exact_proven_map_receiver_safe(il, interner, facts, *receiver) {
+        return false;
+    }
+    if il.kind(*index) != NodeKind::Seq {
+        return false;
+    }
+    if !matches!(
+        il.node(*index).payload,
+        Payload::Name(tag) if stable_symbol_hash(interner.resolve(tag))
+            == stable_symbol_hash("swift_subscript_default")
+    ) {
+        return false;
+    }
+    let [key, default] = il.children(*index) else {
+        return false;
+    };
+    strict_exact_safe_tree(il, interner, facts, *key)
+        && strict_exact_safe_tree(il, interner, facts, *default)
+}
+
 fn strict_exact_go_literal_zero_map_safe(
     il: &Il,
     interner: &Interner,
@@ -2003,6 +2036,60 @@ mod tests {
             strict_exact_map_get_call_safe(&il, &interner, &facts, call, callee, "get"),
             "admitted map-get occurrence evidence should open the exact-safe API path"
         );
+    }
+
+    #[test]
+    fn swift_default_subscript_requires_map_receiver_domain() {
+        let interner = Interner::new();
+        let dict = interner.intern("dict");
+        let marker = interner.intern("swift_subscript_default");
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp(50), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(51), &[]);
+        let key = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("ready")),
+            sp(52),
+            &[],
+        );
+        let default = b.add(NodeKind::Lit, Payload::LitInt(0), sp(53), &[]);
+        let index_marker = b.add(
+            NodeKind::Seq,
+            Payload::Name(marker),
+            sp(54),
+            &[key, default],
+        );
+        let index = b.add(
+            NodeKind::Index,
+            Payload::None,
+            sp(55),
+            &[receiver, index_marker],
+        );
+        let root = b.add(NodeKind::Func, Payload::None, sp(49), &[param, index]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.swift".into(),
+                lang: Lang::Swift,
+            },
+            Vec::new(),
+            vec![dict],
+        );
+
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, index),
+            "marker spelling alone must not prove Swift Dictionary default-subscript semantics"
+        );
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(sp(50)),
+            EvidenceKind::Domain(nose_il::DomainEvidence::Map),
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, index));
     }
 
     #[test]

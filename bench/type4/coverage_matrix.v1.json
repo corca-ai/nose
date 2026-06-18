@@ -92,12 +92,12 @@
       "c": "none",
       "go": "none",
       "java": "none",
-      "javascript": "covered",
+      "javascript": "unsupported",
       "python": "covered",
-      "ruby": "covered",
-      "rust": "covered",
-      "swift": "none",
-      "typescript": "covered"
+      "ruby": "unsupported",
+      "rust": "unsupported",
+      "swift": "covered",
+      "typescript": "unsupported"
     },
     "identity_value_soundness": {
       "c": "hard-negative",
@@ -129,7 +129,7 @@
       "python": "covered",
       "ruby": "none",
       "rust": "covered",
-      "swift": "none",
+      "swift": "covered",
       "typescript": "covered"
     },
     "java_integer_low_bit_toggle": {
@@ -173,7 +173,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
-      "swift": "none",
+      "swift": "covered",
       "typescript": "covered"
     },
     "map_fusion": {
@@ -217,7 +217,7 @@
       "python": "covered",
       "ruby": "none",
       "rust": "covered",
-      "swift": "none",
+      "swift": "covered",
       "typescript": "none"
     },
     "numeric_minmax_abs": {
@@ -360,7 +360,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
-      "swift": "none",
+      "swift": "covered",
       "typescript": "none"
     },
     "typed_concat_soundness": {
@@ -412,7 +412,7 @@
     },
     "javascript": {
       "applicable": 27,
-      "covered": 20
+      "covered": 19
     },
     "python": {
       "applicable": 26,
@@ -420,19 +420,19 @@
     },
     "ruby": {
       "applicable": 24,
-      "covered": 16
+      "covered": 15
     },
     "rust": {
       "applicable": 25,
-      "covered": 18
+      "covered": 17
     },
     "swift": {
       "applicable": 24,
-      "covered": 15
+      "covered": 20
     },
     "typescript": {
       "applicable": 27,
-      "covered": 20
+      "covered": 19
     }
   }
 }

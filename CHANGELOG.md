@@ -7,6 +7,15 @@ break.
 ## [Unreleased]
 
 ### Added
+- **Swift Type-4 exact coverage parity slice.** Swift now has evidence-backed exact-query
+  coverage for five previously-open matrix cells: typed `flatMap` vs nested append builders,
+  module import identity, `Dictionary[key, default:]` map-default lookup, literal `Int`
+  clamp ternaries vs `min(max(...))`, and integer-gated total-order comparison absorption.
+  The implementation is deliberately proof-bounded: wrong module/member/key/default
+  coordinates, optional `??` defaulting, `Double` clamp forms, and overloaded/String
+  comparisons remain adjacent hard negatives. The checked-in Type-4 matrix moves Swift from
+  15/24 to 20/24 applicable cells, and focused probes now run through
+  `nose query ... witness=exact` rather than the deprecated scan path.
 - **Markdown same-language near-duplicate detection (`nose markdown`, epic #435).** A new,
   deliberately separate `nose-markdown` engine finds near-duplicate **prose** across Markdown
   documents — prose is not code, so it uses a character-n-gram pipeline (MinHash-LSH + winnowing

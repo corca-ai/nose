@@ -726,17 +726,23 @@ impl<'a> Builder<'a> {
         a: ValueId,
         b: ValueId,
     ) -> Option<ValueId> {
-        if !self.comparison_law_enabled(ComparisonLaw::LatticeStrictAbsorbsNonstrict) {
-            return None;
-        }
         for (lt_v, le_v) in [(a, b), (b, a)] {
             if let Some((x, y)) = self.cmp_operands(lt_v, Op::Lt as u32) {
-                if self.cmp_operands(le_v, Op::Le as u32) == Some((x, y)) {
+                if self.cmp_operands(le_v, Op::Le as u32) == Some((x, y))
+                    && self.strict_absorbs_nonstrict_allowed_for_operands(x, y)
+                {
                     return Some(lt_v);
                 }
             }
         }
         None
+    }
+
+    fn strict_absorbs_nonstrict_allowed_for_operands(&self, x: ValueId, y: ValueId) -> bool {
+        self.comparison_law_enabled(ComparisonLaw::LatticeStrictAbsorbsNonstrict)
+            || (self.il.meta.lang == Lang::Swift
+                && self.is_integer_domain_value(x)
+                && self.is_integer_domain_value(y))
     }
 
     /// `(x < y) ∨ (x = y) → x ≤ y` — the dual of [`lattice_le_ne_to_lt`] over `∨`

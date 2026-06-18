@@ -600,6 +600,54 @@ fn java_stream_flat_map_converges_with_python_comprehension() {
 }
 
 #[test]
+fn swift_flat_map_converges_with_nested_builder_loop() {
+    let i = Interner::new();
+    let builder = r#"
+func f(_ groups: [[Int]]) -> [Int] {
+    var out: [Int] = []
+    for xs in groups {
+        for y in xs {
+            out.append(y)
+        }
+    }
+    return out
+}
+"#;
+    let flat = r#"
+func f(_ groups: [[Int]]) -> [Int] {
+    return groups.flatMap { (xs: [Int]) in xs.map { y in y } }
+}
+"#;
+    let changed = r#"
+func f(_ groups: [[Int]]) -> [Int] {
+    return groups.flatMap { (xs: [Int]) in xs.map { y in y + 1 } }
+}
+"#;
+    let nested = r#"
+func f(_ groups: [[Int]]) -> [[Int]] {
+    return groups.map { (xs: [Int]) in xs.map { y in y } }
+}
+"#;
+
+    let fp = value_fp(&i, builder, Lang::Swift);
+    assert_eq!(
+        fp,
+        value_fp(&i, flat, Lang::Swift),
+        "Swift nested append builders and flatMap/map should share the flattened stream value"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, changed, Lang::Swift),
+        "changing the emitted flattened element must stay distinct"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, nested, Lang::Swift),
+        "map returning inner arrays is not a flatMap"
+    );
+}
+
+#[test]
 fn rust_vec_new_builder_loop_stays_distinct_from_flat_map_without_nested_element_proof() {
     // `xss: &[Vec<_>]` proves the outer parameter is a collection, but the current semantic
     // kernel does not yet carry the element-type proof needed to know that the lambda parameter
@@ -1745,6 +1793,53 @@ fn numeric_clamp_surface_bridge_requires_bound_proof() {
         value_fp(&i, rust_literal_clamp, Lang::Rust),
         value_fp(&i, rust_custom_clamp, Lang::Rust),
         "custom clamp methods must stay outside the numeric library bridge"
+    );
+}
+
+#[test]
+fn swift_numeric_clamp_literal_ternary_converges_with_minmax() {
+    let i = Interner::new();
+    let ternary = r#"
+func f(_ value: Int) -> Int {
+    return value < 0 ? 0 : (value > 10 ? 10 : value)
+}
+"#;
+    let minmax = r#"
+func f(_ value: Int) -> Int {
+    return min(max(value, 0), 10)
+}
+"#;
+    let wrong_bound = r#"
+func f(_ value: Int) -> Int {
+    return min(max(value, 0), 9)
+}
+"#;
+    let double_ternary = r#"
+func f(_ value: Double) -> Double {
+    return value < 0.0 ? 0.0 : (value > 10.0 ? 10.0 : value)
+}
+"#;
+    let double_minmax = r#"
+func f(_ value: Double) -> Double {
+    return min(max(value, 0.0), 10.0)
+}
+"#;
+
+    let fp = value_fp(&i, ternary, Lang::Swift);
+    assert_eq!(
+        fp,
+        value_fp(&i, minmax, Lang::Swift),
+        "literal ordered Swift Int clamp ternaries should converge with min/max composition"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, wrong_bound, Lang::Swift),
+        "changing a clamp bound changes behavior"
+    );
+    assert_ne!(
+        value_fp(&i, double_ternary, Lang::Swift),
+        value_fp(&i, double_minmax, Lang::Swift),
+        "Swift Double clamp forms stay closed across the NaN-sensitive boundary"
     );
 }
 
@@ -5750,6 +5845,134 @@ fn map_default_lookup_keeps_alias_and_guard_boundaries() {
 }
 
 #[test]
+fn swift_dictionary_default_subscript_requires_map_receiver_coordinates() {
+    let i = Interner::new();
+    let python = "def f(lookup: dict[str, int], key: str, fallback: int, other: str, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
+    let default_subscript = r#"
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let renamed = r#"
+func g(_ lookup: Dictionary<String, Int>, _ name: String, _ missing: Int, _ otherName: String, _ otherMissing: Int) -> Int {
+    return lookup[name, default: missing]
+}
+"#;
+    let wrong_key = r#"
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[other, default: fallback]
+}
+"#;
+    let wrong_default = r#"
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: otherDefault]
+}
+"#;
+    let untyped_receiver = r#"
+func f(_ dict: Any, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#;
+    let nullish_default = r#"
+func f(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int, _ other: String, _ otherDefault: Int) -> Int {
+    return dict[key] ?? fallback
+}
+"#;
+
+    let fp = value_fp(&i, python, Lang::Python);
+    assert_eq!(
+        fp,
+        value_fp(&i, default_subscript, Lang::Swift),
+        "Swift Dictionary default subscript should join the absence-default map lookup family"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, renamed, Lang::Swift),
+        "Swift Dictionary default subscripts should alpha-converge through map/key/default coordinates"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, wrong_key, Lang::Swift),
+        "a different key coordinate changes the lookup"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, wrong_default, Lang::Swift),
+        "a different fallback coordinate changes the lookup"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, untyped_receiver, Lang::Swift),
+        "subscript syntax alone must not prove a map receiver"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, nullish_default, Lang::Swift),
+        "Swift optional defaulting is not an absence-only Dictionary default subscript"
+    );
+}
+
+#[test]
+fn swift_import_identity_uses_module_and_export_coordinates() {
+    let i = Interner::new();
+    let imported = r#"
+import Shared
+
+func f(_ value: Int) -> Int {
+    return Shared.helper(value + 1)
+}
+"#;
+    let renamed = r#"
+import Shared
+
+func g(_ input: Int) -> Int {
+    return Shared.helper(input + 1)
+}
+"#;
+    let no_import = r#"
+func f(_ value: Int) -> Int {
+    return Shared.helper(value + 1)
+}
+"#;
+    let wrong_module = r#"
+import Other
+
+func f(_ value: Int) -> Int {
+    return Other.helper(value + 1)
+}
+"#;
+    let wrong_member = r#"
+import Shared
+
+func f(_ value: Int) -> Int {
+    return Shared.other(value + 1)
+}
+"#;
+
+    let fp = value_fp(&i, imported, Lang::Swift);
+    assert_eq!(
+        fp,
+        value_fp(&i, renamed, Lang::Swift),
+        "Swift imported namespace calls should be stable under local alpha-renaming"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, no_import, Lang::Swift),
+        "an imported module coordinate must require the import statement"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, wrong_module, Lang::Swift),
+        "changing the imported module coordinate changes the callee identity"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, wrong_member, Lang::Swift),
+        "changing the imported export/member coordinate changes the callee identity"
+    );
+}
+
+#[test]
 fn rust_constructor_pattern_variant_test_stays_distinct() {
     let i = Interner::new();
     // #390: a binding constructor pattern's variant test lowers to the constructor PATH (the
@@ -6405,6 +6628,73 @@ fn lattice_strict_comparison_converges_and_separates() {
         lt,
         value_fp(&i, "def g(a,b):\n    return a<=b or a!=b\n", Lang::Python),
         "the connective matters: (a<=b) OR (a!=b) is not a<b"
+    );
+}
+
+#[test]
+fn swift_total_order_absorption_is_integer_domain_gated() {
+    let i = Interner::new();
+    let strict = r#"
+func f(_ x: Int, _ y: Int) -> Bool {
+    return x < y
+}
+"#;
+    let nonstrict_and_ne = r#"
+func f(_ x: Int, _ y: Int) -> Bool {
+    return x <= y && x != y
+}
+"#;
+    let unparenthesized = r#"
+func f(_ x: Int, _ y: Int) -> Bool {
+    return x < y && x <= y
+}
+"#;
+    let parenthesized = r#"
+func f(_ x: Int, _ y: Int) -> Bool {
+    return (x < y) && (x <= y)
+}
+"#;
+    let wrong_connective = r#"
+func f(_ x: Int, _ y: Int) -> Bool {
+    return x < y || x <= y
+}
+"#;
+    let string_and = r#"
+func f(_ x: String, _ y: String) -> Bool {
+    return x < y && x <= y
+}
+"#;
+    let string_strict = r#"
+func f(_ x: String, _ y: String) -> Bool {
+    return x < y
+}
+"#;
+
+    let fp = value_fp(&i, strict, Lang::Swift);
+    assert_eq!(
+        fp,
+        value_fp(&i, nonstrict_and_ne, Lang::Swift),
+        "Swift Int total-order lattice facts should bridge <= plus !="
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, unparenthesized, Lang::Swift),
+        "Swift Int strict/non-strict conjunction should absorb to the strict comparison"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, parenthesized, Lang::Swift),
+        "parentheses should not affect the same total-order absorption"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, wrong_connective, Lang::Swift),
+        "OR broadens the predicate and must stay distinct"
+    );
+    assert_ne!(
+        value_fp(&i, string_and, Lang::Swift),
+        value_fp(&i, string_strict, Lang::Swift),
+        "Swift overloaded/String comparisons stay closed without integer-domain proof"
     );
 }
 

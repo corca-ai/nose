@@ -275,6 +275,28 @@ each write target must resolve to a proven `this.field` place, and the behavior 
 observes the final field-state map. Adjacent hard negatives with `other.field` remain
 rejected, so the expansion does not infer arbitrary receiver identity or API semantics.
 
+## Swift Type-4 Parity Slice
+
+Closed five Swift matrix cells with focused exact-query probes and adjacent hard negatives:
+
+- `flat_map`: nested append builders converge with typed `flatMap { xs.map { ... } }`;
+  changed emitted elements and nested `map` levels stay distinct.
+- `import_identity`: imported namespace member calls are keyed by module/export coordinates;
+  wrong module, wrong member, and missing import stay distinct.
+- `map_default_lookup`: `Dictionary` default subscript joins the absence-default lookup
+  family only with a proven map receiver, key, and fallback coordinate. Optional `??`
+  defaulting remains outside the absence-default family.
+- `numeric_clamp`: literal ordered `Int` ternary clamps converge with `min(max(x, lo), hi)`;
+  wrong bounds and `Double`/NaN-sensitive forms remain closed.
+- `total_order_compare`: strict/non-strict absorption is admitted for Swift integer-domain
+  operands only; overloaded/String comparisons remain closed.
+
+The probe runner now uses `nose query ... witness=exact` rather than the deprecated scan
+path. Re-running the focused probes records Swift at 20/24 applicable matrix cells. It also
+exposes that several older non-Swift `flat_map` probe rows do not satisfy the stricter
+exact-query check; those rows are left as gaps rather than preserving stale broad-scan
+evidence.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

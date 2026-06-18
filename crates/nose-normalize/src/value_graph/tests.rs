@@ -1376,6 +1376,18 @@ fn raw_sequence_name_tags_without_surface_evidence_are_untagged() {
 }
 
 #[test]
+fn swift_internal_default_subscript_marker_survives_sequence_tag_normalization() {
+    let interner = Interner::new();
+    let tag = seq_value_tag_for(
+        &interner,
+        "swift_subscript_default",
+        Lang::Swift,
+        Vec::new(),
+    );
+    assert_eq!(tag, stable_symbol_hash("swift_subscript_default"));
+}
+
+#[test]
 fn admitted_sequence_surface_controls_sequence_value_tag() {
     let interner = Interner::new();
     let tag = seq_value_tag_for(

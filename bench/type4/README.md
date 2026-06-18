@@ -19,12 +19,13 @@ The factory is evidence-carrying by design:
 - generated source paths and metadata are written into a manifest.
 
 Swift is included as a first-party surface. Its checked-in coverage probes currently cover
-15/24 applicable matrix cells: collection emptiness, string prefix/suffix, collection
-membership, option presence, for-in/indexed reduction, immutable binding, proven callee
-identity, extract-method inline, tail numeric recursion, scalar min/max, filter fusion, and
-map fusion, plus hard-negative guards for identity/value, loop extent, and typed
-concatenation soundness, with adjacent hard negatives recorded in
-`coverage_evidence.v1.json`.
+20/24 applicable matrix cells. Recent Swift probe coverage includes flat-map,
+module import identity, `Dictionary` default subscript map lookup, literal `Int` clamp,
+and integer-gated total-order comparison absorption, alongside the earlier collection,
+option/null, reduction, immutable-binding, callee-identity, extract-method, recursion,
+min/max, filter-fusion, map-fusion, and soundness-guard cells. Adjacent hard negatives for
+wrong coordinates, optional `??` defaulting, `Double` clamp forms, and overloaded/String
+comparisons are recorded in `coverage_evidence.v1.json`.
 The checked-in matrix now keeps every primary language at or above 56% covered applicable
 cells; pure hard-negative rows are counted only on soundness-family axes. The focused probe
 harness permits `pos/`-less hard-negative fixtures only for those soundness-family axes.
@@ -68,21 +69,25 @@ By default the generator emits:
 Use `--cross all` to generate every cross-surface positive pair and cross-template
 negative sibling.
 
-## Evaluate a semantic scan
+## Legacy generated-corpus evaluator
 
 ```sh
 python3 bench/type4/eval_manifest.py /tmp/nose-type4-seed/manifest.json
 ```
 
-The evaluator runs `nose scan --mode semantic` over the generated sources and reports
-positive recall plus false merges among every `expected_exact_detect=false` item. The
-summary line keeps the historic "hard-negative false merges" label, but the denominator
-also includes `E0` unproven/unsafe boundary cases that exact semantic detection must not
-merge. Use `--fail-on-false-merge` when this becomes a CI gate.
+The manifest evaluator still exercises the legacy semantic-scan product path over generated
+sources and reports positive recall plus false merges among every
+`expected_exact_detect=false` item. The summary line keeps the historic "hard-negative
+false merges" label, but the denominator also includes `E0` unproven/unsafe boundary cases
+that exact semantic detection must not merge. Use `--fail-on-false-merge` when this becomes
+a CI gate.
 
 `eval_manifest.py` and `frontier.py` accept both the current versioned
 `nose scan --format json` object and the older raw `families` array when `--scan-json`
 is supplied, so saved scan output can be reused without post-processing.
+
+Focused coverage probes use the current exact-query path through
+`coverage_probe.py`, which runs `nose query ... witness=exact`.
 
 ## Scan regression harness
 

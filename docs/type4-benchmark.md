@@ -94,13 +94,14 @@ the cell claim is precisely that adjacent non-equivalent forms stay unmerged. Th
 harness permits `pos/`-less hard-negative fixtures only for those soundness-family axes.
 
 Swift participates as a first-party surface in the capability matrix and generator. Its
-evidence-backed Type-4 matrix coverage is 15/24 applicable cells: collection emptiness,
-string affix, membership, option presence, for-in/indexed reduction, immutable binding,
-proven callee identity, extract-method inline, tail numeric recursion, scalar min/max,
-filter fusion, map fusion, and hard-negative guards for identity/value, loop extent, and
-typed concatenation soundness. Swift flat-map/filter-map, map-default, clamp, import
-identity, and scalar abs sign-ternary surfaces remain visible as unsupported or partial
-until their receiver, demand, or proof boundaries are modeled.
+evidence-backed Type-4 matrix coverage is 20/24 applicable cells. In addition to the
+earlier collection, option/null, reduction, immutable-binding, callee-identity,
+extract-method, recursion, min/max, filter-fusion, map-fusion, and soundness-guard cells,
+Swift now has exact-query probes for flat-map, module import identity, `Dictionary`
+default subscript map lookup, literal `Int` clamp, and integer-gated total-order
+comparison absorption. These cells are deliberately proof-bounded: custom/default
+subscripts without a proven map receiver, optional `??` defaulting, `Double` clamp forms,
+and overloaded/String comparisons remain separated by adjacent hard negatives.
 
 ### Breadth-first difficulty levels
 
@@ -207,7 +208,7 @@ exact positive converge; and a regression check proving the nearby hard-negative
 don't merge. The loop:
 
 ```text
-generate a benchmark slice  →  scan with semantic mode
+generate a benchmark slice  →  run focused exact query / legacy semantic-scan gates
         →  frontier summary: missed positives grouped by computation/surface/representation
         →  pick one narrow under-merge class  →  add a failing convergence test
         →  patch the frontend / idiom lowering / shared value graph
@@ -298,7 +299,7 @@ when the focused/compact gates have closed.
 
 | asset | primary question |
 |---|---|
-| v5 refactoring-family labelset | Does `nose scan` surface useful refactoring candidates first? |
+| v5 refactoring-family labelset | Did the legacy product scan surface useful refactoring candidates first? |
 | Type-4 synthetic factory | Does exact semantic detection cover the intended equivalence classes without false merges? |
 | future evidence-backed real subset | Do proven Type-4 cases occur and get detected in real repos? |
 

@@ -645,8 +645,33 @@ impl<'a> Builder<'a> {
                     vec![map, a[1], default],
                 );
             }
+            if let Some(value) = self.swift_default_subscript_value(a[0], a[1]) {
+                return value;
+            }
         }
         self.mk(ValOp::Index, a)
+    }
+
+    fn swift_default_subscript_value(&mut self, map: ValueId, index: ValueId) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::Swift {
+            return None;
+        }
+        let node = &self.nodes[index as usize];
+        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("swift_subscript_default"))
+            || node.args.len() != 2
+        {
+            return None;
+        }
+        let args = node.args.clone();
+        let map = if self.is_param_value(map, DomainEvidence::Map) {
+            map
+        } else {
+            self.proven_map_value(map)?
+        };
+        Some(self.mk(
+            ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
+            vec![map, args[0], args[1]],
+        ))
     }
 
     fn eval_call_expr(

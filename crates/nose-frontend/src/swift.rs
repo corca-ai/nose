@@ -9,8 +9,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    SourceProtocolKind, Span, Symbol, UnitKind,
+    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, FileId, Il, Interner, Lang,
+    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceProtocolKind, Span, Symbol, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -289,7 +289,13 @@ fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     let mut cursor = node.walk();
     let names: Vec<TsNode> = node.children_by_field_name("name", &mut cursor).collect();
     let values = field_children(node, "value");
+    let types = field_children(node, "type");
     for (idx, name_node) in names.iter().enumerate() {
+        if let Some(ty) = types.get(idx).or_else(|| types.first()) {
+            record_property_binding_domain(lo, *name_node, *ty);
+        } else {
+            record_property_binding_domain_from_decl_text(lo, *name_node, node);
+        }
         let lhs = binding_var(lo, *name_node, span);
         let rhs = values
             .get(idx)
@@ -306,6 +312,65 @@ fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     } else {
         lo.add(NodeKind::Block, Payload::None, span, &assigns)
     }
+}
+
+fn record_property_binding_domain(lo: &mut Lowering, name_node: TsNode, type_node: TsNode) {
+    let Some(name) = binding_name(lo, name_node) else {
+        return;
+    };
+    if name == "_" {
+        return;
+    }
+    let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(type_node)) else {
+        return;
+    };
+    lo.record_evidence_with_pack_dependencies(
+        EvidenceAnchor::binding(lo.span(name_node), stable_symbol_hash(&name)),
+        EvidenceKind::Domain(domain.domain),
+        domain.provenance.pack_id,
+        domain.provenance.rule,
+        domain.dependencies,
+    );
+}
+
+fn record_property_binding_domain_from_decl_text(
+    lo: &mut Lowering,
+    name_node: TsNode,
+    property_node: TsNode,
+) {
+    let Some(name) = binding_name(lo, name_node) else {
+        return;
+    };
+    if name == "_" {
+        return;
+    }
+    let decl = lo.text(property_node);
+    let Some(name_start) = decl.find(&name) else {
+        return;
+    };
+    let after_name = &decl[name_start + name.len()..];
+    let Some((_, after_colon)) = after_name.split_once(':') else {
+        return;
+    };
+    let ty = after_colon
+        .split(['=', ','])
+        .next()
+        .unwrap_or(after_colon)
+        .trim();
+    if ty.is_empty() {
+        return;
+    }
+    let annotated = format!("{name}: {ty}");
+    let Some(domain) = lo.type_domain_from_text_with_dependencies(&annotated) else {
+        return;
+    };
+    lo.record_evidence_with_pack_dependencies(
+        EvidenceAnchor::binding(lo.span(name_node), stable_symbol_hash(&name)),
+        EvidenceKind::Domain(domain.domain),
+        domain.provenance.pack_id,
+        domain.provenance.rule,
+        domain.dependencies,
+    );
 }
 
 fn lower_computed_property(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -765,6 +830,9 @@ fn lower_binary_like(lo: &mut Lowering, node: TsNode) -> NodeId {
                 &[left, right],
             );
         }
+        if let Some(rewritten) = lower_misnested_swift_boolean_rhs(lo, span, op_text, left, right) {
+            return rewritten;
+        }
         if let Some(op) = swift_bin_op(op_text) {
             return lo.add(NodeKind::BinOp, Payload::Op(op), span, &[left, right]);
         }
@@ -782,6 +850,41 @@ fn lower_binary_like(lo: &mut Lowering, node: TsNode) -> NodeId {
     } else {
         lo.raw(node.kind(), span, &kids)
     }
+}
+
+fn lower_misnested_swift_boolean_rhs(
+    lo: &mut Lowering,
+    span: Span,
+    op_text: &str,
+    left: NodeId,
+    right: NodeId,
+) -> Option<NodeId> {
+    let cmp_op = swift_bin_op(op_text)?;
+    if !matches!(cmp_op, Op::Lt | Op::Le | Op::Gt | Op::Ge | Op::Eq | Op::Ne) {
+        return None;
+    }
+    if lo.b.kind(right) != NodeKind::BinOp {
+        return None;
+    }
+    let Payload::Op(bool_op @ (Op::And | Op::Or)) = lo.b.payload(right) else {
+        return None;
+    };
+    let rhs_children = lo.b.children(right).to_vec();
+    let [rhs_left, rhs_right] = rhs_children.as_slice() else {
+        return None;
+    };
+    let fixed_left = lo.add(
+        NodeKind::BinOp,
+        Payload::Op(cmp_op),
+        span,
+        &[left, *rhs_left],
+    );
+    Some(lo.add(
+        NodeKind::BinOp,
+        Payload::Op(bool_op),
+        span,
+        &[fixed_left, *rhs_right],
+    ))
 }
 
 fn swift_bin_op(text: &str) -> Option<Op> {
@@ -872,6 +975,16 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
                         let index = match args.as_slice() {
                             [] => lo.empty_block(lo.span(child)),
                             [only] => *only,
+                            [key, default] if kwarg_name(lo, *default) == Some("default") => {
+                                let default_value =
+                                    lo.b.children(*default).first().copied().unwrap_or(*default);
+                                lo.add(
+                                    NodeKind::Seq,
+                                    Payload::Name(lo.sym("swift_subscript_default")),
+                                    lo.span(child),
+                                    &[*key, default_value],
+                                )
+                            }
                             _ => lo.add(
                                 NodeKind::Seq,
                                 Payload::Name(lo.sym("tuple")),
@@ -889,6 +1002,16 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+fn kwarg_name<'a>(lo: &'a Lowering, node: NodeId) -> Option<&'a str> {
+    if lo.b.kind(node) != NodeKind::KwArg {
+        return None;
+    }
+    let Payload::Name(name) = lo.b.payload(node) else {
+        return None;
+    };
+    Some(lo.interner.resolve(name))
 }
 
 fn lower_callee(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -978,8 +1101,27 @@ fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
     let body = first_statements_child(node)
         .map(|body| lower_function_body(lo, body))
         .unwrap_or_else(|| lo.empty_block(span));
+    dedupe_lambda_params(lo, &mut kids);
     kids.push(body);
     lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn dedupe_lambda_params(lo: &Lowering, kids: &mut Vec<NodeId>) {
+    let mut seen = Vec::new();
+    kids.retain(|&kid| {
+        if lo.b.kind(kid) != NodeKind::Param {
+            return true;
+        }
+        let Payload::Name(name) = lo.b.payload(kid) else {
+            return true;
+        };
+        if seen.contains(&name) {
+            false
+        } else {
+            seen.push(name);
+            true
+        }
+    });
 }
 
 fn lower_lambda_type_params(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {
@@ -1211,9 +1353,14 @@ fn is_type_level(kind: &str) -> bool {
 mod tests {
     use super::*;
 
-    fn il(src: &str) -> Il {
+    fn il_with_interner(src: &str) -> (Il, Interner) {
         let interner = Interner::default();
-        lower(FileId(0), "t.swift", src.as_bytes(), &interner).expect("lower swift")
+        let il = lower(FileId(0), "t.swift", src.as_bytes(), &interner).expect("lower swift");
+        (il, interner)
+    }
+
+    fn il(src: &str) -> Il {
+        il_with_interner(src).0
     }
 
     #[test]
@@ -1270,6 +1417,103 @@ func mapped(_ xs: [Int]) -> [Int] {
             .expect("lambda");
         let first = il.children(lambda).first().copied().expect("lambda child");
         assert_eq!(il.kind(first), NodeKind::Param);
+    }
+
+    #[test]
+    fn closure_type_header_dedupes_lambda_params() {
+        let il = il(r#"
+func mapped(_ xs: [Int]) -> [Int] {
+    return xs.map { (x: Int) -> Int in x + 1 }
+}
+"#);
+        let lambda = il
+            .nodes
+            .iter()
+            .position(|node| node.kind == NodeKind::Lambda)
+            .map(|idx| NodeId(idx as u32))
+            .expect("lambda");
+        let params = il
+            .children(lambda)
+            .iter()
+            .filter(|&&child| il.kind(child) == NodeKind::Param)
+            .count();
+        assert_eq!(params, 1);
+    }
+
+    #[test]
+    fn unparenthesized_comparison_conjunction_lowers_as_boolean_and() {
+        let il = il(r#"
+func ordered(_ x: Int, _ y: Int) -> Bool {
+    return x < y && x <= y
+}
+"#);
+        assert!(il.nodes.iter().enumerate().any(|(idx, node)| {
+            if node.kind != NodeKind::BinOp || node.payload != Payload::Op(Op::And) {
+                return false;
+            }
+            let kids = il.children(NodeId(idx as u32));
+            matches!(
+                kids,
+                [left, right]
+                    if il.kind(*left) == NodeKind::BinOp
+                        && il.node(*left).payload == Payload::Op(Op::Lt)
+                        && il.kind(*right) == NodeKind::BinOp
+                        && il.node(*right).payload == Payload::Op(Op::Le)
+            )
+        }));
+    }
+
+    #[test]
+    fn dictionary_default_subscript_lowers_with_marker() {
+        let (il, interner) = il_with_interner(
+            r#"
+func lookup(_ dict: Dictionary<String, Int>, _ key: String, _ fallback: Int) -> Int {
+    return dict[key, default: fallback]
+}
+"#,
+        );
+        let marker = interner.intern("swift_subscript_default");
+        assert!(il
+            .nodes
+            .iter()
+            .any(|node| { node.kind == NodeKind::Seq && node.payload == Payload::Name(marker) }));
+    }
+
+    #[test]
+    fn parameter_type_annotation_records_domain() {
+        let il = il(r#"
+func lookup(_ dict: Dictionary<String, Int>, _ value: Any) -> Int {
+    return dict["red", default: 0]
+}
+"#);
+        assert_eq!(
+            il.evidence
+                .iter()
+                .filter(|record| record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::Map))
+                .count(),
+            1,
+            "only Dictionary parameters should record a Map domain"
+        );
+    }
+
+    #[test]
+    fn property_type_annotation_records_binding_domain() {
+        let il = il(r#"
+func build(_ xs: [Int]) -> [Int] {
+    var out: [Int] = []
+    for x in xs {
+        out.append(x)
+    }
+    return out
+}
+"#);
+        assert!(il.evidence.iter().any(|record| {
+            matches!(
+                record.anchor,
+                EvidenceAnchor::Binding { local_hash, .. }
+                    if local_hash == stable_symbol_hash("out")
+            ) && record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::Collection)
+        }));
     }
 
     #[test]
