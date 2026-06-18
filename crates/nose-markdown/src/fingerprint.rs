@@ -159,6 +159,12 @@ pub fn containment(a: &[u64], b: &[u64]) -> f64 {
     intersection_len(a, b) as f64 / a.len().min(b.len()) as f64
 }
 
+/// Number of shared char-gram shingles between two sorted, de-duplicated sets — an absolute
+/// measure of how much content two units actually share (used as a match-substance floor).
+pub fn shared_grams(a: &[u64], b: &[u64]) -> usize {
+    intersection_len(a, b)
+}
+
 fn intersection_len(a: &[u64], b: &[u64]) -> usize {
     let (mut i, mut j, mut c) = (0, 0, 0);
     while i < a.len() && j < b.len() {

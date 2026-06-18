@@ -24,6 +24,9 @@ static EMPH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\*\*|__|\*|_|~~)")
 static LIST_MARK: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?m)^\s*([-*+]|\d+\.)\s+").unwrap());
 static BLOCKQUOTE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^\s*>\s?").unwrap());
+// GFM table separator row (`|---|:--:|`): pure scaffolding, no content.
+static TABLE_SEP: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^[ \t|:-]*-[ \t|:-]*$").unwrap());
 static WS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").unwrap());
 
 /// True for characters from no-space scripts (CJK, Hangul, Thai) where there are no word
@@ -67,6 +70,11 @@ pub fn normalize_text(raw: &str, strip_md: bool) -> String {
         t = BLOCKQUOTE.replace_all(&t, "").into_owned();
         t = LIST_MARK.replace_all(&t, "").into_owned();
         t = EMPH.replace_all(&t, "").into_owned();
+        // Strip GFM table scaffolding: separator rows entirely, and cell-delimiter pipes
+        // to spaces. Table pipes/separators are format, not content — keeping them makes
+        // every table near-identical and drives over-merge across templated docs.
+        t = TABLE_SEP.replace_all(&t, " ").into_owned();
+        t = t.replace('|', " ");
     }
     let t = fold_width(&t).to_lowercase();
     WS.replace_all(t.trim(), " ").into_owned()
@@ -186,5 +194,17 @@ mod tests {
         let prose = normalize_text(s, true);
         assert!(prose.contains("intro") && prose.contains("outro"));
         assert!(!prose.contains("let x")); // code dropped from prose
+    }
+
+    #[test]
+    fn strips_table_scaffolding() {
+        let n = normalize_text("| Method | GET |\n|---|---|\n| Path | /x |", true);
+        assert!(!n.contains('|'), "pipes removed: {n}");
+        assert!(!n.contains("---"), "separator removed: {n}");
+        assert!(n.contains("method") && n.contains("get") && n.contains("path"));
+        // Two tables with identical scaffolding but different content do NOT collapse to equal.
+        let a = normalize_text("| k | v |\n|---|---|\n| Method | GET |", true);
+        let b = normalize_text("| k | v |\n|---|---|\n| Method | POST |", true);
+        assert_ne!(a, b);
     }
 }

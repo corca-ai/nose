@@ -42,6 +42,9 @@ pub struct Family {
     pub commonness: f64,
     /// Whether all members are normalized-identical (a true exact-render claim).
     pub exact: bool,
+    /// A large, multi-file cluster: a repeated section *skeleton* (a template), not a per-instance
+    /// clone. Reported separately so a templated-doc blob does not masquerade as one clone family.
+    pub template: bool,
     /// Representative duplicated span (from the highest-scoring member pair), with its files.
     pub witness: Option<WitnessRef>,
 }
@@ -51,6 +54,13 @@ pub struct Options {
     pub min_words: usize,
     /// Relation acceptance threshold on the TF-IDF/containment score.
     pub threshold: f64,
+    /// Edges below this score do not *merge* clusters (they avoid weak transitive chaining into
+    /// mega-families); they still corroborate a family formed by stronger edges.
+    pub cluster_threshold: f64,
+    /// A pair must share at least this many char-gram shingles to be accepted — a match-substance
+    /// floor that drops thin overlaps without requiring identical lines (so reworded near-dups,
+    /// which have no identical line but share many grams, are preserved).
+    pub min_shared_grams: usize,
 }
 
 impl Default for Options {
@@ -58,9 +68,15 @@ impl Default for Options {
         Options {
             min_words: 8,
             threshold: 0.5,
+            cluster_threshold: 0.7,
+            min_shared_grams: 24,
         }
     }
 }
+
+/// A cluster this large and spread this wide is treated as a repeated template skeleton.
+const TEMPLATE_MIN_MEMBERS: usize = 8;
+const TEMPLATE_MIN_FILES: usize = 4;
 
 struct UnionFind {
     parent: Vec<usize>,
@@ -118,7 +134,8 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
         let cont = fingerprint::containment(&fps[i].shingles, &fps[j].shingles);
         // TF-IDF is the primary relation score; containment rescues small-in-large.
         let rel = if cont >= 0.8 && cont > cos { cont } else { cos };
-        if rel >= opts.threshold {
+        let shared = fingerprint::shared_grams(&fps[i].shingles, &fps[j].shingles);
+        if rel >= opts.threshold && shared >= opts.min_shared_grams {
             accepted.push((i, j, rel));
         }
     }
@@ -126,16 +143,18 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
         return Vec::new();
     }
 
-    // Cluster by transitive closure.
+    // Cluster on STRONG edges only (>= cluster_threshold): weak edges in
+    // [threshold, cluster_threshold) corroborate but never chain a mega-family together.
     let mut uf = UnionFind::new(units.len());
-    for &(i, j, _) in &accepted {
-        uf.union(i, j);
+    for &(i, j, s) in &accepted {
+        if s >= opts.cluster_threshold {
+            uf.union(i, j);
+        }
     }
     let mut groups: std::collections::BTreeMap<usize, Vec<usize>> =
         std::collections::BTreeMap::new();
     for idx in 0..units.len() {
         let r = uf.find(idx);
-        // only keep indices that participate in at least one accepted pair
         groups.entry(r).or_default().push(idx);
     }
 
@@ -144,11 +163,13 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
         .filter_map(|members| build_family(members, &units, &fps, &model, &accepted))
         .collect();
 
-    // Rank: removable lines first, then score, then members; deterministic tie-break by path.
+    // Rank: real per-instance families before templated blobs; then confidence-weighted
+    // removable (so a low-cohesion blob can't top the list on raw size alone).
     families.sort_by(|a, b| {
-        b.removable
-            .cmp(&a.removable)
-            .then(b.score.partial_cmp(&a.score).unwrap())
+        let key = |f: &Family| (f.removable as f64) * f.score;
+        a.template
+            .cmp(&b.template)
+            .then(key(b).partial_cmp(&key(a)).unwrap())
             .then(b.members.len().cmp(&a.members.len()))
             .then(a.members[0].path.cmp(&b.members[0].path))
     });
@@ -232,6 +253,11 @@ fn build_family(
         "near-low"
     };
 
+    // A large cluster spread across many files is a repeated section skeleton (template), not a
+    // per-instance clone — reported separately so it doesn't masquerade as one clone family.
+    let template =
+        !exact && fam_members.len() >= TEMPLATE_MIN_MEMBERS && files >= TEMPLATE_MIN_FILES;
+
     Some(Family {
         tier,
         score,
@@ -240,6 +266,7 @@ fn build_family(
         removable,
         commonness,
         exact,
+        template,
         witness: wit,
     })
 }
@@ -297,6 +324,42 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&a).unwrap(),
             serde_json::to_string(&b).unwrap()
+        );
+    }
+
+    #[test]
+    fn large_multifile_cluster_is_flagged_template() {
+        // 8 near-identical (not byte-identical) sections across 8 files → a repeated skeleton.
+        let docs: Vec<(String, String)> = (0..8)
+            .map(|i| {
+                doc(
+                    &format!("f{i}.md"),
+                    &format!(
+                        "# Endpoint\n\nThe service validates the request payload and then writes the \
+                         record to the primary datastore before returning a confirmation number {i}."
+                    ),
+                )
+            })
+            .collect();
+        let fams = detect(&docs, &Options::default());
+        assert_eq!(fams.len(), 1);
+        assert!(
+            fams[0].template,
+            "8 members across 8 files should be a template"
+        );
+        assert!(!fams[0].exact);
+    }
+
+    #[test]
+    fn thin_overlap_is_not_a_family() {
+        // Two docs sharing only a short generic phrase (below the min-shared-grams floor).
+        let a =
+            "# A\n\nThis document explains the alpha subsystem and its asynchronous queue drains.";
+        let b = "# B\n\nThis document explains the beta module and its synchronous retular cache loads.";
+        let fams = detect(&[doc("a.md", a), doc("b.md", b)], &Options::default());
+        assert!(
+            fams.is_empty(),
+            "thin shared phrase must not form a family: {fams:?}"
         );
     }
 }

@@ -21,6 +21,18 @@ break.
   self-calibration 1.0): PR-AUC 0.995, R@P95 0.96, candidate-recall 1.0. Built on the algorithm
   survey in `docs/markdown-dup-detection-algorithm-survey-2026-06-18.md`. See
   [docs/markdown-duplication.md](docs/markdown-duplication.md). (#436 #437 #438 #439 #440 #441)
+- **`nose markdown` precision/usefulness fixes from the cross-project field evaluation.**
+  (P0) default vendor-dir excludes (`node_modules`, `vendor`, `target`, …) + `nose.toml`
+  `exclude` globs, so a non-git project's `node_modules` no longer floods the report (one field
+  project went 145 noise families → 0); a **min-shared-grams** match-substance floor drops
+  thin overlaps. (P1) strip GFM table scaffolding (pipes/separator rows are format, not content);
+  **strong-edge clustering** (weak edges corroborate but don't chain mega-families);
+  confidence-weighted ranking. (P2) large multi-file clusters are reported as **templated
+  sections** ("skeleton repeated N× across M files"), not a clone family — so a templated-doc
+  blob no longer masquerades as one family or tops the list. Field deltas: a templated Korean
+  spec repo went 206 incoherent families → 140 families + 14 templates; nose's own docs' jargon
+  over-merge is now a template, surfacing the real drift finding at #0. Golden metrics unchanged
+  (PR-AUC 0.995). Addresses #443.
 
 ## [0.12.0] - 2026-06-18
 
