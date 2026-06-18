@@ -75,7 +75,7 @@ impl CorpusModel {
     }
 
     /// Commonness of the content shared by `a` and `b`: mean document-frequency fraction of the
-    /// shared grams, in [0,1]. High ⇒ the overlap is ubiquitous boilerplate (license/CoC/badges);
+    /// shared grams, in 0..=1. High ⇒ the overlap is ubiquitous boilerplate (license/CoC/badges);
     /// low ⇒ distinctive shared content. Orthogonal evidence, NOT a suppression decision.
     pub fn commonness(&self, a: &Fingerprint, b: &Fingerprint) -> f64 {
         if self.n == 0 {

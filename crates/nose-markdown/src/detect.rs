@@ -32,7 +32,7 @@ pub struct WitnessRef {
 pub struct Family {
     /// Relation tier: `exact | near-high | near-med | near-low | partial`.
     pub tier: &'static str,
-    /// Mean pairwise relation score in [0,1].
+    /// Mean pairwise relation score in 0..=1.
     pub score: f64,
     pub members: Vec<Member>,
     pub files: usize,
