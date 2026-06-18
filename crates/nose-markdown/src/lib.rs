@@ -12,9 +12,15 @@
 //! repetition is intentional or worth removing. Boilerplate copies are true duplicates, surfaced
 //! with high commonness — never silently suppressed.
 
+pub mod detect;
 pub mod fingerprint;
 pub mod norm;
 pub mod unit;
+pub mod verify;
+pub mod witness;
 
+pub use detect::{detect, Family, Member, Options};
 pub use fingerprint::{candidate_pairs, containment, jaccard, minhash_est, Fingerprint};
 pub use unit::{split_units, Unit, UnitKind};
+pub use verify::CorpusModel;
+pub use witness::{witness, Span};
