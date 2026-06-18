@@ -23,8 +23,9 @@ where relevant. The pages are grouped by what you're here to do.
 - **Trying nose locally:** install from [getting-started](getting-started.md), then run
   `nose query <path>` to explore interactively (follow the suggested next-commands), or
   `nose query <path> --format markdown` for a one-shot ranked report.
-- **Driving nose from an agent:** run `nose query <path>` and follow the runnable `next:`
-  links — see [usage › nose query](usage.md#nose-query) and the [agent-recipe](agent-recipe.md).
+- **Automating triage:** run `nose query <path>` for the human-readable loop, or
+  `nose query <path> --format json` for tooling. Agent-specific guidance is in
+  [agent-recipe](agent-recipe.md).
 - **Adding a repo gate:** `nose query <path> --fail-on any`; see
   [continuous integration](continuous-integration.md), then commit shared defaults from
   [configuration](configuration.md).
@@ -35,8 +36,8 @@ where relevant. The pages are grouped by what you're here to do.
 
 You want to *run* nose on a codebase and act on what it finds.
 
-- [usage](usage.md) — the complete command and flag reference: `query` (the everyday command), `stats`, `il`, `capabilities`, `semantic-pack` — plus the deprecated `scan`/`review` — the ranking keys, and the detection modes.
-- [usage › nose query](usage.md#nose-query) — `nose query`: the stateless, self-describing **everyday command** — a landing dashboard, sliceable filters/facets, drill-into-one-family with a runnable next-command on every result, the `--fail-on` CI gate, and a versioned JSON contract. The interactive/agent entry point.
+- [usage](usage.md) — the complete command and flag reference: `query`, `stats`, `il`, `capabilities`, `semantic-pack` — plus the deprecated `scan`/`review` — the ranking keys, and the detection modes.
+- [usage › nose query](usage.md#nose-query) — `nose query`: scan a path, inspect the best duplicated-code families, filter/group/sort the list, open one family, run the `--fail-on` CI gate, or emit the versioned JSON contract.
 - [review](review.md) — the **divergent-edit** check: flag clones changed inconsistently in a diff (a copy fixed, its siblings missed). Now reached as `nose query <paths> base=<ref>`; `nose review` is the deprecated alias.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, modes, ranking, thresholds, and structured-ignore defaults.
 - [continuous-integration](continuous-integration.md) — the `--fail-on any` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
@@ -52,7 +53,7 @@ You're building tooling — an installer, CI wrapper, or editor integration — 
 of nose's machine-readable output.
 
 - [capabilities](capabilities.md) — the `nose capabilities` JSON contract: what an installed binary supports, so a wrapper never has to scrape `--help`.
-- [agent-recipe](agent-recipe.md) — the validated protocol for an LLM agent: explore interactively with `nose query` (follow the emitted next-commands), then read the `nose query --format json` contract for the batch/gate path.
+- [agent-recipe](agent-recipe.md) — the validated protocol for an LLM agent: use `nose query` for exploration, then read the `nose query --format json` contract for batch and gate workflows.
 - [query-json](query-json.md) — the versioned `nose query --format json` contract (schema v3): the structured, view-shaped machine form of the exploration surface. **The forward machine contract.**
 - [scan-json](scan-json.md) — the versioned `nose scan --format json` v1 contract — **deprecated** in favour of query-JSON v3, documented for back-compat.
 

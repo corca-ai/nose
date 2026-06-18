@@ -30,7 +30,7 @@ from-source `./target/release/nose`.
 
 | You want to... | Use |
 |---|---|
-| Explore duplication and act on it (**the everyday command**) | `nose query <path> [terms…]` |
+| Inspect duplication and act on it | `nose query <path> [terms…]` |
 | Open one family with its extraction skeleton | `nose query <path> id=<fam> full` |
 | Catch a missed sibling edit in a diff or PR | `nose query <path> base=<ref>` |
 | Gate CI on duplication | `nose query <path> --fail-on any` |
@@ -42,22 +42,18 @@ from-source `./target/release/nose`.
 | Debug why two snippets do or do not converge | `nose il <file> --normalized` |
 | One-shot ranked report (**deprecated**) | `nose scan <paths...>` — prefer `nose query --format markdown` |
 
-`nose query` is the everyday command; the **Ranking** and **Detection modes** sections below
+`nose query` is the main command; the **Ranking** and **Detection modes** sections below
 document the shared ranking keys and detection channels both surfaces use.
 
 ## `nose query`
 
-`nose query <path> [terms…]` is the **exploration surface**: a stateless,
-self-describing query over the family dataset nose builds, designed for both a human and an
-LLM agent loop. With no terms it prints a **landing dashboard** — what nose is, the family
-count by confidence, the cleanest candidates to extract (each with its own runnable drill
-link, ranked purely by extractability — test and production alike), the proven families, the
-most-duplicated directories, and a one-line omission footer. Add terms to slice, facet, or open one family; every result ends in
-runnable `nose query …` next-commands, so you navigate by following links rather than
-re-reading a schema or hand-writing `jq`.
+`nose query <path> [terms…]` scans a file or directory and prints the duplicated-code
+families nose found. With no terms it shows a summary: scan scope, family counts by
+evidence, the best candidates to inspect first, proven-behavior families, duplicated
+directory hotspots, and next commands. Add terms to filter, group, sort, or open one
+family; every result includes a runnable `nose query …` command.
 
-`nose query` is the **everyday command** — the primary surface over the family dataset. It
-carries the analysis flags, the `--fail-on` CI gate, and a structured contract: with
+`nose query` carries the analysis flags, the `--fail-on` CI gate, and a structured contract: with
 `--format json` every view emits the versioned [query-JSON v3 contract](query-json.md), and
 `--format markdown`/`sarif` produce a ranked report. The deprecated `nose scan`/`nose review`
 read the same dataset.
@@ -70,7 +66,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 |---|---|
 | `field=value` | keep families where the field equals the value (terms AND-ed); `field>N`/`field<N` for numbers; `path~substr` for a path substring; **set OR** with a comma — `witness=exact,shared-core` matches either; **negate** with `field!=value` / `path!~substr` (e.g. `path!~frontend` drops a directory; `witness!=exact,shared-core` drops both) |
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
-| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, fold-graph links (`subsumes`/`subsumed_by`), and navigation |
+| `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
 | `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `base=REF` | the **divergent-edit** view (the [`nose review`](review.md) pipeline, surfaced in query): detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. Each item carries `fire_eligible` (the conservative proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate (fires only on the proven case) |
@@ -129,7 +125,7 @@ surface is what `--fail-on` gates on — a family in the `all` view alone never 
 `--min-value` is a noise floor on raw value and applies under every sort. Both surfaces
 accept the same keys — `extractability`, `value`, `sites`, and the experimental `hazard`;
 `nose query` additionally accepts `members` as an alias for `sites`. (The query dashboard's
-`sort` cheatsheet advertises only the everyday three — `extractability`, `value`, `members`.)
+`sort` cheatsheet advertises only the common three — `extractability`, `value`, `members`.)
 
 | key | ranks by | use when |
 |---|---|---|
@@ -222,7 +218,7 @@ metadata are documented in [fragment-contracts](fragment-contracts.md) and
 
 `nose scan <paths…>` scans one or more files/directories (recursively, respecting
 `.gitignore` files inside each scanned tree), groups duplicated code into **families**, and
-ranks them by **extractability** — how cleanly each family folds into one shared helper — so the
+ranks them by **extractability** — how much shared code each family has and how little varies — so the
 duplication you can actually act on surfaces first. With no `--mode`, it runs
 `syntax,semantic,near`: CPD-style syntax runs, exact semantic Type-4 clones, and
 fuzzy Type-3 near-duplicates.

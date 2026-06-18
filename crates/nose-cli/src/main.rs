@@ -68,14 +68,14 @@ mod style {
     name = "nose",
     version,
     about = "Find duplicated code worth refactoring — exact, semantic (Type-4), and near-duplicate clone families",
-    long_about = "nose lowers each language into one normalized IL, groups duplicated code into\n\
-                  clone families, and ranks them by how cleanly each folds into one shared helper.\n\
-                  • `nose query <paths>`                  — explore the duplication interactively (the everyday command)\n\
+    long_about = "nose scans source files, groups duplicated code into clone families,\n\
+                  and ranks the results by how useful they are to inspect or refactor.\n\
+                  • `nose query <paths>`                  — scan and show a summary with next commands\n\
                   • `nose query <paths> id=<fam> full`    — open one family: every copy + its extraction skeleton\n\
                   • `nose query <paths> base=origin/main` — flag a change applied to one clone copy but not its siblings\n\
                   • `nose query <paths> --fail-on any`    — gate CI (exit non-zero on duplication); add `--format json` for the contract\n\
-                  • `nose stats <paths>`                  — IL lowering coverage per language\n\
-                  • `nose il <file>`                      — inspect the IL (why two snippets do/don't converge)\n\
+                  • `nose stats <paths>`                  — language coverage and unsupported syntax\n\
+                  • `nose il <file>`                      — inspect why two snippets do or do not match\n\
                   • `nose capabilities`                   — machine-readable integration contract\n\
                   `nose scan` and `nose review` still work but are deprecated in favour of `nose query`."
 )]
@@ -246,16 +246,17 @@ enum Cmd {
         #[arg(long, value_enum, default_value_t = ScopeFilter::All)]
         scope: ScopeFilter,
     },
-    /// Explore the duplication dataset — the everyday command. A stateless,
-    /// self-describing query surface: `nose query <path>` prints a landing dashboard; add
-    /// terms to slice, facet, or open one family, and every result suggests runnable next
-    /// commands. Carries the analysis flags, the `--fail-on` CI gate, and a versioned
-    /// `--format json` contract — it subsumes the deprecated `scan`/`review`.
+    /// Scan a path, list duplicated-code families, and drill into the results.
+    ///
+    /// With no terms, `nose query <path>` prints a summary and runnable next commands.
+    /// Add terms to filter (`witness=exact`, `path~api`), group (`group=dir`), sort
+    /// (`sort=value`), or open one family (`id=<fam> full`). Carries the analysis flags,
+    /// the `--fail-on` CI gate, and a versioned `--format json` contract.
     Query {
         /// Path to a file or directory (recursively scanned).
         #[arg(required = true)]
         path: PathBuf,
-        /// Query terms (none → the dashboard): `field=value` `field>N` `field<N`
+        /// Query terms (none → summary): `field=value` `field>N` `field<N`
         /// `path~substr` filter (AND-ed; negate with `field!=value` / `path!~substr`);
         /// `group=FIELD` facet; `id=FAM` or `at=FILE:LINE` open one family (add `full` to
         /// align all copies); `sort=KEY`; `top=N`.
@@ -5026,9 +5027,8 @@ fn run_query_cmd(cmd: Cmd) -> Result<()> {
     Ok(())
 }
 
-/// The landing dashboard: what nose is, the dataset's shape, a few real candidates per
-/// slice with `id=` links, and the grammar — all self-describing so a nose-naive agent
-/// can act from this output alone.
+/// The query summary: scan scope, candidate counts, a few high-value rows with `id=`
+/// links, and the next commands a reader is likely to need.
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)] // a self-describing landing view over several dataset facets
 fn render_query_dashboard(
@@ -5085,7 +5085,7 @@ fn render_query_dashboard(
         );
         return;
     }
-    println!("nose — finds duplicated & refactorable code across languages.");
+    println!("nose — duplicated code across languages, ranked for refactoring.");
     println!("{}", scope.summary());
     let n_proven = count("exact") + count("subdag");
     println!(
@@ -5109,17 +5109,17 @@ fn render_query_dashboard(
         "  {}",
         style::dim("proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape")
     );
-    // The "cleanest to extract" lead only makes sense when the default surface has
+    // The "best candidates" lead only makes sense when the default surface has
     // something on it. With an empty surface we skip it (a `sort=extractability` link into
     // an empty list is a dead end); the closing footer still offers `all` when families
     // were merely held back below the surface — the one genuinely useful next move.
     if !def.is_empty() {
-        println!("\n{}", style::bold("cleanest to extract:"));
+        println!("\n{}", style::bold("best candidates:"));
         let top: Vec<&nose_detect::RefactorFamily> = def.iter().take(3).copied().collect();
         print_candidates(&top, path, opp);
         println!(
             "  nose query {path} sort=extractability       {}",
-            style::dim(&format!("# all {}, cleanest first", def.len()))
+            style::dim(&format!("# all {}, best first", def.len()))
         );
     }
 
@@ -5150,7 +5150,8 @@ fn render_query_dashboard(
             println!(
                 "  nose query {path} witness=exact             {}",
                 style::dim(&format!(
-                    "# the {n_exact} proven byte-for-behavior identical"
+                    "# the {n_exact} proven whole-unit {}",
+                    plural(n_exact, "family", "families")
                 ))
             );
         }
@@ -5213,7 +5214,7 @@ fn render_query_dashboard(
     );
     println!(
         "\n{}",
-        style::bold("explore — terms combine with AND; swap <path> for yours and run any line:")
+        style::bold("next commands — replace <path> with your path; terms combine with AND:")
     );
     for (verb, cmd, note) in [
         (

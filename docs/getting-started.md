@@ -28,31 +28,30 @@ instead, see [usage → Install](usage.md#install).
 ## Your first run: `nose query`
 
 `nose query <path>` is the one command you need. Point it at any file or directory
-and it prints a **landing dashboard** of what it found — and every result suggests the
-next command to run, so you (or an agent) navigate by following links instead of
-memorizing flags. It recurses, respects `.gitignore` files inside the scanned tree, and
-nothing is written to disk.
+and it prints a summary of what it found, plus runnable next commands for filtering,
+grouping, and opening one family. It recurses, respects `.gitignore` files inside the
+scanned tree, and nothing is written to disk.
 
 ```
 $ nose query examples
-nose — finds duplicated & refactorable code across languages.
+nose — duplicated code across languages, ranked for refactoring.
 scanned 3 files · go 1 · python 1 · typescript 1
 
 1 duplicated-code family.
   proven 1 (exact 1 · shared-core 0) · copy-paste 0 · similar 0
   proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape
 
-cleanest to extract:
+best candidates:
   examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
-  nose query examples sort=extractability       # all 1, cleanest first
+  nose query examples sort=extractability       # all 1, best first
 
 proven families (same behavior, not just similar shape):
   examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
-  nose query examples witness=exact             # the 1 proven byte-for-behavior identical
+  nose query examples witness=exact             # the 1 proven whole-unit family
 
 ~30 duplicated lines on the default surface.
 
-explore — terms combine with AND; swap <path> for yours and run any line:
+next commands — replace <path> with your path; terms combine with AND:
   filter  nose query <path> witness=exact        keep only the proven-identical families
           nose query <path> members>3 path~api   compare with > < , ~ (contains), != (negate)
   group   nose query <path> group=dir            totals by directory (or: witness, lang, scope, same_symbol)
@@ -61,10 +60,7 @@ explore — terms combine with AND; swap <path> for yours and run any line:
   more    nose query <path> all                  include families held back below the default surface
 ```
 
-On a colour terminal the witness tags are colour-coded (proven green, copy-paste yellow,
-similar blue), paths are dimmed, and the symbol names stand out — `NO_COLOR=1` turns that off.
-
-That's the whole loop in one screen: a summary, the cleanest candidates, and a runnable
+That's the whole loop in one screen: a summary, the best candidates, and a runnable
 command on every line. From here you **open** a family, **slice** the list, or **facet** it.
 
 ## How to read the report
@@ -198,7 +194,7 @@ The full gate, baselines, SARIF, and fast re-runs are in
 ## Where to go next
 
 - **[usage › nose query](usage.md#nose-query)** — the full query grammar: filters,
-  facets, drill-into-one-family, the CI gate, and the agent loop.
+  groups, opening one family, and the CI gate.
 - **[usage](usage.md)** — every command and flag, the ranking keys, and the detection
   modes in full.
 - **[review](review.md)** — the divergent-edit check (`nose query base=<ref>`): catch a
