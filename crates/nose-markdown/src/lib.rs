@@ -13,6 +13,7 @@
 //! with high commonness — never silently suppressed.
 
 pub mod detect;
+pub mod eval;
 pub mod fingerprint;
 pub mod norm;
 pub mod unit;
@@ -20,6 +21,7 @@ pub mod verify;
 pub mod witness;
 
 pub use detect::{detect, Family, Member, Options, WitnessRef};
+pub use eval::{dump_pairs, evaluate, score_pairs, Golden, Metrics, Ref, ScoredPair};
 pub use fingerprint::{candidate_pairs, containment, jaccard, minhash_est, Fingerprint};
 pub use unit::{split_units, Unit, UnitKind};
 pub use verify::CorpusModel;

@@ -5,7 +5,7 @@
 //! witness + orthogonal evidence (commonness, removable, files). Honesty contract (epic #435):
 //! it reports near-duplication, never "same meaning" and never "worth removing".
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use nose_markdown::{detect, Family, Options};
 use std::path::{Path, PathBuf};
 
@@ -46,29 +46,54 @@ fn read_docs(files: &[PathBuf]) -> Vec<(String, String)> {
         .collect()
 }
 
-pub(crate) fn cmd_markdown(
-    paths: &[PathBuf],
-    json: bool,
-    min_words: usize,
-    threshold: f64,
-    top: usize,
-) -> Result<()> {
-    let files = discover(paths);
+pub(crate) struct Args {
+    pub paths: Vec<PathBuf>,
+    pub json: bool,
+    pub min_words: usize,
+    pub threshold: f64,
+    pub top: usize,
+    pub dump_pairs: bool,
+    pub eval: Option<PathBuf>,
+}
+
+pub(crate) fn cmd_markdown(args: Args) -> Result<()> {
+    let files = discover(&args.paths);
     let docs = read_docs(&files);
+
+    // Golden-building mode: emit all scored candidate pairs (with text) as JSON.
+    if args.dump_pairs {
+        let pairs = nose_markdown::dump_pairs(&docs, args.min_words);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "scanned_files": docs.len(),
+                "pairs": pairs,
+            }))?
+        );
+        return Ok(());
+    }
+
+    // Measurement mode: score candidates and evaluate against a labeled golden.
+    if let Some(golden_path) = args.eval {
+        let golden: nose_markdown::Golden =
+            serde_json::from_str(&std::fs::read_to_string(&golden_path)?)
+                .with_context(|| format!("parsing golden {}", golden_path.display()))?;
+        let scored = nose_markdown::score_pairs(&docs, args.min_words);
+        let metrics = nose_markdown::evaluate(&scored, &golden);
+        println!("{}", serde_json::to_string_pretty(&metrics)?);
+        return Ok(());
+    }
+
     let opts = Options {
-        min_words,
-        threshold,
+        min_words: args.min_words,
+        threshold: args.threshold,
     };
     let families = detect(&docs, &opts);
-
-    if json {
-        let out = serde_json::json!({
-            "scanned_files": docs.len(),
-            "families": families,
-        });
+    if args.json {
+        let out = serde_json::json!({ "scanned_files": docs.len(), "families": families });
         println!("{}", serde_json::to_string_pretty(&out)?);
     } else {
-        print_human(docs.len(), &families, top);
+        print_human(docs.len(), &families, args.top);
     }
     Ok(())
 }

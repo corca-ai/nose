@@ -424,6 +424,12 @@ enum Cmd {
         /// Limit how many families to print (human format only).
         #[arg(long, default_value_t = 50)]
         top: usize,
+        /// Dump all scored candidate pairs (with text) as JSON — for building a golden set.
+        #[arg(long)]
+        dump_pairs: bool,
+        /// Evaluate against a labeled golden JSON (`{"pairs":[{a,b,label}]}`) and print metrics.
+        #[arg(long)]
+        eval: Option<PathBuf>,
     },
     /// Dump the IL for a source file — debug why two snippets do or don't converge.
     Il {
@@ -1774,7 +1780,17 @@ fn run() -> Result<()> {
             min_words,
             threshold,
             top,
-        } => markdown::cmd_markdown(&paths, format == StatsFormat::Json, min_words, threshold, top),
+            dump_pairs,
+            eval,
+        } => markdown::cmd_markdown(markdown::Args {
+            paths,
+            json: format == StatsFormat::Json,
+            min_words,
+            threshold,
+            top,
+            dump_pairs,
+            eval,
+        }),
         Cmd::Features {
             paths,
             min_lines,

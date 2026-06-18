@@ -211,20 +211,34 @@ pub fn candidate_pairs(fps: &[Fingerprint]) -> Vec<(usize, usize)> {
     }
 
     // Winnowing inverted index: any two units sharing a fingerprint are span candidates.
+    // Stop-shingle guard: drop fingerprints whose document frequency exceeds a small fraction of
+    // the corpus — these are ubiquitous boilerplate grams that otherwise flood candidates with
+    // near-zero-similarity pairs (the survey's boilerplate failure mode).
+    let stop_df = (fps.len() / 25).max(8);
     let mut winv: HashMap<u64, Vec<usize>> = HashMap::new();
     for (idx, fp) in fps.iter().enumerate() {
         for &w in &fp.winnow {
             winv.entry(w).or_default().push(idx);
         }
     }
+    // Require ≥WINNOW_MIN_SHARED shared fingerprints for a winnow candidate: a single shared
+    // 5-gram is weak evidence and floods candidates with near-zero-similarity pairs; a real
+    // partial/contained overlap shares many fingerprints.
+    const WINNOW_MIN_SHARED: u32 = 3;
+    let mut shared: HashMap<(usize, usize), u32> = HashMap::new();
     for members in winv.values() {
-        if members.len() < 2 || members.len() > 256 {
-            continue; // skip ultra-common fingerprints (cheap stop-shingle guard)
+        if members.len() < 2 || members.len() > stop_df {
+            continue;
         }
         for a in 0..members.len() {
             for b in a + 1..members.len() {
-                pairs.insert(order(members[a], members[b]));
+                *shared.entry(order(members[a], members[b])).or_default() += 1;
             }
+        }
+    }
+    for (pair, c) in shared {
+        if c >= WINNOW_MIN_SHARED {
+            pairs.insert(pair);
         }
     }
 
