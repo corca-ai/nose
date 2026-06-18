@@ -3094,3 +3094,33 @@ signal did not disappear.
 not a blind Raw erase: `if let`, `case let`, wildcard, enum-associated-value, and binding
 patterns carry different control-flow and binding semantics. They should be closed with focused
 convergence fixtures before being generalized.
+
+## CW. Markdown front-matter / comment stripping — measured NO-GO (2026-06-18)
+
+After the multi-domain Markdown precision golden (`bench/markdown/golden.docs.v1`, PR-AUC 0.944)
+landed, the natural next lever was stripping more *format scaffolding* in `nose-markdown::norm`:
+YAML front matter (`---…---`) and HTML/license comments (`<!-- … -->`), on the same "format ≠
+content" principle as the table-scaffolding strip. Hypothesis: templated CLI/API docs (curl
+options, hugo functions) share large front-matter skeletons that inflate similarity between
+*different* docs, hurting precision.
+
+**Measured on `golden.docs.v1`** (only the score changes; golden labels are fixed):
+
+| variant | PR-AUC | ROC | R@P95 | candidate-recall |
+|---|---|---|---|---|
+| baseline | 0.944 | 0.970 | 0.737 | 1.00 |
+| front-matter + comment | 0.446 | 0.507 | 0.053 | **0.368** |
+| front-matter only | 0.919 | 0.989 | 0.763 | 1.00 |
+
+**NO-GO.** Comment stripping is catastrophic for recall (1.00 → 0.37): golden positives rest on
+shared license/copyright comments, so removing them destroys real matches — and having nose decide
+a shared license header "doesn't count" is judgement-deep, not ours. Front-matter-only is a wash on
+the primary metric (PR-AUC 0.944 → 0.919; ROC and R@P95 nudge up, recall preserved) and discards
+real metadata (titles/descriptions). Neither is a measured gain, so the current normalization stands.
+
+**What the golden actually proved.** There is no cheap precision win to chase here. The residual
+multi-domain gap (PR-AUC 0.944, R@P95 0.74) is largely the irreducible judgement-deep zone:
+templated docs that are genuinely surface-similar but document different things. nose correctly
+*surfaces* those (relation score + span witness + commonness + the `template` flag) and leaves the
+worth-it call to the maintainer — bending the engine to push that number up would be exactly the
+judgement-deep work nose does not do.
