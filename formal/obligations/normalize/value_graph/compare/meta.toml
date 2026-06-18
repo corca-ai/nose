@@ -1,7 +1,7 @@
 id = "normalize.value_graph.compare"
 status = "proven"
 kind = "soundness"
-summary = "Comparison direction, negated comparisons, and total-order lattice canons preserve Int comparison denotation."
+summary = "Comparison direction, negated comparisons, equality-operand commutativity, and total-order lattice canons preserve Int comparison denotation."
 
 [rust]
 files = [
@@ -9,7 +9,7 @@ files = [
   "crates/nose-normalize/src/value_graph/ops.rs",
   "crates/nose-normalize/src/algebra.rs",
 ]
-symbols = ["negate_cmp_code", "lattice_le_ne_to_lt", "lattice_lt_eq_to_le"]
+symbols = ["negate_cmp_code", "lattice_le_ne_to_lt", "lattice_lt_eq_to_le", "emit_commutative_cmp"]
 
 [lean]
 proof = "Proof.lean"
@@ -23,4 +23,6 @@ theorems = [
   "NoseCompare.not_eq_eq_ne",
   "NoseCompare.le_and_ne_eq_lt",
   "NoseCompare.lt_or_eq_eq_le",
+  "NoseCompare.eq_commutes",
+  "NoseCompare.ne_commutes",
 ]

@@ -52,10 +52,10 @@ obligation, or a marker in a file not named by that obligation's `rust.files`, f
   `x*f + y*f -> (x+y)*f`, gated to proven numeric leaves.
 - `normalize.value_graph.free_monoid` — ordered string/list builder concatenation:
   associative with identity, not commutative, and not a ring for distribution.
-- `normalize.value_graph.compare` — comparison direction, negated comparisons, and
-  total-order lattice canons.
-- `normalize.control_flow.guard_returns` — guard-return, dead-code-after-return, and
-  ternary-return control-flow canons.
+- `normalize.value_graph.compare` — comparison direction, negated comparisons,
+  equality-operand commutativity, and total-order lattice canons.
+- `normalize.control_flow.guard_returns` — guard-return, dead-code-after-return,
+  ternary-return, conjoined-guard merge, and continue-guard unwrap control-flow canons.
 - `normalize.value_graph.functor` — map/filter fusion and count-of-filter.
 - `normalize.value_graph.bool_reduce` — any/all Bool reductions.
 - `normalize.value_graph.min_max` — min/max select idioms and reductions.
@@ -63,8 +63,9 @@ obligation, or a marker in a file not named by that obligation's `rust.files`, f
 - `normalize.value_graph.field_writes` — final field-state semantics, last-write-wins,
   distinct-field commutativity, and same-field order counterexample.
 - `normalize.recursion.tail` — tail-recursive self-call elimination into a while loop.
-- `normalize.recursion.structural_fold` — numeric structural recursion as an accumulator
-  fold for `+` and `*`, with counterexamples for subtraction and wrong identities.
+- `normalize.recursion.structural_fold` — integer structural recursion as an accumulator
+  fold for `+` and `*`, with counterexamples for subtraction, wrong identities, and float
+  reassociation (a float-valued HEAD is non-associative and is excluded by the Rust gate).
 - `detect.fragment.effect_place` — append/index effects need no receiver proof; field
   writes require an exact-safe place and reject `Unknown`.
 - `detect.fragment.free_inputs` — wrapper parameters are reads minus fragment-local

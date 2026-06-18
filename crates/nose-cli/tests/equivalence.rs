@@ -569,6 +569,35 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
+fn float_valued_head_structural_fold_stays_closed() {
+    // The recursion→accumulator-fold canon (`normalize.recursion.structural_fold`) is sound only
+    // over an associative monoid — and float `+` is NOT associative, so a float-VALUED head must
+    // not fold (right-fold recursion → left-fold loop would change the result). The coarse
+    // `ValueDomain::Number` does not separate int from float, so the recursion gate excludes a
+    // float head via `head_possibly_float`. Proven boundary: structural_fold/Counterexamples.lean.
+    let i = Interner::new();
+    // INT control: the head `n + 1` is integer-valued — the fold fires and converges with the loop.
+    let int_rec = "def g(n):\n    if n == 0:\n        return 0\n    return (n + 1) + g(n - 1)\n";
+    let int_loop =
+        "def g(n):\n    acc = 0\n    while n != 0:\n        acc = acc + (n + 1)\n        n = n - 1\n    return acc\n";
+    assert_eq!(
+        value_fp(&i, int_rec, Lang::Python),
+        value_fp(&i, int_loop, Lang::Python),
+        "an integer-valued head must still fold to its accumulator loop"
+    );
+    // FLOAT: the head `n + 1.0` is float-valued — the fold must NOT fire, so the recursion does NOT
+    // converge with the left-fold loop (they differ for floats under reassociation).
+    let flt_rec = "def g(n):\n    if n == 0:\n        return 0\n    return (n + 1.0) + g(n - 1)\n";
+    let flt_loop =
+        "def g(n):\n    acc = 0\n    while n != 0:\n        acc = acc + (n + 1.0)\n        n = n - 1\n    return acc\n";
+    assert_ne!(
+        value_fp(&i, flt_rec, Lang::Python),
+        value_fp(&i, flt_loop, Lang::Python),
+        "a float-valued head must NOT fold (float + is non-associative)"
+    );
+}
+
+#[test]
 fn ruby_shovel_builder_each_stays_closed_without_receiver_proof() {
     // Ruby `xs.each { ... }` stays an ordinary block call until a pack supplies receiver/protocol
     // proof for `xs`. The Ruby `<<` builder signal is still retained inside the opaque call body,

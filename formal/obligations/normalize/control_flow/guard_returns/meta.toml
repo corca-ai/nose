@@ -1,7 +1,7 @@
 id = "normalize.control_flow.guard_returns"
 status = "proven"
 kind = "soundness"
-summary = "Guard-return, dead-code-after-return, and ternary-return control-flow canons preserve return semantics."
+summary = "Guard-return, dead-code-after-return, ternary-return, conjoined-guard merge, and continue-guard unwrap control-flow canons preserve return/loop semantics."
 
 [rust]
 files = [
@@ -18,4 +18,6 @@ theorems = [
   "NoseControl.guard_clause_cascade",
   "NoseControl.dead_code_after_return",
   "NoseControl.ternary_return",
+  "NoseControl.conjoined_guard_merge",
+  "NoseControl.continue_guard_unwrap",
 ]

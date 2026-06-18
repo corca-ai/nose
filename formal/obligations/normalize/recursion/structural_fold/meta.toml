@@ -1,11 +1,11 @@
 id = "normalize.recursion.structural_fold"
 status = "proven"
 kind = "soundness"
-summary = "Numeric structural recursion can be emitted as an accumulator fold for addition and multiplication monoids."
+summary = "Integer structural recursion can be emitted as an accumulator fold for addition and multiplication monoids; a float-valued HEAD is non-associative and is excluded by the Rust gate (head_possibly_float), not admitted via the coarse Number domain."
 
 [rust]
 files = ["crates/nose-normalize/src/recursion/structural_fold.rs"]
-symbols = ["recognize", "build_body"]
+symbols = ["recognize", "build_body", "head_possibly_float"]
 
 [lean]
 proof = "Proof.lean"
@@ -19,4 +19,5 @@ counterexamples = "Counterexamples.lean"
 counterexample_theorems = [
   "NoseRecursionStructuralFoldCounterexamples.subtraction_is_not_a_structural_fold_monoid",
   "NoseRecursionStructuralFoldCounterexamples.wrong_mul_identity_changes_fold",
+  "NoseRecursionStructuralFoldCounterexamples.float_like_rounding_breaks_fold",
 ]

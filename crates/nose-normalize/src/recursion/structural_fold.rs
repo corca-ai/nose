@@ -3,8 +3,9 @@
 //! proof-obligation: normalize.recursion.structural_fold
 
 use super::Rebuilder;
-use nose_il::{NodeId, NodeKind, Op, Payload, Span};
-use nose_semantics::{semantics, ValueDomain, ValueLaw};
+use nose_il::{LitClass, NodeId, NodeKind, Op, Payload, Span};
+use nose_semantics::{domain_evidence_for_param, semantics, ValueDomain, ValueLaw};
+use rustc_hash::FxHashSet;
 
 pub(super) struct Plan {
     pub(super) param_cids: Vec<u32>,
@@ -60,6 +61,14 @@ pub(super) fn recognize(
     {
         return None;
     }
+    // `ValueDomain::Number` does not separate integer from float, but the fold's soundness
+    // (right-fold == left-fold) holds only over an associative monoid — and float `+`/`*` is NOT
+    // associative (`normalize.recursion.structural_fold` is proven over `Int` only; see
+    // Counterexamples.lean). A `Number` HEAD that could carry a float at runtime must therefore be
+    // rejected, exactly as the `algebra` IL pass holds float `+`/`*` chains via `possibly_float`.
+    if head_possibly_float(rb, fid, head) {
+        return None;
+    }
     let want_identity = match op {
         Op::Add => 0,
         Op::Mul => 1,
@@ -76,6 +85,42 @@ pub(super) fn recognize(
         args,
         identity,
     })
+}
+
+/// Whether the fold's `HEAD` could evaluate to a FLOAT, so `+`/`*` over it is non-associative and
+/// the right-fold→left-fold rewrite would not preserve meaning. A truly-untyped dynamic-language
+/// param cannot reach here — its `ValueDomain` is `Unknown`, which the `Number` head gate already
+/// rejects — so the only float sources are a float literal, a true-division (`Op::TrueDiv`, which
+/// is float-valued even over integer operands, unlike truncating `Op::Div`), or a statically
+/// float-typed parameter (`f64`/`double`/…). This mirrors `algebra`'s `possibly_float` hold.
+fn head_possibly_float(rb: &Rebuilder<'_>, fid: NodeId, head: NodeId) -> bool {
+    let float_param_cids: FxHashSet<u32> = rb
+        .old
+        .children(fid)
+        .iter()
+        .filter(|&&c| rb.old.kind(c) == NodeKind::Param)
+        .filter_map(|&c| match rb.old.node(c).payload {
+            Payload::Cid(cid) => domain_evidence_for_param(rb.old, c)
+                .is_some_and(|d| d.is_float())
+                .then_some(cid),
+            _ => None,
+        })
+        .collect();
+    let mut stack = vec![head];
+    while let Some(n) = stack.pop() {
+        match rb.old.node(n).payload {
+            Payload::LitFloat(_) | Payload::Lit(LitClass::Float) => return true,
+            Payload::Op(Op::TrueDiv) => return true,
+            Payload::Cid(cid)
+                if rb.old.kind(n) == NodeKind::Var && float_param_cids.contains(&cid) =>
+            {
+                return true
+            }
+            _ => {}
+        }
+        stack.extend(rb.old.children(n).iter().copied());
+    }
+    false
 }
 
 pub(super) fn build_body(

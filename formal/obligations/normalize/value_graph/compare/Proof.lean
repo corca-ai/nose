@@ -88,4 +88,20 @@ theorem lt_or_eq_eq_le (a b : Int) : (lt a b || eq a b) = le a b := by
   · rw [decide_eq_false (by omega : ¬ a < b), decide_eq_false (by omega : ¬ a = b),
         decide_eq_false h]; rfl
 
+/-- EQUALITY COMMUTATIVITY: `a == b ≡ b == a` — the `emit_commutative_cmp` operand reorder for
+    `Eq` (`algebra.rs`, gated by `ComparisonLaw::EqualityCommutativity`). The interpreter compares
+    by value, so swapping the operands preserves the Bool result. -/
+theorem eq_commutes (a b : Int) : eq a b = eq b a := by
+  unfold eq
+  by_cases h : a = b
+  · rw [decide_eq_true h, decide_eq_true (by omega : b = a)]
+  · rw [decide_eq_false h, decide_eq_false (by omega : ¬ b = a)]
+
+/-- EQUALITY COMMUTATIVITY (dual): `a != b ≡ b != a` — the `Ne` operand reorder. -/
+theorem ne_commutes (a b : Int) : ne a b = ne b a := by
+  unfold ne
+  by_cases h : a = b
+  · rw [decide_eq_false (by omega : ¬ a ≠ b), decide_eq_false (by omega : ¬ b ≠ a)]
+  · rw [decide_eq_true (by omega : a ≠ b), decide_eq_true (by omega : b ≠ a)]
+
 end NoseCompare
