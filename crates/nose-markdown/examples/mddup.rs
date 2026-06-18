@@ -72,8 +72,9 @@ fn main() {
         }
         if let Some(w) = &f.witness {
             println!(
-                "   witness: {} shared lines (a {}-{}, b {}-{})",
-                w.matched_lines, w.a_start, w.a_end, w.b_start, w.b_end
+                "   witness: {} shared lines ({} {}-{} ~ {} {}-{})",
+                w.span.matched_lines, w.a_path, w.span.a_start, w.span.a_end,
+                w.b_path, w.span.b_start, w.span.b_end
             );
         }
     }

@@ -19,6 +19,7 @@ nose-frontend = { workspace = true }
 nose-normalize = { workspace = true }
 nose-detect = { workspace = true }
 nose-eval = { workspace = true }
+nose-markdown = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

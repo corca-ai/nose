@@ -19,6 +19,15 @@ pub struct Member {
     pub heading: Option<String>,
 }
 
+/// A duplicated span together with the two files it was found in (the representative pair).
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct WitnessRef {
+    pub a_path: String,
+    pub b_path: String,
+    #[serde(flatten)]
+    pub span: Span,
+}
+
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Family {
     /// Relation tier: `exact | near-high | near-med | near-low | partial`.
@@ -33,8 +42,8 @@ pub struct Family {
     pub commonness: f64,
     /// Whether all members are normalized-identical (a true exact-render claim).
     pub exact: bool,
-    /// Representative duplicated span (from the highest-scoring member pair).
-    pub witness: Option<Span>,
+    /// Representative duplicated span (from the highest-scoring member pair), with its files.
+    pub witness: Option<WitnessRef>,
 }
 
 pub struct Options {
@@ -176,7 +185,11 @@ fn build_family(
         .iter()
         .max_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
         .unwrap();
-    let wit = witness::witness(&units[rep.0], &units[rep.1]);
+    let wit = witness::witness(&units[rep.0], &units[rep.1]).map(|span| WitnessRef {
+        a_path: units[rep.0].path.clone(),
+        b_path: units[rep.1].path.clone(),
+        span,
+    });
 
     let mut fam_members: Vec<Member> = members
         .iter()

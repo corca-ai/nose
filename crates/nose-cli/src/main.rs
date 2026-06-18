@@ -6,6 +6,7 @@ mod config;
 mod falsify;
 mod fnv;
 mod ignores;
+mod markdown;
 mod review;
 mod semantic_pack;
 mod verify_census;
@@ -403,6 +404,26 @@ enum Cmd {
         /// Output format (`human` or `json`) — the same `--format` contract as `query` and `il`.
         #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
         format: StatsFormat,
+    },
+    /// Find same-language near-duplicate prose across Markdown documents — sections copied or
+    /// near-copied across files. Reports a span witness + commonness evidence; it does NOT judge
+    /// whether a repetition is intentional or worth removing (that is the maintainer's call).
+    Markdown {
+        /// Markdown files or directories (recursively scanned; .gitignore respected).
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+        /// Output format (`human` or `json`) — same `--format` contract as `query`/`stats`.
+        #[arg(long, value_enum, default_value_t = StatsFormat::Human)]
+        format: StatsFormat,
+        /// Minimum normalized prose words for a section to participate (trivial-fragment floor).
+        #[arg(long, default_value_t = 8)]
+        min_words: usize,
+        /// Relation acceptance threshold in 0..1 (IDF-cosine / containment).
+        #[arg(long, default_value_t = 0.5)]
+        threshold: f64,
+        /// Limit how many families to print (human format only).
+        #[arg(long, default_value_t = 50)]
+        top: usize,
     },
     /// Dump the IL for a source file — debug why two snippets do or don't converge.
     Il {
@@ -1747,6 +1768,13 @@ fn run() -> Result<()> {
             candidates,
         } => cmd_ceiling(gold, units, candidates),
         Cmd::Stats { paths, top, format } => cmd_stats(paths, top, format == StatsFormat::Json),
+        Cmd::Markdown {
+            paths,
+            format,
+            min_words,
+            threshold,
+            top,
+        } => markdown::cmd_markdown(&paths, format == StatsFormat::Json, min_words, threshold, top),
         Cmd::Features {
             paths,
             min_lines,

@@ -465,6 +465,7 @@ dependencies = [
  "nose-eval",
  "nose-frontend",
  "nose-il",
+ "nose-markdown",
  "nose-normalize",
  "nose-semantics",
  "rayon",

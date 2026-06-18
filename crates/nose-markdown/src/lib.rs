@@ -19,7 +19,7 @@ pub mod unit;
 pub mod verify;
 pub mod witness;
 
-pub use detect::{detect, Family, Member, Options};
+pub use detect::{detect, Family, Member, Options, WitnessRef};
 pub use fingerprint::{candidate_pairs, containment, jaccard, minhash_est, Fingerprint};
 pub use unit::{split_units, Unit, UnitKind};
 pub use verify::CorpusModel;
