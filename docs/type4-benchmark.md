@@ -88,6 +88,10 @@ unsafe boundaries), and the shared strict engine consumes them.
 `capabilities.v1.json` records which surfaces emit which facts, so unsupported cells stay
 visible.
 
+The checked-in matrix keeps every primary language at or above 50% applicable-cell
+coverage. Pure hard-negative sweep rows count only for soundness-family axes, where the
+cell claim is precisely that adjacent non-equivalent forms stay unmerged.
+
 Swift participates as a first-party surface in the capability matrix and generator. Its
 evidence-backed Type-4 matrix coverage is 12/24 applicable cells: collection emptiness,
 string affix, membership, option presence, for-in/indexed reduction, immutable binding,

@@ -71,7 +71,7 @@
       "record_shape_guard": "unsupported",
       "string_prefix_suffix": "supported",
       "table_access": "unsupported",
-      "total_order_compare": "unsupported",
+      "total_order_compare": "supported",
       "unsafe_boundary": "supported"
     },
     "html": {

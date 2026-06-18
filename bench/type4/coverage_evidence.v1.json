@@ -125,6 +125,28 @@
     {
       "axis": "extract_method_inline",
       "gen_axis": "probe:extract_method_inline",
+      "language": "c",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
+      "language": "go",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
       "language": "swift",
       "status": "covered",
       "pos_hit": 1,
@@ -1346,6 +1368,17 @@
     {
       "axis": "recursion_tail_numeric",
       "gen_axis": "probe:recursion_tail_numeric",
+      "language": "c",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "recursion_tail_numeric",
+      "gen_axis": "probe:recursion_tail_numeric",
       "language": "go",
       "status": "covered",
       "pos_hit": 1,
@@ -1424,6 +1457,28 @@
       "axis": "recursion_tail_numeric",
       "gen_axis": "probe:recursion_tail_numeric",
       "language": "typescript",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "reduce_minmax_anyall",
+      "gen_axis": "probe:reduce_minmax_anyall",
+      "language": "c",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "reduce_minmax_anyall",
+      "gen_axis": "probe:reduce_minmax_anyall",
+      "language": "go",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -1595,6 +1650,17 @@
       "false_merges": 0,
       "neg": 5,
       "source": "sweep"
+    },
+    {
+      "axis": "total_order_compare",
+      "gen_axis": "probe:total_order_compare",
+      "language": "go",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "total_order_compare",

@@ -67,8 +67,8 @@
       "typescript": "out"
     },
     "extract_method_inline": {
-      "c": "none",
-      "go": "none",
+      "c": "covered",
+      "go": "covered",
       "java": "none",
       "javascript": "none",
       "python": "none",
@@ -100,15 +100,15 @@
       "typescript": "covered"
     },
     "identity_value_soundness": {
-      "c": "none",
-      "go": "none",
-      "java": "none",
-      "javascript": "none",
-      "python": "none",
-      "ruby": "none",
-      "rust": "none",
+      "c": "hard-negative",
+      "go": "hard-negative",
+      "java": "hard-negative",
+      "javascript": "hard-negative",
+      "python": "hard-negative",
+      "ruby": "hard-negative",
+      "rust": "hard-negative",
       "swift": "none",
-      "typescript": "none"
+      "typescript": "hard-negative"
     },
     "immutable_binding": {
       "c": "covered",
@@ -298,7 +298,7 @@
       "typescript": "none"
     },
     "recursion_tail_numeric": {
-      "c": "none",
+      "c": "covered",
       "go": "covered",
       "java": "covered",
       "javascript": "covered",
@@ -309,8 +309,8 @@
       "typescript": "covered"
     },
     "reduce_minmax_anyall": {
-      "c": "none",
-      "go": "none",
+      "c": "covered",
+      "go": "covered",
       "java": "covered",
       "javascript": "covered",
       "python": "covered",
@@ -354,7 +354,7 @@
     },
     "total_order_compare": {
       "c": "covered",
-      "go": "none",
+      "go": "covered",
       "java": "none",
       "javascript": "none",
       "python": "none",
@@ -400,31 +400,31 @@
   "per_language": {
     "c": {
       "applicable": 23,
-      "covered": 8
+      "covered": 12
     },
     "go": {
       "applicable": 24,
-      "covered": 10
+      "covered": 14
     },
     "java": {
       "applicable": 27,
-      "covered": 14
+      "covered": 15
     },
     "javascript": {
       "applicable": 27,
-      "covered": 16
+      "covered": 17
     },
     "python": {
       "applicable": 26,
-      "covered": 17
+      "covered": 18
     },
     "ruby": {
       "applicable": 24,
-      "covered": 13
+      "covered": 14
     },
     "rust": {
       "applicable": 25,
-      "covered": 13
+      "covered": 14
     },
     "swift": {
       "applicable": 24,
@@ -432,7 +432,7 @@
     },
     "typescript": {
       "applicable": 27,
-      "covered": 16
+      "covered": 17
     }
   }
 }

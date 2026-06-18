@@ -53,13 +53,22 @@ def canon(axis_field: str) -> str:
 def load_evidence():
     """(axis_id_or_canon, language) -> best status, merging real_frontier + the live sweep."""
     raw = defaultdict(list)
+    axes = tax.axis_index()
     for it in json.loads(REAL_FRONTIER.read_text()).get("items", []):
         raw[(canon(it["candidate_axis"]), it["language"])].append(it["status"])
         raw[(it["candidate_axis"], it["language"])].append(it["status"])  # full string too
     if SWEEP_EVIDENCE.exists():
         for e in json.loads(SWEEP_EVIDENCE.read_text()).get("evidence", []):
             st = SWEEP_MAP.get(e["status"])
-            if st:  # 'no-positive' carries no recall signal
+            if (
+                st is None
+                and e["status"] == "no-positive"
+                and axes.get(e["axis"], {}).get("family") == "soundness"
+                and e.get("neg", 0) > 0
+                and e.get("false_merges", 0) == 0
+            ):
+                st = "hard-negative"
+            if st:  # 'no-positive' carries no recall signal outside soundness axes
                 raw[(e["axis"], e["language"])].append(st)
     best = {}
     for key, statuses in raw.items():

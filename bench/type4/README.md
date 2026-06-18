@@ -23,6 +23,8 @@ Swift is included as a first-party surface. Its checked-in coverage probes curre
 membership, option presence, for-in/indexed reduction, immutable binding, proven callee
 identity, extract-method inline, tail numeric recursion, scalar min/max, filter fusion, and
 map fusion, with adjacent hard negatives recorded in `coverage_evidence.v1.json`.
+The checked-in matrix now keeps every primary language at or above 50% covered applicable
+cells; pure hard-negative rows are counted only on soundness-family axes.
 
 The generated manifest is a candidate benchmark artifact. A case becomes gold only after it
 passes the promotion rules in the docs.
