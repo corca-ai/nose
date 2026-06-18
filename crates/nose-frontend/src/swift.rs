@@ -720,6 +720,9 @@ fn lower_tuple(lo: &mut Lowering, node: TsNode) -> NodeId {
             }
         })
         .collect();
+    if kids.len() == 1 {
+        return kids[0];
+    }
     lo.add(NodeKind::Seq, Payload::Name(lo.sym("tuple")), span, &kids)
 }
 
@@ -959,11 +962,17 @@ fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let mut kids = Vec::new();
     if let Some(lambda_type) = node.child_by_field_name("type") {
-        for param in Lowering::named_children(lambda_type)
-            .into_iter()
-            .filter(|child| child.kind() == "lambda_parameter")
-        {
-            lower_param(lo, param, &mut kids);
+        lower_lambda_type_params(lo, lambda_type, &mut kids);
+    }
+    for child in Lowering::named_children(node)
+        .into_iter()
+        .filter(|child| child.kind() == "lambda_function_type")
+    {
+        lower_lambda_type_params(lo, child, &mut kids);
+    }
+    if kids.is_empty() {
+        for name in lambda_parameter_names_from_text(lo.text(node)) {
+            kids.push(lo.add(NodeKind::Param, Payload::Name(lo.sym(&name)), span, &[]));
         }
     }
     let body = first_statements_child(node)
@@ -971,6 +980,57 @@ fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
     lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn lower_lambda_type_params(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {
+    for child in Lowering::named_children(node) {
+        if child.kind() == "lambda_parameter" {
+            lower_param(lo, child, out);
+        } else if matches!(
+            child.kind(),
+            "lambda_function_type" | "lambda_function_type_parameters"
+        ) {
+            lower_lambda_type_params(lo, child, out);
+        }
+    }
+}
+
+fn lambda_parameter_names_from_text(text: &str) -> Vec<String> {
+    let Some(inner) = text
+        .trim()
+        .strip_prefix('{')
+        .and_then(|text| text.strip_suffix('}'))
+    else {
+        return Vec::new();
+    };
+    let inner = inner.trim();
+    if let Some((header, _body)) = inner.split_once(" in ") {
+        return header
+            .trim()
+            .trim_start_matches('(')
+            .trim_end_matches(')')
+            .split(',')
+            .filter_map(lambda_parameter_name_from_header_part)
+            .collect();
+    }
+    if inner.contains("$0") {
+        return vec!["$0".to_string()];
+    }
+    Vec::new()
+}
+
+fn lambda_parameter_name_from_header_part(part: &str) -> Option<String> {
+    let before_type = part.trim().split(':').next()?.trim();
+    let name = before_type
+        .split_whitespace()
+        .last()
+        .unwrap_or(before_type)
+        .trim();
+    if name.is_empty() || name == "_" {
+        None
+    } else {
+        Some(name.to_string())
+    }
 }
 
 fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1193,5 +1253,34 @@ func get(_ xs: [Int], _ i: Int) -> Int {
 }
 "#);
         assert!(il.nodes.iter().any(|node| node.kind == NodeKind::Index));
+    }
+
+    #[test]
+    fn closure_header_lowers_to_lambda_param() {
+        let il = il(r#"
+func mapped(_ xs: [Int]) -> [Int] {
+    return xs.map { x in x + 1 }
+}
+"#);
+        let lambda = il
+            .nodes
+            .iter()
+            .position(|node| node.kind == NodeKind::Lambda)
+            .map(|idx| NodeId(idx as u32))
+            .expect("lambda");
+        let first = il.children(lambda).first().copied().expect("lambda child");
+        assert_eq!(il.kind(first), NodeKind::Param);
+    }
+
+    #[test]
+    fn parenthesized_single_expression_does_not_become_tuple() {
+        let il = il(r#"
+func mapped(_ xs: [Int]) -> [Int] {
+    return xs.map { x in (x + 1) * 2 }
+}
+"#);
+        assert!(!il.nodes.iter().any(|node| {
+            node.kind == NodeKind::Seq && matches!(node.payload, Payload::Name(_))
+        }));
     }
 }

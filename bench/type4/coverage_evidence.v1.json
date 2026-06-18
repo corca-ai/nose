@@ -123,6 +123,17 @@
       "source": "probe"
     },
     {
+      "axis": "extract_method_inline",
+      "gen_axis": "probe:extract_method_inline",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
       "axis": "filter_fusion",
       "gen_axis": "probe:filter_fusion",
       "language": "javascript",
@@ -159,6 +170,17 @@
       "axis": "filter_fusion",
       "gen_axis": "probe:filter_fusion",
       "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "filter_fusion",
+      "gen_axis": "probe:filter_fusion",
+      "language": "swift",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -407,6 +429,17 @@
       "false_merges": 0,
       "neg": 1,
       "source": "sweep"
+    },
+    {
+      "axis": "immutable_binding",
+      "gen_axis": "probe:immutable_binding",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "import_identity",
@@ -654,6 +687,17 @@
       "axis": "map_fusion",
       "gen_axis": "probe:map_fusion",
       "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "map_fusion",
+      "gen_axis": "probe:map_fusion",
+      "language": "swift",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -1047,6 +1091,17 @@
       "source": "sweep"
     },
     {
+      "axis": "numeric_minmax_abs",
+      "gen_axis": "probe:numeric_minmax_abs",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
       "axis": "own_property_guard",
       "gen_axis": "own_property_guard",
       "language": "javascript",
@@ -1177,6 +1232,17 @@
       "false_merges": 0,
       "neg": 4,
       "source": "sweep"
+    },
+    {
+      "axis": "proven_callee_identity",
+      "gen_axis": "probe:proven_callee_identity",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "proven_callee_identity",
@@ -1336,6 +1402,17 @@
       "axis": "recursion_tail_numeric",
       "gen_axis": "probe:recursion_tail_numeric",
       "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "recursion_tail_numeric",
+      "gen_axis": "probe:recursion_tail_numeric",
+      "language": "swift",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,

@@ -823,6 +823,11 @@ fn hof_demand_effect_profiles_split_eager_and_pull_lazy_timing() {
             .unwrap()
             .proves_eager_per_element_callback_demand()
     );
+    assert!(
+        library_hof_demand_effect_profile(Lang::Swift, HoFKind::FlatMap)
+            .unwrap()
+            .proves_eager_per_element_callback_demand()
+    );
     assert!(library_hof_demand_effect_profile(Lang::Rust, HoFKind::Map)
         .unwrap()
         .callback_effects_delayed_until_pull());
@@ -922,6 +927,26 @@ fn free_function_builtin_contracts_are_language_and_shadow_constrained() {
             requires_unshadowed: true,
         })
     );
+    assert_eq!(
+        free_function_builtin_contract(Lang::Swift, "abs", 1),
+        Some(FreeFunctionBuiltinContract {
+            name: "abs",
+            builtin: Builtin::Abs,
+            args: BuiltinArgContract::First,
+            requires_unshadowed: true,
+        })
+    );
+    assert_eq!(
+        free_function_builtin_contract(Lang::Swift, "min", 2),
+        Some(FreeFunctionBuiltinContract {
+            name: "min",
+            builtin: Builtin::Min,
+            args: BuiltinArgContract::All,
+            requires_unshadowed: true,
+        })
+    );
+    assert_eq!(free_function_builtin_contract(Lang::Swift, "min", 1), None);
+    assert!(free_function_builtin_contract(Lang::Swift, "max", 3).is_some());
     assert_eq!(free_function_builtin_contract(Lang::Python, "any", 2), None);
 }
 
@@ -948,7 +973,15 @@ fn method_protocol_contracts_are_language_constrained() {
         Some(HoFKind::FlatMap)
     );
     assert_eq!(
+        method_hof_contract(Lang::Swift, "flatMap"),
+        Some(HoFKind::FlatMap)
+    );
+    assert_eq!(
         method_hof_contract(Lang::Ruby, "select"),
+        Some(HoFKind::Filter)
+    );
+    assert_eq!(
+        method_hof_contract(Lang::Swift, "filter"),
         Some(HoFKind::Filter)
     );
     assert_eq!(method_hof_contract(Lang::Python, "select"), None);
@@ -1028,6 +1061,30 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             semantic: MethodSemanticContract::Builtin(Builtin::EndsWith),
             receiver: MethodReceiverContract::ExactString,
             args: MethodBuiltinArgs::ReceiverAndFirst,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "map", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::Map),
+            receiver: MethodReceiverContract::ExactProtocol,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "filter", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::Filter),
+            receiver: MethodReceiverContract::ExactProtocol,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "flatMap", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::FlatMap),
+            receiver: MethodReceiverContract::ExactProtocol,
+            args: MethodBuiltinArgs::Hof,
         })
     );
     assert_eq!(

@@ -89,10 +89,12 @@ unsafe boundaries), and the shared strict engine consumes them.
 visible.
 
 Swift participates as a first-party surface in the capability matrix and generator. Its
-initial evidence-backed cells are conservative: collection emptiness, string affix,
-membership, option presence, and for-in/indexed reduction probes are covered, while Swift
-HoF/filter-map and map-default surfaces remain visible as unsupported or partial until
-their receiver/demand proofs exist.
+evidence-backed Type-4 matrix coverage is 12/24 applicable cells: collection emptiness,
+string affix, membership, option presence, for-in/indexed reduction, immutable binding,
+proven callee identity, extract-method inline, tail numeric recursion, scalar min/max,
+filter fusion, and map fusion. Swift flat-map/filter-map, map-default, clamp, import
+identity, and scalar abs sign-ternary surfaces remain visible as unsupported or partial
+until their receiver, demand, or proof boundaries are modeled.
 
 ### Breadth-first difficulty levels
 

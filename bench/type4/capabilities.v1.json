@@ -223,7 +223,7 @@
       "c_u32_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "hof_filter_map": "unsupported",
-      "immutable_binding": "partial",
+      "immutable_binding": "supported",
       "import_identity": "unsupported",
       "java_integer_low_bit_toggle": "unsupported",
       "java_statically_false_loop": "unsupported",

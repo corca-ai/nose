@@ -1970,6 +1970,7 @@ const ONE_OR_TWO_ARGS: &[usize] = &[1, 2];
 const ONE_TO_THREE_ARGS: &[usize] = &[1, 2, 3];
 const PY: Lang = Lang::Python;
 const GO: Lang = Lang::Go;
+const SW: Lang = Lang::Swift;
 const FIRST_ARG: BuiltinArgContract = BuiltinArgContract::First;
 const ALL_ARGS: BuiltinArgContract = BuiltinArgContract::All;
 const ARITY_ANY: FreeFunctionBuiltinArity = FreeFunctionBuiltinArity::AtLeast(0);
@@ -2007,6 +2008,9 @@ const FREE_FUNCTION_BUILTINS: &[FreeFunctionBuiltinRow] = &[
     free_function_builtin_row(PY, "min", Builtin::Min, ALL_ARGS, ARITY_ONE_OR_TWO),
     free_function_builtin_row(PY, "max", Builtin::Max, ALL_ARGS, ARITY_ONE_OR_TWO),
     free_function_builtin_row(PY, "abs", Builtin::Abs, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(SW, "min", Builtin::Min, ALL_ARGS, ARITY_AT_LEAST_TWO),
+    free_function_builtin_row(SW, "max", Builtin::Max, ALL_ARGS, ARITY_AT_LEAST_TWO),
+    free_function_builtin_row(SW, "abs", Builtin::Abs, FIRST_ARG, ARITY_ONE),
     free_function_builtin_row(PY, "zip", Builtin::Zip, ALL_ARGS, ARITY_TWO),
     free_function_builtin_row(PY, "enumerate", Builtin::Enumerate, FIRST_ARG, ARITY_ONE),
     free_function_builtin_row(PY, "any", Builtin::Any, FIRST_ARG, ARITY_ONE),
@@ -3313,17 +3317,20 @@ pub fn method_hof_contract(lang: Lang, name: &str) -> Option<HoFKind> {
         (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "map")
         | (Lang::Rust, "map")
         | (Lang::Java, "map")
+        | (Lang::Swift, "map")
         | (Lang::Ruby, "map" | "collect") => HoFKind::Map,
         (
             Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
             "flatMap",
         )
         | (Lang::Rust, "flat_map")
-        | (Lang::Java, "flatMap") => HoFKind::FlatMap,
+        | (Lang::Java, "flatMap")
+        | (Lang::Swift, "flatMap") => HoFKind::FlatMap,
         (Lang::Rust, "filter_map") => HoFKind::FilterMap,
         (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "filter")
         | (Lang::Rust, "filter")
         | (Lang::Java, "filter")
+        | (Lang::Swift, "filter")
         | (Lang::Ruby, "filter" | "select") => HoFKind::Filter,
         _ => return None,
     })
