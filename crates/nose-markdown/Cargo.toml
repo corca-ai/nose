@@ -1,0 +1,22 @@
+[package]
+name = "nose-markdown"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+# Same-language Markdown near-duplicate detection. A self-contained, deterministic,
+# no-LLM pipeline over a character-n-gram substrate of NORMALIZED prose:
+#   units → fingerprints (MinHash-LSH + winnowing + containment) → verify/rank
+#   (TF-IDF + commonness) → span witness (local alignment / diff).
+# Distinct from the value-graph code-clone engine on purpose: prose is not code
+# (see docs/markdown-dup-detection-algorithm-survey-2026-06-18.md).
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+regex = { workspace = true }
+
+[lints]
+workspace = true
