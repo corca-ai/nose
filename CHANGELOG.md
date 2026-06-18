@@ -40,6 +40,11 @@ break.
   spurious mixed-granularity families dropped (8 → 5, all remaining coherent) with zero change to
   any other project, genuine small-in-large and reworded same-size near-dups preserved, golden
   metrics unchanged (PR-AUC 0.995).
+- **Synthetic recall-vs-edit-ratio benchmark (#443).** The golden gates precision; this adds the
+  missing **recall** gate — a deterministic, self-contained benchmark (`nose-markdown::synth`,
+  committed base corpus) that injects controlled edits at known ratios and asserts recall floors
+  (1.00 / 0.95 / 0.85 / 0.65 at 0/0.1/0.2/0.35 edit ratio), so a future change that silently
+  sacrifices recall fails CI. Closes the actionable remainder of #443.
 
 ## [0.12.0] - 2026-06-18
 

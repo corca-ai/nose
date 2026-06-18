@@ -112,6 +112,42 @@ impl UnionFind {
     }
 }
 
+/// Stage-2 acceptance for one candidate pair: returns the relation score if the pair clears the
+/// threshold, the match-substance floor, and (for size-disparate containment matches) the
+/// contiguous-witness gate — `None` otherwise. Shared by `detect` and the synthetic recall
+/// benchmark so they can never drift apart.
+pub(crate) fn accept_pair(
+    units: &[Unit],
+    fps: &[Fingerprint],
+    model: &CorpusModel,
+    i: usize,
+    j: usize,
+    opts: &Options,
+) -> Option<f64> {
+    let cos = model.tfidf_cosine(&fps[i], &fps[j]);
+    let cont = fingerprint::containment(&fps[i].shingles, &fps[j].shingles);
+    // TF-IDF is the primary relation score; containment rescues small-in-large.
+    let rel = if cont >= 0.8 && cont > cos { cont } else { cos };
+    let shared = fingerprint::shared_grams(&fps[i].shingles, &fps[j].shingles);
+    if rel < opts.threshold || shared < opts.min_shared_grams {
+        return None;
+    }
+    // Genuine SMALL-IN-LARGE (a real size disparity) only: a small unit's grams are "contained"
+    // in a large one even by mere common-morpheme coincidence between unrelated docs. Require a
+    // real CONTIGUOUS shared block (line witness) before trusting it. Same-size high-overlap pairs
+    // are left to the score above, so reworded near-dups are unaffected.
+    let (la, lb) = (fps[i].shingles.len(), fps[j].shingles.len());
+    let small_in_large = la.min(lb) * 2 < la.max(lb) && cont >= 0.8 && cont > cos;
+    if small_in_large {
+        let has_block = witness::witness(&units[i], &units[j])
+            .is_some_and(|w| w.matched_lines >= opts.min_containment_witness);
+        if !has_block {
+            return None;
+        }
+    }
+    Some(rel)
+}
+
 /// Run the full pipeline over `(path, source)` documents.
 pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
     // Stage 0: units (filter to prose-bearing units above the trivial floor).
@@ -134,29 +170,9 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
     let cands = fingerprint::candidate_pairs(&fps);
     let mut accepted: Vec<(usize, usize, f64)> = Vec::new();
     for (i, j) in cands {
-        let cos = model.tfidf_cosine(&fps[i], &fps[j]);
-        let cont = fingerprint::containment(&fps[i].shingles, &fps[j].shingles);
-        // TF-IDF is the primary relation score; containment rescues small-in-large (unchanged).
-        let rel = if cont >= 0.8 && cont > cos { cont } else { cos };
-        let shared = fingerprint::shared_grams(&fps[i].shingles, &fps[j].shingles);
-        if rel < opts.threshold || shared < opts.min_shared_grams {
-            continue;
+        if let Some(rel) = accept_pair(&units, &fps, &model, i, j, opts) {
+            accepted.push((i, j, rel));
         }
-        // Genuine SMALL-IN-LARGE (a real size disparity) only: a small unit's grams are
-        // "contained" in a large one even by mere common-morpheme coincidence between unrelated
-        // docs. Require a real CONTIGUOUS shared block (line witness) before trusting it — so a
-        // tiny stub doc is not pulled into a big unrelated doc. Same-size high-overlap pairs are
-        // left to the score above (cosine/containment), so reworded near-dups are unaffected.
-        let (la, lb) = (fps[i].shingles.len(), fps[j].shingles.len());
-        let small_in_large = la.min(lb) * 2 < la.max(lb) && cont >= 0.8 && cont > cos;
-        if small_in_large {
-            let has_block = witness::witness(&units[i], &units[j])
-                .is_some_and(|w| w.matched_lines >= opts.min_containment_witness);
-            if !has_block {
-                continue;
-            }
-        }
-        accepted.push((i, j, rel));
     }
     if accepted.is_empty() {
         return Vec::new();
