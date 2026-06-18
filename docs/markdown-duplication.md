@@ -1,0 +1,72 @@
+# Markdown duplication
+
+`nose markdown` finds **same-language near-duplicate prose** across Markdown documents —
+sections that are copied or near-copied across files (drifting copy-paste, repeated boilerplate,
+single-source-of-truth candidates). It is a deliberately **separate engine** from the code-clone
+pipeline: prose is not code, so it does not go through the value-graph IL. Instead it runs the
+character-n-gram pipeline validated by the
+[algorithm survey](markdown-dup-detection-algorithm-survey-2026-06-18.md).
+
+Scope (fixed): **same-language only.** Cross-lingual / translation duplication is out of scope (it
+needs an LLM). Paraphrase / Type-4 semantic equivalence is also out of scope for the same reason.
+
+## Usage
+
+```
+nose markdown <paths...>            # human report (ranked families)
+nose markdown <paths...> --format json
+nose markdown <paths...> --min-words 8 --threshold 0.5 --top 50
+```
+
+Walks `.md`/`.markdown` under the paths (respecting `.gitignore`) and reports ranked
+near-duplicate **families**, each with:
+
+- a **relation tier** (`exact` / `near-high` / `near-med` / `near-low` / `partial`) + score,
+- a **span witness** — the exact duplicated line range in each file (local alignment),
+- **orthogonal evidence** you filter on: `commonness` (how ubiquitous the shared content is —
+  high ⇒ likely boilerplate), `removable` (lines saved if single-sourced), `files`, `members`.
+
+## What it does — and deliberately does NOT do
+
+nose **detects, witnesses, and surfaces evidence**; per the design principles it does **not**
+judge whether a repetition is intentional, acceptable, or worth removing — that is judgement-deep
+and the maintainer's call (see [design](design.md)). Consequences:
+
+- **Boilerplate copies (license / code-of-conduct / templates) are true duplicates** — reported
+  with high `commonness`, never silently suppressed. You decide if they matter.
+- The honesty contract: output says **"near-duplicate (score + witness + commonness)"**, never
+  "same meaning" and never "you should remove this".
+- Precision targets the **duplication relation** (don't call unrelated or merely same-topic
+  sibling sections duplicates); `commonness`/IDF is used for measurement correctness and as a
+  filterable evidence field, not as a hidden verdict.
+
+## Pipeline (three stages)
+
+1. **Candidate generation** — character-n-gram (Latin q5 / CJK q3) MinHash-LSH + winnowing +
+   containment; order-invariant (robust to block reorder), incremental, sub-quadratic. A
+   stop-shingle DF cap suppresses boilerplate-driven candidate floods.
+2. **Verify / rank** — IDF-weighted (TF-IDF) cosine relation score; containment rescues
+   small-section-inside-large-document. IDF down-weights ubiquitous grams (topical-FP resistance).
+3. **Witness** — line-level Smith-Waterman local alignment on confirmed pairs → exact duplicated
+   span in each file's coordinates.
+
+## Measurement
+
+Quality is measured against a frozen, **LLM-built golden set** (no human in the loop;
+3 heterogeneous judges, majority vote, self-calibrated on construction-truth anchors) — see
+[`bench/markdown/`](../bench/markdown/README.md):
+
+```
+nose markdown bench/markdown/corpus --eval bench/markdown/golden.v1.json
+```
+
+Headline (golden v1): panel Fleiss κ 0.70, anchor self-calibration 1.0; detector **PR-AUC 0.995**,
+ROC-AUC 0.992, recall@P95 0.96, recall@P99 0.93, candidate-recall 1.0; byte-identical across runs.
+
+## Related
+
+- [algorithm survey & first report](markdown-dup-detection-algorithm-survey-2026-06-18.md) — the
+  19-algorithm comparison, LLM rubric evaluation, and architecture rationale.
+- [clone-types](clone-types.md) — the Type-1..4 taxonomy for code; this is the prose analog,
+  limited to Type-1/2/3 (no LLM ⇒ no Type-4/paraphrase).
+- [languages](languages.md) — the code-clone language frontends.

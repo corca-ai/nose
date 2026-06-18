@@ -9,6 +9,10 @@ first-party and external languages to enter through the same pack extension
 boundary described in [semantic-kernel](semantic-kernel.md), while keeping exact
 semantic matching fail-closed unless the required facts and contracts are present.
 
+> **Markdown prose** is handled by a separate engine, not this IL: `nose markdown`
+> finds same-language near-duplicate *prose* via a character-n-gram pipeline (prose is
+> not code). See [markdown-duplication](markdown-duplication.md).
+
 ## Supported languages
 
 Eight **imperative** base languages, each with its own CST→IL lowering (JavaScript and
