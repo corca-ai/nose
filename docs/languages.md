@@ -47,11 +47,14 @@ the `Class` boundary for detection while reporting `type-contract` /
 `declaration-only`, so they render as shared API contracts rather than inheritance advice.
 
 The same facet model marks CSS rules as `style` / `declarative-denotation`, HTML/JSX/Vue/
-Svelte elements as `markup`, and Vue/Svelte `<style>` or markup regions with their
-container (`vue-sfc` or `svelte-component`). Unknown origin is normal; it falls back to the
-legacy hint and never changes actionability, baselines, family ids, or structured ignores.
-Machine consumers can read the additive `locations[].origin` object in
-[query-JSON](query-json.md) and [scan-JSON](scan-json.md).
+Svelte elements as `markup`, JSX fragments as `markup-fragment`, and Vue/Svelte `<style>`
+or markup regions with their container (`vue-sfc` or `svelte-component`). Markup evidence
+flags are source-surface facts: component-cased JSX tags carry `component-tag`, dynamic
+rendered attributes carry `bound-attributes`, and only rendered static attributes carry
+`static-attrs-only`. Unknown origin is normal; it falls back to the legacy hint and never
+changes actionability, baselines, family ids, or structured ignores. Machine consumers can
+read the additive `locations[].origin` object in [query-JSON](query-json.md) and
+[scan-JSON](scan-json.md).
 
 ## Declarative languages: CSS
 

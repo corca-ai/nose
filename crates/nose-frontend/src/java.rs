@@ -272,12 +272,26 @@ fn java_method_origin(node: TsNode, has_body: bool) -> UnitOrigin {
 
 fn java_node_has_method_body(node: TsNode) -> bool {
     Lowering::named_children(node).into_iter().any(|child| {
+        if java_is_nested_type_decl(child.kind()) {
+            return false;
+        }
         matches!(
             child.kind(),
             "method_declaration" | "constructor_declaration"
         ) && child.child_by_field_name("body").is_some()
             || java_node_has_method_body(child)
     })
+}
+
+fn java_is_nested_type_decl(kind: &str) -> bool {
+    matches!(
+        kind,
+        "class_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "record_declaration"
+            | "annotation_type_declaration"
+    )
 }
 
 fn lower_field(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -1838,14 +1838,17 @@ fn append_template_part(lo: &mut Lowering, acc: &mut Option<NodeId>, span: Span,
 /// `cond && <JSX>` and `a ? <X> : <Y>` collapse to their JSX template child(ren).
 fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let tag = jsx_tag(node)
-        .map(|t| canonical_jsx_tag(lo.text(t)))
-        .unwrap_or_default(); // fragment → ""
+    let raw_tag = jsx_tag(node).map(|t| lo.text(t));
+    let tag = raw_tag.map(canonical_jsx_tag).unwrap_or_default(); // fragment → ""
     let tag_sym = lo.sym(&tag);
     let mut children = Vec::new();
+    let mut has_rendered_attrs = false;
+    let mut has_bound_attrs = false;
     for attr in jsx_attributes(node) {
         if let Some(a) = lower_jsx_attr(lo, attr) {
-            children.push(a);
+            has_rendered_attrs = true;
+            has_bound_attrs |= a.bound;
+            children.push(a.id);
         }
     }
     for c in Lowering::named_children(node) {
@@ -1910,26 +1913,53 @@ fn lower_jsx(lo: &mut Lowering, node: TsNode) -> NodeId {
         el,
         UnitKind::Block,
         Some(tag_sym),
-        jsx_markup_origin(lo.lang),
+        jsx_markup_origin(
+            lo.lang,
+            raw_tag.is_none(),
+            raw_tag.is_some_and(is_jsx_component_tag),
+            has_rendered_attrs,
+            has_bound_attrs,
+        ),
     );
     el
 }
 
-fn jsx_markup_origin(lang: Lang) -> UnitOrigin {
-    UnitOrigin::new(
+fn jsx_markup_origin(
+    lang: Lang,
+    fragment: bool,
+    component_tag: bool,
+    has_rendered_attrs: bool,
+    has_bound_attrs: bool,
+) -> UnitOrigin {
+    let mut origin = UnitOrigin::new(
         UnitDomains::of(UnitDomain::Markup),
-        UnitSubkind::HtmlElement,
+        if fragment {
+            UnitSubkind::MarkupFragment
+        } else {
+            UnitSubkind::HtmlElement
+        },
         UnitBodyKind::DeclarativeDenotation,
-        SourceGranularity::Element,
+        if fragment {
+            SourceGranularity::Fragment
+        } else {
+            SourceGranularity::Element
+        },
         RegionKind::Markup,
     )
     .with_container(if lang == Lang::TypeScript {
         UnitContainerKind::Tsx
     } else {
         UnitContainerKind::Jsx
-    })
-    .with_evidence(UnitEvidenceFlag::ComponentTag)
-    .with_evidence(UnitEvidenceFlag::BoundAttributes)
+    });
+    if component_tag {
+        origin = origin.with_evidence(UnitEvidenceFlag::ComponentTag);
+    }
+    if has_bound_attrs {
+        origin = origin.with_evidence(UnitEvidenceFlag::BoundAttributes);
+    } else if has_rendered_attrs {
+        origin = origin.with_evidence(UnitEvidenceFlag::StaticAttrsOnly);
+    }
+    origin
 }
 
 /// Collect the top-most JSX elements nested inside an expression (not recursing into the
@@ -1961,6 +1991,10 @@ fn canonical_jsx_tag(name: &str) -> String {
     }
 }
 
+fn is_jsx_component_tag(name: &str) -> bool {
+    name.as_bytes().first().is_some_and(u8::is_ascii_uppercase)
+}
+
 /// Map a JSX attribute to its rendered DOM attribute, or `None` to drop it (events,
 /// React bookkeeping). `className`→`class`, `htmlFor`→`for`, router `to`→`href`.
 fn canonical_jsx_attr(name: &str) -> Option<String> {
@@ -1974,13 +2008,19 @@ fn canonical_jsx_attr(name: &str) -> Option<String> {
     }
 }
 
+struct LoweredJsxAttr {
+    id: NodeId,
+    bound: bool,
+}
+
 /// `name="str"` → `HtmlAttr(name)[Lit(value)]`; `name={expr}` → hole value; bare → boolean.
 /// Returns `None` for dropped (event/bookkeeping) attributes.
-fn lower_jsx_attr(lo: &mut Lowering, attr: TsNode) -> Option<NodeId> {
+fn lower_jsx_attr(lo: &mut Lowering, attr: TsNode) -> Option<LoweredJsxAttr> {
     let span = lo.span(attr);
     let kids = Lowering::named_children(attr);
     let raw_name = lo.text(*kids.first()?);
     let name = canonical_jsx_attr(raw_name)?;
+    let bound = matches!(kids.get(1), Some(v) if v.kind() != "string");
     let children: Vec<NodeId> = match kids.get(1) {
         None => Vec::new(), // boolean attribute
         Some(v) if v.kind() == "string" => {
@@ -1998,7 +2038,10 @@ fn lower_jsx_attr(lo: &mut Lowering, attr: TsNode) -> Option<NodeId> {
         }
     };
     let nsym = lo.sym(&name);
-    Some(lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children))
+    Some(LoweredJsxAttr {
+        id: lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children),
+        bound,
+    })
 }
 
 fn jsx_tag(node: TsNode) -> Option<TsNode> {

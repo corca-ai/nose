@@ -183,6 +183,7 @@ pub enum UnitSubkind {
     ConfigLiteral,
     CssRule,
     HtmlElement,
+    MarkupFragment,
     MarkupControl,
     MarkdownSection,
     MarkdownDocument,

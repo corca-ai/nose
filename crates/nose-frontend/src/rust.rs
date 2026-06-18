@@ -158,9 +158,19 @@ fn rust_type_origin(node: TsNode) -> UnitOrigin {
 
 fn rust_node_has_function_body(node: TsNode) -> bool {
     Lowering::named_children(node).into_iter().any(|child| {
+        if rust_is_nested_item_boundary(child.kind()) {
+            return false;
+        }
         child.kind() == "function_item" && child.child_by_field_name("body").is_some()
             || rust_node_has_function_body(child)
     })
+}
+
+fn rust_is_nested_item_boundary(kind: &str) -> bool {
+    matches!(
+        kind,
+        "impl_item" | "trait_item" | "struct_item" | "enum_item" | "union_item" | "mod_item"
+    )
 }
 
 fn lower_mod_item(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -286,12 +286,27 @@ fn swift_extension_origin(node: TsNode) -> UnitOrigin {
 
 fn swift_node_has_reusable_body(node: TsNode) -> bool {
     Lowering::named_children(node).into_iter().any(|child| {
+        if swift_is_nested_type_decl(child.kind()) {
+            return false;
+        }
         matches!(
             child.kind(),
             "function_body" | "getter_effects" | "setter_effects" | "code_block"
         ) || child.child_by_field_name("body").is_some()
             || swift_node_has_reusable_body(child)
     })
+}
+
+fn swift_is_nested_type_decl(kind: &str) -> bool {
+    matches!(
+        kind,
+        "actor_declaration"
+            | "class_declaration"
+            | "struct_declaration"
+            | "enum_declaration"
+            | "protocol_declaration"
+            | "extension_declaration"
+    )
 }
 
 fn swift_decl_name(lo: &mut Lowering, node: TsNode) -> Option<Symbol> {

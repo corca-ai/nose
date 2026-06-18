@@ -72,6 +72,28 @@ enum SvelteMarker {
     None,
 }
 
+#[derive(Clone, Copy)]
+enum MarkupControlKind {
+    Repeat,
+    Conditional,
+}
+
+impl MarkupControlKind {
+    const fn name(self) -> &'static str {
+        match self {
+            Self::Repeat => "repeat",
+            Self::Conditional => "if",
+        }
+    }
+
+    const fn evidence(self) -> UnitEvidenceFlag {
+        match self {
+            Self::Repeat => UnitEvidenceFlag::RepeatControl,
+            Self::Conditional => UnitEvidenceFlag::ConditionalControl,
+        }
+    }
+}
+
 fn svelte_marker(text: &str) -> SvelteMarker {
     let t = text.trim_start();
     if t.starts_with("{#each") {
@@ -173,8 +195,10 @@ fn lower_element(
     let span = lo.span(node);
     let mut attrs = Vec::new();
     let mut tag = None;
+    let mut has_rendered_attrs = false;
+    let mut has_bound_attrs = false;
     // A Vue control directive (`v-for`/`v-if`) on this element wraps it in an HtmlControl.
-    let mut control: Option<&'static str> = None;
+    let mut control: Option<MarkupControlKind> = None;
     // Whitespace is significant inside this element if we are already in a preformatted
     // context OR this element is one (`<pre>`/`<textarea>`). The start tag is the first
     // child, so `child_pre` is set before any text/child element is lowered.
@@ -183,15 +207,17 @@ fn lower_element(
     for c in Lowering::named_children(node) {
         match c.kind() {
             "start_tag" | "self_closing_tag" => {
-                let (t, a) = lower_tag(lo, c);
+                let lowered = lower_tag(lo, c);
                 if tag.is_none() {
-                    tag = t;
+                    tag = lowered.tag;
                     if let Some(sym) = tag {
                         child_pre = pre || matches!(lo.interner.resolve(sym), "pre" | "textarea");
                     }
                     control = tag_control_kind(lo, c);
                 }
-                attrs.extend(a);
+                has_rendered_attrs |= lowered.has_rendered_attrs;
+                has_bound_attrs |= lowered.has_bound_attrs;
+                attrs.extend(lowered.attrs);
             }
             "end_tag" | "raw_text" => {}
             _ if !raw_content => content.push(c),
@@ -211,11 +237,11 @@ fn lower_element(
         el,
         UnitKind::Block,
         tag,
-        html_element_origin(container_kind, control),
+        html_element_origin(container_kind, control, has_rendered_attrs, has_bound_attrs),
     );
     match control {
         Some(kind) => {
-            let ksym = lo.sym(kind);
+            let ksym = lo.sym(kind.name());
             lo.add(NodeKind::HtmlControl, Payload::Name(ksym), span, &[el])
         }
         None => el,
@@ -224,7 +250,9 @@ fn lower_element(
 
 fn html_element_origin(
     container_kind: UnitContainerKind,
-    control: Option<&'static str>,
+    control: Option<MarkupControlKind>,
+    has_rendered_attrs: bool,
+    has_bound_attrs: bool,
 ) -> UnitOrigin {
     let mut origin = UnitOrigin::new(
         UnitDomains::of(UnitDomain::Markup),
@@ -234,24 +262,32 @@ fn html_element_origin(
         RegionKind::Markup,
     )
     .with_container(container_kind);
-    if control.is_some() {
+    if let Some(control) = control {
         origin = origin
             .with_evidence(UnitEvidenceFlag::ContainsMarkupControl)
-            .with_evidence(match control {
-                Some("repeat") => UnitEvidenceFlag::RepeatControl,
-                Some("if") => UnitEvidenceFlag::ConditionalControl,
-                _ => UnitEvidenceFlag::ControlFlowTemplate,
-            });
-    } else {
+            .with_evidence(control.evidence());
+    }
+    if has_bound_attrs {
+        origin = origin.with_evidence(UnitEvidenceFlag::BoundAttributes);
+    } else if has_rendered_attrs {
         origin = origin.with_evidence(UnitEvidenceFlag::StaticAttrsOnly);
     }
     origin
 }
 
+struct LoweredTag {
+    tag: Option<Symbol>,
+    attrs: Vec<NodeId>,
+    has_rendered_attrs: bool,
+    has_bound_attrs: bool,
+}
+
 /// Extract `(tag, attributes)` from a `start_tag` / `self_closing_tag`.
-fn lower_tag(lo: &mut Lowering, tag_node: TsNode) -> (Option<Symbol>, Vec<NodeId>) {
+fn lower_tag(lo: &mut Lowering, tag_node: TsNode) -> LoweredTag {
     let mut tag = None;
     let mut attrs = Vec::new();
+    let mut has_rendered_attrs = false;
+    let mut has_bound_attrs = false;
     for c in Lowering::named_children(tag_node) {
         match c.kind() {
             "tag_name" if tag.is_none() => {
@@ -260,18 +296,25 @@ fn lower_tag(lo: &mut Lowering, tag_node: TsNode) -> (Option<Symbol>, Vec<NodeId
             }
             "attribute" => {
                 if let Some(a) = lower_attr(lo, c) {
-                    attrs.push(a);
+                    has_rendered_attrs = true;
+                    has_bound_attrs |= a.bound;
+                    attrs.push(a.id);
                 }
             }
             _ => {}
         }
     }
-    (tag, attrs)
+    LoweredTag {
+        tag,
+        attrs,
+        has_rendered_attrs,
+        has_bound_attrs,
+    }
 }
 
 /// The Vue control directive on a start tag, if any: `v-for` → a `repeat`, `v-if`/
 /// `v-else-if`/`v-else`/`v-show` → an `if`. Used to wrap the element in `HtmlControl`.
-fn tag_control_kind(lo: &Lowering, tag_node: TsNode) -> Option<&'static str> {
+fn tag_control_kind(lo: &Lowering, tag_node: TsNode) -> Option<MarkupControlKind> {
     for c in Lowering::named_children(tag_node) {
         if c.kind() != "attribute" {
             continue;
@@ -283,8 +326,10 @@ fn tag_control_kind(lo: &Lowering, tag_node: TsNode) -> Option<&'static str> {
             continue;
         };
         match canonical_attr_name(&lo.text(n).to_ascii_lowercase()).as_str() {
-            "v-for" => return Some("repeat"),
-            "v-if" | "v-else-if" | "v-else" | "v-show" => return Some("if"),
+            "v-for" => return Some(MarkupControlKind::Repeat),
+            "v-if" | "v-else-if" | "v-else" | "v-show" => {
+                return Some(MarkupControlKind::Conditional);
+            }
             _ => {}
         }
     }
@@ -295,7 +340,12 @@ fn tag_control_kind(lo: &Lowering, tag_node: TsNode) -> Option<&'static str> {
 /// value child. The name is lowercased (HTML attribute names are case-insensitive); the
 /// value keeps its raw text so the DOM fingerprint and a checker can normalize
 /// independently.
-fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+struct LoweredAttr {
+    id: NodeId,
+    bound: bool,
+}
+
+fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<LoweredAttr> {
     let span = lo.span(node);
     let mut name = None;
     let mut value = None;
@@ -333,7 +383,10 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     if name == "style" && !bound {
         let rule = lower_inline_style(lo, value.as_deref().unwrap_or(""), span);
         let nsym = lo.sym(&name);
-        return Some(lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &[rule]));
+        return Some(LoweredAttr {
+            id: lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &[rule]),
+            bound,
+        });
     }
     let nsym = lo.sym(&name);
     let children: Vec<NodeId> = match value {
@@ -343,7 +396,10 @@ fn lower_attr(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
         None => Vec::new(),
     };
-    Some(lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children))
+    Some(LoweredAttr {
+        id: lo.add(NodeKind::HtmlAttr, Payload::Name(nsym), span, &children),
+        bound,
+    })
 }
 
 /// Map framework routing components that render a plain anchor to
