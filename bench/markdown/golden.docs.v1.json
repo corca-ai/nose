@@ -1,0 +1,1939 @@
+{
+ "pairs": [
+  {
+   "a": {
+    "end": 104,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__nextjs__starter-projects.md",
+    "start": 40
+   },
+   "b": {
+    "end": 2412,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 2398
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 46,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__overview.md",
+    "start": 39
+   },
+   "b": {
+    "end": 71,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__configuration__options.md",
+    "start": 10
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__D.md",
+    "start": 1
+   },
+   "b": {
+    "end": 36,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__configuration__incremental-regeneration.md",
+    "start": 6
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 42,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__KeyVals.md",
+    "start": 1
+   },
+   "b": {
+    "end": 642,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 615
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 227,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__rationale.md",
+    "start": 220
+   },
+   "b": {
+    "end": 136,
+    "path": "bench/markdown/corpus-docs/readme__bootstrap__README.md",
+    "start": 76
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__browser.md",
+    "start": 1
+   },
+   "b": {
+    "end": 50,
+    "path": "bench/markdown/corpus-docs/readme__antlr4__README.md",
+    "start": 37
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 124,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__contributing.md",
+    "start": 113
+   },
+   "b": {
+    "end": 414,
+    "path": "bench/markdown/corpus-docs/readme__chi__README.md",
+    "start": 336
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 126,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__cli.md",
+    "start": 108
+   },
+   "b": {
+    "end": 340,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__options.md",
+    "start": 296
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 165,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__install.md",
+    "start": 152
+   },
+   "b": {
+    "end": 107,
+    "path": "bench/markdown/corpus-docs/readme__boltons__README.md",
+    "start": 94
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 194,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__api.md",
+    "start": 141
+   },
+   "b": {
+    "end": 62,
+    "path": "bench/markdown/corpus-docs/readme__click__README.md",
+    "start": 56
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 26,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROGRESS.md",
+    "start": 3
+   },
+   "b": {
+    "end": 97,
+    "path": "bench/markdown/corpus-docs/readme__black__README.md",
+    "start": 77
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 348,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpSubscriptionLink.md",
+    "start": 339
+   },
+   "b": {
+    "end": 90,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__contributing.md",
+    "start": 70
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 29,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__browser.md",
+    "start": 18
+   },
+   "b": {
+    "end": 1665,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 1639
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 174,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpBatchStreamLink.md",
+    "start": 166
+   },
+   "b": {
+    "end": 192,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__openapi.md",
+    "start": 179
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 28,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__connect-timeout.md",
+    "start": 17
+   },
+   "b": {
+    "end": 22,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__In.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 13,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__rationale.md",
+    "start": 10
+   },
+   "b": {
+    "end": 109,
+    "path": "bench/markdown/corpus-docs/readme__alacritty__README.md",
+    "start": 82
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 227,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__rationale.md",
+    "start": 220
+   },
+   "b": {
+    "end": 141,
+    "path": "bench/markdown/corpus-docs/readme__bootstrap__README.md",
+    "start": 137
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 1290,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 1185
+   },
+   "b": {
+    "end": 549,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 544
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 150,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 137
+   },
+   "b": {
+    "end": 193,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__collections.md",
+    "start": 164
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 41,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__cors.md",
+    "start": 1
+   },
+   "b": {
+    "end": 29,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__configuration__markdown.md",
+    "start": 12
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 46,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__overview.md",
+    "start": 39
+   },
+   "b": {
+    "end": 1368,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 1338
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 198,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__openapi.md",
+    "start": 193
+   },
+   "b": {
+    "end": 83,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__assets.md",
+    "start": 36
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 39,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 37
+   },
+   "b": {
+    "end": 28,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__curves.md",
+    "start": 17
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 105,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__api.md",
+    "start": 85
+   },
+   "b": {
+    "end": 83,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__assets.md",
+    "start": 36
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 9,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__loggerLink.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__nextjs__pages-router__ssg.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/readme__badger__README.md",
+    "start": 1
+   },
+   "b": {
+    "end": 256,
+    "path": "bench/markdown/corpus-docs/readme__badger__README.md",
+    "start": 140
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 54,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__travis-ci.md",
+    "start": 35
+   },
+   "b": {
+    "end": 28,
+    "path": "bench/markdown/corpus-docs/readme__clap__README.md",
+    "start": 21
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 11,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 8
+   },
+   "b": {
+    "end": 834,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 815
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 86,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__collections.md",
+    "start": 49
+   },
+   "b": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__configuration__default.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__react__useInfiniteQuery.md",
+    "start": 1
+   },
+   "b": {
+    "end": 173,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__react__useInfiniteQuery.md",
+    "start": 119
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 35,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__assets.md",
+    "start": 1
+   },
+   "b": {
+    "end": 124,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__front-matter.md",
+    "start": 45
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 7,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__cast___index.md",
+    "start": 1
+   },
+   "b": {
+    "end": 56,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__First.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 27,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__editors.md",
+    "start": 22
+   },
+   "b": {
+    "end": 33,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__editors.md",
+    "start": 28
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 86,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__react__getQueryKey.md",
+    "start": 1
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__react__useMutation.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 148,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__collections.md",
+    "start": 142
+   },
+   "b": {
+    "end": 163,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__collections.md",
+    "start": 149
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 100,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Append.md",
+    "start": 1
+   },
+   "b": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__D.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 44,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__community__community.md",
+    "start": 42
+   },
+   "b": {
+    "end": 307,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 299
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 67,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Merge.md",
+    "start": 1
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__SymDiff.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 204,
+    "path": "bench/markdown/corpus-docs/readme__black__README.md",
+    "start": 192
+   },
+   "b": {
+    "end": 51,
+    "path": "bench/markdown/corpus-docs/readme__chota__README.md",
+    "start": 49
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 49,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__cast__ToString.md",
+    "start": 1
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__SymDiff.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 20,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed-ssh.md",
+    "start": 16
+   },
+   "b": {
+    "end": 32,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed.md",
+    "start": 16
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 43,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 42
+   },
+   "b": {
+    "end": 45,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 44
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 9,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpBatchStreamLink.md",
+    "start": 1
+   },
+   "b": {
+    "end": 11,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpSubscriptionLink.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__anyauth.md",
+    "start": 1
+   },
+   "b": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert-type.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert-status.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__capath.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed-ssh.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__crlf.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__append.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert-status.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__continue-at.md",
+    "start": 1
+   },
+   "b": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__crlfile.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__curves.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__D.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Reverse.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 33,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__After.md",
+    "start": 1
+   },
+   "b": {
+    "end": 20,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__SymDiff.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__append.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__basic.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed.md",
+    "start": 1
+   },
+   "b": {
+    "end": 21,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cookie.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__create-file-mode.md",
+    "start": 1
+   },
+   "b": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__crlfile.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "b": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cookie-jar.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__capath.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert-status.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed.md",
+    "start": 1
+   },
+   "b": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cookie-jar.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__create-dirs.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__create-file-mode.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert-type.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__curves.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 64,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__api.md",
+    "start": 38
+   },
+   "b": {
+    "end": 80,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__api.md",
+    "start": 65
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 26,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Apply.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Reverse.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 32,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 30
+   },
+   "b": {
+    "end": 43,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 41
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2117,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 2110
+   },
+   "b": {
+    "end": 2125,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 2118
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 34,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 31
+   },
+   "b": {
+    "end": 39,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 37
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2054,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 2030
+   },
+   "b": {
+    "end": 2180,
+    "path": "bench/markdown/corpus-docs/readme__axios__README.md",
+    "start": 2171
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__ca-native.md",
+    "start": 1
+   },
+   "b": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__capath.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert-type.md",
+    "start": 1
+   },
+   "b": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cert.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 20,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 19
+   },
+   "b": {
+    "end": 22,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 21
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cacert.md",
+    "start": 1
+   },
+   "b": {
+    "end": 17,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__crlfile.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 137,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__circleci.md",
+    "start": 131
+   },
+   "b": {
+    "end": 233,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__travis-ci.md",
+    "start": 224
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 37,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 27
+   },
+   "b": {
+    "end": 86,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 67
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 71,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__configuration__options.md",
+    "start": 10
+   },
+   "b": {
+    "end": 162,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__configuration__options.md",
+    "start": 104
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 19,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__ca-native.md",
+    "start": 1
+   },
+   "b": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__cacert.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 60,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__buddyworks.md",
+    "start": 54
+   },
+   "b": {
+    "end": 137,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__circleci.md",
+    "start": 131
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 114,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__travis-ci.md",
+    "start": 102
+   },
+   "b": {
+    "end": 213,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__continuous-integration__travis-ci.md",
+    "start": 167
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed-ssh.md",
+    "start": 1
+   },
+   "b": {
+    "end": 15,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__compressed.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 86,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 67
+   },
+   "b": {
+    "end": 102,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 87
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 46,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__cast__ToFloat.md",
+    "start": 1
+   },
+   "b": {
+    "end": 50,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__cast__ToInt.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 393,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 390
+   },
+   "b": {
+    "end": 421,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 416
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___AUTHORS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___DESCRIPTION.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___ENVIRONMENT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___FILES.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___GLOBBING.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OPTIONS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OUTPUT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROXYPREFIX.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___SYNOPSIS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___URL.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___VERSION.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__abstract-unix-socket.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___WWW.md",
+    "start": 1
+   },
+   "b": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts__config.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 421,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 416
+   },
+   "b": {
+    "end": 798,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 795
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 16,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Reverse.md",
+    "start": 1
+   },
+   "b": {
+    "end": 35,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Shuffle.md",
+    "start": 1
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 44,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__loggerLink.md",
+    "start": 10
+   },
+   "b": {
+    "end": 63,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__retryLink.md",
+    "start": 14
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 298,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 290
+   },
+   "b": {
+    "end": 324,
+    "path": "bench/markdown/corpus-docs/readme__bat__README.md",
+    "start": 316
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 37,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 27
+   },
+   "b": {
+    "end": 47,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Sort.md",
+    "start": 38
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 12,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__related-projects.md",
+    "start": 6
+   },
+   "b": {
+    "end": 18,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__related-projects.md",
+    "start": 13
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 111,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__options.md",
+    "start": 97
+   },
+   "b": {
+    "end": 140,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__options.md",
+    "start": 133
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 56,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__First.md",
+    "start": 1
+   },
+   "b": {
+    "end": 56,
+    "path": "bench/markdown/corpus-docs/fnref__hugo__docs__content__en__functions__collections__Last.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 106,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpBatchLink.md",
+    "start": 63
+   },
+   "b": {
+    "end": 73,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpLink.md",
+    "start": 38
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "split"
+  },
+  {
+   "a": {
+    "end": 63,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__cli.md",
+    "start": 48
+   },
+   "b": {
+    "end": 171,
+    "path": "bench/markdown/corpus-docs/fwdoc__prettier__docs__cli.md",
+    "start": 168
+   },
+   "label": false,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 37,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__httpLink.md",
+    "start": 12
+   },
+   "b": {
+    "end": 44,
+    "path": "bench/markdown/corpus-docs/fwdoc__trpc__www__docs__client__links__loggerLink.md",
+    "start": 10
+   },
+   "label": true,
+   "source": "llm-panel",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 51,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__code_of_conduct.md",
+    "start": 40
+   },
+   "b": {
+    "end": 51,
+    "path": "bench/markdown/corpus-docs/guide__jekyll__docs___docs__conduct.md",
+    "start": 40
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___AUTHORS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___DESCRIPTION.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___AUTHORS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OPTIONS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___AUTHORS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___SYNOPSIS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___BUGS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___ENVIRONMENT.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___BUGS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OUTPUT.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___BUGS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___URL.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___DESCRIPTION.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___FILES.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___DESCRIPTION.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___DESCRIPTION.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___VERSION.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___ENVIRONMENT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OPTIONS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___ENVIRONMENT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___SYNOPSIS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___GLOBBING.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROXYPREFIX.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___EXITCODES.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___WWW.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___FILES.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___FILES.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___VERSION.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___GLOBBING.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___GLOBBING.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___VERSION.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___NAME.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROXYPREFIX.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___NAME.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___WWW.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OPTIONS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___SYNOPSIS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OUTPUT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROTOCOLS.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___OUTPUT.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___VERSION.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  },
+  {
+   "a": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___PROGRESS.md",
+    "start": 1
+   },
+   "b": {
+    "end": 2,
+    "path": "bench/markdown/corpus-docs/cli__curl__docs__cmdline-opts___URL.md",
+    "start": 1
+   },
+   "label": true,
+   "source": "construction-identical",
+   "agreement": "unanimous"
+  }
+ ]
+}

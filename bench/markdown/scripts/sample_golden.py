@@ -7,7 +7,10 @@ Reads the `nose markdown --dump-pairs` output and emits:
 """
 import json, re, sys
 
-PAIRS = "/tmp/md_pairs.json"
+# Optional args: <pairs.json> <sample-out.json> <anchors-out.json> (defaults below).
+PAIRS = sys.argv[1] if len(sys.argv) > 1 else "/tmp/md_pairs.json"
+OUT = sys.argv[2] if len(sys.argv) > 2 else "/tmp/md_judge_sample.json"
+ANCH = sys.argv[3] if len(sys.argv) > 3 else "/tmp/md_anchors.json"
 BANDS = [(0.0, 0.1, 25), (0.1, 0.3, 20), (0.3, 0.5, 20),
          (0.5, 0.7, 20), (0.7, 0.9, 20), (0.9, 1.001, 30)]
 
@@ -51,8 +54,8 @@ def main():
         })
         if norm(p["text_a"]) == norm(p["text_b"]) and norm(p["text_a"]):
             anchors.append({"id": i, "label": True, "source": "construction-identical"})
-    json.dump({"pairs": out}, open("/tmp/md_judge_sample.json", "w"), ensure_ascii=False, indent=1)
-    json.dump(anchors, open("/tmp/md_anchors.json", "w"), indent=1)
+    json.dump({"pairs": out}, open(OUT, "w"), ensure_ascii=False, indent=1)
+    json.dump(anchors, open(ANCH, "w"), indent=1)
     print(f"sampled {len(out)} pairs; {len(anchors)} construction-identical anchors")
     import collections
     b = collections.Counter(round(p['score']*10)/10 for p in out)

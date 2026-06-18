@@ -54,6 +54,15 @@ break.
   committed base corpus) that injects controlled edits at known ratios and asserts recall floors
   (1.00 / 0.95 / 0.85 / 0.65 at 0/0.1/0.2/0.35 edit ratio), so a future change that silently
   sacrifices recall fails CI. Closes the actionable remainder of #443.
+- **Multi-domain precision golden (#443).** The original precision golden was single-genre
+  boilerplate (Contributor Covenant CoC), which over-stated precision. Added a frozen, committed
+  **multi-domain** golden — `bench/markdown/corpus-docs/` (165 files across 5 genres: CLI
+  reference, function/API reference, guides, framework docs, READMEs) + `golden.docs.v1.json`,
+  built the same no-human way (3 heterogeneous judges, Fleiss κ 0.71, anchor self-calibration
+  1.0). It is the honest baseline: PR-AUC **0.944** / R@P95 **0.74** (vs 0.995 / 0.96 on CoC),
+  candidate-recall 1.0 — the templated-but-different pairs across real doc genres are genuinely
+  harder. Wired into a **precision regression gate** (`eval::docs_golden_precision_floor`). The
+  golden-build scripts now take paths so any corpus can be golden'd.
 
 ## [0.12.0] - 2026-06-18
 

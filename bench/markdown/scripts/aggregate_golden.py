@@ -3,12 +3,18 @@
 binary positive = relation label in {dup, near}; negative = not.
 Writes the committed golden and prints the panel-quality metrics required by #436.
 """
-import json
+import json, sys
 
-WT = "/Users/ak/prjs/cc/nose/.claude/worktrees/md-dup-survey"
-sample = {p["id"]: p for p in json.load(open("/tmp/md_judge_sample.json"))["pairs"]}
-judges = [json.load(open(f"/tmp/md_judge_{k}.json")) for k in (1, 2, 3)]
-anchors = {a["id"]: a for a in json.load(open("/tmp/md_anchors.json"))}
+# Optional args: <sample.json> <judge-prefix> <anchors.json> <out-golden.json> <out-meta.json>.
+# judge files are "<judge-prefix>{1,2,3}.json".
+SAMPLE = sys.argv[1] if len(sys.argv) > 1 else "/tmp/md_judge_sample.json"
+JPREFIX = sys.argv[2] if len(sys.argv) > 2 else "/tmp/md_judge_"
+ANCH = sys.argv[3] if len(sys.argv) > 3 else "/tmp/md_anchors.json"
+OUT_GOLDEN = sys.argv[4] if len(sys.argv) > 4 else "bench/markdown/golden.v1.json"
+OUT_META = sys.argv[5] if len(sys.argv) > 5 else "bench/markdown/golden.v1.meta.json"
+sample = {p["id"]: p for p in json.load(open(SAMPLE))["pairs"]}
+judges = [json.load(open(f"{JPREFIX}{k}.json")) for k in (1, 2, 3)]
+anchors = {a["id"]: a for a in json.load(open(ANCH))}
 
 def pos(label):  # binary: is it a near-duplicate relation?
     return label in ("dup", "near")
@@ -62,7 +68,7 @@ anchor_cal = anchor_panel_pos / len(anchor_ids) if anchor_ids else float("nan")
 
 pos_n = sum(1 for g in golden if g["label"])
 out = {"pairs": golden}
-json.dump(out, open(f"{WT}/bench/markdown/golden.v1.json", "w"), indent=1)
+json.dump(out, open(OUT_GOLDEN, "w"), indent=1)
 
 summary = {
     "pairs": len(golden),
@@ -75,5 +81,5 @@ summary = {
     "anchor_panel_calibration": round(anchor_cal, 3),
     "judge_positive_rates": [round(sum(votes[i][k] for i in ids) / len(ids), 3) for k in range(3)],
 }
-json.dump(summary, open(f"{WT}/bench/markdown/golden.v1.meta.json", "w"), indent=1)
+json.dump(summary, open(OUT_META, "w"), indent=1)
 print(json.dumps(summary, indent=2))

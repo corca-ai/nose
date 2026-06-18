@@ -338,4 +338,46 @@ mod tests {
         assert!((m.roc_auc - 1.0).abs() < 1e-9, "roc={}", m.roc_auc);
         assert!((m.candidate_recall - 1.0).abs() < 1e-9);
     }
+
+    /// Precision regression gate on the committed multi-domain docs golden (the representative,
+    /// harder corpus). Floors set conservatively below observed (PR-AUC 0.944, cand-recall 1.0).
+    #[test]
+    fn docs_golden_precision_floor() {
+        let base = concat!(env!("CARGO_MANIFEST_DIR"), "/../../bench/markdown");
+        let golden: Golden = serde_json::from_str(
+            &std::fs::read_to_string(format!("{base}/golden.docs.v1.json")).unwrap(),
+        )
+        .unwrap();
+        let mut paths: Vec<std::path::PathBuf> = std::fs::read_dir(format!("{base}/corpus-docs"))
+            .unwrap()
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("md"))
+            .collect();
+        paths.sort();
+        let docs: Vec<(String, String)> = paths
+            .iter()
+            .map(|p| {
+                let fname = p.file_name().unwrap().to_str().unwrap();
+                (
+                    format!("bench/markdown/corpus-docs/{fname}"),
+                    std::fs::read_to_string(p).unwrap(),
+                )
+            })
+            .collect();
+        let m = evaluate(&score_pairs(&docs, 8), &golden);
+        eprintln!(
+            "docs golden: pr_auc={:.4} roc={:.4} r@p95={:.3} cand_recall={}",
+            m.pr_auc, m.roc_auc, m.r_at_p95, m.candidate_recall
+        );
+        assert!(
+            m.candidate_recall >= 0.95,
+            "candidate recall regressed: {}",
+            m.candidate_recall
+        );
+        assert!(
+            m.pr_auc >= 0.88,
+            "multi-domain PR-AUC regressed: {}",
+            m.pr_auc
+        );
+    }
 }
