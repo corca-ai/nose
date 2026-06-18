@@ -820,6 +820,8 @@ pub(crate) fn library_method_selector_name(name: &str) -> Option<&'static str> {
         "get" => "get",
         "getOrDefault" => "getOrDefault",
         "has" => "has",
+        "hasPrefix" => "hasPrefix",
+        "hasSuffix" => "hasSuffix",
         "has_key?" => "has_key?",
         "include?" => "include?",
         "includes" => "includes",

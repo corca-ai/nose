@@ -223,71 +223,107 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
     );
 }
 
+fn assert_type_domain(lang: Lang, source: &str, expected: Option<DomainEvidence>) {
+    assert_eq!(
+        type_domain_from_source_text(lang, source),
+        expected,
+        "type-domain mismatch for {lang:?}: {source}"
+    );
+}
+
 #[test]
-fn type_domain_contracts_cover_java_rust_c_and_go_signatures() {
-    assert_eq!(
-        type_domain_from_source_text(Lang::Java, "@Nonnull List<String> xs"),
-        Some(DomainEvidence::Collection)
+fn type_domain_contracts_cover_java_signatures() {
+    assert_type_domain(
+        Lang::Java,
+        "@Nonnull List<String> xs",
+        Some(DomainEvidence::Collection),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Java, "Iterator<String> xs"),
-        Some(DomainEvidence::Iterator)
+    assert_type_domain(
+        Lang::Java,
+        "Iterator<String> xs",
+        Some(DomainEvidence::Iterator),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Java, "CompletableFuture<String> xs"),
-        Some(DomainEvidence::FutureLike)
+    assert_type_domain(
+        Lang::Java,
+        "CompletableFuture<String> xs",
+        Some(DomainEvidence::FutureLike),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Java, "boolean value"),
-        Some(DomainEvidence::Boolean)
+    assert_type_domain(Lang::Java, "boolean value", Some(DomainEvidence::Boolean));
+    assert_type_domain(
+        Lang::Java,
+        "@Ann(\"...\") String value",
+        Some(DomainEvidence::String),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Java, "@Ann(\"...\") String value"),
-        Some(DomainEvidence::String)
-    );
+}
 
-    assert_eq!(
-        type_domain_from_source_text(Lang::Rust, "std::collections::HashMap<String, i32>"),
-        Some(DomainEvidence::Map)
+#[test]
+fn type_domain_contracts_cover_rust_signatures() {
+    assert_type_domain(
+        Lang::Rust,
+        "std::collections::HashMap<String, i32>",
+        Some(DomainEvidence::Map),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Rust, "HashSet<i32>"),
-        Some(DomainEvidence::Set)
+    assert_type_domain(Lang::Rust, "HashSet<i32>", Some(DomainEvidence::Set));
+    assert_type_domain(
+        Lang::Rust,
+        "Result<String, Error>",
+        Some(DomainEvidence::Result),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Rust, "Result<String, Error>"),
-        Some(DomainEvidence::Result)
+    assert_type_domain(
+        Lang::Rust,
+        "impl Iterator<Item = i32>",
+        Some(DomainEvidence::Iterator),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Rust, "impl Iterator<Item = i32>"),
-        Some(DomainEvidence::Iterator)
-    );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Rust, "std::pin::Pin<Box<T>>"),
-        None
-    );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Rust, "bool"),
-        Some(DomainEvidence::Boolean)
-    );
+    assert_type_domain(Lang::Rust, "std::pin::Pin<Box<T>>", None);
+    assert_type_domain(Lang::Rust, "bool", Some(DomainEvidence::Boolean));
+}
 
-    assert_eq!(type_domain_from_source_text(Lang::C, "int *xs"), None);
-    assert_eq!(
-        type_domain_from_source_text(Lang::C, "int xs"),
-        Some(DomainEvidence::Integer)
+#[test]
+fn type_domain_contracts_cover_c_and_go_signatures() {
+    assert_type_domain(Lang::C, "int *xs", None);
+    assert_type_domain(Lang::C, "int xs", Some(DomainEvidence::Integer));
+    assert_type_domain(Lang::C, "_Bool ok", Some(DomainEvidence::Boolean));
+    assert_type_domain(Lang::Go, "value bool", Some(DomainEvidence::Boolean));
+    assert_type_domain(
+        Lang::Go,
+        "type User struct { id int }",
+        Some(DomainEvidence::Record),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::C, "_Bool ok"),
-        Some(DomainEvidence::Boolean)
+}
+
+#[test]
+fn type_domain_contracts_cover_swift_signatures() {
+    assert_type_domain(Lang::Swift, "xs: [Int]", Some(DomainEvidence::Collection));
+    assert_type_domain(
+        Lang::Swift,
+        "xs: Array<String>",
+        Some(DomainEvidence::Collection),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Go, "value bool"),
-        Some(DomainEvidence::Boolean)
+    assert_type_domain(
+        Lang::Swift,
+        "lookup: [String: Int]",
+        Some(DomainEvidence::Map),
     );
-    assert_eq!(
-        type_domain_from_source_text(Lang::Go, "type User struct { id int }"),
-        Some(DomainEvidence::Record)
+    assert_type_domain(
+        Lang::Swift,
+        "lookup: Dictionary<String, Int>",
+        Some(DomainEvidence::Map),
     );
+    assert_type_domain(Lang::Swift, "seen: Set<String>", Some(DomainEvidence::Set));
+    assert_type_domain(Lang::Swift, "value: Int?", Some(DomainEvidence::Option));
+    assert_type_domain(
+        Lang::Swift,
+        "result: Result<Int, Error>",
+        Some(DomainEvidence::Result),
+    );
+    assert_type_domain(
+        Lang::Swift,
+        "items: AnySequence<Int>",
+        Some(DomainEvidence::Iterable),
+    );
+    assert_type_domain(Lang::Swift, "text: String", Some(DomainEvidence::String));
+    assert_type_domain(Lang::Swift, "ok: Bool", Some(DomainEvidence::Boolean));
+    assert_type_domain(Lang::Swift, "xs: Bitmap<String>", None);
 }
 
 #[test]

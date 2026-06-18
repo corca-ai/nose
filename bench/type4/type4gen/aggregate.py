@@ -1036,6 +1036,93 @@ end
     return Variant(representation, src, operation_key)
 
 
+def swift_variant(operation_key: str, representation: str, negative: bool) -> Variant:
+    op = OPERATIONS[operation_key]
+    if op.arity == 2:
+        return swift_pair_variant(operation_key, representation, negative)
+    kind, predicate_key, init, contribution = effective_components(op, negative)
+    pred = render_predicate(predicate_key, "x")
+    term = render_contribution(contribution, "x")
+    ret = "Bool" if kind in {"any", "all"} else "Int"
+    if representation == "loop":
+        loop_head = "for x in xs"
+        loop_prefix = ""
+        loop_bind = ""
+        loop_suffix = ""
+    elif representation in {"aggregate", "indexed_loop"}:
+        loop_head = "while i < xs.count"
+        loop_prefix = "    var i = 0\n"
+        loop_bind = "\n        let x = xs[i]"
+        loop_suffix = "\n        i += 1"
+    else:
+        raise ValueError(f"unknown Swift representation: {representation}")
+
+    if kind == "sum_abs":
+        src = f"""func {operation_key}(_ xs: [Int]) -> {ret} {{
+    var total = {init}
+{loop_prefix}    {loop_head} {{{loop_bind}
+        if x < 0 {{
+            total += -x
+        }} else {{
+            total += x
+        }}{loop_suffix}
+    }}
+    return total
+}}
+"""
+        return Variant(representation, src, operation_key)
+    if kind in {"sum", "count", "product"}:
+        var = {"sum": "total", "count": "count", "product": "product"}[kind]
+        update = {"sum": f"{var} += {term}", "count": f"{var} += 1", "product": f"{var} *= {term}"}[
+            kind
+        ]
+        src = f"""func {operation_key}(_ xs: [Int]) -> {ret} {{
+    var {var} = {init}
+{loop_prefix}    {loop_head} {{{loop_bind}
+        if {pred} {{
+            {update}
+        }}{loop_suffix}
+    }}
+    return {var}
+}}
+"""
+    elif kind == "any":
+        src = f"""func {operation_key}(_ xs: [Int]) -> {ret} {{
+{loop_prefix}    {loop_head} {{{loop_bind}
+        if {pred} {{
+            return true
+        }}{loop_suffix}
+    }}
+    return false
+}}
+"""
+    elif kind == "all":
+        src = f"""func {operation_key}(_ xs: [Int]) -> {ret} {{
+{loop_prefix}    {loop_head} {{{loop_bind}
+        if {negate(pred, "swift")} {{
+            return false
+        }}{loop_suffix}
+    }}
+    return true
+}}
+"""
+    elif kind in {"max", "min"}:
+        cmp = ">" if kind == "max" else "<"
+        src = f"""func {operation_key}(_ xs: [Int]) -> {ret} {{
+    var best = {init}
+{loop_prefix}    {loop_head} {{{loop_bind}
+        if x {cmp} best {{
+            best = x
+        }}{loop_suffix}
+    }}
+    return best
+}}
+"""
+    else:
+        raise ValueError(kind)
+    return Variant(representation, src, operation_key)
+
+
 def python_pair_variant(operation_key: str, representation: str, negative: bool) -> Variant:
     _, _, init, contribution = effective_components(OPERATIONS[operation_key], negative)
     indexed_term = render_contribution(contribution, "a[i]", "b[i]")
@@ -1231,6 +1318,24 @@ end
     return Variant(representation, src, operation_key)
 
 
+def swift_pair_variant(operation_key: str, representation: str, negative: bool) -> Variant:
+    _, _, init, contribution = effective_components(OPERATIONS[operation_key], negative)
+    term = render_contribution(contribution, "x", "y")
+    src = f"""func {operation_key}(_ a: [Int], _ b: [Int]) -> Int {{
+    var total = {init}
+    var i = 0
+    while i < a.count {{
+        let x = a[i]
+        let y = b[i]
+        total += {term}
+        i += 1
+    }}
+    return total
+}}
+"""
+    return Variant(representation, src, operation_key)
+
+
 EMITTERS = {
     "python": python_variant,
     "javascript": lambda op, rep, neg: js_variant(Surface("javascript", "javascript", "js"), op, rep, neg),
@@ -1240,6 +1345,7 @@ EMITTERS = {
     "java": java_variant,
     "c": c_variant,
     "ruby": ruby_variant,
+    "swift": swift_variant,
     "vue": lambda op, rep, neg: js_variant(Surface("vue", "javascript", "vue", "script"), op, rep, neg),
     "svelte": lambda op, rep, neg: js_variant(Surface("svelte", "javascript", "svelte", "script"), op, rep, neg),
     "html": lambda op, rep, neg: js_variant(Surface("html", "javascript", "html", "script"), op, rep, neg),

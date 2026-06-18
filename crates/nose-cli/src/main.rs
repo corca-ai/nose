@@ -3895,7 +3895,7 @@ fn warn_no_files(paths: &[PathBuf]) {
         .join(", ");
     eprintln!(
         "warning: no supported source files found under: {joined}\n  \
-         (supported extensions: py/pyi, js/jsx/mjs/cjs, ts/tsx/mts/cts, go, rs, java, c/h, rb, css, vue/svelte/html/htm)"
+         (supported extensions: py/pyi, js/jsx/mjs/cjs, ts/tsx/mts/cts, go, rs, java, c/h, rb, swift, css, vue/svelte/html/htm)"
     );
 }
 

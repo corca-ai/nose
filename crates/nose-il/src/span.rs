@@ -89,6 +89,7 @@ pub enum Lang {
     Java,
     C,
     Ruby,
+    Swift,
     /// CSS stylesheet — rules are lowered to a declarative IL and matched by
     /// computed-style equivalence (its own canonicalization + oracle), not the
     /// imperative value graph. Also the analysis language of `<style>` blocks
@@ -115,6 +116,7 @@ impl Lang {
             Lang::Java => "java",
             Lang::C => "c",
             Lang::Ruby => "ruby",
+            Lang::Swift => "swift",
             Lang::Css => "css",
             Lang::Vue => "vue",
             Lang::Svelte => "svelte",
@@ -133,6 +135,7 @@ impl Lang {
             "java" => Lang::Java,
             "c" | "h" => Lang::C,
             "rb" => Lang::Ruby,
+            "swift" => Lang::Swift,
             "css" => Lang::Css,
             "vue" => Lang::Vue,
             "svelte" => Lang::Svelte,

@@ -857,8 +857,8 @@ strict-exact eligibility ≈ never co-occur in real code); the laws' product rol
 today is `near`-channel influence plus proof discipline. Breadth alone no longer
 justifies a tranche ([design §2c](design.md)).
 
-- Convert Python, JavaScript/TypeScript, Go, Rust, Java, C, Ruby, and embedded
-  JS/TS containers into first-party compiled packs.
+- Convert Python, JavaScript/TypeScript, Go, Rust, Java, C, Ruby, Swift, and
+  embedded JS/TS containers into first-party compiled packs.
 - Split stdlib knowledge, including dependency-backed type-domain alias rows,
   into first-party `StdlibPack`s.
 - Define conformance manifests for each pack: positive convergence cases, hard

@@ -112,6 +112,17 @@
       "source": "sweep"
     },
     {
+      "axis": "collection_empty_check",
+      "gen_axis": "probe:collection_empty_check",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
       "axis": "filter_fusion",
       "gen_axis": "probe:filter_fusion",
       "language": "javascript",
@@ -805,6 +816,17 @@
       "source": "sweep"
     },
     {
+      "axis": "membership_contains",
+      "gen_axis": "probe:membership_contains",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
       "axis": "null_option_presence",
       "gen_axis": "null_presence_predicate",
       "language": "c",
@@ -924,6 +946,17 @@
       "false_merges": 0,
       "neg": 3,
       "source": "sweep"
+    },
+    {
+      "axis": "null_option_presence",
+      "gen_axis": "probe:null_option_presence",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "numeric_clamp",
@@ -1379,7 +1412,29 @@
     {
       "axis": "reduce_minmax_anyall",
       "gen_axis": "probe:reduce_minmax_anyall",
+      "language": "swift",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "reduce_minmax_anyall",
+      "gen_axis": "probe:reduce_minmax_anyall",
       "language": "typescript",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "string_prefix_suffix",
+      "gen_axis": "probe:string_prefix_suffix",
+      "language": "swift",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,

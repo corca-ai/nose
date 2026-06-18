@@ -23,6 +23,14 @@ tie-break/arbiter escalation — see [bench/labels/README.md](../bench/labels/RE
 its [RUBRIC.md](../bench/labels/RUBRIC.md)). The corpus has a **dev / held-out** split (`bench/goldens/corpus.json`),
 so a change has to generalize, not just fit the dev repos; tune only on dev.
 
+Swift support adds 15 pinned Swift repositories to `bench/goldens/corpus.json` for
+lowering/oracle/corpus coverage (120 repos total). The v5 product labelset remains frozen
+at 105 repos; Swift's initial LLM-judge add-on golden is
+`bench/labels/swift_families.v1.json` and is tied to the executable Type-4 Swift probes.
+The checked-in prune manifest is still the v5 product-corpus artifact; reconstructing the
+expanded corpus rewrites it for that checkout until the next product-labelset refresh
+commits a new prune snapshot.
+
 ```sh
 bench/setup_repos.sh                      # clone the pinned corpus into bench/repos
 python3 bench/prune_corpus.py --check-manifest  # verify the recorded prune digest

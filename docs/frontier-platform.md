@@ -17,7 +17,7 @@ data.
 The single most important rule (issue #36's hard lesson) is that a regex prevalence scan is
 a **queue signal**, not proof:
 
-- **Queue signal** — how broadly a semantic axis *appears* in the pinned 105-repo corpus.
+- **Queue signal** — how broadly a semantic axis *appears* in the pinned corpus.
   The platform may suggest "covered / likely miss / needs audit", but it **never finalizes
   a structured frontier status**.
 - **Evidence** — `real_frontier.v1.json` records, which are human-verified with a detector
@@ -29,14 +29,14 @@ ubiquitous is not therefore an unsolved frontier.
 
 ## Presence-based ranking (not raw count)
 
-The corpus is balanced at 15 repos per language across 7 languages, so "a big language
+The corpus is balanced at 15 repos per language across 8 imperative corpus languages, so "a big language
 dominates" is an *occurrence-frequency* bias, not a corpus-imbalance one. The headline rank
 is therefore **breadth**, and raw occurrence is reported but is only the last tiebreak —
 it can never reorder axes that differ on breadth:
 
-- **repo presence breadth** — how many of the 105 repos exhibit the axis;
+- **repo presence breadth** — how many repos exhibit the axis;
 - **primary-language breadth** — how many of the corpus's primary languages exhibit it. The
-  denominator is **derived** from `corpus.json`'s `primary_language` set (7 languages), not
+  denominator is **derived** from `corpus.json`'s `primary_language` set, not
   a hard-coded list — so a `.js` file inside a TypeScript repo cannot invent a new corpus
   language. The file-extension `source_language_breadth` is kept as a separate *diagnostic*
   (denominator = the source languages actually observed) and never drives the ranking;

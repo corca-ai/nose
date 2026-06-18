@@ -2260,6 +2260,11 @@ fn method_append_contract_shape(
             Receiver::ExactCollection,
             Args::ReceiverThenAll,
         ),
+        (Lang::Swift, "append", 1) => (
+            Builtin::Append,
+            Receiver::ExactCollection,
+            Args::ReceiverThenAll,
+        ),
         _ => return None,
     };
     Some(contract)
@@ -2319,10 +2324,13 @@ fn method_cardinality_contract_shape(
     use MethodReceiverContract as Receiver;
 
     let contract = match (lang, name, arg_count) {
-        (Lang::Rust, "len", 0) | (Lang::Java, "size", 0) => {
+        (Lang::Rust, "len", 0) | (Lang::Java, "size", 0) | (Lang::Swift, "count", 0) => {
             (Builtin::Len, Receiver::ExactCollection, Args::ReceiverOnly)
         }
-        (Lang::Rust, "is_empty", 0) | (Lang::Java, "isEmpty", 0) | (Lang::Ruby, "empty?", 0) => (
+        (Lang::Rust, "is_empty", 0)
+        | (Lang::Java, "isEmpty", 0)
+        | (Lang::Ruby, "empty?", 0)
+        | (Lang::Swift, "isEmpty", 0) => (
             Builtin::IsEmpty,
             Receiver::ExactCollection,
             Args::ReceiverOnly,
@@ -2361,7 +2369,8 @@ fn method_string_affix_contract_shape(
         )
         | (Lang::Python, "startswith", 1)
         | (Lang::Rust, "starts_with", 1)
-        | (Lang::Ruby, "start_with?", 1) => (
+        | (Lang::Ruby, "start_with?", 1)
+        | (Lang::Swift, "hasPrefix", 1) => (
             Builtin::StartsWith,
             Receiver::ExactString,
             Args::ReceiverAndFirst,
@@ -2378,7 +2387,8 @@ fn method_string_affix_contract_shape(
         )
         | (Lang::Python, "endswith", 1)
         | (Lang::Rust, "ends_with", 1)
-        | (Lang::Ruby, "end_with?", 1) => (
+        | (Lang::Ruby, "end_with?", 1)
+        | (Lang::Swift, "hasSuffix", 1) => (
             Builtin::EndsWith,
             Receiver::ExactString,
             Args::ReceiverAndFirst,
@@ -2415,7 +2425,7 @@ fn method_membership_contract_shape(
             1,
         )
         | (Lang::Ruby, "include?" | "member?", 1)
-        | (Lang::Java | Lang::Rust, "contains", 1) => (
+        | (Lang::Java | Lang::Rust | Lang::Swift, "contains", 1) => (
             Builtin::Contains,
             Receiver::ExactCollectionOrJavaKeySet,
             Args::FirstThenReceiver,
@@ -3343,6 +3353,8 @@ fn property_builtin_contract_shape(
             (Builtin::Len, MethodReceiverContract::ExactCollection)
         }
         (Lang::Java, "length") => (Builtin::Len, MethodReceiverContract::ExactCollection),
+        (Lang::Swift, "count") => (Builtin::Len, MethodReceiverContract::ExactCollection),
+        (Lang::Swift, "isEmpty") => (Builtin::IsEmpty, MethodReceiverContract::ExactCollection),
         _ => return None,
     })
 }
@@ -3363,6 +3375,8 @@ pub fn library_property_builtin_contract(
 fn library_property_selector_name(name: &str) -> Option<&'static str> {
     Some(match name {
         "length" => "length",
+        "count" => "count",
+        "isEmpty" => "isEmpty",
         _ => return None,
     })
 }

@@ -11,8 +11,17 @@ detection changes honest (it has rejected several plausible-but-wrong ideas; see
 ## The set — `refactoring_families.v5.json`
 
 - **9,461 families** — 4,940 worthy / 4,521 not-worthy.
-- **105 repos, 7 languages**, with a dev (5,445) / **held-out** (4,016) split — held-out
-  is a generalization gate; tune only on dev.
+- **105 repos, 7 pre-Swift imperative languages**, with a dev (5,445) /
+  **held-out** (4,016) split — held-out is a generalization gate; tune only on dev.
+
+## Swift add-on — `swift_families.v1.json`
+
+Swift support adds 15 pinned Swift repositories to the corpus manifest and a focused
+add-on golden over the executable Swift Type-4 probes. `swift_families.v1.json` contains
+5 high-confidence, 3-persona LLM-judge families with adjacent hard negatives for
+collection emptiness, string affixes, collection membership, option presence, and
+for-in/indexed-loop reduction. It is a Swift bring-up golden; the active product metric
+above remains the frozen v5 labelset.
 
 ## The declarative set — `frontend_families.v1.json`
 
@@ -102,7 +111,10 @@ re-rank as small-sample overfit (+1pp dev / −1pp heldout, Rust-only — **not 
 `prune_manifest.json` is the reproducibility artifact for `bench/setup_repos.sh`'s
 file-level corpus prune. It lists generated/vendored source files removed after clone,
 label-referenced files that were protected from removal, and the post-prune corpus
-digest used to verify a reconstructed checkout.
+digest used to verify a reconstructed checkout. The checked-in manifest remains scoped to
+the frozen v5 product corpus; `bench/setup_repos.sh` rewrites it when reconstructing the
+expanded 120-repo corpus, and a refreshed committed manifest should travel with the next
+product-labelset refresh.
 
 `fragment_quality_audit_2026_06_10.json` is not part of the v5 product metric. It is a
 small, three-reviewer audit of Java/Python hidden/review exact-fragment families used to

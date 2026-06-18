@@ -31,9 +31,10 @@ import prioritize_frontier as pf  # noqa: E402  (reuse Candidate / PatternSpec /
 #
 # `min(max(x, lo), hi)` and `max(min(x, hi), lo)` and `x < lo ? lo : (x > hi ? hi : x)` all
 # denote the same value for `lo <= hi`, yet the value graph converges none of them (unlike
-# the structurally-similar abs idiom, which it DOES canonicalize). It is prevalent across all
-# seven corpus primary languages on both splits. The identity (and its hard negatives) is
-# machine-checked in `formal/obligations/normalize/value_graph/clamp/Proof.lean`.
+# the structurally-similar abs idiom, which it DOES canonicalize). It is a cross-language
+# frontier axis; Swift joins the matrix as an uncovered surface until a refreshed real-corpus
+# sweep proves prevalence there. The identity (and its hard negatives) is machine-checked in
+# `formal/obligations/normalize/value_graph/clamp/Proof.lean`.
 #
 # Patterns are the nested-call / built-in `clamp` forms ONLY. The `.min(...).max(...)` method
 # chain is intentionally excluded: it false-positives on schema/query builders such as Zod
@@ -47,8 +48,9 @@ EXTRA_CANDIDATES = [
         3,
         "open",
         "min(max(x,lo),hi) clamp composition is a real under-merge vs the two-comparison "
-        "form; prevalent across all seven languages on both splits; composes already-proven "
-        "scalar min/max facts. Backed by formal/obligations/normalize/value_graph/clamp/Proof.lean.",
+        "form; prevalent across the established corpus surfaces and now tracked for Swift too; "
+        "composes already-proven scalar min/max facts. Backed by "
+        "formal/obligations/normalize/value_graph/clamp/Proof.lean.",
         "Audit corpus clamp pairs; require the lo<=hi precondition and reject swapped bound "
         "order, wrong nesting, and float NaN as hard negatives.",
         (
@@ -61,6 +63,7 @@ EXTRA_CANDIDATES = [
             pf.pat("ruby_clamp_method", "ruby", r"\.\s*clamp\s*\(", "high"),
             pf.pat("rust_clamp_method", "rust", r"\.\s*clamp\s*\(", "high"),
             pf.pat("rust_clamp_nested", "rust", r"\bmin\s*\(\s*max\s*\(|\bmax\s*\(\s*min\s*\(", "high"),
+            pf.pat("swift_clamp_nested", "swift", r"\bmin\s*\(\s*max\s*\(|\bmax\s*\(\s*min\s*\(", "high"),
             pf.pat("ts_clamp_math", "typescript", r"\bMath\.min\s*\(\s*Math\.max\s*\(|\bMath\.max\s*\(\s*Math\.min\s*\(", "high"),
         ),
     ),

@@ -88,6 +88,12 @@ unsafe boundaries), and the shared strict engine consumes them.
 `capabilities.v1.json` records which surfaces emit which facts, so unsupported cells stay
 visible.
 
+Swift participates as a first-party surface in the capability matrix and generator. Its
+initial evidence-backed cells are conservative: collection emptiness, string affix,
+membership, option presence, and for-in/indexed reduction probes are covered, while Swift
+HoF/filter-map and map-default surfaces remain visible as unsupported or partial until
+their receiver/demand proofs exist.
+
 ### Breadth-first difficulty levels
 
 Generation advances by level; a higher level is admitted only when lower-level coverage for

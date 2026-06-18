@@ -1,7 +1,7 @@
 # nose documentation
 
 **nose** finds syntax, semantic, and near-duplicate code clones across
-eight imperative languages — plus declarative **CSS** (computed-style equivalence)
+nine imperative languages — plus declarative **CSS** (computed-style equivalence)
 and **HTML markup** (rendered-DOM equivalence), and the `<script>`/`<style>`/markup regions
 inside Vue, Svelte, and HTML — by
 lowering every language into one normalized intermediate language (IL) and

@@ -8,6 +8,7 @@
       "python": "covered",
       "ruby": "n/a",
       "rust": "none",
+      "swift": "n/a",
       "typescript": "none"
     },
     "c_u16_be_byte_pack": {
@@ -18,6 +19,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "n/a"
     },
     "c_u32_be_byte_pack": {
@@ -28,6 +30,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "n/a"
     },
     "class_literal_equality": {
@@ -38,6 +41,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "n/a"
     },
     "collection_empty_check": {
@@ -48,6 +52,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "covered",
       "typescript": "covered"
     },
     "different_algorithm_same_result": {
@@ -58,6 +63,7 @@
       "python": "out",
       "ruby": "out",
       "rust": "out",
+      "swift": "out",
       "typescript": "out"
     },
     "extract_method_inline": {
@@ -68,6 +74,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "filter_fusion": {
@@ -78,6 +85,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "flat_map": {
@@ -88,6 +96,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "identity_value_soundness": {
@@ -98,6 +107,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "immutable_binding": {
@@ -108,6 +118,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "import_identity": {
@@ -118,6 +129,7 @@
       "python": "covered",
       "ruby": "none",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "java_integer_low_bit_toggle": {
@@ -128,6 +140,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "n/a"
     },
     "java_statically_false_loop": {
@@ -138,6 +151,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "n/a"
     },
     "loop_extent_soundness": {
@@ -148,6 +162,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "map_default_lookup": {
@@ -158,6 +173,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "map_fusion": {
@@ -168,6 +184,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "membership_contains": {
@@ -178,6 +195,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "covered",
       "typescript": "covered"
     },
     "null_option_presence": {
@@ -188,6 +206,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "covered",
       "typescript": "covered"
     },
     "numeric_clamp": {
@@ -198,6 +217,7 @@
       "python": "covered",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "numeric_minmax_abs": {
@@ -208,6 +228,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "none",
+      "swift": "none",
       "typescript": "covered"
     },
     "own_property_guard": {
@@ -218,6 +239,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "covered"
     },
     "partial_subdag_overlap": {
@@ -228,6 +250,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "property_type_guard": {
@@ -238,6 +261,7 @@
       "python": "n/a",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "covered"
     },
     "proven_callee_identity": {
@@ -248,6 +272,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "python_docstring_noop": {
@@ -258,6 +283,7 @@
       "python": "covered",
       "ruby": "n/a",
       "rust": "n/a",
+      "swift": "n/a",
       "typescript": "n/a"
     },
     "recursion_iteration_extended": {
@@ -268,6 +294,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "recursion_tail_numeric": {
@@ -278,6 +305,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "none",
       "typescript": "covered"
     },
     "reduce_minmax_anyall": {
@@ -288,6 +316,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "covered",
       "typescript": "covered"
     },
     "representation_choice": {
@@ -298,6 +327,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "statement_window_fragment": {
@@ -308,6 +338,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "string_prefix_suffix": {
@@ -318,6 +349,7 @@
       "python": "covered",
       "ruby": "covered",
       "rust": "covered",
+      "swift": "covered",
       "typescript": "covered"
     },
     "total_order_compare": {
@@ -328,6 +360,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "typed_concat_soundness": {
@@ -338,6 +371,7 @@
       "python": "none",
       "ruby": "none",
       "rust": "none",
+      "swift": "none",
       "typescript": "none"
     },
     "value_domain_algebra": {
@@ -348,6 +382,7 @@
       "python": "out",
       "ruby": "out",
       "rust": "out",
+      "swift": "out",
       "typescript": "out"
     }
   },
@@ -359,7 +394,8 @@
     "typescript",
     "python",
     "ruby",
-    "rust"
+    "rust",
+    "swift"
   ],
   "per_language": {
     "c": {
@@ -389,6 +425,10 @@
     "rust": {
       "applicable": 25,
       "covered": 13
+    },
+    "swift": {
+      "applicable": 24,
+      "covered": 5
     },
     "typescript": {
       "applicable": 27,

@@ -318,6 +318,63 @@ fn canonical_property_builtin_admission_accepts_field_span_evidence() {
     ));
 
     assert!(admitted_builtin_semantics_at_call(&il, call, Builtin::Len));
+
+    let mut swift_len = IlBuilder::new(FileId(0));
+    let collection = swift_len.add(NodeKind::Var, Payload::Cid(0), sp(50), &[]);
+    let count = swift_len.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Len),
+        sp(51),
+        &[collection],
+    );
+    let root = swift_len.add(NodeKind::Func, Payload::None, sp(52), &[count]);
+    let mut swift_len = finish_il(swift_len, root, Lang::Swift);
+    let contract = library_property_builtin_contract(Lang::Swift, "count").expect("count contract");
+    swift_len.evidence.push(evidence_with_dependencies(
+        11,
+        EvidenceAnchor::node(swift_len.node(count).span, NodeKind::Field),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: 0,
+        }),
+        EvidenceStatus::Asserted,
+        Vec::new(),
+    ));
+    assert!(admitted_builtin_semantics_at_call(
+        &swift_len,
+        count,
+        Builtin::Len
+    ));
+
+    let mut swift_empty = IlBuilder::new(FileId(0));
+    let collection = swift_empty.add(NodeKind::Var, Payload::Cid(0), sp(60), &[]);
+    let is_empty = swift_empty.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::IsEmpty),
+        sp(61),
+        &[collection],
+    );
+    let root = swift_empty.add(NodeKind::Func, Payload::None, sp(62), &[is_empty]);
+    let mut swift_empty = finish_il(swift_empty, root, Lang::Swift);
+    let contract =
+        library_property_builtin_contract(Lang::Swift, "isEmpty").expect("isEmpty contract");
+    swift_empty.evidence.push(evidence_with_dependencies(
+        12,
+        EvidenceAnchor::node(swift_empty.node(is_empty).span, NodeKind::Field),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: 0,
+        }),
+        EvidenceStatus::Asserted,
+        Vec::new(),
+    ));
+    assert!(admitted_builtin_semantics_at_call(
+        &swift_empty,
+        is_empty,
+        Builtin::IsEmpty
+    ));
 }
 
 #[test]

@@ -968,6 +968,14 @@ fn method_protocol_contracts_are_language_constrained() {
         property_builtin_contract(Lang::JavaScript, "length"),
         Some(Builtin::Len)
     );
+    assert_eq!(
+        property_builtin_contract(Lang::Swift, "count"),
+        Some(Builtin::Len)
+    );
+    assert_eq!(
+        property_builtin_contract(Lang::Swift, "isEmpty"),
+        Some(Builtin::IsEmpty)
+    );
     assert_eq!(property_builtin_contract(Lang::Python, "length"), None);
 }
 
@@ -982,6 +990,46 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
         })
     );
     assert_eq!(method_call_contract(Lang::Python, "append", 0), None);
+    assert_eq!(
+        method_call_contract(Lang::Swift, "append", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::Append),
+            receiver: MethodReceiverContract::ExactCollection,
+            args: MethodBuiltinArgs::ReceiverThenAll,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "count", 0),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::Len),
+            receiver: MethodReceiverContract::ExactCollection,
+            args: MethodBuiltinArgs::ReceiverOnly,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "isEmpty", 0),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::IsEmpty),
+            receiver: MethodReceiverContract::ExactCollection,
+            args: MethodBuiltinArgs::ReceiverOnly,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "hasPrefix", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::StartsWith),
+            receiver: MethodReceiverContract::ExactString,
+            args: MethodBuiltinArgs::ReceiverAndFirst,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "hasSuffix", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::EndsWith),
+            receiver: MethodReceiverContract::ExactString,
+            args: MethodBuiltinArgs::ReceiverAndFirst,
+        })
+    );
     assert_eq!(
         method_call_contract(Lang::JavaScript, "log", 1),
         Some(MethodCallContract {
@@ -1034,6 +1082,14 @@ fn method_call_contracts_cover_membership_and_map_default_lookups() {
         })
     );
     assert_eq!(method_call_contract(Lang::JavaScript, "contains", 1), None);
+    assert_eq!(
+        method_call_contract(Lang::Swift, "contains", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+            receiver: MethodReceiverContract::ExactCollectionOrJavaKeySet,
+            args: MethodBuiltinArgs::FirstThenReceiver,
+        })
+    );
     assert_eq!(
         method_call_contract(Lang::Java, "getOrDefault", 2),
         Some(MethodCallContract {

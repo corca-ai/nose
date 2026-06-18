@@ -16,10 +16,11 @@
     "cmark",
     "serde_json",
     "liquid",
-    "junit5"
+    "junit5",
+    "swift-metrics"
   ],
   "source": {
-    "selection": "one repo per supported language (go, python, typescript, c, rust, ruby, java) plus a second small Go repo for cross-file families; all single-pass semantic scans are sub-second so the no-cache repeats stay cheap.",
+    "selection": "one repo per supported imperative corpus language (go, python, typescript, c, rust, ruby, java, swift) plus a second small Go repo for cross-file families; all single-pass semantic scans are intended to stay sub-second so the no-cache repeats stay cheap.",
     "frontier_link": "liquid (ruby) and junit5 (java) are repos that appear in bench/type4/real_frontier.v1.json (#36), so this subset already overlaps the live Type-4 frontier; replace or extend `repos` with #36's next batch as it lands."
   }
 }

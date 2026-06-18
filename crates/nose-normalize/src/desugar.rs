@@ -13,7 +13,7 @@
 
 use crate::idioms::{canon_call_with_domains, CallCanon};
 use crate::NormalizeOptions;
-use nose_il::{Builtin, Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
+use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{
     admitted_library_method_call_at_call, admitted_property_builtin_at_field,
     seq_surface_contract_for_node, DomainRequirement, MethodSemanticContract,
@@ -235,15 +235,12 @@ impl Rebuilder<'_> {
         }
     }
 
-    /// `x.length` → `Len(x)` when the receiver has exact collection proof;
-    /// others pass through.
+    /// Proven collection properties like `x.length`, `x.count`, and `x.isEmpty`
+    /// lower to their canonical builtins when the receiver proof is exact.
     fn field(&mut self, old_id: NodeId) -> NodeId {
         let n = *self.old.node(old_id);
         if let Some(admitted) = admitted_property_builtin_at_field(self.old, self.interner, old_id)
         {
-            if admitted.contract.result != Builtin::Len {
-                return self.generic(old_id);
-            }
             let Some(base) = admitted.receiver else {
                 return self.generic(old_id);
             };
@@ -423,7 +420,7 @@ mod tests {
         assert!(
             !out.nodes
                 .iter()
-                .any(|node| matches!(node.payload, Payload::Builtin(Builtin::Len))),
+                .any(|node| matches!(node.payload, Payload::Builtin(nose_il::Builtin::Len))),
             "raw HOF selector plus receiver evidence must not prove length semantics"
         );
     }

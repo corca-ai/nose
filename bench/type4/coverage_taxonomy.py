@@ -34,8 +34,8 @@ Fields per axis:
 
 from __future__ import annotations
 
-# The 8 source languages the corpus patterns target (js and ts tracked separately).
-LANGS = ["c", "go", "java", "javascript", "typescript", "python", "ruby", "rust"]
+# The 9 source languages the corpus patterns target (js and ts tracked separately).
+LANGS = ["c", "go", "java", "javascript", "typescript", "python", "ruby", "rust", "swift"]
 
 FEASIBILITY_ORDER = ["fixable", "partial", "landed", "research", "out-of-scope"]
 

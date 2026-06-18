@@ -11,7 +11,7 @@ semantic matching fail-closed unless the required facts and contracts are presen
 
 ## Supported languages
 
-Eight **imperative** base languages, each with its own CST→IL lowering (JavaScript and
+Nine **imperative** base languages, each with its own CST→IL lowering (JavaScript and
 TypeScript share one path):
 
 | language | extensions |
@@ -24,6 +24,7 @@ TypeScript share one path):
 | Java | `.java` |
 | C | `.c`, `.h` |
 | Ruby | `.rb` |
+| Swift | `.swift` |
 
 JSX and TSX are handled by the JavaScript/TypeScript lowering path (the type syntax is
 erased during [normalization](normalization.md)). Their **JSX markup** is lowered into
@@ -168,7 +169,7 @@ gaps is how a language becomes a first-class citizen — for example, the Go
 composite-literal/`slice_expression`/`type_assertion` work that took Go from 0.40% to 0.03%,
 or lowering Rust and Python `match` arms to if-chains so pattern-matched code converges with
 its conditional equivalent. The [experiments](experiments.md) log records the full sequence of
-gap closures (Java records, Rust `async` blocks, Go/JS/TS/C/Java/Ruby `switch`/`case` shapes,
+gap closures (Java records, Rust `async` blocks, Go/JS/TS/C/Java/Ruby/Swift `switch`/`case` shapes,
 and more); the convergence-test discipline that keeps each one honest is in
 [`CONTRIBUTING`](../CONTRIBUTING.md).
 

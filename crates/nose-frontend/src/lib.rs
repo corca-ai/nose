@@ -16,6 +16,7 @@ mod module_imports;
 mod python;
 mod ruby;
 mod rust;
+mod swift;
 mod type_domain_aliases;
 
 pub use coverage::{coverage, CoverageReport};
@@ -79,6 +80,7 @@ pub fn lower_source(
         Lang::Java => java::lower(file, path, src, interner),
         Lang::C => c::lower(file, path, src, interner),
         Lang::Ruby => ruby::lower(file, path, src, interner),
+        Lang::Swift => swift::lower(file, path, src, interner),
         Lang::Css => css::lower(file, path, src, interner),
         Lang::Vue | Lang::Svelte | Lang::Html => embedded::lower(file, path, src, lang, interner),
     }

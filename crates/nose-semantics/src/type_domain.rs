@@ -297,6 +297,7 @@ pub fn type_domain_from_source_text(lang: Lang, text: &str) -> Option<DomainEvid
         Lang::Java => java_type_domain(text),
         Lang::Go => go_type_domain(text),
         Lang::C => c_type_domain(text),
+        Lang::Swift => swift_type_domain(text),
         // CSS is declarative — no type annotations.
         Lang::Css | Lang::JavaScript | Lang::Ruby | Lang::Vue | Lang::Svelte | Lang::Html => None,
     }
@@ -525,6 +526,63 @@ fn c_type_domain(text: &str) -> Option<DomainEvidence> {
         return Some(DomainEvidence::Boolean);
     }
     None
+}
+
+fn swift_type_domain(text: &str) -> Option<DomainEvidence> {
+    let ty = swift_annotation_suffix(text);
+    if ty.starts_with('[') && ty.contains(':') {
+        return Some(DomainEvidence::Map);
+    }
+    if ty.starts_with('[') || ty.starts_with("array<") || ty.starts_with("contiguousarray<") {
+        return Some(DomainEvidence::Collection);
+    }
+    if ty.starts_with("dictionary<") {
+        return Some(DomainEvidence::Map);
+    }
+    if ty.starts_with("set<") {
+        return Some(DomainEvidence::Set);
+    }
+    if ty.starts_with("optional<") || ty.ends_with('?') {
+        return Some(DomainEvidence::Option);
+    }
+    if ty.starts_with("result<") {
+        return Some(DomainEvidence::Result);
+    }
+    if matches!(
+        swift_type_name(&ty),
+        "sequence" | "anysequence" | "collection" | "anycollection"
+    ) {
+        return Some(DomainEvidence::Iterable);
+    }
+    match swift_type_name(&ty) {
+        "bool" => Some(DomainEvidence::Boolean),
+        "string" | "substring" | "character" => Some(DomainEvidence::String),
+        "int" | "int8" | "int16" | "int32" | "int64" | "uint" | "uint8" | "uint16" | "uint32"
+        | "uint64" => Some(DomainEvidence::Integer),
+        "float" | "double" | "float16" | "float32" | "float64" | "cgfloat" => {
+            Some(DomainEvidence::Float)
+        }
+        _ => None,
+    }
+}
+
+fn swift_annotation_suffix(text: &str) -> String {
+    let compact = compact_lower(text);
+    let suffix = compact
+        .split_once(':')
+        .map(|(_, ty)| ty)
+        .unwrap_or(compact.as_str());
+    suffix.split('=').next().unwrap_or(suffix).to_string()
+}
+
+fn swift_type_name(ty: &str) -> &str {
+    ty.trim_matches(|c| c == '?' || c == '!')
+        .split(['<', '[', '('])
+        .next()
+        .unwrap_or(ty)
+        .rsplit('.')
+        .next()
+        .unwrap_or(ty)
 }
 
 fn compact_lower(text: &str) -> String {

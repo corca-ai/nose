@@ -18,6 +18,11 @@ The factory is evidence-carrying by design:
   schema also reserves `E3` for stronger future proof/oracle evidence);
 - generated source paths and metadata are written into a manifest.
 
+Swift is included as a first-party surface. Its checked-in coverage probes currently cover
+collection emptiness, string prefix/suffix, collection membership, option presence, and
+for-in/indexed reduction, with adjacent hard negatives recorded in
+`coverage_evidence.v1.json`.
+
 The generated manifest is a candidate benchmark artifact. A case becomes gold only after it
 passes the promotion rules in the docs.
 

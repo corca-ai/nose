@@ -49,6 +49,7 @@ SOURCE_SUFFIXES = (
     ".rb",
     ".rs",
     ".svelte",
+    ".swift",
     ".ts",
     ".tsx",
 )

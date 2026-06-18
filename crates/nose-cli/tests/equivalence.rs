@@ -452,6 +452,90 @@ fn filtered_count_aggregates_converge_with_count_loop() {
 }
 
 #[test]
+fn swift_foreach_and_standard_apis_join_existing_semantic_families() {
+    let i = Interner::new();
+    let py_loop =
+        "def f(xs):\n    total = 0\n    for x in xs:\n        if x > 0:\n            total = total + x\n    return total\n";
+    let swift_loop = "func f(_ xs: [Int]) -> Int {\n    var total = 0\n    for x in xs {\n        if x > 0 {\n            total = total + x\n        }\n    }\n    return total\n}\n";
+    assert_eq!(
+        value_fp(&i, swift_loop, Lang::Swift),
+        value_fp(&i, py_loop, Lang::Python),
+        "Swift typed for-in accumulator should converge with the Python foreach accumulator"
+    );
+
+    let swift_count = "func f(_ xs: [Int]) -> Int {\n    return xs.count + 1\n}\n";
+    let ts_count = "function f(xs: number[]): number {\n    return xs.length + 1;\n}\n";
+    assert_eq!(
+        value_fp(&i, swift_count, Lang::Swift),
+        value_fp(&i, ts_count, Lang::TypeScript),
+        "Swift count should converge with JS-family length"
+    );
+
+    let swift_empty = "func f(_ xs: [Int]) -> Bool {\n    return xs.isEmpty\n}\n";
+    let java_empty =
+        "import java.util.List;\nclass C { boolean f(List<Integer> xs) { return xs.isEmpty(); } }\n";
+    assert_eq!(
+        value_fp(&i, swift_empty, Lang::Swift),
+        value_fp(&i, java_empty, Lang::Java),
+        "Swift isEmpty should converge with Java collection isEmpty"
+    );
+
+    let swift_contains = "func f(_ xs: [Int]) -> Bool {\n    return xs.contains(3)\n}\n";
+    let ts_contains = "function f(xs: number[]): boolean {\n    return xs.includes(3);\n}\n";
+    let swift_contains_changed = "func f(_ xs: [Int]) -> Bool {\n    return xs.contains(4)\n}\n";
+    assert_eq!(
+        value_fp(&i, swift_contains, Lang::Swift),
+        value_fp(&i, ts_contains, Lang::TypeScript),
+        "Swift contains should converge with JS-family includes"
+    );
+    assert_ne!(
+        value_fp(&i, swift_contains, Lang::Swift),
+        value_fp(&i, swift_contains_changed, Lang::Swift),
+        "changing the Swift membership element is a hard negative"
+    );
+
+    let swift_string =
+        "func f(_ s: String) -> Bool {\n    return s.hasPrefix(\"a\") || s.hasSuffix(\"z\")\n}\n";
+    let ts_string = "function f(s: string): boolean {\n    return s.startsWith(\"a\") || s.endsWith(\"z\");\n}\n";
+    let swift_string_changed =
+        "func f(_ s: String) -> Bool {\n    return s.hasPrefix(\"b\") || s.hasSuffix(\"z\")\n}\n";
+    assert_eq!(
+        value_fp(&i, swift_string, Lang::Swift),
+        value_fp(&i, ts_string, Lang::TypeScript),
+        "Swift string affix APIs should converge with JS-family affix APIs"
+    );
+    assert_ne!(
+        value_fp(&i, swift_string, Lang::Swift),
+        value_fp(&i, swift_string_changed, Lang::Swift),
+        "changing a Swift string literal in an affix predicate is a hard negative"
+    );
+
+    let swift_nullish =
+        "func f(_ value: Int?, _ fallback: Int, _ other: Int?) -> Int {\n    return value ?? fallback\n}\n";
+    let swift_nullish_renamed =
+        "func g(_ candidate: Int?, _ defaultValue: Int, _ ignored: Int?) -> Int {\n    return candidate ?? defaultValue\n}\n";
+    let swift_wrong_default =
+        "func f(_ value: Int?, _ fallback: Int, _ other: Int?) -> Int {\n    return value ?? 0\n}\n";
+    let swift_wrong_value =
+        "func f(_ value: Int?, _ fallback: Int, _ other: Int?) -> Int {\n    return other ?? fallback\n}\n";
+    assert_eq!(
+        unit_hash(&i, swift_nullish, Lang::Swift),
+        unit_hash(&i, swift_nullish_renamed, Lang::Swift),
+        "Swift nil-coalescing should normalize alpha-equivalently"
+    );
+    assert_ne!(
+        unit_hash(&i, swift_nullish, Lang::Swift),
+        unit_hash(&i, swift_wrong_default, Lang::Swift),
+        "changing the Swift nil-coalescing fallback is a hard negative"
+    );
+    assert_ne!(
+        unit_hash(&i, swift_nullish, Lang::Swift),
+        unit_hash(&i, swift_wrong_value, Lang::Swift),
+        "changing the Swift nil-coalescing value coordinate is a hard negative"
+    );
+}
+
+#[test]
 fn java_stream_aggregates_converge_with_loops() {
     // Java stream pipelines should lower into the same shared iteration/reduction
     // shapes as enhanced-for loops: `Arrays.stream(xs)` is just the source collection,

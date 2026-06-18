@@ -1,0 +1,160 @@
+{
+  "schema_version": "0.1.0",
+  "families": [
+    {
+      "family_id": "f951a44a0305ca12",
+      "repo": "type4-swift-probes",
+      "split": "dev",
+      "channel": "structural",
+      "scope": "prod",
+      "members": [
+        {
+          "file": "bench/type4/coverage_probes/reduce_minmax_anyall/swift/pos/a.swift",
+          "start_line": 1,
+          "end_line": 7,
+          "name": "f"
+        },
+        {
+          "file": "bench/type4/coverage_probes/reduce_minmax_anyall/swift/pos/b.swift",
+          "start_line": 1,
+          "end_line": 9,
+          "name": "f"
+        }
+      ],
+      "worthy": true,
+      "reason": "extract-helper",
+      "confidence": "high",
+      "labeler": "panel",
+      "votes": {
+        "pragmatic": { "worthy": true, "reason": "extract-helper" },
+        "dedupe": { "worthy": true, "reason": "extract-helper" },
+        "skeptic": { "worthy": true, "reason": "extract-helper" }
+      },
+      "note": "LLM judge panel, 2026-06-18: for-in and indexed loops compute the same sum over one typed Swift collection; the adjacent product hard negative in coverage_probes/reduce_minmax_anyall/swift/neg-op changes the monoid."
+    },
+    {
+      "family_id": "7a6ff4f03553d4b8",
+      "repo": "type4-swift-probes",
+      "split": "dev",
+      "channel": "structural",
+      "scope": "prod",
+      "members": [
+        {
+          "file": "bench/type4/coverage_probes/collection_empty_check/swift/pos/a.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "f"
+        },
+        {
+          "file": "bench/type4/coverage_probes/collection_empty_check/swift/pos/b.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "g"
+        }
+      ],
+      "worthy": true,
+      "reason": "parameterize",
+      "confidence": "high",
+      "labeler": "panel",
+      "votes": {
+        "pragmatic": { "worthy": true, "reason": "parameterize" },
+        "dedupe": { "worthy": true, "reason": "parameterize" },
+        "skeptic": { "worthy": true, "reason": "parameterize" }
+      },
+      "note": "LLM judge panel, 2026-06-18: both members expose the same typed Swift collection emptiness predicate; the neg-op probe flips the predicate and must stay out."
+    },
+    {
+      "family_id": "9ae45a9c50dd0026",
+      "repo": "type4-swift-probes",
+      "split": "dev",
+      "channel": "structural",
+      "scope": "prod",
+      "members": [
+        {
+          "file": "bench/type4/coverage_probes/string_prefix_suffix/swift/pos/a.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "f"
+        },
+        {
+          "file": "bench/type4/coverage_probes/string_prefix_suffix/swift/pos/b.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "g"
+        }
+      ],
+      "worthy": true,
+      "reason": "parameterize",
+      "confidence": "high",
+      "labeler": "panel",
+      "votes": {
+        "pragmatic": { "worthy": true, "reason": "parameterize" },
+        "dedupe": { "worthy": true, "reason": "parameterize" },
+        "skeptic": { "worthy": true, "reason": "parameterize" }
+      },
+      "note": "LLM judge panel, 2026-06-18: both members test the same literal prefix/suffix coordinates on a typed Swift String; the neg-affix probe changes the prefix literal."
+    },
+    {
+      "family_id": "be7b4817543aa45c",
+      "repo": "type4-swift-probes",
+      "split": "dev",
+      "channel": "structural",
+      "scope": "prod",
+      "members": [
+        {
+          "file": "bench/type4/coverage_probes/membership_contains/swift/pos/a.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "f"
+        },
+        {
+          "file": "bench/type4/coverage_probes/membership_contains/swift/pos/b.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "g"
+        }
+      ],
+      "worthy": true,
+      "reason": "parameterize",
+      "confidence": "high",
+      "labeler": "panel",
+      "votes": {
+        "pragmatic": { "worthy": true, "reason": "parameterize" },
+        "dedupe": { "worthy": true, "reason": "parameterize" },
+        "skeptic": { "worthy": true, "reason": "parameterize" }
+      },
+      "note": "LLM judge panel, 2026-06-18: both members test the same typed Swift collection membership coordinate; the neg-element probe changes the searched value."
+    },
+    {
+      "family_id": "47922201ca0f1db8",
+      "repo": "type4-swift-probes",
+      "split": "dev",
+      "channel": "structural",
+      "scope": "prod",
+      "members": [
+        {
+          "file": "bench/type4/coverage_probes/null_option_presence/swift/pos/a.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "f"
+        },
+        {
+          "file": "bench/type4/coverage_probes/null_option_presence/swift/pos/b.swift",
+          "start_line": 1,
+          "end_line": 3,
+          "name": "g"
+        }
+      ],
+      "worthy": true,
+      "reason": "parameterize",
+      "confidence": "high",
+      "labeler": "panel",
+      "votes": {
+        "pragmatic": { "worthy": true, "reason": "parameterize" },
+        "dedupe": { "worthy": true, "reason": "parameterize" },
+        "skeptic": { "worthy": true, "reason": "parameterize" }
+      },
+      "note": "LLM judge panel, 2026-06-18: both members test the same Swift Optional absence predicate; the neg-direction probe flips the null direction."
+    }
+  ]
+}

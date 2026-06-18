@@ -76,6 +76,7 @@ pub fn declaration_facts(ext: &str, src: &str) -> Option<DeclarationFacts> {
         "java" => (grammar::JAVA, || tree_sitter_java::LANGUAGE.into()),
         "c" | "h" => (grammar::C, || tree_sitter_c::LANGUAGE.into()),
         "rb" => (grammar::RUBY, || tree_sitter_ruby::LANGUAGE.into()),
+        "swift" => (grammar::SWIFT, || tree_sitter_swift::LANGUAGE.into()),
         _ => return None,
     };
     // A UTF-8 BOM (Windows-authored files) makes tree-sitter emit an error

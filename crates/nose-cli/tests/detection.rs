@@ -183,6 +183,7 @@ fn cross_language_family_groups_proven_foreach_languages() {
     let rs = "fn k(items: &[i32]) -> i32 {\n    let mut total = 0;\n    for x in items {\n        if *x > 0 {\n            total = total + x;\n        }\n    }\n    total\n}\n";
     let java = "class C {\n    int m(int[] items) {\n        int total = 0;\n        for (int x : items) {\n            if (x > 0) {\n                total = total + x;\n            }\n        }\n        return total;\n    }\n}\n";
     let ruby = "def f(items)\n  total = 0\n  items.each do |x|\n    if x > 0\n      total = total + x\n    end\n  end\n  total\nend\n";
+    let swift = "func f(_ items: [Int]) -> Int {\n    var total = 0\n    for x in items {\n        if x > 0 {\n            total = total + x\n        }\n    }\n    return total\n}\n";
     let decoy = "def greet(name):\n    msg = 'hi ' + name\n    print(msg)\n    return msg\n";
     let corpus = build(&[
         ("acc.py", py, Lang::Python),
@@ -191,6 +192,7 @@ fn cross_language_family_groups_proven_foreach_languages() {
         ("acc.rs", rs, Lang::Rust),
         ("acc.java", java, Lang::Java),
         ("acc.rb", ruby, Lang::Ruby),
+        ("acc.swift", swift, Lang::Swift),
         ("decoy.py", decoy, Lang::Python),
     ]);
     let opts = DetectOptions {
@@ -209,8 +211,8 @@ fn cross_language_family_groups_proven_foreach_languages() {
         .find(|f| f.languages >= 2)
         .expect("a cross-language family must exist");
     assert!(
-        xlang.languages == 4 && xlang.members == 4,
-        "py/go/rust/java accumulators form one 4-language, 4-site family (got {} langs, {} sites)",
+        xlang.languages == 5 && xlang.members == 5,
+        "py/go/rust/java/swift accumulators form one 5-language, 5-site family (got {} langs, {} sites)",
         xlang.languages,
         xlang.members
     );

@@ -437,7 +437,7 @@ law without promising a scan-family JSON row.
 The current `nose.first_party` compiled facade should be understood as a set of
 implicit v0 packs:
 
-- language packs for JS/TS, Python, Go, Rust, C, Java, Ruby, and embedded JS/TS
+- language packs for JS/TS, Python, Go, Rust, C, Java, Ruby, Swift, and embedded JS/TS
   containers emit source, symbol, import, domain, guard, place/effect,
   call-target, and sequence-surface evidence;
 - stdlib packs declare library API occurrence contracts such as Python builtins,

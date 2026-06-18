@@ -101,6 +101,7 @@ SURFACES = [
     Surface("java", "java", "java"),
     Surface("c", "c", "c"),
     Surface("ruby", "ruby", "rb"),
+    Surface("swift", "swift", "swift"),
     Surface("vue", "javascript", "vue", "script"),
     Surface("svelte", "javascript", "svelte", "script"),
     Surface("html", "javascript", "html", "script"),
@@ -243,5 +244,4 @@ def capability_exact_supported(capabilities: dict, surface: Surface, axis: str) 
 
 def js_axis_source(surface: Surface, body: str, entrypoint: str = "axisCase") -> Variant:
     return Variant("axis", js_script_wrap(surface, body), entrypoint, js_start_line(surface))
-
 

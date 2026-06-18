@@ -200,14 +200,19 @@ and `HOF_CASE_BUDGETS`.
 
 ## Subset (and the #36 link)
 
-`subset.json` lists one repo per supported language plus a second small Go repo, all
-sub-second single-pass scans so the no-cache repeats stay cheap. `liquid` (ruby) and
-`junit5` (java) also appear in the Type-4 frontier (`../real_frontier.v1.json`, #36), so
-the subset already overlaps live frontier work. To measure #36's next batch, edit
-`repos` (and `repos_root` if needed) — the harness is fully data-driven.
+`subset.json` lists one repo per supported imperative corpus language plus a second
+small Go repo, all intended to stay sub-second for single-pass scans so the no-cache
+repeats stay cheap. `liquid` (ruby) and `junit5` (java) also appear in the Type-4
+frontier (`../real_frontier.v1.json`, #36), so the subset already overlaps live
+frontier work. `swift-metrics` is the Swift bring-up representative because its pinned
+checkout is small. To measure #36's next batch, edit `repos` (and `repos_root` if
+needed) — the harness is fully data-driven.
 
 ## Refreshing the committed baseline
 
 Re-record `baseline.v1.json` when `main`'s product output legitimately changes (a
 reviewed detector change merges). Regenerate from `main` with the `baseline` command
 above and commit the result, so the snapshot keeps tracking accepted product behavior.
+The committed baseline carries its own recorded repo list for stable compares; after a
+supported-language subset change, the next baseline refresh is what brings the new subset
+repo into `compare`.

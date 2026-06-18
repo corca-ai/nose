@@ -14,6 +14,7 @@ const LANGS: &[(Lang, &str)] = &[
     (Lang::Java, "java"),
     (Lang::C, "c"),
     (Lang::Ruby, "rb"),
+    (Lang::Swift, "swift"),
     (Lang::Css, "css"),
     (Lang::Vue, "vue"),
     (Lang::Svelte, "svelte"),
