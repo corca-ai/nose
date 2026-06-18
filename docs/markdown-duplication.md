@@ -36,7 +36,7 @@ judge whether a repetition is intentional, acceptable, or worth removing — tha
 and the maintainer's call (see [design](design.md)). Consequences:
 
 - **Boilerplate copies (license / code-of-conduct / templates) are true duplicates** — reported
-  with high `commonness`, never silently suppressed. You decide if they matter.
+  with high `commonness`, never silently suppressed.
 - The honesty contract: output says **"near-duplicate (score + witness + commonness)"**, never
   "same meaning" and never "you should remove this".
 - Precision targets the **duplication relation** (don't call unrelated or merely same-topic

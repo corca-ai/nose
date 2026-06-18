@@ -222,11 +222,9 @@ metadata are documented in [fragment-contracts](fragment-contracts.md) and
 > [Ranking](#ranking) keys and [Detection modes](#detection-modes) above apply to both surfaces.
 
 `nose scan <paths…>` scans one or more files/directories (recursively, respecting
-`.gitignore` files inside each scanned tree), groups duplicated code into **families**, and
-ranks them by **extractability** — how much shared code each family has and how little varies — so the
-duplication you can actually act on surfaces first. With no `--mode`, it runs
-`syntax,semantic,near`: CPD-style syntax runs, exact semantic Type-4 clones, and
-fuzzy Type-3 near-duplicates.
+`.gitignore` files inside each scanned tree) and groups duplicated code into **families**.
+Ranking (default `extractability`) and detection channels (default `syntax,semantic,near`)
+follow the shared [Ranking](#ranking) and [Detection modes](#detection-modes) sections above.
 
 ```sh
 nose scan path/to/project

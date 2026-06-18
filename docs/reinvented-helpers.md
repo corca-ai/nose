@@ -54,8 +54,8 @@ Two exclusions keep the surface honest:
   is "call it". It lists every finding, test-container ones included.
   `nose scan --show reinvented` is the deprecated equivalent.
 - **Human report**: the default report LISTS the non-test findings (top by weight) —
-  promoted from a one-line count after a [field audit](reinvented-helper-audit-2026-06-13.md)
-  measured them at 94% genuine value-duplications / 71% directly actionable ([design §2c](design.md)).
+  promoted from a one-line count after the [2026-06-13 field audit](reinvented-helper-audit-2026-06-13.md)
+  ([design §2c](design.md)); the audit's precision figures are in the Measured section below.
   Findings whose CONTAINER is a test file (`container_in_test`) are a decidable
   judgment-deep class ([design §2b](design.md)) — a test asserting the helper's value as a literal would be
   circular to "fix" — so they are excluded from the default and shown only by the `reinvented`

@@ -111,6 +111,8 @@ skeleton, and a diff. Add `full` to render the skeleton inline:
 $ nose query examples id=a47c37baa1 full
 a47c37baa1 — exact · prod · 6 copies · 0/7 shared, 0p · ~0 removable
   → local duplication — extract a helper (cross-language)
+  why this hint:
+    - an implementation body was found
   copies:
     examples/sum.go:3-9  SumFor
     examples/sum.go:11-17  SumRange

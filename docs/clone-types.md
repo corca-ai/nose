@@ -162,12 +162,12 @@ core canonicalizations, but not a per-scan or whole-pipeline proof. See
   fragment shapes is in [fragment-contracts](fragment-contracts.md).
 
 Exact fragment proof is not the same thing as user-facing refactorability. Fragment
-locations carry stable proof metadata (`is_fragment`, `fragment_kind`, `reason_code`,
-span size, and `enclosing_unit` when recoverable), but product placement is decided
-separately with `recommended_surface` (`default`, `review`, `hidden`, and a few more curation
-tiers). See [fragment-contracts](fragment-contracts.md) for the exact-fragment contract; the
-stable output field names are documented under the [scan-JSON v1](scan-json.md#fragment-metadata)
-contract (deprecated, but still the reference for these fragment fields).
+locations carry stable proof metadata explaining why a region is exact-safe, but product
+placement — which surface a family lands on — is decided separately. See
+[fragment-contracts](fragment-contracts.md) for the exact-fragment contract; the stable
+output field names and curation tiers are documented under the
+[scan-JSON v1](scan-json.md#fragment-metadata) contract (deprecated, but still the reference
+for these fragment fields).
 
 ## Declarative languages (CSS / HTML) — the taxonomy on a different denotation
 
