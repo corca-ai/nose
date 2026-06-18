@@ -4,6 +4,24 @@ All notable changes to nose are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); pre-1.0, so minor versions may
 break.
 
+## [Unreleased]
+
+### Added
+- **Markdown same-language near-duplicate detection (`nose markdown`, epic #435).** A new,
+  deliberately separate `nose-markdown` engine finds near-duplicate **prose** across Markdown
+  documents — prose is not code, so it uses a character-n-gram pipeline (MinHash-LSH + winnowing
+  + containment candidate generation → IDF-weighted TF-IDF verify/rank → line-level
+  Smith-Waterman span witness), not the value-graph IL. Reports ranked families with a relation
+  tier + score, an exact **span witness**, and orthogonal evidence (**commonness**/DF, removable
+  lines, files). Honesty contract: "near-duplicate (score + witness + commonness)", never "same
+  meaning" or "worth removing" — boilerplate copies are true duplicates surfaced with high
+  commonness, never suppressed. Same-language only (cross-lingual/paraphrase need an LLM, out of
+  scope). Deterministic (byte-identical output). Measured against a frozen, **LLM-built golden**
+  (`bench/markdown/`, no human in the loop: 3 heterogeneous judges, Fleiss κ 0.70, anchor
+  self-calibration 1.0): PR-AUC 0.995, R@P95 0.96, candidate-recall 1.0. Built on the algorithm
+  survey in `docs/markdown-dup-detection-algorithm-survey-2026-06-18.md`. See
+  [docs/markdown-duplication.md](docs/markdown-duplication.md). (#436 #437 #438 #439 #440 #441)
+
 ## [0.12.0] - 2026-06-18
 
 Reworks the `nose query` terminal output to match the project's reporting philosophy —
