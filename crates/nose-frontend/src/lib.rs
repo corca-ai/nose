@@ -296,7 +296,7 @@ mod tests {
         let il = lower_source(
             FileId(0),
             "P.swift",
-            b"protocol P {\n  func run()\n}\n",
+            b"protocol P {\n  var name: String { get }\n  func run()\n}\n",
             Lang::Swift,
             &interner,
         )
@@ -407,19 +407,36 @@ mod tests {
         let il = lower_source(
             FileId(0),
             "C.swift",
-            b"class C {\n  func run() { print(1) }\n}\n",
+            b"class C {\n  var name: String { get { \"x\" } }\n}\nclass D {\n  func run() { print(1) }\n}\n",
             Lang::Swift,
             &interner,
         )
         .expect("lower swift class");
-        let unit = il
+        let computed_property_class = il
             .units
             .iter()
-            .find(|unit| unit.kind == UnitKind::Class)
-            .expect("class unit");
-        assert!(unit.origin.has_domain(UnitDomain::ImplementationType));
-        assert_eq!(unit.origin.subkind, UnitSubkind::Class);
-        assert!(unit.origin.has_evidence(UnitEvidenceFlag::HasReusableBody));
+            .find(|unit| {
+                unit.kind == UnitKind::Class
+                    && unit.name == Some(interner.intern("C"))
+                    && unit.origin.subkind == UnitSubkind::Class
+            })
+            .expect("computed-property class unit");
+        assert!(computed_property_class
+            .origin
+            .has_domain(UnitDomain::ImplementationType));
+        assert_eq!(computed_property_class.origin.subkind, UnitSubkind::Class);
+        assert!(computed_property_class
+            .origin
+            .has_evidence(UnitEvidenceFlag::HasReusableBody));
+
+        let method_class = unit_named(&il, &interner, UnitKind::Class, "D");
+        assert!(method_class
+            .origin
+            .has_domain(UnitDomain::ImplementationType));
+        assert_eq!(method_class.origin.subkind, UnitSubkind::Class);
+        assert!(method_class
+            .origin
+            .has_evidence(UnitEvidenceFlag::HasReusableBody));
     }
 
     #[test]

@@ -291,7 +291,14 @@ fn swift_node_has_reusable_body(node: TsNode) -> bool {
         }
         matches!(
             child.kind(),
-            "function_body" | "getter_effects" | "setter_effects" | "code_block"
+            "function_body"
+                | "getter_effects"
+                | "setter_effects"
+                | "code_block"
+                | "computed_getter"
+                | "computed_modify"
+                | "computed_setter"
+                | "computed_property"
         ) || child.child_by_field_name("body").is_some()
             || swift_node_has_reusable_body(child)
     })
