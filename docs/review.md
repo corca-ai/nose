@@ -2,8 +2,8 @@
 
 > **Deprecated since 0.10.0** (still works). `nose review --base <ref>` is now `nose query <paths> base=<ref>`
 > — the same detection and the same `fire_eligible` gate, under the unified
-> [query](usage.md#nose-query) surface (`base=REF --fail-on any` is the gate). `review` still
-> works and `capabilities` lists it under `commands.deprecated`; it is slated for removal in a
+> [query](usage.md#nose-query) surface (`base=REF --fail-on any` is the gate). `capabilities`
+> lists `review` under `commands.deprecated`; it is slated for removal in a
 > later release. The mechanics below are unchanged and describe both spellings.
 
 `nose review` flags clone families that were **edited inconsistently** in a change set:

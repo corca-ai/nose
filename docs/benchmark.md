@@ -87,16 +87,17 @@ not), one per equivalence-class axis.
 cargo test -p nose-cli --test css_html_quality -- --nocapture   # recall + soundness, per axis
 ```
 
-Headline (current): **recall 11/11 positive groups converged (100%)** across the modeled
+Headline (current): **recall 13/13 positive groups converged (100%)** across the modeled
 axes — CSS color (hex/short/name/`rgb()`), extended named colors, `hsl()`/`url()` spelling,
 zero-units, number canon, box-shorthand collapse, declaration-order and selector
-independence; HTML DOM normalization (attribute order/boolean/`class`-set/whitespace/case),
-inline-`style=` canonicalization, and Vue/Svelte directive shorthand — and **soundness 12/12
-hard negatives kept distinct (100%)** (distinct colors/values, repeated-property and
-shorthand/longhand cascade order, box-not-all-equal, value-order, at-rule condition, `hsl`
-distinctness; HTML text/attr/child-order/`<pre>`-whitespace differences). CSS, HTML, and
-imperative fingerprints are domain-disjoint, so the language-blind exact channel can never
-merge across them.
+independence, media-query condition and value canonicalization; HTML DOM normalization
+(attribute order/boolean/`class`-set/whitespace/case), inline-`style=` canonicalization, and
+Vue/Svelte directive shorthand — and **soundness 14/14 hard negatives kept distinct (100%)**
+(distinct colors/values, repeated-property and shorthand/longhand cascade order,
+box-not-all-equal, value-order, at-rule condition, `hsl` distinctness, `@media` vs `@supports`
+and distinct media conditions; HTML text/attr/child-order/`<pre>`-whitespace differences).
+CSS, HTML, and imperative fingerprints are domain-disjoint, so the language-blind exact
+channel can never merge across them.
 
 Coverage is first-class: the [Raw-node ratio](languages.md#coverage-and-adding-a-language)
 on real-world `.css`/`.html` is sub-percent (CSS ~0.002%, HTML ~0.4% on hand-written

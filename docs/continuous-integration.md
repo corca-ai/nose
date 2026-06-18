@@ -117,13 +117,10 @@ nose query src --ignore-file nose.ignore.json --fail-on any
 ```
 
 Ignored families are removed from the active report, so they do not fail `--fail-on any`
-or `--fail-on new`. The ignore file keeps each suppression's reason, note, owner, expiry, and
-selectors as the audit record. (The deprecated `nose scan --format json` also echoes the
-suppressed families back under an `ignored_families` array.)
+or `--fail-on new`.
 
 Malformed ignore files fail the run. Expired entries are reported as warnings on stderr
-and are not applied (the deprecated `nose scan --format json` also lists them under
-`ignore.expired`). That makes stale waivers visible instead of silently hiding
+and are not applied. That makes stale waivers visible instead of silently hiding
 duplication. See [structured-ignores](structured-ignores.md) for the file format and
 selector semantics.
 

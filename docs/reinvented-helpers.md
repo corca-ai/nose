@@ -50,11 +50,9 @@ Two exclusions keep the surface honest:
 
 ## Surface
 
-- **`nose query <path> reinvented`** (primary): the forward exploration view — the
-  reinvented-helper findings as query-JSON's `reinvented` view (`items[]`, each
-  `{helper, site, value, approximate}`); the action is "call it". It lists every finding,
-  test-container ones included. `nose scan --show reinvented` is the deprecated equivalent.
-  See [query-json](query-json.md).
+- **`nose query <path> reinvented`** (primary): the forward exploration view — the action
+  is "call it". It lists every finding, test-container ones included.
+  `nose scan --show reinvented` is the deprecated equivalent.
 - **Human report**: the default report LISTS the non-test findings (top by weight) —
   promoted from a one-line count after a [field audit](reinvented-helper-audit-2026-06-13.md)
   measured them at 94% genuine value-duplications / 71% directly actionable ([design §2c](design.md)).
@@ -62,9 +60,10 @@ Two exclusions keep the surface honest:
   judgment-deep class ([design §2b](design.md)) — a test asserting the helper's value as a literal would be
   circular to "fix" — so they are excluded from the default and shown only by the `reinvented`
   view.
-- **Machine JSON**: query-JSON's `reinvented` view (`items[]`) is the forward contract; the
-  deprecated equivalent is scan-JSON's additive `reinvented_helpers` array (omitted when empty)
-  — see [scan-json](scan-json.md#reinvented-helpers).
+- **Machine JSON**: query-JSON's `reinvented` view (`items[]`, each
+  `{helper, site, value, approximate}`) is the forward contract —
+  see [query-json](query-json.md#views); the deprecated equivalent is scan-JSON's additive
+  `reinvented_helpers` array (omitted when empty) — see [scan-json](scan-json.md#reinvented-helpers).
 - A **vendored** (non-test) container is, like a test container, a consumer judgment
   call — but unlike `container_in_test` it is *not* auto-excluded from the default: nose
   lists it and carries the locations, so the consumer filters by path.

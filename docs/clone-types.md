@@ -190,11 +190,12 @@ out-of-scope list live in [languages](languages.md); the taxonomy mapping is:
   [languages › declarative CSS](languages.md#declarative-languages-css) and
   [HTML markup](languages.md#declarative-languages-html-markup).
 
-**Soundness** is by construction (the fingerprint *is* the canonical computed style /
-rendered DOM, so equal fingerprint ⟺ equal denotation) plus adversarial per-rule
-batteries; CSS, HTML, and imperative fingerprints are domain-disjoint, so the
-language-blind exact channel can never merge across them. What declarative detection does
-**not** do (SCSS/Less, cross-file `var()` resolution, full Svelte block grammar) is in
+**Soundness** is by construction plus adversarial batteries (the mechanism, value
+canonicalization, and cascade rules are in the [languages](languages.md) links above); the
+taxonomy-relevant consequence is that the CSS, HTML, and imperative fingerprints are
+domain-disjoint, so the language-blind exact channel can never merge across them. What
+declarative detection does **not** do — SCSS/Less, cross-file `var()` resolution, full
+Svelte block grammar — is in
 [languages › cross-dialect markup](languages.md#cross-dialect-markup-htmlvuesveltejsxtsx).
 
 ## Detection modes, and cross-language

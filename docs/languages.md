@@ -67,8 +67,7 @@ computed/declared style** of its declaration block — see
 exact clone when they compute the same style, so the same duplicated declaration block
 under different selectors is one family. Concretely the fingerprint is invariant to:
 
-- **selector** — `.btn { … }` and `.cta { … }` with the same declarations merge (a
-  duplicated declaration block is the canonical CSS clone);
+- **selector** — `.btn { … }` and `.cta { … }` with the same declarations merge;
 - **declaration order** — except where it changes the cascade (see below);
 - **value spelling** — `#fff` ≡ `#ffffff` ≡ `white` ≡ `rgb(255 255 255)`; `0px` ≡ `0`;
   `margin: 0 0 0 0` ≡ `margin: 0`; trailing-zero/sign noise.

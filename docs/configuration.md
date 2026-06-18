@@ -16,7 +16,7 @@ sort        = "extractability"
 min-value   = 200
 min-members = 3
 min-size    = 30
-top         = 50            # bounds `nose scan` only; `nose query` uses the `top=` term
+top         = 50
 ignore-file = "nose.ignore.json"
 semantic-packs = ["semantic-packs/python-math-prod.json"]
 ```
@@ -118,8 +118,7 @@ ignore-file = "nose.ignore.json"
 When unset, nose automatically reads `nose.ignore.json` in the current working
 directory if it exists. Pass `--ignore-file <file>` to override the config for one
 run. Ignored families are hidden from the active report and from `--fail-on any` /
-`--fail-on new`; the ignore file keeps the reason, owner, note, and expiry for each
-suppression as the audit record.
+`--fail-on new`.
 
 The file format, selector semantics, and expiry behavior are documented in
 [structured-ignores](structured-ignores.md).

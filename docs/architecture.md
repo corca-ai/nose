@@ -95,6 +95,7 @@ A Cargo workspace; data flows left-to-right through them.
 | `nose-normalize` | the normalization passes, inferred immutable binding-domain evidence, and the value graph (GVN) |
 | `nose-detect` | unit/feature extraction, MinHash/LSH, scoring, clustering, refactor ranking |
 | `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) — see [benchmark](benchmark.md) |
+| `nose-markdown` | self-contained same-language Markdown prose near-duplicate domain (char-n-gram MinHash-LSH + winnowing + containment → TF-IDF rank → span witness), distinct from the value-graph code engine — see [markdown-duplication](markdown-duplication.md) |
 | `nose-cli` | the `nose` binary, config loading, baselines, caching |
 
 The current semantic assumptions these crates share are summarized in

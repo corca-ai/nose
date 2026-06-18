@@ -40,7 +40,7 @@ it can never reorder axes that differ on breadth:
   a hard-coded list — so a `.js` file inside a TypeScript repo cannot invent a new corpus
   language. The file-extension `source_language_breadth` is kept as a separate *diagnostic*
   (denominator = the source languages actually observed) and never drives the ranking;
-- **dev vs held-out generalization** — the 58/47 dev/held-out split is reported separately;
+- **dev vs held-out generalization** — the 66/54 dev/held-out split is reported separately;
   `dev` drives ranking/triage, held-out is a generalization check, and a `dev-only` axis is
   marked as weaker evidence.
 

@@ -126,7 +126,7 @@ is held to proof discipline (§1). Actionability splits by **decidability, not c
   attention and tokens exactly like answering a judgment question internally wastes ours.
   The boundary between "detector's job" and "judge's job" is drawn at decidability.
 - Every such filter is a **classification, never a deletion**: omitted families stay in
-  `--format json --top 0` under an honest surface name (`generated`, `declaration`,
+  `--format json top=0` under an honest surface name (`generated`, `declaration`,
   `hidden`, …) with a count line in the human report — recall-first consumers and audits
   can always opt back in.
 
