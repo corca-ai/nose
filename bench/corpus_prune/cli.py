@@ -91,6 +91,9 @@ def run_self_test() -> None:
         assert (src / "protected.py").exists()
         check_manifest(root, repos, labels_path, manifest_path)
 
+        (repos / ".DS_Store").write_text("metadata\n")
+        check_manifest(root, repos, labels_path, manifest_path)
+
         _, removed_count, verified_only = apply_prune(root, repos, labels_path, manifest_path)
         assert removed_count == 0, removed_count
         assert verified_only

@@ -4,7 +4,8 @@
 # commits, so the corpus MUST be pinned — never point the detector at a working copy
 # that can drift (that silently invalidates every measurement).
 #
-# bench/repos is gitignored (111M). Run this once on a fresh checkout.
+# bench/repos is gitignored (111M). This script is rerunnable: existing pinned
+# clones are reset to the exact commit before pruning is applied again.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [ ! -f bench/prune_corpus.py ]; then
@@ -22,7 +23,12 @@ PY
   dst="bench/repos/$id"
   if [ -d "$dst/.git" ]; then
     have=$(git -C "$dst" rev-parse HEAD 2>/dev/null || echo none)
-    [ "${have:0:12}" = "${commit:0:12}" ] && { echo "ok   $id @ ${commit:0:12}"; continue; }
+    if [ "${have:0:12}" = "${commit:0:12}" ]; then
+      echo "reset $id @ ${commit:0:12}"
+      git -C "$dst" reset --hard --quiet "$commit"
+      git -C "$dst" clean -ffdx --quiet
+      continue
+    fi
   fi
   echo "clone $id @ ${commit:0:12}"
   rm -rf "$dst"
@@ -44,6 +50,9 @@ prune_corpus_dirs() {
   # minified / bundled files
   find bench/repos -type f \( -name '*.min.js' -o -name '*.min.css' -o -name '*.bundle.js' \) \
     -delete 2>/dev/null || true
+  # local filesystem metadata is not part of the pinned corpus and can otherwise
+  # perturb the post-prune digest on macOS workstations.
+  find bench/repos -type f -name '.DS_Store' -delete 2>/dev/null || true
 }
 prune_corpus_dirs
 # File-level generated/vendored prune. A Python pass (bench/prune_corpus.py) replaces the

@@ -379,6 +379,8 @@ def iter_all_files(root: Path) -> Iterable[Path]:
         except OSError:
             continue
         for entry in entries:
+            if entry.name == ".DS_Store":
+                continue
             if entry.is_symlink():
                 yield entry
             elif entry.is_dir():

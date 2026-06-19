@@ -9,12 +9,14 @@ comparable over time. There are two layers, both over the same corpus split.
   gate). The checkouts themselves are NOT committed; point `--repos` at a directory whose
   immediate subdirectories are the repo ids (e.g. `bench/repos`, populated by
   `setup_repos.sh`).
-- `setup_repos.sh` removes any `bench/repos` entry outside the pinned corpus list, clones
-  the pinned commits, then **prunes generated/vendored files**
+- `setup_repos.sh` removes any `bench/repos` entry outside the pinned corpus list, resets
+  existing pinned clones to their exact commits, clones missing/drifted repos, then
+  **prunes generated/vendored files**
   (npm/vendored deps, build output, committed Javadoc/minified bundles, `@generated`
   source) — not code a developer refactors, and they skew clone measurements toward
-  boilerplate. Test fixtures (e.g. `prettier/tests/format`) are intentionally kept (test
-  data is a separate category from generated/vendor).
+  boilerplate. Local filesystem metadata such as `.DS_Store` is discarded before the
+  digest is computed. Test fixtures (e.g. `prettier/tests/format`) are intentionally
+  kept (test data is a separate category from generated/vendor).
 - `labels/prune_manifest.json` records the file-level prune audit: removed generated
   sources, protected label files that were deliberately kept, and the post-prune corpus
   digest. The checked-in manifest is the frozen pinned-corpus audit artifact; reconstructing

@@ -2,9 +2,9 @@
   "banner_zone_bytes": 8192,
   "corpus_digest_after_prune": {
     "algorithm": "sha256(repo_path NUL kind NUL size NUL file_or_symlink_sha256 LF)",
-    "bytes": 1511232850,
-    "files": 119532,
-    "hex": "3f03380de5cf665ca31e8675a375d8ca8a8f8b2fe5db99f306c0948dd029b564"
+    "bytes": 1509667485,
+    "files": 119387,
+    "hex": "7247d64112bc20749de43d91fb86c6f288ae09271a08d67b68aa252d5abb5804"
   },
   "generated_by": "bench/prune_corpus.py",
   "labels": "bench/labels/refactoring_families.v5.json",
@@ -2218,6 +2218,15 @@
       "size": 96752
     },
     {
+      "detail": "matched banner text: DO NOT EDIT! /// The rule list containing all available rules built into SwiftLint. public let builtInRules: [any Rule.T",
+      "path": "bench/repos/swiftlint/Source/swiftlint-dev/Rules+Register.swift",
+      "reason": "generated-banner",
+      "repo": "swiftlint",
+      "repo_path": "swiftlint/Source/swiftlint-dev/Rules+Register.swift",
+      "sha256": "aef328e5698c3c7b9f662bd99d4e83ded260c75e2d37feb88132a1def8c1f43c",
+      "size": 10274
+    },
+    {
       "detail": "matched banner text: DO NOT EDIT BY HAND *** # # Generated",
       "path": "bench/repos/sympy/sympy/parsing/autolev/_antlr/__init__.py",
       "reason": "generated-banner",
@@ -2312,6 +2321,6 @@
   ],
   "totals": {
     "protected_skipped": 25,
-    "removed": 218
+    "removed": 219
   }
 }
