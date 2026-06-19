@@ -2,9 +2,9 @@
   "banner_zone_bytes": 8192,
   "corpus_digest_after_prune": {
     "algorithm": "sha256(repo_path NUL kind NUL size NUL file_or_symlink_sha256 LF)",
-    "bytes": 1408901081,
-    "files": 112042,
-    "hex": "539c316e3b0d73d33241395cecf60698203f362646d3bbd36e72a393a1351d22"
+    "bytes": 1511232850,
+    "files": 119532,
+    "hex": "3f03380de5cf665ca31e8675a375d8ca8a8f8b2fe5db99f306c0948dd029b564"
   },
   "generated_by": "bench/prune_corpus.py",
   "labels": "bench/labels/refactoring_families.v5.json",
@@ -2306,6 +2306,7 @@
     ".rb",
     ".rs",
     ".svelte",
+    ".swift",
     ".ts",
     ".tsx"
   ],

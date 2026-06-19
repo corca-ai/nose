@@ -9,15 +9,16 @@ comparable over time. There are two layers, both over the same corpus split.
   gate). The checkouts themselves are NOT committed; point `--repos` at a directory whose
   immediate subdirectories are the repo ids (e.g. `bench/repos`, populated by
   `setup_repos.sh`).
-- `setup_repos.sh` clones at pinned commits, then **prunes generated/vendored files**
+- `setup_repos.sh` removes any `bench/repos` entry outside the pinned corpus list, clones
+  the pinned commits, then **prunes generated/vendored files**
   (npm/vendored deps, build output, committed Javadoc/minified bundles, `@generated`
   source) — not code a developer refactors, and they skew clone measurements toward
   boilerplate. Test fixtures (e.g. `prettier/tests/format`) are intentionally kept (test
   data is a separate category from generated/vendor).
 - `labels/prune_manifest.json` records the file-level prune audit: removed generated
   sources, protected label files that were deliberately kept, and the post-prune corpus
-  digest. The checked-in manifest is the frozen v5 product-corpus artifact; reconstructing
-  the expanded 120-repo corpus with `setup_repos.sh` rewrites it for that checkout.
+  digest. The checked-in manifest is the frozen pinned-corpus audit artifact; reconstructing
+  the current 120-repo corpus with `setup_repos.sh` rewrites it for that checkout.
   Regenerate it with `python3 bench/prune_corpus.py --apply`; verify an already pruned
   checkout with `python3 bench/prune_corpus.py --check-manifest`.
 

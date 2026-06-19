@@ -143,7 +143,8 @@ Symbolic-trace disagreements stay advisory: the summary counts them, but they do
 job. On failure the workflow uploads `target/corpus-verify-logs` as the `corpus-verify-logs`
 artifact so triage starts from the failing repo output. It caches `bench/repos` with a key
 derived from the pinned corpus manifest and prune scripts; a cold run still works because
-`bench/setup_repos.sh` reconstructs any missing or drifted checkout. For a local spot check:
+`bench/setup_repos.sh` removes unpinned local entries, then reconstructs any missing or
+drifted checkout. For a local spot check:
 
 ```sh
 ./scripts/corpus-verify-nightly.sh --repo arrow --repo click --jobs 2

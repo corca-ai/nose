@@ -12,6 +12,7 @@ if [ ! -f bench/prune_corpus.py ]; then
   exit 1
 fi
 mkdir -p bench/repos
+python3 bench/prune_corpus.py --clean-unpinned-repos
 
 python3 - <<'PY' | while IFS=$'\t' read -r id url commit; do
 import json

@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPOS_ROOT = PROJECT_ROOT / "bench" / "repos"
 DEFAULT_LABELS = PROJECT_ROOT / "bench" / "labels" / "refactoring_families.v5.json"
 DEFAULT_MANIFEST = PROJECT_ROOT / "bench" / "labels" / "prune_manifest.json"
+DEFAULT_CORPUS = PROJECT_ROOT / "bench" / "goldens" / "corpus.json"
 BANNER_BYTES = 8192
 
 SOURCE_SUFFIXES = (
@@ -113,10 +115,61 @@ def project_path(path: Path, project_root: Path, repos_root: Path) -> str:
     try:
         return path.resolve().relative_to(project_root.resolve()).as_posix()
     except ValueError:
+        pass
+    try:
         rel = path.resolve().relative_to(repos_root.resolve()).as_posix()
-        if rel == ".":
-            return "bench/repos"
-        return f"bench/repos/{rel}"
+    except ValueError:
+        return str(path)
+    if rel == ".":
+        return "bench/repos"
+    return f"bench/repos/{rel}"
+
+
+def load_pinned_repo_ids(corpus_path: Path) -> frozenset[str]:
+    corpus = json.loads(corpus_path.read_text())
+    repo_ids = {
+        repo.get("id")
+        for repo in corpus.get("repositories", [])
+        if isinstance(repo.get("id"), str) and repo.get("id")
+    }
+    if not repo_ids:
+        raise SystemExit(f"{corpus_path}: no pinned repository ids found")
+    return frozenset(repo_ids)
+
+
+def remove_unpinned_repo_entries(repos_root: Path, pinned_ids: frozenset[str]) -> list[Path]:
+    if not repos_root.exists():
+        return []
+    removed: list[Path] = []
+    for entry in sorted(repos_root.iterdir(), key=lambda p: p.name):
+        if entry.name in pinned_ids:
+            continue
+        removed.append(entry)
+        if entry.is_dir() and not entry.is_symlink():
+            shutil.rmtree(entry)
+        else:
+            try:
+                entry.unlink()
+            except FileNotFoundError:
+                pass
+    return removed
+
+
+def clean_unpinned_repo_entries(
+    project_root: Path, repos_root: Path, corpus_path: Path
+) -> list[Path]:
+    pinned_ids = load_pinned_repo_ids(corpus_path)
+    removed = remove_unpinned_repo_entries(repos_root, pinned_ids)
+    for path in removed:
+        print(f"removed unpinned corpus entry: {project_path(path, project_root, repos_root)}")
+    return removed
+
+
+def is_default_corpus_root(repos_root: Path, corpus_path: Path) -> bool:
+    return (
+        repos_root.resolve() == DEFAULT_REPOS_ROOT.resolve()
+        and corpus_path.resolve() == DEFAULT_CORPUS.resolve()
+    )
 
 
 def normalize_label_path(path: str) -> str:
@@ -465,16 +518,65 @@ def check_manifest(project_root: Path, repos_root: Path, labels_path: Path, mani
     )
 
 
-def manifest_listed_removals_present(
-    project_root: Path, repos_root: Path, manifest_path: Path
-) -> bool:
-    if not manifest_path.exists():
-        return False
-    expected = json.loads(manifest_path.read_text())
-    return any(
-        manifest_path_to_file(entry, project_root, repos_root).exists()
-        for entry in expected.get("removed", [])
-    )
+def repo_root_for_manifest_entry(entry: dict, repos_root: Path) -> Path | None:
+    repo = entry.get("repo")
+    if isinstance(repo, str) and repo:
+        return repos_root / repo
+    repo_path = entry.get("repo_path")
+    if isinstance(repo_path, str) and repo_path:
+        return repos_root / repo_path.split("/", 1)[0]
+    return None
+
+
+def carry_absent_removed_entries(
+    project_root: Path,
+    repos_root: Path,
+    previous: dict,
+    current: dict,
+) -> dict:
+    current_paths = {entry["path"] for entry in current.get("removed", [])}
+    carried = []
+    for entry in previous.get("removed", []):
+        path = entry.get("path")
+        if not isinstance(path, str) or path in current_paths:
+            continue
+        repo_root = repo_root_for_manifest_entry(entry, repos_root)
+        if repo_root is None or not repo_root.exists():
+            continue
+        if manifest_path_to_file(entry, project_root, repos_root).exists():
+            continue
+        carried.append(entry)
+
+    if not carried:
+        return current
+
+    merged = {
+        **current,
+        "removed": sorted(
+            [*carried, *current.get("removed", [])],
+            key=lambda entry: entry["path"],
+        ),
+    }
+    merged["totals"] = {
+        **current["totals"],
+        "removed": len(merged["removed"]),
+    }
+    return merged
+
+
+def apply_prune(
+    project_root: Path, repos_root: Path, labels_path: Path, manifest_path: Path
+) -> tuple[dict, int, bool]:
+    previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else None
+    manifest, removals = build_manifest(project_root, repos_root, labels_path)
+    if previous is not None:
+        manifest = carry_absent_removed_entries(project_root, repos_root, previous, manifest)
+        if not removals and manifest == previous:
+            return previous, 0, True
+
+    remove_paths(removals)
+    write_manifest(manifest_path, manifest)
+    return manifest, len(removals), False
 
 
 def run_self_test() -> None:
@@ -520,15 +622,39 @@ def run_self_test() -> None:
         labels_path.write_text(json.dumps(labels))
         manifest_path = labels_dir / "prune_manifest.json"
 
-        manifest, removals = build_manifest(root, repos, labels_path)
+        manifest, removed_count, verified_only = apply_prune(
+            root, repos, labels_path, manifest_path
+        )
         assert manifest["totals"]["removed"] == 1, manifest["totals"]
         assert manifest["totals"]["protected_skipped"] == 1, manifest["totals"]
-        assert removals == [src / "generated.py"], removals
-        remove_paths(removals)
-        write_manifest(manifest_path, manifest)
+        assert removed_count == 1, removed_count
+        assert not verified_only
         assert not (src / "generated.py").exists()
         assert (src / "protected.py").exists()
         check_manifest(root, repos, labels_path, manifest_path)
+
+        _, removed_count, verified_only = apply_prune(root, repos, labels_path, manifest_path)
+        assert removed_count == 0, removed_count
+        assert verified_only
+
+        (src / "new_generated.py").write_text("# Code generated by protoc. DO NOT EDIT.\nVALUE = 4\n")
+        manifest, removed_count, verified_only = apply_prune(root, repos, labels_path, manifest_path)
+        assert removed_count == 1, removed_count
+        assert not verified_only
+        assert not (src / "new_generated.py").exists()
+        assert manifest["totals"]["removed"] == 2, manifest["totals"]
+        check_manifest(root, repos, labels_path, manifest_path)
+
+        extra = repos / "extra"
+        extra.mkdir()
+        (extra / "stray.py").write_text("VALUE = 5\n")
+        stray_file = repos / ".DS_Store"
+        stray_file.write_text("metadata\n")
+        removed = remove_unpinned_repo_entries(repos, frozenset({"demo"}))
+        assert sorted(path.name for path in removed) == [".DS_Store", "extra"], removed
+        assert not extra.exists()
+        assert not stray_file.exists()
+        assert (repos / "demo").exists()
     print("ok prune_corpus self-test")
 
 
@@ -537,6 +663,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repos-root", type=Path, default=DEFAULT_REPOS_ROOT)
     parser.add_argument("--labels", type=Path, default=DEFAULT_LABELS)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--apply", action="store_true", help="remove files and write the manifest")
     parser.add_argument(
         "--write-manifest",
@@ -547,6 +674,11 @@ def parse_args() -> argparse.Namespace:
         "--check-manifest",
         action="store_true",
         help="verify the checked-in manifest against an already-pruned corpus",
+    )
+    parser.add_argument(
+        "--clean-unpinned-repos",
+        action="store_true",
+        help="remove immediate repos-root entries not listed in the pinned corpus manifest",
     )
     parser.add_argument("--self-test", action="store_true", help="run a synthetic prune self-test")
     return parser.parse_args()
@@ -562,35 +694,45 @@ def main() -> None:
     repos_root = args.repos_root.resolve()
     labels_path = args.labels.resolve()
     manifest_path = args.manifest.resolve()
+    corpus_path = args.corpus.resolve()
+
+    if args.clean_unpinned_repos:
+        pinned_ids = load_pinned_repo_ids(corpus_path)
+        clean_unpinned_repo_entries(project_root, repos_root, corpus_path)
+        print(f"ok corpus root has no unpinned entries ({len(pinned_ids)} pinned repo ids)")
+        return
 
     if args.check_manifest:
         check_manifest(project_root, repos_root, labels_path, manifest_path)
         return
 
-    if args.apply and manifest_path.exists() and not manifest_listed_removals_present(
-        project_root, repos_root, manifest_path
-    ):
-        check_manifest(project_root, repos_root, labels_path, manifest_path)
-        print("corpus already pruned; manifest verified")
-        return
-
-    manifest, removals = build_manifest(project_root, repos_root, labels_path)
-    if args.apply or args.write_manifest:
-        if args.apply:
-            remove_paths(removals)
-        write_manifest(manifest_path, manifest)
-        verb = "pruned" if args.apply else "planned"
-        try:
-            manifest_display = project_path(manifest_path, project_root, repos_root)
-        except ValueError:
-            manifest_display = str(manifest_path)
+    if args.apply:
+        if is_default_corpus_root(repos_root, corpus_path):
+            clean_unpinned_repo_entries(project_root, repos_root, corpus_path)
+        manifest, removed_count, verified_only = apply_prune(
+            project_root, repos_root, labels_path, manifest_path
+        )
+        if verified_only:
+            print("corpus already pruned; manifest verified")
+            return
+        manifest_display = project_path(manifest_path, project_root, repos_root)
         print(
-            f"{verb} {manifest['totals']['removed']} file(s); "
+            f"pruned {removed_count} file(s); "
             f"protected {manifest['totals']['protected_skipped']} label file(s); "
             f"wrote {manifest_display}"
         )
     else:
-        print(json.dumps(manifest, indent=2, sort_keys=True))
+        manifest, removals = build_manifest(project_root, repos_root, labels_path)
+        if not args.write_manifest:
+            print(json.dumps(manifest, indent=2, sort_keys=True))
+            return
+        write_manifest(manifest_path, manifest)
+        manifest_display = project_path(manifest_path, project_root, repos_root)
+        print(
+            f"planned {manifest['totals']['removed']} file(s); "
+            f"protected {manifest['totals']['protected_skipped']} label file(s); "
+            f"wrote {manifest_display}"
+        )
 
 
 if __name__ == "__main__":
