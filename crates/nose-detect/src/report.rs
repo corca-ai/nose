@@ -18,6 +18,5 @@ mod score;
 mod tests;
 
 pub use model::{RefactorFamily, VaryingSpot};
-pub use paths::is_test_loc;
-pub(crate) use paths::is_test_path;
+pub use paths::{is_test_loc, is_test_path};
 pub use ranking::rank_families;

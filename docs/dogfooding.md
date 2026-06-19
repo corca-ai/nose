@@ -35,8 +35,8 @@ reviewed scope-expansion or refresh rows that follow:
 `248e283bde49aaf6`, `4890b7227d416249`, `49cf43940d7ba72c`, `4ac4a88371e43e72`,
 `4fcb322e2465279d`, `77d8e8012b2ac08a`, `7acab484d0d624b8`, `7afae0406480a99e`,
 `84df147de864f719`, `8d3e36bdd11cf2c0`, `8f9c8cadbe769f47`, `90809d0e27461ac4`,
-`98f5617cbcf09658`, `9bcb27a3b3454c87`, `9dfc900a8a39f8c9`, `ab38dd94000926e1`,
-`af156a42f4c4c870`, `b527e97155167c1b`, `bf4255f2994b1d65`, `c817740ef79d19fb`,
+`98f5617cbcf09658`, `9bcb27a3b3454c87`, `ab38dd94000926e1`, `af156a42f4c4c870`,
+`b527e97155167c1b`, `bf4255f2994b1d65`, `c5f1969d0a866135`, `c817740ef79d19fb`,
 `c9fe4dc9d9cd14f5`, `d7dea9009200ed08`, `e2af7ec5d30fd509`, `e633f3912604730d`,
 `e8f33f62a81eaf80`, `f010e9908081b902`, `f380654d807c1e90`, `f5d4dde27f380cfc`.
 
@@ -44,6 +44,7 @@ reviewed scope-expansion or refresh rows that follow:
 |---|---|---|---|
 | `49cf43940d7ba72c` | mixed | `evidence_with_dependencies` / `evidence` test-support builders repeat across semantics, detect, and normalize; real shared fixture shape, but crossing crate support boundaries. | Track as visible fixture debt; extract only with a deliberate shared evidence-fixture boundary. |
 | `7afae0406480a99e` | mixed | `evidence_anchor_span` appears in JS/TS test support and production evidence helpers; tiny same-purpose accessor. | Candidate for a small helper when the evidence APIs are next touched. |
+| `c5f1969d0a866135` | production | `source_*_at_node` evidence accessors repeat the same `evidence_at_span` wrapper; this refreshed representative subsumes the old `9dfc900a8a` slice. | Accepted as existing local helper debt; not introduced by the query-surface wording/counts PR. |
 | `1267c115f7832175` | test | method-call IL fixture builders differ by receiver/argument shape but share a large construction skeleton. | Candidate for a fixture builder; keep until it improves readability. |
 | `d7dea9009200ed08` | test | receiver-domain fail-closed tests share setup for three distinct evidence-break cases. | Accepted test scaffold; consolidate only around named receiver-domain scenarios. |
 | `248e283bde49aaf6` | test | strict-exact receiver/binding-domain tests share evidence setup across detect unit surfaces. | Visible cross-test debt; extract if a common strict-exact receiver fixture emerges. |
@@ -60,7 +61,10 @@ reviewed scope-expansion or refresh rows that follow:
 | `b527e97155167c1b` | test | ordered conditional/effect exact-fragment tests still share a large branch fixture shape. | Real refactor candidate; keep visible under the ratchet. |
 
 The 2026-06-19 query-only/prelude refresh removed nine stale IDs from the old
-baseline and added the six reviewed rows above. Net current count: 39 → 36.
+baseline and added the six reviewed rows above. Net current count: 39 → 36. The
+query-surface wording/counts PR later refreshed one representative ID without changing
+the count: `9dfc900a8a39f8c9` is now reported as `c5f1969d0a866135`, which subsumes
+the old evidence-accessor slice.
 
 ## Verdict by candidate (critically)
 

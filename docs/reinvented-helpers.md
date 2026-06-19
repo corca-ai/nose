@@ -51,16 +51,21 @@ Two exclusions keep the surface honest:
 ## Surface
 
 - **`nose query <path> reinvented`** (primary): the forward exploration view — the action
-  is "call it". It lists every finding, test-container ones included.
+  is "call it". It lists production findings only when the helper being called is also
+  production code; test-container and production-to-test-helper findings are summarized as
+  omitted counts.
 - **Human report**: the default report LISTS the non-test findings (top by weight) —
   promoted from a one-line count after the [2026-06-13 field audit](reinvented-helper-audit-2026-06-13.md)
   ([design §2c](design.md)); the audit's precision figures are in the Measured section below.
   Findings whose CONTAINER is a test file (`container_in_test`) are a decidable
   judgment-deep class ([design §2b](design.md)) — a test asserting the helper's value as a literal would be
   circular to "fix" — so they are excluded from the default and shown only by the `reinvented`
-  view.
+  view. Findings whose helper is test-only (`helper.in_test` / `test_helper` count) are also
+  excluded from the call-it surface for production containers; the safe action is to rehome or
+  extract a production helper before calling it.
 - **Machine JSON**: query-JSON's `reinvented` view (`items[]`, each
-  `{helper, site, value, approximate}`) is the forward contract —
+  `{helper, site, value, approximate}`) is the forward contract; `summary.test_helper` counts
+  production containers omitted because their existing helper is test-only —
   see [query-json](query-json.md#views).
 - A **vendored** (non-test) container is, like a test container, a consumer judgment
   call — but unlike `container_in_test` it is *not* auto-excluded from the default: nose

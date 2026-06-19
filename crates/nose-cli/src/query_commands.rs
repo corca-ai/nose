@@ -261,6 +261,9 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
 
 fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
     let json = matches!(ctx.args.format, ReportFormat::Json);
+    if !json {
+        print_query_prelude();
+    }
     if ctx.q.reinvented {
         render_query_reinvented(ctx.reinvented, ctx.path_arg, ctx.q.top, json);
         return Ok(false);
@@ -269,7 +272,7 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
         let reinvented_prod = ctx
             .reinvented
             .iter()
-            .filter(|r| !r.container_in_test)
+            .filter(|r| !r.container_in_test && !r.helper_in_test)
             .count();
         let md = markdown::detect_under(&ctx.args.paths[0], &ctx.settings.exclude);
         let markdown_found = !md.is_empty();

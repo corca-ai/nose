@@ -5,16 +5,10 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "nose",
     version,
-    about = "Find duplicated code worth refactoring — exact, semantic (Type-4), and near-duplicate clone families",
-    long_about = "nose analyzes source files, groups duplicated code into clone families,\n\
-                  and ranks the results by how useful they are to inspect or refactor.\n\
-                  • `nose query <paths>`                  — analyze and show a summary with next commands\n\
-                  • `nose query <paths> id=<fam> full`    — open one family: every copy + its extraction skeleton\n\
-                  • `nose query <paths> base=origin/main` — flag a change applied to one clone copy but not its siblings\n\
-                  • `nose query <paths> --fail-on any`    — gate CI (exit non-zero on duplication); add `--format json` for the contract\n\
-                  • `nose stats <paths>`                  — language coverage and unsupported syntax\n\
-                  • `nose il <file>`                      — inspect why two snippets do or do not match\n\
-                  • `nose capabilities`                   — machine-readable integration contract"
+    about = "nose finds duplication in code and docs.\n\
+             nose finds; you judge. Run `nose query <path>` to explore.",
+    long_about = "nose finds duplication in code and docs.\n\
+                  nose finds; you judge. Run `nose query <path>` to explore."
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -83,12 +77,11 @@ pub(crate) enum Cmd {
         #[arg(long)]
         dump: Option<PathBuf>,
     },
-    /// Analyze a path, list duplicated-code families, and drill into the results.
+    /// Analyze a path and explore duplication families.
     ///
-    /// With no terms, `nose query <path>` prints a summary and runnable next commands.
-    /// Add terms to filter (`witness=exact`, `path~api`), group (`group=dir`), sort
-    /// (`sort=value`), or open one family (`id=<fam> full`). Carries the analysis flags,
-    /// the `--fail-on` CI gate, and a versioned `--format json` contract.
+    /// nose finds duplication in code and docs.
+    ///
+    /// nose finds; you judge. Filter, group, sort, or open families to explore.
     Query {
         /// Path to a file or directory (recursively analyzed).
         #[arg(required = true)]

@@ -3,6 +3,11 @@ use crate::divergence;
 use crate::legacy_prelude::*;
 use crate::query_family_text::print_member_proposal;
 
+pub(super) fn print_query_prelude() {
+    println!("nose finds duplication in code and docs.");
+    println!("nose finds; you judge. Filter, group, sort, or open families to explore.");
+}
+
 /// The location cell — `file:line  name` — coloured (path dim, symbol bold) with its
 /// *visible* width (sans ANSI) for column alignment.
 pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
@@ -22,7 +27,7 @@ pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
 /// string and its *visible* width for alignment.
 pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let (shared, params) = all_copies_shared(f);
-    let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
+    let removable = query_removable_lines(f, shared);
     let witness = witness_label(f.witness.as_ref().map(|w| w.kind));
     // Flag non-production scope inline so a test/mixed family isn't mistaken for prod.
     let scope = if f.scope == "prod" {
@@ -30,6 +35,20 @@ pub(super) fn metrics_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     } else {
         format!(" · {}", f.scope)
     };
+    if f.languages > 1 {
+        let plain = format!(
+            "{} copies · cross-language · ~{removable} repeated · {witness}{scope}",
+            f.members,
+        );
+        let colored = format!(
+            "{} copies · cross-language · ~{} repeated · {}{}",
+            f.members,
+            style::bold(&removable.to_string()),
+            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            style::yellow(&scope),
+        );
+        return (colored, plain.chars().count());
+    }
     let rep = representative_lines(f);
     let plain = format!(
         "{} copies · {shared}/{rep} shared, {params}p · ~{removable} removable · {witness}{scope}",
@@ -98,6 +117,7 @@ pub(super) fn render_query_base(
         );
         return;
     }
+    print_query_prelude();
     if flagged.is_empty() {
         println!(
             "no divergent edits vs `{base_ref}` ({changed_files} {} changed).",
@@ -145,18 +165,26 @@ pub(super) fn render_query_base(
 }
 
 /// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`
-/// channel). Each finding's action is "call the helper instead" — the same action as a
+/// channel). Each surfaced finding's action is "call the helper instead" — the same action as a
 /// `call-existing-helper` family, but for sites the family clusterer did not group (different
-/// recall, not a second way to ask the same question). Production-first, like the dashboard.
+/// recall, not a second way to ask the same question). Production containers are shown only when
+/// the existing helper is also production; a test-only helper requires rehoming/extracting before
+/// production code can call it.
 pub(super) fn render_query_reinvented(
     reinvented: &[nose_detect::ReinventedHelper],
     path: &str,
     top: Option<usize>,
     json: bool,
 ) {
-    let shown: Vec<&nose_detect::ReinventedHelper> =
-        reinvented.iter().filter(|r| !r.container_in_test).collect();
-    let in_test = reinvented.len() - shown.len();
+    let shown: Vec<&nose_detect::ReinventedHelper> = reinvented
+        .iter()
+        .filter(|r| !r.container_in_test && !r.helper_in_test)
+        .collect();
+    let in_test = reinvented.iter().filter(|r| r.container_in_test).count();
+    let test_helper = reinvented
+        .iter()
+        .filter(|r| !r.container_in_test && r.helper_in_test)
+        .count();
     let limit = query_row_limit(top);
     if json {
         let items: Vec<_> = shown
@@ -165,10 +193,12 @@ pub(super) fn render_query_reinvented(
             .map(|r| {
                 serde_json::json!({
                     "helper": {"name": r.helper_name, "file": r.helper_file,
-                        "start": r.helper_start_line, "end": r.helper_end_line},
+                        "start": r.helper_start_line, "end": r.helper_end_line,
+                        "in_test": r.helper_in_test},
                     "site": {"file": r.container_file, "container": r.container_name,
                         "container_start": r.container_start_line, "container_end": r.container_end_line,
-                        "start": r.site_start_line, "end": r.site_end_line},
+                        "start": r.site_start_line, "end": r.site_end_line,
+                        "container_in_test": r.container_in_test},
                     "value": r.weight,
                     "approximate": r.site_approximate,
                 })
@@ -181,7 +211,8 @@ pub(super) fn render_query_reinvented(
                 "tool": "nose",
                 "view": "reinvented",
                 "path": path,
-                "summary": {"findings": shown.len(), "shown": shown.len().min(limit), "in_test": in_test},
+                "summary": {"findings": shown.len(), "shown": shown.len().min(limit),
+                    "in_test": in_test, "test_helper": test_helper},
                 "items": items,
                 "next": [format!("nose query {path} shape=call-existing-helper")],
             })
@@ -192,6 +223,9 @@ pub(super) fn render_query_reinvented(
         println!("no reinvented-helper findings on the production surface.");
         if in_test > 0 {
             println!("  ({in_test} in test code — omitted)");
+        }
+        if test_helper > 0 {
+            println!("  ({test_helper} point at test-only helpers — omitted; rehome a helper before calling it from production)");
         }
         return;
     }
@@ -217,6 +251,9 @@ pub(super) fn render_query_reinvented(
     }
     if in_test > 0 {
         println!("  ({in_test} more in test code — omitted)");
+    }
+    if test_helper > 0 {
+        println!("  ({test_helper} more point at test-only helpers — omitted; rehome a helper before calling it from production)");
     }
     println!("\nnext:");
     println!(

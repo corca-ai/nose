@@ -238,7 +238,7 @@ pub(super) fn query_family_json_with_counts(
     shared: u32,
     params: u32,
 ) -> serde_json::Value {
-    let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
+    let removable = query_removable_lines(f, shared);
     let helper = family_existing_helper(f);
     let locations: Vec<_> = f
         .locations
@@ -273,6 +273,8 @@ pub(super) fn query_family_json_with_counts(
         "members": f.members,
         "files": f.files,
         "dirs": f.modules,
+        "languages": f.languages,
+        "source_comparable": f.languages == 1,
         "shared": shared,
         "rep_lines": representative_lines(f),
         "params": params,
@@ -322,6 +324,14 @@ pub(super) fn query_family_json_with_counts(
         }
     }
     obj
+}
+
+pub(super) fn query_removable_lines(f: &nose_detect::RefactorFamily, shared: u32) -> u32 {
+    if f.languages == 1 {
+        u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared
+    } else {
+        f.dup_lines
+    }
 }
 
 /// The all-copies extraction-skeleton lines (the `--show proposal` artifact) for the `full`

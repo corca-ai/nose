@@ -25,13 +25,14 @@ plus the view-specific body below. Like the human surface, a result is a pure fu
 ## Views
 
 **`dashboard`** (no terms) — `summary` (`scanned_files`, `families`, `by_confidence`
-`{exact,subdag,copy_paste,similar}`, `reinvented` = non-test reinvented-helper findings).
+`{exact,subdag,copy_paste,similar}`, `reinvented` = production-surface reinvented-helper findings,
+`shown` = displayed family count).
 Note the copy-paste bucket key is `copy_paste` (underscore), while the per-family `witness`
 enum value spells it `copy-paste` (hyphen) — so don't index `by_confidence[family.witness]`
 for that one channel.
-`top_candidates[]` (the top 5 families ranked by extractability — scope-blind, so test and
-production are ranked alike; each a *family object*), and `next[]` (runnable follow-up
-commands).
+`families[]` (the top 5 families ranked by extractability — scope-blind, so test and
+production are ranked alike; each a *family object*), `top_candidates[]` (compatibility alias
+for the same array), and `next[]` (runnable follow-up commands).
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.
@@ -43,9 +44,11 @@ ranked by **removable lines** (so `group=dir`/`group=file` is the duplication ho
 `hint_reasons[]` (short human-readable facts behind that hint, when unit-origin metadata is
 available), and a single `family` object; with `full`, that object carries `skeleton`.
 
-**`reinvented`** (`reinvented`) — `summary` (`findings`, `shown`, `in_test`) and `items[]` of
-`{helper {name,file,start,end}, site {file,container,container_start,container_end,start,end},
+**`reinvented`** (`reinvented`) — `summary` (`findings`, `shown`, `in_test`, `test_helper`) and `items[]` of
+`{helper {name,file,start,end,in_test}, site {file,container,container_start,container_end,start,end,container_in_test},
 value, approximate}` — code that reimplements an existing helper; the action is "call it".
+`test_helper` counts production containers whose only existing helper is in test code; those are
+omitted from `items[]` because production code should rehome/extract a helper before calling it.
 
 **`base`** (`base=<git-ref>`) — the divergent-edit view. `base` (the ref), `summary` (`changed_files`, `divergences`,
 `shown_divergences`, `limit`, `fire_eligible`), and `items[]` of `{family_id, similarity,
@@ -61,14 +64,15 @@ proven-shared-logic verdict the gate fires on.
 |---|---|
 | `id` | family id (the `id=` handle; any unique prefix opens it) |
 | `scope` | `prod` \| `test` \| `mixed` (context, never a worthiness penalty) |
-| `witness` | why the copies merged: `exact` \| `subdag` (behavior-proven) \| `copy-paste` \| `similar` |
+| `witness` | why the copies merged: `exact` (same unit behavior) \| `subdag` (shared computation inside each site) \| `copy-paste` \| `similar` |
 | `surface` | `default` \| `divergence` \| `hidden` \| `shallow` \| `generated` \| `declaration` \| `debug` (curation tier; `debug` is a reserved diagnostic tier normal runs don't emit) |
 | `members` | number of copies |
-| `files` / `dirs` | distinct files / directories the copies span |
+| `files` / `dirs` / `languages` | distinct files / directories / languages the copies span |
+| `source_comparable` | `false` for cross-language families, where source lines cannot be anti-unified directly; those rows display repeated semantic volume rather than shared/removable source lines |
 | `shared` | lines invariant across **all** copies (the all-copies anti-unification count) |
 | `rep_lines` | the representative copy's line count (`shared` of `rep_lines` are shared) |
 | `params` | varying spots the extracted helper would parameterize |
-| `removable` | `(members − 1) × shared` — lines a clean extraction would delete (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them) |
+| `removable` | same-language: `(members − 1) × shared`, lines a clean extraction would delete (so `removable=0` when `shared=0`: the copies match structurally but no literal line survives all of them). Cross-language: span-based repeated source volume, because there is no shared source-line basis. |
 | `value` | the raw duplicated-volume score (mean span × copies × similarity × spread). Ranks by repeated *volume*, independent of `removable` — under `sort=value` a structural family can top the list with `removable=0` |
 | `extraction_shape` | the decidable fix shape (`extract-helper`, `call-existing-helper`, …) |
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |

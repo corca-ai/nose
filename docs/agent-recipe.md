@@ -18,7 +18,7 @@ pre-scripting field reads:
 
 ```sh
 nose query <path>                      # landing dashboard: counts by confidence + cleanest candidates
-nose query <path> witness=exact        # slice: only the behavior-proven families
+nose query <path> witness=exact        # slice: only the exact-behavior families
 nose query <path> scope=prod           # slice: production-scope only
 nose query <path> group=dir            # facet: by directory, with a count + exemplar
 nose query <path> id=<fam> full        # open one family: copies + all-copies extraction skeleton
@@ -39,8 +39,8 @@ nose query <path> --format json                    # the ranked triage surface (
 nose query <path> base=origin/main --format json   # PR-time divergence (the base view)
 ```
 
-Parse the family objects — `top_candidates[]` in the dashboard
-view, `families[]` in a list view (a filter/`sort=`/`top=` term), `items[]` in the `base` view
+Parse the family objects — `families[]` in the dashboard or list view
+(dashboard also keeps `top_candidates[]` as a compatibility alias), `items[]` in the `base` view
 ([query JSON](query-json.md)). Do not scrape human output. The per-family decision procedure
 below applies to both a `nose query` row and a JSON family — they carry the same evidence fields.
 
@@ -66,7 +66,7 @@ Read the fields in this order — each step either decides or narrows:
      is *how much* was proven). Treat the members as computing the same thing; the only
      question left is whether merging them couples unrelated concerns.
    - `subdag` (the human report labels this `shared-core`; both are accepted as `witness=`
-     filter values): a common heavy anchor (shared sub-DAG core) is behavior-proven — each
+     filter values): a common heavy anchor (shared sub-DAG core) is proven inside each site — each
      member's `shared_subdag: [start, end]` shows where that computation lives.
    - `copy-paste`: token-identical run — classic copy-paste; identifiers and literals may still
      vary per copy.

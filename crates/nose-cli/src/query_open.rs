@@ -13,6 +13,33 @@ fn print_hint_reasons(f: &nose_detect::RefactorFamily) {
     }
 }
 
+fn print_family_header(id: &str, f: &nose_detect::RefactorFamily) {
+    let (shared, params) = all_copies_shared(f);
+    let removable = query_removable_lines(f, shared);
+    if f.languages > 1 {
+        println!(
+            "{} — {} · {} · {} copies · cross-language · ~{} repeated",
+            short_id(id),
+            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            f.scope,
+            f.members,
+            removable,
+        );
+    } else {
+        println!(
+            "{} — {} · {} · {} copies · {}/{} shared, {}p · ~{} removable",
+            short_id(id),
+            witness_styled(f.witness.as_ref().map(|w| w.kind)),
+            f.scope,
+            f.members,
+            shared,
+            representative_lines(f),
+            params,
+            removable,
+        );
+    }
+}
+
 /// Open one family: its copies, the extraction hint, the representative-pair diff, and —
 /// with `full` — the all-copies extraction skeleton (#360). Plus navigation links.
 #[allow(clippy::too_many_arguments)] // dataset + view + selection state for one family render
@@ -72,19 +99,7 @@ pub(super) fn render_query_family(
         );
         return;
     }
-    let (shared, params) = all_copies_shared(f);
-    let removable = u32::try_from(f.members.saturating_sub(1)).unwrap_or(0) * shared;
-    println!(
-        "{} — {} · {} · {} copies · {}/{} shared, {}p · ~{} removable",
-        short_id(&id),
-        witness_styled(f.witness.as_ref().map(|w| w.kind)),
-        f.scope,
-        f.members,
-        shared,
-        representative_lines(f),
-        params,
-        removable,
-    );
+    print_family_header(&id, f);
     print!("{fold_note}");
     println!("  → {}", family_hint(f));
     print_hint_reasons(f);

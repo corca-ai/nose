@@ -129,6 +129,61 @@ fn query_reinvented_view_lists_call_the_helper_findings() {
 }
 
 #[test]
+fn query_reinvented_omits_prod_sites_that_only_match_test_helpers() {
+    let dir = std::env::temp_dir().join(format!("nose_reinv_test_helper_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("src")).unwrap();
+    fs::create_dir_all(dir.join("tests")).unwrap();
+    fs::write(
+        dir.join("tests/redaction.test.js"),
+        "function redactPayload(x, y) {\n    return ((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("src/worker.js"),
+        "function buildPayload(x, y) {\n    return (((x * 2 + 3) * (x - 4)) / ((x + 5) * (y - 7) + (y * y + 11))) * 7\n}\n",
+    )
+    .unwrap();
+    let p = dir.to_str().unwrap();
+    let human = run(&[
+        "query",
+        p,
+        "reinvented",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]);
+    assert!(
+        human.contains("test-only helpers")
+            && !human.contains("→ call redactPayload")
+            && human.contains("rehome a helper before calling it from production"),
+        "prod code must not be told to call a test helper: {human}"
+    );
+    let j: serde_json::Value = serde_json::from_str(&run(&[
+        "query",
+        p,
+        "reinvented",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+    ]))
+    .unwrap();
+    assert_eq!(
+        j["summary"]["test_helper"], 1,
+        "json counts omitted test-helper targets: {j}"
+    );
+    assert!(
+        j["items"].as_array().unwrap().is_empty(),
+        "json does not surface unsafe call-it action items: {j}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 #[allow(clippy::too_many_lines)] // one end-to-end walk of the since= temporal lens
 fn query_since_status_classifies_against_a_snapshot() {
     // Family X (3 near copies of `process`, one operator each) exists at snapshot time; a

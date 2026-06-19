@@ -20,6 +20,9 @@ pub struct ReinventedHelper {
     pub helper_name: Option<String>,
     pub helper_start_line: u32,
     pub helper_end_line: u32,
+    /// The helper is defined in test code. A production container must not be told to
+    /// call it directly; rehome/extract a production helper first.
+    pub helper_in_test: bool,
     pub container_file: String,
     pub container_name: Option<String>,
     pub container_start_line: u32,
@@ -139,6 +142,7 @@ pub fn reinvented_helpers(units: &[UnitFeat]) -> Vec<ReinventedHelper> {
                 helper_name: h.name.clone(),
                 helper_start_line: h.start_line,
                 helper_end_line: h.end_line,
+                helper_in_test: report::is_test_path(&h.path),
                 container_file: c.path.clone(),
                 container_name: c.name.clone(),
                 container_start_line: c.start_line,

@@ -83,7 +83,9 @@ pub(super) fn render_query_dashboard(
                     "by_confidence": {"exact": count("exact"), "subdag": count("subdag"),
                         "copy_paste": count("copy-paste"), "similar": count("similar")},
                     "reinvented": reinvented_prod,
+                    "shown": top.len(),
                 },
+                "families": top,
                 "top_candidates": top,
                 // Markdown near-duplicate families (separate prose engine). Additive key —
                 // query-JSON consumers that don't know it simply ignore it.
@@ -94,7 +96,6 @@ pub(super) fn render_query_dashboard(
         );
         return;
     }
-    println!("nose — duplicated code across languages, ranked for refactoring.");
     println!("{}", scope.summary());
     let n_proven = count("exact") + count("subdag");
     println!(
@@ -104,7 +105,7 @@ pub(super) fn render_query_dashboard(
     );
     println!(
         "  {} {n_proven} ({} {} · {} {}) · {} {} · {} {}",
-        style::bold_green("proven"),
+        style::bold_green("verified"),
         style::green("exact"),
         count("exact"),
         style::green("shared-core"),
@@ -116,7 +117,7 @@ pub(super) fn render_query_dashboard(
     );
     println!(
         "  {}",
-        style::dim("proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape")
+        style::dim("verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation")
     );
     // The "best candidates" lead only makes sense when the default surface has
     // something on it. With an empty surface we skip it (a `sort=extractability` link into
@@ -151,7 +152,7 @@ pub(super) fn render_query_dashboard(
     if !proven.is_empty() {
         println!(
             "\n{}",
-            style::bold("proven families (same behavior, not just similar shape):")
+            style::bold("verified families (exact behavior or shared computation):")
         );
         let top: Vec<&nose_detect::RefactorFamily> = proven.iter().take(3).map(|f| **f).collect();
         print_candidates(&top, path, opp);
@@ -159,7 +160,7 @@ pub(super) fn render_query_dashboard(
             println!(
                 "  nose query {path} witness=exact             {}",
                 style::dim(&format!(
-                    "# the {n_exact} proven whole-unit {}",
+                    "# the {n_exact} exact whole-unit {}",
                     plural(n_exact, "family", "families")
                 ))
             );

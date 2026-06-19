@@ -36,7 +36,7 @@ pub(super) fn overlap_frac(a: &Loc, b: &Loc) -> f64 {
 /// `/spec/` or `/__tests__/` directory, a `_test.go` / `conftest.py` / `.test.` /
 /// `.spec.` file, or a `test_`-prefixed stem). Path-only — the [`is_test_loc`] superset
 /// also consults the unit name and the inline-test-module flag.
-pub(crate) fn is_test_path(file: &str) -> bool {
+pub fn is_test_path(file: &str) -> bool {
     let p = file.to_ascii_lowercase();
     p.contains("/test/")
         || p.contains("/tests/")

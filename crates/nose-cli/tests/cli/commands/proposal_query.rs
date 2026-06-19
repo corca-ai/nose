@@ -73,6 +73,12 @@ fn query_dashboard_filter_and_family() {
         dash.contains("nose query"),
         "dashboard teaches the grammar: {dash}"
     );
+    assert!(
+        dash.contains("verified = machine-checked evidence")
+            && !dash.contains("proven = same behavior, machine-verified")
+            && !dash.contains("proven families (same behavior"),
+        "dashboard must not flatten exact and shared-core evidence: {dash}"
+    );
     // Suggested commands echo the path so they're runnable verbatim (the surface takes
     // the path positionally) — every drill link is `nose query <path> id=…`.
     assert!(
@@ -181,6 +187,20 @@ fn query_dashboard_filter_and_family() {
     );
     assert_eq!(dash["view"], "dashboard");
     assert!(dash["summary"]["families"].is_number());
+    assert!(
+        dash["families"].is_array() && dash["top_candidates"].is_array(),
+        "dashboard json exposes the family array under the stable `families` key: {dash}"
+    );
+    assert_eq!(
+        dash["families"], dash["top_candidates"],
+        "dashboard keeps top_candidates as a compatibility alias for families: {dash}"
+    );
+    let dashboard_count = dash["summary"]["families"].as_u64().unwrap();
+    let gate = run_fail(&["query", p, "--fail-on", "any"]);
+    assert!(
+        gate.contains(&format!("nose: {dashboard_count} ")),
+        "--fail-on any count must match the dashboard default-surface count: {gate}"
+    );
     // A filtered list emits structured family objects (not human `where` strings).
     let list: serde_json::Value =
         serde_json::from_str(&run(&["query", p, "members>1", "--format", "json"])).unwrap();
@@ -304,4 +324,27 @@ fn query_dashboard_filter_and_family() {
     );
 
     let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_cross_language_rows_show_repeated_volume_not_zero_removable() {
+    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let examples = examples.to_str().unwrap();
+    let human = run(&["query", examples]);
+    assert!(
+        human.contains("cross-language · ~30 repeated")
+            && !human.contains("0/7 shared, 0p · ~0 removable"),
+        "cross-language rows should not look like zero-removal same-language extracts: {human}"
+    );
+    let dashboard: serde_json::Value =
+        serde_json::from_str(&run_raw(&["query", examples, "--format", "json"])).unwrap();
+    let family = &dashboard["families"][0];
+    assert_eq!(
+        family["source_comparable"], false,
+        "json marks the basis: {dashboard}"
+    );
+    assert_eq!(
+        family["removable"], 30,
+        "cross-language removable carries repeated source volume, not zero: {dashboard}"
+    );
 }

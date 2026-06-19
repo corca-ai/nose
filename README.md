@@ -27,18 +27,19 @@ flags:
 
 ```
 $ nose query src
-nose — duplicated code across languages, ranked for refactoring.
-scanned 23 files · python 14 · typescript 9
+nose finds duplication in code and docs.
+nose finds; you judge. Filter, group, sort, or open families to explore.
+analyzed 23 files · python 14 · typescript 9
 
 4 duplicated-code families.
-  proven 1 (exact 1 · shared-core 0) · copy-paste 1 · similar 2
-  proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape
+  verified 1 (exact 1 · shared-core 0) · copy-paste 1 · similar 2
+  verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation
 
 best candidates:
   src/loaders/users.py:1  load_users  2 copies · 8/10 shared, 2p · ~8 removable · similar   nose query src id=b221962180
   …
 next commands — replace <path> with your path; terms combine with AND:
-  filter  nose query <path> witness=exact   keep only the proven-identical families
+  filter  nose query <path> witness=exact   keep only the exact-behavior families
   group   nose query <path> group=dir       totals by directory (or: witness, lang, scope)
   open    nose query <path> id=<id> full     one family: every copy + the extraction skeleton
 ```

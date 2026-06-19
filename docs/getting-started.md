@@ -34,25 +34,26 @@ analyzed tree, and nothing is written to disk.
 
 ```
 $ nose query examples
-nose — duplicated code across languages, ranked for refactoring.
-scanned 3 files · go 1 · python 1 · typescript 1
+nose finds duplication in code and docs.
+nose finds; you judge. Filter, group, sort, or open families to explore.
+analyzed 3 files · go 1 · python 1 · typescript 1
 
 1 duplicated-code family.
-  proven 1 (exact 1 · shared-core 0) · copy-paste 0 · similar 0
-  proven = same behavior, machine-verified · copy-paste = identical text · similar = similar shape
+  verified 1 (exact 1 · shared-core 0) · copy-paste 0 · similar 0
+  verified = machine-checked evidence · exact = same unit behavior · shared-core = shared computation
 
 best candidates:
-  examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
+  examples/sum.go:3  SumFor  6 copies · cross-language · ~30 repeated · exact   nose query examples id=a47c37baa1
   nose query examples sort=extractability       # all 1, best first
 
-proven families (same behavior, not just similar shape):
-  examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
-  nose query examples witness=exact             # the 1 proven whole-unit family
+verified families (exact behavior or shared computation):
+  examples/sum.go:3  SumFor  6 copies · cross-language · ~30 repeated · exact   nose query examples id=a47c37baa1
+  nose query examples witness=exact             # the 1 exact whole-unit family
 
 ~30 duplicated lines on the default surface.
 
 next commands — replace <path> with your path; terms combine with AND:
-  filter  nose query <path> witness=exact        keep only the proven-identical families
+  filter  nose query <path> witness=exact        keep only the exact-behavior families
           nose query <path> members>3 path~api   compare with > < , ~ (contains), != (negate)
   group   nose query <path> group=dir            totals by directory (or: witness, lang, scope, same_symbol)
   open    nose query <path> id=<id> full         one family: every copy + the extraction skeleton
@@ -65,36 +66,34 @@ command on every line. From here you **open** a family, **slice** the list, or *
 
 ## How to read the report
 
-**The first line — `scanned 3 files · go 1 · python 1 · typescript 1`** — is what nose
+**The first line — `analyzed 3 files · go 1 · python 1 · typescript 1`** — is what nose
 actually analyzed. If `.gitignore` or `--exclude` pruned vendored deps or build output, this
 count is far smaller than the files on disk; glance at it to confirm nose looked where you
 expected. (The *ignored* count is deliberately not shown — counting it would mean walking into
 the very trees `.gitignore` exists to skip.)
 
 **The confidence line** breaks the families down by *why* their copies merged — the evidence,
-strongest first. The two **proven** channels come first because they're verified, not guessed:
+strongest first. The two **verified** channels come first because they carry machine-checked
+evidence, not guesses:
 
-- **proven** — `exact` / `shared-core`: a **value-graph proof** that the copies compute the same
-  thing (`exact` = the whole unit; `shared-core` = a shared heavy sub-computation). A shared
-  *decision*. (In `--format json` the `shared-core` witness is spelled `subdag`.)
+- **verified** — `exact` / `shared-core`: `exact` proves the reported units compute the same
+  thing; `shared-core` proves a shared sub-computation inside each site. (In `--format json`
+  the `shared-core` witness is spelled `subdag`.)
 - `copy-paste` — identical text; classic copy-paste (identifiers/literals may vary).
-- `similar` — similar *shape*, not a proven shared decision.
+- `similar` — similar *shape*, not a verified shared decision.
 
 **Each candidate row is one _family_** — one refactoring decision (extract a helper, base
 class, or data table). Read it left to right:
 
 ```
-examples/sum.go:3  SumFor  6 copies · 0/7 shared, 0p · ~0 removable · exact   nose query examples id=a47c37baa1
+examples/sum.go:3  SumFor  6 copies · cross-language · ~30 repeated · exact   nose query examples id=a47c37baa1
 └─ first copy ──┘  └sym─┘  └ sites ┘  └─ payoff economics ──┘  witness   └─ the runnable drill command ─┘
 ```
 
 - `6 copies` — how many places this code appears.
-- `0/7 shared, 0p` — the **honest** overlap across *all* the copies: 0 of the 7 representative
-  lines are invariant, with 0 varying spots (`p`) to parameterize. A family that looks identical
-  but really shares few lines is obvious at a glance. (This family is **cross-language** — copies
-  in Go, Python, and TypeScript share no *source* lines, so `shared` is 0 even though the logic is
-  proven identical; that's why the headline capability shows up as `exact` with `~0 removable`.)
-- `~0 removable` — roughly how much code a clean extraction would delete (`(copies − 1) × shared`).
+- `cross-language · ~30 repeated` — the family spans Go, Python, and TypeScript, so source
+  lines are not directly comparable. nose ranks it by repeated semantic volume instead of
+  pretending there are shared literal lines to extract.
 - `exact` — the evidence tag from the confidence line above.
 - The trailing `nose query … id=…` is the command to **open** this family.
 
@@ -109,7 +108,9 @@ skeleton, and a diff. Add `full` to render the skeleton inline:
 
 ```
 $ nose query examples id=a47c37baa1 full
-a47c37baa1 — exact · prod · 6 copies · 0/7 shared, 0p · ~0 removable
+nose finds duplication in code and docs.
+nose finds; you judge. Filter, group, sort, or open families to explore.
+a47c37baa1 — exact · prod · 6 copies · cross-language · ~30 repeated
   → local duplication — extract a helper (cross-language)
   why this hint:
     - an implementation body was found
@@ -138,7 +139,7 @@ Every run also prints a cheatsheet of the query grammar. The moves:
 
 | You want… | Command |
 |---|---|
-| Only the proven families (exact + shared-core) | `nose query src witness=exact,shared-core` |
+| Only the verified-evidence families (exact + shared-core) | `nose query src witness=exact,shared-core` |
 | Narrow to one scope (test and prod rank equally otherwise) | `nose query src scope=prod` (or `scope=test`) |
 | Families in one area | `nose query src path~loaders` |
 | The duplication **hotspot** map (by directory) | `nose query src group=dir` |

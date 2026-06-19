@@ -46,9 +46,9 @@ document the ranking keys and detection channels it uses.
 
 ## `nose query`
 
-`nose query <path> [terms…]` analyzes a file or directory and prints the duplicated-code
+`nose query <path> [terms…]` analyzes a file or directory and prints the duplication
 families nose found. With no terms it shows a summary: analysis scope, family counts by
-evidence, the best candidates to inspect first, proven-behavior families, duplicated
+evidence, the best candidates to inspect first, verified-evidence families, duplicated
 directory hotspots, and next commands. Add terms to filter, group, sort, or open one
 family; every result includes a runnable `nose query …` command.
 
@@ -66,7 +66,7 @@ nose query <path> [FILTER … | group=FIELD | id=FAM | at=FILE:LINE | reinvented
 | `group=FIELD` | facet the selection by a discrete field (`dir`, `file`, `scope`, `witness`, `lang`, `shape`, `same_symbol`, `spotclass`, `status`); each bucket carries its family count **and summed removable lines**, ranked by removable — so `group=dir`/`group=file` is the duplication **hotspot** map |
 | `id=FAM` | open one family (any unambiguous id prefix): its copies, the all-copies extraction skeleton, overlapping-family links (`subsumes`/`subsumed_by`), and navigation |
 | `at=FILE:LINE` | open the family whose copy covers that source location — a stable handle across edits (the span-derived `id=` shifts when code moves) |
-| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
+| `reinvented` | the **reinvented-helper** view: code that reimplements an existing helper inline (the action is "call it"). Production findings are shown only when the helper is also production code; matches that point production code at a test-only helper are omitted with a count, because the safe action is to rehome/extract a production helper first. Complements `shape=call-existing-helper` (those are the cases the family clusterer caught; these are the ones it did not) |
 | `base=REF` | the **divergent-edit** view: detect families at the git ref, flag the ones a diff changed in one copy but not its siblings — a likely un-propagated fix. It is its own view, so combine it only with `top=N`, detection flags, `--format`, or `--fail-on any`; ordinary family filters are for the non-`base=` query views. Each item carries `fire_eligible` (the conservative proven-shared-logic verdict); `base=REF --fail-on any` is the CI gate (fires only on the proven case) |
 | `since=FILE` | compare to a saved snapshot (written with `--baseline FILE --write-baseline`) and expose each family's **`status`** (`new`/`changed`/`unchanged`) as a queryable field — the temporal lens. Hides nothing (unlike `--baseline`); `since=B status=new --fail-on any` is the composable gate |
 | `sort=KEY` | `extractability` (default), `value`, `members` (also `sites` and the experimental `hazard` — see [Ranking](#ranking)) |
@@ -137,7 +137,7 @@ accepts `extractability`, `value`, `sites`, the alias `members`, and the experim
 
 | key | ranks by | use when |
 |---|---|---|
-| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape) | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
+| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count and by member-span heterogeneity (copies of unlike length aren't one shape). Cross-language families have no comparable source lines, so they fall back to semantic repeated volume and display as `cross-language · ~N repeated` instead of `~N removable`. | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
 | `value` | raw duplicated volume: duplicated lines (mean span × copies) × similarity × spread — ranks by repeated *volume*, not the `removable` field (a structural Type-4 family can rank high here yet show `removable=0` when no literal lines survive all copies) | you want the most *code* deleted, accepting that divergent copies cost more to merge |
 | `sites` / `members` | number of copies | hunting the most-repeated patterns |
 | `hazard` *(experimental)* | divergent-edit *propensity*: line span × spread × invisibility × scope | you want a view of which clones tend to get edited inconsistently — **not yet a validated *harm* ranker** (see [hazard-ranking](hazard-ranking.md)) |
@@ -152,6 +152,8 @@ have nothing to extract and sink to the bottom, even at `sim 1.00`. Extractabili
 demotes families whose copies **vary widely in length**: 25 same-shaped-but-different
 `Serializer` methods are not one helper waiting to happen, however many copies there
 are — a measured proxy for signature heterogeneity (see [experiments](experiments.md)).
+For cross-language families, source-line overlap is not meaningful; the row says
+`cross-language · ~N repeated`, and query JSON marks `source_comparable: false`.
 
 `--sort hazard` is an **experimental** severity-style ranking calibrated on mined
 divergent-edit history. It predicts *which clones get edited inconsistently* (divergence
