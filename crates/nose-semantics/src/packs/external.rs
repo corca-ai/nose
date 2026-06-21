@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SemanticPackRequirementSummary {
@@ -306,5 +307,165 @@ impl ExternalRowCoordinate {
             manifest_path: row.manifest_path.clone(),
             channel: row.channel,
         }
+    }
+}
+
+impl SemanticPackSet {
+    pub fn external_row_conflicts(&self) -> ExternalRowConflictReport {
+        let mut conflicts = Vec::new();
+        let coordinates = self.external_row_coordinates();
+        for coordinate in &coordinates {
+            for builtin in builtin_pack_descriptors() {
+                if builtin_descriptor_contains_row_id(*builtin, coordinate.kind, &coordinate.row_id)
+                {
+                    conflicts.push(ExternalRowConflict {
+                        kind: coordinate.kind,
+                        row_id: coordinate.row_id.clone(),
+                        row_hash: coordinate.row_hash,
+                        external_pack_id: coordinate.pack_id.clone(),
+                        external_pack_hash: coordinate.pack_hash,
+                        external_manifest_path: coordinate.manifest_path.clone(),
+                        conflicting_pack_id: builtin.id.to_string(),
+                        conflicting_pack_hash: semantic_pack_hash(builtin.id),
+                        conflicting_source: SemanticPackSource::CompiledBuiltin,
+                        conflicting_manifest_path: None,
+                    });
+                }
+            }
+        }
+
+        let mut seen: HashMap<(ExternalRowKind, String), ExternalRowCoordinate> = HashMap::new();
+        for coordinate in coordinates {
+            let key = (coordinate.kind, coordinate.row_id.clone());
+            if let Some(first) = seen.get(&key) {
+                conflicts.push(ExternalRowConflict {
+                    kind: coordinate.kind,
+                    row_id: coordinate.row_id.clone(),
+                    row_hash: coordinate.row_hash,
+                    external_pack_id: coordinate.pack_id.clone(),
+                    external_pack_hash: coordinate.pack_hash,
+                    external_manifest_path: coordinate.manifest_path.clone(),
+                    conflicting_pack_id: first.pack_id.clone(),
+                    conflicting_pack_hash: first.pack_hash,
+                    conflicting_source: SemanticPackSource::LocalManifest,
+                    conflicting_manifest_path: Some(first.manifest_path.clone()),
+                });
+            } else {
+                seen.insert(key, coordinate);
+            }
+        }
+        ExternalRowConflictReport { conflicts }
+    }
+
+    pub fn external_influence_preflight(&self) -> ExternalInfluencePreflightReport {
+        self.external_influence_preflight_with(|_| false)
+    }
+
+    pub fn external_influence_preflight_with_conformance(
+        &self,
+        conformance: &SemanticPackConformanceReport,
+    ) -> ExternalInfluencePreflightReport {
+        self.external_influence_preflight_with(|coordinate| {
+            conformance.executable_conformance_passed_for(
+                coordinate.kind,
+                coordinate.row_hash,
+                coordinate.pack_hash,
+                &coordinate.manifest_path,
+            )
+        })
+    }
+
+    fn external_influence_preflight_with(
+        &self,
+        executable_conformance_passed: impl Fn(&ExternalRowCoordinate) -> bool,
+    ) -> ExternalInfluencePreflightReport {
+        let coordinates = self.external_row_coordinates();
+        let mut conflicting_rows = HashSet::new();
+        for conflict in self.external_row_conflicts().conflicts {
+            conflicting_rows.insert((
+                conflict.kind,
+                conflict.row_hash,
+                conflict.external_pack_hash,
+            ));
+            if conflict.conflicting_source == SemanticPackSource::LocalManifest {
+                conflicting_rows.insert((
+                    conflict.kind,
+                    conflict.row_hash,
+                    conflict.conflicting_pack_hash,
+                ));
+            }
+        }
+        let rows = coordinates
+            .into_iter()
+            .map(|coordinate| {
+                let mut blockers = vec![
+                    ExternalInfluenceBlocker::DataOnlyRegistration,
+                    ExternalInfluenceBlocker::DependencyBackedEvidenceUnavailable,
+                    ExternalInfluenceBlocker::ExplicitInfluenceTrustGateMissing,
+                ];
+                if coordinate.channel.exact_capable() && !executable_conformance_passed(&coordinate)
+                {
+                    blockers.push(ExternalInfluenceBlocker::ExecutableConformanceUnavailable);
+                }
+                if conflicting_rows.contains(&(
+                    coordinate.kind,
+                    coordinate.row_hash,
+                    coordinate.pack_hash,
+                )) {
+                    blockers.push(ExternalInfluenceBlocker::RowConflict);
+                }
+                ExternalRowInfluencePreflight {
+                    kind: coordinate.kind,
+                    row_id: coordinate.row_id,
+                    row_hash: coordinate.row_hash,
+                    pack_id: coordinate.pack_id,
+                    pack_hash: coordinate.pack_hash,
+                    manifest_path: coordinate.manifest_path,
+                    channel: coordinate.channel,
+                    blockers,
+                }
+            })
+            .collect();
+        ExternalInfluencePreflightReport { rows }
+    }
+
+    fn external_row_coordinates(&self) -> Vec<ExternalRowCoordinate> {
+        let mut rows = Vec::with_capacity(
+            self.external_evidence_producer_rows.len()
+                + self.external_contract_rows.len()
+                + self.external_value_law_rows.len(),
+        );
+        rows.extend(
+            self.external_evidence_producer_rows
+                .iter()
+                .map(ExternalRowCoordinate::from_producer),
+        );
+        rows.extend(
+            self.external_contract_rows
+                .iter()
+                .map(ExternalRowCoordinate::from_contract),
+        );
+        rows.extend(
+            self.external_value_law_rows
+                .iter()
+                .map(ExternalRowCoordinate::from_law),
+        );
+        rows
+    }
+}
+
+fn builtin_descriptor_contains_row_id(
+    descriptor: BuiltinPackDescriptor,
+    kind: ExternalRowKind,
+    row_id: &str,
+) -> bool {
+    match kind {
+        ExternalRowKind::EvidenceProducer => descriptor
+            .evidence_producer_ids
+            .iter()
+            .chain(descriptor.source_fact_producer_ids.iter())
+            .any(|id| *id == row_id),
+        ExternalRowKind::Contract => descriptor.contract_ids.contains(&row_id),
+        ExternalRowKind::ValueLaw => descriptor.value_law_ids().contains(&row_id),
     }
 }

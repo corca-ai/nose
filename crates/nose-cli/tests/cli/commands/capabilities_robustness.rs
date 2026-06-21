@@ -49,7 +49,7 @@ fn capabilities_command_lists_stable_commands_and_schemas() {
         json["schemas"]["semantic_packs"][0],
         "nose.semantic-pack.v0"
     );
-    assert_eq!(json["schemas"]["semantic_pack_conformance"][0], 1);
+    assert_eq!(json["schemas"]["semantic_pack_conformance"][0], 2);
 }
 
 #[test]

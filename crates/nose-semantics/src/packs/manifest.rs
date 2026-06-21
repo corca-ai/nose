@@ -173,6 +173,8 @@ pub(super) struct ManifestConformance {
     pub(super) command: Option<String>,
     #[serde(default)]
     pub(super) proofs: Vec<String>,
+    #[serde(default)]
+    pub(super) executable: Vec<ManifestExecutableConformanceGate>,
 }
 
 #[derive(Deserialize)]
@@ -184,4 +186,16 @@ pub(super) struct ManifestFixture {
     pub(super) path: Option<String>,
     #[serde(default)]
     pub(super) expectation: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ManifestExecutableConformanceGate {
+    pub(super) id: String,
+    pub(super) row_ref: String,
+    pub(super) oracle: SemanticPackExecutableOracle,
+    pub(super) positive_fixtures: Vec<String>,
+    pub(super) hard_negatives: Vec<String>,
+    pub(super) expected_positive: String,
+    pub(super) expected_hard_negative: String,
 }

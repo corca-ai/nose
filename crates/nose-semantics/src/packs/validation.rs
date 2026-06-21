@@ -7,6 +7,7 @@ pub(super) fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), S
     let known_refs = collect_declared_refs(manifest)?;
     validate_manifest_conformance(manifest)?;
     let conformance_refs = collect_conformance_fixture_refs(manifest)?;
+    validate_executable_conformance(manifest, &conformance_refs)?;
 
     for producer in &manifest.declares.evidence_producers {
         validate_evidence_producer(producer, &known_refs)?;
@@ -181,7 +182,92 @@ fn validate_manifest_conformance(manifest: &SemanticPackManifest) -> Result<(), 
     for proof in &manifest.conformance.proofs {
         require_non_empty("conformance.proofs[]", proof)?;
     }
+    for gate in &manifest.conformance.executable {
+        require_stable_id("conformance.executable[].id", &gate.id)?;
+        require_stable_id("conformance.executable[].row_ref", &gate.row_ref)?;
+        require_non_empty(
+            "conformance.executable[].expected_positive",
+            &gate.expected_positive,
+        )?;
+        require_non_empty(
+            "conformance.executable[].expected_hard_negative",
+            &gate.expected_hard_negative,
+        )?;
+    }
     Ok(())
+}
+
+fn validate_executable_conformance(
+    manifest: &SemanticPackManifest,
+    fixture_refs: &ConformanceFixtureRefs,
+) -> Result<(), String> {
+    let mut gate_ids = HashSet::new();
+    let exact_rows = collect_exact_capable_row_refs(manifest);
+    for gate in &manifest.conformance.executable {
+        if !gate_ids.insert(gate.id.clone()) {
+            return Err(format!(
+                "duplicate id `{}` in `conformance.executable`",
+                gate.id
+            ));
+        }
+        if !exact_rows.contains(&gate.row_ref) {
+            return Err(format!(
+                "executable conformance gate `{}` row_ref must reference an exact-capable declared row",
+                gate.id
+            ));
+        }
+        if gate.positive_fixtures.is_empty() {
+            return Err(format!(
+                "executable conformance gate `{}` must reference at least one positive fixture",
+                gate.id
+            ));
+        }
+        if gate.hard_negatives.is_empty() {
+            return Err(format!(
+                "executable conformance gate `{}` must reference at least one hard-negative fixture",
+                gate.id
+            ));
+        }
+        for id in &gate.positive_fixtures {
+            require_stable_id("conformance.executable[].positive_fixtures[]", id)?;
+            if !fixture_refs.positive.contains(id) {
+                return Err(format!(
+                    "executable conformance gate `{}` references missing positive fixture `{id}`",
+                    gate.id
+                ));
+            }
+        }
+        for id in &gate.hard_negatives {
+            require_stable_id("conformance.executable[].hard_negatives[]", id)?;
+            if !fixture_refs.hard_negative.contains(id) {
+                return Err(format!(
+                    "executable conformance gate `{}` references missing hard-negative fixture `{id}`",
+                    gate.id
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn collect_exact_capable_row_refs(manifest: &SemanticPackManifest) -> HashSet<String> {
+    let mut rows = HashSet::new();
+    for producer in &manifest.declares.evidence_producers {
+        if producer.channel.exact_capable() {
+            rows.insert(producer.id.clone());
+        }
+    }
+    for contract in &manifest.declares.contracts {
+        if contract.channel.exact_capable() {
+            rows.insert(contract.id.clone());
+        }
+    }
+    for law in &manifest.declares.value_laws {
+        if law.channel.exact_capable() {
+            rows.insert(law.id.clone());
+        }
+    }
+    rows
 }
 
 #[derive(Default)]

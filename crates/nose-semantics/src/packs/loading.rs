@@ -22,6 +22,7 @@ pub fn check_semantic_pack_conformance(
         let conformance_command = manifest.conformance.command.clone();
         let proof_links = manifest.conformance.proofs.clone();
         let fixtures = collect_fixture_checks(&path, &manifest);
+        let executable = collect_executable_conformance_checks(&path, &manifest, &fixtures);
         let pack =
             SemanticPackSummary::from_manifest(path.clone(), manifest).map_err(|message| {
                 SemanticPackLoadError::InvalidManifest {
@@ -52,6 +53,7 @@ pub fn check_semantic_pack_conformance(
             conformance_command,
             proof_links,
             fixtures,
+            executable,
         });
     }
     Ok(SemanticPackConformanceReport { manifests })
@@ -245,6 +247,121 @@ fn resolve_fixture_path(manifest_path: &Path, declared_path: &str) -> PathBuf {
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join(path)
+}
+
+fn collect_executable_conformance_checks(
+    manifest_path: &Path,
+    manifest: &SemanticPackManifest,
+    fixtures: &[SemanticPackFixtureCheck],
+) -> Vec<SemanticPackExecutableConformanceCheck> {
+    manifest
+        .conformance
+        .executable
+        .iter()
+        .filter_map(|gate| {
+            executable_row(manifest, &gate.row_ref).map(|(kind, channel)| {
+                executable_conformance_check(manifest_path, manifest, gate, kind, channel, fixtures)
+            })
+        })
+        .collect()
+}
+
+fn executable_row(
+    manifest: &SemanticPackManifest,
+    row_ref: &str,
+) -> Option<(ExternalRowKind, SemanticPackChannel)> {
+    manifest
+        .declares
+        .evidence_producers
+        .iter()
+        .find(|producer| producer.id == row_ref)
+        .map(|producer| (ExternalRowKind::EvidenceProducer, producer.channel))
+        .or_else(|| {
+            manifest
+                .declares
+                .contracts
+                .iter()
+                .find(|contract| contract.id == row_ref)
+                .map(|contract| (ExternalRowKind::Contract, contract.channel))
+        })
+        .or_else(|| {
+            manifest
+                .declares
+                .value_laws
+                .iter()
+                .find(|law| law.id == row_ref)
+                .map(|law| (ExternalRowKind::ValueLaw, law.channel))
+        })
+}
+
+fn executable_conformance_check(
+    manifest_path: &Path,
+    manifest: &SemanticPackManifest,
+    gate: &ManifestExecutableConformanceGate,
+    kind: ExternalRowKind,
+    channel: SemanticPackChannel,
+    fixtures: &[SemanticPackFixtureCheck],
+) -> SemanticPackExecutableConformanceCheck {
+    let mut issues = Vec::new();
+    match gate.oracle {
+        SemanticPackExecutableOracle::FixtureExpectations => {
+            collect_fixture_expectation_issues(
+                fixtures,
+                &gate.positive_fixtures,
+                SemanticPackFixtureKind::Positive,
+                &gate.expected_positive,
+                &mut issues,
+            );
+            collect_fixture_expectation_issues(
+                fixtures,
+                &gate.hard_negatives,
+                SemanticPackFixtureKind::HardNegative,
+                &gate.expected_hard_negative,
+                &mut issues,
+            );
+        }
+    }
+    SemanticPackExecutableConformanceCheck {
+        gate_id: gate.id.clone(),
+        kind,
+        row_id: gate.row_ref.clone(),
+        row_hash: stable_symbol_hash(&gate.row_ref),
+        pack_id: manifest.pack.id.clone(),
+        pack_hash: semantic_pack_hash(&manifest.pack.id),
+        manifest_path: manifest_path.to_path_buf(),
+        channel,
+        oracle: gate.oracle,
+        positive_fixtures: gate.positive_fixtures.clone(),
+        hard_negatives: gate.hard_negatives.clone(),
+        issues,
+    }
+}
+
+fn collect_fixture_expectation_issues(
+    fixtures: &[SemanticPackFixtureCheck],
+    ids: &[String],
+    expected_kind: SemanticPackFixtureKind,
+    expected_label: &str,
+    issues: &mut Vec<SemanticPackExecutableConformanceIssue>,
+) {
+    for id in ids {
+        let Some(fixture) = fixtures.iter().find(|fixture| fixture.id == *id) else {
+            issues.push(SemanticPackExecutableConformanceIssue::UnknownFixture);
+            continue;
+        };
+        if fixture.kind != expected_kind {
+            issues.push(SemanticPackExecutableConformanceIssue::WrongFixtureKind);
+            continue;
+        }
+        if !fixture.passed() {
+            issues.push(SemanticPackExecutableConformanceIssue::FixtureIssue);
+        }
+        match fixture.expectation.as_deref() {
+            Some(actual) if actual == expected_label => {}
+            Some(_) => issues.push(SemanticPackExecutableConformanceIssue::ExpectationMismatch),
+            None => issues.push(SemanticPackExecutableConformanceIssue::MissingExpectation),
+        }
+    }
 }
 
 #[derive(Debug)]

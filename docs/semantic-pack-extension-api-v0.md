@@ -85,7 +85,7 @@ A v0 manifest has these top-level sections:
 | `declares.evidence_producers` | facts the pack may emit |
 | `declares.contracts` | semantic contracts the pack may claim |
 | `declares.value_laws` | optional law contracts, where ready |
-| `conformance` | positive fixtures, hard negatives, commands, proof links, and unsupported edges |
+| `conformance` | positive fixtures, hard negatives, executable gates, commands, proof links, and unsupported edges |
 
 The manifest is declarative. It is not a hook API. A data-only external pack can
 declare rows that the local metadata loader validates and reports. A later
@@ -394,10 +394,10 @@ until an explicit composition or replacement policy exists.
 Local loading also exposes a data-only influence preflight report. In v0, all
 external rows are blocked from influence because they are registered as data
 only, have no dependency-backed evidence runtime, lack an explicit influence
-trust gate, and, for exact-capable rows, lack executable conformance. Conflicting
-rows carry an additional conflict blocker. This report is an implementation
-contract for future adoption work; query, normalize, and detection consumers do
-not read it.
+trust gate, and, for exact-capable rows without a passed fixture-expectation
+gate, lack executable conformance. Conflicting rows carry an additional conflict
+blocker. This report is an implementation contract for future adoption work;
+query, normalize, and detection consumers do not read it.
 
 Near-mode scoring may retain conflict provenance as a review signal. Exact
 semantic fingerprints must not.
@@ -437,6 +437,8 @@ nose validates the following through manifest loading and
 - declared compatibility ranges are syntactically valid enough to compare later;
 - conformance fixtures have expectation labels and point at files that exist
   relative to the manifest path.
+- executable conformance gates, when declared, reference exact-capable producer,
+  contract, or value-law rows plus existing positive and hard-negative fixtures.
 
 nose does not validate or certify for external packs:
 
@@ -555,6 +557,8 @@ publish:
   dynamic dispatch, mutation, lazy effects, and ambiguous dependencies;
 - known unsupported boundaries and counterexamples;
 - proof links for `exact-proven` laws;
+- executable fixture-expectation gates for exact-capable producer, contract, and
+  value-law rows that are ready for adoption review;
 - a reproducible conformance command.
 
 Builtin packs must run this checklist in nose CI before becoming default.

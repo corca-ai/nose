@@ -217,6 +217,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "executable": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/executable_conformance"
+          }
         }
       }
     }
@@ -495,6 +501,52 @@
         },
         "expectation": {
           "type": "string"
+        }
+      }
+    },
+    "executable_conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "row_ref",
+        "oracle",
+        "positive_fixtures",
+        "hard_negatives",
+        "expected_positive",
+        "expected_hard_negative"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "row_ref": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "oracle": {
+          "enum": [
+            "fixture-expectations"
+          ]
+        },
+        "positive_fixtures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          }
+        },
+        "hard_negatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          }
+        },
+        "expected_positive": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_hard_negative": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

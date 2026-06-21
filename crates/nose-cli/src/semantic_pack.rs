@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::path::PathBuf;
 
-pub(crate) const CONFORMANCE_SCHEMA_VERSION: u32 = 1;
+pub(crate) const CONFORMANCE_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
 pub(crate) enum CheckFormat {
@@ -14,6 +14,7 @@ struct CheckJsonReport {
     schema_version: u32,
     status: &'static str,
     totals: CheckJsonTotals,
+    executable_conformance: CheckJsonExecutableConformance,
     influence_preflight: CheckJsonInfluencePreflight,
     manifests: Vec<CheckJsonManifest>,
 }
@@ -24,6 +25,9 @@ struct CheckJsonTotals {
     positive_fixtures: usize,
     hard_negatives: usize,
     fixture_issues: usize,
+    executable_conformance_rows: usize,
+    passed_executable_conformance_rows: usize,
+    executable_conformance_issues: usize,
     influence_rows: usize,
     blocked_influence_rows: usize,
 }
@@ -69,6 +73,29 @@ struct CheckJsonFixture {
 }
 
 #[derive(serde::Serialize)]
+struct CheckJsonExecutableConformance {
+    status: &'static str,
+    rows: Vec<CheckJsonExecutableConformanceRow>,
+}
+
+#[derive(serde::Serialize)]
+struct CheckJsonExecutableConformanceRow {
+    gate_id: String,
+    kind: &'static str,
+    row_id: String,
+    row_hash: String,
+    pack_id: String,
+    pack_hash: String,
+    manifest_path: String,
+    channel: &'static str,
+    oracle: &'static str,
+    passed: bool,
+    positive_fixtures: Vec<String>,
+    hard_negatives: Vec<String>,
+    issues: Vec<&'static str>,
+}
+
+#[derive(serde::Serialize)]
 struct CheckJsonInfluencePreflight {
     status: &'static str,
     rows: Vec<CheckJsonInfluenceRow>,
@@ -100,9 +127,13 @@ impl CheckJsonReport {
                 positive_fixtures: report.positive_fixture_count(),
                 hard_negatives: report.hard_negative_count(),
                 fixture_issues: report.fixture_issue_count(),
+                executable_conformance_rows: report.executable_conformance_count(),
+                passed_executable_conformance_rows: report.passed_executable_conformance_count(),
+                executable_conformance_issues: report.executable_conformance_issue_count(),
                 influence_rows: influence_preflight.rows.len(),
                 blocked_influence_rows: influence_preflight.blocked_count(),
             },
+            executable_conformance: CheckJsonExecutableConformance::new(report),
             influence_preflight: CheckJsonInfluencePreflight::new(influence_preflight),
             manifests: report
                 .manifests
@@ -151,6 +182,39 @@ impl CheckJsonReport {
     }
 }
 
+impl CheckJsonExecutableConformance {
+    fn new(report: &nose_semantics::SemanticPackConformanceReport) -> Self {
+        let rows = report
+            .manifests
+            .iter()
+            .flat_map(|manifest| &manifest.executable)
+            .map(|gate| CheckJsonExecutableConformanceRow {
+                gate_id: gate.gate_id.clone(),
+                kind: gate.kind.as_str(),
+                row_id: gate.row_id.clone(),
+                row_hash: format!("{:016x}", gate.row_hash),
+                pack_id: gate.pack_id.clone(),
+                pack_hash: format!("{:016x}", gate.pack_hash),
+                manifest_path: gate.manifest_path.display().to_string(),
+                channel: gate.channel.as_str(),
+                oracle: gate.oracle.as_str(),
+                passed: gate.passed(),
+                positive_fixtures: gate.positive_fixtures.clone(),
+                hard_negatives: gate.hard_negatives.clone(),
+                issues: gate.issues.iter().map(|issue| issue.as_str()).collect(),
+            })
+            .collect::<Vec<_>>();
+        let status = if rows.is_empty() {
+            "unavailable"
+        } else if report.executable_conformance_issue_count() == 0 {
+            "ok"
+        } else {
+            "failed"
+        };
+        Self { status, rows }
+    }
+}
+
 impl CheckJsonInfluencePreflight {
     fn new(report: &nose_semantics::ExternalInfluencePreflightReport) -> Self {
         Self {
@@ -183,8 +247,8 @@ pub(crate) fn cmd_check(paths: Vec<PathBuf>, format: CheckFormat) -> Result<()> 
     match format {
         CheckFormat::Human => print_human(&report),
         CheckFormat::Json => {
-            let influence_preflight =
-                nose_semantics::SemanticPackSet::new_local(&paths)?.external_influence_preflight();
+            let influence_preflight = nose_semantics::SemanticPackSet::new_local(&paths)?
+                .external_influence_preflight_with_conformance(&report);
             println!(
                 "{}",
                 serde_json::to_string_pretty(&CheckJsonReport::new(&report, &influence_preflight))?
@@ -193,8 +257,9 @@ pub(crate) fn cmd_check(paths: Vec<PathBuf>, format: CheckFormat) -> Result<()> 
     }
     if !report.passed() {
         anyhow::bail!(
-            "semantic pack conformance failed: {} fixture issue(s)",
-            report.fixture_issue_count()
+            "semantic pack conformance failed: {} fixture issue(s), {} executable gate issue(s)",
+            report.fixture_issue_count(),
+            report.executable_conformance_issue_count()
         );
     }
     Ok(())
@@ -219,6 +284,12 @@ fn print_human(report: &nose_semantics::SemanticPackConformanceReport) {
         } else {
             "failed"
         }
+    );
+    println!(
+        "executable gates: {} passed / {} declared; issues: {}",
+        report.passed_executable_conformance_count(),
+        report.executable_conformance_count(),
+        report.executable_conformance_issue_count()
     );
     for manifest in &report.manifests {
         println!(
@@ -252,6 +323,24 @@ fn print_human(report: &nose_semantics::SemanticPackConformanceReport) {
                 fixture.id,
                 issue_text,
                 path_text
+            );
+        }
+        for gate in &manifest.executable {
+            let issue_text = if gate.issues.is_empty() {
+                "ok".to_string()
+            } else {
+                gate.issues
+                    .iter()
+                    .map(|issue| issue.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            println!(
+                "    executable {} {}: {} ({})",
+                gate.kind.as_str(),
+                gate.row_id,
+                issue_text,
+                gate.oracle.as_str()
             );
         }
     }

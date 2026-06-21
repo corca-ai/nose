@@ -120,6 +120,30 @@ fn semantic_pack_manifest_with_value_law(id: &str) -> String {
     )
 }
 
+fn semantic_pack_manifest_with_executable_gates(id: &str) -> String {
+    semantic_pack_manifest(id).replace(
+        r#""known_unsupported": []"#,
+        r#""known_unsupported": [],
+    "executable": [{
+      "id": "python.library-api.example.gate",
+      "row_ref": "python.library-api.example",
+      "oracle": "fixture-expectations",
+      "positive_fixtures": ["positive"],
+      "hard_negatives": ["negative"],
+      "expected_positive": "exact-contract-open",
+      "expected_hard_negative": "exact-contract-closed"
+    }, {
+      "id": "python.example.contract.gate",
+      "row_ref": "python.example.contract",
+      "oracle": "fixture-expectations",
+      "positive_fixtures": ["positive"],
+      "hard_negatives": ["negative"],
+      "expected_positive": "exact-contract-open",
+      "expected_hard_negative": "exact-contract-closed"
+    }]"#,
+    )
+}
+
 fn semantic_pack_by_id<'a>(json: &'a serde_json::Value, id: &str) -> &'a serde_json::Value {
     json["semantic_packs"]
         .as_array()

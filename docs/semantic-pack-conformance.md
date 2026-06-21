@@ -1,9 +1,10 @@
 # Semantic pack conformance
 
 Status: nose provides a local semantic-pack v0 conformance harness for manifest
-structure and declared fixture assets. The harness is a provider/user workflow,
-not nose approval of third-party semantic correctness. External packs remain
-`metadata-only` when loaded by `nose query`.
+structure, declared fixture assets, and declarative fixture-expectation gates for
+exact-capable rows. The harness is a provider/user workflow, not nose approval of
+third-party semantic correctness. External packs remain `metadata-only` when
+loaded by `nose query`.
 
 ## Goal
 
@@ -18,7 +19,9 @@ pack meets the extension contract's minimum structural obligations:
 - contracts and value laws declare object-shaped semantics, and exact-capable
   declarations add evidence requirements plus demand/effect semantics;
 - positive fixtures and hard negatives are declared with expectation labels;
-- fixture files exist at paths relative to the manifest file.
+- fixture files exist at paths relative to the manifest file;
+- optional executable gates bind exact-capable producer, contract, and value-law
+  rows to declared positive and hard-negative fixture expectations.
 
 This keeps the ecosystem boundary narrow: packs publish evidence, contracts, and
 fixtures; the kernel decides whether evidence is admissible for a channel; users
@@ -32,7 +35,8 @@ The harness does not:
 - register external contract rows with exact consumers;
 - treat a passing structural check as permission for external rows to influence
   analysis;
-- run a behavioral oracle over fixture contents;
+- execute fixture contents, provider commands, recognizers, parser/lowering
+  plugins, producer code, or sandboxed code as an oracle;
 - prove that the provider's semantic claims are complete or true;
 - certify, approve, rank, or endorse external packs;
 - compare `compatibility.nose` against the installed nose version beyond checking
@@ -60,10 +64,11 @@ JSON children only, sorted by filename, no recursion, no registry, and no networ
 Relative fixture paths are resolved from the manifest's directory.
 
 The command exits non-zero when any manifest is invalid, when pack ids collide
-with each other or any compiled builtin pack id, or when declared conformance
+with each other or any compiled builtin pack id, when declared conformance
 fixtures are missing a path, missing an expectation, or point at a file that does
-not exist. For `--format json`, the command still writes the report before
-returning the non-zero exit.
+not exist, or when a declared executable gate does not match its fixture
+expectation oracle. For `--format json`, the command still writes the report
+before returning the non-zero exit.
 The example [law pack](examples/semantic-packs/v0/law-pack.json) uses this
 workflow to declare value-law positives and hard negatives. Passing the check
 confirms only that the law metadata and fixture assets are structurally present;
@@ -75,19 +80,42 @@ execute them.
 
 ## JSON Report
 
-`--format json` emits schema version 1:
+`--format json` emits schema version 2:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "status": "ok",
   "totals": {
     "manifests": 1,
     "positive_fixtures": 1,
     "hard_negatives": 2,
     "fixture_issues": 0,
+    "executable_conformance_rows": 1,
+    "passed_executable_conformance_rows": 1,
+    "executable_conformance_issues": 0,
     "influence_rows": 1,
     "blocked_influence_rows": 1
+  },
+  "executable_conformance": {
+    "status": "ok",
+    "rows": [
+      {
+        "gate_id": "python.example.contract.gate",
+        "kind": "contract",
+        "row_id": "python.example.contract",
+        "row_hash": "0123456789abcdef",
+        "pack_id": "com.example.semantic-pack",
+        "pack_hash": "fedcba9876543210",
+        "manifest_path": "/repo/packs/example.json",
+        "channel": "exact-empirical",
+        "oracle": "fixture-expectations",
+        "passed": true,
+        "positive_fixtures": ["positive"],
+        "hard_negatives": ["negative"],
+        "issues": []
+      }
+    ]
   },
   "influence_preflight": {
     "status": "blocked",
@@ -104,8 +132,7 @@ execute them.
         "blockers": [
           "data-only-registration",
           "dependency-backed-evidence-unavailable",
-          "explicit-influence-trust-gate-missing",
-          "executable-conformance-unavailable"
+          "explicit-influence-trust-gate-missing"
         ]
       }
     ]
@@ -119,13 +146,20 @@ provider-supplied conformance command, proof links, and per-fixture issue labels
 such as `missing-path`, `missing-expectation`, `missing-file`, and
 `absolute-path`.
 
+The top-level `executable_conformance` object is the machine-readable proof that
+declared exact-capable rows passed the local fixture-expectation gate. Its status
+is `unavailable` when no gates are declared, `ok` when all declared gates pass,
+and `failed` when any declared gate reports issues such as `unknown-fixture`,
+`wrong-fixture-kind`, `missing-expectation`, `fixture-issue`, or
+`expectation-mismatch`.
+
 The JSON report also includes `influence_preflight`. This is a row-level
-admission preview for local external declarations, not a grant of influence. In
-v0, structurally valid external producer, contract, and value-law rows still
-report blockers such as `data-only-registration`,
-`dependency-backed-evidence-unavailable`,
-`explicit-influence-trust-gate-missing`,
-`executable-conformance-unavailable`, and `row-conflict`. The `totals` object
+admission preview for local external declarations, not a grant of influence.
+Exact-capable rows without a passed executable gate report
+`executable-conformance-unavailable`. Rows with a passed gate clear only that
+blocker; v0 external rows still report blockers such as
+`data-only-registration`, `dependency-backed-evidence-unavailable`,
+`explicit-influence-trust-gate-missing`, and `row-conflict`. The `totals` object
 includes `influence_rows` and `blocked_influence_rows` so integrations can fail a
 provider workflow when a pack is structurally valid but still not admissible for
 analysis. Row and pack hashes are stable 16-hex-digit strings.
@@ -158,6 +192,7 @@ Users who opt into external packs own the enablement decision. They should inspe
 - provider identity and repository history;
 - package/version ranges and unsupported boundaries;
 - positive and hard-negative fixtures;
+- executable fixture-expectation gates for exact-capable rows, when present;
 - whether exact-capable contracts are appropriate for their codebase;
 - the pack's own test or proof evidence outside nose.
 

@@ -46,8 +46,9 @@ nose semantic-pack check semantic-packs --format json
 
 The conformance command validates manifest structure, trust policy, dependency
 references, exact-capable contract obligations, conformance fixture references,
-fixture expectation labels, and fixture file existence. It does not execute
-external producers or certify semantic correctness. See
+fixture expectation labels, executable fixture-expectation gates, and fixture
+file existence. It does not execute external producers, provider commands, or
+fixture contents, and it does not certify semantic correctness. See
 [semantic-pack-conformance](semantic-pack-conformance.md).
 
 ## Trust policy
@@ -174,8 +175,9 @@ The loader validates manifest shape and pack provenance, registers external
 producer, contract, and value-law declarations as data-only rows, can report
 row-id conflicts with builtin or other external rows, and can run a data-only
 influence preflight report. Today that preflight blocks all external rows until
-dependency-backed evidence, explicit influence trust gates, executable
-conformance for exact-capable rows, and conflict-free row ids exist.
+dependency-backed evidence, explicit influence trust gates, and conflict-free
+row ids exist. Exact-capable rows also remain blocked until they have passed
+declarative executable conformance.
 `nose semantic-pack check --format json` exposes that row-level preflight to
 providers and integrations, but query, normalize, value-graph, exact, and
 detection consumers do not read it. It does not yet:
@@ -183,7 +185,8 @@ detection consumers do not read it. It does not yet:
 - execute external evidence producers;
 - register external contract rows with exact consumers;
 - register external value-law rows with value-graph or exact consumers;
-- execute fixture contents or run a behavioral oracle;
+- execute fixture contents, provider commands, recognizers, parser/lowering
+  plugins, producer code, or sandboxed code;
 - compare semantic version ranges against the installed nose version beyond
   requiring a parseable declared compatibility field;
 - install packs from a registry or remote source.

@@ -40,6 +40,49 @@ fn query_json_reports_cli_semantic_pack_metadata_without_changing_families() {
 }
 
 #[test]
+fn query_json_keeps_executable_gated_pack_metadata_only() {
+    let dir = make_project("semantic_pack_cli_executable_metadata");
+    let pack = dir.join("pack.json");
+    fs::write(
+        &pack,
+        semantic_pack_manifest_with_executable_gates("com.example.gated-cli-pack"),
+    )
+    .unwrap();
+
+    let without_pack = query_json(&run(&[
+        "query",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+    ]));
+    let with_pack = query_json(&run(&[
+        "query",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--semantic-pack",
+        pack.to_str().unwrap(),
+        "--format",
+        "json",
+    ]));
+
+    assert_eq!(
+        query_families(&with_pack),
+        query_families(&without_pack),
+        "executable-gated external packs must remain metadata-only in query results"
+    );
+    let reported = semantic_pack_by_id(&with_pack, "com.example.gated-cli-pack");
+    assert_example_external_pack(reported, "com.example.gated-cli-pack");
+    assert_eq!(
+        reported["path"].as_str(),
+        Some(pack.canonicalize().unwrap().to_str().unwrap())
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn external_value_law_pack_does_not_add_semantic_law_provenance() {
     let dir = make_project("semantic_pack_external_law_metadata");
     fs::write(
@@ -186,14 +229,18 @@ fn semantic_pack_check_json_reports_conformance_success() {
     );
     let stdout = String::from_utf8(out.stdout).unwrap();
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("check should emit JSON");
-    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["schema_version"], 2);
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["manifests"], 1);
     assert_eq!(json["totals"]["positive_fixtures"], 1);
     assert_eq!(json["totals"]["hard_negatives"], 1);
     assert_eq!(json["totals"]["fixture_issues"], 0);
+    assert_eq!(json["totals"]["executable_conformance_rows"], 0);
+    assert_eq!(json["totals"]["passed_executable_conformance_rows"], 0);
+    assert_eq!(json["totals"]["executable_conformance_issues"], 0);
     assert_eq!(json["totals"]["influence_rows"], 2);
     assert_eq!(json["totals"]["blocked_influence_rows"], 2);
+    assert_eq!(json["executable_conformance"]["status"], "unavailable");
     assert_eq!(json["influence_preflight"]["status"], "blocked");
     let influence_rows = json["influence_preflight"]["rows"].as_array().unwrap();
     assert_eq!(influence_rows.len(), 2);
@@ -243,6 +290,81 @@ fn semantic_pack_check_json_reports_conformance_success() {
             .len(),
         0
     );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn semantic_pack_check_json_reports_passed_executable_gates_without_opening_influence() {
+    let dir = make_project("semantic_pack_check_executable_ok");
+    let fixture_dir = dir.join("fixtures");
+    fs::create_dir_all(&fixture_dir).unwrap();
+    fs::write(
+        fixture_dir.join("positive.py"),
+        "def positive(xs):\n    return sum(xs)\n",
+    )
+    .unwrap();
+    fs::write(
+        fixture_dir.join("negative.py"),
+        "def negative(xs):\n    return list(xs)\n",
+    )
+    .unwrap();
+    let pack = dir.join("pack.json");
+    fs::write(
+        &pack,
+        semantic_pack_manifest_with_executable_gates("com.example.semantic-pack"),
+    )
+    .unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "semantic-pack",
+            "check",
+            pack.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("semantic pack check");
+
+    assert!(
+        out.status.success(),
+        "semantic-pack check should pass: stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&stdout).expect("check should emit JSON");
+    assert_eq!(json["schema_version"], 2);
+    assert_eq!(json["status"], "ok");
+    assert_eq!(json["totals"]["executable_conformance_rows"], 2);
+    assert_eq!(json["totals"]["passed_executable_conformance_rows"], 2);
+    assert_eq!(json["totals"]["executable_conformance_issues"], 0);
+    assert_eq!(json["executable_conformance"]["status"], "ok");
+    let gates = json["executable_conformance"]["rows"].as_array().unwrap();
+    assert_eq!(gates.len(), 2);
+    assert!(gates.iter().all(|gate| {
+        gate["passed"] == true
+            && gate["oracle"] == "fixture-expectations"
+            && gate["issues"].as_array().unwrap().is_empty()
+    }));
+
+    let influence_rows = json["influence_preflight"]["rows"].as_array().unwrap();
+    assert_eq!(influence_rows.len(), 2);
+    for row in influence_rows {
+        assert_eq!(row["passed"], false);
+        let blockers = row["blockers"].as_array().unwrap();
+        assert!(blockers
+            .iter()
+            .any(|blocker| blocker == "data-only-registration"));
+        assert!(blockers
+            .iter()
+            .any(|blocker| blocker == "dependency-backed-evidence-unavailable"));
+        assert!(blockers
+            .iter()
+            .any(|blocker| blocker == "explicit-influence-trust-gate-missing"));
+        assert!(!blockers
+            .iter()
+            .any(|blocker| blocker == "executable-conformance-unavailable"));
+    }
     let _ = fs::remove_dir_all(&dir);
 }
 

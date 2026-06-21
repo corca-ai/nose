@@ -142,6 +142,46 @@ fn manifest_with_value_law(id: &str) -> String {
     )
 }
 
+fn manifest_with_executable_gates(id: &str) -> String {
+    manifest(id).replace(
+        r#""known_unsupported": []"#,
+        r#""known_unsupported": [],
+    "executable": [{
+      "id": "python.library-api.example.gate",
+      "row_ref": "python.library-api.example",
+      "oracle": "fixture-expectations",
+      "positive_fixtures": ["positive"],
+      "hard_negatives": ["negative"],
+      "expected_positive": "exact-contract-open",
+      "expected_hard_negative": "exact-contract-closed"
+    }, {
+      "id": "python.example.contract.gate",
+      "row_ref": "python.example.contract",
+      "oracle": "fixture-expectations",
+      "positive_fixtures": ["positive"],
+      "hard_negatives": ["negative"],
+      "expected_positive": "exact-contract-open",
+      "expected_hard_negative": "exact-contract-closed"
+    }]"#,
+    )
+}
+
+fn manifest_with_value_law_executable_gate(id: &str) -> String {
+    manifest_with_value_law(id).replace(
+        r#""known_unsupported": []"#,
+        r#""known_unsupported": [],
+    "executable": [{
+      "id": "python.example.numeric-law.gate",
+      "row_ref": "python.example.numeric-law",
+      "oracle": "fixture-expectations",
+      "positive_fixtures": ["positive"],
+      "hard_negatives": ["negative"],
+      "expected_positive": "exact-contract-open",
+      "expected_hard_negative": "exact-contract-closed"
+    }]"#,
+    )
+}
+
 #[test]
 fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
     let descriptors = builtin_pack_descriptors();
@@ -210,3 +250,4 @@ mod descriptor_enumeration;
 mod manifest_cases_0;
 mod manifest_cases_1;
 mod manifest_cases_2;
+mod manifest_cases_3;
