@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "issue": 505,
+  "recorded_on": "2026-06-22",
+  "reviewed_artifacts": [
+    "bench/semantic_pack/pricing.py",
+    "bench/semantic_pack/candidate_pricing.v1.json",
+    "bench/semantic_pack/candidate_pricing.md",
+    "docs/semantic-pack-candidate-pricing.md"
+  ],
+  "reviewers": [
+    {
+      "agent_id": "019eeef8-3cdc-73c3-adb8-bb22c815c2be",
+      "nickname": "Poincare",
+      "scope": "all 20 pricing iterations",
+      "overall_verdict": "accept-with-fixes"
+    },
+    {
+      "agent_id": "019eeef8-5ad6-79e3-89eb-306877b6dfc4",
+      "nickname": "Wegener",
+      "scope": "all 20 pricing iterations",
+      "overall_verdict": "accept-with-fixes"
+    }
+  ],
+  "cross_cutting_resolution": {
+    "accepted_changes": [
+      "Regenerated pricing artifacts from the current tool after product-query overlay was added.",
+      "Resolved product-query sampling through absolute nose binary paths and recorded sampled semantic-pack ids.",
+      "Made zero-presence unpriced next actions verdict-sensitive.",
+      "Tightened broad regex matchers where they inflated row evidence.",
+      "Demoted unsupported ready evidence for Apache Commons Lang StringUtils.",
+      "Added this durable two-reviewer loop record."
+    ],
+    "rejected_feedback": []
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "candidate_id": "java.guava.immutable_collection_factories",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["copyOf source-domain proof"],
+      "accepted_changes": ["Added copyOf source-domain/effect proof to required evidence."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 2,
+      "candidate_id": "java.guava.optional_presence",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": [],
+      "accepted_changes": [],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 3,
+      "candidate_id": "javascript.lodash.collection_projection",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["unpriced next action read like a proof-blocker task"],
+      "accepted_changes": ["Zero-presence unpriced rows now retain only seed-list context until evidence appears."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 4,
+      "candidate_id": "javascript.lodash.membership_predicates",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["unpriced next action read like a proof-blocker task"],
+      "accepted_changes": ["Zero-presence unpriced rows now retain only seed-list context until evidence appears."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 5,
+      "candidate_id": "python.numpy.scalar_integer_ufuncs",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["samples show NumPy ufunc presence, not scalar integer proof"],
+      "accepted_changes": ["Impact wording now says scalar integer impact remains blocked until value-domain proof exists."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 6,
+      "candidate_id": "python.numpy_clip_minmax",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["unpriced next action read like a proof-blocker task"],
+      "accepted_changes": ["Zero-presence unpriced rows now retain only seed-list context until evidence appears."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 7,
+      "candidate_id": "python.pandas_series_null_predicates",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["unpriced next action read like a proof-blocker task"],
+      "accepted_changes": ["Zero-presence unpriced rows now retain only seed-list context until evidence appears."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 8,
+      "candidate_id": "python.pandas_fillna_defaults",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["unpriced next action read like a proof-blocker task"],
+      "accepted_changes": ["Zero-presence unpriced rows now retain only seed-list context until evidence appears."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 9,
+      "candidate_id": "javascript.rxjs_observable_identity_adapters",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["Observable matcher inflated counts with generic text and comments"],
+      "accepted_changes": ["Replaced generic Observable matching with actual pipe identity-map and filter(Boolean) operators."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 10,
+      "candidate_id": "javascript.rxjs_projection_operators",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["operator matcher counted ordinary array map/filter in RxJS-context files"],
+      "accepted_changes": ["Restricted projection matching to operators inside pipe(...) windows."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 11,
+      "candidate_id": "rust.tokio_future_identity_adapters",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["row counted spawn/test/runtime boundaries rather than identity adapters"],
+      "accepted_changes": ["Demoted to unpriced and recorded the signal as a rejected runtime-boundary candidate."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 12,
+      "candidate_id": "rust.tokio_stream_projection",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["StreamExt matcher was polluted by non-stream map/filter calls"],
+      "accepted_changes": ["Restricted matching to then/filter_map stream-style operators and kept the row unpriced until receiver-proximate proof exists."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 13,
+      "candidate_id": "ruby.rails_active_support_presence",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": [],
+      "accepted_changes": [],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 14,
+      "candidate_id": "ruby.rails_collection_helpers",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": [],
+      "accepted_changes": [],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 15,
+      "candidate_id": "python.pathlib_path_predicates",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["Path constructors inflated predicate-row counts"],
+      "accepted_changes": ["Removed Path constructor occurrences from row counts; constructors remain only contextual import evidence."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 16,
+      "candidate_id": "python.itertools_chain_factories",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["itertools.chain was double-counted by the imported chain matcher"],
+      "accepted_changes": ["Added a negative dot lookbehind and from-import context to the imported chain matcher."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 17,
+      "candidate_id": "javascript.node_path_normalization",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": [],
+      "accepted_changes": [],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 18,
+      "candidate_id": "go.stdlib.maps_helpers",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": [],
+      "accepted_changes": [],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 19,
+      "candidate_id": "java.apache_commons_lang_string_utils",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["priced-ready verdict was based only on the library's own dev repo"],
+      "accepted_changes": ["Demoted to priced-but-blocked until external consumer or held-out evidence is available."],
+      "rejected_feedback": []
+    },
+    {
+      "iteration": 20,
+      "candidate_id": "rust.itertools_collect_vec",
+      "reviewers": ["Poincare", "Wegener"],
+      "challenged": ["import-only occurrences inflated collect_vec row counts"],
+      "accepted_changes": ["Removed trait imports from occurrence counts; actual collect_vec calls are counted."],
+      "rejected_feedback": []
+    }
+  ]
+}

@@ -12,6 +12,11 @@ Large ecosystems must enter nose as small builtin pack candidates with explicit
 evidence and adoption gates. Do not add a broad ecosystem pack just because the
 ecosystem is popular.
 
+Before implementation, candidate rows should pass through the corpus-backed
+[semantic-pack candidate pricing](semantic-pack-candidate-pricing.md) loop. That
+loop records whether each row is `priced-ready`, `priced-but-blocked`, or
+`unpriced`, and keeps corpus prevalence separate from proof.
+
 Create an implementation issue only when the candidate can name:
 
 - proposed pack id;
@@ -43,8 +48,11 @@ all exist.
 
 Guava immutable collection factories are the first implementation candidate
 because they can reuse the most existing Java collection-factory vocabulary. The
-candidate remains `builtin-optional` until fixtures, hard negatives, product
-output, runtime evidence, and adoption-gate evidence are attached.
+candidate prices as `priced-ready` in the current
+[`candidate_pricing.v1.json`](../bench/semantic_pack/candidate_pricing.v1.json)
+artifact, but it still remains `builtin-optional` until fixtures, hard
+negatives, product output, runtime evidence, and adoption-gate evidence are
+attached.
 
 The Guava candidate must still prove the exact package coordinate, import or
 static-import path, arity/overload identity, version policy, result domain, and
@@ -65,3 +73,4 @@ initial issue scoped to one pack id and one support boundary.
 - [semantic-pack-architecture](semantic-pack-architecture.md)
 - [semantic-pack-adoption](semantic-pack-adoption.md)
 - [semantic-pack-compatibility](semantic-pack-compatibility.md)
+- [semantic-pack-candidate-pricing](semantic-pack-candidate-pricing.md)

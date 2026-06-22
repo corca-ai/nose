@@ -19,8 +19,9 @@ case "${1:-}" in
         cat <<'EOF'
 usage: ./scripts/check-ci-local.sh [--fast|--full]
 
-  --fast  rustfmt, file-length and legacy-prelude ratchets,
-          clippy -D warnings, nose-cli tests, docs wiki lint
+  --fast  corpus and semantic-pack self-tests, rustfmt, file-length and
+          legacy-prelude ratchets, clippy -D warnings, nose-cli tests,
+          docs wiki lint
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
           formal obligation lint, and Lean proofs
@@ -81,6 +82,11 @@ run_legacy_prelude_ratchet() {
     python3 scripts/check-legacy-prelude.py
 }
 
+run_semantic_pack_pricing_selftest() {
+    need_cmd python3
+    python3 bench/semantic_pack/pricing.py --selftest
+}
+
 run_msrv_check() {
     need_cmd rustup
     local msrv
@@ -101,6 +107,9 @@ python3 bench/prune_corpus.py --self-test
 
 step "corpus verify runner self-test"
 ./scripts/corpus-verify-nightly.sh --self-test
+
+step "semantic-pack pricing self-test"
+run_semantic_pack_pricing_selftest
 
 step "rustfmt (formatting)"
 cargo fmt --all --check
