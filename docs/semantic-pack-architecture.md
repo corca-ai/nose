@@ -129,6 +129,9 @@ does not create a separate semantic vocabulary.
 Compatibility policy for manifest API versions, nose version ranges, kernel
 vocabulary migration, and fail-closed external influence is defined by
 [semantic-pack-compatibility](semantic-pack-compatibility.md).
+Future large-ecosystem work is tracked as narrow builtin candidates in
+[semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md),
+not as broad default-enabled ecosystem packs.
 
 ## Contributor Rule
 
@@ -345,5 +348,6 @@ previous semantic-kernel tranches.
 - [semantic-kernel](semantic-kernel.md)
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md)
 - [semantic-pack-adoption](semantic-pack-adoption.md)
+- [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md)
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md)
 - [semantic-pack-loading](semantic-pack-loading.md)
