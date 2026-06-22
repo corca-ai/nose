@@ -190,8 +190,6 @@ detection consumers do not read it. It does not yet:
 - register external value-law rows with value-graph or exact consumers;
 - execute fixture contents, provider commands, recognizers, parser/lowering
   plugins, producer code, or sandboxed code;
-- compare semantic version ranges against the installed nose version beyond
-  requiring a parseable declared compatibility field;
 - install packs from a registry or remote source.
 
 Future loader work should keep this boundary: external pack claims can become
@@ -203,4 +201,5 @@ code execution, parser/lowering plugins, or manifest presence alone.
 
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md)
 - [semantic-pack-conformance](semantic-pack-conformance.md)
+- [semantic-pack-compatibility](semantic-pack-compatibility.md)
 - [semantic-kernel](semantic-kernel.md)

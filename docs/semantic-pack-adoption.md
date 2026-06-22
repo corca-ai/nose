@@ -22,6 +22,9 @@ documented replacement or composition mapping, because builtin ids are reserved
 and local external manifests cannot claim shipped nose ownership. Kernel
 admission must continue to require dependency-backed evidence and fail-closed
 conflict handling.
+Pack compatibility across manifest API versions, installed nose versions, and
+kernel vocabulary changes is governed by
+[semantic-pack-compatibility](semantic-pack-compatibility.md).
 
 ## External To Builtin Optional
 
@@ -200,5 +203,6 @@ vocabulary with stronger ownership, conformance, and release gates.
 
 - [semantic-pack-architecture](semantic-pack-architecture.md)
 - [semantic-pack-conformance](semantic-pack-conformance.md)
+- [semantic-pack-compatibility](semantic-pack-compatibility.md)
 - [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md)
 - [semantic-pack-loading](semantic-pack-loading.md)

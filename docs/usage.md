@@ -38,6 +38,7 @@ from-source `./target/release/nose`.
 | Read the result as machine-readable JSON | `nose query <path> --format json` ([query-json](query-json.md)) |
 | Ask what an installed binary supports | `nose capabilities` |
 | Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
+| Inspect semantic-pack compatibility policy | `nose semantic-pack compatibility` |
 | Inspect lowering coverage for a language | `nose stats <paths...>` |
 | Find near-duplicate Markdown **prose** | `nose query <path>` — see [markdown-duplication](markdown-duplication.md) |
 | Debug why two snippets do or do not converge | `nose il <file> --normalized` |
@@ -294,6 +295,9 @@ and may change to improve readability. The stable contract is documented in
 - `nose semantic-pack adoption-gates [--format human|json]` — inspect compiled
   builtin pack optional/default promotion gates, rollback actions, and blocker
   status without running a query.
+- `nose semantic-pack compatibility [--format human|json]` — inspect manifest
+  API, installed-version, kernel-vocabulary, and external-influence
+  compatibility policy without loading external manifests or running a query.
 - `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — dump the IL
   for one file (`--normalized` shows the canonical form after the
   [normalization](normalization.md) passes). A debugging tool for understanding why two

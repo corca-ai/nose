@@ -51,7 +51,8 @@ nose capabilities
     "semantic_packs": ["nose.semantic-pack.v0"],
     "semantic_pack_conformance": [2],
     "semantic_pack_inventory": [1],
-    "semantic_pack_adoption_gates": [1]
+    "semantic_pack_adoption_gates": [1],
+    "semantic_pack_compatibility": [1]
   },
   "query": {
     "modes": ["syntax", "semantic", "near"],
@@ -100,6 +101,8 @@ nose capabilities
     "inventory_output_formats": ["human", "json"],
     "adoption_gates": ["compiled-builtin"],
     "adoption_gate_output_formats": ["human", "json"],
+    "compatibility": ["policy"],
+    "compatibility_output_formats": ["human", "json"],
     "trust": [
       "builtin-default",
       "builtin-optional",
@@ -156,6 +159,7 @@ release so it can't drift.
 | `schemas.semantic_pack_conformance` | array | Supported `nose semantic-pack check --format json` schema versions. Version 2 reports structural conformance, executable fixture-expectation gate results, and row-level external influence preflight blockers. |
 | `schemas.semantic_pack_inventory` | array | Supported `nose semantic-pack inventory --format json` schema versions. Version 1 reports compiled builtin pack declarations, conformance refs, coverage status, and audit gaps. |
 | `schemas.semantic_pack_adoption_gates` | array | Supported `nose semantic-pack adoption-gates --format json` schema versions. Version 1 reports compiled builtin pack optional/default promotion gates, rollback actions, and blocker status. |
+| `schemas.semantic_pack_compatibility` | array | Supported `nose semantic-pack compatibility --format json` schema versions. Version 1 reports manifest API, installed-version, kernel-vocabulary, and external-influence compatibility policy. |
 | `query.modes` | array | Supported `--mode` values. |
 | `query.default_modes` | array | Modes used by `nose query` when `--mode` is omitted. |
 | `query.output_formats` | array | Supported `nose query --format` values. |
@@ -170,6 +174,8 @@ release so it can't drift.
 | `semantic_packs.inventory_output_formats` | array | Supported `nose semantic-pack inventory --format` values. |
 | `semantic_packs.adoption_gates` | array | Supported adoption-gate report sources. Version 4 may report `compiled-builtin`; consumers should treat absence as unsupported. |
 | `semantic_packs.adoption_gate_output_formats` | array | Supported `nose semantic-pack adoption-gates --format` values. |
+| `semantic_packs.compatibility` | array | Supported compatibility report sources. Version 4 may report `policy`; consumers should treat absence as unsupported. |
+| `semantic_packs.compatibility_output_formats` | array | Supported `nose semantic-pack compatibility --format` values. |
 | `semantic_packs.trust` | array | Supported trust policy labels. |
 | `semantic_packs.external_packs_enabled_by_default` | boolean | Always `false`; external packs require explicit CLI/config opt-in. |
 | `semantic_packs.external_pack_influence` | string | Current influence of loaded external packs, `metadata-only`. |

@@ -67,6 +67,9 @@ v0 is a strict manifest contract: the published schema rejects unknown fields,
 and the local loader rejects unknown fields and enum values. Adding fields,
 adding enum values, removing fields, changing the meaning of an existing field,
 or changing exact-channel admission rules requires a new API version.
+The loader also compares `compatibility.nose` with the installed nose binary
+version and rejects manifests whose range does not include that version. See
+[semantic-pack-compatibility](semantic-pack-compatibility.md).
 
 ## Manifest Shape
 
@@ -434,7 +437,8 @@ nose validates the following through manifest loading and
 - exact-capable contracts declare required evidence, demand, effect, channel,
   proof status, positive fixtures, and hard negatives;
 - external packs are opt-in and not enabled by default;
-- declared compatibility ranges are syntactically valid enough to compare later;
+- declared compatibility ranges are semver requirements that include the
+  installed nose binary version;
 - conformance fixtures have expectation labels and point at files that exist
   relative to the manifest path.
 - executable conformance gates, when declared, reference exact-capable producer,

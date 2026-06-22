@@ -132,6 +132,10 @@ fn validate_base_query(q: &Query, args: &QueryArgs) -> Result<()> {
     if args.cache_dir.is_some() {
         unsupported_flags.push("--cache-dir");
     }
+    let cfg = crate::config::load_query(args.config.as_deref())?;
+    if !cfg.semantic_packs.is_empty() {
+        unsupported_flags.push("semantic-packs config");
+    }
     if !args.semantic_pack.is_empty() {
         unsupported_flags.push("--semantic-pack");
     }

@@ -2,10 +2,15 @@ use anyhow::Result;
 use std::path::PathBuf;
 
 mod adoption_gates;
+mod compatibility;
 mod inventory;
 
 pub(crate) use adoption_gates::{
     cmd_adoption_gates, AdoptionGateFormat, ADOPTION_GATES_SCHEMA_VERSION,
+};
+pub(crate) use compatibility::{
+    cmd_compatibility, external_influence_blocker_labels, CompatibilityFormat,
+    COMPATIBILITY_SCHEMA_VERSION,
 };
 pub(crate) use inventory::{cmd_inventory, InventoryFormat, INVENTORY_SCHEMA_VERSION};
 

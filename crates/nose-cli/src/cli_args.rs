@@ -335,6 +335,12 @@ pub(crate) enum SemanticPackCmd {
         #[arg(long, default_value = "human")]
         format: semantic_pack::AdoptionGateFormat,
     },
+    /// Report semantic-pack compatibility policy and fail-closed gates.
+    Compatibility {
+        /// Output format.
+        #[arg(long, default_value = "human")]
+        format: semantic_pack::CompatibilityFormat,
+    },
     /// Report builtin semantic-pack declarations, conformance refs, and coverage gaps.
     Inventory {
         /// Output format.

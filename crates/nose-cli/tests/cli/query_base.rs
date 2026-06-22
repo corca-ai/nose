@@ -2,6 +2,8 @@ use super::*;
 
 #[path = "query_base/sarif.rs"]
 mod sarif;
+#[path = "query_base/semantic_packs.rs"]
+mod semantic_packs;
 
 fn git_in(dir: &Path, args: &[&str]) {
     let out = Command::new("git")

@@ -50,6 +50,7 @@ struct Schemas {
     semantic_pack_conformance: Vec<u32>,
     semantic_pack_inventory: Vec<u32>,
     semantic_pack_adoption_gates: Vec<u32>,
+    semantic_pack_compatibility: Vec<u32>,
 }
 
 #[derive(serde::Serialize)]
@@ -72,6 +73,8 @@ struct SemanticPacks {
     inventory_output_formats: Vec<&'static str>,
     adoption_gates: Vec<&'static str>,
     adoption_gate_output_formats: Vec<&'static str>,
+    compatibility: Vec<&'static str>,
+    compatibility_output_formats: Vec<&'static str>,
     trust: Vec<&'static str>,
     external_packs_enabled_by_default: bool,
     external_pack_influence: &'static str,
@@ -153,6 +156,7 @@ fn current_schemas() -> Schemas {
         semantic_pack_conformance: vec![crate::semantic_pack::CONFORMANCE_SCHEMA_VERSION],
         semantic_pack_inventory: vec![crate::semantic_pack::INVENTORY_SCHEMA_VERSION],
         semantic_pack_adoption_gates: vec![crate::semantic_pack::ADOPTION_GATES_SCHEMA_VERSION],
+        semantic_pack_compatibility: vec![crate::semantic_pack::COMPATIBILITY_SCHEMA_VERSION],
     }
 }
 
@@ -170,16 +174,12 @@ fn current_semantic_packs() -> SemanticPacks {
         inventory_output_formats: vec!["human", "json"],
         adoption_gates: vec!["compiled-builtin"],
         adoption_gate_output_formats: vec!["human", "json"],
+        compatibility: vec!["policy"],
+        compatibility_output_formats: vec!["human", "json"],
         trust: vec!["builtin-default", "builtin-optional", "external-opt-in"],
         external_packs_enabled_by_default: false,
         external_pack_influence: "metadata-only",
-        external_influence_blockers: vec![
-            nose_semantics::ExternalInfluenceBlocker::DataOnlyRegistration.as_str(),
-            nose_semantics::ExternalInfluenceBlocker::DependencyBackedEvidenceUnavailable.as_str(),
-            nose_semantics::ExternalInfluenceBlocker::ExplicitInfluenceTrustGateMissing.as_str(),
-            nose_semantics::ExternalInfluenceBlocker::ExecutableConformanceUnavailable.as_str(),
-            nose_semantics::ExternalInfluenceBlocker::RowConflict.as_str(),
-        ],
+        external_influence_blockers: crate::semantic_pack::external_influence_blocker_labels(),
         external_pack_execution: "none",
     }
 }

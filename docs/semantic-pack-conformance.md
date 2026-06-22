@@ -38,9 +38,7 @@ The harness does not:
 - execute fixture contents, provider commands, recognizers, parser/lowering
   plugins, producer code, or sandboxed code as an oracle;
 - prove that the provider's semantic claims are complete or true;
-- certify, approve, rank, or endorse external packs;
-- compare `compatibility.nose` against the installed nose version beyond checking
-  that the declared requirement is parseable as a version constraint.
+- certify, approve, rank, or endorse external packs.
 
 Builtin default packs are different. nose owns their tests, hard negatives,
 proof obligations, release gates, and documentation because those packs ship with
@@ -48,6 +46,8 @@ the binary and affect exact analysis by default. The Python stdlib type-domain
 example manifest mirrors the first compiled builtin pilot pack, but local
 copies of that manifest still load only as external metadata unless nose ships
 the pack as compiled builtin code.
+Compatibility policy and installed-version range checks are documented in
+[semantic-pack-compatibility](semantic-pack-compatibility.md).
 
 ## Command
 
@@ -68,7 +68,9 @@ with each other or any compiled builtin pack id, when declared conformance
 fixtures are missing a path, missing an expectation, or point at a file that does
 not exist, or when a declared executable gate does not match its fixture
 expectation oracle. For `--format json`, the command still writes the report
-before returning the non-zero exit.
+before returning the non-zero exit after manifests have loaded. Manifest parse,
+schema, compatibility, reserved-id, or duplicate-id errors that prevent report
+creation are returned as load errors instead.
 The example [law pack](examples/semantic-packs/v0/law-pack.json) uses this
 workflow to declare value-law positives and hard negatives. Passing the check
 confirms only that the law metadata and fixture assets are structurally present;

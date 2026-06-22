@@ -14,5 +14,7 @@ mod proposal_query;
 mod query_reinvented;
 #[path = "commands/semantic_pack_adoption_gates.rs"]
 mod semantic_pack_adoption_gates;
+#[path = "commands/semantic_pack_compatibility.rs"]
+mod semantic_pack_compatibility;
 #[path = "commands/semantic_pack_inventory.rs"]
 mod semantic_pack_inventory;

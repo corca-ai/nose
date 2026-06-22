@@ -47,7 +47,7 @@ fn semantic_pack_manifest(id: &str) -> String {
     "license": "MIT",
     "repository": "https://example.invalid/semantic-pack"
   }},
-  "compatibility": {{ "nose": ">=0.5.0 <0.6.0" }},
+  "compatibility": {{ "nose": ">=0.14.0 <0.15.0" }},
   "supported_languages": [{{ "id": "python" }}],
   "declares": {{
     "evidence_producers": [{{

@@ -21,7 +21,7 @@
     "source_revision": "0000000000000000000000000000000000000000"
   },
   "compatibility": {
-    "nose": ">=0.5.0 <0.6.0",
+    "nose": ">=0.14.0 <0.15.0",
     "schema": "v0",
     "notes": "Example only. nose's built-in pilot uses compiled builtin code and reports as nose.python.stdlib.type_domain."
   },

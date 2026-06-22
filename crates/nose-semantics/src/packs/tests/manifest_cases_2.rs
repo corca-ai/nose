@@ -89,16 +89,84 @@ fn compatibility_nose_must_be_version_requirement_like() {
     fs::write(
         &path,
         manifest("com.example.pack").replace(
-            r#""compatibility": { "nose": ">=0.5.0 <0.6.0" }"#,
+            r#""compatibility": { "nose": ">=0.14.0 <0.15.0" }"#,
             r#""compatibility": { "nose": "current stable" }"#,
         ),
     )
     .unwrap();
     let err = load_local_manifest(&path).expect_err("version range should be comparable");
-    assert!(err
-        .to_string()
-        .contains("unsupported version constraint `current`"));
+    assert!(err.to_string().contains("unsupported version requirement"));
     let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn compatibility_nose_accepts_semver_operator_spacing() {
+    for (tag, supported_range) in [
+        ("operator_spacing", ">= 0.14.0, < 0.15.0"),
+        ("v_prefix", ">= v0.14.0 < v0.15.0"),
+    ] {
+        let dir = unique_dir(&format!("compatibility_{tag}"));
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""compatibility": { "nose": ">=0.14.0 <0.15.0" }"#,
+                &format!(r#""compatibility": {{ "nose": "{supported_range}" }}"#),
+            ),
+        )
+        .unwrap();
+        load_local_manifest(&path).expect("valid semver requirement should load");
+        let _ = fs::remove_dir_all(dir);
+    }
+}
+
+#[test]
+fn compatibility_nose_must_include_current_binary_version() {
+    for (tag, unsupported_range) in [
+        ("too_old", ">=0.1.0 <0.2.0"),
+        ("too_new", ">=999.0.0 <1000.0.0"),
+    ] {
+        let dir = unique_dir(&format!("compatibility_{tag}"));
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""compatibility": { "nose": ">=0.14.0 <0.15.0" }"#,
+                &format!(r#""compatibility": {{ "nose": "{unsupported_range}" }}"#),
+            ),
+        )
+        .unwrap();
+        let err = load_local_manifest(&path)
+            .expect_err("version range must include the installed binary");
+        assert!(
+            err.to_string()
+                .contains("does not include this nose binary version"),
+            "{err}"
+        );
+        let _ = fs::remove_dir_all(dir);
+    }
+}
+
+#[test]
+fn unsupported_api_versions_are_rejected_before_loading() {
+    for (tag, api_version) in [
+        ("too_old", "nose.semantic-pack.pre-v0"),
+        ("too_new", "nose.semantic-pack.v1"),
+    ] {
+        let dir = unique_dir(&format!("api_version_{tag}"));
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""api_version": "nose.semantic-pack.v0""#,
+                &format!(r#""api_version": "{api_version}""#),
+            ),
+        )
+        .unwrap();
+        let err = load_local_manifest(&path).expect_err("unsupported API versions must fail");
+        assert!(err.to_string().contains("`api_version` must be"), "{err}");
+        let _ = fs::remove_dir_all(dir);
+    }
 }
 
 #[test]

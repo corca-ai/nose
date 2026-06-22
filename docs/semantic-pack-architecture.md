@@ -126,6 +126,9 @@ Promotion from external or optional support to official builtin support is
 defined by [semantic-pack-adoption](semantic-pack-adoption.md). Promotion changes
 ownership, trust, default enablement, CI gates, and rollback responsibility; it
 does not create a separate semantic vocabulary.
+Compatibility policy for manifest API versions, nose version ranges, kernel
+vocabulary migration, and fail-closed external influence is defined by
+[semantic-pack-compatibility](semantic-pack-compatibility.md).
 
 ## Contributor Rule
 

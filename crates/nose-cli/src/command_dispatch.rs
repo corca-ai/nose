@@ -31,6 +31,7 @@ pub(crate) fn run() -> Result<()> {
         Cmd::SemanticPack { cmd } => match cmd {
             SemanticPackCmd::Check { paths, format } => semantic_pack::cmd_check(paths, format),
             SemanticPackCmd::AdoptionGates { format } => semantic_pack::cmd_adoption_gates(format),
+            SemanticPackCmd::Compatibility { format } => semantic_pack::cmd_compatibility(format),
             SemanticPackCmd::Inventory { format } => semantic_pack::cmd_inventory(format),
         },
         cmd @ Cmd::Detect { .. } => run_detect_cmd(cmd),
