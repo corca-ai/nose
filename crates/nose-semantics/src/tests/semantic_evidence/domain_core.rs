@@ -323,3 +323,105 @@ fn domain_requirements_compose_pack_boundaries_without_new_variants() {
     assert!(ARRAY_SCALAR_BOUNDARY.accepts(DomainEvidence::Integer));
     assert!(!ARRAY_SCALAR_BOUNDARY.accepts(DomainEvidence::Map));
 }
+
+#[test]
+fn named_domain_requirement_aliases_match_their_domain_sets() {
+    const ALL_DOMAINS: &[DomainEvidence] = &[
+        DomainEvidence::Array,
+        DomainEvidence::Boolean,
+        DomainEvidence::ByteArray,
+        DomainEvidence::Collection,
+        DomainEvidence::Float,
+        DomainEvidence::FutureLike,
+        DomainEvidence::Integer,
+        DomainEvidence::Iterable,
+        DomainEvidence::Iterator,
+        DomainEvidence::Map,
+        DomainEvidence::Number,
+        DomainEvidence::Option,
+        DomainEvidence::PromiseLike,
+        DomainEvidence::Record,
+        DomainEvidence::Result,
+        DomainEvidence::Set,
+        DomainEvidence::String,
+    ];
+    const CASES: &[(DomainRequirement, &[DomainEvidence])] = &[
+        (DomainRequirement::ARRAY, &[DomainEvidence::Array]),
+        (DomainRequirement::BOOLEAN, &[DomainEvidence::Boolean]),
+        (DomainRequirement::BYTE_ARRAY, &[DomainEvidence::ByteArray]),
+        (DomainRequirement::COLLECTION, &[DomainEvidence::Collection]),
+        (
+            DomainRequirement::COLLECTION_OR_SET,
+            &[DomainEvidence::Collection, DomainEvidence::Set],
+        ),
+        (
+            DomainRequirement::COLLECTION_OR_MAP,
+            &[
+                DomainEvidence::Array,
+                DomainEvidence::Collection,
+                DomainEvidence::Set,
+                DomainEvidence::Map,
+            ],
+        ),
+        (DomainRequirement::FLOAT, &[DomainEvidence::Float]),
+        (
+            DomainRequirement::FUTURE_LIKE,
+            &[DomainEvidence::FutureLike, DomainEvidence::PromiseLike],
+        ),
+        (
+            DomainRequirement::ARRAY_OR_COLLECTION,
+            &[DomainEvidence::Array, DomainEvidence::Collection],
+        ),
+        (
+            DomainRequirement::ARRAY_COLLECTION_OR_SET,
+            &[
+                DomainEvidence::Array,
+                DomainEvidence::Collection,
+                DomainEvidence::Set,
+            ],
+        ),
+        (DomainRequirement::ITERABLE, &[DomainEvidence::Iterable]),
+        (
+            DomainRequirement::ITERABLE_OR_ITERATOR,
+            &[DomainEvidence::Iterable, DomainEvidence::Iterator],
+        ),
+        (DomainRequirement::ITERATOR, &[DomainEvidence::Iterator]),
+        (DomainRequirement::SET, &[DomainEvidence::Set]),
+        (
+            DomainRequirement::SET_OR_MAP,
+            &[DomainEvidence::Set, DomainEvidence::Map],
+        ),
+        (DomainRequirement::MAP, &[DomainEvidence::Map]),
+        (
+            DomainRequirement::NUMBER,
+            &[DomainEvidence::Number, DomainEvidence::Float],
+        ),
+        (DomainRequirement::OPTION, &[DomainEvidence::Option]),
+        (
+            DomainRequirement::PROMISE_LIKE,
+            &[DomainEvidence::PromiseLike],
+        ),
+        (DomainRequirement::RECORD, &[DomainEvidence::Record]),
+        (DomainRequirement::RESULT, &[DomainEvidence::Result]),
+        (DomainRequirement::STRING, &[DomainEvidence::String]),
+        (DomainRequirement::INTEGER, &[DomainEvidence::Integer]),
+        (
+            DomainRequirement::INTEGER_OR_NUMBER,
+            &[
+                DomainEvidence::Integer,
+                DomainEvidence::Float,
+                DomainEvidence::Number,
+            ],
+        ),
+    ];
+
+    for &(requirement, accepted) in CASES {
+        for &domain in ALL_DOMAINS {
+            assert_eq!(
+                requirement.accepts(domain),
+                accepted.contains(&domain),
+                "{requirement:?} acceptance drifted for {domain:?}"
+            );
+        }
+    }
+}

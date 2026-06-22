@@ -48,7 +48,234 @@
         "AnyOf(&'static [DomainEvidence])"
       ],
       "named_aliases": "compatibility names for builtin contracts, not new primitives"
-    }
+    },
+    "kernel_primitives": [
+      {
+        "id": "domain_evidence",
+        "shape": "DomainEvidence atoms on node/param/binding anchors",
+        "producers": [
+          "type-domain extraction",
+          "binding-domain evidence",
+          "library factory result-domain evidence"
+        ],
+        "consumers": [
+          "receiver-domain admission",
+          "value-domain inference",
+          "strict exact receiver checks"
+        ],
+        "built_in_coverage": [
+          "collection membership",
+          "map defaults",
+          "scalar integer methods",
+          "promise then boundaries"
+        ],
+        "hard_negative_coverage": [
+          "wrong receiver domain",
+          "binding mutation/reassignment",
+          "stale binding evidence"
+        ],
+        "blocker_cells": {
+          "dtype/domain proof": "existing primitive; needs candidate producer",
+          "array-vs-scalar boundary": "accepted composition; Exact/AnyOf can express boundary",
+          "receiver class proof": "partly existing primitive; nominal/class producer still missing",
+          "Rust trait identity proof": "not covered; trait identity is not domain evidence alone",
+          "map iteration order boundary": "not covered; requires operation semantics, not domain evidence alone"
+        }
+      },
+      {
+        "id": "domain_requirement",
+        "shape": "Exact(DomainEvidence) or AnyOf(static domain set)",
+        "producers": [
+          "contract rows choose requirements; evidence producers still emit DomainEvidence"
+        ],
+        "consumers": [
+          "receiver_satisfies_domain",
+          "library_api receiver dependencies",
+          "normalize/detect strict exact gates"
+        ],
+        "built_in_coverage": [
+          "array/collection/set receivers",
+          "collection-or-map receivers",
+          "set-or-map receivers",
+          "future/promise aliases",
+          "numeric aliases"
+        ],
+        "hard_negative_coverage": [
+          "unproven receiver",
+          "wrong receiver domain",
+          "ambiguous/conflicting domain evidence"
+        ],
+        "blocker_cells": {
+          "dtype/domain proof": "composition-ready; occurrence proof still required",
+          "array-vs-scalar boundary": "accepted and implemented",
+          "receiver class proof": "composition-ready for domain/class atoms; class proof producer still required",
+          "Rust trait identity proof": "rejected as not expressible by domain requirement alone",
+          "map iteration order boundary": "rejected as operation semantics, not receiver requirement"
+        }
+      },
+      {
+        "id": "symbol_import_occurrence",
+        "shape": "Import and Symbol evidence with dependency-backed occurrence validation",
+        "producers": [
+          "language/core import lowering",
+          "imported occurrence symbol helpers"
+        ],
+        "consumers": [
+          "library API admission",
+          "call target admission",
+          "qualified global/static builtin gates"
+        ],
+        "built_in_coverage": [
+          "imported collection factories",
+          "Java Math",
+          "JS qualified globals",
+          "Rust std factories"
+        ],
+        "hard_negative_coverage": [
+          "shadowed imports",
+          "ambiguous imports",
+          "wrong namespace/member dependency"
+        ],
+        "blocker_cells": {
+          "Guava Optional version/package proof": "not enough; package/version occurrence missing",
+          "ActiveSupport version proof": "not enough; package/version occurrence missing",
+          "external consumer corpus evidence": "not semantic evidence"
+        }
+      },
+      {
+        "id": "library_api_occurrence",
+        "shape": "LibraryApi evidence tied to contract coordinate, arity, callee, and dependencies",
+        "producers": [
+          "compiled builtin API recognizers"
+        ],
+        "consumers": [
+          "canonical builtin admission",
+          "result-domain proof",
+          "value graph factory/default rewrites"
+        ],
+        "built_in_coverage": [
+          "collection factories",
+          "map factories",
+          "map get/default",
+          "scalar integer methods",
+          "promise then"
+        ],
+        "hard_negative_coverage": [
+          "forged wrong arity",
+          "misanchored dependency",
+          "wrong pack provenance"
+        ],
+        "blocker_cells": {
+          "candidate-specific current miss/query evidence": "pricing signal only; needs row-specific occurrence contract",
+          "default-demand/effect profile": "library occurrence can carry demand/effect once API proof exists",
+          "callback effect proof": "requires callback/effect evidence in addition to occurrence"
+        }
+      },
+      {
+        "id": "demand_effect_profile",
+        "shape": "profiles for already-admitted operations",
+        "producers": [
+          "source/API demand/effect contract rows"
+        ],
+        "consumers": [
+          "value graph and oracle demand/effect-sensitive rewrites"
+        ],
+        "built_in_coverage": [
+          "eager/default",
+          "short-circuit",
+          "eager HOF",
+          "pull-lazy HOF",
+          "async continuation",
+          "generator/channel/protocol boundaries"
+        ],
+        "hard_negative_coverage": [
+          "lazy callback errors",
+          "unproven raw HOF payloads",
+          "promise sync-erasure boundaries"
+        ],
+        "blocker_cells": {
+          "default-demand/effect profile": "existing primitive; needs API-specific row/proof",
+          "Observable demand/effect substrate": "not enough; observable lifecycle/scheduler substrate missing",
+          "stream lifecycle proof": "not enough; lifecycle occurrence proof missing",
+          "iterator demand proof": "existing profile class; source/API proof still required",
+          "iterator consumption effect proof": "existing profile class; consumption/effect proof still required"
+        }
+      },
+      {
+        "id": "call_target_identity",
+        "shape": "DirectFunction, DirectMethod, ImportedFunction, ImportedMember, DynamicDispatch evidence",
+        "producers": [
+          "DirectFunction producer",
+          "ImportedFunction/ImportedMember producers"
+        ],
+        "consumers": [
+          "strict exact call identity",
+          "value DAG referents",
+          "interpreter inline/call proofs"
+        ],
+        "built_in_coverage": [
+          "same-file direct functions",
+          "imported function/member identity"
+        ],
+        "hard_negative_coverage": [
+          "decorated/rebound functions",
+          "ambiguous call targets",
+          "method receiver identity still required"
+        ],
+        "blocker_cells": {
+          "Rust trait identity proof": "not covered by current producers",
+          "receiver class proof": "DirectMethod vocabulary exists but safe producer missing",
+          "stream lifecycle proof": "not a call-target identity proof"
+        }
+      },
+      {
+        "id": "manifest_package_metadata",
+        "shape": "manifest supported languages/packages/dependencies and compatibility ranges",
+        "producers": [
+          "semantic pack manifest loader"
+        ],
+        "consumers": [
+          "metadata reports",
+          "compatibility/adoption gates"
+        ],
+        "built_in_coverage": [
+          "metadata-only external packs",
+          "builtin inventory reports"
+        ],
+        "hard_negative_coverage": [
+          "unsupported nose version",
+          "unknown schema fields",
+          "local external builtin-trust claims"
+        ],
+        "blocker_cells": {
+          "Guava Optional version/package proof": "metadata only; occurrence proof missing",
+          "ActiveSupport version proof": "metadata only; occurrence proof missing",
+          "Go version proof": "language/runtime metadata exists; per-repo occurrence proof missing"
+        }
+      },
+      {
+        "id": "corpus_pricing_signal",
+        "shape": "candidate pricing artifact, not kernel admission evidence",
+        "producers": [
+          "bench/semantic_pack/pricing.py"
+        ],
+        "consumers": [
+          "planning and issue prioritization only"
+        ],
+        "built_in_coverage": [
+          "20 candidate row pricing loop"
+        ],
+        "hard_negative_coverage": [
+          "zero-presence rows stay unpriced",
+          "blocked rows require proof before implementation"
+        ],
+        "blocker_cells": {
+          "external consumer corpus evidence": "pricing-only; rejected as kernel primitive",
+          "zero corpus presence": "pricing-only; no kernel primitive",
+          "candidate-specific current miss/query evidence": "pricing-only; informs future row work"
+        }
+      }
+    ]
   },
   "blocker_taxonomy": [
     {
@@ -134,17 +361,26 @@
     {
       "candidate": "domain_requirement_composition",
       "covers_taxonomy": [
-        "receiver_domain_value_boundary"
+        "receiver_domain_value_boundary:domain_and_receiver_requirements_only"
       ],
       "decision": "accepted-implemented",
       "implementation": [
         "DomainRequirement now has Exact and AnyOf constructors",
         "builtin receiver/domain requirements use named aliases over the constructors",
-        "tests cover builtin preservation and pack-style domain composition"
+        "tests cover builtin preservation, pack-style domain composition, and every named alias domain set"
       ],
       "runtime_risk": "low, bounded AnyOf slices with at most four domains in current aliases",
       "remaining_blockers": [
         "the producer still must prove dtype, receiver class, trait identity, or map order evidence for each occurrence"
+      ],
+      "covers_blockers": [
+        "dtype/domain proof",
+        "array-vs-scalar boundary",
+        "receiver class proof"
+      ],
+      "does_not_cover_blockers": [
+        "Rust trait identity proof",
+        "map iteration order boundary"
       ]
     },
     {
@@ -161,7 +397,13 @@
         "demand_effect_lifecycle"
       ],
       "decision": "rejected",
-      "reason": "DemandEffectProfile already covers eager, default, HOF, pull-lazy, async, generator, channel, and protocol boundaries; current blockers need API-specific proof and fixtures rather than new primitive classes"
+      "reason": "DemandEffectProfile already covers eager, default, HOF, pull-lazy, async, generator, channel, and protocol boundaries; current blockers need API-specific proof and fixtures rather than new primitive classes",
+      "covers_blockers": [
+        "default-demand/effect profile",
+        "iterator demand proof",
+        "source iteration effect proof",
+        "iterator consumption effect proof"
+      ]
     },
     {
       "candidate": "observable_scheduler_lifecycle_substrate",
@@ -170,12 +412,17 @@
         "scheduler_platform_runtime"
       ],
       "decision": "rejected",
-      "reason": "RxJS scheduler and stream lifecycle semantics need a dedicated producer and hard negatives; admitting them from generic demand/effect vocabulary would be unsound"
+      "reason": "RxJS scheduler and stream lifecycle semantics need a dedicated producer and hard negatives; admitting them from generic demand/effect vocabulary would be unsound",
+      "covers_blockers": [
+        "Observable demand/effect substrate",
+        "scheduler boundary",
+        "stream lifecycle proof"
+      ]
     },
     {
       "candidate": "direct_method_dynamic_dispatch_producers",
       "covers_taxonomy": [
-        "receiver_domain_value_boundary"
+        "receiver_domain_value_boundary:trait_and_dispatch_identity_only"
       ],
       "decision": "rejected",
       "reason": "CallTarget vocabulary and consumers already understand DirectMethod and DynamicDispatch, but safe producers require receiver type and dispatch proof that the pricing blockers did not provide"
@@ -201,5 +448,97 @@
     "priced_ready_rows": "unchanged by the domain requirement refactor",
     "blocked_rows": "receiver/domain blockers become cheaper to express, but no row becomes exact-ready without occurrence producers and fixtures",
     "unpriced_rows": "unchanged because corpus presence is outside the semantic kernel"
-  }
+  },
+  "blocker_primitive_matrix": [
+    {
+      "blocker": "Guava Optional version/package proof",
+      "primitive": "manifest_package_metadata",
+      "cell": "existing metadata only; reject new occurrence primitive until lockfile/build proof exists"
+    },
+    {
+      "blocker": "default-demand/effect profile",
+      "primitive": "demand_effect_profile",
+      "cell": "existing primitive; candidate needs API-specific row/proof"
+    },
+    {
+      "blocker": "dtype/domain proof",
+      "primitive": "domain_evidence + domain_requirement",
+      "cell": "partly covered; accepted composition lowers expression cost, producer still missing"
+    },
+    {
+      "blocker": "array-vs-scalar boundary",
+      "primitive": "domain_requirement",
+      "cell": "accepted; Exact/AnyOf expresses the boundary"
+    },
+    {
+      "blocker": "Observable demand/effect substrate",
+      "primitive": "demand_effect_profile",
+      "cell": "rejected; lifecycle/scheduler substrate missing"
+    },
+    {
+      "blocker": "scheduler boundary",
+      "primitive": "platform/runtime environment proof",
+      "cell": "rejected; no occurrence proof or hard negatives"
+    },
+    {
+      "blocker": "stream lifecycle proof",
+      "primitive": "demand_effect_profile + lifecycle proof",
+      "cell": "rejected; requires dedicated stream lifecycle substrate"
+    },
+    {
+      "blocker": "callback effect proof",
+      "primitive": "Effect + demand_effect_profile",
+      "cell": "existing primitives; candidate proof/fixtures missing"
+    },
+    {
+      "blocker": "ActiveSupport version proof",
+      "primitive": "manifest_package_metadata",
+      "cell": "metadata only; occurrence proof missing"
+    },
+    {
+      "blocker": "receiver class proof",
+      "primitive": "domain_evidence + domain_requirement",
+      "cell": "composition-ready; class/nominal producer still missing"
+    },
+    {
+      "blocker": "iterator demand proof",
+      "primitive": "demand_effect_profile",
+      "cell": "existing profile class; API/source proof missing"
+    },
+    {
+      "blocker": "source iteration effect proof",
+      "primitive": "Effect + demand_effect_profile",
+      "cell": "existing primitives; source-specific proof missing"
+    },
+    {
+      "blocker": "Go version proof",
+      "primitive": "manifest_package_metadata",
+      "cell": "metadata exists; per-repo language/runtime occurrence proof missing"
+    },
+    {
+      "blocker": "map iteration order boundary",
+      "primitive": "operation semantics",
+      "cell": "not covered by accepted domain composition; leave blocked"
+    },
+    {
+      "blocker": "external consumer corpus evidence",
+      "primitive": "corpus_pricing_signal",
+      "cell": "rejected as kernel primitive"
+    },
+    {
+      "blocker": "candidate-specific current miss/query evidence",
+      "primitive": "corpus_pricing_signal",
+      "cell": "pricing-only; not semantic admission"
+    },
+    {
+      "blocker": "Rust trait identity proof",
+      "primitive": "call_target_identity / type-domain proof",
+      "cell": "not covered by accepted domain composition; safe trait producer missing"
+    },
+    {
+      "blocker": "iterator consumption effect proof",
+      "primitive": "demand_effect_profile + Effect",
+      "cell": "existing primitives insufficient without candidate producer/fixtures"
+    }
+  ]
 }
