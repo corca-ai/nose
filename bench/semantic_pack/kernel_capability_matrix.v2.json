@@ -1,0 +1,219 @@
+{
+  "schema_version": 2,
+  "issue": 509,
+  "source_artifacts": [
+    "bench/semantic_pack/candidate_pricing.v1.json",
+    "bench/semantic_pack/kernel_capability_matrix.v1.json",
+    "bench/semantic_pack/blocker_packet.v2.json"
+  ],
+  "scope_bar": {
+    "selected_bar": "one foundational primitive improvement with substantial builtin expansion",
+    "foundational_primitive": "admitted_api_result_domain",
+    "exact_capable_surfaces_exercising_it": [
+      "java.map.keyset.contains",
+      "rust.integer.abs.max",
+      "rust.option.and_then.chain",
+      "javascript.promise.then.chain",
+      "typescript.map.keys.result"
+    ],
+    "existing_builtin_families_reexpressed": [
+      "map_key_views",
+      "scalar_integer_methods",
+      "rust_option",
+      "promise_then"
+    ]
+  },
+  "primitive_census_v2": {
+    "retained_primitives": [
+      "domain_evidence",
+      "domain_requirement",
+      "library_api_occurrence",
+      "demand_effect_profile",
+      "symbol_import_occurrence",
+      "call_target_identity",
+      "manifest_package_metadata"
+    ],
+    "accepted_change": {
+      "id": "admitted_api_result_domain",
+      "shape": "Domain evidence on an admitted API call node, dependency-backed by the LibraryApi occurrence that produced it",
+      "producer": "receiver-method LibraryApi evidence recording",
+      "consumers": [
+        "receiver-domain dependency lookup",
+        "admitted receiver-method API chains",
+        "value graph receiver/domain consumers",
+        "strict exact receiver-domain consumers through existing indexes"
+      ],
+      "hard_negative_boundary": [
+        "no receiver proof: no API evidence and no result domain",
+        "wrong receiver domain: no API evidence and no result domain",
+        "caller-selected result type such as collect: no result domain",
+        "HOF result domain: no automatic result domain",
+        "Map.get value domain: no fixed result domain"
+      ]
+    }
+  },
+  "blocker_taxonomy_v2": [
+    {
+      "proof_shape": "api_result_domain",
+      "decision": "accepted",
+      "covered_probes": [
+        "rust.option.and_then.chain",
+        "javascript.promise.then.chain",
+        "java.map.keyset.contains",
+        "rust.integer.abs.max",
+        "typescript.map.keys.result",
+        "java.map.keyset.result",
+        "java.math.min.result"
+      ],
+      "rationale": "multiple builtin families already admit precise LibraryApi occurrences but did not all emit reusable result-domain evidence"
+    },
+    {
+      "proof_shape": "package_version_occurrence",
+      "decision": "blocked",
+      "covered_probes": [
+        "java.guava.immutable_collection_factories.package_gate",
+        "java.guava.optional_defaulting",
+        "ruby.active_support.presence",
+        "javascript.lodash.map"
+      ],
+      "rationale": "requires project dependency context and package/version evidence; manifest metadata alone remains non-admitting"
+    },
+    {
+      "proof_shape": "nominal_or_dtype_domain_producer",
+      "decision": "blocked",
+      "covered_probes": [
+        "ruby.active_support.presence",
+        "python.numpy.scalar_integer_ufuncs",
+        "python.pandas.series_fillna"
+      ],
+      "rationale": "DomainRequirement can consume these facts, but safe producers are missing"
+    },
+    {
+      "proof_shape": "iterator_consumption_and_materialization",
+      "decision": "blocked",
+      "covered_probes": [
+        "rust.itertools.collect_vec",
+        "python.itertools.chain",
+        "java.stream.map_count",
+        "rust.iterator.map_count"
+      ],
+      "rationale": "demand/effect profiles exist, but materialization, exact-size, trait identity, and consumption proof are not general enough"
+    },
+    {
+      "proof_shape": "scheduler_lifecycle_callback_effect",
+      "decision": "blocked",
+      "covered_probes": [
+        "javascript.rxjs.pipe_map",
+        "javascript.lodash.map"
+      ],
+      "rationale": "callback demand is not callback effect proof, and scheduler/lifecycle facts are absent"
+    },
+    {
+      "proof_shape": "value_domain_dependent_on_container_type",
+      "decision": "rejected",
+      "covered_probes": [
+        "generic.map_get.value_domain"
+      ],
+      "rationale": "fixed result-domain emission would be unsound without parametric container value proof"
+    }
+  ],
+  "primitive_blocker_matrix_v2": [
+    {
+      "blocker": "admitted API result domain",
+      "existing_primitive": "library_api_occurrence + domain_evidence",
+      "change_type": "composition and producer expansion",
+      "decision": "accepted-implemented",
+      "implemented_rows": [
+        "MapKeyView(Collection)",
+        "MapKeyView(Iterator)",
+        "ScalarIntegerMethod(*)",
+        "RustOptionAndThen",
+        "PromiseThen"
+      ]
+    },
+    {
+      "blocker": "package/version occurrence",
+      "existing_primitive": "manifest_package_metadata",
+      "change_type": "new producer required",
+      "decision": "blocked",
+      "reason": "project dependency context is absent"
+    },
+    {
+      "blocker": "receiver class or dtype producer",
+      "existing_primitive": "domain_requirement + nominal/type evidence vocabulary",
+      "change_type": "new safe producer required",
+      "decision": "blocked",
+      "reason": "consumer shape exists but exact producer evidence is missing"
+    },
+    {
+      "blocker": "iterator materialization or collect result",
+      "existing_primitive": "demand_effect_profile",
+      "change_type": "new capability required",
+      "decision": "blocked",
+      "reason": "caller-selected and materialized result domains are not fixed API result domains"
+    },
+    {
+      "blocker": "HOF result domain",
+      "existing_primitive": "demand_effect_profile + method HOF contract",
+      "change_type": "unsafe broadening",
+      "decision": "rejected-for-this-issue",
+      "reason": "HOF result domains require narrower demand/effect and collection materialization proof"
+    },
+    {
+      "blocker": "Map.get value domain",
+      "existing_primitive": "map_get protocol occurrence",
+      "change_type": "unsafe broadening",
+      "decision": "rejected-for-this-issue",
+      "reason": "result type is parametric in the map value type"
+    }
+  ],
+  "pricing_impact": {
+    "rerun_expected_diff": "none",
+    "reason": "the accepted change improves kernel material and builtin proof chains, but does not add new pricing candidates or corpus probes to pricing.py",
+    "rows_easier_later": [
+      "python.numpy.scalar_integer_ufuncs",
+      "ruby.rails_active_support_presence",
+      "rust.itertools_collect_vec",
+      "javascript.rxjs_projection_operators"
+    ],
+    "rows_still_blocked": [
+      "package/version rows without dependency context",
+      "scheduler/lifecycle rows",
+      "trait/materialization rows",
+      "dtype/nominal producer rows"
+    ]
+  },
+  "performance_gate": {
+    "limit": "no more than 10% median runtime regression",
+    "expected_hot_path_change": "one optional domain evidence upsert per admitted receiver-method API row with a fixed safe result domain",
+    "measurement_required": true,
+    "measurements": [
+      {
+        "name": "query-regression subset alternating r9",
+        "baseline_ms": 3001.7,
+        "current_ms": 3019.5,
+        "delta_percent": 0.6,
+        "decision": "passes 10% gate"
+      },
+      {
+        "name": "focused noisy repos alternating r31",
+        "repos": [
+          "boltons",
+          "serde_json",
+          "junit5"
+        ],
+        "baseline_ms": 898.76,
+        "current_ms": 886.48,
+        "delta_percent": -1.4,
+        "decision": "passes 10% gate"
+      },
+      {
+        "name": "query-regression HoF value-graph smoke",
+        "features_wall_ms": 9.64,
+        "semantic_query_wall_ms": 7.7,
+        "budget_ms": 3000,
+        "decision": "passes hard HoF smoke budgets"
+      }
+    ]
+  }
+}

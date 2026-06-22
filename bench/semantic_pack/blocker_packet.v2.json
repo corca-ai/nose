@@ -1,0 +1,162 @@
+{
+  "schema_version": 2,
+  "issue": 509,
+  "base_artifacts": [
+    "bench/semantic_pack/candidate_pricing.v1.json",
+    "bench/semantic_pack/kernel_capability_matrix.v1.json"
+  ],
+  "policy": {
+    "corpus_signals_are_admission_proof": false,
+    "minimum_probe_count": 20,
+    "purpose": "refresh #507 blocker vocabulary with product-relevant probes before accepting #509 kernel changes"
+  },
+  "probes": [
+    {
+      "id": "java.guava.immutable_collection_factories.package_gate",
+      "proof_shape": "package_version_occurrence",
+      "kernel_need": "dependency-context package/version evidence",
+      "decision": "blocked",
+      "reason": "high-value but requires project dependency context before exact admission"
+    },
+    {
+      "id": "java.guava.optional_defaulting",
+      "proof_shape": "package_version_occurrence+demand_effect",
+      "kernel_need": "package occurrence plus default demand profile",
+      "decision": "blocked",
+      "reason": "Guava identity and default/callback boundaries are not both proven"
+    },
+    {
+      "id": "ruby.active_support.presence",
+      "proof_shape": "package_version_occurrence+receiver_class",
+      "kernel_need": "dependency proof plus receiver class/domain producer",
+      "decision": "blocked",
+      "reason": "raw present?/blank? names and metadata are not exact proof"
+    },
+    {
+      "id": "go.stdlib.maps_clone_keys_values",
+      "proof_shape": "version_occurrence+operation_order",
+      "kernel_need": "Go version proof and map iteration order boundary",
+      "decision": "blocked",
+      "reason": "language version metadata alone does not prove order-insensitive use"
+    },
+    {
+      "id": "rust.itertools.collect_vec",
+      "proof_shape": "trait_identity+materialization",
+      "kernel_need": "trait/import identity and materialization proof",
+      "decision": "blocked",
+      "reason": "collect-like result type is caller-selected and must not be emitted as a fixed domain"
+    },
+    {
+      "id": "python.itertools.chain",
+      "proof_shape": "iterator_consumption+demand_effect",
+      "kernel_need": "pull-lazy source and terminal consumption proof",
+      "decision": "blocked",
+      "reason": "chain construction alone does not prove exact materialized behavior"
+    },
+    {
+      "id": "javascript.rxjs.pipe_map",
+      "proof_shape": "scheduler_lifecycle+callback_effect",
+      "kernel_need": "observable lifecycle, scheduler, and callback effect substrate",
+      "decision": "blocked",
+      "reason": "generic demand/effect profiles do not prove observable semantics"
+    },
+    {
+      "id": "javascript.lodash.map",
+      "proof_shape": "package_occurrence+callback_effect",
+      "kernel_need": "package proof and callback/shorthand iteratee model",
+      "decision": "blocked",
+      "reason": "raw selector and corpus presence are pricing signals only"
+    },
+    {
+      "id": "python.numpy.scalar_integer_ufuncs",
+      "proof_shape": "dtype_domain_producer",
+      "kernel_need": "dtype/domain producer and array-vs-scalar boundary",
+      "decision": "blocked",
+      "reason": "DomainRequirement composition exists, but dtype evidence producer is missing"
+    },
+    {
+      "id": "python.pandas.series_fillna",
+      "proof_shape": "series_domain+missing_value_semantics",
+      "kernel_need": "Series domain proof and NA value semantics",
+      "decision": "blocked",
+      "reason": "table/series domain and missing-value behavior are not kernel facts"
+    },
+    {
+      "id": "java.stream.map_count",
+      "proof_shape": "pull_lazy_terminal",
+      "kernel_need": "admitted API result proof feeding terminal receiver proof",
+      "decision": "existing",
+      "reason": "demand profiles exist; exact rollout still depends on admitted stream contracts"
+    },
+    {
+      "id": "rust.iterator.map_count",
+      "proof_shape": "pull_lazy_terminal",
+      "kernel_need": "admitted iterator result proof feeding terminal receiver proof",
+      "decision": "existing",
+      "reason": "current HOF profiles cover timing but not all materialization or trait identity cases"
+    },
+    {
+      "id": "rust.option.and_then.chain",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "Option result domain is dependency-backed by the admitted Rust option API"
+    },
+    {
+      "id": "javascript.promise.then.chain",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "PromiseLike result domain is dependency-backed by the admitted Promise.then API"
+    },
+    {
+      "id": "java.map.keyset.contains",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "Map.keySet result-domain proof can feed collection membership admission"
+    },
+    {
+      "id": "rust.integer.abs.max",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "integer receiver-method result-domain proof can feed chained integer method admission"
+    },
+    {
+      "id": "typescript.map.keys.result",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "JS-like Map.keys result is represented as Iterator domain without widening HOF exactness"
+    },
+    {
+      "id": "java.map.keyset.result",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "Java Map.keySet result is represented as Collection domain under exact map proof"
+    },
+    {
+      "id": "java.math.min.result",
+      "proof_shape": "api_result_domain",
+      "kernel_need": "admitted API result-domain evidence",
+      "decision": "accepted",
+      "reason": "Math integer APIs already require integer arguments before admitting the result domain"
+    },
+    {
+      "id": "generic.map_get.value_domain",
+      "proof_shape": "value_domain_dependent_on_container_type",
+      "kernel_need": "parametric map value domain proof",
+      "decision": "rejected",
+      "reason": "Map.get value domain depends on container value type and is not a fixed receiver-method result"
+    }
+  ],
+  "totals": {
+    "probes": 20,
+    "accepted": 7,
+    "existing": 2,
+    "blocked": 10,
+    "rejected": 1
+  }
+}

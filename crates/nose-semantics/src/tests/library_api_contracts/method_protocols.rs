@@ -367,3 +367,65 @@ fn static_collection_adapters_are_import_binding_constrained() {
         None
     );
 }
+
+#[test]
+fn receiver_method_api_rows_emit_only_safe_result_domains() {
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::TypeScript, "keys", 0)
+            .expect("JS-like Map.keys contract")
+            .result_domain,
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Java, "keySet", 0)
+            .expect("Java Map.keySet contract")
+            .result_domain,
+        Some(DomainEvidence::Collection)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "abs", 0)
+            .expect("Rust integer abs contract")
+            .result_domain,
+        Some(DomainEvidence::Integer)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Java, "min", 2)
+            .expect("Java Math.min contract")
+            .result_domain,
+        Some(DomainEvidence::Integer)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "and_then", 1)
+            .expect("Rust Option::and_then contract")
+            .result_domain,
+        Some(DomainEvidence::Option)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::TypeScript, "then", 1)
+            .expect("JS-like Promise.then contract")
+            .result_domain,
+        Some(DomainEvidence::PromiseLike)
+    );
+
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "collect", 0)
+            .expect("Rust iterator adapter contract")
+            .result_domain,
+        None,
+        "collect result type is caller-selected and must not be emitted as a domain"
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::TypeScript, "map", 1)
+            .expect("JS-like HOF contract")
+            .result_domain,
+        None,
+        "HOF result domains stay out of automatic emission until demand/effect boundaries are narrower"
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Java, "get", 1)
+            .expect("Java Map.get contract")
+            .result_domain,
+        None,
+        "Map.get value domain depends on map value type and is not a receiver-method result-domain proof"
+    );
+}

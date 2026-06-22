@@ -385,6 +385,23 @@ pub fn library_map_key_view_wrapper_result_domain(
     DomainEvidence::Array
 }
 
+pub(in crate::library_api) fn library_receiver_method_api_result_domain(
+    id: LibraryApiContractId,
+) -> Option<DomainEvidence> {
+    match id {
+        LibraryApiContractId::MapKeyView(MapKeyViewKind::Collection) => {
+            Some(DomainEvidence::Collection)
+        }
+        LibraryApiContractId::MapKeyView(MapKeyViewKind::Iterator) => {
+            Some(DomainEvidence::Iterator)
+        }
+        LibraryApiContractId::ScalarIntegerMethod(_) => Some(DomainEvidence::Integer),
+        LibraryApiContractId::RustOptionAndThen => Some(DomainEvidence::Option),
+        LibraryApiContractId::PromiseThen => Some(DomainEvidence::PromiseLike),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LibraryMapGetContract {
     pub pack_id: &'static str,

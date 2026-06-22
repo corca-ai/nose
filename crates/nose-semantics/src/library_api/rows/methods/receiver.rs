@@ -1,3 +1,5 @@
+use crate::library_api::contracts::library_receiver_method_api_result_domain;
+
 use super::*;
 
 pub fn library_receiver_method_api_contract(
@@ -27,7 +29,6 @@ fn receiver_map_get_api_contract(
             contract.id,
             contract.callee,
             MAP_GET_PROTOCOL_PRODUCER_ID,
-            None,
         )
     })
 }
@@ -43,7 +44,6 @@ fn receiver_map_key_view_api_contract(
             contract.id,
             contract.callee,
             MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
-            None,
         )
     })
 }
@@ -59,7 +59,6 @@ fn receiver_iterator_adapter_api_contract(
             contract.id,
             contract.callee,
             ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID,
-            None,
         )
     })
 }
@@ -75,7 +74,7 @@ fn receiver_scalar_integer_api_contract(
             JAVA_STDLIB_MATH_PACK_ID => JAVA_STDLIB_MATH_PRODUCER_ID,
             _ => "library_api_scalar_integer_method",
         };
-        receiver_method_api_contract(contract.pack_id, contract.id, contract.callee, rule, None)
+        receiver_method_api_contract(contract.pack_id, contract.id, contract.callee, rule)
     })
 }
 
@@ -90,7 +89,6 @@ fn receiver_rust_option_api_contract(
             contract.id,
             contract.callee,
             RUST_STDLIB_OPTION_PRODUCER_ID,
-            None,
         )
     })
 }
@@ -106,7 +104,6 @@ fn receiver_promise_api_contract(
             contract.id,
             contract.callee,
             JS_LIKE_BUILTIN_PROMISE_PRODUCER_ID,
-            Some(DomainEvidence::PromiseLike),
         )
     })
 }
@@ -122,7 +119,6 @@ fn receiver_map_get_default_api_contract(
             contract.id,
             contract.callee,
             MAP_GET_DEFAULT_PROTOCOL_PRODUCER_ID,
-            None,
         )
     })
 }
@@ -138,7 +134,6 @@ fn receiver_membership_api_contract(
             contract.id,
             contract.callee,
             RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID,
-            None,
         )
     })
 }
@@ -154,7 +149,6 @@ fn receiver_builtin_method_api_contract(
             contract.id,
             contract.callee,
             contract.producer_id,
-            None,
         )
     })
 }
@@ -164,13 +158,12 @@ fn receiver_method_api_contract(
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
     rule: &'static str,
-    result_domain: Option<DomainEvidence>,
 ) -> LibraryReceiverMethodApiContract {
     LibraryReceiverMethodApiContract {
         pack_id,
         id,
         callee,
         rule,
-        result_domain,
+        result_domain: library_receiver_method_api_result_domain(id),
     }
 }

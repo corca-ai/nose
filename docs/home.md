@@ -85,6 +85,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md) — narrow-slice candidate matrix for future large-ecosystem builtin packs such as Guava, Lodash, NumPy, and RxJS.
 - [semantic-pack-candidate-pricing](semantic-pack-candidate-pricing.md) — corpus-backed pricing loop for deciding which narrow semantic-pack rows are ready, blocked, or unpriced before implementation.
 - [semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md) — issue #507 primitive census, blocker taxonomy, and accept/reject matrix for deriving minimal kernel capabilities from pack blockers.
+- [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md) — issue #509 blocker packet, admitted API result-domain primitive, and builtin expansion record.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.

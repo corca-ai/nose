@@ -23,6 +23,10 @@ Outputs:
   pricing iterations.
 - `kernel_capability_matrix.v1.json` — issue #507 primitive census, blocker
   taxonomy, and accept/reject matrix derived from the pricing record.
+- `blocker_packet.v2.json` — issue #509 20-probe blocker packet for the larger
+  kernel primitive and builtin expansion wave.
+- `kernel_capability_matrix.v2.json` — issue #509 accepted primitive,
+  still-blocked proof shapes, and rejected unsafe broadening matrix.
 
 The scanner reports corpus queue signals. It does not prove semantic
 correctness and does not authorize broad ecosystem packs. Only `priced-ready`

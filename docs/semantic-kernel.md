@@ -227,6 +227,15 @@ requirements before adding vocabulary. The #507 audit and implementation record
 is in
 [semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md).
 
+Admitted API result domains use the same rule. A receiver-method API may emit
+call-node `DomainEvidence` only after its `LibraryApi` occurrence is admitted and
+only when the API row has a fixed safe result domain. That lets existing
+receiver-domain consumers admit chains such as Java `keySet().contains(...)`,
+Rust `abs().max(...)`, Rust `and_then(...).and_then(...)`, and JavaScript
+`then(...).then(...)` without adding a primitive per chain. The #509 blocker
+packet, hard boundaries, and builtin rollout are recorded in
+[semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md).
+
 ### Effects and observations
 
 Behavior is not just a return value. The kernel must distinguish ordered effects,

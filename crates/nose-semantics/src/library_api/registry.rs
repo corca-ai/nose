@@ -1,5 +1,6 @@
 //! Contract registry helpers for resolving evidence hashes back to builtin rows.
 
+use super::contracts::library_receiver_method_api_result_domain;
 use super::*;
 
 pub(super) fn library_api_contract_result_domain_for_arity(
@@ -82,9 +83,11 @@ pub(super) fn library_api_contract_result_domain_for_arity(
             }),
         ),
         LibraryApiContractId::RustOptionSomeConstructor => Some(DomainEvidence::Option),
-        LibraryApiContractId::ScalarIntegerMethod(_) => Some(DomainEvidence::Integer),
         LibraryApiContractId::PromiseFactory(_) => Some(DomainEvidence::PromiseLike),
-        LibraryApiContractId::PromiseThen => Some(DomainEvidence::PromiseLike),
+        id @ (LibraryApiContractId::RustOptionAndThen
+        | LibraryApiContractId::ScalarIntegerMethod(_)
+        | LibraryApiContractId::MapKeyView(_)
+        | LibraryApiContractId::PromiseThen) => library_receiver_method_api_result_domain(id),
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(_)) => {
             Some(DomainEvidence::Collection)
         }

@@ -69,6 +69,12 @@ The follow-up primitive census, blocker taxonomy, and accept/reject matrix for
 issue #507 are recorded in
 [semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md)
 and [`kernel_capability_matrix.v1.json`](../bench/semantic_pack/kernel_capability_matrix.v1.json).
+The larger issue #509 expansion uses the same pricing discipline with a second
+blocker packet and capability matrix:
+[`blocker_packet.v2.json`](../bench/semantic_pack/blocker_packet.v2.json),
+[`kernel_capability_matrix.v2.json`](../bench/semantic_pack/kernel_capability_matrix.v2.json),
+and
+[semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md).
 
 The current artifact records 20 candidate iterations. It starts from a curated
 seed list instead of attempting automatic API discovery. The scanner uses
