@@ -1,7 +1,8 @@
 # Semantic pack boundary review, 2026-06-22
 
 Status: pre-release review for the builtin semantic-pack operating model after
-the #484 stabilization tracker. This review does not bump the nose version.
+the #484 stabilization tracker. The release bump is tracked separately by the
+0.15.0 release PR.
 
 Reviewed base commit before this docs-only PR:
 `442668ab2fdb7f6c74ad73d9cfef20bef507625b`.
@@ -126,9 +127,8 @@ before broad ecosystem work or external influence:
 
 - Add checked golden fixtures for the machine-readable semantic-pack reports so
   docs and schema examples cannot drift from CLI output again.
-- Before bumping from `0.14.x` to `0.15.0`, update the example manifests and
-  tests whose `compatibility.nose` ranges intentionally mention
-  `>=0.14.0 <0.15.0`.
+- After each minor release, update the example manifests and tests whose
+  `compatibility.nose` ranges intentionally pin the current minor version.
 - Keep reducing the broad `nose.first_party` compatibility surface. It is
   acceptable as a v0 compatibility descriptor, but it should not regain active
   semantic ownership.
@@ -144,8 +144,8 @@ Before cutting the next minor release, keep the remaining unchecked items as
 release-candidate gates. Checked items below were verified during this boundary
 review and should still be re-run on the final release candidate.
 
-- [x] `CHANGELOG.md` has Unreleased notes for semantic-pack user-visible changes.
-- [ ] Example manifest `compatibility.nose` ranges match the release version.
+- [x] `CHANGELOG.md` has release notes for semantic-pack user-visible changes.
+- [x] Example manifest `compatibility.nose` ranges match the release version.
 - [x] `nose capabilities` advertises the intended schema versions.
 - [x] `nose semantic-pack inventory --format json` reports no coverage gaps.
 - [x] `nose semantic-pack adoption-gates --format json` reports no blocked packs.
@@ -153,9 +153,21 @@ review and should still be re-run on the final release candidate.
       influence as metadata-only and execution as none.
 - [x] `nose semantic-pack check docs/examples/semantic-packs/v0 --format json`
       passes.
-- [ ] `scripts/check-ci-local.sh --full` or equivalent CI has passed.
-- [ ] Query-regression/product-output and runtime drift have been recorded for
+- [x] `scripts/check-ci-local.sh --full` or equivalent CI has passed.
+- [x] Query-regression/product-output and runtime drift have been recorded for
       the final release candidate.
+
+0.15.0 release-candidate evidence, 2026-06-22:
+
+- `scripts/check-ci-local.sh --full` passed locally.
+- `python3 bench/type4/query_regression/query_regression.py compare --repeats 20`
+  compared the previous `nose 0.14.0` binary with the `nose 0.15.0` release
+  candidate over the 9-repo subset and reported 0 investigation triggers.
+- Full `scripts/corpus-verify-nightly.sh` was re-run on 120 pinned repos. It
+  still has the pre-existing `netty` canon-preservation failure already seen on
+  recent main nightly runs and reproduced with the previous `nose 0.14.0`
+  binary; track the corpus/nightly fix in
+  [#503](https://github.com/corca-ai/nose/issues/503).
 
 ## Related
 

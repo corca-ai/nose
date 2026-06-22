@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-06-22
+
 ### Added
 - Added the builtin semantic-pack operating model: compiled builtin pack descriptors,
   query JSON `semantic_packs` provenance, `nose capabilities` semantic-pack support

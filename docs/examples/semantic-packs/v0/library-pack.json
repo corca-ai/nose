@@ -21,7 +21,7 @@
     "source_revision": "0000000000000000000000000000000000000000"
   },
   "compatibility": {
-    "nose": ">=0.14.0 <0.15.0",
+    "nose": ">=0.15.0 <0.16.0",
     "schema": "v0",
     "notes": "Example only. The loader compares this range before accepting the manifest."
   },

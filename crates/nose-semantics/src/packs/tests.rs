@@ -69,7 +69,7 @@ fn manifest(id: &str) -> String {
     "license": "MIT",
     "repository": "https://example.invalid"
   }},
-  "compatibility": {{ "nose": ">=0.14.0 <0.15.0" }},
+  "compatibility": {{ "nose": ">=0.15.0 <0.16.0" }},
   "supported_languages": [{{ "id": "python" }}],
   "declares": {{
     "evidence_producers": [{{
