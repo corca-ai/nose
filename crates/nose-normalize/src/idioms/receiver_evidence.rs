@@ -63,7 +63,7 @@ pub(super) fn exact_collection_param(
     domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
-    domains.receiver_satisfies_domain(node, DomainRequirement::ArrayCollectionOrSet)
+    domains.receiver_satisfies_domain(node, DomainRequirement::ARRAY_COLLECTION_OR_SET)
 }
 
 pub(super) fn static_collection_adapter_arg(
@@ -77,11 +77,11 @@ pub(super) fn static_collection_adapter_arg(
 }
 
 pub(super) fn exact_set_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(node, DomainRequirement::Set)
+    domains.receiver_satisfies_domain(node, DomainRequirement::SET)
 }
 
 pub(super) fn exact_map_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(node, DomainRequirement::Map)
+    domains.receiver_satisfies_domain(node, DomainRequirement::MAP)
 }
 
 pub(super) fn exact_map_receiver(
@@ -94,7 +94,7 @@ pub(super) fn exact_map_receiver(
 }
 
 pub(super) fn exact_option_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(node, DomainRequirement::Option)
+    domains.receiver_satisfies_domain(node, DomainRequirement::OPTION)
 }
 
 pub(super) fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -134,7 +134,7 @@ pub(super) fn exact_string_receiver(
     matches!(
         old.node(node).payload,
         Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
-    ) || domains.receiver_satisfies_domain(node, DomainRequirement::String)
+    ) || domains.receiver_satisfies_domain(node, DomainRequirement::STRING)
 }
 
 pub(super) fn literal_string_receiver(
@@ -153,5 +153,5 @@ pub(super) fn exact_integer_receiver(
     matches!(
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
-    ) || domains.receiver_satisfies_domain(node, DomainRequirement::Integer)
+    ) || domains.receiver_satisfies_domain(node, DomainRequirement::INTEGER)
 }

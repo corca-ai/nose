@@ -21,6 +21,8 @@ Outputs:
 - `candidate_pricing.md` — human-readable summary of the same record.
 - `loop_reviews.v1.json` — durable two-reviewer resolution record for the 20
   pricing iterations.
+- `kernel_capability_matrix.v1.json` — issue #507 primitive census, blocker
+  taxonomy, and accept/reject matrix derived from the pricing record.
 
 The scanner reports corpus queue signals. It does not prove semantic
 correctness and does not authorize broad ecosystem packs. Only `priced-ready`

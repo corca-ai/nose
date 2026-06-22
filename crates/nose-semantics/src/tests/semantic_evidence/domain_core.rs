@@ -272,19 +272,19 @@ fn scalar_domain_evidence_predicates_keep_numeric_axes_separate() {
 
 #[test]
 fn domain_requirements_accept_matching_evidence() {
-    assert!(DomainRequirement::Boolean.accepts(DomainEvidence::Boolean));
-    assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Array));
-    assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Map));
-    assert!(DomainRequirement::Float.accepts(DomainEvidence::Float));
-    assert!(DomainRequirement::FutureLike.accepts(DomainEvidence::FutureLike));
-    assert!(DomainRequirement::FutureLike.accepts(DomainEvidence::PromiseLike));
-    assert!(DomainRequirement::Iterable.accepts(DomainEvidence::Iterable));
-    assert!(DomainRequirement::Iterator.accepts(DomainEvidence::Iterator));
-    assert!(DomainRequirement::IterableOrIterator.accepts(DomainEvidence::Iterable));
-    assert!(DomainRequirement::IterableOrIterator.accepts(DomainEvidence::Iterator));
-    assert!(DomainRequirement::Nominal {
+    assert!(DomainRequirement::BOOLEAN.accepts(DomainEvidence::Boolean));
+    assert!(DomainRequirement::COLLECTION_OR_MAP.accepts(DomainEvidence::Array));
+    assert!(DomainRequirement::COLLECTION_OR_MAP.accepts(DomainEvidence::Map));
+    assert!(DomainRequirement::FLOAT.accepts(DomainEvidence::Float));
+    assert!(DomainRequirement::FUTURE_LIKE.accepts(DomainEvidence::FutureLike));
+    assert!(DomainRequirement::FUTURE_LIKE.accepts(DomainEvidence::PromiseLike));
+    assert!(DomainRequirement::ITERABLE.accepts(DomainEvidence::Iterable));
+    assert!(DomainRequirement::ITERATOR.accepts(DomainEvidence::Iterator));
+    assert!(DomainRequirement::ITERABLE_OR_ITERATOR.accepts(DomainEvidence::Iterable));
+    assert!(DomainRequirement::ITERABLE_OR_ITERATOR.accepts(DomainEvidence::Iterator));
+    assert!(DomainRequirement::exact(DomainEvidence::Nominal {
         type_hash: stable_symbol_hash("pkg.Widget")
-    }
+    })
     .accepts(DomainEvidence::Nominal {
         type_hash: stable_symbol_hash("pkg.Widget")
     }));
@@ -292,14 +292,14 @@ fn domain_requirements_accept_matching_evidence() {
 
 #[test]
 fn domain_requirements_reject_mismatches_and_map_value_domains() {
-    assert!(DomainRequirement::Number.accepts(DomainEvidence::Float));
-    assert!(DomainRequirement::Record.accepts(DomainEvidence::Record));
-    assert!(DomainRequirement::Result.accepts(DomainEvidence::Result));
-    assert!(DomainRequirement::SetOrMap.accepts(DomainEvidence::Set));
-    assert!(DomainRequirement::SetOrMap.accepts(DomainEvidence::Map));
-    assert!(!DomainRequirement::SetOrMap.accepts(DomainEvidence::Collection));
-    assert!(DomainRequirement::PromiseLike.accepts(DomainEvidence::PromiseLike));
-    assert!(!DomainRequirement::PromiseLike.accepts(DomainEvidence::String));
+    assert!(DomainRequirement::NUMBER.accepts(DomainEvidence::Float));
+    assert!(DomainRequirement::RECORD.accepts(DomainEvidence::Record));
+    assert!(DomainRequirement::RESULT.accepts(DomainEvidence::Result));
+    assert!(DomainRequirement::SET_OR_MAP.accepts(DomainEvidence::Set));
+    assert!(DomainRequirement::SET_OR_MAP.accepts(DomainEvidence::Map));
+    assert!(!DomainRequirement::SET_OR_MAP.accepts(DomainEvidence::Collection));
+    assert!(DomainRequirement::PROMISE_LIKE.accepts(DomainEvidence::PromiseLike));
+    assert!(!DomainRequirement::PROMISE_LIKE.accepts(DomainEvidence::String));
     assert_eq!(
         ValueDomain::from_domain_evidence(DomainEvidence::Boolean),
         Some(ValueDomain::Boolean)
@@ -312,4 +312,14 @@ fn domain_requirements_reject_mismatches_and_map_value_domains() {
         ValueDomain::from_domain_evidence(DomainEvidence::PromiseLike),
         None
     );
+}
+
+#[test]
+fn domain_requirements_compose_pack_boundaries_without_new_variants() {
+    const ARRAY_SCALAR_BOUNDARY: DomainRequirement =
+        DomainRequirement::any_of(&[DomainEvidence::Array, DomainEvidence::Integer]);
+
+    assert!(ARRAY_SCALAR_BOUNDARY.accepts(DomainEvidence::Array));
+    assert!(ARRAY_SCALAR_BOUNDARY.accepts(DomainEvidence::Integer));
+    assert!(!ARRAY_SCALAR_BOUNDARY.accepts(DomainEvidence::Map));
 }

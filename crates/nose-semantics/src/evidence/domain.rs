@@ -28,65 +28,65 @@ pub fn domain_evidence_for_param(il: &Il, param: NodeId) -> Option<DomainEvidenc
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DomainRequirement {
-    Array,
-    Boolean,
-    ByteArray,
-    Collection,
-    CollectionOrSet,
-    CollectionOrMap,
-    Float,
-    FutureLike,
-    ArrayOrCollection,
-    ArrayCollectionOrSet,
-    Iterable,
-    IterableOrIterator,
-    Iterator,
-    Set,
-    SetOrMap,
-    Map,
-    Nominal { type_hash: u64 },
-    Number,
-    Option,
-    PromiseLike,
-    Record,
-    Result,
-    String,
-    Integer,
-    IntegerOrNumber,
+    Exact(DomainEvidence),
+    AnyOf(&'static [DomainEvidence]),
 }
 
 impl DomainRequirement {
+    pub const ARRAY: Self = Self::Exact(DomainEvidence::Array);
+    pub const BOOLEAN: Self = Self::Exact(DomainEvidence::Boolean);
+    pub const BYTE_ARRAY: Self = Self::Exact(DomainEvidence::ByteArray);
+    pub const COLLECTION: Self = Self::Exact(DomainEvidence::Collection);
+    pub const COLLECTION_OR_SET: Self =
+        Self::AnyOf(&[DomainEvidence::Collection, DomainEvidence::Set]);
+    pub const COLLECTION_OR_MAP: Self = Self::AnyOf(&[
+        DomainEvidence::Array,
+        DomainEvidence::Collection,
+        DomainEvidence::Set,
+        DomainEvidence::Map,
+    ]);
+    pub const FLOAT: Self = Self::Exact(DomainEvidence::Float);
+    pub const FUTURE_LIKE: Self =
+        Self::AnyOf(&[DomainEvidence::FutureLike, DomainEvidence::PromiseLike]);
+    pub const ARRAY_OR_COLLECTION: Self =
+        Self::AnyOf(&[DomainEvidence::Array, DomainEvidence::Collection]);
+    pub const ARRAY_COLLECTION_OR_SET: Self = Self::AnyOf(&[
+        DomainEvidence::Array,
+        DomainEvidence::Collection,
+        DomainEvidence::Set,
+    ]);
+    pub const ITERABLE: Self = Self::Exact(DomainEvidence::Iterable);
+    pub const ITERABLE_OR_ITERATOR: Self =
+        Self::AnyOf(&[DomainEvidence::Iterable, DomainEvidence::Iterator]);
+    pub const ITERATOR: Self = Self::Exact(DomainEvidence::Iterator);
+    pub const SET: Self = Self::Exact(DomainEvidence::Set);
+    pub const SET_OR_MAP: Self = Self::AnyOf(&[DomainEvidence::Set, DomainEvidence::Map]);
+    pub const MAP: Self = Self::Exact(DomainEvidence::Map);
+    pub const NUMBER: Self = Self::AnyOf(&[DomainEvidence::Number, DomainEvidence::Float]);
+    pub const OPTION: Self = Self::Exact(DomainEvidence::Option);
+    pub const PROMISE_LIKE: Self = Self::Exact(DomainEvidence::PromiseLike);
+    pub const RECORD: Self = Self::Exact(DomainEvidence::Record);
+    pub const RESULT: Self = Self::Exact(DomainEvidence::Result);
+    pub const STRING: Self = Self::Exact(DomainEvidence::String);
+    pub const INTEGER: Self = Self::Exact(DomainEvidence::Integer);
+    pub const INTEGER_OR_NUMBER: Self = Self::AnyOf(&[
+        DomainEvidence::Integer,
+        DomainEvidence::Float,
+        DomainEvidence::Number,
+    ]);
+
+    pub const fn exact(domain: DomainEvidence) -> Self {
+        Self::Exact(domain)
+    }
+
+    pub const fn any_of(domains: &'static [DomainEvidence]) -> Self {
+        Self::AnyOf(domains)
+    }
+
     pub fn accepts(self, domain: DomainEvidence) -> bool {
         match self {
-            DomainRequirement::Array => domain.is_array(),
-            DomainRequirement::Boolean => domain.is_boolean(),
-            DomainRequirement::ByteArray => domain.is_byte_array(),
-            DomainRequirement::Collection => domain == DomainEvidence::Collection,
-            DomainRequirement::CollectionOrSet => domain.is_collection_or_set(),
-            DomainRequirement::CollectionOrMap => {
-                domain.is_array_collection_or_set() || domain.is_map()
-            }
-            DomainRequirement::Float => domain.is_float(),
-            DomainRequirement::FutureLike => domain.is_future_like(),
-            DomainRequirement::ArrayOrCollection => domain.is_array_or_collection(),
-            DomainRequirement::ArrayCollectionOrSet => domain.is_array_collection_or_set(),
-            DomainRequirement::Iterable => domain.is_iterable(),
-            DomainRequirement::IterableOrIterator => domain.is_iterable_or_iterator(),
-            DomainRequirement::Iterator => domain.is_iterator(),
-            DomainRequirement::Set => domain.is_set(),
-            DomainRequirement::SetOrMap => domain.is_set() || domain.is_map(),
-            DomainRequirement::Map => domain.is_map(),
-            DomainRequirement::Nominal { type_hash } => domain.is_nominal(type_hash),
-            DomainRequirement::Number => {
-                matches!(domain, DomainEvidence::Number | DomainEvidence::Float)
-            }
-            DomainRequirement::Option => domain.is_option(),
-            DomainRequirement::PromiseLike => domain.is_promise_like(),
-            DomainRequirement::Record => domain.is_record(),
-            DomainRequirement::Result => domain.is_result(),
-            DomainRequirement::String => domain.is_string(),
-            DomainRequirement::Integer => domain.is_integer(),
-            DomainRequirement::IntegerOrNumber => domain.is_integer_or_number(),
+            DomainRequirement::Exact(expected) => domain == expected,
+            DomainRequirement::AnyOf(domains) => domains.contains(&domain),
         }
     }
 }

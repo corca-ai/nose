@@ -65,6 +65,11 @@ The tool emits:
 - [`candidate_pricing.md`](../bench/semantic_pack/candidate_pricing.md)
 - [`loop_reviews.v1.json`](../bench/semantic_pack/loop_reviews.v1.json)
 
+The follow-up primitive census, blocker taxonomy, and accept/reject matrix for
+issue #507 are recorded in
+[semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md)
+and [`kernel_capability_matrix.v1.json`](../bench/semantic_pack/kernel_capability_matrix.v1.json).
+
 The current artifact records 20 candidate iterations. It starts from a curated
 seed list instead of attempting automatic API discovery. The scanner uses
 language-specific regexes plus package/import context where practical. Its

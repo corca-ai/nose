@@ -1,0 +1,196 @@
+# Semantic kernel capability minimization
+
+Status: issue #507 implementation record. This page turns the 20-iteration
+semantic-pack pricing loop into a primitive census, blocker taxonomy, and
+accept/reject matrix. Accepted kernel reductions are implemented in the same
+change; rejected rows stay out of the kernel until a future pricing packet
+brings evidence, fixtures, and a performance budget.
+
+Source artifacts:
+
+- [candidate_pricing.v1.json](../bench/semantic_pack/candidate_pricing.v1.json)
+- [candidate_pricing.md](../bench/semantic_pack/candidate_pricing.md)
+- [loop_reviews.v1.json](../bench/semantic_pack/loop_reviews.v1.json)
+- [kernel_capability_matrix.v1.json](../bench/semantic_pack/kernel_capability_matrix.v1.json)
+
+## Goal
+
+The target is not to add more semantic-pack rows. The target is to keep the
+kernel small enough that broad packs can share a few admission primitives, while
+still having enough material to support meaningful external packs later.
+
+The rule for this pass:
+
+1. Start from the 20 priced candidate rows.
+2. Group their blockers by repeated proof shape.
+3. Check whether an existing primitive can be generalized or removed.
+4. Implement every accepted reduction in this issue.
+5. Reject anything that would add speculative vocabulary without occurrence
+   proof, hard negatives, and runtime evidence.
+6. Keep the query-regression subset within the semantic-pack performance gate:
+   no more than 10% median runtime regression.
+
+## Primitive Census
+
+Implemented evidence families are:
+
+| family | role |
+|---|---|
+| `Source` | source-syntax and construct provenance |
+| `Domain` | proven value or receiver domain |
+| `Import` | import and require facts |
+| `Symbol` | unshadowed, imported, and qualified symbol identity |
+| `Type` | nominal and C type-domain facts |
+| `Guard` | shape and own-property guards |
+| `Place` | exact receiver/place facts |
+| `Effect` | mutation and escape facts |
+| `LibraryApi` | occurrence proof for admitted library/API contracts |
+| `CallTarget` | direct/imported/dynamic call target identity |
+| `SequenceSurface` | aggregate and sequence surface proof |
+
+Implemented contract substrates are receiver-domain dependency admission,
+symbol/import occurrence proof, library API occurrence contracts, call-target
+identity proof, demand/effect profiles, sequence-surface proof, manifest
+package/version metadata, and conformance fixture gates.
+
+The only accepted primitive reduction in this pass is in receiver/domain
+requirements. Before this issue, `DomainRequirement` mixed atomic evidence
+domains with composite requirements such as collection-or-map, set-or-map, and
+array-collection-or-set. After this issue, the primitive representation is:
+
+```rust
+DomainRequirement::Exact(DomainEvidence)
+DomainRequirement::AnyOf(&'static [DomainEvidence])
+```
+
+Existing built-in contracts use named aliases such as
+`DomainRequirement::ARRAY_COLLECTION_OR_SET`; those names are compatibility
+conveniences over the two constructors, not separate primitives.
+
+## Blocker Taxonomy
+
+The pricing loop found one ready row, nine priced-but-blocked rows, and ten
+unpriced rows. The blocker labels were mostly unique, but they collapse into
+five proof shapes:
+
+| proof shape | source blockers | candidate examples |
+|---|---|---|
+| version/package occurrence | Guava Optional version/package proof, ActiveSupport version proof, Go version proof | Guava Optional, Rails presence, Go maps helpers |
+| receiver/domain/value boundary | dtype/domain proof, array-vs-scalar boundary, receiver class proof, Rust trait identity proof, map iteration order boundary | NumPy scalar ufuncs, Rails presence, Rust itertools, Go maps |
+| demand/effect/lifecycle | default-demand/effect profile, Observable demand/effect substrate, stream lifecycle proof, callback effect proof, iterator demand/effect proof | Guava Optional, RxJS, itertools, Rust itertools |
+| scheduler/platform/runtime | scheduler boundary, platform/cwd sensitivity, runtime/test boundary | RxJS adapters, Node path, Tokio |
+| corpus/query evidence | external consumer corpus evidence, candidate-specific current miss/query evidence, zero corpus presence | Commons Lang, Lodash, Pandas, Rails helpers |
+
+## Decision Matrix
+
+| candidate | decision | reason |
+|---|---|---|
+| Domain requirement composition | accepted and implemented | Multiple blockers need receiver/domain boundary combinations. The old enum spent a primitive variant per combination; `Exact` plus `AnyOf` covers existing built-ins and future domain boundaries without adding variants. |
+| Package/version occurrence anchor | rejected | Manifest package/version metadata already exists, but there is no lockfile/build-system occurrence producer. Adding a package anchor without occurrence proof would be speculative. |
+| New demand/effect profile classes | rejected | `DemandEffectProfile` already covers eager, default, HOF, pull-lazy, async, generator, channel, and protocol boundaries. Current blockers need API-specific proof and hard negatives, not new primitive classes. |
+| Observable scheduler/lifecycle substrate | rejected | RxJS scheduler and stream lifecycle semantics need dedicated occurrence proof and hard negatives. Generic demand/effect vocabulary would make exact admission too broad. |
+| DirectMethod/DynamicDispatch producers | rejected | The vocabulary and consumers already exist. Safe producers require receiver type and dispatch proof that the pricing blockers did not supply. |
+| Corpus presence primitive | rejected | Corpus presence is useful for pricing and queue ordering. It is not semantic evidence and must not admit exact contracts. |
+| Platform/runtime environment contract | rejected | Platform, cwd, runtime, and test-environment sensitivity stays unsupported or hard-negative until an explicit environment proof exists. |
+
+## Implementation
+
+The accepted reduction is implemented in
+[`crates/nose-semantics/src/evidence/domain.rs`](../crates/nose-semantics/src/evidence/domain.rs).
+Built-in consumers in `nose-semantics`, `nose-normalize`, and `nose-detect` now
+use named domain-requirement aliases backed by `Exact` or `AnyOf`.
+
+The focused test addition is
+`domain_requirements_compose_pack_boundaries_without_new_variants`, which shows
+that a pack-style domain boundary can be expressed as an `AnyOf` requirement
+without adding another enum variant. Existing receiver-domain and library API
+predicate tests continue to assert built-in behavior.
+
+## Pricing Impact
+
+This pass does not promote any blocked row to ready by itself. That is
+intentional: the accepted reduction lowers the cost of representing
+receiver/domain blockers, but it does not prove a NumPy dtype, Rails receiver
+class, Rust trait identity, or Go map-order boundary for a concrete occurrence.
+
+The pricing scanner was rerun with:
+
+```sh
+python3 bench/semantic_pack/pricing.py --nose ./target/release/nose --query-sample-repos 1
+```
+
+The rerun produced no diff to `candidate_pricing.v1.json` or
+`candidate_pricing.md`, which matches the expectation: this issue changes the
+kernel requirement representation, not the corpus pricing candidates.
+
+Rows that become easier to implement later:
+
+- `python.numpy.scalar_integer_ufuncs`: scalar-vs-array and dtype boundaries can
+  be expressed without minting a new domain-requirement variant.
+- `ruby.rails_active_support_presence`: receiver class/domain proof can reuse
+  `Exact` or `AnyOf` requirements once the occurrence producer exists.
+- `go.stdlib.maps_helpers`: map/set/collection boundaries reuse the same
+  requirement model; map iteration order remains a separate semantic blocker.
+- `rust.itertools_collect_vec`: iterator/collection result boundaries reuse the
+  same requirement model; trait identity and consumption effects remain blocked.
+
+Rows that remain blocked:
+
+- version/package blockers, until package-manager or build metadata can prove
+  occurrence-level package/version identity;
+- RxJS scheduler, observable, and stream-lifecycle blockers, until a dedicated
+  substrate exists;
+- corpus-only blockers, until the pricing loop finds meaningful presence and
+  row-specific current misses.
+
+## Performance Gate
+
+The issue uses the semantic-pack performance gate from
+[semantic-pack-architecture](semantic-pack-architecture.md): the normal target is
+within 5% median growth, and any greater than 10% median growth on the
+query-regression subset blocks the PR unless explicitly accepted as a product
+decision.
+
+The measurement command is:
+
+```sh
+cargo build --release --bin nose
+python3 bench/type4/query_regression/query_regression.py baseline \
+  --nose ./target/release/nose \
+  --repos-root bench/repos \
+  --repeats 3 \
+  --build-ref "issue507-pre@<sha>" \
+  --out target/issue507/query-baseline-pre.json
+python3 bench/type4/query_regression/query_regression.py compare \
+  --nose ./target/release/nose \
+  --repos-root bench/repos \
+  --repeats 3 \
+  --build-ref "issue507-post@<sha>" \
+  --baseline target/issue507/query-baseline-pre.json \
+  --summary target/issue507/query-compare-post.md
+```
+
+The first `--repeats 3` compare showed a small-repo phase trigger in `chi` on
+`lower` and `parse+lower`; the changed code does not touch parser or lowering
+paths. A fresh baseline binary from commit `768c102f` was then built in
+`target/issue507/base-worktree` and compared with `--repeats 7`. That compare
+showed no output drift and no HoF budget failure. It still reported
+investigation triggers in `lower`/`parse+lower` for `boltons` and `ky`, again
+outside the changed path.
+
+Because those triggers were in unrelated small-repo phases, the runtime decision
+uses paired alternating measurements between the baseline and current release
+binaries:
+
+| measurement | baseline | current | delta |
+|---|---:|---:|---:|
+| query-regression subset, sum of repo wall medians, alternating r9 | 1223.21 ms | 1223.15 ms | -0.0% |
+| `gin`, alternating r31 wall median | 55.15 ms | 56.34 ms | +2.2% |
+| `chi`, alternating r31 wall median | 34.30 ms | 34.01 ms | -0.9% |
+
+The accepted implementation therefore stays under the 10% runtime-regression
+limit. The phase-trigger root-cause note is measurement noise in parser/lower
+stages that this issue did not modify; the relevant aggregate and focused
+paired measurements are performance-neutral.
+
+Back to [semantic-kernel](semantic-kernel.md).

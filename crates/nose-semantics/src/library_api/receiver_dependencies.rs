@@ -113,7 +113,7 @@ fn integer_value_argument_dependency_ids(
             il,
             interner,
             arg,
-            DomainRequirement::Integer,
+            DomainRequirement::INTEGER,
             cache,
         )
         .or_else(|| {
@@ -121,7 +121,7 @@ fn integer_value_argument_dependency_ids(
                 il,
                 interner,
                 arg,
-                DomainRequirement::Integer,
+                DomainRequirement::INTEGER,
             )
         })?;
         dependencies.push(dependency);
@@ -181,7 +181,7 @@ pub(in crate::library_api) fn async_receiver_dependency_ids(
             il,
             interner,
             receiver,
-            DomainRequirement::PromiseLike,
+            DomainRequirement::PROMISE_LIKE,
             cache,
         )
         .or_else(|| {
@@ -189,7 +189,7 @@ pub(in crate::library_api) fn async_receiver_dependency_ids(
                 il,
                 interner,
                 receiver,
-                DomainRequirement::PromiseLike,
+                DomainRequirement::PROMISE_LIKE,
             )
         })
         .map(|id| vec![id]),

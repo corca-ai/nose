@@ -267,7 +267,7 @@ fn property_receiver_exact_safe(
     node: NodeId,
 ) -> bool {
     seq_receiver_exact_collection_safe(il, interner, node)
-        || domains.receiver_satisfies_domain(node, DomainRequirement::ArrayOrCollection)
+        || domains.receiver_satisfies_domain(node, DomainRequirement::ARRAY_OR_COLLECTION)
         || property_receiver_exact_hof_node(il, interner, domains, node)
         || property_receiver_exact_hof_call(il, interner, domains, node)
 }

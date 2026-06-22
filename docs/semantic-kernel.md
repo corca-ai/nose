@@ -217,6 +217,16 @@ sequence, map, set, option/nullish, result/error, future/promise, observable, an
 domain-specific collection types. Unknown stays top: exact rewrites fire only
 when a required domain is proven.
 
+Receiver/domain preconditions are represented as a small compositional
+requirement language, not one primitive per domain combination:
+`DomainRequirement::Exact(DomainEvidence)` for one proven domain, and
+`DomainRequirement::AnyOf(&[DomainEvidence])` for narrow unions such as
+collection-or-map or array-collection-or-set. Builtin aliases keep current
+contracts readable, but new pack blockers should first try to compose these
+requirements before adding vocabulary. The #507 audit and implementation record
+is in
+[semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md).
+
 ### Effects and observations
 
 Behavior is not just a return value. The kernel must distinguish ordered effects,

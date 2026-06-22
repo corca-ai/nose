@@ -30,21 +30,21 @@ pub fn method_receiver_domain_requirement(
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument
         | MethodReceiverContract::ExactCollectionOrJavaKeySet => {
-            Some(DomainRequirement::ArrayCollectionOrSet)
+            Some(DomainRequirement::ARRAY_COLLECTION_OR_SET)
         }
         MethodReceiverContract::ExactOption | MethodReceiverContract::RustMapGetOrExactOption => {
-            Some(DomainRequirement::Option)
+            Some(DomainRequirement::OPTION)
         }
         MethodReceiverContract::ExactString | MethodReceiverContract::LiteralString => {
-            Some(DomainRequirement::String)
+            Some(DomainRequirement::STRING)
         }
-        MethodReceiverContract::ExactInteger => Some(DomainRequirement::Integer),
-        MethodReceiverContract::ExactMap => Some(DomainRequirement::Map),
+        MethodReceiverContract::ExactInteger => Some(DomainRequirement::INTEGER),
+        MethodReceiverContract::ExactMap => Some(DomainRequirement::MAP),
         MethodReceiverContract::ExactCollectionOrMap
         | MethodReceiverContract::ExactCollectionOrMapLiteral => {
-            Some(DomainRequirement::CollectionOrMap)
+            Some(DomainRequirement::COLLECTION_OR_MAP)
         }
-        MethodReceiverContract::ExactSetOrMap => Some(DomainRequirement::SetOrMap),
+        MethodReceiverContract::ExactSetOrMap => Some(DomainRequirement::SET_OR_MAP),
         MethodReceiverContract::ExactMapLiteral
         | MethodReceiverContract::UnshadowedGlobal(_)
         | MethodReceiverContract::ImportedNamespace(_) => None,

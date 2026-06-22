@@ -13,7 +13,7 @@ fn language_predicates_preserve_existing_gates() {
             .c_integer_byte_pack_contract(CBytePackWidth::U32);
         assert_eq!(byte_pack.is_some(), lang == Lang::C);
         if let Some(contract) = byte_pack {
-            assert_eq!(contract.base_domain, DomainRequirement::ByteArray);
+            assert_eq!(contract.base_domain, DomainRequirement::BYTE_ARRAY);
             assert_eq!(
                 contract.required_high_lane_cast,
                 Some(SourceFactKind::Cast(SourceCastKind::CUnsigned32))

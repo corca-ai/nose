@@ -579,7 +579,7 @@ impl OperatorSemantics {
     ) -> Option<CIntegerBytePackContract> {
         (self.lang == Lang::C).then_some(CIntegerBytePackContract {
             width,
-            base_domain: DomainRequirement::ByteArray,
+            base_domain: DomainRequirement::BYTE_ARRAY,
             required_high_lane_cast: match width {
                 CBytePackWidth::U16 => None,
                 CBytePackWidth::U32 => Some(SourceFactKind::Cast(SourceCastKind::CUnsigned32)),

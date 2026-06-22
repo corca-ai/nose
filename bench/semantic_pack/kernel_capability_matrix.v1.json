@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "issue": 507,
+  "source_artifacts": [
+    "bench/semantic_pack/candidate_pricing.v1.json",
+    "bench/semantic_pack/candidate_pricing.md",
+    "bench/semantic_pack/loop_reviews.v1.json"
+  ],
+  "pricing_totals": {
+    "iterations": 20,
+    "priced_ready": 1,
+    "priced_but_blocked": 9,
+    "unpriced": 10
+  },
+  "primitive_census": {
+    "evidence_families": [
+      "Source",
+      "Domain",
+      "Import",
+      "Symbol",
+      "Type",
+      "Guard",
+      "Place",
+      "Effect",
+      "LibraryApi",
+      "CallTarget",
+      "SequenceSurface"
+    ],
+    "contract_substrates": [
+      "receiver-domain dependency admission",
+      "symbol/import occurrence proof",
+      "library API occurrence contracts",
+      "call-target identity proof",
+      "demand/effect profiles for admitted operations",
+      "sequence-surface proof",
+      "manifest package/version metadata",
+      "conformance fixture gates"
+    ],
+    "domain_requirement_before": {
+      "kind": "closed enum",
+      "variant_count": 25,
+      "problem": "atomic evidence domains and composite receiver requirements were separate primitive variants"
+    },
+    "domain_requirement_after": {
+      "kind": "compositional requirement",
+      "constructors": [
+        "Exact(DomainEvidence)",
+        "AnyOf(&'static [DomainEvidence])"
+      ],
+      "named_aliases": "compatibility names for builtin contracts, not new primitives"
+    }
+  },
+  "blocker_taxonomy": [
+    {
+      "id": "version_package_occurrence",
+      "blockers": [
+        "Guava Optional version/package proof",
+        "ActiveSupport version proof",
+        "Go version proof"
+      ],
+      "pricing_candidates": [
+        "java.guava.optional_presence",
+        "ruby.rails_active_support_presence",
+        "go.stdlib.maps_helpers"
+      ]
+    },
+    {
+      "id": "receiver_domain_value_boundary",
+      "blockers": [
+        "dtype/domain proof",
+        "array-vs-scalar boundary",
+        "receiver class proof",
+        "Rust trait identity proof",
+        "map iteration order boundary"
+      ],
+      "pricing_candidates": [
+        "python.numpy.scalar_integer_ufuncs",
+        "ruby.rails_active_support_presence",
+        "rust.itertools_collect_vec",
+        "go.stdlib.maps_helpers"
+      ]
+    },
+    {
+      "id": "demand_effect_lifecycle",
+      "blockers": [
+        "default-demand/effect profile",
+        "Observable demand/effect substrate",
+        "stream lifecycle proof",
+        "callback effect proof",
+        "iterator demand proof",
+        "source iteration effect proof",
+        "iterator consumption effect proof"
+      ],
+      "pricing_candidates": [
+        "java.guava.optional_presence",
+        "javascript.rxjs_observable_identity_adapters",
+        "javascript.rxjs_projection_operators",
+        "python.itertools_chain_factories",
+        "rust.itertools_collect_vec"
+      ]
+    },
+    {
+      "id": "scheduler_platform_runtime",
+      "blockers": [
+        "scheduler boundary",
+        "platform/cwd sensitivity",
+        "runtime/test boundary"
+      ],
+      "pricing_candidates": [
+        "javascript.rxjs_observable_identity_adapters",
+        "javascript.node_path_normalization",
+        "rust.tokio_future_identity_adapters"
+      ]
+    },
+    {
+      "id": "corpus_query_evidence",
+      "blockers": [
+        "external consumer corpus evidence",
+        "candidate-specific current miss/query evidence",
+        "zero corpus presence"
+      ],
+      "pricing_candidates": [
+        "java.apache_commons_lang_string_utils",
+        "javascript.lodash.collection_projection",
+        "javascript.lodash.membership_predicates",
+        "python.numpy_clip_minmax",
+        "python.pandas_series_null_predicates",
+        "python.pandas_fillna_defaults",
+        "ruby.rails_collection_helpers"
+      ]
+    }
+  ],
+  "matrix": [
+    {
+      "candidate": "domain_requirement_composition",
+      "covers_taxonomy": [
+        "receiver_domain_value_boundary"
+      ],
+      "decision": "accepted-implemented",
+      "implementation": [
+        "DomainRequirement now has Exact and AnyOf constructors",
+        "builtin receiver/domain requirements use named aliases over the constructors",
+        "tests cover builtin preservation and pack-style domain composition"
+      ],
+      "runtime_risk": "low, bounded AnyOf slices with at most four domains in current aliases",
+      "remaining_blockers": [
+        "the producer still must prove dtype, receiver class, trait identity, or map order evidence for each occurrence"
+      ]
+    },
+    {
+      "candidate": "package_version_occurrence_anchor",
+      "covers_taxonomy": [
+        "version_package_occurrence"
+      ],
+      "decision": "rejected",
+      "reason": "manifest package/version metadata already exists, but the current kernel has no lockfile/build-system occurrence producer; adding an anchor without occurrence proof would be speculative"
+    },
+    {
+      "candidate": "new_demand_effect_profiles",
+      "covers_taxonomy": [
+        "demand_effect_lifecycle"
+      ],
+      "decision": "rejected",
+      "reason": "DemandEffectProfile already covers eager, default, HOF, pull-lazy, async, generator, channel, and protocol boundaries; current blockers need API-specific proof and fixtures rather than new primitive classes"
+    },
+    {
+      "candidate": "observable_scheduler_lifecycle_substrate",
+      "covers_taxonomy": [
+        "demand_effect_lifecycle",
+        "scheduler_platform_runtime"
+      ],
+      "decision": "rejected",
+      "reason": "RxJS scheduler and stream lifecycle semantics need a dedicated producer and hard negatives; admitting them from generic demand/effect vocabulary would be unsound"
+    },
+    {
+      "candidate": "direct_method_dynamic_dispatch_producers",
+      "covers_taxonomy": [
+        "receiver_domain_value_boundary"
+      ],
+      "decision": "rejected",
+      "reason": "CallTarget vocabulary and consumers already understand DirectMethod and DynamicDispatch, but safe producers require receiver type and dispatch proof that the pricing blockers did not provide"
+    },
+    {
+      "candidate": "corpus_presence_as_kernel_primitive",
+      "covers_taxonomy": [
+        "corpus_query_evidence"
+      ],
+      "decision": "rejected",
+      "reason": "corpus presence is a queue and pricing signal, not semantic admission evidence"
+    },
+    {
+      "candidate": "platform_runtime_environment_contract",
+      "covers_taxonomy": [
+        "scheduler_platform_runtime"
+      ],
+      "decision": "rejected",
+      "reason": "platform, cwd, runtime, and test-environment sensitivity should remain unsupported or hard-negative until an explicit environment proof exists"
+    }
+  ],
+  "pricing_rerun_expectation": {
+    "priced_ready_rows": "unchanged by the domain requirement refactor",
+    "blocked_rows": "receiver/domain blockers become cheaper to express, but no row becomes exact-ready without occurrence producers and fixtures",
+    "unpriced_rows": "unchanged because corpus presence is outside the semantic kernel"
+  }
+}

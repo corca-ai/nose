@@ -486,7 +486,7 @@ impl<'a> Builder<'a> {
             self.il,
             self.interner,
             expr,
-            DomainRequirement::ArrayCollectionOrSet,
+            DomainRequirement::ARRAY_COLLECTION_OR_SET,
         )
     }
 
@@ -495,7 +495,7 @@ impl<'a> Builder<'a> {
             self.il,
             self.interner,
             expr,
-            DomainRequirement::Set,
+            DomainRequirement::SET,
         )
     }
 
@@ -504,7 +504,7 @@ impl<'a> Builder<'a> {
             self.il,
             self.interner,
             expr,
-            DomainRequirement::Map,
+            DomainRequirement::MAP,
         )
     }
 
@@ -513,7 +513,7 @@ impl<'a> Builder<'a> {
             self.il,
             self.interner,
             expr,
-            DomainRequirement::Integer,
+            DomainRequirement::INTEGER,
         )
     }
 

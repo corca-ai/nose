@@ -475,7 +475,7 @@ pub(super) fn library_api_dependency_record_has_required_dependencies(
                 il,
                 record,
                 receiver,
-                DomainRequirement::Map,
+                DomainRequirement::MAP,
             )
         }),
         _ => true,

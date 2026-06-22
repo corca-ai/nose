@@ -261,7 +261,7 @@ fn strict_exact_typed_set_param_receiver_safe(
     facts: &StrictFacts,
     receiver: NodeId,
 ) -> bool {
-    strict_exact_typed_receiver_safe(il, interner, facts, receiver, DomainRequirement::Set)
+    strict_exact_typed_receiver_safe(il, interner, facts, receiver, DomainRequirement::SET)
 }
 
 fn strict_exact_typed_collection_param_receiver_safe(
@@ -275,7 +275,7 @@ fn strict_exact_typed_collection_param_receiver_safe(
         interner,
         facts,
         receiver,
-        DomainRequirement::ArrayCollectionOrSet,
+        DomainRequirement::ARRAY_COLLECTION_OR_SET,
     )
 }
 
@@ -307,7 +307,7 @@ fn strict_exact_typed_map_param_receiver_safe(
     facts: &StrictFacts,
     receiver: NodeId,
 ) -> bool {
-    strict_exact_typed_receiver_safe(il, interner, facts, receiver, DomainRequirement::Map)
+    strict_exact_typed_receiver_safe(il, interner, facts, receiver, DomainRequirement::MAP)
 }
 
 pub(super) fn strict_exact_proven_map_receiver_safe(

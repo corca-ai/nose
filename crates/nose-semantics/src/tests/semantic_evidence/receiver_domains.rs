@@ -4,23 +4,23 @@ use super::*;
 fn method_receiver_contracts_expose_only_domain_backed_obligations() {
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactCollection),
-        Some(DomainRequirement::ArrayCollectionOrSet)
+        Some(DomainRequirement::ARRAY_COLLECTION_OR_SET)
     );
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactProtocol),
-        Some(DomainRequirement::ArrayCollectionOrSet)
+        Some(DomainRequirement::ARRAY_COLLECTION_OR_SET)
     );
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactCollectionOrMap),
-        Some(DomainRequirement::CollectionOrMap)
+        Some(DomainRequirement::COLLECTION_OR_MAP)
     );
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactSetOrMap),
-        Some(DomainRequirement::SetOrMap)
+        Some(DomainRequirement::SET_OR_MAP)
     );
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::RustMapGetOrExactOption),
-        Some(DomainRequirement::Option)
+        Some(DomainRequirement::OPTION)
     );
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactMapLiteral),
@@ -118,13 +118,13 @@ fn receiver_domain_evidence_at_node_is_preferred_over_param_evidence() {
         &il,
         &interner,
         receiver,
-        DomainRequirement::Map
+        DomainRequirement::MAP
     ));
     assert!(!receiver_satisfies_domain(
         &il,
         &interner,
         receiver,
-        DomainRequirement::Set
+        DomainRequirement::SET
     ));
 }
 
@@ -493,7 +493,7 @@ fn receiver_domain_index_uses_kernel_fail_closed_policy() {
 
     let domains = ReceiverDomainEvidenceIndex::new(&il, &interner);
     assert_eq!(domains.domain_evidence_for_receiver(receiver), None);
-    assert!(!domains.receiver_satisfies_domain(receiver, DomainRequirement::Collection));
+    assert!(!domains.receiver_satisfies_domain(receiver, DomainRequirement::COLLECTION));
 }
 
 #[test]
