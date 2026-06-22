@@ -284,3 +284,12 @@ The builtin inventory report PR kept the count at 55 but refreshed two represent
 `641c27f8c0ae37ed`/`758beda0d0ed65da` appeared. The current representatives are still
 test-scope semantic-pack migration debt: pack-owned `LibraryApi` record builders and
 Rust map-get canonical builtin dependency/hard-negative fixtures. No new budget is accepted.
+
+The #509 admitted API result-domain PR also keeps the count at 55 while refreshing one
+representative ID: `39a46b1fa7e4804c` disappears and `0dd2be502b5af83e` appears. Both IDs
+refer to the same production-scope helper family,
+`call_target_evidence.rs::upsert` and
+`library_api_evidence/recording.rs::upsert_builtin_evidence_with_pack_id`; adding receiver-method
+result-domain emission in `recording.rs` shifts that function's source span and therefore the
+family ID. This is still the reviewed builtin evidence upsert-helper debt from the migration, not
+new avoidable duplication, so no new budget is accepted.
