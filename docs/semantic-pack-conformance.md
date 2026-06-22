@@ -143,9 +143,15 @@ behavior or pack ownership, not in a static descriptor table.
         }
       },
       "conformance": {
-        "positive_refs": ["go-stdlib-namespace-call-fmt-print-positive"],
+        "positive_refs": [
+          "go-stdlib-namespace-call-fmt-print-positive",
+          "go-stdlib-namespace-call-strings-has-prefix-positive",
+          "go-stdlib-namespace-call-strings-has-suffix-positive",
+          "go-stdlib-namespace-call-slices-contains-positive"
+        ],
         "hard_negative_refs": [
-          "go-stdlib-namespace-call-missing-import-hard-negative"
+          "go-stdlib-namespace-call-missing-import-hard-negative",
+          "go-stdlib-namespace-call-wrong-pack-hard-negative"
         ],
         "unsupported_refs": []
       },
@@ -230,7 +236,60 @@ Important fields:
       }
     ]
   },
-  "manifests": []
+  "manifests": [
+    {
+      "id": "com.example.semantic-pack",
+      "version": "0.1.0",
+      "display_name": "Example semantic pack",
+      "trust": "external-opt-in",
+      "source": "local-manifest",
+      "influence": "metadata-only",
+      "manifest_path": "/repo/packs/example.json",
+      "provider": "Example Semantic Packs",
+      "repository": "https://example.invalid/semantic-packs/example",
+      "license": "MIT",
+      "supported_languages": ["python"],
+      "counts": {
+        "evidence_producers": 1,
+        "contracts": 1,
+        "value_laws": 0,
+        "positive_fixtures": 1,
+        "hard_negatives": 2
+      },
+      "conformance_command": "nose semantic-pack check example.json --format json",
+      "proof_links": [],
+      "fixture_issues": 0,
+      "fixtures": [
+        {
+          "kind": "positive",
+          "id": "positive",
+          "description": "Fixture expected to satisfy the declared row.",
+          "declared_path": "fixtures/positive.py",
+          "resolved_path": "/repo/packs/fixtures/positive.py",
+          "expectation": "contract-present",
+          "issues": []
+        },
+        {
+          "kind": "hard-negative",
+          "id": "negative",
+          "description": "Fixture expected not to satisfy the declared row.",
+          "declared_path": "fixtures/negative.py",
+          "resolved_path": "/repo/packs/fixtures/negative.py",
+          "expectation": "contract-absent",
+          "issues": []
+        },
+        {
+          "kind": "hard-negative",
+          "id": "shadowed-negative",
+          "description": "Fixture expected to remain closed under shadowing.",
+          "declared_path": "fixtures/shadowed_negative.py",
+          "resolved_path": "/repo/packs/fixtures/shadowed_negative.py",
+          "expectation": "symbol-proof-closed",
+          "issues": []
+        }
+      ]
+    }
+  ]
 }
 ```
 
