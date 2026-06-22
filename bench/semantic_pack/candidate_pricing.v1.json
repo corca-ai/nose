@@ -1,5 +1,5 @@
 {
-  "candidate_signature": "8e9bee92ce5cdd16",
+  "candidate_signature": "0ccac1897a275cd6",
   "corpus": {
     "digest": "d152e7150a08d662",
     "path": "bench/goldens/corpus.json",
@@ -97,12 +97,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 135,
+                  "path": "proto/src/main/java/com/google/gson/protobuf/LegacyProtoTypeAdapterFactory.java",
+                  "pattern_id": "guava_immutable_set"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 235,
+                  "path": "proto/src/test/java/com/google/gson/protobuf/functional/LegacyProtoTypeAdapterFactoryTest.java",
+                  "pattern_id": "guava_immutable_set"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 237,
+                  "path": "proto/src/test/java/com/google/gson/protobuf/functional/LegacyProtoTypeAdapterFactoryTest.java",
+                  "pattern_id": "guava_immutable_set"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "gson",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -152,6 +181,7 @@
             "semantic_packs": 43,
             "shown_families": 79,
             "status": "ok",
+            "tool": "nose",
             "total_families": 79
           }
         ],
@@ -204,7 +234,7 @@
           "copyOf source-domain/effect proof"
         ],
         "rollback_path": "Keep pack builtin-optional; disable only the copyOf row first if post-release risk appears.",
-        "runtime_measurement": "Run semantic query-regression on Java-heavy subset plus focused Guava fixtures; classify drift as metadata or measured recall.",
+        "runtime_measurement": "Before implementation, time the candidate query-regression subset before/after the row and keep the row disabled if runtime drift is unexplained.",
         "semantic_claim": "ImmutableList.of, ImmutableSet.of, ImmutableMap.of, and constrained copyOf factories",
         "unsupported_cases": [
           "builder chains",
@@ -311,12 +341,45 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 2,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 1,
+                  "family_ids": [
+                    "6f2aba52147e3489"
+                  ],
+                  "line": 50,
+                  "path": "android/guava/src/com/google/common/base/Absent.java",
+                  "pattern_id": "guava_optional"
+                },
+                {
+                  "families_covering_line": 1,
+                  "family_ids": [
+                    "881299f7b666af75"
+                  ],
+                  "line": 62,
+                  "path": "android/guava/src/com/google/common/base/Absent.java",
+                  "pattern_id": "guava_optional"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 78,
+                  "path": "android/guava/src/com/google/common/base/Absent.java",
+                  "pattern_id": "guava_optional"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 2
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "guava",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -366,6 +429,7 @@
             "semantic_packs": 43,
             "shown_families": 1797,
             "status": "ok",
+            "tool": "nose",
             "total_families": 1797
           }
         ],
@@ -430,7 +494,7 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "static pricing overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [],
         "summary": "Current JS array/HOF facts do not admit Lodash selectors as builtin evidence."
@@ -495,7 +559,7 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "static pricing overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [],
         "summary": "Current receiver-membership protocol does not include Lodash package semantics."
@@ -626,12 +690,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 81,
+                  "path": "sympy/external/tests/test_autowrap.py",
+                  "pattern_id": "numpy_scalar_numpy"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 93,
+                  "path": "sympy/external/tests/test_autowrap.py",
+                  "pattern_id": "numpy_scalar_numpy"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 134,
+                  "path": "sympy/plotting/experimental_lambdify.py",
+                  "pattern_id": "numpy_scalar_np"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "sympy",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -681,6 +774,7 @@
             "semantic_packs": 43,
             "shown_families": 646,
             "status": "ok",
+            "tool": "nose",
             "total_families": 646
           }
         ],
@@ -746,7 +840,7 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "static pricing overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [],
         "summary": "Current clamp law is value-graph scalar/integer, not NumPy ufunc semantics."
@@ -810,7 +904,7 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "static pricing overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [],
         "summary": "Current null presence facts are scalar/control-flow, not vectorized pandas masks."
@@ -873,7 +967,7 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "static pricing overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [],
         "summary": "Current map/default and nullish-default facts are scalar/map, not pandas vector operations."
@@ -1005,12 +1099,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 428,
+                  "path": "packages/rxjs/spec/operators/filter-spec.ts",
+                  "pattern_id": "rxjs_filter_boolean_ts"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 237,
+                  "path": "packages/rxjs/spec/operators/mergeMap-spec.ts",
+                  "pattern_id": "rxjs_identity_map_ts"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 191,
+                  "path": "packages/rxjs/spec/operators/mergeMapTo-spec.ts",
+                  "pattern_id": "rxjs_identity_map_ts"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "rxjs",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -1060,6 +1183,7 @@
             "semantic_packs": 43,
             "shown_families": 32,
             "status": "ok",
+            "tool": "nose",
             "total_families": 32
           }
         ],
@@ -1196,12 +1320,27 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 6,
+                  "path": "tests/format/js/functional-composition/rxjs_pipe.js",
+                  "pattern_id": "rxjs_pipe_operator_js"
+                }
+              ],
+              "samples_checked": 1,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "prettier",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -1251,6 +1390,7 @@
             "semantic_packs": 43,
             "shown_families": 152,
             "status": "ok",
+            "tool": "nose",
             "total_families": 152
           }
         ],
@@ -1383,12 +1523,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 73,
+                  "path": "crates/http-client/src/lib.rs",
+                  "pattern_id": "tokio_spawn"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 459,
+                  "path": "crates/index-scheduler/src/scheduler/enterprise_edition/network.rs",
+                  "pattern_id": "tokio_spawn"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 133,
+                  "path": "crates/index-scheduler/src/scheduler/enterprise_edition/s3.rs",
+                  "pattern_id": "tokio_spawn"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "meilisearch",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -1438,6 +1607,7 @@
             "semantic_packs": 43,
             "shown_families": 7,
             "status": "ok",
+            "tool": "nose",
             "total_families": 7
           }
         ],
@@ -1566,12 +1736,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 57,
+                  "path": "examples/connect-tcp.rs",
+                  "pattern_id": "tokio_stream_ext"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 296,
+                  "path": "tokio-stream/src/stream_ext.rs",
+                  "pattern_id": "tokio_stream_ext"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 463,
+                  "path": "tokio-stream/src/stream_ext.rs",
+                  "pattern_id": "tokio_stream_ext"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "tokio",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -1621,6 +1820,7 @@
             "semantic_packs": 43,
             "shown_families": 18,
             "status": "ok",
+            "tool": "nose",
             "total_families": 18
           }
         ],
@@ -1716,12 +1916,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 76,
+                  "path": "lib/devise/models/rememberable.rb",
+                  "pattern_id": "rails_presence"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 159,
+                  "path": "lib/devise/strategies/authenticatable.rb",
+                  "pattern_id": "rails_presence"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 57,
+                  "path": "lib/generators/devise/views_generator.rb",
+                  "pattern_id": "rails_presence"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "devise",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -1771,6 +2000,7 @@
             "semantic_packs": 43,
             "shown_families": 3,
             "status": "ok",
+            "tool": "nose",
             "total_families": 3
           }
         ],
@@ -1834,7 +2064,7 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "static pricing overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [],
         "summary": "Current Ruby collection membership/factory facts do not model ActiveSupport helpers."
@@ -1981,12 +2211,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 779,
+                  "path": "src/black/__init__.py",
+                  "pattern_id": "pathlib_predicates"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 800,
+                  "path": "src/black/__init__.py",
+                  "pattern_id": "pathlib_predicates"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 827,
+                  "path": "src/black/__init__.py",
+                  "pattern_id": "pathlib_predicates"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "black",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -2036,6 +2295,7 @@
             "semantic_packs": 43,
             "shown_families": 22,
             "status": "ok",
+            "tool": "nose",
             "total_families": 22
           }
         ],
@@ -2191,12 +2451,34 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 488,
+                  "path": "src/black/lines.py",
+                  "pattern_id": "itertools_chain"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 93,
+                  "path": "tests/optional.py",
+                  "pattern_id": "itertools_chain"
+                }
+              ],
+              "samples_checked": 2,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "black",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -2246,6 +2528,7 @@
             "semantic_packs": 43,
             "shown_families": 22,
             "status": "ok",
+            "tool": "nose",
             "total_families": 22
           }
         ],
@@ -2405,12 +2688,34 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 13,
+                  "path": "runtime/JavaScript/webpack.config.js",
+                  "pattern_id": "node_path_js"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 25,
+                  "path": "runtime/JavaScript/webpack.config.js",
+                  "pattern_id": "node_path_js"
+                }
+              ],
+              "samples_checked": 2,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "antlr4",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -2460,6 +2765,7 @@
             "semantic_packs": 43,
             "shown_families": 202,
             "status": "ok",
+            "tool": "nose",
             "total_families": 202
           }
         ],
@@ -2604,12 +2910,34 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 463,
+                  "path": "pkg/config/config.go",
+                  "pattern_id": "go_maps_helpers"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 345,
+                  "path": "pkg/dwarf/frame/table.go",
+                  "pattern_id": "go_maps_helpers"
+                }
+              ],
+              "samples_checked": 2,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "delve",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -2659,6 +2987,7 @@
             "semantic_packs": 43,
             "shown_families": 29,
             "status": "ok",
+            "tool": "nose",
             "total_families": 29
           }
         ],
@@ -2788,12 +3117,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 136,
+                  "path": "src/main/java/org/apache/commons/lang3/CharSetUtils.java",
+                  "pattern_id": "commons_string_utils"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 338,
+                  "path": "src/main/java/org/apache/commons/lang3/CharUtils.java",
+                  "pattern_id": "commons_string_utils"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 371,
+                  "path": "src/main/java/org/apache/commons/lang3/CharUtils.java",
+                  "pattern_id": "commons_string_utils"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "commons-lang",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -2843,6 +3201,7 @@
             "semantic_packs": 43,
             "shown_families": 156,
             "status": "ok",
+            "tool": "nose",
             "total_families": 156
           }
         ],
@@ -2974,12 +3333,41 @@
       "current_detector_query_result": {
         "candidate_pack_observed_in_sample_queries": false,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
-        "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+        "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
         "sample_product_queries": [
           {
+            "candidate_sample_query_hits": {
+              "families_covering_sample_lines": 0,
+              "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+              "sample_hits": [
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 811,
+                  "path": "crates/meilisearch/src/search/federated/perform.rs",
+                  "pattern_id": "rust_collect_vec"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 260,
+                  "path": "crates/milli/src/search/new/matches/mod.rs",
+                  "pattern_id": "rust_collect_vec"
+                },
+                {
+                  "families_covering_line": 0,
+                  "family_ids": [],
+                  "line": 262,
+                  "path": "crates/milli/src/search/new/matches/mod.rs",
+                  "pattern_id": "rust_collect_vec"
+                }
+              ],
+              "samples_checked": 3,
+              "samples_with_current_family_hit": 0
+            },
             "command": "nose query . all top=0 --mode semantic --format json",
-            "note": "Product query summary only; this does not prove candidate-specific coverage.",
+            "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
             "repo": "meilisearch",
             "semantic_pack_ids": [
               "nose.first_party",
@@ -3029,6 +3417,7 @@
             "semantic_packs": 43,
             "shown_families": 7,
             "status": "ok",
+            "tool": "nose",
             "total_families": 7
           }
         ],

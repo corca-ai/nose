@@ -26,6 +26,7 @@ DEFAULT_CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 DEFAULT_REPOS_ROOT = ROOT / "bench" / "repos"
 DEFAULT_JSON_OUT = ROOT / "bench" / "semantic_pack" / "candidate_pricing.v1.json"
 DEFAULT_MD_OUT = ROOT / "bench" / "semantic_pack" / "candidate_pricing.md"
+DEFAULT_REVIEW_LOG = ROOT / "bench" / "semantic_pack" / "loop_reviews.v1.json"
 
 SCHEMA_VERSION = 1
 TOOL_VERSION = "semantic-pack-pricing/1"
@@ -692,6 +693,11 @@ def candidate_signature(candidates: Iterable[Candidate]) -> str:
     payload = [
         {
             "candidate_id": c.candidate_id,
+            "title": c.title,
+            "proposed_pack_id": c.proposed_pack_id,
+            "ecosystem": c.ecosystem,
+            "row_slice": c.row_slice,
+            "target_lane": c.target_lane,
             "patterns": [
                 (
                     p.pattern_id,
@@ -702,7 +708,19 @@ def candidate_signature(candidates: Iterable[Candidate]) -> str:
                 )
                 for p in c.patterns
             ],
+            "impact_price": c.impact_price,
+            "safety_price": c.safety_price,
+            "current_detector_result": c.current_detector_result,
+            "existing_vocabulary": c.existing_vocabulary,
+            "required_evidence": c.required_evidence,
+            "hard_negatives": c.hard_negatives,
+            "unsupported_cases": c.unsupported_cases,
+            "product_runtime_plan": c.product_runtime_plan,
+            "rollback_path": c.rollback_path,
             "initial_verdict": c.initial_verdict,
+            "next_action": c.next_action,
+            "blocked_by": c.blocked_by,
+            "rejection_context": c.rejection_context,
         }
         for c in candidates
     ]
@@ -837,16 +855,80 @@ def target_packet_for(candidate: Candidate, verdict: str) -> dict | None:
         "unsupported_cases": list(candidate.unsupported_cases),
         "hard_negative_siblings": list(candidate.hard_negatives),
         "product_output_measurement": candidate.product_runtime_plan,
-        "runtime_measurement": candidate.product_runtime_plan,
+        "runtime_measurement": "Before implementation, time the candidate query-regression subset before/after the row and keep the row disabled if runtime drift is unexplained.",
         "rollback_path": candidate.rollback_path,
         "implementation_boundary": "Do not implement a broad ecosystem pack; implement only this row slice.",
     }
 
 
-def run_product_query(nose: Path, repo_root: Path, cache: dict[str, dict]) -> dict:
+def location_covers_sample(location: dict, sample: dict, repo_root: Path) -> bool:
+    file_name = location.get("file")
+    if not isinstance(file_name, str):
+        return False
+    sample_path = sample["path"]
+    if not (
+        file_name.endswith(sample_path)
+        or file_name.endswith(f"{repo_root.name}/{sample_path}")
+        or file_name.endswith(f"/{repo_root.name}/{sample_path}")
+    ):
+        return False
+    start = location.get("start")
+    end = location.get("end")
+    line = sample.get("line")
+    if isinstance(start, int) and isinstance(end, int) and isinstance(line, int):
+        return start <= line <= end
+    return True
+
+
+def candidate_sample_query_hits(repo_root: Path, families: list, samples: list[dict]) -> dict:
+    checked = []
+    all_family_ids = set()
+    for sample in samples[:3]:
+        family_ids = []
+        for family in families:
+            if not isinstance(family, dict):
+                continue
+            locations = family.get("locations", [])
+            if not isinstance(locations, list):
+                continue
+            if any(
+                isinstance(location, dict) and location_covers_sample(location, sample, repo_root)
+                for location in locations
+            ):
+                family_id = family.get("id")
+                if isinstance(family_id, str):
+                    family_ids.append(family_id)
+                    all_family_ids.add(family_id)
+        checked.append(
+            {
+                "path": sample["path"],
+                "line": sample["line"],
+                "pattern_id": sample["pattern_id"],
+                "families_covering_line": len(family_ids),
+                "family_ids": sorted(family_ids)[:5],
+            }
+        )
+    return {
+        "samples_checked": len(checked),
+        "samples_with_current_family_hit": sum(1 for sample in checked if sample["families_covering_line"] > 0),
+        "families_covering_sample_lines": len(all_family_ids),
+        "sample_hits": checked,
+        "note": "Candidate-specific overlay: counts current semantic query families whose location spans include sampled candidate lines.",
+    }
+
+
+def render_product_query(base_result: dict, repo_root: Path, samples: list[dict]) -> dict:
+    result = {key: value for key, value in base_result.items() if key != "_families"}
+    families = base_result.get("_families", [])
+    if base_result.get("status") == "ok" and isinstance(families, list):
+        result["candidate_sample_query_hits"] = candidate_sample_query_hits(repo_root, families, samples)
+    return result
+
+
+def run_product_query(nose: Path, repo_root: Path, samples: list[dict], cache: dict[str, dict]) -> dict:
     cache_key = str(repo_root)
     if cache_key in cache:
-        return cache[cache_key]
+        return render_product_query(cache[cache_key], repo_root, samples)
     nose = nose.resolve()
     display_command = "nose query . all top=0 --mode semantic --format json"
     command = [
@@ -878,7 +960,7 @@ def run_product_query(nose: Path, repo_root: Path, cache: dict[str, dict]) -> di
             "error": str(err),
         }
         cache[cache_key] = result
-        return result
+        return render_product_query(result, repo_root, samples)
     if completed.returncode != 0:
         result = {
             "repo": repo_root.name,
@@ -887,7 +969,7 @@ def run_product_query(nose: Path, repo_root: Path, cache: dict[str, dict]) -> di
             "stderr": completed.stderr[-2000:],
         }
         cache[cache_key] = result
-        return result
+        return render_product_query(result, repo_root, samples)
     try:
         parsed = json.loads(completed.stdout)
     except json.JSONDecodeError as err:
@@ -898,7 +980,7 @@ def run_product_query(nose: Path, repo_root: Path, cache: dict[str, dict]) -> di
             "error": f"invalid JSON: {err}",
         }
         cache[cache_key] = result
-        return result
+        return render_product_query(result, repo_root, samples)
     families = parsed.get("families", [])
     semantic_packs = parsed.get("semantic_packs", [])
     semantic_pack_ids = []
@@ -914,12 +996,14 @@ def run_product_query(nose: Path, repo_root: Path, cache: dict[str, dict]) -> di
         "command": display_command,
         "total_families": parsed.get("total_families", len(families)),
         "shown_families": parsed.get("shown_families", len(families)),
+        "tool": parsed.get("tool"),
         "semantic_packs": len(semantic_packs) if isinstance(semantic_packs, list) else None,
         "semantic_pack_ids": semantic_pack_ids,
-        "note": "Product query summary only; this does not prove candidate-specific coverage.",
+        "_families": families if isinstance(families, list) else [],
+        "note": "Product query summary plus candidate sample-line overlap; query-regression remains required before implementation.",
     }
     cache[cache_key] = result
-    return result
+    return render_product_query(result, repo_root, samples)
 
 
 def sample_product_queries(
@@ -935,7 +1019,7 @@ def sample_product_queries(
     for result in present_results[:sample_limit]:
         repo_root = repos_root / result["repo_id"]
         if repo_root.exists():
-            queries.append(run_product_query(nose, repo_root, cache))
+            queries.append(run_product_query(nose, repo_root, result["samples"], cache))
     return queries
 
 
@@ -1023,7 +1107,7 @@ def price_candidates(
                     "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
                     "sample_product_queries": product_queries,
                     "candidate_pack_observed_in_sample_queries": candidate_pack_observed,
-                    "note": "Run product query-regression before implementation; this pricing artifact does not assert changed family output.",
+                    "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
                 },
                 "impact_price": candidate.impact_price,
                 "safety_price": candidate.safety_price,
@@ -1136,7 +1220,7 @@ def render_markdown(report: dict) -> str:
                     f"({sample['pattern_id']}) — {sample['snippet']}"
                 )
         lines.append("")
-    return "\n".join(lines)
+    return "\n".join(lines).rstrip()
 
 
 def validate_report(report: dict) -> None:
@@ -1171,6 +1255,53 @@ def validate_report(report: dict) -> None:
             raise SystemExit(f"{candidate_id}: priced-but-blocked candidate needs blocker")
         if verdict == "unpriced" and not record["rejection_context"]:
             raise SystemExit(f"{candidate_id}: unpriced candidate needs rejection context")
+
+
+def validate_loop_reviews(report: dict, reviews: dict) -> None:
+    if reviews.get("schema_version") != 1:
+        raise SystemExit("loop review record must use schema_version 1")
+    review_iterations = reviews.get("iterations")
+    if not isinstance(review_iterations, list):
+        raise SystemExit("loop review record needs iterations list")
+    if len(review_iterations) != report["totals"]["iterations"]:
+        raise SystemExit("loop review record must cover every pricing iteration")
+    for pricing_record, review_record in zip(report["iterations"], review_iterations):
+        candidate_id = pricing_record["candidate_id"]
+        if review_record.get("iteration") != pricing_record["iteration"]:
+            raise SystemExit(f"{candidate_id}: review iteration mismatch")
+        if review_record.get("candidate_id") != candidate_id:
+            raise SystemExit(f"{candidate_id}: review candidate mismatch")
+        review_entries = review_record.get("reviews")
+        if not isinstance(review_entries, list) or len(review_entries) != 2:
+            raise SystemExit(f"{candidate_id}: expected exactly two independent review entries")
+        reviewers = set()
+        for entry in review_entries:
+            reviewer = entry.get("reviewer")
+            if not isinstance(reviewer, str) or not reviewer:
+                raise SystemExit(f"{candidate_id}: review entry missing reviewer")
+            if reviewer in reviewers:
+                raise SystemExit(f"{candidate_id}: duplicate reviewer entry {reviewer}")
+            reviewers.add(reviewer)
+            for key in ["agent_id", "verdict", "challenged_categories", "findings", "resolution"]:
+                if key not in entry:
+                    raise SystemExit(f"{candidate_id}: review entry missing {key}")
+
+
+def check_artifacts(corpus_path: Path, json_out: Path, markdown_out: Path, review_log: Path) -> None:
+    report = json.loads(json_out.read_text(encoding="utf-8"))
+    validate_report(report)
+    if report.get("candidate_signature") != candidate_signature(CANDIDATES):
+        raise SystemExit("candidate pricing JSON is stale relative to pricing.py candidates")
+    expected_markdown = render_markdown(report) + "\n"
+    actual_markdown = markdown_out.read_text(encoding="utf-8")
+    if actual_markdown != expected_markdown:
+        raise SystemExit("candidate pricing Markdown is stale relative to JSON/generator")
+    reviews = json.loads(review_log.read_text(encoding="utf-8"))
+    validate_loop_reviews(report, reviews)
+    corpus = load_corpus(corpus_path)
+    if report.get("corpus", {}).get("digest") != corpus_digest(corpus):
+        raise SystemExit("candidate pricing JSON is stale relative to corpus digest")
+    print("semantic-pack pricing artifact check passed")
 
 
 def run_selftest() -> None:
@@ -1223,6 +1354,7 @@ def main() -> int:
     parser.add_argument("--repos-root", type=Path, default=DEFAULT_REPOS_ROOT)
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MD_OUT)
+    parser.add_argument("--review-log", type=Path, default=DEFAULT_REVIEW_LOG)
     parser.add_argument(
         "--nose",
         type=Path,
@@ -1236,10 +1368,15 @@ def main() -> int:
         help="number of signal-bearing repos per candidate to query with --nose",
     )
     parser.add_argument("--selftest", action="store_true")
+    parser.add_argument("--check-artifacts", action="store_true")
     args = parser.parse_args()
 
     if args.selftest:
         run_selftest()
+        return 0
+
+    if args.check_artifacts:
+        check_artifacts(args.corpus, args.json_out, args.markdown_out, args.review_log)
         return 0
 
     if args.query_sample_repos < 0:

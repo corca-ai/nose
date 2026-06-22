@@ -25,6 +25,10 @@ jobs:
         run: python3 bench/prune_corpus.py --self-test
       - name: corpus verify runner self-test
         run: ./scripts/corpus-verify-nightly.sh --self-test
+      - name: semantic-pack pricing artifact check
+        run: |
+          python3 bench/semantic_pack/pricing.py --selftest
+          python3 bench/semantic_pack/pricing.py --check-artifacts
       - name: format
         run: cargo fmt --all --check
       - name: file-length ratchet

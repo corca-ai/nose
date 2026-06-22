@@ -49,9 +49,15 @@ Run the pricing tool with:
 
 ```sh
 python3 bench/semantic_pack/pricing.py --selftest
-python3 bench/semantic_pack/pricing.py
+python3 bench/semantic_pack/pricing.py --check-artifacts
 python3 bench/semantic_pack/pricing.py --nose ./target/release/nose --query-sample-repos 1
 ```
+
+The `--nose ./target/release/nose --query-sample-repos 1` form is the canonical
+command for refreshing the committed pricing JSON and Markdown because it
+records the sample product-query overlay. The `--check-artifacts` form verifies
+that the committed JSON, Markdown, and review log are internally consistent with
+the current tool and corpus digest without requiring a release binary.
 
 The tool emits:
 
@@ -64,8 +70,9 @@ seed list instead of attempting automatic API discovery. The scanner uses
 language-specific regexes plus package/import context where practical. Its
 matches are intentionally labeled as pricing evidence, not semantic proof.
 When `--nose` and `--query-sample-repos` are provided, the artifact also records
-sample product-query summaries and whether the proposed pack id is already
-observed in sampled semantic-pack inventory output.
+sample product-query summaries, whether the proposed pack id is already
+observed in sampled semantic-pack inventory output, and whether current semantic
+query families cover the sampled candidate lines.
 
 ## Required Fields
 
@@ -95,8 +102,8 @@ durable review record is
 [`loop_reviews.v1.json`](../bench/semantic_pack/loop_reviews.v1.json). It
 preserves, for every iteration:
 
-- the two reviewer identifiers;
-- whether either reviewer challenged the verdict, evidence, hard negatives, or
+- two independent reviewer entries with reviewer identifiers;
+- per-reviewer challenged categories for verdict, evidence, hard negatives, or
   next action;
 - accepted changes;
 - rejected feedback with reason.

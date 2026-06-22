@@ -85,6 +85,7 @@ run_legacy_prelude_ratchet() {
 run_semantic_pack_pricing_selftest() {
     need_cmd python3
     python3 bench/semantic_pack/pricing.py --selftest
+    python3 bench/semantic_pack/pricing.py --check-artifacts
 }
 
 run_msrv_check() {
