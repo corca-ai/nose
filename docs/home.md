@@ -82,6 +82,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-pack-adoption](semantic-pack-adoption.md) — promotion, rollback, and adoption-gate reports for moving external or optional packs into official builtin support without forking semantic vocabulary.
 - [semantic-pack-compatibility](semantic-pack-compatibility.md) — manifest API, installed-version, kernel-vocabulary, and fail-closed external-influence compatibility policy for semantic packs.
 - [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md) — narrow-slice candidate matrix for future large-ecosystem builtin packs such as Guava, Lodash, NumPy, and RxJS.
+- [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
 - [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md) — post-PR #147 audit of remaining raw/local semantic pockets and follow-up owners.

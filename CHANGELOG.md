@@ -6,6 +6,46 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Added the builtin semantic-pack operating model: compiled builtin pack descriptors,
+  query JSON `semantic_packs` provenance, `nose capabilities` semantic-pack support
+  fields, and the `nose semantic-pack inventory` report for auditing shipped pack
+  ownership, conformance refs, fixture counts, and coverage gaps.
+- Added builtin semantic-pack adoption and compatibility reports:
+  `nose semantic-pack adoption-gates` for optional/default promotion gates and
+  `nose semantic-pack compatibility` for manifest API, installed-version, kernel
+  vocabulary, and external-influence policy.
+- Added semantic-pack conformance report schema v2 with executable fixture-expectation
+  gates and row-level external influence preflight blockers.
+- Added documentation for the builtin-first semantic-pack architecture, compatibility
+  policy, adoption gates, ecosystem candidate matrix, and the pre-release kernel/pack
+  boundary review.
+
+### Changed
+- Renamed the current official semantic ownership model from first-party wording to
+  builtin semantic packs. The broad `nose.first_party` id remains only as a legacy
+  compatibility descriptor; new official language, stdlib, protocol, library, and law
+  support should use narrow builtin pack ids.
+- Moved active official semantic ownership behind narrow builtin descriptors for
+  language packs, stdlib/library slices, protocol packs, and value-graph laws while
+  preserving existing product behavior except for additive provenance/reporting
+  metadata.
+- Kept local external semantic-pack manifests explicit opt-ins and metadata-only.
+  Local manifests are validated and reported, but they do not influence clone
+  families, ranking, witnesses, exact/near results, or value-law provenance.
+
+### Fixed
+- Split Go stdlib namespace-call ownership out of the generic builtin method-call
+  compatibility pack into `nose.go.stdlib.namespace_calls`.
+- Aligned semantic-pack conformance documentation examples with the current inventory
+  and check JSON report shapes.
+
+### Performance
+- Kept builtin descriptor and external metadata handling out of per-node and per-unit
+  analysis hot paths. The new semantic-pack diagnostics are static/reporting surfaces,
+  and adoption/inventory/compatibility reports are checked independently from query
+  analysis.
+
 ## [0.14.0] - 2026-06-20
 
 ### Added

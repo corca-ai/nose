@@ -98,7 +98,7 @@ clear conformance criteria, and users need visible provenance.
 
 ## Pack kinds
 
-Every language and library, including the built-in ones, should eventually enter
+Every language and library, including the builtin ones, should eventually enter
 through the same extension points.
 
 | pack kind | purpose |

@@ -1,7 +1,8 @@
 # Semantic pack architecture
 
-Status: active migration plan for
-[issue #473](https://github.com/corca-ai/nose/issues/473).
+Status: active rulebook for the builtin-first semantic-pack architecture started
+by [issue #473](https://github.com/corca-ai/nose/issues/473) and stabilized by
+[issue #484](https://github.com/corca-ai/nose/issues/484).
 
 This page defines the target boundary for builtin and external semantic packs.
 It is the contributor-facing rulebook for moving language, stdlib, library, and
@@ -132,6 +133,12 @@ vocabulary migration, and fail-closed external influence is defined by
 Future large-ecosystem work is tracked as narrow builtin candidates in
 [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md),
 not as broad default-enabled ecosystem packs.
+
+The current pre-release boundary review is recorded in
+[semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md).
+That review found no release-blocking kernel/pack split issue, with the explicit
+caveat that builtin packs are still compiled Rust descriptors and in-tree
+evidence producers rather than an external plugin runtime.
 
 ## Contributor Rule
 
