@@ -204,6 +204,85 @@ fn admitted_promise_then_resolver_requires_future_receiver_proof() {
 }
 
 #[test]
+fn admitted_promise_then_can_consume_safe_api_result_domain_record() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(87), &[]);
+    let first_field = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("then")),
+        sp(88),
+        &[receiver],
+    );
+    let first_callback = b.add(NodeKind::Lambda, Payload::None, sp(89), &[]);
+    let first_call = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(90),
+        &[first_field, first_callback],
+    );
+    let second_field = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("then")),
+        sp(91),
+        &[first_call],
+    );
+    let second_callback = b.add(NodeKind::Lambda, Payload::None, sp(92), &[]);
+    let second_call = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(93),
+        &[second_field, second_callback],
+    );
+    let root = b.add(NodeKind::Func, Payload::None, sp(94), &[second_call]);
+    let mut il = finish_il(b, root, Lang::JavaScript);
+    let contract =
+        library_promise_then_contract(Lang::JavaScript, "then", 1).expect("Promise.then contract");
+
+    il.evidence.push(evidence_with_dependencies(
+        0,
+        EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
+        EvidenceKind::Domain(DomainEvidence::PromiseLike),
+        EvidenceStatus::Asserted,
+        vec![],
+    ));
+    il.evidence.push(js_like_builtin_promise_record(
+        1,
+        il.node(first_call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
+    il.evidence.push(js_like_builtin_promise_record(
+        2,
+        il.node(second_call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[1],
+    ));
+
+    assert!(
+        il.evidence.iter().all(|record| !matches!(
+            record.kind,
+            EvidenceKind::Domain(DomainEvidence::PromiseLike)
+                if record.anchor
+                    == EvidenceAnchor::node(il.node(first_call).span, il.kind(first_call))
+        )),
+        "this test covers the LibraryApi result-domain fallback, not emitted call-node DomainEvidence"
+    );
+    assert!(
+        admitted_promise_then_at_call(&il, &interner, first_call).is_some(),
+        "first Promise.then occurrence must be admitted before it can prove a result domain"
+    );
+    let resolved = admitted_promise_then_at_call(&il, &interner, second_call)
+        .expect("safe Promise.then result-domain API record admits chained then");
+    assert_eq!(resolved.contract.id, LibraryApiContractId::PromiseThen);
+    assert_eq!(resolved.receiver, Some(first_call));
+}
+
+#[test]
 fn admitted_promise_resolve_resolver_requires_qualified_global_proof() {
     let (il, interner, call, _callee, _promise) = js_promise_resolve_call_il();
     assert!(

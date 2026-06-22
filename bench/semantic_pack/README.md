@@ -13,7 +13,8 @@ python3 bench/semantic_pack/pricing.py --nose ./target/release/nose --query-samp
 
 Use the `--nose ./target/release/nose --query-sample-repos 1` command when
 refreshing the committed JSON/Markdown artifacts. Use `--check-artifacts` to
-verify committed artifacts and the two-reviewer log without regenerating them.
+verify committed artifacts, the two-reviewer log, and the issue #509 v2
+blocker/matrix artifacts without regenerating them.
 
 Outputs:
 

@@ -47,7 +47,7 @@
         "no receiver proof: no API evidence and no result domain",
         "wrong receiver domain: no API evidence and no result domain",
         "caller-selected result type such as collect: no result domain",
-        "HOF result domain: no automatic result domain",
+        "HOF result domain: no new receiver-method call-node result-domain emission",
         "Map.get value domain: no fixed result domain"
       ]
     }
@@ -153,11 +153,11 @@
       "reason": "caller-selected and materialized result domains are not fixed API result domains"
     },
     {
-      "blocker": "HOF result domain",
-      "existing_primitive": "demand_effect_profile + method HOF contract",
-      "change_type": "unsafe broadening",
+      "blocker": "new HOF call-node result-domain emission",
+      "existing_primitive": "demand_effect_profile + method HOF contract + existing materialized-HOF registry compatibility",
+      "change_type": "do not broaden in this issue",
       "decision": "rejected-for-this-issue",
-      "reason": "HOF result domains require narrower demand/effect and collection materialization proof"
+      "reason": "existing admitted materialized-HOF compatibility remains for product behavior, but #509 does not add automatic call-node DomainEvidence emission for HOF rows"
     },
     {
       "blocker": "Map.get value domain",
@@ -181,6 +181,24 @@
       "scheduler/lifecycle rows",
       "trait/materialization rows",
       "dtype/nominal producer rows"
+    ]
+  },
+  "product_output_gate": {
+    "command": "python3 bench/type4/query_regression/query_regression.py compare --nose ./target/release/nose --repos-root bench/repos --repeats 7 --build-ref issue509-post@uncommitted --baseline target/issue509/query-baseline-pre-r7.json --summary target/issue509/query-compare-post-r7.md",
+    "repos_compared": 9,
+    "classification": "no product-output drift on the query-regression subset",
+    "drift_summary": {
+      "family_set": "none",
+      "family_count": "none",
+      "family_shape": "none",
+      "recommended_surface": "none",
+      "fragment_metadata": "none",
+      "product_json_size": "none"
+    },
+    "runtime_only_investigation_triggers": [
+      "ky parse+lower/lower",
+      "liquid parse+lower/lower",
+      "serde_json parse+lower/lower"
     ]
   },
   "performance_gate": {

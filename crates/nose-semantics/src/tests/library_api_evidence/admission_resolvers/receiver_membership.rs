@@ -41,6 +41,72 @@ fn push_receiver_domain_dependency(il: &mut Il, receiver: NodeId, domain: Domain
     ));
 }
 
+#[test]
+fn receiver_membership_can_consume_safe_api_result_domain_record() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(180), &[]);
+    let key_set_field = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("keySet")),
+        sp(181),
+        &[receiver],
+    );
+    let key_set_call = b.add(NodeKind::Call, Payload::None, sp(182), &[key_set_field]);
+    let contains_field = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("contains")),
+        sp(183),
+        &[key_set_call],
+    );
+    let item = b.add(NodeKind::Var, Payload::Cid(1), sp(184), &[]);
+    let contains_call = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(185),
+        &[contains_field, item],
+    );
+    let root = b.add(NodeKind::Func, Payload::None, sp(186), &[contains_call]);
+    let mut il = finish_il(b, root, Lang::Java);
+    push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Map);
+
+    let key_set =
+        library_map_key_view_contract(Lang::Java, "keySet", 0).expect("Java Map.keySet contract");
+    il.evidence.push(map_key_view_protocol_record(
+        1,
+        il.node(key_set_call).span,
+        key_set,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
+    let contains = library_receiver_membership_contract(Lang::Java, "contains", 1)
+        .expect("Java collection membership contract");
+    il.evidence.push(receiver_membership_protocol_record(
+        2,
+        il.node(contains_call).span,
+        contains,
+        EvidenceStatus::Asserted,
+        &[1],
+    ));
+
+    assert!(
+        il.evidence
+            .iter()
+            .all(|record| !matches!(record.kind, EvidenceKind::Domain(DomainEvidence::Collection))),
+        "this test covers the LibraryApi result-domain fallback, not emitted call-node DomainEvidence"
+    );
+    assert!(
+        admitted_map_key_view_at_call(&il, &interner, key_set_call).is_some(),
+        "first API occurrence must be admitted before it can prove a result domain"
+    );
+    let occurrence = admitted_library_method_call_at_call(&il, &interner, contains_call)
+        .expect("safe Map.keySet result-domain API record admits chained contains");
+    assert_eq!(
+        occurrence.contract.id,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Contains))
+    );
+}
+
 fn assert_admitted_receiver_membership(
     lang: Lang,
     method: &str,

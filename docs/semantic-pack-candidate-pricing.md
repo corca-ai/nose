@@ -57,7 +57,9 @@ The `--nose ./target/release/nose --query-sample-repos 1` form is the canonical
 command for refreshing the committed pricing JSON and Markdown because it
 records the sample product-query overlay. The `--check-artifacts` form verifies
 that the committed JSON, Markdown, and review log are internally consistent with
-the current tool and corpus digest without requiring a release binary.
+the current tool and corpus digest without requiring a release binary. It also
+validates the issue #509 v2 blocker packet and capability matrix for count,
+cross-reference, accepted-primitive, and performance-gate consistency.
 
 The tool emits:
 

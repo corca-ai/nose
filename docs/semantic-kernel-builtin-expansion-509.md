@@ -96,7 +96,7 @@ fixed property of the admitted API row:
 | surface | reason |
 |---|---|
 | Rust `collect` | result type is selected by the caller |
-| HOF result domains such as generic `map` | callback and materialization proof are separate blockers |
+| new HOF call-node result-domain emission such as generic `map` | not added by #509; existing admitted materialized-HOF registry compatibility remains separate |
 | `Map.get` value domain | result depends on the map value type, not the API alone |
 | package/version gated APIs | project dependency occurrence proof is still absent |
 | NumPy/pandas dtype or series rows | safe type/domain producers are still absent |
@@ -141,6 +141,27 @@ python3 bench/semantic_pack/pricing.py --nose ./target/release/nose --query-samp
 
 It rewrote the generated pricing files but produced no committed diff.
 
+## Product Output Gate
+
+The implementation changes exact-capable chained admission, so the product
+semantic-query output was compared with the issue #37 query-regression harness:
+
+```sh
+python3 bench/type4/query_regression/query_regression.py compare \
+  --nose ./target/release/nose \
+  --repos-root bench/repos \
+  --repeats 7 \
+  --build-ref issue509-post@uncommitted \
+  --baseline target/issue509/query-baseline-pre-r7.json \
+  --summary target/issue509/query-compare-post-r7.md
+```
+
+The compare covered 9 repos. It reported no family-set, family-count,
+family-shape, recommended-surface, fragment metadata, or product JSON size
+drift. The only investigation triggers were runtime-only signals in
+`parse+lower`/`lower` dominated phases. The product-output classification for
+this issue is therefore: no output drift on the query-regression subset.
+
 Rows that become easier later:
 
 - scalar and receiver-domain rows where a fixed admitted API result can feed the
@@ -155,7 +176,9 @@ Rows that remain blocked:
 - package/version rows without dependency context;
 - scheduler or lifecycle rows;
 - trait/materialization rows;
-- dtype, nominal, and table/series domain producer rows.
+- dtype, nominal, and table/series domain producer rows;
+- broader HOF/callback/materialization rows beyond existing admitted
+  materialized-HOF compatibility.
 
 ## Performance Gate
 
