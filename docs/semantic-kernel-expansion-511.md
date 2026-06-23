@@ -238,7 +238,9 @@ The R1-R3 loop has now met the threshold for moving to R4:
 - external influence is still blocked by explicit data-only and
   dependency-backed-evidence gates.
 
-R4 should now focus on external pack authorability and conformance: prove that a
+R4 is recorded separately in
+[semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md).
+It focuses on external pack authorability and conformance: proving that a
 provider can write useful manifests, fixture gates, and unsupported-boundary
 metadata for the capabilities already rehearsed by builtin rows, while exact
 analysis continues to ignore external rows until the later influence gates

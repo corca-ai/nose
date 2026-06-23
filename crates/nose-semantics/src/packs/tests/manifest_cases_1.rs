@@ -253,6 +253,30 @@ fn external_fixed_result_domain_contract_rows_stay_data_only() {
 }
 
 #[test]
+fn legacy_string_result_domain_metadata_stays_authorable() {
+    let dir = unique_dir("legacy_string_result_domain");
+    let path = dir.join("pack.json");
+    fs::write(
+        &path,
+        manifest("com.example.legacy-result-domain").replace(
+            r#""operation": "Example",
+        "demand": { "arguments": "eager-left-to-right" }"#,
+            r#""operation": "Example",
+        "result_domain": "NumberOrUnknown",
+        "demand": { "arguments": "eager-left-to-right" }"#,
+        ),
+    )
+    .unwrap();
+
+    let set = SemanticPackSet::new_local(std::slice::from_ref(&path))
+        .expect("legacy string result-domain metadata pack loads");
+    let contracts = set.external_contract_rows();
+    assert_eq!(contracts.len(), 1);
+    assert_eq!(contracts[0].semantics["result_domain"], "NumberOrUnknown");
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
 fn external_rows_report_builtin_id_conflicts_without_rejecting_metadata_only_pack() {
     let dir = unique_dir("external_builtin_row_conflicts");
     let path = dir.join("pack.json");

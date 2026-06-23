@@ -32,9 +32,9 @@ pub(super) fn validate_result_domain_semantics(
     let Some(value) = semantics.get("result_domain") else {
         return Ok(());
     };
-    let object = value
-        .as_object()
-        .ok_or_else(|| format!("{kind} `{id}` semantics.result_domain must be an object"))?;
+    let Some(object) = value.as_object() else {
+        return Ok(());
+    };
     for key in object.keys() {
         if !RESULT_DOMAIN_KEYS.contains(&key.as_str()) {
             return Err(format!(

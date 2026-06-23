@@ -243,6 +243,10 @@ then validate the matching metadata-only external authoring surface through
 external rows still do not influence exact analysis. The cycle record and R4
 transition assessment are in
 [semantic-kernel-expansion-511](semantic-kernel-expansion-511.md).
+The R4 authorability pass then uses a Guava fixed-domain dry-run pack to show
+which capabilities are authorable as external metadata, which remain
+intentionally builtin-only, and which blockers move to R5. That record is in
+[semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md).
 
 ### Effects and observations
 

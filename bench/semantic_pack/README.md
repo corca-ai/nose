@@ -14,8 +14,8 @@ python3 bench/semantic_pack/pricing.py --nose ./target/release/nose --query-samp
 Use the `--nose ./target/release/nose --query-sample-repos 1` command when
 refreshing the committed JSON/Markdown artifacts. Use `--check-artifacts` to
 verify committed artifacts, the two-reviewer log, the issue #509 v2
-blocker/matrix artifacts, and the issue #511 v3/v4 R1-R3 cycle artifacts
-without regenerating them.
+blocker/matrix artifacts, the issue #511 v3/v4 R1-R3 cycle artifacts, and the
+issue #511 R4 external authorability matrix without regenerating them.
 
 Outputs:
 
@@ -37,6 +37,8 @@ Outputs:
   external fixed result-domain authoring.
 - `kernel_capability_matrix.v4.json` — issue #511 second R1-R3 cycle capability
   matrix, metadata-only manifest validation, and transition-to-R4 assessment.
+- `external_authorability_matrix.v1.json` — issue #511 R4 external-pack
+  authorability matrix, dry-run pack assessment, and transition-to-R5 decision.
 
 The scanner reports corpus queue signals. It does not prove semantic
 correctness and does not authorize broad ecosystem packs. Only `priced-ready`

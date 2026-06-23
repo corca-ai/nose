@@ -33,6 +33,9 @@ DEFAULT_BLOCKER_PACKET_V3 = ROOT / "bench" / "semantic_pack" / "blocker_packet.v
 DEFAULT_KERNEL_MATRIX_V3 = ROOT / "bench" / "semantic_pack" / "kernel_capability_matrix.v3.json"
 DEFAULT_BLOCKER_PACKET_V4 = ROOT / "bench" / "semantic_pack" / "blocker_packet.v4.json"
 DEFAULT_KERNEL_MATRIX_V4 = ROOT / "bench" / "semantic_pack" / "kernel_capability_matrix.v4.json"
+DEFAULT_EXTERNAL_AUTHORABILITY_MATRIX_V1 = (
+    ROOT / "bench" / "semantic_pack" / "external_authorability_matrix.v1.json"
+)
 
 SCHEMA_VERSION = 1
 TOOL_VERSION = "semantic-pack-pricing/1"
@@ -1543,6 +1546,68 @@ def validate_kernel_matrix_v4(matrix: dict, probe_ids: set[str]) -> None:
         raise SystemExit("kernel capability matrix v4 must document no hot-path measurement requirement")
 
 
+def validate_external_authorability_matrix_v1(matrix: dict) -> None:
+    if matrix.get("schema_version") != 1:
+        raise SystemExit("external authorability matrix must use schema_version 1")
+    if matrix.get("issue") != 511:
+        raise SystemExit("external authorability matrix must be tied to issue 511")
+    if matrix.get("phase") != "R4":
+        raise SystemExit("external authorability matrix must identify phase R4")
+    sources = matrix.get("source_artifacts", [])
+    expected_manifest = (
+        "docs/examples/semantic-packs/v0/external-guava-immutable-collections-pack.json"
+    )
+    if expected_manifest not in sources:
+        raise SystemExit("external authorability matrix must reference the dry-run manifest")
+    dry_run = matrix.get("dry_run_pack", {})
+    if dry_run.get("pack_id") != "com.example.java-guava-immutable-collections":
+        raise SystemExit("external authorability matrix dry-run pack id mismatch")
+    if dry_run.get("expected_conformance_status") != "ok":
+        raise SystemExit("external authorability matrix must expect conformance success")
+    if dry_run.get("expected_influence_status") != "blocked":
+        raise SystemExit("external authorability matrix must keep external influence blocked")
+    blockers = set(dry_run.get("expected_remaining_blockers", []))
+    required_blockers = {
+        "data-only-registration",
+        "dependency-backed-evidence-unavailable",
+        "explicit-influence-trust-gate-missing",
+    }
+    if not required_blockers.issubset(blockers):
+        raise SystemExit("external authorability matrix is missing required influence blockers")
+    rows = matrix.get("authorability_rows")
+    if not isinstance(rows, list) or len(rows) < 8:
+        raise SystemExit("external authorability matrix needs a broad authorability row set")
+    seen = set()
+    statuses = set()
+    for row in rows:
+        capability = row.get("capability")
+        if not isinstance(capability, str) or not capability:
+            raise SystemExit("external authorability row missing capability")
+        if capability in seen:
+            raise SystemExit(f"duplicate external authorability capability: {capability}")
+        seen.add(capability)
+        for key in ["builtin_status", "external_authoring", "external_influence", "result"]:
+            if not row.get(key):
+                raise SystemExit(f"{capability}: external authorability row missing {key}")
+        if not isinstance(row.get("builtin_only_intentional"), bool):
+            raise SystemExit(f"{capability}: builtin_only_intentional must be boolean")
+        if row.get("external_influence") == "open":
+            raise SystemExit("R4 must not open external influence")
+        statuses.add(row.get("external_authoring"))
+    if "authorable-metadata-only" not in statuses or "blocked" not in statuses:
+        raise SystemExit("external authorability matrix must cover authorable and blocked rows")
+    summary = matrix.get("summary", {})
+    if summary.get("external_influence_opened") is not False:
+        raise SystemExit("external authorability matrix summary must keep influence closed")
+    if summary.get("new_primitives") != 0:
+        raise SystemExit("external authorability matrix must add zero primitives")
+    if summary.get("move_to_r5") is not True:
+        raise SystemExit("external authorability matrix must record the R5 transition")
+    performance = matrix.get("performance_gate", {})
+    if performance.get("measurement_required") is not False:
+        raise SystemExit("external authorability matrix must document no hot-path measurement")
+
+
 def check_artifacts(
     corpus_path: Path,
     json_out: Path,
@@ -1554,6 +1619,7 @@ def check_artifacts(
     kernel_matrix_v3: Path,
     blocker_packet_v4: Path,
     kernel_matrix_v4: Path,
+    external_authorability_matrix_v1: Path,
 ) -> None:
     report = json.loads(json_out.read_text(encoding="utf-8"))
     validate_report(report)
@@ -1580,6 +1646,8 @@ def check_artifacts(
     probe_ids_v4 = validate_blocker_packet_v4(packet_v4)
     matrix_v4 = json.loads(kernel_matrix_v4.read_text(encoding="utf-8"))
     validate_kernel_matrix_v4(matrix_v4, probe_ids_v4)
+    authorability_v1 = json.loads(external_authorability_matrix_v1.read_text(encoding="utf-8"))
+    validate_external_authorability_matrix_v1(authorability_v1)
     print("semantic-pack pricing artifact check passed")
 
 
@@ -1641,6 +1709,11 @@ def main() -> int:
     parser.add_argument("--blocker-packet-v4", type=Path, default=DEFAULT_BLOCKER_PACKET_V4)
     parser.add_argument("--kernel-matrix-v4", type=Path, default=DEFAULT_KERNEL_MATRIX_V4)
     parser.add_argument(
+        "--external-authorability-matrix-v1",
+        type=Path,
+        default=DEFAULT_EXTERNAL_AUTHORABILITY_MATRIX_V1,
+    )
+    parser.add_argument(
         "--nose",
         type=Path,
         default=None,
@@ -1672,6 +1745,7 @@ def main() -> int:
             args.kernel_matrix_v3,
             args.blocker_packet_v4,
             args.kernel_matrix_v4,
+            args.external_authorability_matrix_v1,
         )
         return 0
 

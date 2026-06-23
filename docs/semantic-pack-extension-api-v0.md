@@ -303,8 +303,10 @@ rather than selected by the caller:
 }
 ```
 
-The local v0 validator accepts only object-shaped fixed result-domain
-declarations. The `domain` must be one of the kernel's known domain vocabulary
+The local v0 validator applies this strict rule only to object-shaped
+`semantics.result_domain` declarations. Older scalar result-domain notes remain
+unstructured metadata; they do not get fixed-domain authoring semantics. For the
+object shape, `domain` must be one of the kernel's known domain vocabulary
 labels, `subject` is optional and currently limited to `call`, and the contract
 must require `LibraryApi.Contract` evidence. This prevents a manifest from
 claiming result-domain facts from a selector string or package presence alone.

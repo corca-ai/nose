@@ -1,0 +1,234 @@
+{
+  "$schema": "../../../schemas/semantic-pack-v0.schema.json",
+  "api_version": "nose.semantic-pack.v0",
+  "pack": {
+    "id": "com.example.java-guava-immutable-collections",
+    "kind": "LibraryPack",
+    "version": "0.1.0",
+    "display_name": "Example Guava immutable collection factories",
+    "description": "R4 dry-run metadata for Guava ImmutableList.of and ImmutableSet.of fixed result-domain authoring. Loading this example is metadata-only.",
+    "trust": "external-opt-in",
+    "enabled_by_default": false,
+    "status": "draft-example"
+  },
+  "provenance": {
+    "provider": {
+      "name": "Example Semantic Packs",
+      "contact": "semantics@example.invalid"
+    },
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-packs/java-guava-immutable-collections",
+    "source_revision": "0000000000000000000000000000000000000000"
+  },
+  "compatibility": {
+    "nose": ">=0.15.0 <0.16.0",
+    "schema": "v0",
+    "notes": "Example only. v0 can validate the authoring shape but cannot execute external Guava evidence producers."
+  },
+  "supported_languages": [
+    {
+      "id": "java",
+      "language_version": ">=17",
+      "runtime": "jvm",
+      "runtime_versions": [
+        ">=17"
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "ecosystem": "maven",
+      "name": "com.google.guava:guava",
+      "versions": ">=32.0 <34.0",
+      "stdlib": false
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "nose.protocol.collection",
+      "version": ">=0.1.0 <1.0.0",
+      "required": true
+    }
+  ],
+  "declares": {
+    "evidence_producers": [
+      {
+        "id": "java.guava.import.immutable-collection-factory",
+        "kind": "Import.Binding",
+        "anchors": [
+          "binding",
+          "module"
+        ],
+        "channel": "exact-empirical",
+        "emits": [
+          "Import.Binding",
+          "Symbol.ImportedBinding"
+        ],
+        "requires": [],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "package.name",
+          "module_name",
+          "exported_name",
+          "binding_hash",
+          "source_span"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "Proves an imported Java binding denotes Guava ImmutableList or ImmutableSet, not a local same-named class."
+      },
+      {
+        "id": "java.guava.library-api.immutable-collection-factory",
+        "kind": "LibraryApi.Contract",
+        "anchors": [
+          "node"
+        ],
+        "channel": "exact-empirical",
+        "emits": [
+          "LibraryApi.Contract"
+        ],
+        "requires": [
+          {
+            "ref": "java.guava.import.immutable-collection-factory",
+            "subject": "callee.class",
+            "required": true,
+            "within_scope": "call"
+          }
+        ],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "package.name",
+          "class_name",
+          "method_name",
+          "arity",
+          "call_span",
+          "dependency_ids"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "The occurrence proof is for Guava static factories only; java.util.List.of and local ImmutableList classes are hard negatives."
+      }
+    ],
+    "contracts": [
+      {
+        "id": "java.guava.immutable-collection-factory.fixed-result-domain",
+        "surface": {
+          "kind": "static-factory-call",
+          "language": "java",
+          "package": "com.google.guava:guava",
+          "classes": [
+            "com.google.common.collect.ImmutableList",
+            "com.google.common.collect.ImmutableSet"
+          ],
+          "method": "of",
+          "arity": {
+            "min": 0,
+            "max": 12
+          },
+          "receiver": "none"
+        },
+        "requires": [
+          {
+            "ref": "java.guava.library-api.immutable-collection-factory",
+            "subject": "call",
+            "required": true,
+            "same_anchor_as": "call-node"
+          },
+          {
+            "ref": "java.guava.import.immutable-collection-factory",
+            "subject": "callee.class",
+            "required": true,
+            "within_scope": "call"
+          }
+        ],
+        "semantics": {
+          "operation": "Collection.Factory",
+          "result_domain": {
+            "kind": "fixed",
+            "domain": "Collection",
+            "subject": "call",
+            "notes": "ImmutableList.of and ImmutableSet.of return collection-like values; mutability and element type are not claimed."
+          },
+          "demand": {
+            "arguments": "eager-left-to-right",
+            "callbacks": "none"
+          },
+          "effects": [
+            "argument-effects-in-order",
+            "allocates-new-container"
+          ],
+          "exceptions": "java-guava-factory-null-policy-version-sensitive",
+          "mutation": "does-not-mutate-inputs-by-contract",
+          "identity": "no-cross-call-identity-claim"
+        },
+        "channel": "exact-empirical",
+        "proof_status": "covered",
+        "conformance_refs": [
+          "guava-immutable-collection-positive",
+          "guava-immutable-collection-local-shadow-hard-negative",
+          "guava-immutable-collection-wrong-package-hard-negative"
+        ],
+        "known_unsupported": [
+          "copyOf rows need source-domain, iteration, and mutability boundary proof and are intentionally not claimed here.",
+          "Builder chains and collectors need separate materialization and demand contracts.",
+          "Manifest package metadata is not project dependency occurrence proof."
+        ],
+        "notes": "This row demonstrates external authorability of the cycle-2 fixed result-domain vocabulary. It remains metadata-only in v0."
+      }
+    ],
+    "value_laws": []
+  },
+  "conformance": {
+    "positive_fixtures": [
+      {
+        "id": "guava-immutable-collection-positive",
+        "description": "Imported Guava ImmutableList.of and ImmutableSet.of are the intended fixed collection result-domain surface.",
+        "path": "fixtures/java/guava_immutable_collections_positive.java",
+        "expectation": "fixed-result-domain-contract-open"
+      }
+    ],
+    "hard_negatives": [
+      {
+        "id": "guava-immutable-collection-local-shadow-hard-negative",
+        "description": "A local ImmutableList class must not satisfy the Guava package contract.",
+        "path": "fixtures/java/guava_immutable_collections_shadowed.java",
+        "expectation": "exact-contract-closed"
+      },
+      {
+        "id": "guava-immutable-collection-wrong-package-hard-negative",
+        "description": "java.util.List.of is a different package surface and must not satisfy the Guava row.",
+        "path": "fixtures/java/guava_immutable_collections_wrong_package.java",
+        "expectation": "exact-contract-closed"
+      }
+    ],
+    "known_unsupported": [
+      "This example does not prove that the analyzed project depends on Guava.",
+      "This example does not execute an external import or LibraryApi producer.",
+      "This example does not open external exact influence."
+    ],
+    "command": "nose semantic-pack check external-guava-immutable-collections-pack.json --format json",
+    "proofs": [
+      "https://example.invalid/semantic-packs/java-guava-immutable-collections/conformance"
+    ],
+    "executable": [
+      {
+        "id": "guava-immutable-collection-fixed-result-domain.gate",
+        "row_ref": "java.guava.immutable-collection-factory.fixed-result-domain",
+        "oracle": "fixture-expectations",
+        "positive_fixtures": [
+          "guava-immutable-collection-positive"
+        ],
+        "hard_negatives": [
+          "guava-immutable-collection-local-shadow-hard-negative",
+          "guava-immutable-collection-wrong-package-hard-negative"
+        ],
+        "expected_positive": "fixed-result-domain-contract-open",
+        "expected_hard_negative": "exact-contract-closed"
+      }
+    ]
+  }
+}

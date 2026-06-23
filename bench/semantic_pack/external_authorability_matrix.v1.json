@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "issue": 511,
+  "phase": "R4",
+  "source_artifacts": [
+    "bench/semantic_pack/blocker_packet.v4.json",
+    "bench/semantic_pack/kernel_capability_matrix.v4.json",
+    "docs/examples/semantic-packs/v0/external-guava-immutable-collections-pack.json"
+  ],
+  "purpose": "test whether a realistic external provider can author fixed result-domain rows, fixtures, hard negatives, and conformance gates without opening external influence",
+  "dry_run_pack": {
+    "pack_id": "com.example.java-guava-immutable-collections",
+    "manifest": "docs/examples/semantic-packs/v0/external-guava-immutable-collections-pack.json",
+    "ecosystem": "maven",
+    "package": "com.google.guava:guava",
+    "slice": "ImmutableList.of and ImmutableSet.of fixed collection result domains",
+    "conformance_command": "nose semantic-pack check docs/examples/semantic-packs/v0/external-guava-immutable-collections-pack.json --format json",
+    "expected_conformance_status": "ok",
+    "expected_influence_status": "blocked",
+    "expected_remaining_blockers": [
+      "data-only-registration",
+      "dependency-backed-evidence-unavailable",
+      "explicit-influence-trust-gate-missing",
+      "executable-conformance-unavailable"
+    ]
+  },
+  "authorability_rows": [
+    {
+      "capability": "manifest package metadata",
+      "builtin_status": "builtin descriptors can name package or stdlib ownership",
+      "external_authoring": "authorable",
+      "external_influence": "metadata-only",
+      "builtin_only_intentional": false,
+      "result": "available for provenance and compatibility, but not occurrence proof"
+    },
+    {
+      "capability": "Import.Binding producer declaration",
+      "builtin_status": "compiled language/import producers can emit dependency-backed evidence",
+      "external_authoring": "authorable-metadata-only",
+      "external_influence": "blocked",
+      "builtin_only_intentional": true,
+      "result": "providers can declare the producer shape, but v0 cannot execute it"
+    },
+    {
+      "capability": "LibraryApi.Contract producer declaration",
+      "builtin_status": "compiled builtin packs emit admitted LibraryApi occurrence evidence",
+      "external_authoring": "authorable-metadata-only",
+      "external_influence": "blocked",
+      "builtin_only_intentional": true,
+      "result": "required for fixed result-domain rows, but external producer runtime remains absent"
+    },
+    {
+      "capability": "semantics.result_domain fixed call domain",
+      "builtin_status": "cycle 1 materializes fixed call domains for admitted builtin LibraryApi rows",
+      "external_authoring": "authorable-metadata-only",
+      "external_influence": "blocked",
+      "builtin_only_intentional": false,
+      "result": "external manifests can express the row using the same domain vocabulary"
+    },
+    {
+      "capability": "positive and hard-negative fixture metadata",
+      "builtin_status": "builtin inventory audits descriptor coverage",
+      "external_authoring": "authorable",
+      "external_influence": "metadata-only",
+      "builtin_only_intentional": false,
+      "result": "provider can publish useful review evidence without influence"
+    },
+    {
+      "capability": "fixture-expectation executable conformance gate",
+      "builtin_status": "builtin gates are owned by release tests and inventory",
+      "external_authoring": "authorable",
+      "external_influence": "blocked",
+      "builtin_only_intentional": false,
+      "result": "a passed gate clears only executable-conformance-unavailable"
+    },
+    {
+      "capability": "project package/version occurrence proof",
+      "builtin_status": "not generalized across ecosystem lockfiles yet",
+      "external_authoring": "blocked",
+      "external_influence": "blocked",
+      "builtin_only_intentional": false,
+      "result": "manifest package metadata must not be treated as project dependency proof"
+    },
+    {
+      "capability": "external exact evidence runtime",
+      "builtin_status": "compiled Rust producers are the only exact evidence runtime",
+      "external_authoring": "blocked",
+      "external_influence": "blocked",
+      "builtin_only_intentional": true,
+      "result": "requires separate trust, sandbox, provenance, and rollback design"
+    },
+    {
+      "capability": "HOF demand and materialization result shape",
+      "builtin_status": "narrow builtin iterator/promise rows exist, broad HOF result-domain rows remain closed",
+      "external_authoring": "blocked-for-exact",
+      "external_influence": "blocked",
+      "builtin_only_intentional": true,
+      "result": "deferred to R5 because callback demand, laziness, materialization, and effects are high-risk"
+    },
+    {
+      "capability": "dtype, tensor shape, and vector mask domains",
+      "builtin_status": "no accepted kernel substrate",
+      "external_authoring": "blocked-for-exact",
+      "external_influence": "blocked",
+      "builtin_only_intentional": false,
+      "result": "requires future producer vocabulary; not solved by fixed result-domain authoring"
+    }
+  ],
+  "summary": {
+    "external_pack_authorability": "partial",
+    "external_influence_opened": false,
+    "new_primitives": 0,
+    "accepted_for_r4": [
+      "realistic fixed result-domain manifest dry-run",
+      "fixture and hard-negative authoring",
+      "executable conformance gate authoring",
+      "builtin-only versus externalizable capability classification"
+    ],
+    "remaining_before_external_influence": [
+      "dependency-backed external evidence runtime",
+      "explicit influence trust gate",
+      "conflict-free row adoption or replacement policy",
+      "package/version occurrence producers",
+      "rollback and disable policy for external exact rows"
+    ],
+    "move_to_r5": true
+  },
+  "product_output_gate": {
+    "classification": "metadata-only example and artifact change; no semantic query drift expected",
+    "reason": "the dry-run pack passes conformance but external rows remain blocked from query, normalize, value-graph, exact, and detection consumers"
+  },
+  "performance_gate": {
+    "limit": "no more than 10% median runtime regression",
+    "expected_hot_path_change": "none",
+    "measurement_required": false,
+    "decision": "documentation, example manifest, conformance, and artifact validation only"
+  }
+}

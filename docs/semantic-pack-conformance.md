@@ -81,6 +81,11 @@ Its expectation labels distinguish report-visible positives such as
 `semantic-law-provenance-present` from narrower unit-level fixtures such as
 `internal-law-unit-positive`; the harness preserves those labels but does not
 execute them.
+The R4 [Guava immutable collection example](examples/semantic-packs/v0/external-guava-immutable-collections-pack.json)
+uses the same workflow for a fixed result-domain contract. It demonstrates that
+external providers can author `semantics.result_domain`, fixtures, hard
+negatives, and a fixture-expectation gate while the influence preflight still
+blocks exact use of the row.
 
 Builtin packs use a separate inventory command because they are compiled into
 nose and already influence analysis:
