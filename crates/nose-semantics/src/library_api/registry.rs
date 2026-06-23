@@ -1,6 +1,5 @@
 //! Contract registry helpers for resolving evidence hashes back to builtin rows.
 
-use super::contracts::library_receiver_method_api_result_domain;
 use super::*;
 
 pub(super) fn library_api_contract_result_domain_for_arity(
@@ -8,91 +7,39 @@ pub(super) fn library_api_contract_result_domain_for_arity(
     callee: LibraryApiCalleeContract,
     arity: u16,
 ) -> Option<DomainEvidence> {
-    match id {
-        LibraryApiContractId::PythonBuiltinCollectionFactory
-        | LibraryApiContractId::PythonImportedCollectionFactory
-        | LibraryApiContractId::RustStdCollectionFactory
-        | LibraryApiContractId::RustVecMacroFactory
-        | LibraryApiContractId::RustVecNewFactory
-        | LibraryApiContractId::JavaCollectionFactory(_)
-        | LibraryApiContractId::JavaCollectionConstructor(_)
-        | LibraryApiContractId::RubySetFactory
-        | LibraryApiContractId::JsLikeSetConstructor => {
-            library_collection_factory_result_domain_for_arity(
-                LibraryCollectionFactoryContract {
-                    pack_id: match id {
-                        LibraryApiContractId::PythonBuiltinCollectionFactory => {
-                            PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID
-                        }
-                        LibraryApiContractId::PythonImportedCollectionFactory => {
-                            PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID
-                        }
-                        LibraryApiContractId::RustVecMacroFactory
-                        | LibraryApiContractId::RustVecNewFactory => RUST_STDLIB_VEC_PACK_ID,
-                        LibraryApiContractId::RustStdCollectionFactory => {
-                            RUST_STDLIB_COLLECTION_FACTORY_PACK_ID
-                        }
-                        LibraryApiContractId::JavaCollectionFactory(_) => {
-                            JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID
-                        }
-                        LibraryApiContractId::JavaCollectionConstructor(_) => {
-                            JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID
-                        }
-                        LibraryApiContractId::RubySetFactory => RUBY_STDLIB_SET_PACK_ID,
-                        LibraryApiContractId::JsLikeSetConstructor => {
-                            JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
-                        }
-                        _ => unreachable!("collection-factory contract has no broad builtin pack"),
-                    },
-                    id,
-                    callee,
-                    result: LibraryCollectionFactoryResult::SequenceArgument,
-                },
-                arity as usize,
-            )
-        }
-        LibraryApiContractId::RustStdMapFactory
-        | LibraryApiContractId::JavaMapFactory(_)
-        | LibraryApiContractId::JsLikeMapConstructor => Some(library_map_factory_result_domain(
-            LibraryMapFactoryContract {
-                pack_id: match id {
-                    LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
-                    LibraryApiContractId::JavaMapFactory(_) => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-                    LibraryApiContractId::JsLikeMapConstructor => {
-                        JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
-                    }
-                    _ => unreachable!("map-factory contract has no broad builtin pack"),
-                },
-                id,
-                callee,
-                result: LibraryMapFactoryResult::EntrySequence {
-                    entry_seq_tag: SEQ_VALUE_COLLECTION,
-                },
-            },
-        )),
-        LibraryApiContractId::MapKeyViewWrapper => Some(
-            library_map_key_view_wrapper_result_domain(LibraryMapKeyViewWrapperContract {
-                pack_id: JS_LIKE_BUILTIN_ARRAY_PACK_ID,
-                id,
-                callee,
-                result: MapKeyViewWrapperContract {
-                    receiver: "Array",
-                    method: "from",
-                    qualified_path: "Array.from",
-                },
-            }),
-        ),
-        LibraryApiContractId::RustOptionSomeConstructor => Some(DomainEvidence::Option),
-        LibraryApiContractId::PromiseFactory(_) => Some(DomainEvidence::PromiseLike),
-        id @ (LibraryApiContractId::RustOptionAndThen
-        | LibraryApiContractId::ScalarIntegerMethod(_)
-        | LibraryApiContractId::MapKeyView(_)
-        | LibraryApiContractId::PromiseThen) => library_receiver_method_api_result_domain(id),
+    library_api_materialized_result_domain_for_arity(id, callee, arity).or(match id {
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(_)) => {
             Some(DomainEvidence::Collection)
         }
         _ => None,
+    })
+}
+
+pub fn admitted_library_api_result_domain_for_call_record(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    record: &EvidenceRecord,
+) -> Option<DomainEvidence> {
+    let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+        contract_hash,
+        callee_hash,
+        arity,
+    }) = record.kind
+    else {
+        return None;
+    };
+    if il.children(call).len().saturating_sub(1) != arity as usize {
+        return None;
     }
+    let id = library_api_contract_id_from_hash(contract_hash)?;
+    let callee = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash)?;
+    let domain = library_api_materialized_result_domain_for_arity(id, callee, arity)?;
+    matches!(
+        library_api_contract_evidence_for_call(il, interner, call, id, callee, arity as usize),
+        LibraryApiEvidenceStatus::Admitted
+    )
+    .then_some(domain)
 }
 
 pub(super) fn library_api_contract_id_from_hash(hash: u64) -> Option<LibraryApiContractId> {

@@ -7,9 +7,10 @@ use nose_il::{
     NodeKind, Payload, SequenceSurfaceKind, Symbol, SymbolEvidenceKind,
 };
 use nose_semantics::{
-    builder_append_method_contract, language_core_evidence_provenance,
-    library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_api_free_name_shadow_safe, library_api_property_dependencies_for_field_with_cache,
+    admitted_library_api_result_domain_for_call_record, builder_append_method_contract,
+    language_core_evidence_provenance, library_api_callee_contract_hash,
+    library_api_contract_id_hash, library_api_free_name_shadow_safe,
+    library_api_property_dependencies_for_field_with_cache,
     library_api_receiver_dependencies_for_call_with_cache, library_method_call_contract,
     library_property_builtin_contract, library_receiver_method_api_contract,
     library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
@@ -39,14 +40,13 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
         .filter_map(|(idx, node)| (node.kind == NodeKind::Var).then_some(NodeId(idx as u32)))
         .collect();
     let mut dependency_cache = LibraryApiDependencyCache::default();
-    for call in calls {
-        if record_rust_option_some_library_api(il, interner, call) {
-            continue;
+    for &call in &calls {
+        if !record_rust_option_some_library_api(il, interner, call)
+            && !record_builder_append_method_library_api(il, interner, call)
+        {
+            record_receiver_method_library_api(il, interner, call, &mut dependency_cache);
         }
-        if record_builder_append_method_library_api(il, interner, call) {
-            continue;
-        }
-        record_receiver_method_library_api(il, interner, call, &mut dependency_cache);
+        record_library_api_call_result_domains(il, interner, call);
     }
     for field in fields {
         record_property_library_api(il, interner, field, &mut dependency_cache);
@@ -81,7 +81,7 @@ fn record_rust_option_some_library_api(il: &mut Il, interner: &Interner, call: N
     let Some(symbol_dependency) = unshadowed_symbol_evidence_id(il, callee, name) else {
         return false;
     };
-    let api = upsert_builtin_evidence_with_pack_id(
+    upsert_builtin_evidence_with_pack_id(
         il,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -93,7 +93,6 @@ fn record_rust_option_some_library_api(il: &mut Il, interner: &Interner, call: N
         RUST_STDLIB_OPTION_PRODUCER_ID,
         vec![symbol_dependency],
     );
-    record_library_api_result_domain(il, call, contract.result_domain, api);
     true
 }
 
@@ -146,6 +145,35 @@ fn record_builder_append_method_library_api(
         dependencies,
     );
     true
+}
+
+fn record_library_api_call_result_domains(il: &mut Il, interner: &Interner, call: NodeId) {
+    let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
+    let domains: Vec<_> = il
+        .evidence_anchored_at(anchor.span())
+        .filter(|record| record.anchor == anchor)
+        .filter(|record| !call_result_domain_already_materialized(il, anchor, record.id))
+        .filter_map(|record| {
+            admitted_library_api_result_domain_for_call_record(il, interner, call, record)
+                .map(|domain| (record.id, domain))
+        })
+        .collect();
+    for (api, domain) in domains {
+        record_library_api_result_domain(il, call, domain, api);
+    }
+}
+
+fn call_result_domain_already_materialized(
+    il: &Il,
+    anchor: EvidenceAnchor,
+    api: EvidenceId,
+) -> bool {
+    il.evidence_anchored_at(anchor.span()).any(|record| {
+        record.anchor == anchor
+            && matches!(record.kind, EvidenceKind::Domain(_))
+            && record.status == EvidenceStatus::Asserted
+            && record.dependencies.as_slice() == [api]
+    })
 }
 
 fn builder_append_method_dependencies(

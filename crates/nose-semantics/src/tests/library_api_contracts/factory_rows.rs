@@ -415,3 +415,31 @@ fn library_map_factory_result_domain_mapping_is_contract_scoped() {
         DomainEvidence::Array
     );
 }
+
+#[test]
+fn materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed() {
+    let as_list = library_java_collection_factory_contract(Lang::Java, "Arrays", "asList").unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(as_list.id, as_list.callee, 1),
+        None,
+        "single-argument Arrays.asList has ambiguous element provenance"
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(as_list.id, as_list.callee, 2),
+        Some(DomainEvidence::Collection)
+    );
+
+    let hof = library_method_call_contract(Lang::JavaScript, "map", 1).unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(hof.id, hof.callee, 1),
+        None,
+        "HOF compatibility fallback must not become emitted result-domain evidence"
+    );
+
+    let map_get = library_map_get_contract(Lang::Rust, "get", 1).unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(map_get.id, map_get.callee, 1),
+        None,
+        "Map.get value semantics are not a fixed container result domain"
+    );
+}

@@ -1,0 +1,231 @@
+{
+  "schema_version": 3,
+  "issue": 511,
+  "cycle": "r1-r3-cycle-1",
+  "source_artifacts": [
+    "bench/semantic_pack/blocker_packet.v2.json",
+    "bench/semantic_pack/kernel_capability_matrix.v2.json",
+    "bench/semantic_pack/blocker_packet.v3.json"
+  ],
+  "scope_bar": {
+    "selected_bar": "one R1-R3 internal capability cycle",
+    "foundational_primitive": "admitted_api_result_domain",
+    "accepted_generalization": "admitted_api_result_domain_materializer",
+    "new_primitives": 0,
+    "exact_capable_surfaces_exercising_it": [
+      "python.builtin.collection_factory.call_result_domain",
+      "python.stdlib.deque.call_result_domain",
+      "rust.std.map_factory.call_result_domain",
+      "java.collection_factory.call_result_domain",
+      "java.map_factory.call_result_domain",
+      "ruby.set_factory.call_result_domain",
+      "javascript.collection_constructors.call_result_domain",
+      "javascript.array_from_map_keys.call_result_domain",
+      "javascript.promise_resolve.call_result_domain",
+      "receiver_method.result_domain.chain_compatibility"
+    ],
+    "existing_builtin_families_reexpressed": [
+      "rust_option_some",
+      "receiver_method_result_domains"
+    ]
+  },
+  "r1_blocker_summary": {
+    "probe_count": 20,
+    "accepted": 12,
+    "existing": 2,
+    "blocked": 4,
+    "rejected": 2,
+    "dominant_proof_shape": "admitted_api_record_materialized_result_domain",
+    "decision": "reuse and generalize the #509 primitive instead of adding a new primitive"
+  },
+  "r2_builtin_expansion": {
+    "accepted_change": {
+      "id": "admitted_api_result_domain_materializer",
+      "type": "primitive-generalization",
+      "shape": "DomainEvidence on an admitted LibraryApi call node, dependency-backed by the exact LibraryApi evidence record and emitted only for fixed safe result-domain rows",
+      "producer": "normalizer LibraryApi evidence materializer",
+      "consumers": [
+        "receiver-domain dependency lookup",
+        "admitted receiver-method API chains",
+        "value graph receiver/domain consumers",
+        "strict exact receiver-domain consumers through existing indexes"
+      ],
+      "hard_negative_boundary": [
+        "record arity must match actual call arity",
+        "API evidence must be admitted for the current call shape",
+        "HOF compatibility fallback is not emitted as call-node DomainEvidence",
+        "Map.get value domain is not emitted",
+        "ambiguous Java Arrays.asList single-argument result shape is not emitted"
+      ]
+    },
+    "implemented_rows": [
+      "PythonBuiltinCollectionFactory",
+      "PythonImportedCollectionFactory",
+      "RustStdCollectionFactory",
+      "RustStdMapFactory",
+      "RustVecMacroFactory",
+      "RustVecNewFactory",
+      "JavaCollectionFactory",
+      "JavaCollectionConstructor",
+      "JavaMapFactory",
+      "RubySetFactory",
+      "JsLikeSetConstructor",
+      "JsLikeMapConstructor",
+      "MapKeyViewWrapper",
+      "RustOptionSomeConstructor",
+      "PromiseFactory",
+      "MapKeyView(Collection)",
+      "MapKeyView(Iterator)",
+      "ScalarIntegerMethod(*)",
+      "RustOptionAndThen",
+      "PromiseThen"
+    ]
+  },
+  "r3_compression": {
+    "centralized_paths": [
+      "call result-domain emission moved behind admitted_library_api_result_domain_for_call_record",
+      "receiver-method result-domain direct emission replaced by the shared materializer",
+      "Rust Option Some direct call emission replaced by the shared materializer",
+      "registry fixed-domain lookup now reuses the materialized-result-domain helper"
+    ],
+    "compatibility_lanes_kept_separate": [
+      "MethodCall(HoF(_)) remains available only to existing protocol compatibility lookup",
+      "fixed result-domain materialization excludes HOF rows"
+    ],
+    "primitive_surface_delta": {
+      "added": [],
+      "generalized": [
+        "admitted_api_result_domain"
+      ],
+      "removed": [],
+      "net_new_primitives": 0
+    }
+  },
+  "blocker_taxonomy_v3": [
+    {
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "decision": "accepted",
+      "covered_probes": [
+        "python.builtin.collection_factory.call_result_domain",
+        "python.stdlib.deque.call_result_domain",
+        "rust.std.collection_factory.call_result_domain",
+        "rust.std.map_factory.call_result_domain",
+        "rust.vec.factory.call_result_domain",
+        "java.collection_factory.call_result_domain",
+        "java.collection_constructor.call_result_domain",
+        "java.map_factory.call_result_domain",
+        "ruby.set_factory.call_result_domain",
+        "javascript.collection_constructors.call_result_domain",
+        "javascript.array_from_map_keys.call_result_domain",
+        "javascript.promise_resolve.call_result_domain",
+        "receiver_method.result_domain.chain_compatibility",
+        "rust.option.some.centralized_result_domain"
+      ],
+      "rationale": "many builtin families already produce admitted API occurrence evidence with fixed result domains; the kernel needed one shared materializer rather than family-specific domain emission"
+    },
+    {
+      "proof_shape": "external_pack_authoring_surface",
+      "decision": "blocked",
+      "covered_probes": [
+        "external.pack.fixed_result_domain_authoring"
+      ],
+      "rationale": "the builtin kernel can materialize known fixed-domain rows, but external packs still lack executable result-domain authoring support"
+    },
+    {
+      "proof_shape": "package_version_occurrence",
+      "decision": "blocked",
+      "covered_probes": [
+        "java.guava.collection_factories.package_gate"
+      ],
+      "rationale": "package/version occurrence proof is still a prerequisite for external ecosystem rows"
+    },
+    {
+      "proof_shape": "trait_materialization_or_dtype",
+      "decision": "blocked",
+      "covered_probes": [
+        "rust.itertools.collect_vec.materialization",
+        "python.numpy.dtype_domain_producer"
+      ],
+      "rationale": "caller-selected materialization and dtype-domain producers cannot be replaced by fixed API result-domain evidence"
+    },
+    {
+      "proof_shape": "unsafe_result_domain_broadening",
+      "decision": "rejected",
+      "covered_probes": [
+        "generic.hof.call_result_domain",
+        "generic.map_get.value_domain"
+      ],
+      "rationale": "the shared materializer must not turn compatibility shortcuts or parametric value domains into emitted exact evidence"
+    }
+  ],
+  "transition_assessment": {
+    "continue_r1_r3": true,
+    "move_to_r4": false,
+    "criteria_met": [
+      "new primitive additions stayed at zero in this cycle",
+      "existing primitive composition explained most accepted rows",
+      "the same primitive vocabulary is reused across multiple languages"
+    ],
+    "criteria_not_met": [
+      "external pack authorability of fixed result-domain rows is still untested",
+      "remaining blocker packet still contains package/version, trait/materialization, and dtype proof gaps",
+      "only one post-#509 R1-R3 cycle has completed"
+    ],
+    "next_cycle_goal": "choose the next 20-row packet from remaining package/version, trait/materialization, and external-authoring blockers before deciding whether R4 must start early"
+  },
+  "product_output_gate": {
+    "command": "target/issue511/base-target/release/nose query <repo> --mode semantic --format json compared with target/release/nose query <repo> --mode semantic --format json, scrubbed of volatile timing fields",
+    "repos_compared": [
+      "boltons",
+      "serde_json",
+      "junit5"
+    ],
+    "classification": "no product-output drift on the focused semantic-query subset",
+    "drift_summary": {
+      "scrubbed_json_equal": true,
+      "family_set": "none",
+      "family_count": "none",
+      "family_shape": "none"
+    }
+  },
+  "performance_gate": {
+    "limit": "no more than 10% median runtime regression",
+    "expected_hot_path_change": "one indexed same-span scan per call plus admitted-record validation only when no domain evidence already depends on that API record",
+    "measurement_required": true,
+    "measurements": [
+      {
+        "name": "focused semantic query subset warmed alternating r15",
+        "repos": [
+          "boltons",
+          "serde_json",
+          "junit5"
+        ],
+        "baseline_ms": 679.69,
+        "current_ms": 645.18,
+        "delta_percent": -5.08,
+        "decision": "passes 10% gate"
+      },
+      {
+        "name": "boltons focused semantic query warmed r15",
+        "baseline_ms": 85.2,
+        "current_ms": 73.78,
+        "delta_percent": -13.41,
+        "decision": "passes 10% gate"
+      },
+      {
+        "name": "serde_json focused semantic query warmed r15",
+        "baseline_ms": 61.14,
+        "current_ms": 62.5,
+        "delta_percent": 2.22,
+        "decision": "passes 10% gate"
+      },
+      {
+        "name": "junit5 focused semantic query warmed r15",
+        "baseline_ms": 533.35,
+        "current_ms": 508.9,
+        "delta_percent": -4.58,
+        "decision": "passes 10% gate"
+      }
+    ]
+  }
+}

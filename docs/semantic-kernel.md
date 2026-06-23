@@ -235,6 +235,11 @@ Rust `abs().max(...)`, Rust `and_then(...).and_then(...)`, and JavaScript
 `then(...).then(...)` without adding a primitive per chain. The #509 blocker
 packet, hard boundaries, and builtin rollout are recorded in
 [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md).
+The #511 first R1-R3 cycle generalizes the same primitive from receiver-only
+emission to a shared admitted-API materializer for fixed-result call rows such as
+collection/map factories, `Array.from`, `Promise.resolve`, and Rust `Some(...)`,
+while keeping HOF and `Map.get` result domains closed. That cycle record is in
+[semantic-kernel-expansion-511](semantic-kernel-expansion-511.md).
 
 ### Effects and observations
 

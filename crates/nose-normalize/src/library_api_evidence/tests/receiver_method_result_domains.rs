@@ -1,6 +1,6 @@
 use super::*;
 
-fn receiver_method_result_domain_il(
+pub(super) fn receiver_method_result_domain_il(
     lang: Lang,
     receiver_name: &str,
     method: &str,

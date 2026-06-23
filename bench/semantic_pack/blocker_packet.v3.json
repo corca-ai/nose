@@ -1,0 +1,183 @@
+{
+  "schema_version": 3,
+  "issue": 511,
+  "cycle": "r1-r3-cycle-1",
+  "base_artifacts": [
+    "bench/semantic_pack/blocker_packet.v2.json",
+    "bench/semantic_pack/kernel_capability_matrix.v2.json"
+  ],
+  "policy": {
+    "corpus_signals_are_admission_proof": false,
+    "minimum_probe_count": 20,
+    "purpose": "repeat the #511 R1-R3 loop by widening the admitted API result-domain primitive without adding speculative kernel vocabulary"
+  },
+  "probes": [
+    {
+      "id": "python.builtin.collection_factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Collection/Set domain from admitted builtin factory API evidence",
+      "decision": "accepted",
+      "reason": "list/set/frozenset factory rows already have fixed result domains after unshadowed builtin proof"
+    },
+    {
+      "id": "python.stdlib.deque.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Collection domain from imported collection factory evidence",
+      "decision": "accepted",
+      "reason": "imported collections.deque evidence is dependency-backed and its result domain is fixed"
+    },
+    {
+      "id": "rust.std.collection_factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Collection/Set domain from Rust std collection factory evidence",
+      "decision": "accepted",
+      "reason": "std collection factory rows already prove callee identity and have fixed container domains"
+    },
+    {
+      "id": "rust.std.map_factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Map domain from Rust std map factory evidence",
+      "decision": "accepted",
+      "reason": "HashMap/BTreeMap factory rows have a fixed Map result domain after std path proof"
+    },
+    {
+      "id": "rust.vec.factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Collection domain from vec!/Vec::new evidence",
+      "decision": "accepted",
+      "reason": "Vec factory rows have fixed collection result shape once macro/path evidence is admitted"
+    },
+    {
+      "id": "java.collection_factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Collection/Set domain from Java collection factory evidence",
+      "decision": "accepted",
+      "reason": "List.of and Set.of rows are fixed-domain after java.util import proof"
+    },
+    {
+      "id": "java.collection_constructor.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Collection domain from Java collection constructor evidence",
+      "decision": "accepted",
+      "reason": "empty java.util collection constructors have fixed empty collection result shape"
+    },
+    {
+      "id": "java.map_factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Map domain from Java Map factory evidence",
+      "decision": "accepted",
+      "reason": "Map.of/Map.ofEntries rows have fixed Map result domain after java.util import proof"
+    },
+    {
+      "id": "ruby.set_factory.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Set domain from Ruby Set.new evidence",
+      "decision": "accepted",
+      "reason": "Set.new has a fixed Set result domain after require and shadowing proof"
+    },
+    {
+      "id": "javascript.collection_constructors.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Set/Map domains from JS-like constructor evidence",
+      "decision": "accepted",
+      "reason": "new Set and new Map rows are fixed-domain after construct and unshadowed global proof"
+    },
+    {
+      "id": "javascript.array_from_map_keys.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize Array domain from Array.from wrapper evidence",
+      "decision": "accepted",
+      "reason": "Array.from has a fixed Array result domain once the static global method evidence is admitted"
+    },
+    {
+      "id": "javascript.promise_resolve.call_result_domain",
+      "round": "R1/R2",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "materialize PromiseLike domain from Promise.resolve evidence",
+      "decision": "accepted",
+      "reason": "Promise.resolve has a fixed PromiseLike result domain after static global method proof"
+    },
+    {
+      "id": "receiver_method.result_domain.chain_compatibility",
+      "round": "R2/R3",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "preserve #509 receiver-method result-domain chains through the generalized materializer",
+      "decision": "existing",
+      "reason": "MapKeyView, scalar integer, Option.and_then, and Promise.then remain admitted through the same primitive"
+    },
+    {
+      "id": "rust.option.some.centralized_result_domain",
+      "round": "R2/R3",
+      "proof_shape": "admitted_api_record_materialized_result_domain",
+      "kernel_need": "keep Option Some result-domain evidence while removing call-specific direct emission",
+      "decision": "existing",
+      "reason": "Some already emitted Option; this cycle moves it behind the same admitted API materializer"
+    },
+    {
+      "id": "external.pack.fixed_result_domain_authoring",
+      "round": "R4-preview",
+      "proof_shape": "external_pack_authoring_surface",
+      "kernel_need": "external manifest/runtime support for declaring fixed result-domain contracts",
+      "decision": "blocked",
+      "reason": "the builtin kernel can materialize known contract ids, but external packs cannot yet author executable result-domain rows"
+    },
+    {
+      "id": "java.guava.collection_factories.package_gate",
+      "round": "R1",
+      "proof_shape": "package_version_occurrence",
+      "kernel_need": "project dependency package/version proof before exact API occurrence admission",
+      "decision": "blocked",
+      "reason": "Guava factory names remain queue signals until package/version occurrence is dependency-backed"
+    },
+    {
+      "id": "rust.itertools.collect_vec.materialization",
+      "round": "R1",
+      "proof_shape": "trait_identity+materialization",
+      "kernel_need": "trait/import identity plus caller-selected materialized result proof",
+      "decision": "blocked",
+      "reason": "collect-like result shape is not a fixed API result domain"
+    },
+    {
+      "id": "python.numpy.dtype_domain_producer",
+      "round": "R1",
+      "proof_shape": "dtype_domain_producer",
+      "kernel_need": "safe dtype/domain producer before NumPy scalar rows can use result-domain composition",
+      "decision": "blocked",
+      "reason": "DomainRequirement can consume scalar/integer domains, but NumPy dtype facts are not proven"
+    },
+    {
+      "id": "generic.hof.call_result_domain",
+      "round": "R3",
+      "proof_shape": "hof_materialization_boundary",
+      "kernel_need": "demand/materialization proof before HOF calls may emit result DomainEvidence",
+      "decision": "rejected",
+      "reason": "existing HOF compatibility remains internal to protocol consumers; broad call-node DomainEvidence would be unsound"
+    },
+    {
+      "id": "generic.map_get.value_domain",
+      "round": "R3",
+      "proof_shape": "value_domain_dependent_on_container_type",
+      "kernel_need": "parametric map value-domain proof",
+      "decision": "rejected",
+      "reason": "Map.get result domain depends on the map value type, not on API identity alone"
+    }
+  ],
+  "totals": {
+    "probes": 20,
+    "accepted": 12,
+    "existing": 2,
+    "blocked": 4,
+    "rejected": 2
+  }
+}

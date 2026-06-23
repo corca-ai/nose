@@ -293,3 +293,13 @@ refer to the same production-scope helper family,
 result-domain emission in `recording.rs` shifts that function's source span and therefore the
 family ID. This is still the reviewed builtin evidence upsert-helper debt from the migration, not
 new avoidable duplication, so no new budget is accepted.
+
+The #511 admitted API result-domain materializer PR keeps the count at 55 while refreshing two
+representative IDs. `0dd2be502b5af83e` changes back to `39a46b1fa7e4804c` for the same
+`call_target_evidence.rs::upsert` / `library_api_evidence/recording.rs::upsert_builtin_evidence_with_pack_id`
+family after the result-domain emission path is centralized. `caf459299b305432` changes to
+`be538d60b289f5ba` for the same language-core provenance helper family involving
+`sequence_surface_record_has_language_core_provenance` and
+`language_core_sequence_surface_record`. A new receiver-method test helper initially surfaced as
+avoidable test duplication and was removed by reusing the existing receiver-method IL fixture
+helper. No new budget is accepted.

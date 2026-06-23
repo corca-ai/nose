@@ -16,6 +16,7 @@ mod imported_occurrences;
 mod receiver_dependencies;
 mod registry;
 mod resolvers;
+mod result_domains;
 mod rows;
 
 pub(in crate::library_api) use callee_dependencies::*;
@@ -30,11 +31,13 @@ pub(in crate::library_api) use receiver_dependencies::{
 pub(crate) use receiver_dependencies::{
     language_core_builtin_at_call, library_api_dependency_id_for_normalized_hof,
 };
+pub use registry::admitted_library_api_result_domain_for_call_record;
 pub(in crate::library_api) use registry::{
     library_api_callee_contract_for_hash, library_api_contract_id_from_hash,
     library_api_contract_result_domain_for_arity, library_api_record_admitted_for_current_shape,
 };
 pub use resolvers::*;
+pub use result_domains::*;
 pub use rows::*;
 
 pub(in crate::library_api) use admission::library_api_record_provenance_matches_contract;

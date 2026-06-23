@@ -7,6 +7,7 @@ use nose_semantics::{
     RUST_STDLIB_OPTION_PRODUCER_ID,
 };
 
+mod call_result_domains;
 mod receiver_method_result_domains;
 
 fn sp(byte: u32) -> Span {
