@@ -177,10 +177,12 @@ snapshot prose may group packs by migration narrative instead.
 The loader validates manifest shape and pack provenance, registers external
 producer, contract, and value-law declarations as data-only rows, can report
 row-id conflicts with builtin or other external rows, and can run a data-only
-influence preflight report. Today that preflight blocks all external rows until
-dependency-backed evidence, explicit influence trust gates, and conflict-free
-row ids exist. Exact-capable rows also remain blocked until they have passed
-declarative executable conformance.
+influence preflight report. It also validates fixed call result-domain
+declarations in `semantics.result_domain` against the known domain vocabulary
+and requires required `LibraryApi.Contract` evidence for those rows. Today that
+preflight blocks all external rows until dependency-backed evidence, explicit
+influence trust gates, and conflict-free row ids exist. Exact-capable rows also
+remain blocked until they have passed declarative executable conformance.
 `nose semantic-pack check --format json` exposes that row-level preflight to
 providers and integrations, but query, normalize, value-graph, exact, and
 detection consumers do not read it. It does not yet:

@@ -58,8 +58,9 @@ command for refreshing the committed pricing JSON and Markdown because it
 records the sample product-query overlay. The `--check-artifacts` form verifies
 that the committed JSON, Markdown, and review log are internally consistent with
 the current tool and corpus digest without requiring a release binary. It also
-validates the issue #509 v2 blocker packet and capability matrix for count,
-cross-reference, accepted-primitive, and performance-gate consistency.
+validates the issue #509 v2 blocker packet and capability matrix and the issue
+#511 v3/v4 R1-R3 cycle artifacts for count, cross-reference,
+accepted-generalization, transition, and performance-gate consistency.
 
 The tool emits:
 
@@ -77,6 +78,12 @@ blocker packet and capability matrix:
 [`kernel_capability_matrix.v2.json`](../bench/semantic_pack/kernel_capability_matrix.v2.json),
 and
 [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md).
+Issue #511 continues the same loop through repeated R1-R3 cycles before external
+pack influence is opened. Its current artifacts are
+[`blocker_packet.v3.json`](../bench/semantic_pack/blocker_packet.v3.json),
+[`kernel_capability_matrix.v3.json`](../bench/semantic_pack/kernel_capability_matrix.v3.json),
+[`blocker_packet.v4.json`](../bench/semantic_pack/blocker_packet.v4.json), and
+[`kernel_capability_matrix.v4.json`](../bench/semantic_pack/kernel_capability_matrix.v4.json).
 
 The current artifact records 20 candidate iterations. It starts from a curated
 seed list instead of attempting automatic API discovery. The scanner uses

@@ -31,6 +31,8 @@ DEFAULT_BLOCKER_PACKET_V2 = ROOT / "bench" / "semantic_pack" / "blocker_packet.v
 DEFAULT_KERNEL_MATRIX_V2 = ROOT / "bench" / "semantic_pack" / "kernel_capability_matrix.v2.json"
 DEFAULT_BLOCKER_PACKET_V3 = ROOT / "bench" / "semantic_pack" / "blocker_packet.v3.json"
 DEFAULT_KERNEL_MATRIX_V3 = ROOT / "bench" / "semantic_pack" / "kernel_capability_matrix.v3.json"
+DEFAULT_BLOCKER_PACKET_V4 = ROOT / "bench" / "semantic_pack" / "blocker_packet.v4.json"
+DEFAULT_KERNEL_MATRIX_V4 = ROOT / "bench" / "semantic_pack" / "kernel_capability_matrix.v4.json"
 
 SCHEMA_VERSION = 1
 TOOL_VERSION = "semantic-pack-pricing/1"
@@ -1463,6 +1465,84 @@ def validate_kernel_matrix_v3(matrix: dict, probe_ids: set[str]) -> None:
             raise SystemExit("kernel capability matrix v3 performance delta exceeds 10%")
 
 
+def validate_blocker_packet_v4(packet: dict) -> set[str]:
+    if packet.get("schema_version") != 4:
+        raise SystemExit("blocker packet v4 must use schema_version 4")
+    if packet.get("issue") != 511:
+        raise SystemExit("blocker packet v4 must be tied to issue 511")
+    if packet.get("cycle") != "r1-r3-cycle-2":
+        raise SystemExit("blocker packet v4 must identify r1-r3-cycle-2")
+    probes = packet.get("probes")
+    if not isinstance(probes, list) or len(probes) != 20:
+        raise SystemExit("blocker packet v4 must contain exactly 20 probes")
+    totals = packet.get("totals")
+    if not isinstance(totals, dict):
+        raise SystemExit("blocker packet v4 needs totals")
+    decisions = {"accepted": 0, "existing": 0, "blocked": 0, "rejected": 0}
+    seen = set()
+    for probe in probes:
+        probe_id = probe.get("id")
+        if not isinstance(probe_id, str) or not probe_id:
+            raise SystemExit("blocker packet v4 probe is missing id")
+        if probe_id in seen:
+            raise SystemExit(f"blocker packet v4 duplicate probe id: {probe_id}")
+        seen.add(probe_id)
+        decision = probe.get("decision")
+        if decision not in decisions:
+            raise SystemExit(f"{probe_id}: invalid blocker packet v4 decision {decision}")
+        decisions[decision] += 1
+        for key in ["round", "proof_shape", "kernel_need", "reason"]:
+            if not probe.get(key):
+                raise SystemExit(f"{probe_id}: blocker packet v4 missing {key}")
+    expected_totals = {"probes": len(probes), **decisions}
+    if totals != expected_totals:
+        raise SystemExit("blocker packet v4 totals do not match probe decisions")
+    return seen
+
+
+def validate_kernel_matrix_v4(matrix: dict, probe_ids: set[str]) -> None:
+    if matrix.get("schema_version") != 4:
+        raise SystemExit("kernel capability matrix v4 must use schema_version 4")
+    if matrix.get("issue") != 511:
+        raise SystemExit("kernel capability matrix v4 must be tied to issue 511")
+    if matrix.get("cycle") != "r1-r3-cycle-2":
+        raise SystemExit("kernel capability matrix v4 must identify r1-r3-cycle-2")
+    if "bench/semantic_pack/blocker_packet.v4.json" not in matrix.get("source_artifacts", []):
+        raise SystemExit("kernel capability matrix v4 must reference blocker_packet.v4.json")
+    scope = matrix.get("scope_bar", {})
+    if scope.get("accepted_generalization") != "external_fixed_result_domain_authoring_contract":
+        raise SystemExit("kernel capability matrix v4 must name the accepted generalization")
+    if scope.get("new_primitives") != 0:
+        raise SystemExit("kernel capability matrix v4 must record zero new primitives")
+    if scope.get("external_influence_opened") is not False:
+        raise SystemExit("kernel capability matrix v4 must keep external influence closed")
+    accepted = matrix.get("r2_builtin_and_external_expansion", {}).get("accepted_change", {})
+    if accepted.get("id") != "external_fixed_result_domain_authoring_contract":
+        raise SystemExit("kernel capability matrix v4 accepted_change id mismatch")
+    implemented = matrix.get("r2_builtin_and_external_expansion", {}).get("implemented_rows")
+    if not isinstance(implemented, list) or "semantics.result_domain.domain=Collection" not in implemented:
+        raise SystemExit("kernel capability matrix v4 must list result-domain vocabulary rows")
+    taxonomy = matrix.get("blocker_taxonomy_v4")
+    if not isinstance(taxonomy, list) or not taxonomy:
+        raise SystemExit("kernel capability matrix v4 needs blocker_taxonomy_v4 rows")
+    taxonomy_decisions = {row.get("decision") for row in taxonomy}
+    if not {"accepted", "blocked", "rejected"}.issubset(taxonomy_decisions):
+        raise SystemExit("kernel capability matrix v4 taxonomy must cover accepted/blocked/rejected")
+    for row in taxonomy:
+        covered = row.get("covered_probes")
+        if not isinstance(covered, list) or not covered:
+            raise SystemExit("kernel capability matrix v4 taxonomy rows need covered probes")
+        unknown = sorted(set(covered) - probe_ids)
+        if unknown:
+            raise SystemExit(f"kernel capability matrix v4 references unknown probes: {unknown}")
+    transition = matrix.get("transition_assessment", {})
+    if transition.get("move_to_r4") is not True or transition.get("continue_r1_r3") is not False:
+        raise SystemExit("kernel capability matrix v4 must move #511 from R1-R3 to R4")
+    performance = matrix.get("performance_gate", {})
+    if performance.get("measurement_required") is not False:
+        raise SystemExit("kernel capability matrix v4 must document no hot-path measurement requirement")
+
+
 def check_artifacts(
     corpus_path: Path,
     json_out: Path,
@@ -1472,6 +1552,8 @@ def check_artifacts(
     kernel_matrix_v2: Path,
     blocker_packet_v3: Path,
     kernel_matrix_v3: Path,
+    blocker_packet_v4: Path,
+    kernel_matrix_v4: Path,
 ) -> None:
     report = json.loads(json_out.read_text(encoding="utf-8"))
     validate_report(report)
@@ -1494,6 +1576,10 @@ def check_artifacts(
     probe_ids_v3 = validate_blocker_packet_v3(packet_v3)
     matrix_v3 = json.loads(kernel_matrix_v3.read_text(encoding="utf-8"))
     validate_kernel_matrix_v3(matrix_v3, probe_ids_v3)
+    packet_v4 = json.loads(blocker_packet_v4.read_text(encoding="utf-8"))
+    probe_ids_v4 = validate_blocker_packet_v4(packet_v4)
+    matrix_v4 = json.loads(kernel_matrix_v4.read_text(encoding="utf-8"))
+    validate_kernel_matrix_v4(matrix_v4, probe_ids_v4)
     print("semantic-pack pricing artifact check passed")
 
 
@@ -1552,6 +1638,8 @@ def main() -> int:
     parser.add_argument("--kernel-matrix-v2", type=Path, default=DEFAULT_KERNEL_MATRIX_V2)
     parser.add_argument("--blocker-packet-v3", type=Path, default=DEFAULT_BLOCKER_PACKET_V3)
     parser.add_argument("--kernel-matrix-v3", type=Path, default=DEFAULT_KERNEL_MATRIX_V3)
+    parser.add_argument("--blocker-packet-v4", type=Path, default=DEFAULT_BLOCKER_PACKET_V4)
+    parser.add_argument("--kernel-matrix-v4", type=Path, default=DEFAULT_KERNEL_MATRIX_V4)
     parser.add_argument(
         "--nose",
         type=Path,
@@ -1582,6 +1670,8 @@ def main() -> int:
             args.kernel_matrix_v2,
             args.blocker_packet_v3,
             args.kernel_matrix_v3,
+            args.blocker_packet_v4,
+            args.kernel_matrix_v4,
         )
         return 0
 

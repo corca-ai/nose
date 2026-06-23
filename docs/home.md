@@ -86,7 +86,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-pack-candidate-pricing](semantic-pack-candidate-pricing.md) — corpus-backed pricing loop for deciding which narrow semantic-pack rows are ready, blocked, or unpriced before implementation.
 - [semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md) — issue #507 primitive census, blocker taxonomy, and accept/reject matrix for deriving minimal kernel capabilities from pack blockers.
 - [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md) — issue #509 blocker packet, admitted API result-domain primitive, and builtin expansion record.
-- [semantic-kernel-expansion-511](semantic-kernel-expansion-511.md) — issue #511 R1-R3 cycle 1: generalized admitted API result-domain materialization, builtin expansion, and transition assessment.
+- [semantic-kernel-expansion-511](semantic-kernel-expansion-511.md) — issue #511 R1-R3 cycles: generalized admitted API result-domain materialization, external fixed-domain authoring, and transition assessment.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.

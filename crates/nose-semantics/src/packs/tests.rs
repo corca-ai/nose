@@ -142,6 +142,20 @@ fn manifest_with_value_law(id: &str) -> String {
     )
 }
 
+fn manifest_with_fixed_result_domain(id: &str) -> String {
+    manifest(id).replace(
+        r#""operation": "Example",
+        "demand": { "arguments": "eager-left-to-right" }"#,
+        r#""operation": "Example",
+        "result_domain": {
+          "kind": "fixed",
+          "domain": "Collection",
+          "subject": "call"
+        },
+        "demand": { "arguments": "eager-left-to-right" }"#,
+    )
+}
+
 fn manifest_with_executable_gates(id: &str) -> String {
     manifest(id).replace(
         r#""known_unsupported": []"#,

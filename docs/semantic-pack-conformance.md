@@ -18,6 +18,8 @@ pack meets the extension contract's minimum structural obligations:
   are internally linked;
 - contracts and value laws declare object-shaped semantics, and exact-capable
   declarations add evidence requirements plus demand/effect semantics;
+- fixed call result-domain declarations use known domain vocabulary and require
+  `LibraryApi.Contract` occurrence evidence;
 - positive fixtures and hard negatives are declared with expectation labels;
 - fixture files exist at paths relative to the manifest file;
 - optional executable gates bind exact-capable producer, contract, and value-law

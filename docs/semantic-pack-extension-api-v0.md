@@ -287,6 +287,30 @@ Domain evidence can satisfy receiver-domain preconditions. It is not a proof
 that an opaque binding value is exact-tree safe, immutable, or mutation-free
 unless separate effect/place/import facts prove those obligations.
 
+Exact-capable contract rows may declare a fixed call result domain through
+`semantics.result_domain` when the result domain is part of the API contract
+rather than selected by the caller:
+
+```json
+{
+  "semantics": {
+    "result_domain": {
+      "kind": "fixed",
+      "domain": "Collection",
+      "subject": "call"
+    }
+  }
+}
+```
+
+The local v0 validator accepts only object-shaped fixed result-domain
+declarations. The `domain` must be one of the kernel's known domain vocabulary
+labels, `subject` is optional and currently limited to `call`, and the contract
+must require `LibraryApi.Contract` evidence. This prevents a manifest from
+claiming result-domain facts from a selector string or package presence alone.
+Local external manifests that pass this validation still remain metadata-only;
+they do not emit domain evidence or influence exact analysis.
+
 ### Library API Occurrence Contracts
 
 `LibraryApi` is occurrence evidence: it says this specific call, field, macro,

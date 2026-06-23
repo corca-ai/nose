@@ -87,6 +87,7 @@ mod conformance;
 mod external;
 mod loading;
 mod manifest;
+mod result_domain_semantics;
 mod validation;
 
 pub use compiled::{

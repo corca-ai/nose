@@ -206,6 +206,53 @@ fn local_manifest_registers_external_producer_and_contract_rows_as_data_only() {
 }
 
 #[test]
+fn external_fixed_result_domain_contract_rows_stay_data_only() {
+    let dir = unique_dir("external_fixed_result_domain_rows");
+    let path = dir.join("pack.json");
+    fs::write(
+        &path,
+        manifest_with_fixed_result_domain("com.example.fixed-result-domain"),
+    )
+    .unwrap();
+
+    let set = SemanticPackSet::new_local(std::slice::from_ref(&path))
+        .expect("fixed result-domain metadata pack loads");
+    let external = set.packs().last().expect("external pack summary");
+    assert_eq!(external.id, "com.example.fixed-result-domain");
+    assert_eq!(external.influence, SemanticPackInfluence::MetadataOnly);
+    assert_eq!(external.counts.evidence_producers, 1);
+    assert_eq!(external.counts.contracts, 1);
+
+    let contracts = set.external_contract_rows();
+    assert_eq!(contracts.len(), 1);
+    let contract = &contracts[0];
+    assert_eq!(contract.contract_id, "python.example.contract");
+    assert_eq!(contract.semantics["result_domain"]["kind"], "fixed");
+    assert_eq!(contract.semantics["result_domain"]["domain"], "Collection");
+    assert_eq!(contract.semantics["result_domain"]["subject"], "call");
+    assert_eq!(
+        contract.requirements[0].ref_id,
+        "python.library-api.example"
+    );
+    assert!(contract.requirements[0].required);
+
+    let preflight = set.external_influence_preflight();
+    let contract_row = preflight
+        .rows
+        .iter()
+        .find(|row| row.kind == ExternalRowKind::Contract)
+        .expect("contract preflight row");
+    assert!(contract_row
+        .blockers
+        .contains(&ExternalInfluenceBlocker::DataOnlyRegistration));
+    assert!(contract_row
+        .blockers
+        .contains(&ExternalInfluenceBlocker::DependencyBackedEvidenceUnavailable));
+    assert!(!contract_row.passed());
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
 fn external_rows_report_builtin_id_conflicts_without_rejecting_metadata_only_pack() {
     let dir = unique_dir("external_builtin_row_conflicts");
     let path = dir.join("pack.json");

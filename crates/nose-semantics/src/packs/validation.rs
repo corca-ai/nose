@@ -1,10 +1,15 @@
 use super::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+
+use super::result_domain_semantics::{
+    collect_evidence_producer_kinds, validate_result_domain_semantics,
+};
 
 pub(super) fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
     validate_manifest_header(manifest)?;
     validate_manifest_targets(manifest)?;
     let known_refs = collect_declared_refs(manifest)?;
+    let evidence_producer_kinds = collect_evidence_producer_kinds(manifest);
     validate_manifest_conformance(manifest)?;
     let conformance_refs = collect_conformance_fixture_refs(manifest)?;
     validate_executable_conformance(manifest, &conformance_refs)?;
@@ -33,6 +38,7 @@ pub(super) fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), S
             &contract.conformance_refs,
             &known_refs,
             &conformance_refs,
+            &evidence_producer_kinds,
         )?;
     }
     for law in &manifest.declares.value_laws {
@@ -46,6 +52,7 @@ pub(super) fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), S
             &law.conformance_refs,
             &known_refs,
             &conformance_refs,
+            &evidence_producer_kinds,
         )?;
     }
     Ok(())
@@ -381,6 +388,7 @@ fn validate_contract(
     conformance_refs: &[String],
     known_refs: &HashSet<String>,
     fixture_refs: &ConformanceFixtureRefs,
+    evidence_producer_kinds: &HashMap<String, String>,
 ) -> Result<(), String> {
     require_stable_id("declares.contracts[].id", id)?;
     let semantics = semantics
@@ -410,6 +418,7 @@ fn validate_contract(
             ));
         }
     }
+    validate_result_domain_semantics(kind, id, semantics, requirements, evidence_producer_kinds)?;
     for requirement in requirements {
         validate_requirement(id, requirement, known_refs)?;
     }

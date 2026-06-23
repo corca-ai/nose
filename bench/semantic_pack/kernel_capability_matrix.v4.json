@@ -1,0 +1,177 @@
+{
+  "schema_version": 4,
+  "issue": 511,
+  "cycle": "r1-r3-cycle-2",
+  "source_artifacts": [
+    "bench/semantic_pack/blocker_packet.v3.json",
+    "bench/semantic_pack/kernel_capability_matrix.v3.json",
+    "bench/semantic_pack/blocker_packet.v4.json"
+  ],
+  "scope_bar": {
+    "selected_bar": "second R1-R3 internal capability cycle with R4 transition decision",
+    "foundational_primitive": "admitted_api_result_domain_materializer",
+    "accepted_generalization": "external_fixed_result_domain_authoring_contract",
+    "new_primitives": 0,
+    "exact_capable_surfaces_exercising_it": [
+      "external.contract.semantics.result_domain.fixed",
+      "external.contract.result_domain.domain_vocabulary",
+      "external.contract.result_domain.required_library_api_dependency",
+      "external.contract.result_domain.data_only_preflight"
+    ],
+    "external_influence_opened": false
+  },
+  "r1_blocker_summary": {
+    "probe_count": 20,
+    "accepted": 4,
+    "existing": 4,
+    "blocked": 9,
+    "rejected": 3,
+    "dominant_proof_shape": "external_authoring_fixed_result_domain_schema",
+    "decision": "make fixed result-domain rows authorable and validated in external manifests while keeping influence blocked"
+  },
+  "r2_builtin_and_external_expansion": {
+    "accepted_change": {
+      "id": "external_fixed_result_domain_authoring_contract",
+      "type": "external-authoring-surface",
+      "shape": "Manifest contract semantics may declare result_domain { kind: fixed, domain, subject: call }; validation requires a known DomainEvidence vocabulary member and required LibraryApi.Contract evidence",
+      "producer": "semantic-pack manifest validator",
+      "consumers": [
+        "external contract row metadata",
+        "semantic-pack conformance and preflight reporting",
+        "future R4 external producer runtime design"
+      ],
+      "hard_negative_boundary": [
+        "unknown result-domain names are rejected",
+        "fixed result-domain claims without required LibraryApi.Contract evidence are rejected",
+        "external rows remain data-only and metadata-only",
+        "manifest package metadata is not project package occurrence proof",
+        "HOF and Map.get value-domain broadening remain rejected"
+      ]
+    },
+    "implemented_rows": [
+      "semantics.result_domain.kind=fixed",
+      "semantics.result_domain.domain=Array",
+      "semantics.result_domain.domain=Boolean",
+      "semantics.result_domain.domain=ByteArray",
+      "semantics.result_domain.domain=Collection",
+      "semantics.result_domain.domain=Float",
+      "semantics.result_domain.domain=FutureLike",
+      "semantics.result_domain.domain=Integer",
+      "semantics.result_domain.domain=Iterable",
+      "semantics.result_domain.domain=Iterator",
+      "semantics.result_domain.domain=Map",
+      "semantics.result_domain.domain=Number",
+      "semantics.result_domain.domain=Option",
+      "semantics.result_domain.domain=PromiseLike",
+      "semantics.result_domain.domain=Record",
+      "semantics.result_domain.domain=Result",
+      "semantics.result_domain.domain=Set",
+      "semantics.result_domain.domain=String"
+    ]
+  },
+  "r3_compression": {
+    "centralized_paths": [
+      "external result-domain schema validation lives in packs/result_domain_semantics.rs instead of expanding the already-large manifest validator",
+      "the authoring surface reuses existing ManifestRequirement and LibraryApi.Contract producer vocabulary",
+      "no new EvidenceRecord kind, DomainEvidence variant, or semantic-kernel primitive was added"
+    ],
+    "compatibility_lanes_kept_separate": [
+      "external fixed result-domain rows are metadata/data-only until a future R4 producer runtime and trust lane exist",
+      "package/version manifest metadata remains separate from project occurrence proof",
+      "generic HOF and Map.get parametric value-domain rows remain closed"
+    ],
+    "primitive_surface_delta": {
+      "added": [],
+      "generalized": [],
+      "external_authoring_surfaces": [
+        "semantics.result_domain.fixed"
+      ],
+      "removed": [],
+      "net_new_primitives": 0
+    }
+  },
+  "blocker_taxonomy_v4": [
+    {
+      "proof_shape": "external_authoring_fixed_result_domain_schema",
+      "decision": "accepted",
+      "covered_probes": [
+        "external.pack.fixed_result_domain_authoring.schema",
+        "external.pack.fixed_result_domain_authoring.domain_vocabulary",
+        "external.pack.fixed_result_domain_authoring.api_dependency",
+        "external.pack.fixed_result_domain_authoring.data_only_preflight"
+      ],
+      "rationale": "cycle 1 created a fixed result-domain materializer; cycle 2 makes that shape explicit in external manifest authoring without granting influence"
+    },
+    {
+      "proof_shape": "manifest_and_conformance_preflight",
+      "decision": "existing",
+      "covered_probes": [
+        "external.pack.fixed_result_domain_authoring.executable_gate_shape",
+        "external.pack.manifest_package_metadata",
+        "external.pack.row_conflict_detection",
+        "external.pack.executable_conformance_preflight"
+      ],
+      "rationale": "existing external-pack metadata, conflict, and executable conformance gates already describe these rows but do not make them executable"
+    },
+    {
+      "proof_shape": "package_version_occurrence",
+      "decision": "blocked",
+      "covered_probes": [
+        "java.guava.collection_factories.package_gate",
+        "java.guava.optional.package_gate",
+        "rails.activesupport.presence.package_gate"
+      ],
+      "rationale": "manifest package metadata is not project dependency occurrence proof; lockfile/build-system producers are still missing"
+    },
+    {
+      "proof_shape": "materialization_dtype_or_external_runtime",
+      "decision": "blocked",
+      "covered_probes": [
+        "rust.itertools.collect_vec.materialization",
+        "rust.iterator.exact_size_materialization",
+        "python.numpy.dtype_domain_producer",
+        "python.numpy.ndarray_shape_domain",
+        "external.pack.dependency_backed_evidence_runtime",
+        "external.pack.explicit_influence_trust_gate"
+      ],
+      "rationale": "these blockers require producer/runtime work, not more fixed result-domain schema"
+    },
+    {
+      "proof_shape": "unsafe_metadata_or_result_domain_broadening",
+      "decision": "rejected",
+      "covered_probes": [
+        "external.pack.package_metadata_as_occurrence_proof",
+        "generic.hof.fixed_result_domain_authoring",
+        "generic.map_get.fixed_value_domain_authoring"
+      ],
+      "rationale": "metadata-only package claims and fixed-domain declarations must not erase occurrence, demand, materialization, or parametric value boundaries"
+    }
+  ],
+  "transition_assessment": {
+    "continue_r1_r3": false,
+    "move_to_r4": true,
+    "criteria_met": [
+      "new primitive additions stayed at zero across the two post-#507 cycles",
+      "existing primitive composition explains the fixed result-domain rows accepted in cycle 1",
+      "cycle 2 found that the main remaining fixed-domain blocker is external authorability and producer runtime, not kernel vocabulary",
+      "R3 kept the new authoring surface separate from exact influence",
+      "remaining blockers are dominated by package/version occurrence, external producer runtime, trait/materialization, dtype, and trust-lane gaps"
+    ],
+    "criteria_not_met": [
+      "external packs still cannot produce dependency-backed evidence at analysis time",
+      "package/version occurrence producers are still absent",
+      "HOF demand/materialization and dtype producers remain blocked"
+    ],
+    "next_phase_goal": "start R4 external-pack authorability with a realistic fixed result-domain dry-run pack, package occurrence matrix, and explicit builtin-only versus externalizable capability list"
+  },
+  "product_output_gate": {
+    "classification": "metadata-only manifest validation change; no semantic query product-output drift expected",
+    "reason": "external manifests remain metadata-only and no builtin recognizer/result-domain materializer behavior changed"
+  },
+  "performance_gate": {
+    "limit": "no more than 10% median runtime regression",
+    "expected_hot_path_change": "none on normal query without external manifest loading; manifest validation does one small JSON object check per declared contract",
+    "measurement_required": false,
+    "decision": "covered by CI build/test/lint and no hot-path semantic analysis change"
+  }
+}

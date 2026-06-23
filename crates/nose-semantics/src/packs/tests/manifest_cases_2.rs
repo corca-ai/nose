@@ -238,6 +238,48 @@ fn exact_capable_contracts_must_have_required_evidence_requirements() {
 }
 
 #[test]
+fn fixed_result_domain_contracts_require_known_domain_vocabulary() {
+    let dir = unique_dir("fixed_result_domain_unknown_domain");
+    let path = dir.join("pack.json");
+    fs::write(
+        &path,
+        manifest_with_fixed_result_domain("com.example.fixed-result-domain").replace(
+            r#""domain": "Collection""#,
+            r#""domain": "MaybeLazyCollection""#,
+        ),
+    )
+    .unwrap();
+    let err = load_local_manifest(&path).expect_err("unknown result domains must fail closed");
+    assert!(
+        err.to_string()
+            .contains("semantics.result_domain.domain has unknown domain"),
+        "{err}"
+    );
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn fixed_result_domain_contracts_require_library_api_evidence() {
+    let dir = unique_dir("fixed_result_domain_requires_api");
+    let path = dir.join("pack.json");
+    fs::write(
+        &path,
+        manifest_with_fixed_result_domain("com.example.fixed-result-domain")
+            .replace("python.library-api.example", "Domain.Collection")
+            .replace("LibraryApi.Contract", "Domain.TypeAlias"),
+    )
+    .unwrap();
+    let err = load_local_manifest(&path)
+        .expect_err("fixed result-domain rows need API occurrence evidence");
+    assert!(
+        err.to_string()
+            .contains("semantics.result_domain requires required LibraryApi.Contract evidence"),
+        "{err}"
+    );
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
 fn evidence_kind_must_match_schema_shape() {
     let dir = unique_dir("evidence_kind_shape");
     let path = dir.join("pack.json");

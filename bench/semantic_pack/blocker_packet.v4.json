@@ -1,0 +1,183 @@
+{
+  "schema_version": 4,
+  "issue": 511,
+  "cycle": "r1-r3-cycle-2",
+  "base_artifacts": [
+    "bench/semantic_pack/blocker_packet.v3.json",
+    "bench/semantic_pack/kernel_capability_matrix.v3.json"
+  ],
+  "policy": {
+    "corpus_signals_are_admission_proof": false,
+    "minimum_probe_count": 20,
+    "purpose": "test whether the cycle-1 fixed result-domain capability can be authored by external packs without opening external influence"
+  },
+  "probes": [
+    {
+      "id": "external.pack.fixed_result_domain_authoring.schema",
+      "round": "R1/R2",
+      "proof_shape": "external_authoring_fixed_result_domain_schema",
+      "kernel_need": "manifest vocabulary for declaring a fixed call result domain",
+      "decision": "accepted",
+      "reason": "external manifests can now declare semantics.result_domain with kind=fixed and an explicit DomainEvidence vocabulary member"
+    },
+    {
+      "id": "external.pack.fixed_result_domain_authoring.domain_vocabulary",
+      "round": "R1/R2",
+      "proof_shape": "external_authoring_fixed_result_domain_schema",
+      "kernel_need": "reject unknown or ecosystem-specific result-domain names before influence",
+      "decision": "accepted",
+      "reason": "result_domain.domain is validated against the existing kernel DomainEvidence vocabulary"
+    },
+    {
+      "id": "external.pack.fixed_result_domain_authoring.api_dependency",
+      "round": "R1/R2",
+      "proof_shape": "external_authoring_dependency_backed_result_domain",
+      "kernel_need": "fixed result-domain claims must require API occurrence evidence",
+      "decision": "accepted",
+      "reason": "result_domain contracts require a required LibraryApi.Contract evidence producer or evidence-kind requirement"
+    },
+    {
+      "id": "external.pack.fixed_result_domain_authoring.data_only_preflight",
+      "round": "R2",
+      "proof_shape": "external_authoring_without_external_influence",
+      "kernel_need": "authorability must not bypass metadata-only/data-only external pack policy",
+      "decision": "accepted",
+      "reason": "fixed result-domain rows load as external contract metadata, but influence preflight still blocks them"
+    },
+    {
+      "id": "external.pack.fixed_result_domain_authoring.executable_gate_shape",
+      "round": "R2",
+      "proof_shape": "external_authoring_conformance_gate",
+      "kernel_need": "fixed result-domain contracts must remain eligible for fixture-expectation executable gates",
+      "decision": "existing",
+      "reason": "existing executable conformance gates already target exact-capable contract rows; no new oracle primitive was needed"
+    },
+    {
+      "id": "external.pack.manifest_package_metadata",
+      "round": "R1",
+      "proof_shape": "manifest_package_metadata",
+      "kernel_need": "package/version coordinates in the manifest",
+      "decision": "existing",
+      "reason": "manifest packages already validate ecosystem/name/version shape, but they remain metadata rather than occurrence proof"
+    },
+    {
+      "id": "external.pack.row_conflict_detection",
+      "round": "R1",
+      "proof_shape": "external_row_conflict_preflight",
+      "kernel_need": "external rows must not shadow builtin ids silently",
+      "decision": "existing",
+      "reason": "external row conflict reporting already covers producers, contracts, and value laws"
+    },
+    {
+      "id": "external.pack.executable_conformance_preflight",
+      "round": "R1",
+      "proof_shape": "external_authoring_conformance_gate",
+      "kernel_need": "executable fixture gates can clear only the executable-conformance blocker",
+      "decision": "existing",
+      "reason": "existing preflight keeps data-only, dependency-backed evidence, and explicit trust blockers closed"
+    },
+    {
+      "id": "java.guava.collection_factories.package_gate",
+      "round": "R1",
+      "proof_shape": "package_version_occurrence",
+      "kernel_need": "prove a project actually depends on Guava before admitting Guava factories",
+      "decision": "blocked",
+      "reason": "manifest package metadata is not a lockfile/build-system occurrence producer"
+    },
+    {
+      "id": "java.guava.optional.package_gate",
+      "round": "R1",
+      "proof_shape": "package_version_occurrence",
+      "kernel_need": "prove Guava Optional identity and version before option-like rows",
+      "decision": "blocked",
+      "reason": "package occurrence proof remains absent and Optional has additional demand/default-effect boundaries"
+    },
+    {
+      "id": "rails.activesupport.presence.package_gate",
+      "round": "R1",
+      "proof_shape": "package_version_occurrence",
+      "kernel_need": "prove ActiveSupport presence semantics by versioned package occurrence",
+      "decision": "blocked",
+      "reason": "Ruby package/version occurrence proof remains unavailable"
+    },
+    {
+      "id": "rust.itertools.collect_vec.materialization",
+      "round": "R1",
+      "proof_shape": "trait_identity_plus_materialization",
+      "kernel_need": "prove trait method identity and caller-selected Vec materialization",
+      "decision": "blocked",
+      "reason": "fixed result-domain authoring cannot express collect-like result selection or trait resolution"
+    },
+    {
+      "id": "rust.iterator.exact_size_materialization",
+      "round": "R1",
+      "proof_shape": "materialized_demand_profile",
+      "kernel_need": "distinguish lazy iterator adapters from materialized collections",
+      "decision": "blocked",
+      "reason": "demand/materialization evidence is still required before broad iterator result-domain rows"
+    },
+    {
+      "id": "python.numpy.dtype_domain_producer",
+      "round": "R1",
+      "proof_shape": "dtype_domain_producer",
+      "kernel_need": "prove scalar dtype/domain before NumPy scalar ufunc laws",
+      "decision": "blocked",
+      "reason": "DomainEvidence vocabulary exists, but no safe NumPy dtype producer exists"
+    },
+    {
+      "id": "python.numpy.ndarray_shape_domain",
+      "round": "R1",
+      "proof_shape": "array_shape_dtype_domain_producer",
+      "kernel_need": "distinguish scalar, ndarray, dtype, and broadcasting boundaries",
+      "decision": "blocked",
+      "reason": "fixed result-domain authoring is too coarse for array shape and dtype semantics"
+    },
+    {
+      "id": "external.pack.dependency_backed_evidence_runtime",
+      "round": "R4-preview",
+      "proof_shape": "external_evidence_runtime",
+      "kernel_need": "external rows need a way to produce dependency-backed evidence, not just metadata",
+      "decision": "blocked",
+      "reason": "external manifests remain data-only; no producer runtime or trust policy opens exact influence"
+    },
+    {
+      "id": "external.pack.explicit_influence_trust_gate",
+      "round": "R4-preview",
+      "proof_shape": "external_influence_trust_policy",
+      "kernel_need": "user/provider trust policy before external evidence can affect exact results",
+      "decision": "blocked",
+      "reason": "external packs intentionally remain metadata-only and disabled by default"
+    },
+    {
+      "id": "external.pack.package_metadata_as_occurrence_proof",
+      "round": "R3",
+      "proof_shape": "unsafe_metadata_to_occurrence_broadening",
+      "kernel_need": "do not treat manifest package claims as project occurrence proof",
+      "decision": "rejected",
+      "reason": "a manifest says what a pack targets, not what the analyzed project imports or depends on"
+    },
+    {
+      "id": "generic.hof.fixed_result_domain_authoring",
+      "round": "R3",
+      "proof_shape": "unsafe_hof_result_domain_broadening",
+      "kernel_need": "do not let fixed result-domain schema open broad HOF result domains",
+      "decision": "rejected",
+      "reason": "HOF result shape still needs demand/materialization and callback-effect proof"
+    },
+    {
+      "id": "generic.map_get.fixed_value_domain_authoring",
+      "round": "R3",
+      "proof_shape": "unsafe_parametric_value_domain_broadening",
+      "kernel_need": "do not let fixed result-domain schema express parametric map value domains",
+      "decision": "rejected",
+      "reason": "Map.get result depends on the map value type and presence/default semantics, not fixed API identity"
+    }
+  ],
+  "totals": {
+    "probes": 20,
+    "accepted": 4,
+    "existing": 4,
+    "blocked": 9,
+    "rejected": 3
+  }
+}
