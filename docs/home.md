@@ -88,6 +88,8 @@ fundamentals; the rest is grouped by area.
 - [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md) — issue #509 blocker packet, admitted API result-domain primitive, and builtin expansion record.
 - [semantic-kernel-expansion-511](semantic-kernel-expansion-511.md) — issue #511 R1-R3 cycles: generalized admitted API result-domain materialization, external fixed-domain authoring, and transition assessment.
 - [semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md) — issue #511 R4: external-pack authorability matrix, Guava fixed-domain dry run, and transition-to-R5 assessment.
+- [semantic-kernel-hof-demand-511](semantic-kernel-hof-demand-511.md) — issue #511 R5: HOF, demand, and materialization boundary matrix.
+- [semantic-kernel-expansion-closeout-511](semantic-kernel-expansion-closeout-511.md) — issue #511 R6 closeout: minimal capability set, builtin expansion, external authorability, remaining blockers, and validation gates.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.

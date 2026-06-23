@@ -59,7 +59,8 @@ records the sample product-query overlay. The `--check-artifacts` form verifies
 that the committed JSON, Markdown, and review log are internally consistent with
 the current tool and corpus digest without requiring a release binary. It also
 validates the issue #509 v2 blocker packet and capability matrix and the issue
-#511 v3/v4 R1-R3 cycle artifacts plus the R4 authorability matrix for count,
+#511 v3/v4 R1-R3 cycle artifacts, R4 authorability matrix, R5
+HOF/demand/materialization matrix, and R6 closeout snapshot for count,
 cross-reference, accepted-generalization, transition, and performance-gate
 consistency.
 
@@ -87,6 +88,10 @@ pack influence is opened. Its current artifacts are
 [`kernel_capability_matrix.v4.json`](../bench/semantic_pack/kernel_capability_matrix.v4.json).
 The R4 external authorability pass is recorded in
 [`external_authorability_matrix.v1.json`](../bench/semantic_pack/external_authorability_matrix.v1.json).
+The R5/R6 closeout artifacts are
+[`hof_demand_materialization_matrix.v1.json`](../bench/semantic_pack/hof_demand_materialization_matrix.v1.json)
+and
+[`kernel_expansion_closeout.v1.json`](../bench/semantic_pack/kernel_expansion_closeout.v1.json).
 
 The current artifact records 20 candidate iterations. It starts from a curated
 seed list instead of attempting automatic API discovery. The scanner uses

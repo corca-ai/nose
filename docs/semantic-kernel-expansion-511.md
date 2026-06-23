@@ -6,6 +6,8 @@ Source artifacts:
 
 - [blocker_packet.v4.json](../bench/semantic_pack/blocker_packet.v4.json)
 - [kernel_capability_matrix.v4.json](../bench/semantic_pack/kernel_capability_matrix.v4.json)
+- [hof_demand_materialization_matrix.v1.json](../bench/semantic_pack/hof_demand_materialization_matrix.v1.json)
+- [kernel_expansion_closeout.v1.json](../bench/semantic_pack/kernel_expansion_closeout.v1.json)
 - [blocker_packet.v3.json](../bench/semantic_pack/blocker_packet.v3.json)
 - [kernel_capability_matrix.v3.json](../bench/semantic_pack/kernel_capability_matrix.v3.json)
 - [blocker_packet.v2.json](../bench/semantic_pack/blocker_packet.v2.json)
@@ -245,5 +247,11 @@ provider can write useful manifests, fixture gates, and unsupported-boundary
 metadata for the capabilities already rehearsed by builtin rows, while exact
 analysis continues to ignore external rows until the later influence gates
 exist.
+
+R5 and R6 are recorded in
+[semantic-kernel-hof-demand-511](semantic-kernel-hof-demand-511.md) and
+[semantic-kernel-expansion-closeout-511](semantic-kernel-expansion-closeout-511.md).
+They keep broad HOF/materialization influence closed, record the minimal
+capability set, and close the issue after the final validation PR.
 
 Back to [semantic-kernel](semantic-kernel.md).

@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "issue": 511,
+  "phase": "R6",
+  "source_artifacts": [
+    "bench/semantic_pack/blocker_packet.v3.json",
+    "bench/semantic_pack/kernel_capability_matrix.v3.json",
+    "bench/semantic_pack/blocker_packet.v4.json",
+    "bench/semantic_pack/kernel_capability_matrix.v4.json",
+    "bench/semantic_pack/external_authorability_matrix.v1.json",
+    "bench/semantic_pack/hof_demand_materialization_matrix.v1.json"
+  ],
+  "scope_completion": {
+    "r1_r3_cycles_completed": 2,
+    "r4_external_authorability_completed": true,
+    "r5_hof_demand_materialization_completed": true,
+    "r6_closeout_completed": true,
+    "issue_goal_satisfied": true,
+    "close_issue_after_merge": true
+  },
+  "primitive_delta": {
+    "new_primitives_total": 0,
+    "accepted_generalizations": [
+      {
+        "id": "admitted_api_result_domain_materializer",
+        "type": "existing primitive composition",
+        "result": "fixed call result domains now materialize through admitted LibraryApi occurrence evidence across builtin rows"
+      },
+      {
+        "id": "external_fixed_result_domain_authoring_contract",
+        "type": "external authoring surface",
+        "result": "external manifests can declare dependency-backed fixed result-domain metadata while exact influence remains closed"
+      }
+    ],
+    "rejected_broadenings": [
+      "generic HOF fixed result-domain admission",
+      "Map.get fixed value-domain admission",
+      "package metadata as occurrence proof",
+      "external metadata as exact influence"
+    ]
+  },
+  "minimal_capability_set": [
+    {
+      "id": "domain_requirement_composition",
+      "role": "compose exact and narrow-union domain requirements instead of adding one primitive per receiver family"
+    },
+    {
+      "id": "library_api_contract_occurrence",
+      "role": "prove a concrete API occurrence through callee, arity, receiver, import, shadowing, and dependency evidence"
+    },
+    {
+      "id": "admitted_api_result_domain_materializer",
+      "role": "emit fixed call-node DomainEvidence only after the LibraryApi row is admitted for that call"
+    },
+    {
+      "id": "demand_effect_profile",
+      "role": "describe eager, lazy, short-circuit, async, generator, channel, and protocol demand/effect timing for already-admitted operations"
+    },
+    {
+      "id": "external_manifest_metadata_schema",
+      "role": "let providers author fixed result-domain contracts, fixtures, hard negatives, and executable gate metadata without opening influence"
+    },
+    {
+      "id": "conformance_and_preflight_gates",
+      "role": "validate manifests, fixtures, unsupported boundaries, conflicts, and data-only influence blockers before any external exact path exists"
+    }
+  ],
+  "builtin_expansion_summary": {
+    "fixed_result_domain_builtin_rows": [
+      "Python builtin and imported collection factories",
+      "Rust Vec, std collection, std map, and Some rows",
+      "Java collection and map factories and constructors",
+      "Ruby Set.new",
+      "JavaScript/TypeScript Set, Map, Array.from, and Promise.resolve",
+      "existing receiver rows such as map key views, scalar integer methods, Rust Option.and_then, and Promise.then"
+    ],
+    "compression_result": [
+      "receiver-method result-domain emission uses the shared materializer",
+      "Rust Some call result-domain emission uses the shared materializer",
+      "external result-domain validation is isolated in result_domain_semantics.rs",
+      "HOF compatibility and exact fixed-domain emission stay separate"
+    ]
+  },
+  "external_pack_readiness": {
+    "authorable_now": [
+      "package metadata",
+      "Import.Binding producer metadata",
+      "LibraryApi.Contract producer metadata",
+      "fixed call result-domain contract metadata",
+      "fixtures and hard negatives",
+      "fixture-expectation executable gate metadata"
+    ],
+    "still_blocked_for_exact_influence": [
+      "dependency-backed external evidence runtime",
+      "explicit influence trust gate",
+      "package/version occurrence producers",
+      "external recognizer/parser hooks",
+      "rollback and adoption gates for exact influence"
+    ],
+    "dry_run_pack": "docs/examples/semantic-packs/v0/external-guava-immutable-collections-pack.json"
+  },
+  "remaining_blockers": [
+    {
+      "id": "package_version_occurrence",
+      "status": "blocked",
+      "reason": "manifest package metadata is provenance, not proof that a target project depends on that package/version"
+    },
+    {
+      "id": "external_evidence_runtime",
+      "status": "blocked",
+      "reason": "external rows remain metadata-only until a sandboxed, trusted, dependency-backed producer runtime exists"
+    },
+    {
+      "id": "trait_and_materialization",
+      "status": "blocked",
+      "reason": "collect-like rows need trait/import identity, terminal consumption, result selection, and materialization proof"
+    },
+    {
+      "id": "dtype_tensor_vector_domains",
+      "status": "blocked",
+      "reason": "NumPy, pandas, tensor, and vector mask rows need dtype, shape, index, and broadcasting producers"
+    },
+    {
+      "id": "stream_lifecycle_scheduler",
+      "status": "blocked",
+      "reason": "Observable, async stream, and scheduler rows need lifecycle, cancellation, error, completion, and timing producers"
+    },
+    {
+      "id": "broad_hof_result_domains",
+      "status": "rejected",
+      "reason": "HOF spelling does not imply result shape, callback demand, materialization, or effect safety"
+    }
+  ],
+  "product_output_gate": {
+    "cycle_1_measurement": {
+      "focused_subset_total_delta_percent": -5.08,
+      "classification": "no product-output drift after volatile timing fields were removed"
+    },
+    "later_cycles": {
+      "classification": "metadata, validation, documentation, and artifact changes only",
+      "expected_drift": "none"
+    }
+  },
+  "performance_gate": {
+    "limit": "no more than 10% median runtime regression",
+    "measurements": [
+      {
+        "phase": "R1-R3 cycle 1",
+        "delta_percent": -5.08,
+        "decision": "passes 10% runtime gate"
+      },
+      {
+        "phase": "R1-R3 cycle 2",
+        "measurement_required": false,
+        "decision": "metadata-only manifest validation path; no semantic hot-path change"
+      },
+      {
+        "phase": "R4",
+        "measurement_required": false,
+        "decision": "docs, example manifest, conformance, and artifact validation only"
+      },
+      {
+        "phase": "R5",
+        "measurement_required": false,
+        "decision": "boundary matrix and docs only"
+      }
+    ],
+    "closeout_decision": "passes"
+  },
+  "validation_summary": {
+    "local_required_before_merge": [
+      "python3 -m py_compile bench/semantic_pack/pricing.py",
+      "python3 bench/semantic_pack/pricing.py --check-artifacts",
+      "python3 scripts/check-file-lengths.py --self-test",
+      "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+      "awiki lint --root docs",
+      "cargo test -p nose-semantics result_domain -- --nocapture",
+      "cargo clippy --workspace --all-targets -- -D warnings",
+      "cargo test --workspace"
+    ],
+    "ci_required_before_close": [
+      "build · test · lint · dup-gate",
+      "docs wiki connectivity (awiki)",
+      "formal obligations · lean proofs",
+      "minimum supported rust version",
+      "test coverage (llvm-cov)",
+      "unused-deps · advisories · licenses"
+    ]
+  },
+  "closeout_decision": {
+    "status": "complete-after-pr-merge",
+    "issue_goal_satisfied": true,
+    "summary": "issue #511 leaves the kernel with a broader fixed-result builtin surface, external fixed-domain authorability, explicit HOF/materialization boundaries, zero new primitives, and remaining blockers recorded as producer/runtime/trust work rather than imagined kernel vocabulary"
+  }
+}

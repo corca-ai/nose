@@ -247,6 +247,12 @@ The R4 authorability pass then uses a Guava fixed-domain dry-run pack to show
 which capabilities are authorable as external metadata, which remain
 intentionally builtin-only, and which blockers move to R5. That record is in
 [semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md).
+R5 then keeps broad HOF result domains closed and records the narrow admitted
+demand/materialization lanes in
+[semantic-kernel-hof-demand-511](semantic-kernel-hof-demand-511.md). The #511 R6
+closeout records the minimal capability set, builtin expansion, external
+authorability, remaining blockers, and validation gates in
+[semantic-kernel-expansion-closeout-511](semantic-kernel-expansion-closeout-511.md).
 
 ### Effects and observations
 

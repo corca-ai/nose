@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "issue": 511,
+  "phase": "R5",
+  "source_artifacts": [
+    "bench/semantic_pack/blocker_packet.v4.json",
+    "bench/semantic_pack/kernel_capability_matrix.v4.json",
+    "bench/semantic_pack/external_authorability_matrix.v1.json"
+  ],
+  "scope_bar": {
+    "selected_bar": "HOF, demand, and materialization boundary review after external authorability",
+    "new_primitives": 0,
+    "external_influence_opened": false,
+    "broad_generic_hof_result_domains_admitted": false,
+    "accepted_strategy": "compose existing DemandEffectProfile, DomainEvidence, LibraryApi.Contract, and receiver/domain proof instead of adding a broad HOF primitive",
+    "no_new_primitive_reason": "the implemented demand/effect vocabulary already distinguishes eager per-element HOFs, pull-lazy HOFs, async continuations, generators, channels, and protocol boundaries; remaining blockers need producer, receiver, trait, materialization, or lifecycle proof"
+  },
+  "accepted_narrow_lanes": [
+    {
+      "id": "source.python.list_comprehension.eager_hof_profile",
+      "status": "accepted-profile-only",
+      "proof_required": [
+        "SourceComprehensionKind::PythonListComprehension",
+        "HoFKind",
+        "DemandEffectProfile::PerElementHof"
+      ],
+      "influence": "demand/effect classification only",
+      "boundary": "does not emit a fixed collection result-domain claim for arbitrary library HOF calls"
+    },
+    {
+      "id": "library.js_like.array_hof.eager_profile",
+      "status": "accepted-profile-only",
+      "proof_required": [
+        "js-like language family",
+        "admitted library HOF kind",
+        "eager per-element timing"
+      ],
+      "influence": "callback demand/effect profile only",
+      "boundary": "does not admit Lodash, RxJS, or custom map/filter selectors by spelling"
+    },
+    {
+      "id": "library.rust_java.pull_lazy_hof.profile",
+      "status": "accepted-profile-only",
+      "proof_required": [
+        "Rust or Java library HOF timing",
+        "pull-lazy DemandEffectProfile",
+        "delayed callback effects"
+      ],
+      "influence": "lazy callback timing only",
+      "boundary": "does not prove terminal materialization, repeated demand, or one-shot iterator safety"
+    },
+    {
+      "id": "library.promise.then.async_continuation",
+      "status": "accepted-narrow",
+      "proof_required": [
+        "ExactPromiseLike receiver",
+        "Promise.then arity",
+        "AsyncContinuation demand profile",
+        "admitted LibraryApi.Contract occurrence"
+      ],
+      "influence": "fixed PromiseLike result-domain materialization and async demand/effect profile",
+      "boundary": "does not generalize to arbitrary thenables, schedulers, Observables, or callback-side effects"
+    },
+    {
+      "id": "protocol.iterator_identity_adapter.domain_forwarding",
+      "status": "accepted-narrow",
+      "proof_required": [
+        "ExactIterableValue receiver",
+        "admitted iterator identity adapter API occurrence",
+        "supported zero-argument adapter shape"
+      ],
+      "influence": "protocol receiver evidence for narrow iterator adapter rows",
+      "boundary": "does not open external trait methods, caller-selected collection types, or collect_vec materialization"
+    }
+  ],
+  "boundary_rows": [
+    {
+      "id": "generic.hof.fixed_result_domain",
+      "decision": "rejected",
+      "risk": "generic-hof-broadening",
+      "reason": "a HOF-shaped call does not prove result shape, callback timing, or materialization"
+    },
+    {
+      "id": "javascript.array.map.result_domain",
+      "decision": "profile-only",
+      "risk": "callback-effect",
+      "reason": "array HOF timing can be described, but callback purity and exact result value are separate proof obligations"
+    },
+    {
+      "id": "javascript.lodash.map_filter",
+      "decision": "blocked",
+      "risk": "callback-effect",
+      "reason": "import identity, shorthand forms, object receivers, lazy chains, and iteratee semantics are not proven"
+    },
+    {
+      "id": "javascript.rxjs.observable.map_filter",
+      "decision": "blocked",
+      "risk": "lifecycle",
+      "reason": "scheduler, hot/cold stream, subscription, completion, error, and cancellation semantics need a dedicated producer"
+    },
+    {
+      "id": "javascript.promise.then.chain",
+      "decision": "accepted-narrow",
+      "risk": "async-boundary",
+      "reason": "exact PromiseLike receiver plus admitted Promise.then API occurrence supports PromiseLike result-domain chaining"
+    },
+    {
+      "id": "rust.iterator.map_filter",
+      "decision": "profile-only",
+      "risk": "laziness",
+      "reason": "pull-lazy callback timing is known, but terminal consumption and materialized result shape are not implied"
+    },
+    {
+      "id": "rust.itertools.collect_vec",
+      "decision": "blocked",
+      "risk": "materialization",
+      "reason": "trait import identity, caller-selected Vec materialization, allocation boundary, and consumption effects are unproven"
+    },
+    {
+      "id": "rust.iterator.collect_selected_type",
+      "decision": "blocked",
+      "risk": "materialization",
+      "reason": "collect-like result type is caller-selected and cannot be emitted as a fixed result domain"
+    },
+    {
+      "id": "java.stream.map_filter",
+      "decision": "profile-only",
+      "risk": "laziness",
+      "reason": "stream HOFs have pull-lazy timing, but terminal materialization and side effects are separate"
+    },
+    {
+      "id": "java.stream.collect_to_list",
+      "decision": "blocked",
+      "risk": "materialization",
+      "reason": "collector identity, encounter order, mutability, parallel stream behavior, and terminal effects are not proven"
+    },
+    {
+      "id": "python.generator_expression.map_like",
+      "decision": "profile-only",
+      "risk": "laziness",
+      "reason": "generator suspension and delayed effects are known, but materialized output is not implied"
+    },
+    {
+      "id": "python.itertools.chain",
+      "decision": "blocked",
+      "risk": "repeated-demand",
+      "reason": "one-shot iterators, source iteration effects, infinite inputs, and repeated consumption remain unproven"
+    },
+    {
+      "id": "map.get.fixed_value_domain",
+      "decision": "rejected",
+      "risk": "parametric-result",
+      "reason": "map lookup value domain is parametric in key/value evidence, not a fixed call result domain"
+    },
+    {
+      "id": "external.pack.hof_result_domain_authoring",
+      "decision": "rejected",
+      "risk": "external-influence",
+      "reason": "external fixed result-domain metadata must not open exact HOF influence without producer runtime, trust, and hard negatives"
+    }
+  ],
+  "hard_negative_families": [
+    {
+      "risk": "laziness",
+      "examples": [
+        "generator expression with side-effecting callback",
+        "Rust Iterator::map before terminal consumption",
+        "Java Stream.map before terminal operation"
+      ]
+    },
+    {
+      "risk": "callback-effect",
+      "examples": [
+        "Array.map callback mutates captured state",
+        "Lodash iteratee shorthand changes receiver semantics",
+        "filter predicate throws or observes index/order"
+      ]
+    },
+    {
+      "risk": "repeated-demand",
+      "examples": [
+        "one-shot iterator reused after chain",
+        "iterator source with observable next() side effects",
+        "lazy source consumed twice by a proposed rewrite"
+      ]
+    },
+    {
+      "risk": "async-boundary",
+      "examples": [
+        "Promise.then callback timing",
+        "thenable object without exact PromiseLike proof",
+        "future cancellation or wake-order sensitive rewrite"
+      ]
+    },
+    {
+      "risk": "scheduler",
+      "examples": [
+        "RxJS scheduler argument",
+        "hot Observable subscription timing",
+        "Tokio task scheduling or select race"
+      ]
+    },
+    {
+      "risk": "lifecycle",
+      "examples": [
+        "Observable completion/error behavior",
+        "stream cancellation",
+        "generator close/finally side effects"
+      ]
+    },
+    {
+      "risk": "materialization",
+      "examples": [
+        "collect chooses caller result type",
+        "collect_vec allocates a Vec",
+        "Java Collector changes mutability or encounter order"
+      ]
+    }
+  ],
+  "primitive_assessment": {
+    "existing_primitives_are_sufficient_for": [
+      "describing demand/effect timing for already-admitted HOF-like operations",
+      "materializing fixed call result domains for admitted LibraryApi rows",
+      "keeping Promise.then result-domain chaining narrow",
+      "keeping iterator identity adapter rows separate from materialization rows"
+    ],
+    "existing_primitives_are_not_sufficient_for": [
+      "proving package/version occurrence from metadata",
+      "executing external evidence producers",
+      "proving external trait identity and caller-selected materialization",
+      "modeling Observable lifecycle and scheduler semantics",
+      "emitting parametric result domains such as Map.get values"
+    ],
+    "r5_decision": "do not add a primitive in this round; keep broad HOF/materialization rows blocked and use the existing primitives only in narrow admitted lanes"
+  },
+  "product_output_gate": {
+    "classification": "artifact and documentation boundary change only",
+    "expected_drift": "none",
+    "reason": "R5 records admission boundaries and does not change query, normalize, value-graph, exact, or detection consumers"
+  },
+  "performance_gate": {
+    "limit": "no more than 10% median runtime regression",
+    "expected_hot_path_change": "none",
+    "measurement_required": false,
+    "decision": "no runtime measurement required because no semantic analysis hot path changed"
+  },
+  "transition_assessment": {
+    "move_to_r6": true,
+    "criteria_met": [
+      "broad generic HOF result domains remain rejected",
+      "demand/effect vocabulary is confirmed sufficient for current narrow lanes",
+      "materialization, repeated-demand, async, scheduler, and lifecycle blockers are explicit",
+      "external influence remains closed"
+    ],
+    "criteria_not_met": [
+      "external producer runtime is still absent",
+      "trait/materialization producers are still absent",
+      "stream lifecycle and scheduler producers are still absent"
+    ],
+    "next_phase_goal": "R6 closeout snapshot: summarize the minimal primitive set, builtin expansion, external authorability, remaining blockers, validation, and close criteria for issue #511"
+  }
+}

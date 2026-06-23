@@ -105,6 +105,9 @@ R4 is complete enough to move #511 to R5:
   high-risk HOF/materialization issues.
 
 R5 should focus on narrow HOF, demand, and materialization boundaries. It should
-not admit broad generic HOF result domains.
+not admit broad generic HOF result domains. The R5 result is recorded in
+[semantic-kernel-hof-demand-511](semantic-kernel-hof-demand-511.md), and the
+issue closeout is recorded in
+[semantic-kernel-expansion-closeout-511](semantic-kernel-expansion-closeout-511.md).
 
 Back to [semantic-kernel](semantic-kernel.md).

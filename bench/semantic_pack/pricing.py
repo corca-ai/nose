@@ -36,6 +36,12 @@ DEFAULT_KERNEL_MATRIX_V4 = ROOT / "bench" / "semantic_pack" / "kernel_capability
 DEFAULT_EXTERNAL_AUTHORABILITY_MATRIX_V1 = (
     ROOT / "bench" / "semantic_pack" / "external_authorability_matrix.v1.json"
 )
+DEFAULT_HOF_DEMAND_MATERIALIZATION_MATRIX_V1 = (
+    ROOT / "bench" / "semantic_pack" / "hof_demand_materialization_matrix.v1.json"
+)
+DEFAULT_KERNEL_EXPANSION_CLOSEOUT_V1 = (
+    ROOT / "bench" / "semantic_pack" / "kernel_expansion_closeout.v1.json"
+)
 
 SCHEMA_VERSION = 1
 TOOL_VERSION = "semantic-pack-pricing/1"
@@ -1608,6 +1614,171 @@ def validate_external_authorability_matrix_v1(matrix: dict) -> None:
         raise SystemExit("external authorability matrix must document no hot-path measurement")
 
 
+def validate_hof_demand_materialization_matrix_v1(matrix: dict) -> None:
+    if matrix.get("schema_version") != 1:
+        raise SystemExit("HOF demand/materialization matrix must use schema_version 1")
+    if matrix.get("issue") != 511:
+        raise SystemExit("HOF demand/materialization matrix must be tied to issue 511")
+    if matrix.get("phase") != "R5":
+        raise SystemExit("HOF demand/materialization matrix must identify phase R5")
+    sources = matrix.get("source_artifacts", [])
+    if "bench/semantic_pack/external_authorability_matrix.v1.json" not in sources:
+        raise SystemExit("HOF demand/materialization matrix must reference the R4 artifact")
+    scope = matrix.get("scope_bar", {})
+    if scope.get("new_primitives") != 0:
+        raise SystemExit("HOF demand/materialization matrix must add zero primitives")
+    if scope.get("external_influence_opened") is not False:
+        raise SystemExit("HOF demand/materialization matrix must keep external influence closed")
+    if scope.get("broad_generic_hof_result_domains_admitted") is not False:
+        raise SystemExit("HOF demand/materialization matrix must reject broad generic HOF domains")
+
+    lanes = matrix.get("accepted_narrow_lanes")
+    if not isinstance(lanes, list) or len(lanes) < 4:
+        raise SystemExit("HOF demand/materialization matrix needs accepted narrow lanes")
+    lane_statuses = {lane.get("status") for lane in lanes if isinstance(lane, dict)}
+    if not {"accepted-narrow", "accepted-profile-only"}.issubset(lane_statuses):
+        raise SystemExit("HOF demand/materialization matrix must cover exact and profile-only lanes")
+    for lane in lanes:
+        lane_id = lane.get("id")
+        if not isinstance(lane_id, str) or not lane_id:
+            raise SystemExit("HOF demand/materialization lane missing id")
+        for key in ["status", "proof_required", "influence", "boundary"]:
+            if not lane.get(key):
+                raise SystemExit(f"{lane_id}: HOF demand/materialization lane missing {key}")
+
+    boundary_rows = matrix.get("boundary_rows")
+    if not isinstance(boundary_rows, list) or len(boundary_rows) < 12:
+        raise SystemExit("HOF demand/materialization matrix needs broad boundary coverage")
+    decisions = set()
+    seen = set()
+    for row in boundary_rows:
+        row_id = row.get("id")
+        if not isinstance(row_id, str) or not row_id:
+            raise SystemExit("HOF demand/materialization boundary row missing id")
+        if row_id in seen:
+            raise SystemExit(f"duplicate HOF demand/materialization boundary row: {row_id}")
+        seen.add(row_id)
+        decision = row.get("decision")
+        if decision not in {"accepted-narrow", "profile-only", "blocked", "rejected"}:
+            raise SystemExit(f"{row_id}: invalid HOF demand/materialization decision {decision}")
+        decisions.add(decision)
+        for key in ["risk", "reason"]:
+            if not row.get(key):
+                raise SystemExit(f"{row_id}: HOF demand/materialization row missing {key}")
+    if not {"accepted-narrow", "profile-only", "blocked", "rejected"}.issubset(decisions):
+        raise SystemExit("HOF demand/materialization matrix must cover all boundary decisions")
+
+    hard_negatives = matrix.get("hard_negative_families")
+    if not isinstance(hard_negatives, list):
+        raise SystemExit("HOF demand/materialization matrix needs hard negative families")
+    risks = {row.get("risk") for row in hard_negatives if isinstance(row, dict)}
+    required_risks = {
+        "laziness",
+        "callback-effect",
+        "repeated-demand",
+        "async-boundary",
+        "scheduler",
+        "lifecycle",
+        "materialization",
+    }
+    if not required_risks.issubset(risks):
+        raise SystemExit("HOF demand/materialization matrix is missing required hard negative risks")
+
+    primitive_assessment = matrix.get("primitive_assessment", {})
+    if not primitive_assessment.get("r5_decision"):
+        raise SystemExit("HOF demand/materialization matrix needs an R5 primitive decision")
+    transition = matrix.get("transition_assessment", {})
+    if transition.get("move_to_r6") is not True:
+        raise SystemExit("HOF demand/materialization matrix must move #511 to R6")
+    performance = matrix.get("performance_gate", {})
+    if performance.get("measurement_required") is not False:
+        raise SystemExit("HOF demand/materialization matrix must document no hot-path measurement")
+
+
+def validate_kernel_expansion_closeout_v1(closeout: dict) -> None:
+    if closeout.get("schema_version") != 1:
+        raise SystemExit("kernel expansion closeout must use schema_version 1")
+    if closeout.get("issue") != 511:
+        raise SystemExit("kernel expansion closeout must be tied to issue 511")
+    if closeout.get("phase") != "R6":
+        raise SystemExit("kernel expansion closeout must identify phase R6")
+    sources = closeout.get("source_artifacts", [])
+    required_sources = {
+        "bench/semantic_pack/kernel_capability_matrix.v3.json",
+        "bench/semantic_pack/kernel_capability_matrix.v4.json",
+        "bench/semantic_pack/external_authorability_matrix.v1.json",
+        "bench/semantic_pack/hof_demand_materialization_matrix.v1.json",
+    }
+    if not required_sources.issubset(set(sources)):
+        raise SystemExit("kernel expansion closeout is missing required source artifacts")
+
+    completion = closeout.get("scope_completion", {})
+    if completion.get("r1_r3_cycles_completed") < 2:
+        raise SystemExit("kernel expansion closeout must cover at least two R1-R3 cycles")
+    for key in [
+        "r4_external_authorability_completed",
+        "r5_hof_demand_materialization_completed",
+        "r6_closeout_completed",
+        "issue_goal_satisfied",
+        "close_issue_after_merge",
+    ]:
+        if completion.get(key) is not True:
+            raise SystemExit(f"kernel expansion closeout must set {key}=true")
+
+    primitive_delta = closeout.get("primitive_delta", {})
+    if primitive_delta.get("new_primitives_total") != 0:
+        raise SystemExit("kernel expansion closeout must record zero new primitives")
+    generalizations = {
+        row.get("id")
+        for row in primitive_delta.get("accepted_generalizations", [])
+        if isinstance(row, dict)
+    }
+    if not {
+        "admitted_api_result_domain_materializer",
+        "external_fixed_result_domain_authoring_contract",
+    }.issubset(generalizations):
+        raise SystemExit("kernel expansion closeout must name the accepted generalizations")
+    if "generic HOF fixed result-domain admission" not in primitive_delta.get(
+        "rejected_broadenings", []
+    ):
+        raise SystemExit("kernel expansion closeout must reject generic HOF broadening")
+
+    minimal = closeout.get("minimal_capability_set")
+    if not isinstance(minimal, list) or len(minimal) < 6:
+        raise SystemExit("kernel expansion closeout needs a minimal capability set")
+    capability_ids = {row.get("id") for row in minimal if isinstance(row, dict)}
+    if "demand_effect_profile" not in capability_ids:
+        raise SystemExit("kernel expansion closeout must include demand/effect profile")
+
+    remaining = closeout.get("remaining_blockers")
+    if not isinstance(remaining, list) or len(remaining) < 5:
+        raise SystemExit("kernel expansion closeout needs remaining blockers")
+    blocker_statuses = {row.get("status") for row in remaining if isinstance(row, dict)}
+    if not {"blocked", "rejected"}.issubset(blocker_statuses):
+        raise SystemExit("kernel expansion closeout must cover blocked and rejected blockers")
+
+    performance = closeout.get("performance_gate", {})
+    if performance.get("closeout_decision") != "passes":
+        raise SystemExit("kernel expansion closeout performance gate must pass")
+    measurements = performance.get("measurements")
+    if not isinstance(measurements, list) or not measurements:
+        raise SystemExit("kernel expansion closeout needs performance measurements")
+    measured = [
+        row
+        for row in measurements
+        if isinstance(row, dict) and isinstance(row.get("delta_percent"), (int, float))
+    ]
+    if not measured:
+        raise SystemExit("kernel expansion closeout needs at least one measured runtime row")
+    for row in measured:
+        if row["delta_percent"] > 10.0:
+            raise SystemExit("kernel expansion closeout runtime delta exceeds 10%")
+
+    decision = closeout.get("closeout_decision", {})
+    if decision.get("issue_goal_satisfied") is not True:
+        raise SystemExit("kernel expansion closeout must mark issue goal satisfied")
+
+
 def check_artifacts(
     corpus_path: Path,
     json_out: Path,
@@ -1620,6 +1791,8 @@ def check_artifacts(
     blocker_packet_v4: Path,
     kernel_matrix_v4: Path,
     external_authorability_matrix_v1: Path,
+    hof_demand_materialization_matrix_v1: Path,
+    kernel_expansion_closeout_v1: Path,
 ) -> None:
     report = json.loads(json_out.read_text(encoding="utf-8"))
     validate_report(report)
@@ -1648,6 +1821,10 @@ def check_artifacts(
     validate_kernel_matrix_v4(matrix_v4, probe_ids_v4)
     authorability_v1 = json.loads(external_authorability_matrix_v1.read_text(encoding="utf-8"))
     validate_external_authorability_matrix_v1(authorability_v1)
+    hof_demand_v1 = json.loads(hof_demand_materialization_matrix_v1.read_text(encoding="utf-8"))
+    validate_hof_demand_materialization_matrix_v1(hof_demand_v1)
+    closeout_v1 = json.loads(kernel_expansion_closeout_v1.read_text(encoding="utf-8"))
+    validate_kernel_expansion_closeout_v1(closeout_v1)
     print("semantic-pack pricing artifact check passed")
 
 
@@ -1714,6 +1891,16 @@ def main() -> int:
         default=DEFAULT_EXTERNAL_AUTHORABILITY_MATRIX_V1,
     )
     parser.add_argument(
+        "--hof-demand-materialization-matrix-v1",
+        type=Path,
+        default=DEFAULT_HOF_DEMAND_MATERIALIZATION_MATRIX_V1,
+    )
+    parser.add_argument(
+        "--kernel-expansion-closeout-v1",
+        type=Path,
+        default=DEFAULT_KERNEL_EXPANSION_CLOSEOUT_V1,
+    )
+    parser.add_argument(
         "--nose",
         type=Path,
         default=None,
@@ -1746,6 +1933,8 @@ def main() -> int:
             args.blocker_packet_v4,
             args.kernel_matrix_v4,
             args.external_authorability_matrix_v1,
+            args.hof_demand_materialization_matrix_v1,
+            args.kernel_expansion_closeout_v1,
         )
         return 0
 
