@@ -79,8 +79,8 @@ _IDIOM = [
           "landed", "all", "ternary min/max, abs ↔ builtins; reduce-lambda min/max."),
     _axis("numeric_clamp", "Scalar clamp (bounded min/max composition)", "algebraic",
           "recall", "both", "fixable", "all",
-          "min(max(x,lo),hi) ↔ clamp under lo<=hi; proof in formal/.../clamp. python is a "
-          "real-miss; surface bridges + per-corpus bound proof remain.",
+          "min(max(x,lo),hi) ↔ clamp under lo<=hi; proof in formal/.../clamp. controlled "
+          "bridges are covered; per-corpus bound proof remains.",
           aliases=["numeric_clamp / clamp_surface_bridge"]),
     _axis("total_order_compare", "Total-order comparison absorption", "algebraic", "both",
           "both", "landed", "all", "x<y ∧ x<=y → x<y for non-overloadable orders."),

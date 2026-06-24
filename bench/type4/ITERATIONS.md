@@ -264,6 +264,22 @@ Added the prerequisite only, not clamp canonicalization:
 The `numeric_clamp` packet therefore remains an implementation follow-up. This change makes a
 narrow proof-backed slice visible internally without merging clamp forms.
 
+### 2026-06-25 narrowing
+
+Re-audited the packet after the controlled bridge slices landed. The current boundary is now
+narrower:
+
+- Proof-backed integer `Clamp` covers min/max composition plus controlled two-comparison and
+  supported library method surfaces when literal or exiting-guard evidence proves `lo <= hi`.
+- Focused adversarial evidence records `clamp_ternary_minmax_bridge` and
+  `clamp_library_method_bridge` as positives, with swapped/unproven/custom-method and float
+  boundaries still split.
+- The remaining real miss is the boltons/fzf cross-language pair: fzf's
+  `Constrain(val, minimum, maximum)` names the bound roles but does not prove their order.
+
+The packet stays routed to `proof-fact-prerequisite`, but no longer lists controlled
+two-comparison/library surface bridging as open work.
+
 ## Contract-Migration Expansion (issue #55)
 
 The first detector-expanding step after `LoopEffect`, `SelfFieldBody`, and

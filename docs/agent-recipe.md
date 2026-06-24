@@ -73,7 +73,8 @@ Read the fields in this order — each step either decides or narrows:
      question left is whether merging them couples unrelated concerns.
    - `subdag` (the human report labels this `shared-core`; both are accepted as `witness=`
      filter values): a common heavy anchor (shared sub-DAG core) is proven inside each site — each
-     member's `shared_subdag: [start, end]` shows where that computation lives.
+     member's `shared_subdag: [start, end]` shows where that computation lives. Same-language
+     shared-core families can also carry graded evidence when `spotclass` is requested.
    - `copy-paste`: token-identical run — classic copy-paste; identifiers and literals may still
      vary per copy.
    - `similar`: the fuzzy near channel. Grade it with `spotclass` (next step) before trusting it.
@@ -84,8 +85,9 @@ Read the fields in this order — each step either decides or narrows:
    not-worthy locale/i18n parallel-data case — check whether the literals are *content* or
    *parameters*). Many
    `params` relative to `shared` (the lines invariant across **all** copies) means a costly, ugly
-   extraction. For a near (`similar`) family, `spotclass` says whether those spots are `leaf-only`
-   (clean value-leaves to parameterize — interesting) or `structural` (a shape/arity/referent
+   extraction. For an enriched same-language near/shared-core family, `spotclass` says whether
+   those spots are `leaf-only` (clean value-leaves with `equal_modulo_holes=true` — interesting)
+   or `structural` (a demoted witness, async/sync transformation, shape/arity/referent
    divergence — genuine logic difference, be skeptical). `extraction_shape` names the decidable
    shape of the fix for a clean candidate (`call-existing-helper` is the strongest — an existing
    helper is reinvented inline, so the action is to *call* it, not extract anew).

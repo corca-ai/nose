@@ -28,14 +28,14 @@
   "candidates": [
     {
       "breadth": {
-        "dev_breadth": 0.9138,
-        "dev_presence": 53,
+        "dev_breadth": 0.8485,
+        "dev_presence": 56,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.9787,
-        "heldout_presence": 46,
+        "heldout_breadth": 0.9074,
+        "heldout_presence": 49,
         "primary_language_breadth": 1.0,
-        "primary_language_presence": 7,
+        "primary_language_presence": 8,
         "primary_languages": [
           "C",
           "Go",
@@ -43,11 +43,12 @@
           "Python",
           "Ruby",
           "Rust",
+          "Swift",
           "TypeScript"
         ],
-        "raw_occurrences": 22979,
-        "repo_breadth": 0.9429,
-        "repo_presence": 99,
+        "raw_occurrences": 23027,
+        "repo_breadth": 0.875,
+        "repo_presence": 105,
         "source_language_breadth": 0.875,
         "source_language_presence": 7,
         "source_languages": [
@@ -96,6 +97,7 @@
       "routing": {
         "issue_37_subset_repos": [
           "alacritty",
+          "alamofire",
           "antlr4",
           "arrow",
           "asciidoctor",
@@ -105,8 +107,7 @@
           "black",
           "boltons",
           "chi",
-          "clap",
-          "click"
+          "clap"
         ],
         "issue_43_substrate_target": false,
         "issue_45_product_noise": false
@@ -114,74 +115,74 @@
       "samples": [
         {
           "language": "rust",
-          "line": 81,
-          "path": "alacritty_terminal/src/selection.rs",
+          "line": 137,
+          "path": "alacritty/src/cli.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "if self.contains(indexed.point) {",
+          "snippet": "Some((_, instance)) if instance.contains(',') => {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 86,
-          "path": "alacritty_terminal/src/selection.rs",
+          "line": 60,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "indexed.cell.flags().contains(Flags::WIDE_CHAR)",
+          "snippet": "&& mode.contains(self.mode)",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 87,
-          "path": "alacritty_terminal/src/selection.rs",
+          "line": 775,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "&& self.contains(Point::new(indexed.point.line, indexed.point.column + 1))",
+          "snippet": "binding_mode.set(BindingMode::APP_CURSOR, mode.contains(TermMode::APP_CURSOR));",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 284,
-          "path": "alacritty_terminal/src/vi_mode.rs",
+          "line": 776,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "if term.semantic_escape_chars().contains(cell.c)",
+          "snippet": "binding_mode.set(BindingMode::APP_KEYPAD, mode.contains(TermMode::APP_KEYPAD));",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 401,
-          "path": "alacritty_terminal/src/vi_mode.rs",
+          "line": 777,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "term.grid()[point].flags.contains(Flags::WRAPLINE)",
+          "snippet": "binding_mode.set(BindingMode::ALT_SCREEN, mode.contains(TermMode::ALT_SCREEN));",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 274,
-          "path": "alacritty_terminal/src/term/cell.rs",
+          "line": 778,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "if self[Column(self.len() - 1)].flags.contains(Flags::WRAPLINE) {",
+          "snippet": "binding_mode.set(BindingMode::VI, mode.contains(TermMode::VI));",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 94,
-          "path": "alacritty_terminal/src/term/mod.rs",
+          "line": 782,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "let disambiguate_esc_codes = value.contains(KeyboardModes::DISAMBIGUATE_ESC_CODES);",
+          "snippet": "mode.contains(TermMode::DISAMBIGUATE_ESC_CODES),",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 97,
-          "path": "alacritty_terminal/src/term/mod.rs",
+          "line": 786,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_contains_ambiguous",
           "repo": "alacritty",
-          "snippet": "let report_event_types = value.contains(KeyboardModes::REPORT_EVENT_TYPES);",
+          "snippet": "mode.contains(TermMode::REPORT_ALL_KEYS_AS_ESC),",
           "split": "dev"
         }
       ],
@@ -190,14 +191,14 @@
     },
     {
       "breadth": {
-        "dev_breadth": 0.931,
-        "dev_presence": 54,
+        "dev_breadth": 0.8485,
+        "dev_presence": 56,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.9362,
-        "heldout_presence": 44,
+        "heldout_breadth": 0.8704,
+        "heldout_presence": 47,
         "primary_language_breadth": 1.0,
-        "primary_language_presence": 7,
+        "primary_language_presence": 8,
         "primary_languages": [
           "C",
           "Go",
@@ -205,11 +206,12 @@
           "Python",
           "Ruby",
           "Rust",
+          "Swift",
           "TypeScript"
         ],
-        "raw_occurrences": 21562,
-        "repo_breadth": 0.9333,
-        "repo_presence": 98,
+        "raw_occurrences": 21615,
+        "repo_breadth": 0.8583,
+        "repo_presence": 103,
         "source_language_breadth": 1.0,
         "source_language_presence": 8,
         "source_languages": [
@@ -253,156 +255,9 @@
       "routing": {
         "issue_37_subset_repos": [
           "alacritty",
+          "alamofire",
           "antlr4",
           "arrow",
-          "axios",
-          "badger",
-          "bat",
-          "black",
-          "boltons",
-          "chi",
-          "clap",
-          "click",
-          "cmark"
-        ],
-        "issue_43_substrate_target": false,
-        "issue_45_product_noise": false
-      },
-      "samples": [
-        {
-          "language": "rust",
-          "line": 332,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "if self.is_empty() {",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 362,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "if self.is_empty() {",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 583,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "assert!(selection.is_empty());",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 585,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "assert!(selection.is_empty());",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 587,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "assert!(!selection.is_empty());",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 594,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "assert!(selection.is_empty());",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 596,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "assert!(selection.is_empty());",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 598,
-          "path": "alacritty_terminal/src/selection.rs",
-          "pattern_id": "rust_named_empty",
-          "repo": "alacritty",
-          "snippet": "assert!(!selection.is_empty());",
-          "split": "dev"
-        }
-      ],
-      "scope": "all-language",
-      "title": "Collection emptiness and non-emptiness"
-    },
-    {
-      "breadth": {
-        "dev_breadth": 0.8966,
-        "dev_presence": 52,
-        "gap_repo_presence": 0,
-        "generalization": "both-splits",
-        "heldout_breadth": 0.9574,
-        "heldout_presence": 45,
-        "primary_language_breadth": 1.0,
-        "primary_language_presence": 7,
-        "primary_languages": [
-          "C",
-          "Go",
-          "Java",
-          "Python",
-          "Ruby",
-          "Rust",
-          "TypeScript"
-        ],
-        "raw_occurrences": 6174,
-        "repo_breadth": 0.9238,
-        "repo_presence": 97,
-        "source_language_breadth": 0.875,
-        "source_language_presence": 7,
-        "source_languages": [
-          "go",
-          "java",
-          "javascript",
-          "python",
-          "ruby",
-          "rust",
-          "typescript"
-        ]
-      },
-      "candidate_id": "string_prefix_suffix",
-      "curated": {
-        "implementation_cost": "low",
-        "rationale": "Prefix/suffix predicates are pure string-builtin value facts.",
-        "soundness_risk": "low",
-        "substrate_required": "none"
-      },
-      "detector_suggested": null,
-      "evidence_tier": "pattern-signal",
-      "gap_samples": [],
-      "human_evidence": {
-        "count": 0,
-        "records": [],
-        "statuses": []
-      },
-      "presence_rank": 3,
-      "prioritizer_status": "covered-current",
-      "recommendation_category": "all-language",
-      "routing": {
-        "issue_37_subset_repos": [
-          "alacritty",
-          "antlr4",
-          "arrow",
-          "asciidoctor",
           "axios",
           "badger",
           "bat",
@@ -418,90 +273,90 @@
       "samples": [
         {
           "language": "rust",
-          "line": 2484,
-          "path": "alacritty_terminal/src/term/mod.rs",
-          "pattern_id": "rust_prefix_suffix",
+          "line": 401,
+          "path": "alacritty/src/cli.rs",
+          "pattern_id": "rust_named_empty",
           "repo": "alacritty",
-          "snippet": "if !text.ends_with('\\r') && line + 1 != lines.len() {",
+          "snippet": "if self.config_options.is_empty() {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 197,
-          "path": "alacritty/src/polling/ipc.rs",
-          "pattern_id": "rust_prefix_suffix",
-          "repo": "alacritty",
-          "snippet": ".filter(|file| file.starts_with(&socket_prefix) && file.ends_with(\".sock\"))",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 197,
-          "path": "alacritty/src/polling/ipc.rs",
-          "pattern_id": "rust_prefix_suffix",
-          "repo": "alacritty",
-          "snippet": ".filter(|file| file.starts_with(&socket_prefix) && file.ends_with(\".sock\"))",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 215,
-          "path": "alacritty/src/config/mod.rs",
-          "pattern_id": "rust_prefix_suffix",
-          "repo": "alacritty",
-          "snippet": "if contents.starts_with('\\u{FEFF}') {",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 736,
+          "line": 71,
           "path": "alacritty/src/config/bindings.rs",
-          "pattern_id": "rust_prefix_suffix",
+          "pattern_id": "rust_named_empty",
           "repo": "alacritty",
-          "snippet": "_ if keycode.starts_with(\"Dead\") => {",
+          "snippet": "let selfmode = if self.mode.is_empty() { BindingMode::all() } else { self.mode };",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 287,
-          "path": "alacritty/src/display/color.rs",
-          "pattern_id": "rust_prefix_suffix",
+          "line": 72,
+          "path": "alacritty/src/config/bindings.rs",
+          "pattern_id": "rust_named_empty",
           "repo": "alacritty",
-          "snippet": "let chars = if s.starts_with(\"0x\") && s.len() == 8 {",
+          "snippet": "let bindingmode = if binding.mode.is_empty() { BindingMode::all() } else { binding.mode };",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 289,
-          "path": "alacritty/src/display/color.rs",
-          "pattern_id": "rust_prefix_suffix",
+          "line": 221,
+          "path": "alacritty/src/config/mod.rs",
+          "pattern_id": "rust_named_empty",
           "repo": "alacritty",
-          "snippet": "} else if s.starts_with('#') && s.len() == 7 {",
+          "snippet": "if (extension == \"yaml\" || extension == \"yml\") && !contents.trim().is_empty() {",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 34,
-          "path": "scripts/update_antlr_version.py",
-          "pattern_id": "py_prefix_suffix",
-          "repo": "antlr4",
-          "snippet": "if len(line)>0 and not line.startswith(\"#\"):",
+          "language": "rust",
+          "line": 294,
+          "path": "alacritty/src/config/mod.rs",
+          "pattern_id": "rust_named_empty",
+          "repo": "alacritty",
+          "snippet": "if !imports.is_empty() && recursion_limit == 0 {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 341,
+          "path": "alacritty/src/config/mod.rs",
+          "pattern_id": "rust_named_empty",
+          "repo": "alacritty",
+          "snippet": "sequence.is_empty()",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 351,
+          "path": "alacritty/src/config/mod.rs",
+          "pattern_id": "rust_named_empty",
+          "repo": "alacritty",
+          "snippet": "mapping.is_empty()",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 451,
+          "path": "alacritty/src/config/mod.rs",
+          "pattern_id": "rust_named_empty",
+          "repo": "alacritty",
+          "snippet": "assert!(toml.is_empty());",
           "split": "dev"
         }
       ],
       "scope": "all-language",
-      "title": "String prefix/suffix predicates"
+      "title": "Collection emptiness and non-emptiness"
     },
     {
       "breadth": {
-        "dev_breadth": 0.8793,
-        "dev_presence": 51,
+        "dev_breadth": 0.803,
+        "dev_presence": 53,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.9149,
-        "heldout_presence": 43,
+        "heldout_breadth": 0.8519,
+        "heldout_presence": 46,
         "primary_language_breadth": 1.0,
-        "primary_language_presence": 7,
+        "primary_language_presence": 8,
         "primary_languages": [
           "C",
           "Go",
@@ -509,11 +364,12 @@
           "Python",
           "Ruby",
           "Rust",
+          "Swift",
           "TypeScript"
         ],
-        "raw_occurrences": 126057,
-        "repo_breadth": 0.8952,
-        "repo_presence": 94,
+        "raw_occurrences": 127849,
+        "repo_breadth": 0.825,
+        "repo_presence": 99,
         "source_language_breadth": 0.875,
         "source_language_presence": 7,
         "source_languages": [
@@ -541,12 +397,13 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 4,
+      "presence_rank": 3,
       "prioritizer_status": "covered-current",
       "recommendation_category": "all-language",
       "routing": {
         "issue_37_subset_repos": [
           "alacritty",
+          "alamofire",
           "antlr4",
           "arrow",
           "axios",
@@ -556,8 +413,7 @@
           "boltons",
           "chi",
           "clap",
-          "click",
-          "cmark"
+          "click"
         ],
         "issue_43_substrate_target": false,
         "issue_45_product_noise": false
@@ -574,65 +430,65 @@
         },
         {
           "language": "rust",
-          "line": 300,
-          "path": "alacritty_terminal/src/selection.rs",
+          "line": 95,
+          "path": "alacritty/src/cli.rs",
+          "pattern_id": "rust_option_predicate",
+          "repo": "alacritty",
+          "snippet": "if self.socket.is_some() {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 180,
+          "path": "alacritty/src/cli.rs",
           "pattern_id": "rust_if_let_some",
           "repo": "alacritty",
-          "snippet": "if let Some(matching) = term.bracket_search(start) {",
+          "snippet": "if let Some(working_directory) = &self.working_directory {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 256,
-          "path": "alacritty_terminal/src/vi_mode.rs",
+          "line": 188,
+          "path": "alacritty/src/cli.rs",
           "pattern_id": "rust_if_let_some",
           "repo": "alacritty",
-          "snippet": "if let Some(occupied) = first_occupied_in_line(term, line) {",
+          "snippet": "if let Some(command) = self.command() {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 245,
-          "path": "alacritty_terminal/src/event_loop.rs",
-          "pattern_id": "rust_option_predicate",
+          "line": 224,
+          "path": "alacritty/src/cli.rs",
+          "pattern_id": "rust_if_let_some",
           "repo": "alacritty",
-          "snippet": "if events.is_empty() && self.rx.peek().is_none() {",
+          "snippet": "if let Some(title) = &self.title {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 410,
-          "path": "alacritty_terminal/src/event_loop.rs",
-          "pattern_id": "rust_option_predicate",
+          "line": 227,
+          "path": "alacritty/src/cli.rs",
+          "pattern_id": "rust_if_let_some",
           "repo": "alacritty",
-          "snippet": "if self.writing.is_none() {",
+          "snippet": "if let Some(class) = &self.class {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 427,
-          "path": "alacritty_terminal/src/event_loop.rs",
+          "line": 1022,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_option_predicate",
           "repo": "alacritty",
-          "snippet": "self.writing.is_some() || !self.write_list.is_empty()",
+          "snippet": "if key.is_some() {",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 469,
-          "path": "alacritty_terminal/src/event_loop.rs",
+          "line": 1048,
+          "path": "alacritty/src/config/bindings.rs",
           "pattern_id": "rust_option_predicate",
           "repo": "alacritty",
-          "snippet": "if self.peeked.is_none() {",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
-          "line": 477,
-          "path": "alacritty_terminal/src/event_loop.rs",
-          "pattern_id": "rust_option_predicate",
-          "repo": "alacritty",
-          "snippet": "if self.peeked.is_some() {",
+          "snippet": "if mods.is_some() {",
           "split": "dev"
         }
       ],
@@ -641,13 +497,161 @@
     },
     {
       "breadth": {
-        "dev_breadth": 0.7241,
+        "dev_breadth": 0.7879,
+        "dev_presence": 52,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.8519,
+        "heldout_presence": 46,
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 8,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ],
+        "raw_occurrences": 6330,
+        "repo_breadth": 0.8167,
+        "repo_presence": 98,
+        "source_language_breadth": 0.875,
+        "source_language_presence": 7,
+        "source_languages": [
+          "go",
+          "java",
+          "javascript",
+          "python",
+          "ruby",
+          "rust",
+          "typescript"
+        ]
+      },
+      "candidate_id": "string_prefix_suffix",
+      "curated": {
+        "implementation_cost": "low",
+        "rationale": "Prefix/suffix predicates are pure string-builtin value facts.",
+        "soundness_risk": "low",
+        "substrate_required": "none"
+      },
+      "detector_suggested": null,
+      "evidence_tier": "pattern-signal",
+      "gap_samples": [],
+      "human_evidence": {
+        "count": 0,
+        "records": [],
+        "statuses": []
+      },
+      "presence_rank": 4,
+      "prioritizer_status": "covered-current",
+      "recommendation_category": "all-language",
+      "routing": {
+        "issue_37_subset_repos": [
+          "alacritty",
+          "antlr4",
+          "arrow",
+          "asciidoctor",
+          "axios",
+          "badger",
+          "bat",
+          "black",
+          "boltons",
+          "chi",
+          "clap",
+          "click"
+        ],
+        "issue_43_substrate_target": false,
+        "issue_45_product_noise": false
+      },
+      "samples": [
+        {
+          "language": "rust",
+          "line": 736,
+          "path": "alacritty/src/config/bindings.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": "_ if keycode.starts_with(\"Dead\") => {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 215,
+          "path": "alacritty/src/config/mod.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": "if contents.starts_with('\\u{FEFF}') {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 287,
+          "path": "alacritty/src/display/color.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": "let chars = if s.starts_with(\"0x\") && s.len() == 8 {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 289,
+          "path": "alacritty/src/display/color.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": "} else if s.starts_with('#') && s.len() == 7 {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 197,
+          "path": "alacritty/src/polling/ipc.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": ".filter(|file| file.starts_with(&socket_prefix) && file.ends_with(\".sock\"))",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 197,
+          "path": "alacritty/src/polling/ipc.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": ".filter(|file| file.starts_with(&socket_prefix) && file.ends_with(\".sock\"))",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 2484,
+          "path": "alacritty_terminal/src/term/mod.rs",
+          "pattern_id": "rust_prefix_suffix",
+          "repo": "alacritty",
+          "snippet": "if !text.ends_with('\\r') && line + 1 != lines.len() {",
+          "split": "dev"
+        },
+        {
+          "language": "java",
+          "line": 532,
+          "path": "antlr4-maven-plugin/src/main/java/org/antlr/mojo/antlr4/Antlr4Mojo.java",
+          "pattern_id": "java_prefix_suffix",
+          "repo": "antlr4",
+          "snippet": "if ( fileName.endsWith(CodeGenerator.VOCAB_FILE_EXTENSION) ) {",
+          "split": "dev"
+        }
+      ],
+      "scope": "all-language",
+      "title": "String prefix/suffix predicates"
+    },
+    {
+      "breadth": {
+        "dev_breadth": 0.6364,
         "dev_presence": 42,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.6596,
+        "heldout_breadth": 0.5741,
         "heldout_presence": 31,
-        "primary_language_breadth": 1.0,
+        "primary_language_breadth": 0.875,
         "primary_language_presence": 7,
         "primary_languages": [
           "C",
@@ -658,8 +662,8 @@
           "Rust",
           "TypeScript"
         ],
-        "raw_occurrences": 4319,
-        "repo_breadth": 0.6952,
+        "raw_occurrences": 4334,
+        "repo_breadth": 0.6083,
         "repo_presence": 73,
         "source_language_breadth": 0.875,
         "source_language_presence": 7,
@@ -729,66 +733,66 @@
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 57,
-          "path": "runtime/Python3/src/antlr4/Recognizer.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 1010,
+          "path": "runtime/Go/antlr/v4/parser_atn_simulator.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "result = self.tokenTypeMapCache.get(tokenNames, None)",
+          "snippet": "if _, ok := visited[currConfig]; ok {",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 73,
-          "path": "runtime/Python3/src/antlr4/Recognizer.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 550,
+          "path": "runtime/Go/antlr/v4/tokenstream_rewriter.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "result = self.ruleIndexMapCache.get(ruleNames, None)",
+          "snippet": "if iop, ok := rewrites[j].(*InsertBeforeOp); ok {",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 80,
-          "path": "runtime/Python3/src/antlr4/Recognizer.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 568,
+          "path": "runtime/Go/antlr/v4/tokenstream_rewriter.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "ttype = self.getTokenTypeMap().get(tokenName, None)",
+          "snippet": "if prevop, ok := rewrites[j].(*ReplaceOp); ok {",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 263,
-          "path": "runtime/Python3/src/antlr4/Parser.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 595,
+          "path": "runtime/Go/antlr/v4/tokenstream_rewriter.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "result = self.bypassAltsAtnCache.get(serializedAtn, None)",
+          "snippet": "_, iok := rewrites[i].(*InsertBeforeOp)",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 522,
-          "path": "runtime/Python3/src/antlr4/Parser.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 596,
+          "path": "runtime/Go/antlr/v4/tokenstream_rewriter.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "ruleIndex = self.getRuleIndexMap().get(ruleName, None)",
+          "snippet": "_, aok := rewrites[i].(*InsertAfterOp)",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 95,
-          "path": "runtime/Python3/src/antlr4/PredictionContext.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 604,
+          "path": "runtime/Go/antlr/v4/tokenstream_rewriter.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "existing = self.cache.get(ctx, None)",
+          "snippet": "if nextIop, ok := rewrites[j].(*InsertAfterOp); ok {",
           "split": "dev"
         },
         {
-          "language": "python",
-          "line": 102,
-          "path": "runtime/Python3/src/antlr4/PredictionContext.py",
-          "pattern_id": "py_get_default",
+          "language": "go",
+          "line": 610,
+          "path": "runtime/Go/antlr/v4/tokenstream_rewriter.go",
+          "pattern_id": "go_map_lookup_ok",
           "repo": "antlr4",
-          "snippet": "return self.cache.get(ctx, None)",
+          "snippet": "if prevIop, ok := rewrites[j].(*InsertBeforeOp); ok {",
           "split": "dev"
         }
       ],
@@ -797,13 +801,13 @@
     },
     {
       "breadth": {
-        "dev_breadth": 0.2414,
+        "dev_breadth": 0.2121,
         "dev_presence": 14,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.2553,
+        "heldout_breadth": 0.2222,
         "heldout_presence": 12,
-        "primary_language_breadth": 1.0,
+        "primary_language_breadth": 0.875,
         "primary_language_presence": 7,
         "primary_languages": [
           "C",
@@ -815,7 +819,7 @@
           "TypeScript"
         ],
         "raw_occurrences": 161,
-        "repo_breadth": 0.2476,
+        "repo_breadth": 0.2167,
         "repo_presence": 26,
         "source_language_breadth": 1.0,
         "source_language_presence": 8,
@@ -833,7 +837,7 @@
       "candidate_id": "numeric_clamp",
       "curated": {
         "implementation_cost": "medium",
-        "rationale": "A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean). The first proof-backed min/max slice has landed; real-corpus bound proof and surface bridges remain.",
+        "rationale": "A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean). Proof-backed min/max plus controlled two-comparison/library bridge surfaces have landed; real-corpus bound-order proof remains.",
         "soundness_risk": "medium",
         "substrate_required": "none"
       },
@@ -878,20 +882,20 @@
       "samples": [
         {
           "language": "rust",
-          "line": 166,
-          "path": "alacritty_terminal/src/grid/mod.rs",
-          "pattern_id": "rust_clamp_nested",
-          "repo": "alacritty",
-          "snippet": "min(max((self.display_offset as i32) + count, 0) as usize, self.history_size())",
-          "split": "dev"
-        },
-        {
-          "language": "rust",
           "line": 604,
           "path": "alacritty/src/config/ui_config.rs",
           "pattern_id": "rust_clamp_method",
           "repo": "alacritty",
           "snippet": "Percentage(value.clamp(0., 1.))",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 130,
+          "path": "alacritty/src/display/damage.rs",
+          "pattern_id": "rust_clamp_method",
+          "repo": "alacritty",
+          "snippet": "let end = (selection.end.line.0 + display_offset).clamp(0, last_visible_line) as usize;",
           "split": "dev"
         },
         {
@@ -914,11 +918,11 @@
         },
         {
           "language": "rust",
-          "line": 130,
-          "path": "alacritty/src/display/damage.rs",
-          "pattern_id": "rust_clamp_method",
+          "line": 166,
+          "path": "alacritty_terminal/src/grid/mod.rs",
+          "pattern_id": "rust_clamp_nested",
           "repo": "alacritty",
-          "snippet": "let end = (selection.end.line.0 + display_offset).clamp(0, last_visible_line) as usize;",
+          "snippet": "min(max((self.display_offset as i32) + count, 0) as usize, self.history_size())",
           "split": "dev"
         },
         {
@@ -954,25 +958,26 @@
     },
     {
       "breadth": {
-        "dev_breadth": 0.2586,
-        "dev_presence": 15,
+        "dev_breadth": 0.2424,
+        "dev_presence": 16,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.1702,
-        "heldout_presence": 8,
-        "primary_language_breadth": 0.8571,
-        "primary_language_presence": 6,
+        "heldout_breadth": 0.1852,
+        "heldout_presence": 10,
+        "primary_language_breadth": 0.875,
+        "primary_language_presence": 7,
         "primary_languages": [
           "C",
           "Go",
           "Java",
           "Ruby",
           "Rust",
+          "Swift",
           "TypeScript"
         ],
-        "raw_occurrences": 764,
-        "repo_breadth": 0.219,
-        "repo_presence": 23,
+        "raw_occurrences": 819,
+        "repo_breadth": 0.2167,
+        "repo_presence": 26,
         "source_language_breadth": 0.25,
         "source_language_presence": 2,
         "source_languages": [
@@ -1000,6 +1005,7 @@
       "recommendation_category": "language-family",
       "routing": {
         "issue_37_subset_repos": [
+          "alamofire",
           "axios",
           "bat",
           "date-fns",
@@ -1010,31 +1016,12 @@
           "graphhopper",
           "hugo",
           "jekyll",
-          "jest",
-          "ky"
+          "jest"
         ],
         "issue_43_substrate_target": false,
         "issue_45_product_noise": false
       },
       "samples": [
-        {
-          "language": "javascript",
-          "line": 723,
-          "path": "lib/utils.js",
-          "pattern_id": "js_own_property",
-          "repo": "axios",
-          "snippet": "if ('writable' in descriptor) {",
-          "split": "dev"
-        },
-        {
-          "language": "javascript",
-          "line": 800,
-          "path": "lib/utils.js",
-          "pattern_id": "js_own_property",
-          "repo": "axios",
-          "snippet": "if (!('toJSON' in source)) {",
-          "split": "dev"
-        },
         {
           "language": "javascript",
           "line": 348,
@@ -1082,11 +1069,29 @@
         },
         {
           "language": "javascript",
-          "line": 71,
-          "path": "tests/unit/prototypePollution.test.js",
+          "line": 723,
+          "path": "lib/utils.js",
           "pattern_id": "js_own_property",
           "repo": "axios",
-          "snippet": "assert.strictEqual(result.hasOwnProperty('__proto__'), false);",
+          "snippet": "if ('writable' in descriptor) {",
+          "split": "dev"
+        },
+        {
+          "language": "javascript",
+          "line": 800,
+          "path": "lib/utils.js",
+          "pattern_id": "js_own_property",
+          "repo": "axios",
+          "snippet": "if (!('toJSON' in source)) {",
+          "split": "dev"
+        },
+        {
+          "language": "javascript",
+          "line": 89,
+          "path": "tests/browser/headers.browser.test.js",
+          "pattern_id": "js_own_property",
+          "repo": "axios",
+          "snippet": "expect(Object.prototype.hasOwnProperty.call(headers, key)).toBe(false);",
           "split": "dev"
         }
       ],
@@ -1095,25 +1100,26 @@
     },
     {
       "breadth": {
-        "dev_breadth": 0.2069,
-        "dev_presence": 12,
+        "dev_breadth": 0.197,
+        "dev_presence": 13,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.1489,
-        "heldout_presence": 7,
-        "primary_language_breadth": 0.8571,
-        "primary_language_presence": 6,
+        "heldout_breadth": 0.1667,
+        "heldout_presence": 9,
+        "primary_language_breadth": 0.875,
+        "primary_language_presence": 7,
         "primary_languages": [
           "C",
           "Go",
           "Java",
           "Ruby",
           "Rust",
+          "Swift",
           "TypeScript"
         ],
-        "raw_occurrences": 435,
-        "repo_breadth": 0.181,
-        "repo_presence": 19,
+        "raw_occurrences": 450,
+        "repo_breadth": 0.1833,
+        "repo_presence": 22,
         "source_language_breadth": 0.25,
         "source_language_presence": 2,
         "source_languages": [
@@ -1141,6 +1147,7 @@
       "recommendation_category": "language-family",
       "routing": {
         "issue_37_subset_repos": [
+          "alamofire",
           "axios",
           "bat",
           "date-fns",
@@ -1151,22 +1158,12 @@
           "jekyll",
           "jest",
           "ky",
-          "marked",
-          "netty"
+          "marked"
         ],
         "issue_43_substrate_target": false,
         "issue_45_product_noise": false
       },
       "samples": [
-        {
-          "language": "javascript",
-          "line": 162,
-          "path": "lib/core/Axios.js",
-          "pattern_id": "js_typeof_property",
-          "repo": "axios",
-          "snippet": "if (typeof interceptor.runWhen === 'function' && interceptor.runWhen(config) === false) {",
-          "split": "dev"
-        },
         {
           "language": "javascript",
           "line": 458,
@@ -1183,6 +1180,15 @@
           "pattern_id": "js_typeof_property",
           "repo": "axios",
           "snippet": "} else if (typeof responseData.size === 'number') {",
+          "split": "dev"
+        },
+        {
+          "language": "javascript",
+          "line": 162,
+          "path": "lib/core/Axios.js",
+          "pattern_id": "js_typeof_property",
+          "repo": "axios",
+          "snippet": "if (typeof interceptor.runWhen === 'function' && interceptor.runWhen(config) === false) {",
           "split": "dev"
         },
         {
@@ -1205,29 +1211,29 @@
         },
         {
           "language": "javascript",
+          "line": 40,
+          "path": "tests/browser/interceptors.browser.test.js",
+          "pattern_id": "js_typeof_property",
+          "repo": "axios",
+          "snippet": "if (typeof this.responseHeaders === 'string') {",
+          "split": "dev"
+        },
+        {
+          "language": "javascript",
+          "line": 19,
+          "path": "tests/module/cjs/tests/helpers/fixture.cjs",
+          "pattern_id": "js_typeof_property",
+          "repo": "axios",
+          "snippet": "if (typeof fs.rmSync === 'function') {",
+          "split": "dev"
+        },
+        {
+          "language": "javascript",
           "line": 128,
           "path": "tests/setup/server.js",
           "pattern_id": "js_typeof_property",
           "repo": "axios",
           "snippet": "if (typeof server.closeAllConnections === 'function') {",
-          "split": "dev"
-        },
-        {
-          "language": "javascript",
-          "line": 131,
-          "path": "tests/setup/server.js",
-          "pattern_id": "js_typeof_property",
-          "repo": "axios",
-          "snippet": "if (typeof server.closeAllSessions === 'function') {",
-          "split": "dev"
-        },
-        {
-          "language": "javascript",
-          "line": 154,
-          "path": "tests/setup/server.js",
-          "pattern_id": "js_typeof_property",
-          "repo": "axios",
-          "snippet": "if (typeof req.resume === 'function') req.resume();",
           "split": "dev"
         }
       ],
@@ -1236,19 +1242,19 @@
     },
     {
       "breadth": {
-        "dev_breadth": 0.1379,
+        "dev_breadth": 0.1212,
         "dev_presence": 8,
         "gap_repo_presence": 0,
         "generalization": "both-splits",
-        "heldout_breadth": 0.1489,
+        "heldout_breadth": 0.1296,
         "heldout_presence": 7,
-        "primary_language_breadth": 0.1429,
+        "primary_language_breadth": 0.125,
         "primary_language_presence": 1,
         "primary_languages": [
           "Rust"
         ],
         "raw_occurrences": 425,
-        "repo_breadth": 0.1429,
+        "repo_breadth": 0.125,
         "repo_presence": 15,
         "source_language_breadth": 0.125,
         "source_language_presence": 1,
@@ -1295,74 +1301,74 @@
       "samples": [
         {
           "language": "rust",
-          "line": 2474,
-          "path": "alacritty_terminal/src/term/mod.rs",
+          "line": 75,
+          "path": "alacritty/src/display/bell.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": ".max()",
+          "snippet": "let time = (elapsed_f / duration_f).min(1.0);",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 271,
-          "path": "alacritty/src/window_context.rs",
+          "line": 25,
+          "path": "alacritty/src/display/cursor.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "if (old_config.cursor.thickness() - self.config.cursor.thickness()).abs() > f32::EPSILON {",
+          "snippet": "let thickness = (thickness * width).round().max(1.);",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 1747,
-          "path": "alacritty/src/event.rs",
+          "line": 124,
+          "path": "alacritty/src/display/damage.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "let font_delta = (delta.abs() / FONT_SIZE_STEP).floor() * FONT_SIZE_STEP * delta.signum();",
+          "snippet": "|| selection.start.line.0.abs() < display_offset - last_visible_line",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 98,
-          "path": "alacritty/src/renderer/rects.rs",
+          "line": 239,
+          "path": "alacritty/src/display/damage.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "Flags::UNDERCURL => (metrics.descent, metrics.descent.abs(), RectKind::Undercurl),",
+          "snippet": "rect.x = (rect.x - size_info.cell_width() as i32).max(0);",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 104,
-          "path": "alacritty/src/renderer/rects.rs",
+          "line": 241,
+          "path": "alacritty/src/display/damage.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "(metrics.descent, metrics.descent.abs(), RectKind::DottedUnderline)",
+          "snippet": "(size_info.width() as i32 - rect.x).max(0),",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 136,
-          "path": "alacritty/src/renderer/rects.rs",
+          "line": 244,
+          "path": "alacritty/src/display/damage.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "thickness = thickness.max(1.);",
+          "snippet": "rect.y = (rect.y - size_info.cell_height() as i32 / 2).max(0);",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 465,
-          "path": "alacritty/src/renderer/rects.rs",
+          "line": 246,
+          "path": "alacritty/src/display/damage.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "let position = (0.5 * metrics.descent).abs();",
+          "snippet": "(size_info.height() as i32 - rect.y).max(0),",
           "split": "dev"
         },
         {
           "language": "rust",
-          "line": 466,
-          "path": "alacritty/src/renderer/rects.rs",
+          "line": 277,
+          "path": "alacritty/src/display/hint.rs",
           "pattern_id": "rust_numeric_method",
           "repo": "alacritty",
-          "snippet": "let underline_position = metrics.descent.abs() - metrics.underline_position.abs();",
+          "snippet": "let split_point = ((alphabet.len() - 1) as f32 * split_ratio.min(1.)) as usize;",
           "split": "dev"
         }
       ],
@@ -1374,10 +1380,10 @@
     "build_ref": null,
     "candidate_signature": "86f9f9b8fae022499af23274e5f248d0eed707d916d6fd1ade6ae7a0aa773a35",
     "corpus": {
-      "commit_digest": "278b5b6b7c2e0a9af51383615488b71473161a5721c7d510bd7c212da06078a0",
+      "commit_digest": "2bf0b8c147be66b73439013ab275053b96640c21b20c48ff1e4dc8ef209cef15",
       "corpus_path": "bench/goldens/corpus.json",
       "corpus_schema_version": "0.1.0",
-      "repo_count": 105
+      "repo_count": 120
     },
     "corpus_primary_languages": [
       "C",
@@ -1386,6 +1392,7 @@
       "Python",
       "Ruby",
       "Rust",
+      "Swift",
       "TypeScript"
     ],
     "corpus_source_languages": [
@@ -1402,8 +1409,8 @@
     "nose_binary": null,
     "schema_version": 1,
     "split_totals": {
-      "dev": 58,
-      "heldout": 47
+      "dev": 66,
+      "heldout": 54
     },
     "tool_version": "frontier-platform/1",
     "union_axes": [
@@ -1417,7 +1424,7 @@
       "property_type_guard",
       "string_prefix_suffix"
     ],
-    "union_signature": "35fa3e15355ae0691ad39f36815c680b6161caea7ff81a750a899574dd5cc598"
+    "union_signature": "90ea2da63d26f788af8f54728b0cbcdeba5c0c6ee9ba687f4aded2710e3dcea5"
   },
   "primary_languages": [
     "C",
@@ -1426,6 +1433,7 @@
     "Python",
     "Ruby",
     "Rust",
+    "Swift",
     "TypeScript"
   ],
   "schema_version": 1,

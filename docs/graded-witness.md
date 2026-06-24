@@ -1,18 +1,21 @@
 # Graded equivalence witness
 
 The exact `semantic` channel proves two units compute the same thing — *equal
-fingerprint ⟹ equal behavior* ([design §1](design.md)). The `near` channel only
-scores similarity. The **graded witness** bridges them: for a near family it computes
-the *least general generalization* (anti-unification) of its two representative copies'
-value DAGs and reports them as **equal except at *k* holes**, each hole carrying the
-specific value that differs. It turns a bare `0.86` into a machine-checkable,
+fingerprint ⟹ equal behavior* ([design §1](design.md)). The `near` and shared-core
+channels can still need explanation. The **graded witness** bridges that gap: for an
+enriched same-language near/shared-core family it computes the *least general
+generalization* (anti-unification) of representative copies' value DAGs and reports
+them as **equal except at *k* holes**, each hole carrying the specific value that
+differs. It turns a bare `0.86` or a shared-sub-DAG anchor into a machine-checkable,
 actionable statement — the lever for [consumer 1](design.md) (the calling agent reads
 *what* differs instead of re-deriving it) and a graded surface for the
 [review](divergent-edits.md) gate.
 
 This is the productized outcome of the #315 investigation; the
-[architecture](architecture.md) pipeline (step 5, scoring) emits it, and it surfaces in
-[scan JSON](scan-json.md) under `witness.graded`.
+[architecture](architecture.md) pipeline (step 5, scoring) emits it where a presentation
+surface asks for the enrichment. `nose query` exposes it as `graded` on family JSON when
+the query filters or groups by `spotclass`; scan-family witnesses use the same schema
+under `witness.graded` when enriched.
 
 ## What it computes
 
@@ -100,9 +103,12 @@ not folded into nose's deterministic order on a neutral signal.
 
 ## Scope and limits
 
-- **Same-language near families only.** Cross-language copies share no value-DAG
-  structure by construction; the witness is absent for them, as it is for sub-function
-  fragments and pathological (generated/minified) files.
+- **Same-language near/shared-core families only.** Cross-language copies share no
+  value-DAG structure by construction; the witness is absent for them, as it is for
+  sub-function fragments and pathological (generated/minified) files. Multi-member
+  shared-core families keep the historical first representative pair unless another
+  sampled pair exposes the specific async/sync `async-mirror` transformation that would
+  otherwise be hidden by a decoy member.
 - **The unit body, plus decorators by source — not the full signature.** The witness
   compares the two units' *value graphs* (the modeled body), augmented by the
   source-level decorator/attribute check above. What it does not model is the parameter

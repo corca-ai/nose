@@ -101,9 +101,10 @@ pub(super) fn family_existing_helper(f: &nose_detect::RefactorFamily) -> Option<
 }
 
 /// The aggregate value-class of a near family's varying spots, from the #315 graded witness:
-/// `leaf-only` (every hole is a clean value-leaf — a parameterize/extract candidate) vs
-/// `structural` (at least one hole is a shape/arity/unmodeled/decorator divergence, or a
-/// referent mismatch — genuinely different logic, not just parameters). `None` until the
+/// `leaf-only` (every hole is a clean value-leaf and the witness remains equal modulo
+/// those holes — a parameterize/extract candidate) vs `structural` (a demoted witness,
+/// shape/arity/unmodeled/decorator divergence, or referent mismatch — genuinely
+/// different logic, not just parameters). `None` until the
 /// graded witness is attached (near families only, and only when the query asks for it —
 /// the enrichment is the dominant cost, so `query` runs it on demand; see `run_query_cmd`).
 pub(super) fn family_spotclass(f: &nose_detect::RefactorFamily) -> Option<&'static str> {
@@ -114,7 +115,10 @@ pub(super) fn family_spotclass(f: &nose_detect::RefactorFamily) -> Option<&'stat
             "arity" | "shape" | "unmodeled" | "extra-sink" | "decorator"
         )
     };
-    if !g.referent_mismatches.is_empty() || g.spots.iter().any(|s| is_structural(s.class)) {
+    if !g.equal_modulo_holes
+        || !g.referent_mismatches.is_empty()
+        || g.spots.iter().any(|s| is_structural(s.class))
+    {
         Some("structural")
     } else {
         Some("leaf-only")
@@ -355,6 +359,9 @@ pub(super) fn query_family_json_with_counts(
     // rather than emitted as a misleading null (#374 item 2).
     if let Some(sc) = family_spotclass(f) {
         obj["spotclass"] = serde_json::Value::from(sc);
+    }
+    if let Some(graded) = f.witness.as_ref().and_then(|w| w.graded.as_ref()) {
+        obj["graded"] = serde_json::to_value(graded).expect("graded witness is JSON serializable");
     }
     if full {
         if let Some(skeleton) = family_skeleton(f) {

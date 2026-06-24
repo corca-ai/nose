@@ -7,6 +7,9 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added query JSON `graded` evidence for on-demand `spotclass` enrichment, including
+  same-language shared-core (`subdag`) families that expose async/sync `async-mirror`
+  transformations.
 - Added the builtin Java Guava immutable collection factory pack for
   `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of`, with exact
   `com.google.common.collect` import-backed provenance and hard-negative
@@ -15,6 +18,12 @@ break.
   `ImmutableMap.of` arities.
 
 ### Changed
+- Tightened `spotclass=leaf-only` to require `graded.equal_modulo_holes=true`, so
+  demoted witnesses such as async/sync transformation twins classify as `structural`
+  instead of clean parameterization candidates.
+- Narrowed the numeric clamp frontier packet: controlled two-comparison and library
+  bridge surfaces are now recorded as covered, leaving real-corpus bound-order proof
+  as the remaining blocker.
 - Strengthened clamp min/max proof so branch-local positive bound-order guards
   can prove the safe `lo <= hi` path while keeping the inverse guard scoped.
 

@@ -92,7 +92,7 @@ EXTRA_CURATED: dict[str, dict] = {
         "rationale": "A value-graph clamp canonicalization over already-proven scalar "
         "min/max facts; lo<=hi precondition and float NaN are the soundness boundaries "
         "(machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean). "
-        "The first proof-backed min/max slice has landed; real-corpus bound proof and "
-        "surface bridges remain.",
+        "Proof-backed min/max plus controlled two-comparison/library bridge surfaces have "
+        "landed; real-corpus bound-order proof remains.",
     },
 }

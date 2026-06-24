@@ -108,22 +108,59 @@ fn query_second_path_suggests_explicit_roots() {
 }
 
 #[test]
+fn query_json_grades_async_mirror_shared_core_families() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../bench/type4/fixtures/async_sync/async_sync");
+
+    let json = query_json(&run(&[
+        "query",
+        fixture.to_str().unwrap(),
+        "all",
+        "spotclass=structural",
+        "--mode",
+        "near",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+    ]));
+    let families = json["families"]
+        .as_array()
+        .expect("query JSON should carry a families array");
+    let async_mirror_subdag = families
+        .iter()
+        .filter(|family| {
+            family["witness"] == "subdag"
+                && family["spotclass"] == "structural"
+                && family["graded"]["equal_modulo_holes"] == false
+                && json_array_strings(&family["graded"], "patterns").contains(&"async-mirror")
+        })
+        .count();
+    assert_eq!(
+        async_mirror_subdag, 5,
+        "all shared-core async/sync fixture families should carry async-mirror evidence: {json}"
+    );
+}
+
+#[test]
 #[allow(clippy::too_many_lines, clippy::cognitive_complexity)] // one end-to-end walk of the query surface
 fn query_dashboard_filter_and_family() {
-    // A sizeable 3-copy near family (one operator each) survives the default size floor.
+    // A sizeable 3-copy near family (one call target each) survives the default size floor.
     let dir = std::env::temp_dir().join(format!("nose_query_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     for d in ["a", "b", "c"] {
         fs::create_dir_all(dir.join(d)).unwrap();
     }
-    let mk = |op: &str| {
+    let mk = |combine: &str| {
         format!(
-            "def process(items):\n    total = 0\n    count = 0\n    best = None\n    for it in items:\n        v = it.value\n        total = total {op} v\n        count = count + 1\n        if best is None or v > best:\n            best = v\n    avg = total / count\n    return total, count, best, avg\n"
+            "def process(items):\n    total = 0\n    count = 0\n    best = None\n    for it in items:\n        v = it.value\n        total = {combine}(total, v)\n        count = count + 1\n        if best is None or v > best:\n            best = v\n    avg = total / count\n    return total, count, best, avg\n"
         )
     };
-    fs::write(dir.join("a/m.py"), mk("+")).unwrap();
-    fs::write(dir.join("b/m.py"), mk("*")).unwrap();
-    fs::write(dir.join("c/m.py"), mk("-")).unwrap();
+    fs::write(dir.join("a/m.py"), mk("adjust")).unwrap();
+    fs::write(dir.join("b/m.py"), mk("scale")).unwrap();
+    fs::write(dir.join("c/m.py"), mk("offset")).unwrap();
     let p = dir.to_str().unwrap();
 
     // Dashboard: self-describing, with a real candidate carrying a runnable drill link.
@@ -191,19 +228,24 @@ fn query_dashboard_filter_and_family() {
     // includes `similar` keeps it and one that excludes it drops it — and a typo in any
     // comma-part errors (never silently narrows the set).
     assert!(
-        run(&["query", p, "witness=exact,similar"]).contains(&format!("nose query {p} id=")),
+        run(&["query", p, "witness=exact,similar", "--mode", "near"])
+            .contains(&format!("nose query {p} id=")),
         "witness=exact,similar matches the similar fixture (OR)"
     );
-    let none = run(&["query", p, "witness=exact,copy-paste"]);
+    let none = run(&["query", p, "witness=exact,copy-paste", "--mode", "near"]);
     assert!(
         none.contains("0 families") || !none.contains(&format!("nose query {p} id=")),
         "a set without `similar` excludes the only family"
     );
     assert!(
-        run(&["query", p, "witness!=exact,copy-paste"]).contains(&format!("nose query {p} id=")),
+        run(&["query", p, "witness!=exact,copy-paste", "--mode", "near"])
+            .contains(&format!("nose query {p} id=")),
         "witness!=<set> keeps a family outside the set"
     );
-    assert!(run_fail(&["query", p, "witness=similar,bogus"]).contains("unknown witness value"));
+    assert!(
+        run_fail(&["query", p, "witness=similar,bogus", "--mode", "near"])
+            .contains("unknown witness value")
+    );
 
     // `at=FILE:LINE` opens the family whose copy covers that location; a miss errors loudly.
     let at = run(&["query", p, &format!("at={p}/a/m.py:3")]);
@@ -218,14 +260,18 @@ fn query_dashboard_filter_and_family() {
 
     // same_symbol: the three `process` copies share a name → the parallel-variant signal.
     assert!(
-        run(&["query", p, "same_symbol=true"]).contains(&format!("nose query {p} id=")),
+        run(&["query", p, "same_symbol=true", "--mode", "near"])
+            .contains(&format!("nose query {p} id=")),
         "same_symbol=true matches the same-named family"
     );
     assert!(
-        run(&["query", p, "group=same_symbol"]).contains("by same_symbol"),
+        run(&["query", p, "group=same_symbol", "--mode", "near"]).contains("by same_symbol"),
         "group=same_symbol facets"
     );
-    assert!(run_fail(&["query", p, "same_symbol=oops"]).contains("unknown same_symbol value"));
+    assert!(
+        run_fail(&["query", p, "same_symbol=oops", "--mode", "near"])
+            .contains("unknown same_symbol value")
+    );
 
     // query takes query's analysis flags (dataset parity): `--min-members 99` floors out the
     // 3-copy family, and `--mode syntax` is accepted (different channel mix).
@@ -315,17 +361,19 @@ fn query_dashboard_filter_and_family() {
         "id=…full json carries skeleton: {opened}"
     );
 
-    // spotclass (#374 item 2): the near family's only varying spot is the operator — a clean
+    // spotclass (#374 item 2): the near family's only varying spot is a call target — a clean
     // value-leaf — so it grades `leaf-only`. Grouping/filtering by spotclass triggers the
     // on-demand graded-witness enrichment (skipped on the common path for cost).
     assert!(
-        run(&["query", p, "group=spotclass"]).contains("by spotclass"),
+        run(&["query", p, "group=spotclass", "--mode", "near"]).contains("by spotclass"),
         "group=spotclass facets the near families"
     );
     let leaf: serde_json::Value = serde_json::from_str(&run(&[
         "query",
         p,
         "spotclass=leaf-only",
+        "--mode",
+        "near",
         "--format",
         "json",
     ]))

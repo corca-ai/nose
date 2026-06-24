@@ -85,9 +85,10 @@ nose query --root <path> --root <path> [FILTER … | group=FIELD | id=FAM | at=F
 Fields: `scope` (prod\|test\|mixed), `witness` (exact\|shared-core\|copy-paste\|similar —
 `shared-core` is spelled `subdag` in `--format json`; both are accepted as filter values),
 `same_symbol` (true\|false — every copy is the same named symbol, the parallel-variant
-signature), `spotclass` (leaf-only\|structural — for near families, whether the varying spots
-are clean value-leaves to parameterize or genuine logic divergence; non-near families group
-as `unwitnessed` under `group=spotclass`, which is not itself a filterable value), `status`
+signature), `spotclass` (leaf-only\|structural — for enriched same-language near/shared-core
+families, whether the witness is clean equal-modulo-value-leaves or demoted by structural,
+referent, or async/sync transformation evidence; unenriched/non-near families group as
+`unwitnessed` under `group=spotclass`, which is not itself a filterable value), `status`
 (new\|changed\|unchanged — vs the `since=` snapshot), `lang`, `path`, `dir`,
 `members`, `files`, `value`, `params`, `lines` (mean source-line span), `shared`
 (invariant lines), `dup` (duplicated-line volume). Every row shows the payoff economics —
@@ -100,7 +101,7 @@ redirection operator.
 `spotclass` reads the [graded witness](graded-witness.md), which is presentation-layer
 enrichment (the dominant extra analysis cost), so `query` computes it **on demand** — only when a term
 filters or groups by `spotclass`. The common query path pays nothing; a `spotclass=` /
-`group=spotclass` query re-derives the witness for the near families first.
+`group=spotclass` query re-derives the witness for same-language near/shared-core families first.
 
 A typical loop: `nose query .` → `nose query . witness=exact` → `nose query . id=<id> full`.
 

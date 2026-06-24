@@ -15,14 +15,25 @@ def abs_path(base: Path, rel: str) -> str:
     return str((base / rel).resolve())
 
 
+def loc_bounds(loc: dict) -> tuple[int, int]:
+    start = loc.get("start_line", loc.get("start"))
+    end = loc.get("end_line", loc.get("end"))
+    if start is None or end is None:
+        raise KeyError(f"location is missing start/end lines: {loc}")
+    return int(start), int(end)
+
+
 def build_family_index(families: list[dict]) -> dict[str, list[tuple[int, int, int]]]:
     by_file: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
     for family_id, family in enumerate(families):
         for loc in family.get("locations", []):
             if loc.get("kind") == "Block":
                 continue
+            if loc.get("name") is None:
+                continue
+            start, end = loc_bounds(loc)
             by_file[str(Path(loc["file"]).resolve())].append(
-                (loc["start_line"], loc["end_line"], family_id)
+                (start, end, family_id)
             )
     return by_file
 

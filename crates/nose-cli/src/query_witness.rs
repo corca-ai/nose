@@ -1,22 +1,27 @@
 use crate::legacy_prelude::*;
+use std::collections::HashMap;
+
+const GRADED_REP_MEMBER_LIMIT: usize = 8;
 
 pub(crate) fn enrich_graded_witnesses(
     families: &mut [nose_detect::RefactorFamily],
     opts: &nose_detect::DetectOptions,
 ) {
-    use std::collections::HashMap;
-    let is_near = |f: &nose_detect::RefactorFamily| {
+    let is_enrichable = |f: &nose_detect::RefactorFamily| {
         f.languages == 1
             && f.locations.len() >= 2
-            && f.witness.as_ref().map(|w| w.kind) == Some("structural-similarity")
+            && matches!(
+                f.witness.as_ref().map(|w| w.kind),
+                Some("structural-similarity" | "shared-sub-dag")
+            )
     };
-    if !families.iter().any(is_near) {
+    if !families.iter().any(is_enrichable) {
         return;
     }
     // The representative spans needed, grouped by source file.
     let mut wanted: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
-    for f in families.iter().filter(|f| is_near(f)) {
-        for loc in [&f.locations[0], &f.locations[1]] {
+    for f in families.iter().filter(|f| is_enrichable(f)) {
+        for loc in f.locations.iter().take(GRADED_REP_MEMBER_LIMIT) {
             wanted
                 .entry(loc.file.clone())
                 .or_default()
@@ -48,26 +53,24 @@ pub(crate) fn enrich_graded_witnesses(
     }
     // Compute and attach each family's witness, filling hole source text.
     let mut lines = FileLineCache::default();
-    for f in families.iter_mut().filter(|f| is_near(f)) {
-        let a_file = f.locations[0].file.clone();
-        let a_lines = (f.locations[0].start_line, f.locations[0].end_line);
-        let b_file = f.locations[1].file.clone();
-        let b_lines = (f.locations[1].start_line, f.locations[1].end_line);
-        let (Some((da, a_exact)), Some((db, b_exact))) = (
-            dags.get(&(a_file.clone(), a_lines)),
-            dags.get(&(b_file.clone(), b_lines)),
-        ) else {
+    for f in families.iter_mut().filter(|f| is_enrichable(f)) {
+        let reps: Vec<(String, (u32, u32))> = f
+            .locations
+            .iter()
+            .take(GRADED_REP_MEMBER_LIMIT)
+            .map(|loc| (loc.file.clone(), (loc.start_line, loc.end_line)))
+            .collect();
+        let Some((mut witness, a_idx, b_idx)) = best_graded_witness(&reps, &dags) else {
             continue;
         };
-        let Some(mut witness) = nose_detect::graded_witness(da, db, !a_exact, !b_exact) else {
-            continue;
-        };
+        let (a_file, a_lines) = (&reps[a_idx].0, reps[a_idx].1);
+        let (b_file, b_lines) = (&reps[b_idx].0, reps[b_idx].1);
         for hole in &mut witness.spots {
             if let Some((s, e)) = hole.a_lines {
-                hole.a_text = witness_spot_text(&mut lines, &a_file, s, e);
+                hole.a_text = witness_spot_text(&mut lines, a_file, s, e);
             }
             if let Some((s, e)) = hole.b_lines {
-                hole.b_text = witness_spot_text(&mut lines, &b_file, s, e);
+                hole.b_text = witness_spot_text(&mut lines, b_file, s, e);
             }
         }
         // Definition-site modifiers (decorators/attributes) are erased at lowering, so
@@ -77,8 +80,8 @@ pub(crate) fn enrich_graded_witnesses(
         // as a hole and demote the claim (fail-closed). Identical decorators leave the
         // witness untouched.
         let lang = f.locations[0].lang.as_str();
-        let a_decos = decorator_lines(&mut lines, lang, &a_file, a_lines.0, a_lines.1);
-        let b_decos = decorator_lines(&mut lines, lang, &b_file, b_lines.0, b_lines.1);
+        let a_decos = decorator_lines(&mut lines, lang, a_file, a_lines.0, a_lines.1);
+        let b_decos = decorator_lines(&mut lines, lang, b_file, b_lines.0, b_lines.1);
         if let Some((a_only, b_only)) = decorator_difference(&a_decos, &b_decos) {
             witness.spots.push(nose_detect::WitnessHole {
                 class: "decorator",
@@ -98,6 +101,41 @@ pub(crate) fn enrich_graded_witnesses(
             w.graded = Some(witness);
         }
     }
+}
+
+fn best_graded_witness(
+    reps: &[(String, (u32, u32))],
+    dags: &HashMap<(String, (u32, u32)), (nose_normalize::ValueDag, bool)>,
+) -> Option<(nose_detect::GradedWitness, usize, usize)> {
+    let mut best: Option<(nose_detect::GradedWitness, usize, usize)> = None;
+    for a_idx in 0..reps.len() {
+        for b_idx in (a_idx + 1)..reps.len() {
+            let (Some((da, a_exact)), Some((db, b_exact))) =
+                (dags.get(&reps[a_idx]), dags.get(&reps[b_idx]))
+            else {
+                continue;
+            };
+            let Some(witness) = nose_detect::graded_witness(da, db, !a_exact, !b_exact) else {
+                continue;
+            };
+            let beats_best = best
+                .as_ref()
+                .map(|(w, _, _)| exposes_async_mirror(&witness) && !exposes_async_mirror(w))
+                .unwrap_or(true);
+            if beats_best {
+                best = Some((witness, a_idx, b_idx));
+            }
+        }
+    }
+    best
+}
+
+fn exposes_async_mirror(w: &nose_detect::GradedWitness) -> bool {
+    // Keep the historical "first representative pair" behavior unless another pair
+    // exposes the specific #516 blind spot: an async/sync transformation hidden inside
+    // a larger shared-core family. Broadly picking the most divergent pair would
+    // reclassify unrelated multi-member near families.
+    w.patterns.contains(&"async-mirror")
 }
 
 /// The line prefix that marks a definition-site modifier in `lang`: `@` for the

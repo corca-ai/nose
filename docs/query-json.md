@@ -111,7 +111,8 @@ proven-shared-logic verdict the gate fires on.
 | `extraction_shape` | the decidable fix shape (`extract-helper`, `call-existing-helper`, …) |
 | `same_symbol` | every copy is the same named symbol (the parallel-variant signal) |
 | `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
-| `spotclass` | (only on enriched near families) `leaf-only` (varying spots are clean value-leaves) \| `structural` (a shape/arity/referent divergence — genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
+| `spotclass` | (only on enriched same-language near/shared-core families) `leaf-only` (varying spots are clean value-leaves and `graded.equal_modulo_holes=true`) \| `structural` (a demoted witness, async/sync transformation, shape/arity/referent divergence, or other genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
+| `graded` | (only when `spotclass` enrichment has run and a witness was computed) the same anti-unification object described by [graded-witness](graded-witness.md): `holes`, `spots[]`, `patterns[]` such as `async-mirror`, `referent_mismatches[]`, `caveat_names[]`, `equal_modulo_holes`, and `modeled_caveat`. This is presentation evidence for near/shared-core families, not an exact-channel proof. |
 | `value_nodes` | (exact families) the size of the shared value multiset proven identical — *how much* is proven, not just that it is |
 | `status` | (only with `since=`) `new` \| `changed` \| `unchanged` against the snapshot — the temporal lens |
 | `baseline_status` | (only with `--baseline`, and only for reported families) `new` \| `changed`; accepted unchanged families are hidden by `--baseline` |
