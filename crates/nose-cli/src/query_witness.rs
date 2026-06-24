@@ -2,6 +2,8 @@ use crate::legacy_prelude::*;
 use std::collections::HashMap;
 
 const GRADED_REP_MEMBER_LIMIT: usize = 8;
+type RepSpan = (String, (u32, u32));
+type DagByRepSpan = HashMap<RepSpan, (nose_normalize::ValueDag, bool)>;
 
 pub(crate) fn enrich_graded_witnesses(
     families: &mut [nose_detect::RefactorFamily],
@@ -29,7 +31,7 @@ pub(crate) fn enrich_graded_witnesses(
         }
     }
     // Lower each needed file once; export the value DAGs of its requested unit spans.
-    let mut dags: HashMap<(String, (u32, u32)), (nose_normalize::ValueDag, bool)> = HashMap::new();
+    let mut dags: DagByRepSpan = HashMap::new();
     for (file, spans) in &wanted {
         let Some(lang) = Lang::from_path(file) else {
             continue;
@@ -54,7 +56,7 @@ pub(crate) fn enrich_graded_witnesses(
     // Compute and attach each family's witness, filling hole source text.
     let mut lines = FileLineCache::default();
     for f in families.iter_mut().filter(|f| is_enrichable(f)) {
-        let reps: Vec<(String, (u32, u32))> = f
+        let reps: Vec<RepSpan> = f
             .locations
             .iter()
             .take(GRADED_REP_MEMBER_LIMIT)
@@ -104,8 +106,8 @@ pub(crate) fn enrich_graded_witnesses(
 }
 
 fn best_graded_witness(
-    reps: &[(String, (u32, u32))],
-    dags: &HashMap<(String, (u32, u32)), (nose_normalize::ValueDag, bool)>,
+    reps: &[RepSpan],
+    dags: &DagByRepSpan,
 ) -> Option<(nose_detect::GradedWitness, usize, usize)> {
     let mut best: Option<(nose_detect::GradedWitness, usize, usize)> = None;
     for a_idx in 0..reps.len() {
