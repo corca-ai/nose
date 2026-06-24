@@ -92,6 +92,14 @@ impl<'a> Builder<'a> {
             ),
             method,
         )?;
+        if matches!(
+            admitted.contract.id,
+            LibraryApiContractId::JavaCollectionFactory(kind)
+                if java_collection_factory_rejects_null_literal(kind)
+        ) && args[1..].iter().any(|&arg| self.value_is_null_const(arg))
+        {
+            return None;
+        }
         // A single argument to a varargs collection factory (`Arrays.asList(x)`,
         // `List.of(x)`, `Set.of(x)`) is ambiguous: when `x` is an array it is spread
         // into the element list, but when `x` is a single object it is the sole
@@ -113,6 +121,16 @@ impl<'a> Builder<'a> {
             return None;
         }
         Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), args[1..].to_vec()))
+    }
+
+    pub(in crate::value_graph) fn value_is_null_const(&self, value: ValueId) -> bool {
+        matches!(
+            self.nodes[value as usize].op,
+            ValOp::Const {
+                kind: ConstKind::Null,
+                ..
+            }
+        )
     }
     pub(in crate::value_graph) fn eval_java_collection_constructor_expr(
         &mut self,

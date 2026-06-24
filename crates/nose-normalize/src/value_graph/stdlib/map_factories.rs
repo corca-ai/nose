@@ -71,7 +71,9 @@ impl<'a> Builder<'a> {
             JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf
         ) {
             let entries = &args[1..];
-            if entries.len() % 2 != 0 {
+            if !java_map_factory_positional_arg_count_supported(kind, entries.len())
+                || !self.java_map_positional_entries_value_safe(kind, entries)
+            {
                 return None;
             }
             let mut canonical_entries = Vec::with_capacity(entries.len() / 2);
@@ -106,7 +108,9 @@ impl<'a> Builder<'a> {
         match kind {
             JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
                 let entries = &kids[1..];
-                if entries.len() % 2 != 0 {
+                if !java_map_factory_positional_arg_count_supported(kind, entries.len())
+                    || !self.java_map_positional_entries_expr_safe(kind, entries)
+                {
                     return None;
                 }
                 let values: Vec<ValueId> = entries.iter().map(|&kid| self.eval(kid, env)).collect();
@@ -124,6 +128,48 @@ impl<'a> Builder<'a> {
                 }
                 Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries))
             }
+        }
+    }
+    fn java_map_positional_entries_value_safe(
+        &self,
+        kind: JavaMapFactoryKind,
+        entries: &[ValueId],
+    ) -> bool {
+        if kind != JavaMapFactoryKind::GuavaImmutableMapOf {
+            return true;
+        }
+        if entries.iter().any(|&arg| self.value_is_null_const(arg)) {
+            return false;
+        }
+        let mut seen = FxHashSet::default();
+        for key in entries.iter().step_by(2).copied() {
+            let Some(key) = self.value_static_literal_key(key) else {
+                continue;
+            };
+            if !seen.insert(key) {
+                return false;
+            }
+        }
+        true
+    }
+    fn java_map_positional_entries_expr_safe(
+        &self,
+        kind: JavaMapFactoryKind,
+        entries: &[NodeId],
+    ) -> bool {
+        if kind != JavaMapFactoryKind::GuavaImmutableMapOf {
+            return true;
+        }
+        !nodes_contain_static_null_literal(self.il, entries.iter().copied())
+            && !nodes_contain_duplicate_static_literal_keys(
+                self.il,
+                entries.iter().step_by(2).copied(),
+            )
+    }
+    fn value_static_literal_key(&self, value: ValueId) -> Option<(ConstKind, u64)> {
+        match self.nodes[value as usize].op {
+            ValOp::Const { kind, bits } if kind != ConstKind::Sentinel => Some((kind, bits)),
+            _ => None,
         }
     }
     fn eval_java_map_entry_pair_expr(

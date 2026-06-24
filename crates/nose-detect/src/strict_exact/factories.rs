@@ -142,9 +142,16 @@ pub(crate) fn strict_exact_java_collection_factory_safe(
     ) {
         return false;
     }
-    il.children(node)
-        .iter()
-        .skip(1)
+    let args = &il.children(node)[1..];
+    if matches!(
+        occurrence.contract.id,
+        LibraryApiContractId::JavaCollectionFactory(kind)
+            if java_collection_factory_rejects_null_literal(kind)
+    ) && nodes_contain_static_null_literal(il, args.iter().copied())
+    {
+        return false;
+    }
+    args.iter()
         .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
 }
 
@@ -191,7 +198,8 @@ pub(crate) fn strict_exact_java_map_factory_safe(
     let args = &il.children(node)[1..];
     match kind {
         JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
-            args.len() % 2 == 0
+            java_map_factory_positional_arg_count_supported(kind, args.len())
+                && strict_exact_java_map_positional_args_safe(il, kind, args)
                 && args
                     .iter()
                     .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
@@ -200,6 +208,18 @@ pub(crate) fn strict_exact_java_map_factory_safe(
             .iter()
             .all(|&entry| strict_exact_java_map_entry_safe(il, interner, facts, entry)),
     }
+}
+
+fn strict_exact_java_map_positional_args_safe(
+    il: &Il,
+    kind: JavaMapFactoryKind,
+    args: &[NodeId],
+) -> bool {
+    if kind != JavaMapFactoryKind::GuavaImmutableMapOf {
+        return true;
+    }
+    !nodes_contain_static_null_literal(il, args.iter().copied())
+        && !nodes_contain_duplicate_static_literal_keys(il, args.iter().step_by(2).copied())
 }
 
 fn strict_exact_java_map_entry_safe(

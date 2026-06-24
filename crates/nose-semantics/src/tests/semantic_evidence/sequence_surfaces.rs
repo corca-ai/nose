@@ -197,6 +197,137 @@ fn imported_literal_export_safety_rejects_import_coordinate_children() {
 }
 
 #[test]
+fn imported_literal_export_safety_rejects_throwing_guava_map_factories() {
+    let valid = [
+        Payload::LitStr(stable_symbol_hash("red")),
+        Payload::LitInt(1),
+        Payload::LitStr(stable_symbol_hash("blue")),
+        Payload::LitInt(2),
+    ];
+    let (il, interner, call) = guava_map_export_il(&valid, 20);
+    assert!(imported_literal_export_safe(&il, &interner, call));
+
+    let duplicate = [
+        Payload::LitStr(stable_symbol_hash("red")),
+        Payload::LitInt(1),
+        Payload::LitStr(stable_symbol_hash("red")),
+        Payload::LitInt(2),
+    ];
+    let (il, interner, call) = guava_map_export_il(&duplicate, 30);
+    assert!(!imported_literal_export_safe(&il, &interner, call));
+
+    let null_key = [
+        Payload::Lit(LitClass::Null),
+        Payload::LitInt(1),
+        Payload::LitStr(stable_symbol_hash("blue")),
+        Payload::LitInt(2),
+    ];
+    let (il, interner, call) = guava_map_export_il(&null_key, 40);
+    assert!(!imported_literal_export_safe(&il, &interner, call));
+
+    let unsupported_arity = eleven_entry_payloads();
+    let (il, interner, call) = guava_map_export_il(&unsupported_arity, 50);
+    assert!(!imported_literal_export_safe(&il, &interner, call));
+}
+
+fn guava_map_export_il(args: &[Payload], base_line: u32) -> (Il, Interner, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let imported = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("ImmutableMap")),
+        sp(base_line),
+        &[],
+    );
+    let import_rhs = b.add(NodeKind::Seq, Payload::None, sp(base_line), &[]);
+    let import = b.add(
+        NodeKind::Assign,
+        Payload::None,
+        sp(base_line),
+        &[imported, import_rhs],
+    );
+    let receiver = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("ImmutableMap")),
+        sp(base_line + 1),
+        &[],
+    );
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("of")),
+        sp(base_line + 2),
+        &[receiver],
+    );
+    let arg_nodes: Vec<_> = args
+        .iter()
+        .enumerate()
+        .map(|(idx, &payload)| b.add(NodeKind::Lit, payload, sp(base_line + 3 + idx as u32), &[]))
+        .collect();
+    let mut children = Vec::with_capacity(arg_nodes.len() + 1);
+    children.push(callee);
+    children.extend(arg_nodes);
+    let call_span = sp(base_line + 3 + args.len() as u32);
+    let call = b.add(NodeKind::Call, Payload::None, call_span, &children);
+    let root = b.add(
+        NodeKind::Block,
+        Payload::None,
+        sp(base_line),
+        &[import, call],
+    );
+    let mut il = finish_il(b, root, Lang::Java);
+    let contract = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of").unwrap();
+    let symbol = SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash("com.google.common.collect"),
+        exported_hash: stable_symbol_hash("ImmutableMap"),
+    };
+    il.evidence.push(language_core_evidence(
+        0,
+        EvidenceAnchor::binding(sp(base_line), stable_symbol_hash("ImmutableMap")),
+        EvidenceKind::Symbol(symbol),
+        EvidenceStatus::Asserted,
+        Lang::Java,
+    ));
+    il.evidence.push(language_core_evidence_with_dependencies(
+        1,
+        EvidenceAnchor::node(sp(base_line + 1), NodeKind::Var),
+        EvidenceKind::Symbol(symbol),
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(0)],
+        Lang::Java,
+    ));
+    let mut api = evidence_with_dependencies(
+        2,
+        EvidenceAnchor::node(call_span, NodeKind::Call),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: args.len() as u16,
+        }),
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(1)],
+    );
+    api.provenance.pack_hash = Some(stable_symbol_hash(
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+    ));
+    api.provenance.rule_hash = Some(stable_symbol_hash(
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+    ));
+    il.evidence.push(api);
+    (il, interner, call)
+}
+
+fn eleven_entry_payloads() -> Vec<Payload> {
+    (0..11)
+        .flat_map(|idx| {
+            [
+                Payload::LitStr(stable_symbol_hash(&format!("k{idx}"))),
+                Payload::LitInt(idx),
+            ]
+        })
+        .collect()
+}
+
+#[test]
 fn go_zero_map_surface_helpers_require_evidence() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));

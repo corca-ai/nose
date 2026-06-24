@@ -5,12 +5,16 @@ use crate::strict_exact::{
     strict_exact_set_constructor_collection_safe, StrictFacts,
 };
 use nose_il::{
-    stable_symbol_hash, EvidenceAnchor, EvidenceId, EvidenceKind, FileId, FileMeta, IlBuilder,
-    ImportEvidenceKind, Interner, Lang, NodeKind, Payload, SequenceSurfaceKind, SymbolEvidenceKind,
+    stable_symbol_hash, EvidenceAnchor, EvidenceId, EvidenceKind, FileId, FileMeta, Il, IlBuilder,
+    ImportEvidenceKind, Interner, Lang, NodeId, NodeKind, Payload, SequenceSurfaceKind, Span,
+    SymbolEvidenceKind,
 };
 use nose_semantics::{
     library_free_name_collection_factory_contract, library_java_collection_factory_contract,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_java_map_factory_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, LibraryApiCalleeContract, LibraryApiContractId,
+    JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+    JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
 };
 
 #[test]
@@ -262,4 +266,208 @@ fn strict_exact_java_map_provider_proof_does_not_replace_receiver_identity() {
     assert!(!strict_exact_java_map_factory_safe(
         &il, &interner, &facts, call
     ));
+}
+
+#[test]
+fn strict_exact_java_guava_collection_factory_rejects_static_null_elements() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let list = interner.intern("ImmutableList");
+    let import = imported_binding_assignment(&mut b, &interner, "ImmutableList", sp(50));
+    let receiver = b.add(NodeKind::Var, Payload::Name(list), sp(51), &[]);
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("of")),
+        sp(52),
+        &[receiver],
+    );
+    let null = b.add(
+        NodeKind::Lit,
+        Payload::Lit(nose_il::LitClass::Null),
+        sp(53),
+        &[],
+    );
+    let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(54), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(55),
+        &[callee, null, value],
+    );
+    let root = b.add(NodeKind::Block, Payload::None, sp(50), &[import, call]);
+    let mut il = finish_java_il(b, root);
+    push_guava_import_symbol(&mut il, "ImmutableList", sp(50), sp(51));
+    let contract = library_java_collection_factory_contract(Lang::Java, "ImmutableList", "of")
+        .expect("ImmutableList.of contract");
+    push_guava_api_evidence(&mut il, 2, sp(55), contract.id, contract.callee, 2);
+
+    let facts = StrictFacts::collect(&il, &interner);
+    assert!(!strict_exact_java_collection_factory_safe(
+        &il, &interner, &facts, call
+    ));
+}
+
+#[test]
+fn strict_exact_java_guava_map_factory_rejects_throwing_or_unsupported_shapes() {
+    let valid = [
+        Payload::LitStr(stable_symbol_hash("red")),
+        Payload::LitInt(1),
+        Payload::LitStr(stable_symbol_hash("blue")),
+        Payload::LitInt(2),
+    ];
+    assert_guava_map_strict_exact(&valid, 60, true);
+
+    let duplicate = [
+        Payload::LitStr(stable_symbol_hash("red")),
+        Payload::LitInt(1),
+        Payload::LitStr(stable_symbol_hash("red")),
+        Payload::LitInt(2),
+    ];
+    assert_guava_map_strict_exact(&duplicate, 70, false);
+
+    let null_key = [
+        Payload::Lit(nose_il::LitClass::Null),
+        Payload::LitInt(1),
+        Payload::LitStr(stable_symbol_hash("blue")),
+        Payload::LitInt(2),
+    ];
+    assert_guava_map_strict_exact(&null_key, 80, false);
+
+    let unsupported_arity = eleven_entry_payloads();
+    assert_guava_map_strict_exact(&unsupported_arity, 90, false);
+}
+
+fn assert_guava_map_strict_exact(args: &[Payload], base_line: u32, expected: bool) {
+    let (il, interner, call) = guava_map_factory_il(args, base_line);
+    let facts = StrictFacts::collect(&il, &interner);
+    assert_eq!(
+        strict_exact_java_map_factory_safe(&il, &interner, &facts, call),
+        expected
+    );
+}
+
+fn guava_map_factory_il(args: &[Payload], base_line: u32) -> (Il, Interner, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let import = imported_binding_assignment(&mut b, &interner, "ImmutableMap", sp(base_line));
+    let receiver = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("ImmutableMap")),
+        sp(base_line + 1),
+        &[],
+    );
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("of")),
+        sp(base_line + 2),
+        &[receiver],
+    );
+    let arg_nodes: Vec<_> = args
+        .iter()
+        .enumerate()
+        .map(|(idx, &payload)| b.add(NodeKind::Lit, payload, sp(base_line + 3 + idx as u32), &[]))
+        .collect();
+    let mut children = Vec::with_capacity(arg_nodes.len() + 1);
+    children.push(callee);
+    children.extend(arg_nodes);
+    let call_span = sp(base_line + 3 + args.len() as u32);
+    let call = b.add(NodeKind::Call, Payload::None, call_span, &children);
+    let root = b.add(
+        NodeKind::Block,
+        Payload::None,
+        sp(base_line),
+        &[import, call],
+    );
+    let mut il = finish_java_il(b, root);
+    push_guava_import_symbol(&mut il, "ImmutableMap", sp(base_line), sp(base_line + 1));
+    let contract = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of")
+        .expect("ImmutableMap.of contract");
+    push_guava_api_evidence(
+        &mut il,
+        2,
+        call_span,
+        contract.id,
+        contract.callee,
+        args.len() as u16,
+    );
+    (il, interner, call)
+}
+
+fn imported_binding_assignment(
+    b: &mut IlBuilder,
+    interner: &Interner,
+    local: &str,
+    span: Span,
+) -> NodeId {
+    let lhs = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern(local)),
+        span,
+        &[],
+    );
+    let rhs = b.add(NodeKind::Seq, Payload::None, span, &[]);
+    b.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+}
+
+fn finish_java_il(builder: IlBuilder, root: NodeId) -> Il {
+    builder.finish(
+        root,
+        FileMeta {
+            path: "t.java".into(),
+            lang: Lang::Java,
+        },
+        Vec::new(),
+        Vec::new(),
+    )
+}
+
+fn push_guava_import_symbol(il: &mut Il, exported: &str, binding_span: Span, receiver_span: Span) {
+    let symbol = SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash("com.google.common.collect"),
+        exported_hash: stable_symbol_hash(exported),
+    };
+    il.evidence.push(language_core_symbol_evidence(
+        0,
+        Lang::Java,
+        EvidenceAnchor::binding(binding_span, stable_symbol_hash(exported)),
+        symbol,
+        Vec::new(),
+    ));
+    il.evidence.push(language_core_symbol_evidence(
+        1,
+        Lang::Java,
+        EvidenceAnchor::node(receiver_span, NodeKind::Var),
+        symbol,
+        vec![EvidenceId(0)],
+    ));
+}
+
+fn push_guava_api_evidence(
+    il: &mut Il,
+    id: u32,
+    span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+) {
+    let mut record =
+        library_api_contract_evidence(id, span, contract_id, callee, arity, vec![EvidenceId(1)]);
+    record.provenance.pack_hash = Some(stable_symbol_hash(
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+    ));
+    record.provenance.rule_hash = Some(stable_symbol_hash(
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+    ));
+    il.evidence.push(record);
+}
+
+fn eleven_entry_payloads() -> Vec<Payload> {
+    (0..11)
+        .flat_map(|idx| {
+            [
+                Payload::LitStr(stable_symbol_hash(&format!("k{idx}"))),
+                Payload::LitInt(idx),
+            ]
+        })
+        .collect()
 }

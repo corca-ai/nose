@@ -56,9 +56,18 @@ proof are still outside this row.
 
 The candidate priced as `priced-ready` in the current
 [`candidate_pricing.v1.json`](../bench/semantic_pack/candidate_pricing.v1.json)
-artifact. The builtin descriptor now records three positive conformance refs and
-three hard negatives: the three `of` factories are open, while `copyOf`,
-missing-import, and wrong-package surfaces stay closed.
+artifact. The current artifact records the implemented builtin-default pack id,
+2,649 `of`-factory corpus occurrences across three Java repositories, and a
+sample product-query overlay where the Guava pack is present in query
+`semantic_packs`. The builtin descriptor records three positive conformance refs
+and four descriptor hard negatives: the three `of` factories are open, while
+`copyOf`, missing-import, wrong-package, and local-shadow surfaces stay closed.
+Runtime drift for the implementation PR was measured on `nose query crates all
+top=0 --mode near --min-value 40 --format json` at +4.7% median against `main`,
+inside the 10% semantic-pack performance gate. Focused unit hard negatives also
+keep static null elements/key-values, duplicate static `ImmutableMap` keys, and
+unsupported `ImmutableMap.of` arities closed before canonicalization, strict
+exact, export snapshots, and result-domain materialization.
 
 Future Guava work must still prove the exact package coordinate, static-import
 path, arity/overload identity, version policy, source/result domain, and

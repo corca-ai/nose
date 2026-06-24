@@ -10,6 +10,8 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 44);
     assert_eq!(json["totals"]["builtin_packs"], 44);
+    assert_eq!(json["totals"]["hard_negatives"], 84);
+    assert_eq!(json["totals"]["conformance_refs"], 219);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -24,6 +26,7 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_go_namespace_pack(packs);
     assert_c_language_pack(packs);
     assert_python_type_domain_pack(packs);
+    assert_guava_pack(packs);
     assert_compat_pack(packs);
 }
 
@@ -99,6 +102,43 @@ fn assert_python_type_domain_pack(packs: &[serde_json::Value]) {
     let python_type_domain = inventory_pack(packs, "nose.python.stdlib.type_domain");
     let aliases = json_array_strings(&python_type_domain["declarations"], "type_domain_aliases");
     assert!(aliases.contains(&"python.stdlib.type-domain-alias.contract:typing.dict:map"));
+}
+
+fn assert_guava_pack(packs: &[serde_json::Value]) {
+    let guava = inventory_pack(
+        packs,
+        "nose.java.ecosystem.guava.immutable_collection_factories",
+    );
+    assert_eq!(guava["kind"], "LibraryPack");
+    assert_eq!(guava["trust"], "builtin-default");
+    assert_eq!(guava["enabled_by_default"], true);
+    assert_eq!(guava["audit"]["exact_capable"], true);
+    assert_eq!(guava["audit"]["coverage_status"], "covered");
+    assert_eq!(
+        json_array_strings(&guava["declarations"], "contracts"),
+        vec![
+            "java.collection_factory.guava_immutable_list_of",
+            "java.collection_factory.guava_immutable_set_of",
+            "java.map_factory.guava_immutable_map_of"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&guava["conformance"], "positive_refs"),
+        vec![
+            "java-guava-immutable-list-of-positive",
+            "java-guava-immutable-set-of-positive",
+            "java-guava-immutable-map-of-positive"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&guava["conformance"], "hard_negative_refs"),
+        vec![
+            "java-guava-immutable-copy-of-hard-negative",
+            "java-guava-immutable-missing-import-hard-negative",
+            "java-guava-immutable-wrong-package-hard-negative",
+            "java-guava-immutable-shadowed-type-hard-negative"
+        ]
+    );
 }
 
 fn assert_compat_pack(packs: &[serde_json::Value]) {

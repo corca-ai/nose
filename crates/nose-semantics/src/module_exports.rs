@@ -2,9 +2,10 @@
 
 use crate::{
     admitted_free_name_map_factory_at_call, admitted_java_map_entry_at_call,
-    admitted_java_map_factory_at_call, import_fact_evidence_rhs, semantics,
-    seq_surface_contract_for_node, ImportedMapFactoryContract, JavaMapFactoryKind,
-    LibraryMapFactoryResult,
+    admitted_java_map_factory_at_call, import_fact_evidence_rhs,
+    java_map_factory_positional_arg_count_supported, nodes_contain_duplicate_static_literal_keys,
+    nodes_contain_static_null_literal, semantics, seq_surface_contract_for_node,
+    ImportedMapFactoryContract, JavaMapFactoryKind, LibraryMapFactoryResult,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind};
 
@@ -73,7 +74,8 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
     };
     match kind {
         JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
-            args.len() % 2 == 0
+            java_map_factory_positional_arg_count_supported(kind, args.len())
+                && java_map_positional_args_export_safe(il, kind, args)
                 && args
                     .iter()
                     .all(|&arg| literal_export_value_safe(il, interner, arg))
@@ -82,6 +84,18 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
             .iter()
             .all(|&arg| java_map_entry_call_safe(il, interner, arg)),
     }
+}
+
+fn java_map_positional_args_export_safe(
+    il: &Il,
+    kind: JavaMapFactoryKind,
+    args: &[NodeId],
+) -> bool {
+    if kind != JavaMapFactoryKind::GuavaImmutableMapOf {
+        return true;
+    }
+    !nodes_contain_static_null_literal(il, args.iter().copied())
+        && !nodes_contain_duplicate_static_literal_keys(il, args.iter().step_by(2).copied())
 }
 
 fn java_map_entry_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {

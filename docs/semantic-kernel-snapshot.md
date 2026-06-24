@@ -144,8 +144,11 @@ still being migrated toward it.
   cross-surface constructor boundary cases remain hard negatives. The
   `nose.java.ecosystem.guava.immutable_collection_factories` descriptor owns
   Guava `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` factory
-  contract and occurrence producer ids, while `copyOf`, missing imports, and
-  wrong-package surfaces remain hard negatives. The
+  contract and occurrence producer ids, while `copyOf`, missing imports,
+  wrong-package surfaces, and local type shadows remain descriptor hard
+  negatives. Static null elements/key-values, duplicate static `ImmutableMap`
+  keys, and unsupported `ImmutableMap.of` arities stay closed in the semantic
+  consumers. The
   `nose.java.stdlib.collection_constructors` descriptor owns Java empty
   `new ArrayList<>()` and `new LinkedList<>()` collection-constructor contract
   and occurrence producer ids, while missing imports, local type shadows, and
@@ -445,7 +448,8 @@ migrated.
   `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` `LibraryApi`
   occurrence evidence now carries
   `nose.java.ecosystem.guava.immutable_collection_factories` pack provenance
-  while `copyOf`, missing-import, and wrong-package cases stay closed. Java empty
+  while `copyOf`, missing-import, wrong-package, local-shadow, static-null,
+  duplicate static map-key, and unsupported-arity cases stay closed. Java empty
   `new ArrayList<>()` and `new LinkedList<>()` collection-constructor
   `LibraryApi` occurrence evidence now carries
   `nose.java.stdlib.collection_constructors` pack provenance while

@@ -139,7 +139,7 @@ Duplicate function names, lexical shadowing, nested/non-top-level functions,
 methods without explicit target proof, computed callees, selector mismatches,
 dependency-broken records, and conflicting evidence stay closed.
 
-Current first-party `LibraryApi` callee coordinates are intentionally specific:
+Current builtin `LibraryApi` callee coordinates are intentionally specific:
 
 - `QualifiedGlobal`-backed coordinates, such as `StaticGlobalMethod` and
   `StaticGlobalFunction`, name an allowed language/API path and depend on
@@ -159,8 +159,8 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
   factories under `com.google.common.collect`. It depends on matching imported
   binding evidence and local type-shadow checks; selector spelling alone stays
   closed.
-- Python wildcard imports emit `Import::Wildcard` evidence. For current
-  first-party Python free-name API producers, any asserted wildcard import keeps
+- Python wildcard imports emit `Import::Wildcard` evidence. For current builtin
+  Python free-name API producers, any asserted wildcard import keeps
   unqualified builtin/free-name library occurrence evidence closed because a
   provider module may supply a same-named binding.
 - `JavaUtilConstructor` names selected Java `java.util` constructors and depends

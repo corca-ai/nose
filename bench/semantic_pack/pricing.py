@@ -138,32 +138,40 @@ CANDIDATES: tuple[Candidate, ...] = (
         1,
         "java.guava.immutable_collection_factories",
         "Guava immutable collection factories",
-        "nose.java.ecosystem.guava.collection_factories",
+        "nose.java.ecosystem.guava.immutable_collection_factories",
         "Guava",
-        "ImmutableList.of, ImmutableSet.of, ImmutableMap.of, and constrained copyOf factories",
-        "builtin-optional candidate",
+        "ImmutableList.of, ImmutableSet.of, and ImmutableMap.of immutable factory calls",
+        "builtin-default implemented narrow slice",
         (
-            pat("guava_immutable_list", "java", r"\bImmutableList\s*\.\s*(?:of|copyOf)\s*\("),
-            pat("guava_immutable_set", "java", r"\bImmutableSet\s*\.\s*(?:of|copyOf)\s*\("),
-            pat("guava_immutable_map", "java", r"\bImmutableMap\s*\.\s*(?:of|copyOf)\s*\("),
+            pat("guava_immutable_list", "java", r"\bImmutableList\s*\.\s*of\s*\("),
+            pat("guava_immutable_set", "java", r"\bImmutableSet\s*\.\s*of\s*\("),
+            pat("guava_immutable_map", "java", r"\bImmutableMap\s*\.\s*of\s*\("),
         ),
         "High: common Java corpus ecosystem and direct collection-factory equivalence value.",
         "Medium: can reuse Java collection-factory vocabulary, but exact package and overload proof must be explicit.",
-        "Not a builtin pack today; analogous Java stdlib collection factories are covered, while Guava package coordinates are not admitted.",
+        "Implemented as the builtin-default Guava immutable collection factory pack; copyOf and broad Guava surfaces remain closed.",
         ("Java collection factory contracts", "import/static-import proof", "arity/overload proof"),
         (
             "exact Guava package coordinate",
             "import or static-import identity",
-            "supported overload",
+            "supported ImmutableMap.of overload through ten entries",
             "result collection domain",
-            "copyOf source-domain/effect proof",
+            "default-surface/query-regression review",
+            "runtime drift measurement",
         ),
-        ("wrong package with same class name", "shadowed ImmutableList/Set/Map", "unsupported overload", "copyOf over mutable or effectful source"),
-        ("builder chains", "toImmutable* collectors", "mutable source copyOf without source-domain proof"),
-        "Run semantic query-regression on Java-heavy subset plus focused Guava fixtures; classify drift as metadata or measured recall.",
-        "Keep pack builtin-optional; disable only the copyOf row first if post-release risk appears.",
+        (
+            "wrong package with same class name",
+            "shadowed ImmutableList/Set/Map",
+            "unsupported ImmutableMap.of arity",
+            "static null element/key/value",
+            "duplicate static ImmutableMap key",
+            "copyOf remains unsupported",
+        ),
+        ("copyOf", "builder chains", "toImmutable* collectors", "mutable source copyOf without source-domain proof"),
+        "Run semantic query-regression on Java-heavy subset plus focused Guava fixtures; classify drift as measured recall and default-surface noise.",
+        "Demote the Guava pack to builtin-optional or disable only the risky factory row if post-release false merges appear.",
         "priced-ready",
-        "Write target packet before implementation.",
+        "Keep builtin-default gate evidence and Guava hard negatives current with implementation PRs.",
     ),
     Candidate(
         2,
@@ -847,7 +855,7 @@ def verdict_for(candidate: Candidate, repo_presence: int) -> tuple[str, str]:
             "No corpus presence in the available pinned checkouts; retain only as seed-list context.",
         )
     if candidate.initial_verdict == "priced-ready":
-        return candidate.initial_verdict, "Corpus signal plus existing vocabulary justify a target packet before implementation."
+        return candidate.initial_verdict, "Corpus signal plus existing vocabulary justify a narrow implementation packet."
     if candidate.initial_verdict == "priced-but-blocked":
         return candidate.initial_verdict, "Impact exists, but exact influence is blocked by the recorded proof/evidence prerequisite."
     return candidate.initial_verdict, candidate.rejection_context or "Corpus signal does not yet justify a sound row boundary."
@@ -870,7 +878,7 @@ def target_packet_for(candidate: Candidate, verdict: str) -> dict | None:
         "unsupported_cases": list(candidate.unsupported_cases),
         "hard_negative_siblings": list(candidate.hard_negatives),
         "product_output_measurement": candidate.product_runtime_plan,
-        "runtime_measurement": "Before implementation, time the candidate query-regression subset before/after the row and keep the row disabled if runtime drift is unexplained.",
+        "runtime_measurement": "Time the candidate query-regression subset before/after the row and keep or move the row out of the default lane if runtime drift is unexplained.",
         "rollback_path": candidate.rollback_path,
         "implementation_boundary": "Do not implement a broad ecosystem pack; implement only this row slice.",
     }

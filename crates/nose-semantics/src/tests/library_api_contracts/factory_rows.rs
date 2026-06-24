@@ -514,4 +514,20 @@ fn materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed() {
         None,
         "Map.get value semantics are not a fixed container result domain"
     );
+
+    let guava_map = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of").unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 20),
+        Some(DomainEvidence::Map)
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 21),
+        None,
+        "odd ImmutableMap.of arity cannot be a Guava overload"
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 22),
+        None,
+        "Guava ImmutableMap.of has fixed overloads through ten entries"
+    );
 }

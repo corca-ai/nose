@@ -304,16 +304,18 @@ family after the result-domain emission path is centralized. `caf459299b305432` 
 avoidable test duplication and was removed by reusing the existing receiver-method IL fixture
 helper. No new budget is accepted.
 
-The #516 CPD blind-spot recall PR keeps the count below the 55-family budget: after review, the
-current release binary reports 54 default-surface families. The first pass reported 56 because the
-Guava regression tests added a near-identical Java static-factory IL fixture and another
-pack-provenance `LibraryApi` test helper. Those two avoidable additions were deduped by sharing the
-static binary-factory fixture builder and a generic test provenance helper. The remaining
-representative drift is the same semantic-pack migration/test-support debt class already accepted
-above: evidence record builders, language-core evidence helpers, Python collection-factory record
-helpers, paired JS set/map pack-provenance resolver tests, and node/span callee-dependency matcher
-shape after adding `JavaStaticMember`. Seven stale representatives disappeared
-(`0a6201f15214313b`, `45d1958233f29008`, `60cd88d412e40db1`, `ab38dd94000926e1`,
-`c0d81bef5f210038`, `c2a9a946f2395f78`, `df7b7baf2fea3404`) and six current representatives were
-accepted (`13835f6b499ba385`, `26775d07eef0a114`, `2c454f3fdff599c8`, `7c1aef5590dfeefc`,
-`b5c1ae278fc77802`, `cd016e6bfca96acb`). No new budget is accepted.
+The #516 CPD blind-spot recall PR first kept the count below the 55-family budget after deduping
+avoidable Guava positive-fixture helper repetition. The review-hardening pass then added required
+Guava hard negatives for unsupported `ImmutableMap.of` arity, static null elements/key-values, and
+duplicate static map keys across frontend/result-domain, value-graph, strict-exact, and export
+surfaces. The current release binary reports 56 default-surface families. The two new accepted
+families are test-scope Guava hard-negative IL fixture builders repeated across the three crates
+that own those independent gates:
+`crates/nose-detect/src/units/tests/strict_exact_factories.rs`,
+`crates/nose-normalize/src/value_graph/tests/factories/guava_factories.rs`, and
+`crates/nose-semantics/src/tests/semantic_evidence/sequence_surfaces.rs`. The smaller family
+(`84edbf7d317212c7`) is the shared `eleven_entry_payloads` fixture; the larger family
+(`99408319bd080594`) is the Java `ImmutableMap.of` IL/evidence builder. Extracting them into
+production code would couple unrelated crate test surfaces, and there is no shared test-support
+crate for this boundary. The budget is therefore re-baselined to 56 while preserving the gate as a
+ratchet for future production or avoidable test duplication.

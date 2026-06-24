@@ -133,11 +133,10 @@ pub const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID: &str =
 pub const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID: &str =
     "java.guava.immutable-collection-factory-api";
 pub const JAVA_GUAVA_IMMUTABLE_LIST_OF_CONTRACT_ID: &str =
-    "java.guava.immutable_collection_factory.list_of";
+    "java.collection_factory.guava_immutable_list_of";
 pub const JAVA_GUAVA_IMMUTABLE_SET_OF_CONTRACT_ID: &str =
-    "java.guava.immutable_collection_factory.set_of";
-pub const JAVA_GUAVA_IMMUTABLE_MAP_OF_CONTRACT_ID: &str =
-    "java.guava.immutable_collection_factory.map_of";
+    "java.collection_factory.guava_immutable_set_of";
+pub const JAVA_GUAVA_IMMUTABLE_MAP_OF_CONTRACT_ID: &str = "java.map_factory.guava_immutable_map_of";
 pub const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID: &str =
     "nose.java.stdlib.collection_constructors";
 pub const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID: &str =

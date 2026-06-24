@@ -10,7 +10,9 @@ break.
 - Added the builtin Java Guava immutable collection factory pack for
   `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of`, with exact
   `com.google.common.collect` import-backed provenance and hard-negative
-  boundaries for `copyOf`, missing imports, and wrong packages.
+  boundaries for `copyOf`, missing imports, wrong packages, local type shadows,
+  static null elements/key-values, duplicate static map keys, and unsupported
+  `ImmutableMap.of` arities.
 
 ### Changed
 - Strengthened clamp min/max proof so branch-local positive bound-order guards

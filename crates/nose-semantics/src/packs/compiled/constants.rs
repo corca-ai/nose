@@ -522,6 +522,7 @@ pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONFORMANCE_REFS: &[&st
     "java-guava-immutable-copy-of-hard-negative",
     "java-guava-immutable-missing-import-hard-negative",
     "java-guava-immutable-wrong-package-hard-negative",
+    "java-guava-immutable-shadowed-type-hard-negative",
 ];
 pub(super) const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_IDS: &[&str] =
     &[JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID];

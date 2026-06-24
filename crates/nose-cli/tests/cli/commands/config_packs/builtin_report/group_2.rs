@@ -86,7 +86,7 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(guava_collections["counts"]["contracts"], 3);
     assert_eq!(guava_collections["counts"]["value_laws"], 0);
     assert_eq!(guava_collections["counts"]["positive_fixtures"], 3);
-    assert_eq!(guava_collections["counts"]["hard_negatives"], 3);
+    assert_eq!(guava_collections["counts"]["hard_negatives"], 4);
 
     let java_constructors = semantic_pack_by_id(&json, "nose.java.stdlib.collection_constructors");
     assert_eq!(java_constructors["hash"], "47217e0e2e1f8108");

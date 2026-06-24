@@ -66,28 +66,39 @@ pub fn library_api_materialized_result_domain_for_arity(
                 arity as usize,
             )
         }
-        LibraryApiContractId::RustStdMapFactory
-        | LibraryApiContractId::JavaMapFactory(_)
-        | LibraryApiContractId::JsLikeMapConstructor => Some(library_map_factory_result_domain(
-            LibraryMapFactoryContract {
-                pack_id: match id {
-                    LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
-                    LibraryApiContractId::JavaMapFactory(
-                        JavaMapFactoryKind::GuavaImmutableMapOf,
-                    ) => JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
-                    LibraryApiContractId::JavaMapFactory(_) => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-                    LibraryApiContractId::JsLikeMapConstructor => {
-                        JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
-                    }
-                    _ => unreachable!("map-factory contract has no builtin pack"),
+        LibraryApiContractId::RustStdMapFactory | LibraryApiContractId::JsLikeMapConstructor => {
+            Some(library_map_factory_result_domain(
+                LibraryMapFactoryContract {
+                    pack_id: match id {
+                        LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
+                        LibraryApiContractId::JsLikeMapConstructor => {
+                            JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
+                        }
+                        _ => unreachable!("map-factory contract has no builtin pack"),
+                    },
+                    id,
+                    callee,
+                    result: LibraryMapFactoryResult::EntrySequence {
+                        entry_seq_tag: SEQ_VALUE_COLLECTION,
+                    },
                 },
-                id,
-                callee,
-                result: LibraryMapFactoryResult::EntrySequence {
-                    entry_seq_tag: SEQ_VALUE_COLLECTION,
-                },
-            },
-        )),
+            ))
+        }
+        LibraryApiContractId::JavaMapFactory(kind) => {
+            java_map_factory_result_domain_arg_count_supported(kind, arity as usize).then(|| {
+                library_map_factory_result_domain(LibraryMapFactoryContract {
+                    pack_id: match kind {
+                        JavaMapFactoryKind::GuavaImmutableMapOf => {
+                            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID
+                        }
+                        _ => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+                    },
+                    id,
+                    callee,
+                    result: LibraryMapFactoryResult::JavaFactory { kind },
+                })
+            })
+        }
         LibraryApiContractId::MapKeyViewWrapper => Some(
             library_map_key_view_wrapper_result_domain(LibraryMapKeyViewWrapperContract {
                 pack_id: JS_LIKE_BUILTIN_ARRAY_PACK_ID,

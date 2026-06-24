@@ -332,7 +332,11 @@ impl<'a> Lowering<'a> {
                             contract.callee,
                             contract.pack_id,
                             rule,
-                            Some(library_map_factory_result_domain(contract)),
+                            library_api_materialized_result_domain_for_arity(
+                                contract.id,
+                                contract.callee,
+                                arg_count as u16,
+                            ),
                         )
                     })
                 })

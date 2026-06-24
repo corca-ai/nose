@@ -112,6 +112,38 @@ pub(super) fn assert_group() {
         .contract_ids
         .contains(&"java.collection_constructor.empty_list"));
 
+    let java_guava_collections =
+        builtin_pack_descriptor(JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID)
+            .expect("Java Guava immutable collection factory descriptor");
+    assert_eq!(java_guava_collections.kind, SemanticPackKind::LibraryPack);
+    assert_eq!(java_guava_collections.supported_languages, &["java"]);
+    assert_eq!(
+        java_guava_collections.supported_packages,
+        &["com.google.common.collect"]
+    );
+    assert_eq!(
+        java_guava_collections.evidence_producer_ids,
+        &[JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID]
+    );
+    assert_eq!(
+        java_guava_collections.contract_ids,
+        &[
+            JAVA_GUAVA_IMMUTABLE_LIST_OF_CONTRACT_ID,
+            JAVA_GUAVA_IMMUTABLE_SET_OF_CONTRACT_ID,
+            JAVA_GUAVA_IMMUTABLE_MAP_OF_CONTRACT_ID
+        ]
+    );
+    assert_eq!(java_guava_collections.counts().evidence_producers, 1);
+    assert_eq!(java_guava_collections.counts().contracts, 3);
+    assert_eq!(java_guava_collections.counts().positive_fixtures, 3);
+    assert_eq!(java_guava_collections.counts().hard_negatives, 4);
+    assert!(java_guava_collections
+        .conformance_refs()
+        .contains(&"java-guava-immutable-shadowed-type-hard-negative"));
+    assert!(java_guava_collections
+        .contract_ids
+        .contains(&"java.map_factory.guava_immutable_map_of"));
+
     let java_stdlib_constructors =
         builtin_pack_descriptor(JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID)
             .expect("Java stdlib collection constructor descriptor");

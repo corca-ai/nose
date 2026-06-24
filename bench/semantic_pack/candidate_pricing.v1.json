@@ -1,5 +1,5 @@
 {
-  "candidate_signature": "0ccac1897a275cd6",
+  "candidate_signature": "3cb6e2757179dd9c",
   "corpus": {
     "digest": "d152e7150a08d662",
     "path": "bench/goldens/corpus.json",
@@ -19,9 +19,9 @@
         "heldout_repo_breadth": 0,
         "heldout_repos": [],
         "pattern_counts": {
-          "guava_immutable_list": 1503,
-          "guava_immutable_map": 759,
-          "guava_immutable_set": 864
+          "guava_immutable_list": 1213,
+          "guava_immutable_map": 684,
+          "guava_immutable_set": 752
         },
         "present_repos": [
           "gson",
@@ -32,7 +32,7 @@
         "primary_languages": [
           "Java"
         ],
-        "raw_occurrences": 3126,
+        "raw_occurrences": 2649,
         "repo_breadth": 3,
         "samples": [
           {
@@ -78,24 +78,24 @@
             "snippet": "String> result = mapSplitter.split(toSplit); * assertThat(result).isEqualTo(ImmutableMap.of(\"x \", \" y\", \"z\", \" a\")); * } * * @since 10.0 */ public MapSplitter"
           },
           {
-            "line": 80,
-            "path": "android/guava/src/com/google/common/cache/AbstractCache.java",
-            "pattern_id": "guava_immutable_map",
+            "line": 945,
+            "path": "android/guava/src/com/google/common/cache/LocalCache.java",
+            "pattern_id": "guava_immutable_set",
             "repo": "guava",
-            "snippet": "ull) { result.put(castKey, value); } } } return ImmutableMap.copyOf(result); } /** * @since 11.0 */ @Override public void put(K key,"
+            "snippet": "@Override public Iterator<Object> iterator() { return ImmutableSet.of().iterator(); } }; /** Queue that discards all elements. */ @"
           },
           {
-            "line": 68,
-            "path": "android/guava/src/com/google/common/cache/AbstractLoadingCache.java",
-            "pattern_id": "guava_immutable_map",
+            "line": 44,
+            "path": "android/guava/src/com/google/common/collect/CartesianList.java",
+            "pattern_id": "guava_immutable_list",
             "repo": "guava",
-            "snippet": "containsKey(key)) { result.put(key, get(key)); } } return ImmutableMap.copyOf(result); } @Override public final V apply(K key) { return getUnchecke"
+            "snippet": "> copy = ImmutableList.copyOf(list); if (copy.isEmpty()) { return ImmutableList.of(); } axesBuilder.add(copy); } return new CartesianList<>(axe"
           }
         ],
-        "weighted_occurrences": 3126.0
+        "weighted_occurrences": 2649.0
       },
       "current_detector_query_result": {
-        "candidate_pack_observed_in_sample_queries": false,
+        "candidate_pack_observed_in_sample_queries": true,
         "method": "sample product query overlay plus existing semantic-pack inventory knowledge",
         "note": "Sample product queries record current semantic-pack inventory and candidate sample-line overlap; full query-regression remains required before implementation.",
         "product_query_command": "nose query <repo> all top=0 --mode semantic --format json",
@@ -136,6 +136,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -178,14 +179,14 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 79,
             "status": "ok",
             "tool": "nose",
             "total_families": 79
           }
         ],
-        "summary": "Not a builtin pack today; analogous Java stdlib collection factories are covered, while Guava package coordinates are not admitted."
+        "summary": "Implemented as the builtin-default Guava immutable collection factory pack; copyOf and broad Guava surfaces remain closed."
       },
       "ecosystem": "Guava",
       "evidence_tier": "manual-pricing",
@@ -197,46 +198,53 @@
       "hard_negative_siblings": [
         "wrong package with same class name",
         "shadowed ImmutableList/Set/Map",
-        "unsupported overload",
-        "copyOf over mutable or effectful source"
+        "unsupported ImmutableMap.of arity",
+        "static null element/key/value",
+        "duplicate static ImmutableMap key",
+        "copyOf remains unsupported"
       ],
       "impact_price": "High: common Java corpus ecosystem and direct collection-factory equivalence value.",
       "iteration": 1,
-      "next_action": "Write target packet before implementation.",
-      "proposed_pack_id": "nose.java.ecosystem.guava.collection_factories",
+      "next_action": "Keep builtin-default gate evidence and Guava hard negatives current with implementation PRs.",
+      "proposed_pack_id": "nose.java.ecosystem.guava.immutable_collection_factories",
       "rejection_context": "",
       "required_evidence": [
         "exact Guava package coordinate",
         "import or static-import identity",
-        "supported overload",
+        "supported ImmutableMap.of overload through ten entries",
         "result collection domain",
-        "copyOf source-domain/effect proof"
+        "default-surface/query-regression review",
+        "runtime drift measurement"
       ],
-      "row_slice": "ImmutableList.of, ImmutableSet.of, ImmutableMap.of, and constrained copyOf factories",
+      "row_slice": "ImmutableList.of, ImmutableSet.of, and ImmutableMap.of immutable factory calls",
       "safety_price": "Medium: can reuse Java collection-factory vocabulary, but exact package and overload proof must be explicit.",
-      "target_lane": "builtin-optional candidate",
+      "target_lane": "builtin-default implemented narrow slice",
       "target_packet": {
         "hard_negative_siblings": [
           "wrong package with same class name",
           "shadowed ImmutableList/Set/Map",
-          "unsupported overload",
-          "copyOf over mutable or effectful source"
+          "unsupported ImmutableMap.of arity",
+          "static null element/key/value",
+          "duplicate static ImmutableMap key",
+          "copyOf remains unsupported"
         ],
         "implementation_boundary": "Do not implement a broad ecosystem pack; implement only this row slice.",
-        "pack_id": "nose.java.ecosystem.guava.collection_factories",
+        "pack_id": "nose.java.ecosystem.guava.immutable_collection_factories",
         "packet_id": "semantic-pack-java-guava-immutable_collection_factories",
-        "product_output_measurement": "Run semantic query-regression on Java-heavy subset plus focused Guava fixtures; classify drift as metadata or measured recall.",
+        "product_output_measurement": "Run semantic query-regression on Java-heavy subset plus focused Guava fixtures; classify drift as measured recall and default-surface noise.",
         "required_evidence": [
           "exact Guava package coordinate",
           "import or static-import identity",
-          "supported overload",
+          "supported ImmutableMap.of overload through ten entries",
           "result collection domain",
-          "copyOf source-domain/effect proof"
+          "default-surface/query-regression review",
+          "runtime drift measurement"
         ],
-        "rollback_path": "Keep pack builtin-optional; disable only the copyOf row first if post-release risk appears.",
-        "runtime_measurement": "Before implementation, time the candidate query-regression subset before/after the row and keep the row disabled if runtime drift is unexplained.",
-        "semantic_claim": "ImmutableList.of, ImmutableSet.of, ImmutableMap.of, and constrained copyOf factories",
+        "rollback_path": "Demote the Guava pack to builtin-optional or disable only the risky factory row if post-release false merges appear.",
+        "runtime_measurement": "Time the candidate query-regression subset before/after the row and keep or move the row out of the default lane if runtime drift is unexplained.",
+        "semantic_claim": "ImmutableList.of, ImmutableSet.of, and ImmutableMap.of immutable factory calls",
         "unsupported_cases": [
+          "copyOf",
           "builder chains",
           "toImmutable* collectors",
           "mutable source copyOf without source-domain proof"
@@ -244,12 +252,13 @@
       },
       "title": "Guava immutable collection factories",
       "unsupported_cases": [
+        "copyOf",
         "builder chains",
         "toImmutable* collectors",
         "mutable source copyOf without source-domain proof"
       ],
       "verdict": "priced-ready",
-      "verdict_reason": "Corpus signal plus existing vocabulary justify a target packet before implementation."
+      "verdict_reason": "Corpus signal plus existing vocabulary justify a narrow implementation packet."
     },
     {
       "blocked_by": [
@@ -384,6 +393,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -426,11 +436,11 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
-            "shown_families": 1797,
+            "semantic_packs": 44,
+            "shown_families": 1798,
             "status": "ok",
             "tool": "nose",
-            "total_families": 1797
+            "total_families": 1798
           }
         ],
         "summary": "Current option/null presence support does not prove Guava Optional identity."
@@ -729,6 +739,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -771,7 +782,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 646,
             "status": "ok",
             "tool": "nose",
@@ -1138,6 +1149,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -1180,7 +1192,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 32,
             "status": "ok",
             "tool": "nose",
@@ -1345,6 +1357,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -1387,7 +1400,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 152,
             "status": "ok",
             "tool": "nose",
@@ -1562,6 +1575,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -1604,7 +1618,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 7,
             "status": "ok",
             "tool": "nose",
@@ -1775,6 +1789,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -1817,7 +1832,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 18,
             "status": "ok",
             "tool": "nose",
@@ -1955,6 +1970,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -1997,7 +2013,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 3,
             "status": "ok",
             "tool": "nose",
@@ -2250,6 +2266,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -2292,7 +2309,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 22,
             "status": "ok",
             "tool": "nose",
@@ -2483,6 +2500,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -2525,7 +2543,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 22,
             "status": "ok",
             "tool": "nose",
@@ -2720,6 +2738,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -2762,7 +2781,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 202,
             "status": "ok",
             "tool": "nose",
@@ -2942,6 +2961,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -2984,7 +3004,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 29,
             "status": "ok",
             "tool": "nose",
@@ -3156,6 +3176,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -3198,7 +3219,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 156,
             "status": "ok",
             "tool": "nose",
@@ -3372,6 +3393,7 @@
             "semantic_pack_ids": [
               "nose.first_party",
               "nose.go.stdlib.namespace_calls",
+              "nose.java.ecosystem.guava.immutable_collection_factories",
               "nose.java.stdlib.collection_constructors",
               "nose.java.stdlib.collection_factories",
               "nose.java.stdlib.map_entries",
@@ -3414,7 +3436,7 @@
               "nose.rust.stdlib.vec",
               "nose.value_graph.laws"
             ],
-            "semantic_packs": 43,
+            "semantic_packs": 44,
             "shown_families": 7,
             "status": "ok",
             "tool": "nose",
