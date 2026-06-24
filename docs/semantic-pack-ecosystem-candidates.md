@@ -36,7 +36,7 @@ all exist.
 
 | ecosystem | first narrow slice | candidate status | target lane/channel | value | risk | evidence availability | tracking issue |
 |---|---|---|---|---|---|---|---|
-| Guava | `nose.java.ecosystem.guava.collection_factories`: immutable collection factories (`ImmutableList.of`, `ImmutableSet.of`, `ImmutableMap.of`, safe `copyOf`) | selected first candidate | `builtin-optional` candidate | high for Java collection equivalence | medium | good: existing Java collection-factory vocabulary can be reused with Guava import/version proof | [#496](https://github.com/corca-ai/nose/issues/496) |
+| Guava | `nose.java.ecosystem.guava.immutable_collection_factories`: immutable `of` factories (`ImmutableList.of`, `ImmutableSet.of`, `ImmutableMap.of`) | first slice implemented | builtin default narrow slice | high for Java collection equivalence | medium | good: existing Java collection/map-factory vocabulary is reused with exact Guava import proof; `copyOf` remains closed | [#496](https://github.com/corca-ai/nose/issues/496) |
 | Lodash | collection projection/predicate helpers (`map`, `filter`, `some`, `every`) | deferred until fixture evidence | undecided | high for JS/TS repos | high | mixed: callback demand, shorthand iteratees, object order, and lazy chains need hard negatives | [#497](https://github.com/corca-ai/nose/issues/497) |
 | NumPy | scalar integer ufuncs or array clip/min/max laws | deferred | undecided | high for Python data/science repos | high | mixed: dtype, broadcasting, NaN, signed-zero, overflow, and mutation boundaries must be explicit | [#498](https://github.com/corca-ai/nose/issues/498) |
 | RxJS | Observable identity/projection protocol slices | deferred | likely `near-only` before exact-capable rows | medium-high for JS/TS reactive code | high | limited: scheduler, subscription, hot/cold stream, error, and completion behavior need proof boundaries | [#499](https://github.com/corca-ai/nose/issues/499) |
@@ -46,17 +46,24 @@ all exist.
 
 ## First Candidate
 
-Guava immutable collection factories are the first implementation candidate
-because they can reuse the most existing Java collection-factory vocabulary. The
-candidate prices as `priced-ready` in the current
-[`candidate_pricing.v1.json`](../bench/semantic_pack/candidate_pricing.v1.json)
-artifact, but it still remains `builtin-optional` until fixtures, hard
-negatives, product output, runtime evidence, and adoption-gate evidence are
-attached.
+Guava immutable collection factories were the first implementation candidate
+because they reuse the existing Java collection/map-factory vocabulary. The
+implemented builtin slice is intentionally only `ImmutableList.of`,
+`ImmutableSet.of`, and `ImmutableMap.of` under exact
+`com.google.common.collect` import-binding proof. `copyOf`, builders,
+collectors, wildcard/static-method imports, and dependency/version occurrence
+proof are still outside this row.
 
-The Guava candidate must still prove the exact package coordinate, import or
-static-import path, arity/overload identity, version policy, result domain, and
-unsupported cases. It must not admit exact equivalence from selector names alone.
+The candidate priced as `priced-ready` in the current
+[`candidate_pricing.v1.json`](../bench/semantic_pack/candidate_pricing.v1.json)
+artifact. The builtin descriptor now records three positive conformance refs and
+three hard negatives: the three `of` factories are open, while `copyOf`,
+missing-import, and wrong-package surfaces stay closed.
+
+Future Guava work must still prove the exact package coordinate, static-import
+path, arity/overload identity, version policy, source/result domain, and
+unsupported cases. It must not admit exact equivalence from selector names
+alone.
 
 ## Deferred Candidates
 

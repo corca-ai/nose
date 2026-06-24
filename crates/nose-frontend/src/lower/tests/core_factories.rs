@@ -575,3 +575,4 @@ fn assert_js_constructor_result_domains(interner: &Interner) {
 }
 
 mod aliased_imports;
+mod guava_factories;

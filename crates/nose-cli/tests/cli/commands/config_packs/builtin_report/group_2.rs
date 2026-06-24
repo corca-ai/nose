@@ -57,6 +57,37 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(java_collections["counts"]["positive_fixtures"], 3);
     assert_eq!(java_collections["counts"]["hard_negatives"], 2);
 
+    let guava_collections = semantic_pack_by_id(
+        &json,
+        "nose.java.ecosystem.guava.immutable_collection_factories",
+    );
+    assert_eq!(guava_collections["hash"], "bda36ee0af67ff2c");
+    assert_eq!(guava_collections["kind"], "LibraryPack");
+    assert_eq!(
+        guava_collections["display_name"],
+        "nose Java Guava immutable collection factory pack"
+    );
+    assert_eq!(guava_collections["source"], "compiled-builtin");
+    assert_eq!(guava_collections["influence"], "evidence-and-contracts");
+    assert_eq!(guava_collections["trust"], "builtin-default");
+    assert_eq!(guava_collections["enabled_by_default"], true);
+    assert_eq!(guava_collections["path"], serde_json::Value::Null);
+    assert_eq!(guava_collections["provider"], "Corca, Inc.");
+    assert_eq!(
+        guava_collections["repository"],
+        "https://github.com/corca-ai/nose"
+    );
+    assert_eq!(guava_collections["license"], "MIT");
+    assert_eq!(
+        json_array_strings(guava_collections, "supported_languages"),
+        vec!["java"]
+    );
+    assert_eq!(guava_collections["counts"]["evidence_producers"], 1);
+    assert_eq!(guava_collections["counts"]["contracts"], 3);
+    assert_eq!(guava_collections["counts"]["value_laws"], 0);
+    assert_eq!(guava_collections["counts"]["positive_fixtures"], 3);
+    assert_eq!(guava_collections["counts"]["hard_negatives"], 3);
+
     let java_constructors = semantic_pack_by_id(&json, "nose.java.stdlib.collection_constructors");
     assert_eq!(java_constructors["hash"], "47217e0e2e1f8108");
     assert_eq!(java_constructors["kind"], "StdlibPack");

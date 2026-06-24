@@ -7,10 +7,13 @@ pub enum JavaCollectionFactoryKind {
     ListOf,
     SetOf,
     ArraysAsList,
+    GuavaImmutableListOf,
+    GuavaImmutableSetOf,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct JavaCollectionFactoryContract {
+    pub module: &'static str,
     pub receiver: &'static str,
     pub method: &'static str,
     pub kind: JavaCollectionFactoryKind,
@@ -27,22 +30,39 @@ pub fn java_collection_factory_contract(
     }
     Some(match (receiver, method) {
         ("List", "of") => JavaCollectionFactoryContract {
+            module: "java.util",
             receiver: "List",
             method: "of",
             kind: JavaCollectionFactoryKind::ListOf,
             single_arg_spreads_array: false,
         },
         ("Set", "of") => JavaCollectionFactoryContract {
+            module: "java.util",
             receiver: "Set",
             method: "of",
             kind: JavaCollectionFactoryKind::SetOf,
             single_arg_spreads_array: false,
         },
         ("Arrays", "asList") => JavaCollectionFactoryContract {
+            module: "java.util",
             receiver: "Arrays",
             method: "asList",
             kind: JavaCollectionFactoryKind::ArraysAsList,
             single_arg_spreads_array: true,
+        },
+        ("ImmutableList", "of") => JavaCollectionFactoryContract {
+            module: "com.google.common.collect",
+            receiver: "ImmutableList",
+            method: "of",
+            kind: JavaCollectionFactoryKind::GuavaImmutableListOf,
+            single_arg_spreads_array: false,
+        },
+        ("ImmutableSet", "of") => JavaCollectionFactoryContract {
+            module: "com.google.common.collect",
+            receiver: "ImmutableSet",
+            method: "of",
+            kind: JavaCollectionFactoryKind::GuavaImmutableSetOf,
+            single_arg_spreads_array: false,
         },
         _ => return None,
     })
@@ -106,10 +126,12 @@ pub fn java_collection_constructor_contract(
 pub enum JavaMapFactoryKind {
     Of,
     OfEntries,
+    GuavaImmutableMapOf,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct JavaMapFactoryContract {
+    pub module: &'static str,
     pub receiver: &'static str,
     pub method: &'static str,
     pub kind: JavaMapFactoryKind,
@@ -120,19 +142,27 @@ pub fn java_map_factory_contract(
     receiver: &str,
     method: &str,
 ) -> Option<JavaMapFactoryContract> {
-    if lang != Lang::Java || receiver != "Map" {
+    if lang != Lang::Java {
         return None;
     }
-    Some(match method {
-        "of" => JavaMapFactoryContract {
+    Some(match (receiver, method) {
+        ("Map", "of") => JavaMapFactoryContract {
+            module: "java.util",
             receiver: "Map",
             method: "of",
             kind: JavaMapFactoryKind::Of,
         },
-        "ofEntries" => JavaMapFactoryContract {
+        ("Map", "ofEntries") => JavaMapFactoryContract {
+            module: "java.util",
             receiver: "Map",
             method: "ofEntries",
             kind: JavaMapFactoryKind::OfEntries,
+        },
+        ("ImmutableMap", "of") => JavaMapFactoryContract {
+            module: "com.google.common.collect",
+            receiver: "ImmutableMap",
+            method: "of",
+            kind: JavaMapFactoryKind::GuavaImmutableMapOf,
         },
         _ => return None,
     })

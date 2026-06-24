@@ -3,12 +3,12 @@
 use super::contracts::{
     library_collection_factory_result_domain_for_arity, library_map_factory_result_domain,
     library_map_key_view_wrapper_result_domain, library_receiver_method_api_result_domain,
-    JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID, JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
-    JAVA_STDLIB_MAP_FACTORY_PACK_ID, JS_LIKE_BUILTIN_ARRAY_PACK_ID,
-    JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID, PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
-    PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID, RUBY_STDLIB_SET_PACK_ID,
-    RUST_STDLIB_COLLECTION_FACTORY_PACK_ID, RUST_STDLIB_MAP_FACTORY_PACK_ID,
-    RUST_STDLIB_VEC_PACK_ID,
+    JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+    JS_LIKE_BUILTIN_ARRAY_PACK_ID, JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
+    PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID, PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    RUBY_STDLIB_SET_PACK_ID, RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    RUST_STDLIB_MAP_FACTORY_PACK_ID, RUST_STDLIB_VEC_PACK_ID,
 };
 use super::*;
 use crate::SEQ_VALUE_COLLECTION;
@@ -43,9 +43,13 @@ pub fn library_api_materialized_result_domain_for_arity(
                         LibraryApiContractId::RustStdCollectionFactory => {
                             RUST_STDLIB_COLLECTION_FACTORY_PACK_ID
                         }
-                        LibraryApiContractId::JavaCollectionFactory(_) => {
-                            JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID
-                        }
+                        LibraryApiContractId::JavaCollectionFactory(_) => match id {
+                            LibraryApiContractId::JavaCollectionFactory(
+                                JavaCollectionFactoryKind::GuavaImmutableListOf
+                                | JavaCollectionFactoryKind::GuavaImmutableSetOf,
+                            ) => JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+                            _ => JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+                        },
                         LibraryApiContractId::JavaCollectionConstructor(_) => {
                             JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID
                         }
@@ -68,6 +72,9 @@ pub fn library_api_materialized_result_domain_for_arity(
             LibraryMapFactoryContract {
                 pack_id: match id {
                     LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
+                    LibraryApiContractId::JavaMapFactory(
+                        JavaMapFactoryKind::GuavaImmutableMapOf,
+                    ) => JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
                     LibraryApiContractId::JavaMapFactory(_) => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
                     LibraryApiContractId::JsLikeMapConstructor => {
                         JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID

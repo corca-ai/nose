@@ -33,6 +33,22 @@ pub(crate) fn library_api_contract_evidence(
     record
 }
 
+fn library_api_contract_evidence_with_pack(
+    id: u32,
+    call_span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+    provenance: (&str, &str),
+) -> EvidenceRecord {
+    let mut record =
+        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
+    record.provenance.pack_hash = Some(stable_symbol_hash(provenance.0));
+    record.provenance.rule_hash = Some(stable_symbol_hash(provenance.1));
+    record
+}
+
 pub(crate) fn js_like_builtin_collection_constructor_evidence(
     id: u32,
     call_span: Span,
@@ -41,15 +57,18 @@ pub(crate) fn js_like_builtin_collection_constructor_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(
-        JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
-    ));
-    record.provenance.rule_hash = Some(stable_symbol_hash(
-        JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
-    ));
-    record
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (
+            JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
+            JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn js_like_builtin_static_index_membership_evidence(
@@ -60,15 +79,18 @@ pub(crate) fn js_like_builtin_static_index_membership_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(
-        JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PACK_ID,
-    ));
-    record.provenance.rule_hash = Some(stable_symbol_hash(
-        JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PRODUCER_ID,
-    ));
-    record
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (
+            JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PACK_ID,
+            JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn rust_stdlib_integer_method_evidence(
@@ -79,11 +101,18 @@ pub(crate) fn rust_stdlib_integer_method_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(RUST_STDLIB_INTEGER_METHOD_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID));
-    record
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (
+            RUST_STDLIB_INTEGER_METHOD_PACK_ID,
+            RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn java_stdlib_math_evidence(
@@ -94,11 +123,15 @@ pub(crate) fn java_stdlib_math_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(JAVA_STDLIB_MATH_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(JAVA_STDLIB_MATH_PRODUCER_ID));
-    record
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (JAVA_STDLIB_MATH_PACK_ID, JAVA_STDLIB_MATH_PRODUCER_ID),
+    )
 }
 
 pub(crate) fn map_get_protocol_evidence(
@@ -109,11 +142,15 @@ pub(crate) fn map_get_protocol_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(MAP_GET_PROTOCOL_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(MAP_GET_PROTOCOL_PRODUCER_ID));
-    record
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (MAP_GET_PROTOCOL_PACK_ID, MAP_GET_PROTOCOL_PRODUCER_ID),
+    )
 }
 
 pub(crate) fn map_key_view_protocol_evidence(
@@ -124,11 +161,18 @@ pub(crate) fn map_key_view_protocol_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(MAP_KEY_VIEW_PROTOCOL_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID));
-    record
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (
+            MAP_KEY_VIEW_PROTOCOL_PACK_ID,
+            MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn python_builtin_collection_factory_evidence(
@@ -138,21 +182,18 @@ pub(crate) fn python_builtin_collection_factory_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = library_api_contract_evidence(
+    library_api_contract_evidence_with_pack(
         id,
         call_span,
         contract.id,
         contract.callee,
         arity,
         dependencies,
-    );
-    record.provenance.pack_hash = Some(stable_symbol_hash(
-        PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
-    ));
-    record.provenance.rule_hash = Some(stable_symbol_hash(
-        PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID,
-    ));
-    record
+        (
+            PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
+            PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn python_stdlib_collection_factory_evidence(
@@ -162,20 +203,18 @@ pub(crate) fn python_stdlib_collection_factory_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = library_api_contract_evidence(
+    library_api_contract_evidence_with_pack(
         id,
         call_span,
         contract.id,
         contract.callee,
         arity,
         dependencies,
-    );
-    record.provenance.pack_hash =
-        Some(stable_symbol_hash(PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(
-        PYTHON_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
-    ));
-    record
+        (
+            PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            PYTHON_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn java_stdlib_map_factory_evidence(
@@ -185,17 +224,18 @@ pub(crate) fn java_stdlib_map_factory_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = library_api_contract_evidence(
+    library_api_contract_evidence_with_pack(
         id,
         call_span,
         contract.id,
         contract.callee,
         arity,
         dependencies,
-    );
-    record.provenance.pack_hash = Some(stable_symbol_hash(JAVA_STDLIB_MAP_FACTORY_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID));
-    record
+        (
+            JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn java_stdlib_collection_factory_evidence(
@@ -205,19 +245,40 @@ pub(crate) fn java_stdlib_collection_factory_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = library_api_contract_evidence(
+    library_api_contract_evidence_with_pack(
         id,
         call_span,
         contract.id,
         contract.callee,
         arity,
         dependencies,
-    );
-    record.provenance.pack_hash = Some(stable_symbol_hash(JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID));
-    record.provenance.rule_hash = Some(stable_symbol_hash(
-        JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
-    ));
-    record
+        (
+            JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    )
+}
+
+pub(crate) fn java_guava_immutable_collection_factory_evidence(
+    id: u32,
+    call_span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn java_stdlib_collection_constructor_evidence(
@@ -227,21 +288,18 @@ pub(crate) fn java_stdlib_collection_constructor_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = library_api_contract_evidence(
+    library_api_contract_evidence_with_pack(
         id,
         call_span,
         contract.id,
         contract.callee,
         arity,
         dependencies,
-    );
-    record.provenance.pack_hash = Some(stable_symbol_hash(
-        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
-    ));
-    record.provenance.rule_hash = Some(stable_symbol_hash(
-        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
-    ));
-    record
+        (
+            JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
+            JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
+        ),
+    )
 }
 
 pub(crate) fn push_method_call_library_api_evidence(

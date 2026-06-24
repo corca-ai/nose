@@ -61,7 +61,8 @@ experiments that validated these passes are in [experiments](experiments.md).
 > short-circuit `!local && ...` guard unreachable), primitive total-order comparator
 > guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons),
 > conservative integer-only bound-order facts for clamp canonicalization
-> (literal `lo <= hi`, or a dominating inverse guard such as `if hi < lo { throw ... }`);
+> (literal `lo <= hi`, a dominating inverse guard such as `if hi < lo { throw ... }`,
+> or a branch-local positive guard such as `if lo <= hi { return ... }`);
 > proof-backed min/max clamp compositions, two-comparison ternaries, and proven numeric
 > library clamp methods canonicalize to a shared `Clamp(x, lo, hi)` value,
 > control-flow-aware ordering for statement-level effects (so `append(a); append(b)` does not

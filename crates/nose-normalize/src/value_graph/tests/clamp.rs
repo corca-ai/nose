@@ -180,6 +180,70 @@ fn guarded_function(
     )
 }
 
+fn positive_branch_guarded_function(semantics: [Option<ParamSemantic>; 3]) -> (usize, usize) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let px = param(&mut b, 0, 1);
+    let plo = param(&mut b, 1, 2);
+    let phi = param(&mut b, 2, 3);
+    let lo_guard = var(&mut b, 1);
+    let hi_guard = var(&mut b, 2);
+    let cond = b.add(
+        NodeKind::BinOp,
+        Payload::Op(Op::Le),
+        sp(4),
+        &[lo_guard, hi_guard],
+    );
+    let x = var(&mut b, 0);
+    let lo = var(&mut b, 1);
+    let hi = var(&mut b, 2);
+    let expr = clamp_expr(&mut b, ClampShape::MinMax, x, lo, hi);
+    let ret = b.add(NodeKind::Return, Payload::None, sp(5), &[expr]);
+    let then_block = b.add(NodeKind::Block, Payload::None, sp(5), &[ret]);
+    let err = int_lit(&mut b, 0);
+    let throw = b.add(NodeKind::Throw, Payload::None, sp(6), &[err]);
+    let else_block = b.add(NodeKind::Block, Payload::None, sp(6), &[throw]);
+    let if_stmt = b.add(
+        NodeKind::If,
+        Payload::None,
+        sp(4),
+        &[cond, then_block, else_block],
+    );
+    let body = b.add(NodeKind::Block, Payload::None, sp(4), &[if_stmt]);
+    let func = b.add(NodeKind::Func, Payload::None, sp(1), &[px, plo, phi, body]);
+    let module = b.add(NodeKind::Module, Payload::None, sp(1), &[func]);
+    let mut il = b.finish(
+        module,
+        FileMeta {
+            path: "t.java".to_string(),
+            lang: Lang::Java,
+        },
+        vec![Unit {
+            root: func,
+            kind: UnitKind::Function,
+            name: None,
+            origin: Default::default(),
+        }],
+        Vec::new(),
+    );
+    for (idx, semantic) in semantics.into_iter().enumerate() {
+        if let Some(semantic) = semantic {
+            il.evidence.push(evidence(
+                idx as u32,
+                EvidenceAnchor::param(sp(idx as u32 + 1)),
+                EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
+            ));
+        }
+    }
+    push_canonical_java_minmax_builtin_evidence(&mut il, 100);
+    let mut builder = Builder::new(&il, &interner);
+    builder.build_unit(func);
+    (
+        builder.clamp_candidate_count,
+        builder.clamp_proof_backed_candidate_count,
+    )
+}
+
 fn literal_bound_function(
     shape: ClampShape,
     lo_value: i64,
@@ -252,6 +316,12 @@ fn guarded_bound_order_requires_exiting_inverse_guard() {
         guarded_function(GuardShape::None, ClampShape::MinMax, [integer; 3]),
         (1, 0)
     );
+}
+
+#[test]
+fn positive_branch_bound_order_is_proof_backed_inside_branch() {
+    let integer = Some(ParamSemantic::Integer);
+    assert_eq!(positive_branch_guarded_function([integer; 3]), (1, 1));
 }
 
 #[test]

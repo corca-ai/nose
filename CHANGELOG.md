@@ -6,6 +6,16 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Added the builtin Java Guava immutable collection factory pack for
+  `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of`, with exact
+  `com.google.common.collect` import-backed provenance and hard-negative
+  boundaries for `copyOf`, missing imports, and wrong packages.
+
+### Changed
+- Strengthened clamp min/max proof so branch-local positive bound-order guards
+  can prove the safe `lo <= hi` path while keeping the inverse guard scoped.
+
 ## [0.15.0] - 2026-06-22
 
 ### Added

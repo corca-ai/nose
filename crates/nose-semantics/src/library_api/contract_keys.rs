@@ -100,6 +100,8 @@ fn java_collection_factory_kind_key(kind: JavaCollectionFactoryKind) -> &'static
         JavaCollectionFactoryKind::ListOf => "list_of",
         JavaCollectionFactoryKind::SetOf => "set_of",
         JavaCollectionFactoryKind::ArraysAsList => "arrays_as_list",
+        JavaCollectionFactoryKind::GuavaImmutableListOf => "guava_immutable_list_of",
+        JavaCollectionFactoryKind::GuavaImmutableSetOf => "guava_immutable_set_of",
     }
 }
 
@@ -113,6 +115,7 @@ fn java_map_factory_kind_key(kind: JavaMapFactoryKind) -> &'static str {
     match kind {
         JavaMapFactoryKind::Of => "of",
         JavaMapFactoryKind::OfEntries => "of_entries",
+        JavaMapFactoryKind::GuavaImmutableMapOf => "guava_immutable_map_of",
     }
 }
 
@@ -161,6 +164,12 @@ pub(super) fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) 
         LibraryApiCalleeContract::JavaUtilStaticMember { receiver, method } => {
             format!("java_util_static_member:{receiver}:{method}")
         }
+        LibraryApiCalleeContract::JavaStaticMember {
+            module,
+            receiver,
+            method,
+            ..
+        } => format!("java_static_member:{module}:{receiver}:{method}"),
         LibraryApiCalleeContract::JavaUtilConstructor {
             simple_type,
             qualified_type,

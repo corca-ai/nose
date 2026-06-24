@@ -1,5 +1,7 @@
 use super::support::*;
 
+mod guava_factories;
+
 #[test]
 fn imported_collection_factory_value_graph_uses_library_api_evidence() {
     let interner = Interner::new();

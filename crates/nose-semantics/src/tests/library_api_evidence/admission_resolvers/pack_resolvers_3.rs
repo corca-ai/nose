@@ -89,6 +89,63 @@ fn admitted_java_map_factory_resolver_requires_pack_provenance() {
 }
 
 #[test]
+fn admitted_java_guava_map_factory_resolver_requires_guava_pack_provenance() {
+    let (il, interner, call, _callee, _receiver) = java_guava_map_factory_call_il();
+    assert!(
+        admitted_java_map_factory_at_call(&il, &interner, call).is_none(),
+        "raw Guava ImmutableMap.of(...) shape alone must not admit map factory semantics"
+    );
+
+    let contract = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of")
+        .expect("ImmutableMap.of contract");
+
+    let (mut wrong_pack, interner, call, _callee, receiver) = java_guava_map_factory_call_il();
+    push_java_guava_import_dependencies(&mut wrong_pack, receiver);
+    wrong_pack
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            2,
+            wrong_pack.node(call).span,
+            contract.id,
+            contract.callee,
+            2,
+            EvidenceStatus::Asserted,
+            &[1],
+            JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+        ));
+    assert!(
+        admitted_java_map_factory_at_call(&wrong_pack, &interner, call).is_none(),
+        "Guava ImmutableMap.of evidence under the stdlib map pack is rejected"
+    );
+
+    let (mut admitted, interner, call, callee, receiver) = java_guava_map_factory_call_il();
+    push_java_guava_import_dependencies(&mut admitted, receiver);
+    admitted
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            2,
+            admitted.node(call).span,
+            contract.id,
+            contract.callee,
+            2,
+            EvidenceStatus::Asserted,
+            &[1],
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+        ));
+
+    let occurrence = admitted_java_map_factory_at_call(&admitted, &interner, call).unwrap();
+    assert_eq!(
+        occurrence.contract.id,
+        LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::GuavaImmutableMapOf)
+    );
+    assert_eq!(occurrence.callee, callee);
+    assert_eq!(occurrence.receiver, Some(receiver));
+    assert_eq!(occurrence.arg_count, 2);
+}
+
+#[test]
 fn admitted_java_map_entry_resolver_requires_pack_provenance() {
     let (il, interner, call, _callee, _receiver) = java_map_entry_call_il();
     assert!(

@@ -26,6 +26,7 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee(
             )
         }
         LibraryApiCalleeContract::JavaUtilStaticMember { .. }
+        | LibraryApiCalleeContract::JavaStaticMember { .. }
         | LibraryApiCalleeContract::JavaUtilConstructor { .. }
         | LibraryApiCalleeContract::RubyRequireStaticMember { .. } => {
             library_api_dependencies_match_static_import_callee(
@@ -126,6 +127,33 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
                 stable_symbol_hash(receiver),
                 il.node(receiver_node).span,
             )
+        }
+        LibraryApiCalleeContract::JavaStaticMember {
+            module,
+            receiver,
+            requires_import_for_simple_receiver,
+            requires_no_local_type_shadow,
+            ..
+        } => {
+            let Some(receiver_node) = il.children(callee_node).first().copied() else {
+                return false;
+            };
+            (!requires_import_for_simple_receiver
+                || dependency_has_imported_binding_node(
+                    il,
+                    interner,
+                    record,
+                    receiver_node,
+                    module,
+                    receiver,
+                ))
+                && (!requires_no_local_type_shadow
+                    || !unit_defines_hash_visible_at(
+                        il,
+                        interner,
+                        stable_symbol_hash(receiver),
+                        il.node(receiver_node).span,
+                    ))
         }
         LibraryApiCalleeContract::JavaUtilConstructor {
             simple_type,

@@ -114,6 +114,8 @@ fn push_keyed_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>) {
             JavaCollectionFactoryKind::ListOf,
             JavaCollectionFactoryKind::SetOf,
             JavaCollectionFactoryKind::ArraysAsList,
+            JavaCollectionFactoryKind::GuavaImmutableListOf,
+            JavaCollectionFactoryKind::GuavaImmutableSetOf,
         ]
         .into_iter()
         .map(LibraryApiContractId::JavaCollectionFactory),
@@ -122,9 +124,13 @@ fn push_keyed_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>) {
         JavaCollectionConstructorKind::EmptyList,
     ));
     ids.extend(
-        [JavaMapFactoryKind::Of, JavaMapFactoryKind::OfEntries]
-            .into_iter()
-            .map(LibraryApiContractId::JavaMapFactory),
+        [
+            JavaMapFactoryKind::Of,
+            JavaMapFactoryKind::OfEntries,
+            JavaMapFactoryKind::GuavaImmutableMapOf,
+        ]
+        .into_iter()
+        .map(LibraryApiContractId::JavaMapFactory),
     );
     ids.extend(
         [MapKeyViewKind::Collection, MapKeyViewKind::Iterator]
@@ -305,16 +311,20 @@ fn library_api_factory_callee_contracts_for_id(
                 .map(|contract| contract.callee)
                 .collect()
         }
-        LibraryApiContractId::JavaCollectionFactory(kind) => {
-            [("List", "of"), ("Set", "of"), ("Arrays", "asList")]
-                .into_iter()
-                .filter_map(|(receiver, method)| {
-                    library_java_collection_factory_contract(lang, receiver, method)
-                })
-                .filter(|contract| contract.id == LibraryApiContractId::JavaCollectionFactory(kind))
-                .map(|contract| contract.callee)
-                .collect()
-        }
+        LibraryApiContractId::JavaCollectionFactory(kind) => [
+            ("List", "of"),
+            ("Set", "of"),
+            ("Arrays", "asList"),
+            ("ImmutableList", "of"),
+            ("ImmutableSet", "of"),
+        ]
+        .into_iter()
+        .filter_map(|(receiver, method)| {
+            library_java_collection_factory_contract(lang, receiver, method)
+        })
+        .filter(|contract| contract.id == LibraryApiContractId::JavaCollectionFactory(kind))
+        .map(|contract| contract.callee)
+        .collect(),
         LibraryApiContractId::JavaCollectionConstructor(kind) => [
             "ArrayList",
             "java.util.ArrayList",
@@ -326,12 +336,16 @@ fn library_api_factory_callee_contracts_for_id(
         .filter(|contract| contract.id == LibraryApiContractId::JavaCollectionConstructor(kind))
         .map(|contract| contract.callee)
         .collect(),
-        LibraryApiContractId::JavaMapFactory(kind) => ["of", "ofEntries"]
-            .into_iter()
-            .filter_map(|method| library_java_map_factory_contract(lang, "Map", method))
-            .filter(|contract| contract.id == LibraryApiContractId::JavaMapFactory(kind))
-            .map(|contract| contract.callee)
-            .collect(),
+        LibraryApiContractId::JavaMapFactory(kind) => {
+            [("Map", "of"), ("Map", "ofEntries"), ("ImmutableMap", "of")]
+                .into_iter()
+                .filter_map(|(receiver, method)| {
+                    library_java_map_factory_contract(lang, receiver, method)
+                })
+                .filter(|contract| contract.id == LibraryApiContractId::JavaMapFactory(kind))
+                .map(|contract| contract.callee)
+                .collect()
+        }
         LibraryApiContractId::JavaMapEntryFactory => {
             library_java_map_entry_contract(lang, "Map", "entry")
                 .map(|contract| vec![contract.callee])

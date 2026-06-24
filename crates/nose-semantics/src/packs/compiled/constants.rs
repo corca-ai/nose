@@ -148,6 +148,8 @@ pub(super) const JAVA_STDLIB_MAP_FACTORY_PACKAGES: &[&str] = &["java.util"];
 pub(super) const JAVA_STDLIB_MAP_ENTRY_PACKAGES: &[&str] = &["java.util"];
 pub(super) const JAVA_STDLIB_COLLECTION_FACTORY_PACKAGES: &[&str] = &["java.util"];
 pub(super) const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACKAGES: &[&str] = &["java.util"];
+pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACKAGES: &[&str] =
+    &["com.google.common.collect"];
 pub(super) const JAVA_STDLIB_MATH_PACKAGES: &[&str] = &["java.lang"];
 pub(super) const JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACKAGES: &[&str] = &["java.util"];
 pub(super) const ITERATOR_IDENTITY_ADAPTER_PACKAGES: &[&str] = &["core::iter", "java.util.stream"];
@@ -505,6 +507,21 @@ pub(super) const JAVA_STDLIB_COLLECTION_FACTORY_CONFORMANCE_REFS: &[&str] = &[
     "java-arrays-as-list-positive",
     "java-collection-missing-import-hard-negative",
     "java-collection-constructor-boundary-hard-negative",
+];
+pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_IDS: &[&str] =
+    &[JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID];
+pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONTRACT_IDS: &[&str] = &[
+    JAVA_GUAVA_IMMUTABLE_LIST_OF_CONTRACT_ID,
+    JAVA_GUAVA_IMMUTABLE_SET_OF_CONTRACT_ID,
+    JAVA_GUAVA_IMMUTABLE_MAP_OF_CONTRACT_ID,
+];
+pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONFORMANCE_REFS: &[&str] = &[
+    "java-guava-immutable-list-of-positive",
+    "java-guava-immutable-set-of-positive",
+    "java-guava-immutable-map-of-positive",
+    "java-guava-immutable-copy-of-hard-negative",
+    "java-guava-immutable-missing-import-hard-negative",
+    "java-guava-immutable-wrong-package-hard-negative",
 ];
 pub(super) const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_IDS: &[&str] =
     &[JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID];

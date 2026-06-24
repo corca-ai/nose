@@ -199,7 +199,7 @@ fn manifest_with_value_law_executable_gate(id: &str) -> String {
 #[test]
 fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
     let descriptors = builtin_pack_descriptors();
-    assert_eq!(descriptors.len(), 43);
+    assert_eq!(descriptors.len(), 44);
     let ids = descriptors
         .iter()
         .map(|descriptor| descriptor.id)
@@ -231,6 +231,7 @@ fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
             JAVA_STDLIB_MAP_FACTORY_PACK_ID,
             JAVA_STDLIB_MAP_ENTRY_PACK_ID,
             JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
             JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
             JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACK_ID,
             MAP_GET_PROTOCOL_PACK_ID,

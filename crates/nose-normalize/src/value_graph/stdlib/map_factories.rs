@@ -66,7 +66,10 @@ impl<'a> Builder<'a> {
         let LibraryMapFactoryResult::JavaFactory { kind } = admitted.contract.result else {
             return None;
         };
-        if kind == JavaMapFactoryKind::Of {
+        if matches!(
+            kind,
+            JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf
+        ) {
             let entries = &args[1..];
             if entries.len() % 2 != 0 {
                 return None;
@@ -101,7 +104,7 @@ impl<'a> Builder<'a> {
             return None;
         };
         match kind {
-            JavaMapFactoryKind::Of => {
+            JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
                 let entries = &kids[1..];
                 if entries.len() % 2 != 0 {
                     return None;

@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 23] = [
+pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 24] = [
     BuiltinPackDescriptor {
         id: JAVA_STDLIB_MATH_PACK_ID,
         kind: SemanticPackKind::StdlibPack,
@@ -76,6 +76,25 @@ pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 23] = [
         static_conformance_refs: JAVA_STDLIB_COLLECTION_FACTORY_CONFORMANCE_REFS,
         dynamic_conformance_refs: None,
         counts: java_stdlib_collection_factory_counts,
+    },
+    BuiltinPackDescriptor {
+        id: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+        kind: SemanticPackKind::LibraryPack,
+        display_name: "nose Java Guava immutable collection factory pack",
+        trust: PackTrust::BuiltinDefault,
+        enabled_by_default: true,
+        supported_languages: JAVA_LANGUAGE,
+        supported_packages: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACKAGES,
+        language: None,
+        evidence_producer_ids: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_IDS,
+        source_fact_producer_ids: NO_IDS,
+        contract_ids: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONTRACT_IDS,
+        type_domain_alias_contracts: NO_TYPE_DOMAIN_ALIAS_CONTRACTS,
+        static_value_law_ids: NO_IDS,
+        dynamic_value_law_ids: None,
+        static_conformance_refs: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONFORMANCE_REFS,
+        dynamic_conformance_refs: None,
+        counts: java_guava_immutable_collection_factory_counts,
     },
     BuiltinPackDescriptor {
         id: JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,

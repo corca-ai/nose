@@ -190,7 +190,7 @@ pub(crate) fn strict_exact_java_map_factory_safe(
     };
     let args = &il.children(node)[1..];
     match kind {
-        JavaMapFactoryKind::Of => {
+        JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
             args.len() % 2 == 0
                 && args
                     .iter()

@@ -128,6 +128,16 @@ pub const JAVA_STDLIB_COLLECTION_FACTORY_SET_OF_CONTRACT_ID: &str =
     "java.collection_factory.set_of";
 pub const JAVA_STDLIB_COLLECTION_FACTORY_ARRAYS_AS_LIST_CONTRACT_ID: &str =
     "java.collection_factory.arrays_as_list";
+pub const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID: &str =
+    "nose.java.ecosystem.guava.immutable_collection_factories";
+pub const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID: &str =
+    "java.guava.immutable-collection-factory-api";
+pub const JAVA_GUAVA_IMMUTABLE_LIST_OF_CONTRACT_ID: &str =
+    "java.guava.immutable_collection_factory.list_of";
+pub const JAVA_GUAVA_IMMUTABLE_SET_OF_CONTRACT_ID: &str =
+    "java.guava.immutable_collection_factory.set_of";
+pub const JAVA_GUAVA_IMMUTABLE_MAP_OF_CONTRACT_ID: &str =
+    "java.guava.immutable_collection_factory.map_of";
 pub const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID: &str =
     "nose.java.stdlib.collection_constructors";
 pub const JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID: &str =
@@ -221,6 +231,13 @@ pub enum LibraryApiCalleeContract {
     JavaUtilStaticMember {
         receiver: &'static str,
         method: &'static str,
+    },
+    JavaStaticMember {
+        module: &'static str,
+        receiver: &'static str,
+        method: &'static str,
+        requires_import_for_simple_receiver: bool,
+        requires_no_local_type_shadow: bool,
     },
     JavaUtilConstructor {
         simple_type: &'static str,
@@ -355,6 +372,9 @@ pub fn library_collection_factory_result_domain(
             _ => DomainEvidence::Collection,
         },
         LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::SetOf)
+        | LibraryApiContractId::JavaCollectionFactory(
+            JavaCollectionFactoryKind::GuavaImmutableSetOf,
+        )
         | LibraryApiContractId::RubySetFactory
         | LibraryApiContractId::JsLikeSetConstructor => DomainEvidence::Set,
         _ => DomainEvidence::Collection,

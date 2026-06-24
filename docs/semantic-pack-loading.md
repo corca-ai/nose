@@ -121,6 +121,9 @@ Trust is separate from channel eligibility.
   occurrence provenance;
   `nose.java.stdlib.collection_factories` owns Java `java.util.List.of`,
   `Set.of`, and `Arrays.asList` collection factory API occurrence provenance;
+  `nose.java.ecosystem.guava.immutable_collection_factories` owns Guava
+  `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` factory API
+  occurrence provenance while `copyOf` remains closed;
   `nose.java.stdlib.collection_constructors` owns Java empty `new
   ArrayList<>()` and `new LinkedList<>()` collection constructor API occurrence
   provenance;

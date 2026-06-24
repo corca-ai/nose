@@ -19,7 +19,10 @@ pub(in crate::library_api) fn library_api_callee_shape_matches(
         LibraryApiCalleeContract::ImportedBinding { exported, .. } => {
             imported_member_callee_shape_matches(il, interner, callee_node, exported)
         }
-        LibraryApiCalleeContract::JavaUtilStaticMember { receiver, method } => {
+        LibraryApiCalleeContract::JavaUtilStaticMember { receiver, method }
+        | LibraryApiCalleeContract::JavaStaticMember {
+            receiver, method, ..
+        } => {
             let Some((actual_receiver, actual_method)) =
                 static_member_callee_parts(il, interner, callee_node)
             else {

@@ -303,3 +303,17 @@ family after the result-domain emission path is centralized. `caf459299b305432` 
 `language_core_sequence_surface_record`. A new receiver-method test helper initially surfaced as
 avoidable test duplication and was removed by reusing the existing receiver-method IL fixture
 helper. No new budget is accepted.
+
+The #516 CPD blind-spot recall PR keeps the count below the 55-family budget: after review, the
+current release binary reports 54 default-surface families. The first pass reported 56 because the
+Guava regression tests added a near-identical Java static-factory IL fixture and another
+pack-provenance `LibraryApi` test helper. Those two avoidable additions were deduped by sharing the
+static binary-factory fixture builder and a generic test provenance helper. The remaining
+representative drift is the same semantic-pack migration/test-support debt class already accepted
+above: evidence record builders, language-core evidence helpers, Python collection-factory record
+helpers, paired JS set/map pack-provenance resolver tests, and node/span callee-dependency matcher
+shape after adding `JavaStaticMember`. Seven stale representatives disappeared
+(`0a6201f15214313b`, `45d1958233f29008`, `60cd88d412e40db1`, `ab38dd94000926e1`,
+`c0d81bef5f210038`, `c2a9a946f2395f78`, `df7b7baf2fea3404`) and six current representatives were
+accepted (`13835f6b499ba385`, `26775d07eef0a114`, `2c454f3fdff599c8`, `7c1aef5590dfeefc`,
+`b5c1ae278fc77802`, `cd016e6bfca96acb`). No new budget is accepted.

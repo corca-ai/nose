@@ -191,6 +191,39 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         })
     );
     assert_eq!(
+        library_java_collection_factory_contract(Lang::Java, "ImmutableList", "of"),
+        Some(LibraryCollectionFactoryContract {
+            pack_id: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::JavaCollectionFactory(
+                JavaCollectionFactoryKind::GuavaImmutableListOf,
+            ),
+            callee: LibraryApiCalleeContract::JavaStaticMember {
+                module: "com.google.common.collect",
+                receiver: "ImmutableList",
+                method: "of",
+                requires_import_for_simple_receiver: true,
+                requires_no_local_type_shadow: true,
+            },
+            result: LibraryCollectionFactoryResult::VariadicElements {
+                single_arg_spreads_array: false,
+            },
+        })
+    );
+    assert_eq!(
+        library_java_collection_factory_contract(Lang::Java, "ImmutableSet", "of")
+            .map(|contract| (contract.pack_id, contract.id)),
+        Some((
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            LibraryApiContractId::JavaCollectionFactory(
+                JavaCollectionFactoryKind::GuavaImmutableSetOf,
+            )
+        ))
+    );
+    assert_eq!(
+        library_java_collection_factory_contract(Lang::Java, "ImmutableList", "copyOf"),
+        None
+    );
+    assert_eq!(
         library_java_collection_constructor_contract(Lang::Java, "ArrayList", 0),
         Some(LibraryCollectionFactoryContract {
             pack_id: JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
@@ -272,6 +305,27 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
                 kind: JavaMapFactoryKind::OfEntries,
             },
         })
+    );
+    assert_eq!(
+        library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of"),
+        Some(LibraryMapFactoryContract {
+            pack_id: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::GuavaImmutableMapOf),
+            callee: LibraryApiCalleeContract::JavaStaticMember {
+                module: "com.google.common.collect",
+                receiver: "ImmutableMap",
+                method: "of",
+                requires_import_for_simple_receiver: true,
+                requires_no_local_type_shadow: true,
+            },
+            result: LibraryMapFactoryResult::JavaFactory {
+                kind: JavaMapFactoryKind::GuavaImmutableMapOf,
+            },
+        })
+    );
+    assert_eq!(
+        library_java_map_factory_contract(Lang::Java, "ImmutableMap", "copyOf"),
+        None
     );
     assert_eq!(
         library_java_map_entry_contract(Lang::Java, "Map", "entry"),
@@ -375,6 +429,18 @@ fn library_api_result_domain_mapping_is_contract_scoped() {
     );
     assert_eq!(
         library_collection_factory_result_domain(
+            library_java_collection_factory_contract(Lang::Java, "ImmutableList", "of").unwrap()
+        ),
+        DomainEvidence::Collection
+    );
+    assert_eq!(
+        library_collection_factory_result_domain(
+            library_java_collection_factory_contract(Lang::Java, "ImmutableSet", "of").unwrap()
+        ),
+        DomainEvidence::Set
+    );
+    assert_eq!(
+        library_collection_factory_result_domain(
             library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).unwrap()
         ),
         DomainEvidence::Set
@@ -399,6 +465,12 @@ fn library_map_factory_result_domain_mapping_is_contract_scoped() {
     assert_eq!(
         library_map_factory_result_domain(
             library_java_map_factory_contract(Lang::Java, "Map", "of").unwrap()
+        ),
+        DomainEvidence::Map
+    );
+    assert_eq!(
+        library_map_factory_result_domain(
+            library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of").unwrap()
         ),
         DomainEvidence::Map
     );

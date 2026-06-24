@@ -305,21 +305,33 @@ impl<'a> Lowering<'a> {
         let (id, callee_contract, pack_id, rule, result_domain) =
             library_java_collection_factory_contract(self.lang, receiver, method)
                 .map(|contract| {
+                    let rule = match contract.pack_id {
+                        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID => {
+                            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID
+                        }
+                        _ => JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+                    };
                     (
                         contract.id,
                         contract.callee,
                         contract.pack_id,
-                        JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+                        rule,
                         library_collection_factory_result_domain_for_arity(contract, arg_count),
                     )
                 })
                 .or_else(|| {
                     library_java_map_factory_contract(self.lang, receiver, method).map(|contract| {
+                        let rule = match contract.pack_id {
+                            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID => {
+                                JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID
+                            }
+                            _ => JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+                        };
                         (
                             contract.id,
                             contract.callee,
                             contract.pack_id,
-                            JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+                            rule,
                             Some(library_map_factory_result_domain(contract)),
                         )
                     })
@@ -371,22 +383,31 @@ impl<'a> Lowering<'a> {
         rule: &'static str,
         result_domain: Option<DomainEvidence>,
     ) -> Option<LibraryApiEvidencePlan> {
-        let LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: expected_receiver,
-            ..
-        } = callee_contract
-        else {
-            return None;
+        let (module, expected_receiver, requires_import) = match callee_contract {
+            LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
+                ("java.util", receiver, true)
+            }
+            LibraryApiCalleeContract::JavaStaticMember {
+                module,
+                receiver,
+                requires_import_for_simple_receiver,
+                ..
+            } => (module, receiver, requires_import_for_simple_receiver),
+            _ => return None,
         };
-        let dependency = self.record_imported_binding_symbol_for_node(
-            receiver_node,
-            "java.util",
-            expected_receiver,
-        )?;
+        let dependencies = if requires_import {
+            vec![self.record_imported_binding_symbol_for_node(
+                receiver_node,
+                module,
+                expected_receiver,
+            )?]
+        } else {
+            Vec::new()
+        };
         Some(LibraryApiEvidencePlan {
             id,
             callee: callee_contract,
-            dependencies: vec![dependency],
+            dependencies,
             pack_id,
             rule,
             result_domain,

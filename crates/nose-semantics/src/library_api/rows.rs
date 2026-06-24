@@ -18,7 +18,7 @@ fn library_collection_factory_pack_id(id: LibraryApiContractId) -> &'static str 
             RUST_STDLIB_VEC_PACK_ID
         }
         LibraryApiContractId::RustStdCollectionFactory => RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
-        LibraryApiContractId::JavaCollectionFactory(_) => JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        LibraryApiContractId::JavaCollectionFactory(kind) => java_collection_factory_pack_id(kind),
         LibraryApiContractId::JavaCollectionConstructor(_) => {
             JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID
         }
@@ -33,12 +33,31 @@ fn library_collection_factory_pack_id(id: LibraryApiContractId) -> &'static str 
 fn library_map_factory_pack_id(id: LibraryApiContractId) -> &'static str {
     match id {
         LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
-        LibraryApiContractId::JavaMapFactory(_) => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+        LibraryApiContractId::JavaMapFactory(kind) => java_map_factory_pack_id(kind),
         LibraryApiContractId::JavaMapEntryFactory => JAVA_STDLIB_MAP_ENTRY_PACK_ID,
         LibraryApiContractId::JsLikeMapConstructor => {
             JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
         }
         _ => unreachable!("map-factory contract has no broad builtin pack"),
+    }
+}
+
+fn java_collection_factory_pack_id(kind: JavaCollectionFactoryKind) -> &'static str {
+    match kind {
+        JavaCollectionFactoryKind::ListOf
+        | JavaCollectionFactoryKind::SetOf
+        | JavaCollectionFactoryKind::ArraysAsList => JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        JavaCollectionFactoryKind::GuavaImmutableListOf
+        | JavaCollectionFactoryKind::GuavaImmutableSetOf => {
+            JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID
+        }
+    }
+}
+
+fn java_map_factory_pack_id(kind: JavaMapFactoryKind) -> &'static str {
+    match kind {
+        JavaMapFactoryKind::Of | JavaMapFactoryKind::OfEntries => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+        JavaMapFactoryKind::GuavaImmutableMapOf => JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
     }
 }
 
@@ -188,13 +207,24 @@ pub fn library_java_collection_factory_contract(
 ) -> Option<LibraryCollectionFactoryContract> {
     let contract = java_collection_factory_contract(lang, receiver, method)?;
     let id = LibraryApiContractId::JavaCollectionFactory(contract.kind);
+    let callee = if contract.module == "java.util" {
+        LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: contract.receiver,
+            method: contract.method,
+        }
+    } else {
+        LibraryApiCalleeContract::JavaStaticMember {
+            module: contract.module,
+            receiver: contract.receiver,
+            method: contract.method,
+            requires_import_for_simple_receiver: true,
+            requires_no_local_type_shadow: true,
+        }
+    };
     Some(LibraryCollectionFactoryContract {
         pack_id: library_collection_factory_pack_id(id),
         id,
-        callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: contract.receiver,
-            method: contract.method,
-        },
+        callee,
         result: LibraryCollectionFactoryResult::VariadicElements {
             single_arg_spreads_array: contract.single_arg_spreads_array,
         },
@@ -241,13 +271,24 @@ pub fn library_java_map_factory_contract(
 ) -> Option<LibraryMapFactoryContract> {
     let contract = java_map_factory_contract(lang, receiver, method)?;
     let id = LibraryApiContractId::JavaMapFactory(contract.kind);
+    let callee = if contract.module == "java.util" {
+        LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: contract.receiver,
+            method: contract.method,
+        }
+    } else {
+        LibraryApiCalleeContract::JavaStaticMember {
+            module: contract.module,
+            receiver: contract.receiver,
+            method: contract.method,
+            requires_import_for_simple_receiver: true,
+            requires_no_local_type_shadow: true,
+        }
+    };
     Some(LibraryMapFactoryContract {
         pack_id: library_map_factory_pack_id(id),
         id,
-        callee: LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: contract.receiver,
-            method: contract.method,
-        },
+        callee,
         result: LibraryMapFactoryResult::JavaFactory {
             kind: contract.kind,
         },

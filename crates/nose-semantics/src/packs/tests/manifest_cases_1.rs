@@ -24,7 +24,7 @@ fn local_manifest_loads_as_metadata_only_opt_in() {
     let path = dir.join("pack.json");
     fs::write(&path, manifest("com.example.pack")).unwrap();
     let set = SemanticPackSet::new_local(&[path]).expect("pack loads");
-    assert_eq!(set.packs().len(), 44);
+    assert_eq!(set.packs().len(), 45);
     assert_eq!(set.packs()[1].id, PYTHON_LANGUAGE_PACK_ID);
     assert_eq!(set.packs()[2].id, JS_TS_LANGUAGE_PACK_ID);
     assert_eq!(set.packs()[3].id, GO_LANGUAGE_PACK_ID);
@@ -53,36 +53,40 @@ fn local_manifest_loads_as_metadata_only_opt_in() {
     assert_eq!(set.packs()[23].id, JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID);
     assert_eq!(
         set.packs()[24].id,
-        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID
+        JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID
     );
     assert_eq!(
         set.packs()[25].id,
+        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID
+    );
+    assert_eq!(
+        set.packs()[26].id,
         JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACK_ID
     );
-    assert_eq!(set.packs()[26].id, MAP_GET_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[27].id, MAP_GET_DEFAULT_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[28].id, FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[29].id, RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[30].id, MAP_KEY_VIEW_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[31].id, PROPERTY_BUILTIN_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[32].id, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID);
-    assert_eq!(set.packs()[33].id, GO_STDLIB_NAMESPACE_CALL_PACK_ID);
-    assert_eq!(set.packs()[34].id, ITERATOR_IDENTITY_ADAPTER_PACK_ID);
-    assert_eq!(set.packs()[35].id, JS_LIKE_BUILTIN_PROMISE_PACK_ID);
-    assert_eq!(set.packs()[36].id, JS_LIKE_BUILTIN_ARRAY_PACK_ID);
-    assert_eq!(set.packs()[37].id, JS_LIKE_BUILTIN_BOOLEAN_PACK_ID);
-    assert_eq!(set.packs()[38].id, JS_LIKE_BUILTIN_REGEX_PACK_ID);
+    assert_eq!(set.packs()[27].id, MAP_GET_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[28].id, MAP_GET_DEFAULT_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[29].id, FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[30].id, RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[31].id, MAP_KEY_VIEW_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[32].id, PROPERTY_BUILTIN_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[33].id, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID);
+    assert_eq!(set.packs()[34].id, GO_STDLIB_NAMESPACE_CALL_PACK_ID);
+    assert_eq!(set.packs()[35].id, ITERATOR_IDENTITY_ADAPTER_PACK_ID);
+    assert_eq!(set.packs()[36].id, JS_LIKE_BUILTIN_PROMISE_PACK_ID);
+    assert_eq!(set.packs()[37].id, JS_LIKE_BUILTIN_ARRAY_PACK_ID);
+    assert_eq!(set.packs()[38].id, JS_LIKE_BUILTIN_BOOLEAN_PACK_ID);
+    assert_eq!(set.packs()[39].id, JS_LIKE_BUILTIN_REGEX_PACK_ID);
     assert_eq!(
-        set.packs()[39].id,
+        set.packs()[40].id,
         JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PACK_ID
     );
     assert_eq!(
-        set.packs()[40].id,
+        set.packs()[41].id,
         JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
     );
-    assert_eq!(set.packs()[41].id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
-    assert_eq!(set.packs()[42].id, VALUE_GRAPH_LAW_PACK_ID);
-    let external = &set.packs()[43];
+    assert_eq!(set.packs()[42].id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
+    assert_eq!(set.packs()[43].id, VALUE_GRAPH_LAW_PACK_ID);
+    let external = &set.packs()[44];
     assert_eq!(external.id, "com.example.pack");
     assert_eq!(external.hash, stable_symbol_hash("com.example.pack"));
     assert_eq!(external.trust, PackTrust::ExternalOptIn);

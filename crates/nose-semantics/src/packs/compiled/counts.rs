@@ -452,6 +452,22 @@ pub(super) fn java_stdlib_collection_factory_counts() -> SemanticPackCounts {
     }
 }
 
+pub(super) fn java_guava_immutable_collection_factory_counts() -> SemanticPackCounts {
+    SemanticPackCounts {
+        evidence_producers: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_IDS.len(),
+        contracts: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONTRACT_IDS.len(),
+        value_laws: 0,
+        positive_fixtures: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| !id.contains("hard-negative"))
+            .count(),
+        hard_negatives: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| id.contains("hard-negative"))
+            .count(),
+    }
+}
+
 pub(super) fn java_stdlib_collection_constructor_counts() -> SemanticPackCounts {
     SemanticPackCounts {
         evidence_producers: JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_IDS.len(),

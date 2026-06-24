@@ -35,28 +35,50 @@ pub(crate) fn java_arrays_stream_call_il_with_arg_count(
 }
 
 pub(crate) fn java_map_factory_call_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
+    java_static_binary_factory_call_il("Map", "of", 80)
+}
+
+pub(crate) fn java_guava_map_factory_call_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
+    java_static_binary_factory_call_il("ImmutableMap", "of", 180)
+}
+
+fn java_static_binary_factory_call_il(
+    receiver_name: &str,
+    method: &str,
+    base_line: u32,
+) -> (Il, Interner, NodeId, NodeId, NodeId) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
-    let local = interner.intern("Map");
-    let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(80), &[]);
-    let rhs = b.add(NodeKind::Seq, Payload::None, sp(80), &[]);
-    let import = b.add(NodeKind::Assign, Payload::None, sp(80), &[lhs, rhs]);
-    let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(81), &[]);
+    let local = interner.intern(receiver_name);
+    let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(base_line), &[]);
+    let rhs = b.add(NodeKind::Seq, Payload::None, sp(base_line), &[]);
+    let import = b.add(NodeKind::Assign, Payload::None, sp(base_line), &[lhs, rhs]);
+    let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(base_line + 1), &[]);
     let callee = b.add(
         NodeKind::Field,
-        Payload::Name(interner.intern("of")),
-        sp(82),
+        Payload::Name(interner.intern(method)),
+        sp(base_line + 2),
         &[receiver],
     );
     let key = b.add(
         NodeKind::Lit,
         Payload::LitStr(stable_symbol_hash("red")),
-        sp(83),
+        sp(base_line + 3),
         &[],
     );
-    let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(84), &[]);
-    let call = b.add(NodeKind::Call, Payload::None, sp(85), &[callee, key, value]);
-    let root = b.add(NodeKind::Module, Payload::None, sp(86), &[import, call]);
+    let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(base_line + 4), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(base_line + 5),
+        &[callee, key, value],
+    );
+    let root = b.add(
+        NodeKind::Module,
+        Payload::None,
+        sp(base_line + 6),
+        &[import, call],
+    );
     (
         finish_il(b, root, Lang::Java),
         interner,
@@ -64,6 +86,26 @@ pub(crate) fn java_map_factory_call_il() -> (Il, Interner, NodeId, NodeId, NodeI
         callee,
         receiver,
     )
+}
+
+pub(crate) fn push_java_guava_import_dependencies(il: &mut Il, receiver: NodeId) {
+    let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash("com.google.common.collect"),
+        exported_hash: stable_symbol_hash("ImmutableMap"),
+    });
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::binding(sp(180), stable_symbol_hash("ImmutableMap")),
+        binding_symbol,
+        EvidenceStatus::Asserted,
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        1,
+        EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
+        binding_symbol,
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(0)],
+    ));
 }
 
 pub(crate) fn java_map_entry_call_il() -> (Il, Interner, NodeId, NodeId, NodeId) {

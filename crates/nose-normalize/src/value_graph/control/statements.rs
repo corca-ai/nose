@@ -189,9 +189,12 @@ impl<'a> Builder<'a> {
         let mut env_then = env.clone();
         let then_effect_slot = if kids.len() >= 2 {
             self.effect_slot = effect_slot_base;
+            let bound_order_base = self.bound_order_facts.len();
+            self.record_bound_order_fact(cond);
             self.path.push(cond);
             self.process_stmt(kids[1], &mut env_then);
             self.path.pop();
+            self.bound_order_facts.truncate(bound_order_base);
             self.effect_slot
         } else {
             effect_slot_base
@@ -200,9 +203,12 @@ impl<'a> Builder<'a> {
         let else_effect_slot = if kids.len() >= 3 {
             self.effect_slot = effect_slot_base;
             let ncond = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
+            let bound_order_base = self.bound_order_facts.len();
+            self.record_bound_order_fact(ncond);
             self.path.push(ncond);
             self.process_stmt(kids[2], &mut env_else);
             self.path.pop();
+            self.bound_order_facts.truncate(bound_order_base);
             self.effect_slot
         } else {
             effect_slot_base

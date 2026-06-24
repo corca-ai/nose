@@ -154,6 +154,11 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
 - `JavaUtilStaticMember` names selected Java `java.util` static factory/adaptor
   calls and depends on matching Java import-binding evidence plus source-origin
   local type shadow checks.
+- `JavaStaticMember` names selected non-`java.util` Java static factory calls
+  with an explicit module coordinate, currently Guava immutable collection
+  factories under `com.google.common.collect`. It depends on matching imported
+  binding evidence and local type-shadow checks; selector spelling alone stays
+  closed.
 - Python wildcard imports emit `Import::Wildcard` evidence. For current
   first-party Python free-name API producers, any asserted wildcard import keeps
   unqualified builtin/free-name library occurrence evidence closed because a
@@ -572,7 +577,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   plus unshadowed `require` and `Set` proof; Java `java.util` static
   factories/adapters including `List.of`, `Set.of`, and `Arrays.asList` with
   `nose.java.stdlib.collection_factories` provenance, `Map.of`/`Map.ofEntries`
-  with `nose.java.stdlib.map_factories` provenance, `Map.entry` with
+  with `nose.java.stdlib.map_factories` provenance, Guava `ImmutableList.of`,
+  `ImmutableSet.of`, and `ImmutableMap.of` with
+  `nose.java.ecosystem.guava.immutable_collection_factories` provenance,
+  `Map.entry` with
   `nose.java.stdlib.map_entries` provenance, `Arrays.stream` with
   `nose.java.stdlib.static_collection_adapters` provenance, plus selected empty
   `new ArrayList<>()`/`new LinkedList<>()` constructors with

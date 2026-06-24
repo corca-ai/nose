@@ -56,6 +56,7 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
     assert_eq!(
         java_collection_factory_contract(Lang::Java, "List", "of"),
         Some(JavaCollectionFactoryContract {
+            module: "java.util",
             receiver: "List",
             method: "of",
             kind: JavaCollectionFactoryKind::ListOf,
@@ -65,11 +66,26 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
     assert_eq!(
         java_collection_factory_contract(Lang::Java, "Arrays", "asList"),
         Some(JavaCollectionFactoryContract {
+            module: "java.util",
             receiver: "Arrays",
             method: "asList",
             kind: JavaCollectionFactoryKind::ArraysAsList,
             single_arg_spreads_array: true,
         })
+    );
+    assert_eq!(
+        java_collection_factory_contract(Lang::Java, "ImmutableList", "of"),
+        Some(JavaCollectionFactoryContract {
+            module: "com.google.common.collect",
+            receiver: "ImmutableList",
+            method: "of",
+            kind: JavaCollectionFactoryKind::GuavaImmutableListOf,
+            single_arg_spreads_array: false,
+        })
+    );
+    assert_eq!(
+        java_collection_factory_contract(Lang::Java, "ImmutableList", "copyOf"),
+        None
     );
     assert_eq!(
         java_collection_factory_contract(Lang::JavaScript, "List", "of"),
@@ -114,10 +130,24 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
     assert_eq!(
         java_map_factory_contract(Lang::Java, "Map", "ofEntries"),
         Some(JavaMapFactoryContract {
+            module: "java.util",
             receiver: "Map",
             method: "ofEntries",
             kind: JavaMapFactoryKind::OfEntries,
         })
+    );
+    assert_eq!(
+        java_map_factory_contract(Lang::Java, "ImmutableMap", "of"),
+        Some(JavaMapFactoryContract {
+            module: "com.google.common.collect",
+            receiver: "ImmutableMap",
+            method: "of",
+            kind: JavaMapFactoryKind::GuavaImmutableMapOf,
+        })
+    );
+    assert_eq!(
+        java_map_factory_contract(Lang::Java, "ImmutableMap", "copyOf"),
+        None
     );
     assert_eq!(java_map_factory_contract(Lang::Java, "List", "of"), None);
     assert!(java_map_entry_contract(Lang::Java, "Map", "entry"));
@@ -131,6 +161,11 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
         java_map_factory_contract_by_hash(Lang::Java, "Map", stable_symbol_hash("of"))
             .map(|contract| contract.kind),
         Some(JavaMapFactoryKind::Of)
+    );
+    assert_eq!(
+        java_map_factory_contract_by_hash(Lang::Java, "ImmutableMap", stable_symbol_hash("of"))
+            .map(|contract| contract.kind),
+        Some(JavaMapFactoryKind::GuavaImmutableMapOf)
     );
     assert!(java_map_entry_contract_by_hash(
         Lang::Java,

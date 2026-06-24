@@ -142,6 +142,10 @@ still being migrated toward it.
   `java.util.List.of`, `Set.of`, and `Arrays.asList` collection-factory
   contract and occurrence producer ids, while missing imports and
   cross-surface constructor boundary cases remain hard negatives. The
+  `nose.java.ecosystem.guava.immutable_collection_factories` descriptor owns
+  Guava `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` factory
+  contract and occurrence producer ids, while `copyOf`, missing imports, and
+  wrong-package surfaces remain hard negatives. The
   `nose.java.stdlib.collection_constructors` descriptor owns Java empty
   `new ArrayList<>()` and `new LinkedList<>()` collection-constructor contract
   and occurrence producer ids, while missing imports, local type shadows, and
@@ -236,6 +240,9 @@ still being migrated toward it.
   `nose.java.stdlib.collection_factories`, a default builtin stdlib pack for
   Java `java.util.List.of`, `Set.of`, and `Arrays.asList` collection-factory
   API provenance, and
+  `nose.java.ecosystem.guava.immutable_collection_factories`, a default builtin
+  library pack for Guava `ImmutableList.of`, `ImmutableSet.of`, and
+  `ImmutableMap.of` factory API provenance, and
   `nose.java.stdlib.collection_constructors`, a default builtin stdlib pack for
   Java empty `new ArrayList<>()` and `new LinkedList<>()` collection-constructor
   API provenance, and
@@ -434,7 +441,11 @@ migrated.
   Java stdlib `java.util.List.of`, `Set.of`, and `Arrays.asList`
   collection-factory `LibraryApi` occurrence evidence now carries
   `nose.java.stdlib.collection_factories` pack provenance while missing-import
-  and cross-surface constructor boundary cases stay closed. Java empty
+  and cross-surface constructor boundary cases stay closed. Guava
+  `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` `LibraryApi`
+  occurrence evidence now carries
+  `nose.java.ecosystem.guava.immutable_collection_factories` pack provenance
+  while `copyOf`, missing-import, and wrong-package cases stay closed. Java empty
   `new ArrayList<>()` and `new LinkedList<>()` collection-constructor
   `LibraryApi` occurrence evidence now carries
   `nose.java.stdlib.collection_constructors` pack provenance while

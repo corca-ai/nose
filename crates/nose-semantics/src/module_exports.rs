@@ -72,7 +72,7 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
         return false;
     };
     match kind {
-        JavaMapFactoryKind::Of => {
+        JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
             args.len() % 2 == 0
                 && args
                     .iter()

@@ -26,6 +26,7 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee_at_span(
             )
         }
         LibraryApiCalleeContract::JavaUtilStaticMember { .. }
+        | LibraryApiCalleeContract::JavaStaticMember { .. }
         | LibraryApiCalleeContract::JavaUtilConstructor { .. }
         | LibraryApiCalleeContract::RubyRequireStaticMember { .. } => {
             library_api_dependencies_match_static_import_callee_at_span(
@@ -161,6 +162,50 @@ fn field_method_receiver_matches_span(
             .is_some_and(|&receiver| il.node(receiver).span == receiver_span)
 }
 
+fn static_receiver_import_proven_at_span(
+    il: &Il,
+    interner: &Interner,
+    record: &EvidenceRecord,
+    receiver_span: Option<Span>,
+    module: &str,
+    receiver: &str,
+    required: bool,
+) -> bool {
+    if !required {
+        return true;
+    }
+    if let Some(span) = receiver_span {
+        dependency_has_imported_binding_anchor(
+            il,
+            interner,
+            record,
+            span,
+            NodeKind::Var,
+            module,
+            receiver,
+        )
+    } else {
+        dependency_has_imported_binding_dependency(il, interner, record, module, receiver)
+    }
+}
+
+fn static_receiver_shadow_safe_at_span(
+    il: &Il,
+    interner: &Interner,
+    receiver_span: Option<Span>,
+    receiver: &str,
+    required: bool,
+) -> bool {
+    if !required {
+        return true;
+    }
+    if let Some(span) = receiver_span {
+        !unit_defines_hash_visible_at(il, interner, stable_symbol_hash(receiver), span)
+    } else {
+        !unit_defines_hash(il, interner, stable_symbol_hash(receiver))
+    }
+}
+
 pub(in crate::library_api) fn library_api_dependencies_match_static_import_callee_at_span(
     il: &Il,
     interner: &Interner,
@@ -172,31 +217,38 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
 ) -> bool {
     match callee {
         LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
-            let receiver_proven = if let Some(span) = receiver_span {
-                dependency_has_imported_binding_anchor(
-                    il,
-                    interner,
-                    record,
-                    span,
-                    NodeKind::Var,
-                    "java.util",
-                    receiver,
-                )
-            } else {
-                dependency_has_imported_binding_dependency(
-                    il,
-                    interner,
-                    record,
-                    "java.util",
-                    receiver,
-                )
-            };
-            receiver_proven
-                && if let Some(span) = receiver_span {
-                    !unit_defines_hash_visible_at(il, interner, stable_symbol_hash(receiver), span)
-                } else {
-                    !unit_defines_hash(il, interner, stable_symbol_hash(receiver))
-                }
+            static_receiver_import_proven_at_span(
+                il,
+                interner,
+                record,
+                receiver_span,
+                "java.util",
+                receiver,
+                true,
+            ) && static_receiver_shadow_safe_at_span(il, interner, receiver_span, receiver, true)
+        }
+        LibraryApiCalleeContract::JavaStaticMember {
+            module,
+            receiver,
+            requires_import_for_simple_receiver,
+            requires_no_local_type_shadow,
+            ..
+        } => {
+            static_receiver_import_proven_at_span(
+                il,
+                interner,
+                record,
+                receiver_span,
+                module,
+                receiver,
+                requires_import_for_simple_receiver,
+            ) && static_receiver_shadow_safe_at_span(
+                il,
+                interner,
+                receiver_span,
+                receiver,
+                requires_no_local_type_shadow,
+            )
         }
         LibraryApiCalleeContract::JavaUtilConstructor {
             simple_type,
