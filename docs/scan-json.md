@@ -69,7 +69,7 @@ A checked-in example lives at
 and is read by the CLI test suite. `tool_version` is shown above as the `<version>`
 placeholder: it always reports the installed binary's own version, so the example does not
 pin a release. Semantic-pack metadata is query-only in
-[query-JSON schema v6](query-json.md#semantic-packs); legacy scan JSON v1 does not
+[query-JSON schema v7](query-json.md#semantic-packs); legacy scan JSON v1 does not
 emit `semantic_packs`. The `ignore` object appears **only** when an ignore file is read (via `--ignore-file`
 or an auto-detected `nose.ignore.json`), so a plain run omits it.
 

@@ -101,6 +101,7 @@ pub(crate) fn enrich_graded_witnesses(
         }
         if let Some(w) = f.witness.as_mut() {
             w.graded = Some(witness);
+            w.graded_pair = Some((a_idx, b_idx));
         }
     }
 }

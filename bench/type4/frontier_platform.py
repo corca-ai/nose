@@ -812,8 +812,9 @@ TARGET_PACKETS = [
         "owner_route": "proof-fact-prerequisite",
         "owner_issue": None,
         "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is "
-        "broad and generalizing — present in all 7 corpus primary languages on both the dev and "
-        "held-out splits. The proof-backed min/max plus controlled two-comparison/library "
+        "broad and generalizing — present in 7 of the 8 corpus primary-language buckets, "
+        "with hits in both the dev and held-out splits. The proof-backed min/max plus "
+        "controlled two-comparison/library "
         "bridge slices are implemented; the remaining value is identifying the next "
         "real-corpus bound-order proof "
         "without weakening the hard-negative boundary.",
@@ -879,6 +880,10 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
             }
             for loc in spec["locations"]
         ]
+        breadth = dict(axis.get("breadth") or {})
+        breadth["primary_language_total"] = len(
+            platform_result["identity"].get("corpus_primary_languages", [])
+        )
         packets.append(
             {
                 "packet_id": spec["packet_id"],
@@ -897,7 +902,7 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
                 "blocked_by": spec["blocked_by"],
                 "notes": spec["notes"],
                 # Platform context.
-                "breadth": axis.get("breadth"),
+                "breadth": breadth,
                 "evidence_tier": axis.get("evidence_tier"),
                 "curated": axis.get("curated"),
             }
@@ -958,6 +963,10 @@ def packets_markdown(packet_doc: dict) -> str:
         return "\n".join(lines).rstrip() + "\n"
     for p in packet_doc["packets"]:
         b = p["breadth"] or {}
+        primary_total = b.get("primary_language_total") or round(
+            b.get("primary_language_presence", 0)
+            / max(b.get("primary_language_breadth", 0), 0.0001)
+        )
         lines += [
             f"## `{p['packet_id']}` — axis `{p['candidate_axis']}`",
             "",
@@ -966,7 +975,7 @@ def packets_markdown(packet_doc: dict) -> str:
             f"`{p['curated']['soundness_risk']}` · substrate `{p['curated']['substrate_required']}`",
             f"- **breadth**: repo {b.get('repo_breadth', 0):.0%} · primary-language "
             f"{b.get('primary_language_breadth', 0):.0%} ({b.get('primary_language_presence', 0)}/"
-            f"{len(b.get('primary_languages', []) or [])}) · dev {b.get('dev_presence', 0)} · "
+            f"{primary_total}) · dev {b.get('dev_presence', 0)} · "
             f"held-out {b.get('heldout_presence', 0)} · {b.get('generalization', '?')}",
             f"- **semantic claim**: {p['semantic_claim']}",
             f"- **proof invariant**: {p['proof_invariant']}",

@@ -178,7 +178,7 @@ were hidden, adds a `note` notification under `runs[].invocations[]`, so a trunc
 at least detectable; `top=0` avoids the cap entirely.
 
 `--format json` is the general machine-readable form for any other tooling. The forward
-versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v6).
+versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v7).
 It is truncated by the active top limit in the same way.
 
 ## Fast re-runs: `--cache-dir`

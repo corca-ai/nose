@@ -7,9 +7,9 @@ break.
 ## [Unreleased]
 
 ### Added
-- Added query JSON `graded` evidence for on-demand `spotclass` enrichment, including
-  same-language shared-core (`subdag`) families that expose async/sync `async-mirror`
-  transformations.
+- Added query JSON `graded` and `graded_pair` evidence for on-demand `spotclass`
+  enrichment, including same-language shared-core (`subdag`) families that expose
+  async/sync `async-mirror` transformations.
 - Added the builtin Java Guava immutable collection factory pack for
   `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of`, with exact
   `com.google.common.collect` import-backed provenance and hard-negative

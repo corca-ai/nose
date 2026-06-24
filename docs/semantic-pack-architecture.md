@@ -234,7 +234,7 @@ previous semantic-kernel tranches.
    builtin packs without adding plugin lifecycle, sandboxing, remote registries,
    or external execution.
 3. **Phase 2, query reporting:** carry the active `SemanticPackSet` through
-   `nose query` and add top-level `semantic_packs` to query JSON schema v6.
+   `nose query` and add top-level `semantic_packs` to query JSON schema v7.
    Update [query-json](query-json.md) and [capabilities](capabilities.md) in
    the same PR because older query JSON schemas reject unknown fields.
 4. **Phase 3, reference stdlib pack:** make `nose.python.stdlib.type_domain` the first

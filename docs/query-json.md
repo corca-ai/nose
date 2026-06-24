@@ -1,4 +1,4 @@
-# nose query JSON (schema v6)
+# nose query JSON (schema v7)
 
 `nose query <path> [terms…] --format json` emits a structured, versioned contract over the
 duplicated-code family dataset — the **machine** form of the
@@ -8,7 +8,7 @@ For multi-root analysis, use repeated roots:
 `nose query --root <path> --root <path> [terms…] --format json`.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[6]`).
+versions the installed binary emits (currently `[7]`).
 
 ## Envelope
 
@@ -16,7 +16,7 @@ Every response is an object with:
 
 | field | meaning |
 |---|---|
-| `schema_version` | `6` |
+| `schema_version` | `7` |
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the analyzed path expression, as given; multi-root commands render the repeated `--root`/`-r` flags |
@@ -25,10 +25,10 @@ Every response is an object with:
 plus the view-specific body below. Like the human surface, a result is a pure function of
 (repo state, command); an unknown field or enum value is a hard error.
 
-Schema v6 keeps the schema-v5 top-level `semantic_packs` reporting field and
-renames pack-facing trust/source values from legacy first-party spelling to
-builtin spelling. Descriptor and reporting-only migrations should not change
-`families`, ranking, witnesses, surfaces, or exact/near results.
+Schema v7 adds on-demand family-level `graded` and `graded_pair` evidence for
+`spotclass` enrichment. Schema v6 added the top-level `semantic_packs`
+reporting field and renamed pack-facing trust/source values from legacy
+first-party spelling to builtin spelling.
 
 ## Semantic packs
 
@@ -51,9 +51,9 @@ Each entry has:
 | `supported_languages` | array | Language ids declared by the pack. |
 | `counts` | object | Counts of declared `evidence_producers`, `contracts`, `value_laws`, `positive_fixtures`, and `hard_negatives`. |
 
-Local external packs are reported for provenance and validation only in schema
-v6. They must not change families, ranking, witnesses, surfaces, or exact/near
-results while their `influence` is `metadata-only`.
+Local external packs are reported for provenance and validation only. They must
+not change families, ranking, witnesses, surfaces, or exact/near results while
+their `influence` is `metadata-only`.
 
 ## Views
 
@@ -113,6 +113,7 @@ proven-shared-logic verdict the gate fires on.
 | `existing_helper` | (only for `call-existing-helper`) the member to call — `{name, file, start, end}`; the inline copies recompute it, so the fix is "call it", not a fresh extraction |
 | `spotclass` | (only on enriched same-language near/shared-core families) `leaf-only` (varying spots are clean value-leaves and `graded.equal_modulo_holes=true`) \| `structural` (a demoted witness, async/sync transformation, shape/arity/referent divergence, or other genuine logic difference). Omitted unless the query filters/groups by `spotclass` (the graded-witness enrichment runs on demand) |
 | `graded` | (only when `spotclass` enrichment has run and a witness was computed) the same anti-unification object described by [graded-witness](graded-witness.md): `holes`, `spots[]`, `patterns[]` such as `async-mirror`, `referent_mismatches[]`, `caveat_names[]`, `equal_modulo_holes`, and `modeled_caveat`. This is presentation evidence for near/shared-core families, not an exact-channel proof. |
+| `graded_pair` | (only with `graded`) the two `locations[]` members whose value graphs produced the grade: `{a_index,b_index,a_member_id,b_member_id}`. The indices are zero-based into this family object's `locations[]`; the ids match the corresponding location `id` fields, so consumers can tie `graded.spots[].a_text`/`b_text` back to the represented files even when a multi-member shared-core family contains decoys. |
 | `value_nodes` | (exact families) the size of the shared value multiset proven identical — *how much* is proven, not just that it is |
 | `status` | (only with `since=`) `new` \| `changed` \| `unchanged` against the snapshot — the temporal lens |
 | `baseline_status` | (only with `--baseline`, and only for reported families) `new` \| `changed`; accepted unchanged families are hidden by `--baseline` |

@@ -147,6 +147,7 @@ fn query_family_json_carries_proof_depth() {
         mean_value_jaccard: None,
         mean_shape_jaccard: None,
         graded: None,
+        graded_pair: None,
     });
     let je = query_family_json(&exact, &ov, &empty, false, None, None);
     assert_eq!(
@@ -269,6 +270,7 @@ fn spotclass_grades_near_family_holes() {
                 equal_modulo_holes: true,
                 modeled_caveat: false,
             }),
+            graded_pair: None,
         });
         f
     };
@@ -432,6 +434,7 @@ fn summary_names_the_equivalence_evidence() {
         mean_value_jaccard: None,
         mean_shape_jaccard: None,
         graded: None,
+        graded_pair: None,
     });
     assert!(
         family_summary(&f).contains("· exact behavior match"),

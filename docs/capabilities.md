@@ -47,7 +47,7 @@ nose capabilities
   },
   "schemas": {
     "capabilities": [4],
-    "query_json": [6],
+    "query_json": [7],
     "semantic_packs": ["nose.semantic-pack.v0"],
     "semantic_pack_conformance": [2],
     "semantic_pack_inventory": [1],

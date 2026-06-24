@@ -363,12 +363,28 @@ pub(super) fn query_family_json_with_counts(
     if let Some(graded) = f.witness.as_ref().and_then(|w| w.graded.as_ref()) {
         obj["graded"] = serde_json::to_value(graded).expect("graded witness is JSON serializable");
     }
+    if let Some(pair) = graded_pair_json(f) {
+        obj["graded_pair"] = pair;
+    }
     if full {
         if let Some(skeleton) = family_skeleton(f) {
             obj["skeleton"] = serde_json::Value::from(skeleton);
         }
     }
     obj
+}
+
+fn graded_pair_json(f: &nose_detect::RefactorFamily) -> Option<serde_json::Value> {
+    let (a_idx, b_idx) = f.witness.as_ref()?.graded_pair?;
+    let (Some(a), Some(b)) = (f.locations.get(a_idx), f.locations.get(b_idx)) else {
+        return None;
+    };
+    Some(serde_json::json!({
+        "a_index": a_idx,
+        "b_index": b_idx,
+        "a_member_id": baseline::member_id(a),
+        "b_member_id": baseline::member_id(b),
+    }))
 }
 
 pub(super) fn query_removable_lines(f: &nose_detect::RefactorFamily, shared: u32) -> u32 {

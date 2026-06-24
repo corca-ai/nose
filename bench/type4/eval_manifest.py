@@ -29,7 +29,10 @@ def build_family_index(families: list[dict]) -> dict[str, list[tuple[int, int, i
         for loc in family.get("locations", []):
             if loc.get("kind") == "Block":
                 continue
-            if loc.get("name") is None:
+            # Current query JSON does not expose `kind`; fragment/block rows are the
+            # unnamed locations. Legacy raw family arrays do expose `kind`, so keep
+            # non-Block unnamed locations there for saved-output compatibility.
+            if "kind" not in loc and loc.get("name") is None:
                 continue
             start, end = loc_bounds(loc)
             by_file[str(Path(loc["file"]).resolve())].append(

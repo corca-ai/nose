@@ -129,7 +129,7 @@ fn query_json_grades_async_mirror_shared_core_families() {
     let families = json["families"]
         .as_array()
         .expect("query JSON should carry a families array");
-    let async_mirror_subdag = families
+    let async_mirror_subdag: Vec<_> = families
         .iter()
         .filter(|family| {
             family["witness"] == "subdag"
@@ -137,9 +137,29 @@ fn query_json_grades_async_mirror_shared_core_families() {
                 && family["graded"]["equal_modulo_holes"] == false
                 && json_array_strings(&family["graded"], "patterns").contains(&"async-mirror")
         })
-        .count();
+        .collect();
+    for family in &async_mirror_subdag {
+        let locations = family["locations"].as_array().unwrap();
+        let pair = &family["graded_pair"];
+        let a_idx = pair["a_index"].as_u64().unwrap() as usize;
+        let b_idx = pair["b_index"].as_u64().unwrap() as usize;
+        let a = &locations[a_idx];
+        let b = &locations[b_idx];
+        assert_eq!(pair["a_member_id"], a["id"]);
+        assert_eq!(pair["b_member_id"], b["id"]);
+        let a_file = a["file"].as_str().unwrap();
+        let b_file = b["file"].as_str().unwrap();
+        assert_ne!(a_idx, b_idx);
+        assert!(
+            a_file != b_file
+                && (a_file.ends_with(".py") || a_file.ends_with(".ts"))
+                && (b_file.ends_with(".py") || b_file.ends_with(".ts")),
+            "graded_pair should identify the concrete representatives behind the witness: {family}"
+        );
+    }
     assert_eq!(
-        async_mirror_subdag, 5,
+        async_mirror_subdag.len(),
+        5,
         "all shared-core async/sync fixture families should carry async-mirror evidence: {json}"
     );
 }
@@ -295,12 +315,12 @@ fn query_dashboard_filter_and_family() {
         "query --fail-on new requires --baseline"
     );
 
-    // The JSON form is the structured, versioned query-v6 contract (every view).
+    // The JSON form is the structured, versioned query-v7 contract (every view).
     let dash: serde_json::Value =
         serde_json::from_str(&run_raw(&["query", p, "--format", "json"])).unwrap();
     assert_eq!(
-        dash["schema_version"], 6,
-        "dashboard json is schema v6: {dash}"
+        dash["schema_version"], 7,
+        "dashboard json is schema v7: {dash}"
     );
     assert_eq!(dash["view"], "dashboard");
     assert_query_json_reports_semantic_packs(&dash);

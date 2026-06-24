@@ -31,6 +31,7 @@
         "heldout_presence": 12,
         "primary_language_breadth": 0.875,
         "primary_language_presence": 7,
+        "primary_language_total": 8,
         "primary_languages": [
           "C",
           "Go",
@@ -107,7 +108,7 @@
       "packet_id": "numeric-clamp-2026-06-06",
       "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
       "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
-      "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in all 7 corpus primary languages on both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
+      "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
     }
   ],
   "schema_version": 1,

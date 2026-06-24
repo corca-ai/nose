@@ -23,6 +23,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
             graded: None,
+            graded_pair: None,
         };
     }
     if members.len() >= 2 && shared_subdag_hash(members, units).is_some() {
@@ -32,6 +33,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
             mean_value_jaccard: None,
             mean_shape_jaccard: None,
             graded: None,
+            graded_pair: None,
         };
     }
     let (mut vj, mut sj) = (0.0, 0.0);
@@ -46,6 +48,7 @@ fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
         mean_value_jaccard: Some(round3(vj / n)),
         mean_shape_jaccard: Some(round3(sj / n)),
         graded: None,
+        graded_pair: None,
     }
 }
 

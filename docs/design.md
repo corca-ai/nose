@@ -158,7 +158,7 @@ its head is nose's one chance to demonstrate value. Two consequences:
   consumers depend on; this is what makes the guarantee scale as rules are added.
 - **query-JSON evidence richness.** The real lever for consumer 1 — make equivalence
   *explainable and actionable* in machine-readable form (the shipped `nose query --format
-  json` contract, currently [query JSON schema v6](query-json.md); scan-JSON v1 deprecated).
+  json` contract, currently [query JSON schema v7](query-json.md); scan-JSON v1 deprecated).
 - **`query base=<ref>`-as-gate.** The natural high-precision bottom-line for consumer 2
   (the shipped divergent-edit view, formerly `nose review`); harden it past
   v1 and define a conservative fire policy. *Measured 2026-06-11

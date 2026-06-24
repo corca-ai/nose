@@ -143,6 +143,7 @@ pub(super) fn witnessed(mut f: RefactorFamily, kind: &'static str) -> RefactorFa
         mean_value_jaccard: None,
         mean_shape_jaccard: None,
         graded: None,
+        graded_pair: None,
     });
     f
 }

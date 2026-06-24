@@ -14,8 +14,9 @@ actionable statement — the lever for [consumer 1](design.md) (the calling agen
 This is the productized outcome of the #315 investigation; the
 [architecture](architecture.md) pipeline (step 5, scoring) emits it where a presentation
 surface asks for the enrichment. `nose query` exposes it as `graded` on family JSON when
-the query filters or groups by `spotclass`; scan-family witnesses use the same schema
-under `witness.graded` when enriched.
+the query filters or groups by `spotclass`, along with `graded_pair` so consumers know
+which two `locations[]` members were compared; scan-family witnesses use the same witness
+schema under `witness.graded` when enriched.
 
 ## What it computes
 

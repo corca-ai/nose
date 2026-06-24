@@ -236,7 +236,8 @@ The tool-assisted manual audit produced **one implementation-ready packet**: `nu
   abs idiom, which it DOES canonicalize. Confirmed on the current binary: a controlled scan
   merges `absTern`/`absBuilt` but not `clampTern`/`clampBuilt`, and boltons `clamp` (min(max))
   and fzf `Constrain` (max(min)) do not merge across files.
-- Broad and generalizing: present in 26 repos across all 7 primary languages on both splits
+- Broad and generalizing: present in 26 repos across 7 of the current 8 primary-language buckets,
+  with hits on both splits
   (dev 14 / held-out 12). The identity and its hard negatives (swapped bound order, wrong
   nesting, the `lo ≤ hi` precondition) are machine-checked in `formal/obligations/normalize/value_graph/clamp/Proof.lean`.
 - Recorded as a `real-miss` in `real_frontier.v1.json` (existing schema/status) and linked by

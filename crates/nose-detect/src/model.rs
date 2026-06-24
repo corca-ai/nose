@@ -233,6 +233,11 @@ pub struct EquivalenceWitness {
     /// source access; `None` for exact/copy-paste witnesses and until that layer runs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub graded: Option<GradedWitness>,
+    /// Internal presentation-layer indices of the two locations compared for `graded`.
+    /// Query JSON maps these to stable member ids; raw witness serialization omits them
+    /// to keep the detect-report contract unchanged.
+    #[serde(skip_serializing)]
+    pub graded_pair: Option<(usize, usize)>,
 }
 
 #[derive(Serialize)]
