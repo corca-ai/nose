@@ -3,9 +3,10 @@
 use crate::{
     admitted_free_name_map_factory_at_call, admitted_java_map_entry_at_call,
     admitted_java_map_factory_at_call, import_fact_evidence_rhs,
-    java_map_factory_positional_arg_count_supported, nodes_contain_duplicate_static_literal_keys,
-    nodes_contain_static_null_literal, semantics, seq_surface_contract_for_node,
-    ImportedMapFactoryContract, JavaMapFactoryKind, LibraryMapFactoryResult,
+    java_map_factory_positional_arg_count_supported, java_map_factory_uses_positional_entries,
+    nodes_contain_duplicate_static_literal_keys, nodes_contain_static_null_literal, semantics,
+    seq_surface_contract_for_node, ImportedMapFactoryContract, JavaMapFactoryKind,
+    LibraryMapFactoryResult,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind};
 
@@ -73,7 +74,7 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
         return false;
     };
     match kind {
-        JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
+        kind if java_map_factory_uses_positional_entries(kind) => {
             java_map_factory_positional_arg_count_supported(kind, args.len())
                 && java_map_positional_args_export_safe(il, kind, args)
                 && args
@@ -83,6 +84,7 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
         JavaMapFactoryKind::OfEntries => args
             .iter()
             .all(|&arg| java_map_entry_call_safe(il, interner, arg)),
+        _ => false,
     }
 }
 

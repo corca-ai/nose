@@ -39,38 +39,23 @@ impl<'a> Builder<'a> {
         if !semantics(self.il.meta.lang).stdlib().java_map_factories() {
             return None;
         }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.is_empty() {
-            return None;
-        }
-        let args = node.args.clone();
-        let callee_value = args[0];
-        let callee = &self.nodes[callee_value as usize];
-        let ValOp::Field(method) = callee.op else {
-            return None;
-        };
-        if callee.args.len() != 1 {
-            return None;
-        }
+        let call = self.java_static_member_value_call(value)?;
         let admitted = admitted_java_map_factory_at_call_span(
             self.il,
             self.interner,
             self.library_api_span_call(
                 value,
-                callee_value,
-                Some(callee.args[0]),
-                args.len().saturating_sub(1),
+                call.callee,
+                Some(call.receiver),
+                call.args.len().saturating_sub(1),
             ),
-            method,
+            call.method,
         )?;
         let LibraryMapFactoryResult::JavaFactory { kind } = admitted.contract.result else {
             return None;
         };
-        if matches!(
-            kind,
-            JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf
-        ) {
-            let entries = &args[1..];
+        if java_map_factory_uses_positional_entries(kind) {
+            let entries = &call.args[1..];
             if !java_map_factory_positional_arg_count_supported(kind, entries.len())
                 || !self.java_map_positional_entries_value_safe(kind, entries)
             {
@@ -83,8 +68,8 @@ impl<'a> Builder<'a> {
             return Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries));
         }
         if kind == JavaMapFactoryKind::OfEntries {
-            let mut canonical_entries = Vec::with_capacity(args.len().saturating_sub(1));
-            for entry in args.iter().skip(1).copied() {
+            let mut canonical_entries = Vec::with_capacity(call.args.len().saturating_sub(1));
+            for entry in call.args.iter().skip(1).copied() {
                 let kv = self.proven_java_map_entry_pair(entry)?;
                 canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv));
             }
@@ -106,7 +91,7 @@ impl<'a> Builder<'a> {
             return None;
         };
         match kind {
-            JavaMapFactoryKind::Of | JavaMapFactoryKind::GuavaImmutableMapOf => {
+            kind if java_map_factory_uses_positional_entries(kind) => {
                 let entries = &kids[1..];
                 if !java_map_factory_positional_arg_count_supported(kind, entries.len())
                     || !self.java_map_positional_entries_expr_safe(kind, entries)
@@ -128,6 +113,7 @@ impl<'a> Builder<'a> {
                 }
                 Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries))
             }
+            _ => None,
         }
     }
     fn java_map_positional_entries_value_safe(
@@ -186,25 +172,17 @@ impl<'a> Builder<'a> {
         Some(vec![self.eval(kids[1], env), self.eval(kids[2], env)])
     }
     fn proven_java_map_entry_pair(&self, value: ValueId) -> Option<Vec<ValueId>> {
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 3 {
-            return None;
-        }
-        let args = node.args.clone();
-        let callee = &self.nodes[args[0] as usize];
-        let ValOp::Field(method) = callee.op else {
-            return None;
-        };
-        if callee.args.len() != 1 {
+        let call = self.java_static_member_value_call(value)?;
+        if call.args.len() != 3 {
             return None;
         }
         admitted_java_map_entry_at_call_span(
             self.il,
             self.interner,
-            self.library_api_span_call(value, args[0], Some(callee.args[0]), 2),
-            method,
+            self.library_api_span_call(value, call.callee, Some(call.receiver), 2),
+            call.method,
         )?;
-        Some(args[1..].to_vec())
+        Some(call.args[1..].to_vec())
     }
     pub(in crate::value_graph) fn eval_js_like_constructed_collection_or_map(
         &mut self,

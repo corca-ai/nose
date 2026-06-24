@@ -304,10 +304,14 @@ fn java_library_api_contract_provenance_ids(
             Some((JAVA_STDLIB_MATH_PACK_ID, JAVA_STDLIB_MATH_PRODUCER_ID))
         }
         LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::Of)
-        | LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::OfEntries) => Some((
-            JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-            JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
-        )),
+        | LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::OfEntries)
+        | LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::CollectionsEmptyMap)
+        | LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::CollectionsSingletonMap) => {
+            Some((
+                JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+                JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+            ))
+        }
         LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::GuavaImmutableMapOf) => Some((
             JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
             JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
@@ -318,12 +322,22 @@ fn java_library_api_contract_provenance_ids(
         )),
         LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::ListOf)
         | LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::SetOf)
-        | LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::ArraysAsList) => {
-            Some((
-                JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
-                JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
-            ))
-        }
+        | LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::ArraysAsList)
+        | LibraryApiContractId::JavaCollectionFactory(
+            JavaCollectionFactoryKind::CollectionsEmptyList,
+        )
+        | LibraryApiContractId::JavaCollectionFactory(
+            JavaCollectionFactoryKind::CollectionsEmptySet,
+        )
+        | LibraryApiContractId::JavaCollectionFactory(
+            JavaCollectionFactoryKind::CollectionsSingleton,
+        )
+        | LibraryApiContractId::JavaCollectionFactory(
+            JavaCollectionFactoryKind::CollectionsSingletonList,
+        ) => Some((
+            JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        )),
         LibraryApiContractId::JavaCollectionFactory(
             JavaCollectionFactoryKind::GuavaImmutableListOf
             | JavaCollectionFactoryKind::GuavaImmutableSetOf,

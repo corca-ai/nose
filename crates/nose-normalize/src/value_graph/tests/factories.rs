@@ -1,6 +1,7 @@
 use super::support::*;
 
 mod guava_factories;
+mod java_collections;
 
 #[test]
 fn imported_collection_factory_value_graph_uses_library_api_evidence() {

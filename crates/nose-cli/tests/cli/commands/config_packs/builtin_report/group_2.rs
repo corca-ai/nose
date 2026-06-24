@@ -52,10 +52,10 @@ pub(super) fn assert_group(json: &serde_json::Value) {
         vec!["java"]
     );
     assert_eq!(java_collections["counts"]["evidence_producers"], 1);
-    assert_eq!(java_collections["counts"]["contracts"], 3);
+    assert_eq!(java_collections["counts"]["contracts"], 7);
     assert_eq!(java_collections["counts"]["value_laws"], 0);
-    assert_eq!(java_collections["counts"]["positive_fixtures"], 3);
-    assert_eq!(java_collections["counts"]["hard_negatives"], 2);
+    assert_eq!(java_collections["counts"]["positive_fixtures"], 7);
+    assert_eq!(java_collections["counts"]["hard_negatives"], 5);
 
     let guava_collections = semantic_pack_by_id(
         &json,

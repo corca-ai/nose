@@ -54,22 +54,49 @@ fn literal_map_default_lookup_converges_with_java_map_factory_boundaries() {
     let java_map_of = "import java.util.Map;\n\nclass C { static int f(String key, String other) { return Map.of(\"red\", 1, \"blue\", 2).getOrDefault(key, 0); } }\n";
     let java_map_of_entries = "import java.util.Map;\n\nclass C { static int f(String key, String other) { return Map.ofEntries(Map.entry(\"red\", 1), Map.entry(\"blue\", 2)).getOrDefault(key, 0); } }\n";
     let java_map_local = "import java.util.Map;\n\nclass C { static int f(String key, String other) { Map<String, Integer> lookup = Map.of(\"red\", 1, \"blue\", 2); return lookup.getOrDefault(key, 0); } }\n";
+    let java_collections_singleton = "import java.util.Collections;\n\nclass C { static int f(String key, String other) { return Collections.singletonMap(\"red\", 1).getOrDefault(key, 0); } }\n";
+    let java_collections_empty = "import java.util.Collections;\n\nclass C { static int f(String key, String other) { return Collections.emptyMap().getOrDefault(key, 0); } }\n";
     let java_wrong_key = "import java.util.Map;\n\nclass C { static int f(String key, String other) { return Map.of(\"red\", 1, \"blue\", 2).getOrDefault(other, 0); } }\n";
     let java_wrong_default = "import java.util.Map;\n\nclass C { static int f(String key, String other) { return Map.of(\"red\", 1, \"blue\", 2).getOrDefault(key, 9); } }\n";
     let java_wrong_map = "import java.util.Map;\n\nclass C { static int f(String key, String other) { return Map.of(\"red\", 9, \"blue\", 2).getOrDefault(key, 0); } }\n";
     let java_shadowed_factory = "class C { static class MapFactory { java.util.Map<String, Integer> of(Object... values) { return java.util.Map.of(); } } static int f(String key, String other, MapFactory Map) { return Map.of(\"red\", 1, \"blue\", 2).getOrDefault(key, 0); } }\n";
     let java_type_shadow = "class C { static int f(String key, String other) { return Map.of(\"red\", 1, \"blue\", 2).getOrDefault(key, 0); } }\nclass Map { static java.util.Map<String, Integer> of(Object... values) { return java.util.Map.of(); } }\n";
+    let java_collections_missing_import = "class C { static int f(String key, String other) { return Collections.singletonMap(\"red\", 1).getOrDefault(key, 0); } }\nclass Collections { static java.util.Map<String, Integer> singletonMap(String key, Integer value) { return java.util.Map.of(\"green\", value); } }\n";
+    let java_collections_shadowed_receiver = "import java.util.Collections;\n\nclass C { static int f(String key, String other, Object Collections) { return Collections.singletonMap(\"red\", 1).getOrDefault(key, 0); } }\n";
 
     let fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, java_map_of, Lang::Java));
     assert_eq!(fp, value_fp(&i, java_map_of_entries, Lang::Java));
     assert_eq!(fp, value_fp(&i, java_map_local, Lang::Java));
+    let singleton_fp = value_fp(
+        &i,
+        "def f(key, other):\n    return {\"red\": 1}.get(key, 0)\n",
+        Lang::Python,
+    );
+    assert_eq!(
+        singleton_fp,
+        value_fp(&i, java_collections_singleton, Lang::Java)
+    );
+    let empty_fp = value_fp(
+        &i,
+        "def f(key, other):\n    return {}.get(key, 0)\n",
+        Lang::Python,
+    );
+    assert_eq!(empty_fp, value_fp(&i, java_collections_empty, Lang::Java));
     assert_ne!(fp, value_fp(&i, java_wrong_key, Lang::Java));
     assert_ne!(fp, value_fp(&i, java_wrong_default, Lang::Java));
     assert_ne!(fp, value_fp(&i, java_wrong_map, Lang::Java));
     assert_ne!(fp, value_fp(&i, java_shadowed_factory, Lang::Java));
     assert_ne!(fp, value_fp(&i, java_type_shadow, Lang::Java));
+    assert_ne!(
+        singleton_fp,
+        value_fp_named(&i, java_collections_missing_import, Lang::Java, "f")
+    );
+    assert_ne!(
+        singleton_fp,
+        value_fp(&i, java_collections_shadowed_receiver, Lang::Java)
+    );
 }
 
 #[test]

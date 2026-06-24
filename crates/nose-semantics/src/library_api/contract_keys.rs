@@ -100,6 +100,10 @@ fn java_collection_factory_kind_key(kind: JavaCollectionFactoryKind) -> &'static
         JavaCollectionFactoryKind::ListOf => "list_of",
         JavaCollectionFactoryKind::SetOf => "set_of",
         JavaCollectionFactoryKind::ArraysAsList => "arrays_as_list",
+        JavaCollectionFactoryKind::CollectionsEmptyList => "collections_empty_list",
+        JavaCollectionFactoryKind::CollectionsEmptySet => "collections_empty_set",
+        JavaCollectionFactoryKind::CollectionsSingleton => "collections_singleton",
+        JavaCollectionFactoryKind::CollectionsSingletonList => "collections_singleton_list",
         JavaCollectionFactoryKind::GuavaImmutableListOf => "guava_immutable_list_of",
         JavaCollectionFactoryKind::GuavaImmutableSetOf => "guava_immutable_set_of",
     }
@@ -115,6 +119,8 @@ fn java_map_factory_kind_key(kind: JavaMapFactoryKind) -> &'static str {
     match kind {
         JavaMapFactoryKind::Of => "of",
         JavaMapFactoryKind::OfEntries => "of_entries",
+        JavaMapFactoryKind::CollectionsEmptyMap => "collections_empty_map",
+        JavaMapFactoryKind::CollectionsSingletonMap => "collections_singleton_map",
         JavaMapFactoryKind::GuavaImmutableMapOf => "guava_immutable_map_of",
     }
 }

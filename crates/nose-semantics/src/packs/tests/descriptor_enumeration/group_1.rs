@@ -47,13 +47,15 @@ pub(super) fn assert_group() {
         java_stdlib_maps.contract_ids,
         &[
             JAVA_STDLIB_MAP_FACTORY_OF_CONTRACT_ID,
-            JAVA_STDLIB_MAP_FACTORY_OF_ENTRIES_CONTRACT_ID
+            JAVA_STDLIB_MAP_FACTORY_OF_ENTRIES_CONTRACT_ID,
+            JAVA_STDLIB_MAP_FACTORY_COLLECTIONS_EMPTY_MAP_CONTRACT_ID,
+            JAVA_STDLIB_MAP_FACTORY_COLLECTIONS_SINGLETON_MAP_CONTRACT_ID
         ]
     );
     assert_eq!(java_stdlib_maps.counts().evidence_producers, 1);
-    assert_eq!(java_stdlib_maps.counts().contracts, 2);
-    assert_eq!(java_stdlib_maps.counts().positive_fixtures, 2);
-    assert_eq!(java_stdlib_maps.counts().hard_negatives, 2);
+    assert_eq!(java_stdlib_maps.counts().contracts, 4);
+    assert_eq!(java_stdlib_maps.counts().positive_fixtures, 4);
+    assert_eq!(java_stdlib_maps.counts().hard_negatives, 4);
     assert!(java_stdlib_maps
         .conformance_refs()
         .contains(&"java-map-missing-import-hard-negative"));
@@ -98,13 +100,17 @@ pub(super) fn assert_group() {
         &[
             JAVA_STDLIB_COLLECTION_FACTORY_LIST_OF_CONTRACT_ID,
             JAVA_STDLIB_COLLECTION_FACTORY_SET_OF_CONTRACT_ID,
-            JAVA_STDLIB_COLLECTION_FACTORY_ARRAYS_AS_LIST_CONTRACT_ID
+            JAVA_STDLIB_COLLECTION_FACTORY_ARRAYS_AS_LIST_CONTRACT_ID,
+            JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_EMPTY_LIST_CONTRACT_ID,
+            JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_EMPTY_SET_CONTRACT_ID,
+            JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_SINGLETON_CONTRACT_ID,
+            JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_SINGLETON_LIST_CONTRACT_ID
         ]
     );
     assert_eq!(java_stdlib_collections.counts().evidence_producers, 1);
-    assert_eq!(java_stdlib_collections.counts().contracts, 3);
-    assert_eq!(java_stdlib_collections.counts().positive_fixtures, 3);
-    assert_eq!(java_stdlib_collections.counts().hard_negatives, 2);
+    assert_eq!(java_stdlib_collections.counts().contracts, 7);
+    assert_eq!(java_stdlib_collections.counts().positive_fixtures, 7);
+    assert_eq!(java_stdlib_collections.counts().hard_negatives, 5);
     assert!(java_stdlib_collections
         .conformance_refs()
         .contains(&"java-collection-missing-import-hard-negative"));

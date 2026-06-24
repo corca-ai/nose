@@ -4,8 +4,9 @@ mod contract_rows;
 
 use crate::evidence::{unique_asserted_evidence_at, EvidenceResolution};
 use crate::{
-    admitted_library_method_call_at_call, js_like_lang, library_api_contract_id_hash,
-    ChannelEligibility, LibraryApiCalleeContract, LibraryApiContractId, MethodBuiltinArgs,
+    admitted_library_method_call_at_call, java_map_factory_result_domain_arg_count_supported,
+    js_like_lang, library_api_contract_id_hash, ChannelEligibility, JavaCollectionFactoryKind,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiContractId, MethodBuiltinArgs,
     MethodSemanticContract, PromiseFactoryKind,
 };
 use nose_il::{
@@ -214,12 +215,69 @@ fn asserted_library_api_suppresses_opaque_escape_at_node(il: &Il, node: NodeId) 
 }
 
 fn library_api_suppresses_opaque_argument_escape(api: LibraryApiEvidenceKind) -> bool {
-    let LibraryApiEvidenceKind::Contract { contract_hash, .. } = api;
+    let LibraryApiEvidenceKind::Contract {
+        contract_hash,
+        arity,
+        ..
+    } = api;
     contract_hash != library_api_contract_id_hash(LibraryApiContractId::PromiseThen)
         && contract_hash
             != library_api_contract_id_hash(LibraryApiContractId::PromiseFactory(
                 PromiseFactoryKind::Resolve,
             ))
+        && library_api_contract_arity_suppresses_opaque_escape(contract_hash, arity as usize)
+}
+
+fn library_api_contract_arity_suppresses_opaque_escape(contract_hash: u64, arity: usize) -> bool {
+    java_collection_factory_contract_arity_suppresses_opaque_escape(contract_hash, arity)
+        .or_else(|| java_map_factory_contract_arity_suppresses_opaque_escape(contract_hash, arity))
+        .unwrap_or(true)
+}
+
+fn java_collection_factory_contract_arity_suppresses_opaque_escape(
+    contract_hash: u64,
+    arity: usize,
+) -> Option<bool> {
+    [
+        (JavaCollectionFactoryKind::ArraysAsList, arity != 1),
+        (JavaCollectionFactoryKind::CollectionsEmptyList, arity == 0),
+        (JavaCollectionFactoryKind::CollectionsEmptySet, arity == 0),
+        (JavaCollectionFactoryKind::CollectionsSingleton, arity == 1),
+        (
+            JavaCollectionFactoryKind::CollectionsSingletonList,
+            arity == 1,
+        ),
+    ]
+    .into_iter()
+    .find_map(|(kind, suppresses)| {
+        contract_hash_matches(
+            contract_hash,
+            LibraryApiContractId::JavaCollectionFactory(kind),
+        )
+        .then_some(suppresses)
+    })
+}
+
+fn java_map_factory_contract_arity_suppresses_opaque_escape(
+    contract_hash: u64,
+    arity: usize,
+) -> Option<bool> {
+    [
+        JavaMapFactoryKind::Of,
+        JavaMapFactoryKind::OfEntries,
+        JavaMapFactoryKind::CollectionsEmptyMap,
+        JavaMapFactoryKind::CollectionsSingletonMap,
+        JavaMapFactoryKind::GuavaImmutableMapOf,
+    ]
+    .into_iter()
+    .find_map(|kind| {
+        contract_hash_matches(contract_hash, LibraryApiContractId::JavaMapFactory(kind))
+            .then(|| java_map_factory_result_domain_arg_count_supported(kind, arity))
+    })
+}
+
+fn contract_hash_matches(contract_hash: u64, id: LibraryApiContractId) -> bool {
+    contract_hash == library_api_contract_id_hash(id)
 }
 
 fn place_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<PlaceEvidenceKind> {

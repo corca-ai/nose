@@ -118,6 +118,10 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let java_list_of = "import java.util.List;\n\nclass C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
     let java_set_of = "import java.util.Set;\n\nclass C { static boolean f(String value, String other) { return Set.of(\"red\", \"blue\").contains(value); } }";
     let java_arrays_aslist = "import java.util.Arrays;\n\nclass C { static boolean f(String value, String other) { return Arrays.asList(\"red\", \"blue\").contains(value); } }";
+    let java_collections_singleton = "import java.util.Collections;\n\nclass C { static boolean f(String value, String other) { return Collections.singleton(\"red\").contains(value); } }";
+    let java_collections_singleton_list = "import java.util.Collections;\n\nclass C { static boolean f(String value, String other) { return Collections.singletonList(\"red\").contains(value); } }";
+    let java_collections_empty_list = "import java.util.Collections;\n\nclass C { static boolean f(String value, String other) { return Collections.emptyList().contains(value); } }";
+    let java_collections_empty_set = "import java.util.Collections;\n\nclass C { static boolean f(String value, String other) { return Collections.emptySet().contains(value); } }";
     let go_slices_package = "package p\n\nimport \"slices\"\n\nvar values = []string{\"red\", \"blue\"}\n\nfunc F(value string, other string) bool { return slices.Contains(values, value) }\n";
     let go_slices_alias = "package p\n\nimport sl \"slices\"\n\nvar values = []string{\"red\", \"blue\"}\n\nfunc F(value string, other string) bool { return sl.Contains(values, value) }\n";
     let go_slices_const = "package p\n\nimport \"slices\"\n\nconst first = \"red\"\nvar values = []string{first, \"blue\"}\n\nfunc F(value string, other string) bool { return slices.Contains(values, value) }\n";
@@ -135,6 +139,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let java_shadowed_list = "class C { static boolean f(Object List, String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
     let java_local_list_class = "class C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }\nclass List { static Box of(String a, String b) { return new Box(); } }\nclass Box { boolean contains(String value) { return false; } }";
     let java_module_list_shadowed = "class C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }\nclass List<T> { static java.util.List<String> of(String left, String right) { return java.util.List.of(\"green\", right); } }";
+    let java_collections_missing_import = "class C { static boolean f(String value, String other) { return Collections.singletonList(\"red\").contains(value); } }\nclass Collections { static Box singletonList(String value) { return new Box(); } }\nclass Box { boolean contains(String value) { return false; } }";
+    let java_collections_shadowed_receiver = "import java.util.Collections;\n\nclass C { static boolean f(Object Collections, String value, String other) { return Collections.singletonList(\"red\").contains(value); } }";
     let py_factory_wrong_element =
         "def f(value, other):\n    return set([\"red\", \"blue\"]).__contains__(other)\n";
     let py_factory_wrong_collection =
@@ -440,6 +446,34 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(
         literal_fp,
         value_fp(&i, java_module_list_shadowed, Lang::Java)
+    );
+    let singleton_literal = "def f(value, other):\n    return value in [\"red\"]\n";
+    let singleton_fp = value_fp(&i, singleton_literal, Lang::Python);
+    assert_eq!(
+        singleton_fp,
+        value_fp(&i, java_collections_singleton, Lang::Java)
+    );
+    assert_eq!(
+        singleton_fp,
+        value_fp(&i, java_collections_singleton_list, Lang::Java)
+    );
+    assert_ne!(
+        singleton_fp,
+        value_fp_named(&i, java_collections_missing_import, Lang::Java, "f")
+    );
+    assert_ne!(
+        singleton_fp,
+        value_fp(&i, java_collections_shadowed_receiver, Lang::Java)
+    );
+    let empty_literal = "def f(value, other):\n    return value in []\n";
+    let empty_fp = value_fp(&i, empty_literal, Lang::Python);
+    assert_eq!(
+        empty_fp,
+        value_fp(&i, java_collections_empty_list, Lang::Java)
+    );
+    assert_eq!(
+        empty_fp,
+        value_fp(&i, java_collections_empty_set, Lang::Java)
     );
     assert_ne!(
         literal_fp,

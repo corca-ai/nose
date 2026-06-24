@@ -480,12 +480,18 @@ pub(super) const JAVA_STDLIB_MAP_FACTORY_PRODUCER_IDS: &[&str] =
 pub(super) const JAVA_STDLIB_MAP_FACTORY_CONTRACT_IDS: &[&str] = &[
     JAVA_STDLIB_MAP_FACTORY_OF_CONTRACT_ID,
     JAVA_STDLIB_MAP_FACTORY_OF_ENTRIES_CONTRACT_ID,
+    JAVA_STDLIB_MAP_FACTORY_COLLECTIONS_EMPTY_MAP_CONTRACT_ID,
+    JAVA_STDLIB_MAP_FACTORY_COLLECTIONS_SINGLETON_MAP_CONTRACT_ID,
 ];
 pub(super) const JAVA_STDLIB_MAP_FACTORY_CONFORMANCE_REFS: &[&str] = &[
     "java-map-of-positive",
     "java-map-of-entries-positive",
+    "java-collections-empty-map-positive",
+    "java-collections-singleton-map-positive",
     "java-map-missing-import-hard-negative",
     "java-map-entry-boundary-hard-negative",
+    "java-collections-map-missing-import-hard-negative",
+    "java-collections-map-wrong-domain-hard-negative",
 ];
 pub(super) const JAVA_STDLIB_MAP_ENTRY_PRODUCER_IDS: &[&str] = &[JAVA_STDLIB_MAP_ENTRY_PRODUCER_ID];
 pub(super) const JAVA_STDLIB_MAP_ENTRY_CONTRACT_IDS: &[&str] = &[JAVA_STDLIB_MAP_ENTRY_CONTRACT_ID];
@@ -500,13 +506,24 @@ pub(super) const JAVA_STDLIB_COLLECTION_FACTORY_CONTRACT_IDS: &[&str] = &[
     JAVA_STDLIB_COLLECTION_FACTORY_LIST_OF_CONTRACT_ID,
     JAVA_STDLIB_COLLECTION_FACTORY_SET_OF_CONTRACT_ID,
     JAVA_STDLIB_COLLECTION_FACTORY_ARRAYS_AS_LIST_CONTRACT_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_EMPTY_LIST_CONTRACT_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_EMPTY_SET_CONTRACT_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_SINGLETON_CONTRACT_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_COLLECTIONS_SINGLETON_LIST_CONTRACT_ID,
 ];
 pub(super) const JAVA_STDLIB_COLLECTION_FACTORY_CONFORMANCE_REFS: &[&str] = &[
     "java-list-of-positive",
     "java-set-of-positive",
     "java-arrays-as-list-positive",
+    "java-collections-empty-list-positive",
+    "java-collections-empty-set-positive",
+    "java-collections-singleton-positive",
+    "java-collections-singleton-list-positive",
     "java-collection-missing-import-hard-negative",
     "java-collection-constructor-boundary-hard-negative",
+    "java-collections-missing-import-hard-negative",
+    "java-collections-shadowed-collections-hard-negative",
+    "java-collections-wrong-domain-hard-negative",
 ];
 pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_IDS: &[&str] =
     &[JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID];

@@ -67,60 +67,57 @@ impl<'a> Builder<'a> {
         {
             return None;
         }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() < 2 {
-            return None;
-        }
-        let args = node.args.clone();
-        let callee_value = args[0];
-        let callee = &self.nodes[callee_value as usize];
-        let ValOp::Field(method) = callee.op else {
-            return None;
-        };
-        if callee.args.len() != 1 {
-            return None;
-        }
-        let receiver = callee.args[0];
+        let call = self.java_static_member_value_call(value)?;
         let admitted = admitted_java_collection_factory_at_call_span(
             self.il,
             self.interner,
             self.library_api_span_call(
                 value,
-                callee_value,
-                Some(receiver),
-                args.len().saturating_sub(1),
+                call.callee,
+                Some(call.receiver),
+                call.args.len().saturating_sub(1),
             ),
-            method,
+            call.method,
         )?;
         if matches!(
             admitted.contract.id,
             LibraryApiContractId::JavaCollectionFactory(kind)
                 if java_collection_factory_rejects_null_literal(kind)
-        ) && args[1..].iter().any(|&arg| self.value_is_null_const(arg))
+        ) && call.args[1..]
+            .iter()
+            .any(|&arg| self.value_is_null_const(arg))
         {
             return None;
         }
-        // A single argument to a varargs collection factory (`Arrays.asList(x)`,
-        // `List.of(x)`, `Set.of(x)`) is ambiguous: when `x` is an array it is spread
-        // into the element list, but when `x` is a single object it is the sole
-        // element. The two readings have different membership semantics
-        // (`value` in the array elements vs `value.equals(x)`), so a single argument
-        // can only be canonicalized when the receiver is a proven array. Otherwise we
-        // must refuse, or an array-typed field and a list-typed field of the same name
-        // would false-merge. Multi-argument factories are always a literal element list.
-        if args.len() == 2 {
-            let single_arg_spreads_array = match admitted.contract.result {
-                LibraryCollectionFactoryResult::VariadicElements {
-                    single_arg_spreads_array,
-                } => single_arg_spreads_array,
-                _ => false,
-            };
-            if single_arg_spreads_array && self.is_array_param_value(args[1]) {
-                return Some(self.mk(ValOp::ArrayParam, vec![args[1]]));
+        match admitted.contract.result {
+            LibraryCollectionFactoryResult::EmptySequence => {
+                (call.args.len() == 1).then(|| self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]))
             }
-            return None;
+            LibraryCollectionFactoryResult::ElementArguments => {
+                if call.args.len() != 2 {
+                    return None;
+                }
+                Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), call.args[1..].to_vec()))
+            }
+            LibraryCollectionFactoryResult::VariadicElements {
+                single_arg_spreads_array,
+            } => {
+                // A single argument to a varargs collection factory (`Arrays.asList(x)`,
+                // `List.of(x)`, `Set.of(x)`) is ambiguous: when `x` is an array it may
+                // be spread into the element list or treated as the sole element,
+                // depending on static typing and overload resolution. The two readings
+                // have different membership semantics, so only proven array params can
+                // use the spread interpretation here.
+                if call.args.len() == 2 {
+                    if single_arg_spreads_array && self.is_array_param_value(call.args[1]) {
+                        return Some(self.mk(ValOp::ArrayParam, vec![call.args[1]]));
+                    }
+                    return None;
+                }
+                Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), call.args[1..].to_vec()))
+            }
+            _ => None,
         }
-        Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), args[1..].to_vec()))
     }
 
     pub(in crate::value_graph) fn value_is_null_const(&self, value: ValueId) -> bool {

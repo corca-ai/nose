@@ -8,6 +8,10 @@ pub enum JavaCollectionFactoryKind {
     ListOf,
     SetOf,
     ArraysAsList,
+    CollectionsEmptyList,
+    CollectionsEmptySet,
+    CollectionsSingleton,
+    CollectionsSingletonList,
     GuavaImmutableListOf,
     GuavaImmutableSetOf,
 }
@@ -51,6 +55,34 @@ pub fn java_collection_factory_contract(
             kind: JavaCollectionFactoryKind::ArraysAsList,
             single_arg_spreads_array: true,
         },
+        ("Collections", "emptyList") => JavaCollectionFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "emptyList",
+            kind: JavaCollectionFactoryKind::CollectionsEmptyList,
+            single_arg_spreads_array: false,
+        },
+        ("Collections", "emptySet") => JavaCollectionFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "emptySet",
+            kind: JavaCollectionFactoryKind::CollectionsEmptySet,
+            single_arg_spreads_array: false,
+        },
+        ("Collections", "singleton") => JavaCollectionFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "singleton",
+            kind: JavaCollectionFactoryKind::CollectionsSingleton,
+            single_arg_spreads_array: false,
+        },
+        ("Collections", "singletonList") => JavaCollectionFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "singletonList",
+            kind: JavaCollectionFactoryKind::CollectionsSingletonList,
+            single_arg_spreads_array: false,
+        },
         ("ImmutableList", "of") => JavaCollectionFactoryContract {
             module: "com.google.common.collect",
             receiver: "ImmutableList",
@@ -74,7 +106,16 @@ pub fn java_collection_factory_contract_by_hash(
     receiver: &str,
     method_hash: u64,
 ) -> Option<JavaCollectionFactoryContract> {
-    ["of", "asList"].into_iter().find_map(|method| {
+    [
+        "of",
+        "asList",
+        "emptyList",
+        "emptySet",
+        "singleton",
+        "singletonList",
+    ]
+    .into_iter()
+    .find_map(|method| {
         (stable_symbol_hash(method) == method_hash)
             .then(|| java_collection_factory_contract(lang, receiver, method))
             .flatten()
@@ -127,6 +168,8 @@ pub fn java_collection_constructor_contract(
 pub enum JavaMapFactoryKind {
     Of,
     OfEntries,
+    CollectionsEmptyMap,
+    CollectionsSingletonMap,
     GuavaImmutableMapOf,
 }
 
@@ -161,6 +204,18 @@ pub fn java_map_factory_contract(
             method: "ofEntries",
             kind: JavaMapFactoryKind::OfEntries,
         },
+        ("Collections", "emptyMap") => JavaMapFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "emptyMap",
+            kind: JavaMapFactoryKind::CollectionsEmptyMap,
+        },
+        ("Collections", "singletonMap") => JavaMapFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "singletonMap",
+            kind: JavaMapFactoryKind::CollectionsSingletonMap,
+        },
         ("ImmutableMap", "of") => JavaMapFactoryContract {
             module: "com.google.common.collect",
             receiver: "ImmutableMap",
@@ -176,11 +231,13 @@ pub fn java_map_factory_contract_by_hash(
     receiver: &str,
     method_hash: u64,
 ) -> Option<JavaMapFactoryContract> {
-    ["of", "ofEntries"].into_iter().find_map(|method| {
-        (stable_symbol_hash(method) == method_hash)
-            .then(|| java_map_factory_contract(lang, receiver, method))
-            .flatten()
-    })
+    ["of", "ofEntries", "emptyMap", "singletonMap"]
+        .into_iter()
+        .find_map(|method| {
+            (stable_symbol_hash(method) == method_hash)
+                .then(|| java_map_factory_contract(lang, receiver, method))
+                .flatten()
+        })
 }
 
 pub fn java_guava_immutable_map_of_arg_count_supported(arg_count: usize) -> bool {
@@ -193,6 +250,8 @@ pub fn java_map_factory_positional_arg_count_supported(
 ) -> bool {
     match kind {
         JavaMapFactoryKind::Of => arg_count % 2 == 0,
+        JavaMapFactoryKind::CollectionsEmptyMap => arg_count == 0,
+        JavaMapFactoryKind::CollectionsSingletonMap => arg_count == 2,
         JavaMapFactoryKind::GuavaImmutableMapOf => {
             java_guava_immutable_map_of_arg_count_supported(arg_count)
         }
@@ -206,11 +265,23 @@ pub fn java_map_factory_result_domain_arg_count_supported(
 ) -> bool {
     match kind {
         JavaMapFactoryKind::Of => arg_count % 2 == 0,
+        JavaMapFactoryKind::CollectionsEmptyMap => arg_count == 0,
+        JavaMapFactoryKind::CollectionsSingletonMap => arg_count == 2,
         JavaMapFactoryKind::GuavaImmutableMapOf => {
             java_guava_immutable_map_of_arg_count_supported(arg_count)
         }
         JavaMapFactoryKind::OfEntries => true,
     }
+}
+
+pub fn java_map_factory_uses_positional_entries(kind: JavaMapFactoryKind) -> bool {
+    matches!(
+        kind,
+        JavaMapFactoryKind::Of
+            | JavaMapFactoryKind::CollectionsEmptyMap
+            | JavaMapFactoryKind::CollectionsSingletonMap
+            | JavaMapFactoryKind::GuavaImmutableMapOf
+    )
 }
 
 pub fn java_collection_factory_rejects_null_literal(kind: JavaCollectionFactoryKind) -> bool {

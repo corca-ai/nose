@@ -296,9 +296,9 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
         SemanticPackInfluence::EvidenceAndContracts
     );
     assert_eq!(java_stdlib_maps.counts.evidence_producers, 1);
-    assert_eq!(java_stdlib_maps.counts.contracts, 2);
-    assert_eq!(java_stdlib_maps.counts.positive_fixtures, 2);
-    assert_eq!(java_stdlib_maps.counts.hard_negatives, 2);
+    assert_eq!(java_stdlib_maps.counts.contracts, 4);
+    assert_eq!(java_stdlib_maps.counts.positive_fixtures, 4);
+    assert_eq!(java_stdlib_maps.counts.hard_negatives, 4);
     let java_stdlib_entries = set
         .packs()
         .iter()
@@ -332,9 +332,9 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
         SemanticPackInfluence::EvidenceAndContracts
     );
     assert_eq!(java_stdlib_collections.counts.evidence_producers, 1);
-    assert_eq!(java_stdlib_collections.counts.contracts, 3);
-    assert_eq!(java_stdlib_collections.counts.positive_fixtures, 3);
-    assert_eq!(java_stdlib_collections.counts.hard_negatives, 2);
+    assert_eq!(java_stdlib_collections.counts.contracts, 7);
+    assert_eq!(java_stdlib_collections.counts.positive_fixtures, 7);
+    assert_eq!(java_stdlib_collections.counts.hard_negatives, 5);
     let java_stdlib_constructors = set
         .packs()
         .iter()

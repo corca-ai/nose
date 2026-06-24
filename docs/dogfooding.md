@@ -319,3 +319,11 @@ that own those independent gates:
 production code would couple unrelated crate test surfaces, and there is no shared test-support
 crate for this boundary. The budget is therefore re-baselined to 56 while preserving the gate as a
 ratchet for future production or avoidable test duplication.
+
+The #521 Java Collections stdlib factory PR keeps the count at 56 while refreshing the same two
+Guava hard-negative fixture IDs after the file-length ratchet split tests into child modules:
+`84edbf7d317212c7` changes to `46c7ab6a624ab637` for the shared `eleven_entry_payloads` helper,
+and `99408319bd080594` changes to `0ca8c1c2117a5fa4` for the Java `ImmutableMap.of` IL/evidence
+builder family. A temporary production near-family between Java collection and map value-graph
+recognizers was removed by sharing the internal Java static-member call-shape helper, so no new
+budget is accepted.

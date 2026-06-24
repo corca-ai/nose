@@ -2,6 +2,7 @@
 
 mod api_spans;
 mod bindings;
+mod call_shapes;
 mod collections;
 mod imports;
 mod integers;

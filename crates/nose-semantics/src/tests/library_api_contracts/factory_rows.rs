@@ -1,5 +1,7 @@
 use super::*;
 
+mod materialized_result_domains;
+
 #[test]
 fn free_name_contracts_are_behavior_equivalent_tables() {
     let py_names: Vec<_> = semantics(Lang::Python)
@@ -191,6 +193,34 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
         })
     );
     assert_eq!(
+        library_java_collection_factory_contract(Lang::Java, "Collections", "emptySet"),
+        Some(LibraryCollectionFactoryContract {
+            pack_id: JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::JavaCollectionFactory(
+                JavaCollectionFactoryKind::CollectionsEmptySet,
+            ),
+            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+                receiver: "Collections",
+                method: "emptySet",
+            },
+            result: LibraryCollectionFactoryResult::EmptySequence,
+        })
+    );
+    assert_eq!(
+        library_java_collection_factory_contract(Lang::Java, "Collections", "singletonList"),
+        Some(LibraryCollectionFactoryContract {
+            pack_id: JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::JavaCollectionFactory(
+                JavaCollectionFactoryKind::CollectionsSingletonList,
+            ),
+            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+                receiver: "Collections",
+                method: "singletonList",
+            },
+            result: LibraryCollectionFactoryResult::ElementArguments,
+        })
+    );
+    assert_eq!(
         library_java_collection_factory_contract(Lang::Java, "ImmutableList", "of"),
         Some(LibraryCollectionFactoryContract {
             pack_id: JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
@@ -303,6 +333,20 @@ fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
             },
             result: LibraryMapFactoryResult::JavaFactory {
                 kind: JavaMapFactoryKind::OfEntries,
+            },
+        })
+    );
+    assert_eq!(
+        library_java_map_factory_contract(Lang::Java, "Collections", "singletonMap"),
+        Some(LibraryMapFactoryContract {
+            pack_id: JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+            id: LibraryApiContractId::JavaMapFactory(JavaMapFactoryKind::CollectionsSingletonMap),
+            callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+                receiver: "Collections",
+                method: "singletonMap",
+            },
+            result: LibraryMapFactoryResult::JavaFactory {
+                kind: JavaMapFactoryKind::CollectionsSingletonMap,
             },
         })
     );
@@ -429,6 +473,27 @@ fn library_api_result_domain_mapping_is_contract_scoped() {
     );
     assert_eq!(
         library_collection_factory_result_domain(
+            library_java_collection_factory_contract(Lang::Java, "Collections", "emptySet")
+                .unwrap()
+        ),
+        DomainEvidence::Set
+    );
+    assert_eq!(
+        library_collection_factory_result_domain(
+            library_java_collection_factory_contract(Lang::Java, "Collections", "singleton")
+                .unwrap()
+        ),
+        DomainEvidence::Set
+    );
+    assert_eq!(
+        library_collection_factory_result_domain(
+            library_java_collection_factory_contract(Lang::Java, "Collections", "singletonList")
+                .unwrap()
+        ),
+        DomainEvidence::Collection
+    );
+    assert_eq!(
+        library_collection_factory_result_domain(
             library_java_collection_factory_contract(Lang::Java, "ImmutableList", "of").unwrap()
         ),
         DomainEvidence::Collection
@@ -470,6 +535,12 @@ fn library_map_factory_result_domain_mapping_is_contract_scoped() {
     );
     assert_eq!(
         library_map_factory_result_domain(
+            library_java_map_factory_contract(Lang::Java, "Collections", "emptyMap").unwrap()
+        ),
+        DomainEvidence::Map
+    );
+    assert_eq!(
+        library_map_factory_result_domain(
             library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of").unwrap()
         ),
         DomainEvidence::Map
@@ -485,49 +556,5 @@ fn library_map_factory_result_domain_mapping_is_contract_scoped() {
             library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1).unwrap()
         ),
         DomainEvidence::Array
-    );
-}
-
-#[test]
-fn materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed() {
-    let as_list = library_java_collection_factory_contract(Lang::Java, "Arrays", "asList").unwrap();
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(as_list.id, as_list.callee, 1),
-        None,
-        "single-argument Arrays.asList has ambiguous element provenance"
-    );
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(as_list.id, as_list.callee, 2),
-        Some(DomainEvidence::Collection)
-    );
-
-    let hof = library_method_call_contract(Lang::JavaScript, "map", 1).unwrap();
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(hof.id, hof.callee, 1),
-        None,
-        "HOF compatibility fallback must not become emitted result-domain evidence"
-    );
-
-    let map_get = library_map_get_contract(Lang::Rust, "get", 1).unwrap();
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(map_get.id, map_get.callee, 1),
-        None,
-        "Map.get value semantics are not a fixed container result domain"
-    );
-
-    let guava_map = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of").unwrap();
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 20),
-        Some(DomainEvidence::Map)
-    );
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 21),
-        None,
-        "odd ImmutableMap.of arity cannot be a Guava overload"
-    );
-    assert_eq!(
-        library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 22),
-        None,
-        "Guava ImmutableMap.of has fixed overloads through ten entries"
     );
 }

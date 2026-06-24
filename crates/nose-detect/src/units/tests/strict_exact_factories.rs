@@ -14,8 +14,12 @@ use nose_semantics::{
     library_java_map_factory_contract, library_js_like_map_constructor_contract,
     library_js_like_set_constructor_contract, LibraryApiCalleeContract, LibraryApiContractId,
     JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
-    JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
+    JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID, JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+    JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
 };
+
+mod java_collections;
 
 #[test]
 fn strict_exact_js_constructor_requires_library_api_evidence() {
@@ -440,6 +444,50 @@ fn push_guava_import_symbol(il: &mut Il, exported: &str, binding_span: Span, rec
         symbol,
         vec![EvidenceId(0)],
     ));
+}
+
+fn push_java_util_import_symbol(
+    il: &mut Il,
+    exported: &str,
+    binding_span: Span,
+    receiver_span: Span,
+) {
+    let symbol = SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash("java.util"),
+        exported_hash: stable_symbol_hash(exported),
+    };
+    il.evidence.push(language_core_symbol_evidence(
+        0,
+        Lang::Java,
+        EvidenceAnchor::binding(binding_span, stable_symbol_hash(exported)),
+        symbol,
+        Vec::new(),
+    ));
+    il.evidence.push(language_core_symbol_evidence(
+        1,
+        Lang::Java,
+        EvidenceAnchor::node(receiver_span, NodeKind::Var),
+        symbol,
+        vec![EvidenceId(0)],
+    ));
+}
+
+#[allow(clippy::too_many_arguments)]
+fn push_java_stdlib_api_evidence(
+    il: &mut Il,
+    id: u32,
+    span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    pack_id: &'static str,
+    producer_id: &'static str,
+) {
+    let mut record =
+        library_api_contract_evidence(id, span, contract_id, callee, arity, vec![EvidenceId(1)]);
+    record.provenance.pack_hash = Some(stable_symbol_hash(pack_id));
+    record.provenance.rule_hash = Some(stable_symbol_hash(producer_id));
+    il.evidence.push(record);
 }
 
 fn push_guava_api_evidence(

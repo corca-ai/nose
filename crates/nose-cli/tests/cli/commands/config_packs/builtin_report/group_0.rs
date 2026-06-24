@@ -248,8 +248,8 @@ pub(super) fn assert_group(json: &serde_json::Value) {
         vec!["java"]
     );
     assert_eq!(java_maps["counts"]["evidence_producers"], 1);
-    assert_eq!(java_maps["counts"]["contracts"], 2);
+    assert_eq!(java_maps["counts"]["contracts"], 4);
     assert_eq!(java_maps["counts"]["value_laws"], 0);
-    assert_eq!(java_maps["counts"]["positive_fixtures"], 2);
-    assert_eq!(java_maps["counts"]["hard_negatives"], 2);
+    assert_eq!(java_maps["counts"]["positive_fixtures"], 4);
+    assert_eq!(java_maps["counts"]["hard_negatives"], 4);
 }

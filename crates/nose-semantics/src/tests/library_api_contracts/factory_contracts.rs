@@ -74,6 +74,26 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
         })
     );
     assert_eq!(
+        java_collection_factory_contract(Lang::Java, "Collections", "emptyList"),
+        Some(JavaCollectionFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "emptyList",
+            kind: JavaCollectionFactoryKind::CollectionsEmptyList,
+            single_arg_spreads_array: false,
+        })
+    );
+    assert_eq!(
+        java_collection_factory_contract(Lang::Java, "Collections", "singleton"),
+        Some(JavaCollectionFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "singleton",
+            kind: JavaCollectionFactoryKind::CollectionsSingleton,
+            single_arg_spreads_array: false,
+        })
+    );
+    assert_eq!(
         java_collection_factory_contract(Lang::Java, "ImmutableList", "of"),
         Some(JavaCollectionFactoryContract {
             module: "com.google.common.collect",
@@ -137,6 +157,24 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
         })
     );
     assert_eq!(
+        java_map_factory_contract(Lang::Java, "Collections", "emptyMap"),
+        Some(JavaMapFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "emptyMap",
+            kind: JavaMapFactoryKind::CollectionsEmptyMap,
+        })
+    );
+    assert_eq!(
+        java_map_factory_contract(Lang::Java, "Collections", "singletonMap"),
+        Some(JavaMapFactoryContract {
+            module: "java.util",
+            receiver: "Collections",
+            method: "singletonMap",
+            kind: JavaMapFactoryKind::CollectionsSingletonMap,
+        })
+    );
+    assert_eq!(
         java_map_factory_contract(Lang::Java, "ImmutableMap", "of"),
         Some(JavaMapFactoryContract {
             module: "com.google.common.collect",
@@ -158,6 +196,15 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
         Some(JavaCollectionFactoryKind::SetOf)
     );
     assert_eq!(
+        java_collection_factory_contract_by_hash(
+            Lang::Java,
+            "Collections",
+            stable_symbol_hash("singletonList")
+        )
+        .map(|contract| contract.kind),
+        Some(JavaCollectionFactoryKind::CollectionsSingletonList)
+    );
+    assert_eq!(
         java_map_factory_contract_by_hash(Lang::Java, "Map", stable_symbol_hash("of"))
             .map(|contract| contract.kind),
         Some(JavaMapFactoryKind::Of)
@@ -166,6 +213,15 @@ fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
         java_map_factory_contract_by_hash(Lang::Java, "ImmutableMap", stable_symbol_hash("of"))
             .map(|contract| contract.kind),
         Some(JavaMapFactoryKind::GuavaImmutableMapOf)
+    );
+    assert_eq!(
+        java_map_factory_contract_by_hash(
+            Lang::Java,
+            "Collections",
+            stable_symbol_hash("singletonMap")
+        )
+        .map(|contract| contract.kind),
+        Some(JavaMapFactoryKind::CollectionsSingletonMap)
     );
     assert!(java_map_entry_contract_by_hash(
         Lang::Java,

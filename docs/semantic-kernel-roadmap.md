@@ -107,10 +107,13 @@ The next code slices are intentionally incremental:
    collection-factory occurrence provenance, then
    `nose.rust.stdlib.map_factories` for selected Rust
    `std::collections::{HashMap,BTreeMap}::from` map-factory occurrence
-   provenance, then `nose.java.stdlib.map_factories` for Java `Map.of` and
-   `Map.ofEntries` map-factory occurrence provenance, then
-   `nose.java.stdlib.collection_factories` for Java `List.of`, `Set.of`, and
-   `Arrays.asList` collection-factory occurrence provenance, then
+   provenance, then `nose.java.stdlib.map_factories` for Java `Map.of`,
+   `Map.ofEntries`, `Collections.emptyMap`, and `Collections.singletonMap`
+   map-factory occurrence provenance, then
+   `nose.java.stdlib.collection_factories` for Java `List.of`, `Set.of`,
+   `Arrays.asList`, `Collections.emptyList`, `Collections.emptySet`,
+   `Collections.singleton`, and `Collections.singletonList`
+   collection-factory occurrence provenance, then
    `nose.java.stdlib.collection_constructors` for Java empty `new
    ArrayList<>()` and `new LinkedList<>()` collection-constructor occurrence
    provenance, then `nose.java.stdlib.map_entries` for Java `Map.entry`
@@ -331,6 +334,20 @@ Aggregate median wall time was 1495.85 ms -> 1230.24 ms, `lower` was
 static pack metadata, Java std-collection producer provenance, and an admission
 provenance check; it did not touch candidate generation, and product output did
 not drift. Binary size changed 20,143,040 -> 20,143,360 bytes for this slice.
+
+Phase 5 Java stdlib `Collections` factory extension note, local run on
+2026-06-25: the pack-owned Java collection factory contract rows expanded from
+3 -> 7 (+133.3%) by adding `Collections.emptyList`, `emptySet`, `singleton`,
+and `singletonList`; the Java map factory rows expanded from 2 -> 4 (+100.0%)
+by adding `Collections.emptyMap` and `singletonMap`. Static conformance refs
+grew from 3 -> 7 positive and 2 -> 5 hard-negative refs for
+`nose.java.stdlib.collection_factories`, and from 2 -> 4 positive and 2 -> 4
+hard-negative refs for `nose.java.stdlib.map_factories`. Focused semantic tests
+now cover 6/6 requested `Collections` factory surfaces after 0/6 were covered
+by the previous receiver/method tables. The change added one reusable
+`LibraryCollectionFactoryResult::ElementArguments` lane plus fixed-arity
+fail-closed result-domain checks rather than adding consumer-specific special
+cases.
 
 Phase 5 Java stdlib collection-constructor measurement note, local run on
 2026-06-21: product query-regression r15 compared the previous
@@ -1225,9 +1242,11 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
 - The next `LibraryApi` occurrence evidence slice extended the same
   dependency-backed path to selected import/source-backed APIs: Python
   `collections.deque`, Python `math.prod`, Java `java.util` static collection
-  factories (`List.of`, `Set.of`, `Arrays.asList`) now carrying
+  factories (`List.of`, `Set.of`, `Arrays.asList`, selected
+  `Collections.*` factories) now carrying
   `nose.java.stdlib.collection_factories` provenance, Java map factories
-  (`Map.of`/`Map.ofEntries`) with `nose.java.stdlib.map_factories` provenance,
+  (`Map.of`/`Map.ofEntries` and selected `Collections.*` map factories) with
+  `nose.java.stdlib.map_factories` provenance,
   Java map entries (`Map.entry`) with `nose.java.stdlib.map_entries`
   provenance, Java static collection adapters (`Arrays.stream`) with
   `nose.java.stdlib.static_collection_adapters` provenance, Java Math scalar
@@ -1287,8 +1306,9 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `LibraryApi` evidence. This covers Python builtin/imported collection
   factories, Rust `Vec::new`/`vec!`/selected `std::collections::*::from`
   factories, Ruby `Set.new`, Java `List.of`/`Set.of`/zero- or multi-argument
-  `Arrays.asList`/`Map.of`/`Map.ofEntries`, JS-like `new Set`/`new Map`, and
-  JS-like one-argument `Array.from`. The mapping is contract-scoped and
+  `Arrays.asList`, selected fixed-arity `Collections.*` collection/map
+  factories, `Map.of`/`Map.ofEntries`, JS-like `new Set`/`new Map`, and JS-like
+  one-argument `Array.from`. The mapping is contract-scoped and
   deliberately excludes lookalikes, Java single-argument `Arrays.asList(x)`
   without element-provenance proof, and non-container results such as
   `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`, `math.prod`,
@@ -1529,9 +1549,10 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   free-function builtins, pack-proven generic method-call contracts,
   pack-proven map `get`,
   pack-proven map get-default, pack-proven map-key views, iterator identity
-  adapters, Java static collection adapters, Rust `Some(...)`, Rust map factory receiver proof, static
-  index-membership, and Rust scalar integer methods where the source `Call`
-  node is still available.
+  adapters, Java static collection adapters, Java `Collections.*` factories,
+  Rust `Some(...)`, Rust map factory receiver proof, static index-membership,
+  and Rust scalar integer methods where the source `Call` node is still
+  available.
 - The value-graph span-query resolver cleanup moved value-level CSE consumers
   that no longer carry a source `Call` node behind dedicated `nose-semantics`
   admitted span resolvers. Free-name/imported collection factories,

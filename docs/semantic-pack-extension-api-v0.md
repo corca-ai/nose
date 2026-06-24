@@ -526,12 +526,15 @@ implicit v0 packs:
 - `nose.rust.stdlib.map_factories` owns the current selected Rust
   `std::collections::{HashMap,BTreeMap}::from` map-factory API occurrence
   contracts;
-- `nose.java.stdlib.map_factories` owns Java `java.util.Map.of` and
-  `java.util.Map.ofEntries` map-factory API occurrence contracts;
+- `nose.java.stdlib.map_factories` owns Java `java.util.Map.of`,
+  `Map.ofEntries`, `Collections.emptyMap`, and `Collections.singletonMap`
+  map-factory API occurrence contracts;
 - `nose.java.stdlib.map_entries` owns Java `java.util.Map.entry` map-entry API
   occurrence contracts;
 - `nose.java.stdlib.collection_factories` owns Java `java.util.List.of`,
-  `Set.of`, and `Arrays.asList` collection-factory API occurrence contracts;
+  `Set.of`, `Arrays.asList`, `Collections.emptyList`,
+  `Collections.emptySet`, `Collections.singleton`, and
+  `Collections.singletonList` collection-factory API occurrence contracts;
 - `nose.java.stdlib.collection_constructors` owns Java empty `new
   ArrayList<>()` and `new LinkedList<>()` collection-constructor API occurrence
   contracts;

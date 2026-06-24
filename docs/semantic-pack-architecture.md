@@ -296,13 +296,16 @@ previous semantic-kernel tranches.
    `nose.rust.stdlib.map_factories`, which owns selected
    `std::collections::{HashMap,BTreeMap}::from` map-factory API occurrence
    provenance. The current Java stdlib map slice is
-   `nose.java.stdlib.map_factories`, which owns `java.util.Map.of` and
-   `java.util.Map.ofEntries` map-factory API occurrence provenance. The current
-   Java stdlib map-entry slice is `nose.java.stdlib.map_entries`, which owns
+   `nose.java.stdlib.map_factories`, which owns `java.util.Map.of`,
+   `Map.ofEntries`, `Collections.emptyMap`, and `Collections.singletonMap`
+   map-factory API occurrence provenance. The current Java stdlib map-entry
+   slice is `nose.java.stdlib.map_entries`, which owns
    `java.util.Map.entry` map-entry API occurrence provenance.
    The current Java stdlib collection slice is
    `nose.java.stdlib.collection_factories`, which owns `java.util.List.of`,
-   `Set.of`, and `Arrays.asList` collection-factory API occurrence provenance.
+   `Set.of`, `Arrays.asList`, `Collections.emptyList`,
+   `Collections.emptySet`, `Collections.singleton`, and
+   `Collections.singletonList` collection-factory API occurrence provenance.
    The current Guava immutable collection slice is
    `nose.java.ecosystem.guava.immutable_collection_factories`, which owns
    `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` factory API

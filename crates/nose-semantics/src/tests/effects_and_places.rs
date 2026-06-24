@@ -84,6 +84,29 @@ fn builder_append_call_args_require_effect_evidence() {
 }
 
 #[test]
+fn opaque_argument_escape_suppression_requires_supported_library_api_arity() {
+    let (supported, supported_arg) = java_collections_call_il("singletonList", 1);
+    assert_eq!(
+        opaque_argument_escape_args(&supported, supported_arg.call),
+        None
+    );
+
+    let (unsupported, unsupported_arg) = java_collections_call_il("singletonList", 2);
+    assert_eq!(
+        opaque_argument_escape_args(&unsupported, unsupported_arg.call),
+        Some(unsupported_arg.args.as_slice()),
+        "unsupported fixed-arity collection factories must keep opaque argument escape facts"
+    );
+
+    let (unsupported_map, unsupported_map_arg) = java_collections_call_il("emptyMap", 2);
+    assert_eq!(
+        opaque_argument_escape_args(&unsupported_map, unsupported_map_arg.call),
+        Some(unsupported_map_arg.args.as_slice()),
+        "unsupported fixed-arity map factories must keep opaque argument escape facts"
+    );
+}
+
+#[test]
 fn effect_evidence_can_prove_non_overloadable_index_write() {
     let mut b = IlBuilder::new(FileId(0));
     let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
@@ -165,6 +188,66 @@ fn append_effect_evidence_can_prove_raw_method_call() {
         EffectEvidenceKind::NonOverloadableIndexWrite,
     );
     assert_eq!(builder_append_call_args(&il, &interner, call), None);
+}
+
+struct JavaCollectionsCall {
+    call: NodeId,
+    args: Vec<NodeId>,
+}
+
+fn java_collections_call_il(method: &str, arg_count: usize) -> (Il, JavaCollectionsCall) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("Collections")),
+        sp(20),
+        &[],
+    );
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern(method)),
+        sp(21),
+        &[receiver],
+    );
+    let args: Vec<_> = (0..arg_count)
+        .map(|idx| {
+            b.add(
+                NodeKind::Var,
+                Payload::Cid(idx as u32),
+                sp(22 + idx as u32),
+                &[],
+            )
+        })
+        .collect();
+    let mut children = Vec::with_capacity(args.len() + 1);
+    children.push(callee);
+    children.extend(args.iter().copied());
+    let call = b.add(NodeKind::Call, Payload::None, sp(30), &children);
+    let mut il = finish_il(b, call, Lang::Java);
+    push_node_effect(&mut il, 0, call, EffectEvidenceKind::OpaqueArgumentEscape);
+    push_java_collections_api_evidence(&mut il, method, arg_count, call);
+    (il, JavaCollectionsCall { call, args })
+}
+
+fn push_java_collections_api_evidence(il: &mut Il, method: &str, arg_count: usize, call: NodeId) {
+    let contract = library_java_collection_factory_contract(Lang::Java, "Collections", method)
+        .map(|contract| (contract.id, contract.callee))
+        .or_else(|| {
+            library_java_map_factory_contract(Lang::Java, "Collections", method)
+                .map(|contract| (contract.id, contract.callee))
+        })
+        .expect("Collections factory contract");
+    il.evidence.push(evidence(
+        1,
+        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.0),
+            callee_hash: library_api_callee_contract_hash(contract.1),
+            arity: arg_count as u16,
+        }),
+        EvidenceStatus::Asserted,
+    ));
 }
 
 #[test]

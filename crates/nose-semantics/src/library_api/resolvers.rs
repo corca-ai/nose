@@ -277,16 +277,20 @@ pub fn admitted_java_collection_factory_at_call_span(
     occurrence: LibraryApiSpanCall,
     method_hash: u64,
 ) -> Option<AdmittedLibraryApiSpanCall<LibraryCollectionFactoryContract>> {
-    ["List", "Set", "Arrays", "ImmutableList", "ImmutableSet"]
-        .into_iter()
-        .find_map(|receiver| {
-            let contract = library_java_collection_factory_contract_by_hash(
-                il.meta.lang,
-                receiver,
-                method_hash,
-            )?;
-            admitted_library_span_call(il, interner, occurrence, contract)
-        })
+    [
+        "List",
+        "Set",
+        "Arrays",
+        "Collections",
+        "ImmutableList",
+        "ImmutableSet",
+    ]
+    .into_iter()
+    .find_map(|receiver| {
+        let contract =
+            library_java_collection_factory_contract_by_hash(il.meta.lang, receiver, method_hash)?;
+        admitted_library_span_call(il, interner, occurrence, contract)
+    })
 }
 
 pub fn admitted_java_collection_constructor_at_call(
@@ -351,11 +355,13 @@ pub fn admitted_java_map_factory_at_call_span(
     occurrence: LibraryApiSpanCall,
     method_hash: u64,
 ) -> Option<AdmittedLibraryApiSpanCall<LibraryMapFactoryContract>> {
-    ["Map", "ImmutableMap"].into_iter().find_map(|receiver| {
-        let contract =
-            library_java_map_factory_contract_by_hash(il.meta.lang, receiver, method_hash)?;
-        admitted_library_span_call(il, interner, occurrence, contract)
-    })
+    ["Map", "Collections", "ImmutableMap"]
+        .into_iter()
+        .find_map(|receiver| {
+            let contract =
+                library_java_map_factory_contract_by_hash(il.meta.lang, receiver, method_hash)?;
+            admitted_library_span_call(il, interner, occurrence, contract)
+        })
 }
 
 pub fn admitted_java_map_entry_at_call(

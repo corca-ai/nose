@@ -46,7 +46,13 @@ fn java_collection_factory_pack_id(kind: JavaCollectionFactoryKind) -> &'static 
     match kind {
         JavaCollectionFactoryKind::ListOf
         | JavaCollectionFactoryKind::SetOf
-        | JavaCollectionFactoryKind::ArraysAsList => JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        | JavaCollectionFactoryKind::ArraysAsList
+        | JavaCollectionFactoryKind::CollectionsEmptyList
+        | JavaCollectionFactoryKind::CollectionsEmptySet
+        | JavaCollectionFactoryKind::CollectionsSingleton
+        | JavaCollectionFactoryKind::CollectionsSingletonList => {
+            JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID
+        }
         JavaCollectionFactoryKind::GuavaImmutableListOf
         | JavaCollectionFactoryKind::GuavaImmutableSetOf => {
             JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID
@@ -56,7 +62,10 @@ fn java_collection_factory_pack_id(kind: JavaCollectionFactoryKind) -> &'static 
 
 fn java_map_factory_pack_id(kind: JavaMapFactoryKind) -> &'static str {
     match kind {
-        JavaMapFactoryKind::Of | JavaMapFactoryKind::OfEntries => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
+        JavaMapFactoryKind::Of
+        | JavaMapFactoryKind::OfEntries
+        | JavaMapFactoryKind::CollectionsEmptyMap
+        | JavaMapFactoryKind::CollectionsSingletonMap => JAVA_STDLIB_MAP_FACTORY_PACK_ID,
         JavaMapFactoryKind::GuavaImmutableMapOf => JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
     }
 }
@@ -225,9 +234,7 @@ pub fn library_java_collection_factory_contract(
         pack_id: library_collection_factory_pack_id(id),
         id,
         callee,
-        result: LibraryCollectionFactoryResult::VariadicElements {
-            single_arg_spreads_array: contract.single_arg_spreads_array,
-        },
+        result: java_collection_factory_result(contract),
     })
 }
 
@@ -236,11 +243,38 @@ pub fn library_java_collection_factory_contract_by_hash(
     receiver: &str,
     method_hash: u64,
 ) -> Option<LibraryCollectionFactoryContract> {
-    ["of", "asList"].into_iter().find_map(|method| {
+    [
+        "of",
+        "asList",
+        "emptyList",
+        "emptySet",
+        "singleton",
+        "singletonList",
+    ]
+    .into_iter()
+    .find_map(|method| {
         (stable_symbol_hash(method) == method_hash)
             .then(|| library_java_collection_factory_contract(lang, receiver, method))
             .flatten()
     })
+}
+
+fn java_collection_factory_result(
+    contract: JavaCollectionFactoryContract,
+) -> LibraryCollectionFactoryResult {
+    match contract.kind {
+        JavaCollectionFactoryKind::CollectionsEmptyList
+        | JavaCollectionFactoryKind::CollectionsEmptySet => {
+            LibraryCollectionFactoryResult::EmptySequence
+        }
+        JavaCollectionFactoryKind::CollectionsSingleton
+        | JavaCollectionFactoryKind::CollectionsSingletonList => {
+            LibraryCollectionFactoryResult::ElementArguments
+        }
+        _ => LibraryCollectionFactoryResult::VariadicElements {
+            single_arg_spreads_array: contract.single_arg_spreads_array,
+        },
+    }
 }
 
 pub fn library_java_collection_constructor_contract(
@@ -300,11 +334,13 @@ pub fn library_java_map_factory_contract_by_hash(
     receiver: &str,
     method_hash: u64,
 ) -> Option<LibraryMapFactoryContract> {
-    ["of", "ofEntries"].into_iter().find_map(|method| {
-        (stable_symbol_hash(method) == method_hash)
-            .then(|| library_java_map_factory_contract(lang, receiver, method))
-            .flatten()
-    })
+    ["of", "ofEntries", "emptyMap", "singletonMap"]
+        .into_iter()
+        .find_map(|method| {
+            (stable_symbol_hash(method) == method_hash)
+                .then(|| library_java_map_factory_contract(lang, receiver, method))
+                .flatten()
+        })
 }
 
 pub fn library_java_map_entry_contract(
