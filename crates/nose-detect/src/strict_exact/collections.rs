@@ -377,6 +377,9 @@ pub(super) fn strict_exact_map_key_view_collection_safe(
     if strict_exact_map_key_view_safe(il, interner, facts, node) {
         return true;
     }
+    if strict_exact_object_key_view_safe(il, interner, facts, node) {
+        return true;
+    }
     if il.kind(node) != NodeKind::Call {
         return false;
     }
@@ -390,6 +393,53 @@ pub(super) fn strict_exact_map_key_view_collection_safe(
     strict_exact_map_key_view_safe_matching(il, interner, facts, kids[1], |kind| {
         kind == MapKeyViewKind::Iterator
     })
+}
+
+fn strict_exact_object_key_view_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    let [callee, _object] = kids else {
+        return false;
+    };
+    if il.kind(*callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(*callee).payload else {
+        return false;
+    };
+    let receiver_span = field_receiver(il, *callee).map(|receiver| il.node(receiver).span);
+    let occurrence = LibraryApiSpanCall {
+        call_span: Some(il.node(node).span),
+        callee_span: Some(il.node(*callee).span),
+        receiver_span,
+        arg_count: kids.len().saturating_sub(1),
+    };
+    let admitted = admitted_object_key_view_at_call_span(
+        il,
+        interner,
+        occurrence,
+        "Object",
+        stable_symbol_hash(interner.resolve(method)),
+    );
+    let Some(admitted) = admitted else {
+        return false;
+    };
+    if admitted.contract.result.kind != MapKeyViewKind::Collection {
+        return false;
+    }
+    let Some((map, _dependencies)) =
+        js_object_key_view_argument_map_node_for_call(il, interner, node)
+    else {
+        return false;
+    };
+    strict_exact_safe_tree(il, interner, facts, map)
 }
 
 fn strict_exact_literal_collection_receiver_safe(

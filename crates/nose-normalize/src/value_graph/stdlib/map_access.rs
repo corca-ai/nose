@@ -36,13 +36,18 @@ impl<'a> Builder<'a> {
         };
         Some((map, args[1]))
     }
-    pub(super) fn proven_map_key_view_value(&mut self, value: ValueId) -> Option<ValueId> {
-        self.proven_map_key_view_value_matching(value, MapKeyViewKind::Collection)
+    pub(super) fn proven_map_key_view_value(
+        &mut self,
+        value: ValueId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        self.proven_map_key_view_value_matching(value, MapKeyViewKind::Collection, env)
     }
     fn proven_map_key_view_value_matching(
         &mut self,
         value: ValueId,
         accepted: MapKeyViewKind,
+        env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) {
@@ -81,6 +86,23 @@ impl<'a> Builder<'a> {
             if accepted != MapKeyViewKind::Collection || callee.args.len() != 1 {
                 return None;
             }
+            if admitted_object_key_view_at_call_span(
+                self.il,
+                self.interner,
+                self.library_api_span_call(value, args[0], callee.args.first().copied(), 1),
+                "Object",
+                method,
+            )
+            .is_some()
+            {
+                let map = js_object_key_view_argument_map_node_at_call_span(
+                    self.il,
+                    self.interner,
+                    self.node_span[value as usize],
+                )?;
+                let value = self.eval(map, env);
+                return self.proven_map_value(value);
+            }
             admitted_map_key_view_wrapper_at_call_span(
                 self.il,
                 self.interner,
@@ -88,7 +110,7 @@ impl<'a> Builder<'a> {
                 "Array",
                 method,
             )?;
-            return self.proven_map_key_view_value_matching(args[1], MapKeyViewKind::Iterator);
+            return self.proven_map_key_view_value_matching(args[1], MapKeyViewKind::Iterator, env);
         }
         None
     }
@@ -98,7 +120,7 @@ impl<'a> Builder<'a> {
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
         let value = self.eval(expr, env);
-        self.proven_map_key_view_value(value)
+        self.proven_map_key_view_value(value, env)
     }
     pub(in crate::value_graph) fn eval_proven_map_key_membership_call(
         &mut self,

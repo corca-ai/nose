@@ -181,8 +181,10 @@ still being migrated toward it.
   `member?`, while missing receiver proof, unsupported arities, and Go
   `slices.Contains` remain hard negatives. The
   `nose.protocols.map_key_views` descriptor owns Python/Ruby `keys`, Java
-  `keySet`, and JS-family `Map.keys()` contract and occurrence producer ids,
-  while non-map receivers and unsupported arities remain hard negatives. The
+  `keySet`, JS-family `Map.keys()`, and JS/TS `Object.keys` static-object
+  key-view contract and occurrence producer ids, while non-map receivers,
+  unsupported arities, shadowed `Object`, and mutated object arguments remain
+  hard negatives. The
   `nose.protocols.property_builtins` descriptor owns JS/TS/HTML-family and Java
   `.length`, plus Swift `count` and `isEmpty`, property-builtin contract and
   occurrence producer ids, while missing receiver proof, wrong-pack evidence,
@@ -841,8 +843,12 @@ migrated.
   receiver is a typed/proven map.
 - Map key-view library contracts distinguish collection views from iterator views:
   Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
-  `Map.keys()` is an iterator view. Those key-view occurrences report
-  `nose.protocols.map_key_views` provenance and need exact-map receiver proof.
+  `Map.keys()` is an iterator view. JS/TS `Object.keys(obj)` is a collection
+  view only when `Object.keys` has qualified-global proof and `obj` is a proven
+  static object literal or unique unescaped local binding to one. Those key-view
+  occurrences report `nose.protocols.map_key_views` provenance and need either
+  exact-map receiver proof or the static object-argument proof for
+  `Object.keys`.
   JS-like iterator views still need the `Array.from(...)` wrapper contract plus
   `QualifiedGlobal("Array.from")` symbol evidence before they can feed exact
   membership. That qualified-global record must depend on same-span source proof
@@ -957,6 +963,11 @@ migrated.
 - JS/TS object literals preserve static property keys in exact map/object
   semantics, but computed property names are exact-closed until a future
   contract can prove key evaluation, coercion, order, and side-effect behavior.
+  The `Object.keys` key-view slice consumes only object literals whose keys are
+  static strings and whose lowered object surface has `SequenceSurface(Map)`
+  evidence. For local bindings it also requires the initializer's
+  `BindingWrite` effect and rejects intervening mutation or argument escape
+  before the `Object.keys` use.
 - JS/TS `new Map(...)` and `new Set(...)` now require construct-syntax source
   facts distinct from ordinary calls, `UnshadowedGlobal` symbol proof for the
   `Map`/`Set` constructor, and `nose.javascript.builtins.collection_constructors`
@@ -987,8 +998,9 @@ migrated.
   Selected JS/TS qualified static global paths now emit `QualifiedGlobal`
   evidence as well: `Object.hasOwn` and
   `Object.prototype.hasOwnProperty.call` gate own-property guards, while
-  `Array.from` gates JS-like map-key iterator wrappers. The path evidence is not
-  enough by itself: consumers require its dependency on same-span
+  `Array.from` gates JS-like map-key iterator wrappers and `Object.keys` gates
+  static-object map-key views. The path evidence is not enough by itself:
+  consumers require its dependency on same-span
   `UnshadowedGlobal` root proof. This does not cover all qualified members or
   namespace exports.
   A spelling such as `Math`, `fmt`, or `deque` is still only a selector; exact

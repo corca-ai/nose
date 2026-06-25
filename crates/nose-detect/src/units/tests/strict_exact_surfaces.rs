@@ -429,3 +429,67 @@ fn strict_exact_contains_does_not_use_result_domain_as_exact_tree_proof() {
         "ambiguous LibraryApi dependency must close strict exact receiver proof"
     );
 }
+
+#[test]
+fn strict_exact_object_keys_key_view_uses_object_argument_proof() {
+    assert!(
+        lowered_ts_function_exact_safe(
+            "function f(key: string) { return Object.keys({ red: 1, blue: 2 }).includes(key); }\n",
+        ),
+        "inline static object literals should make Object.keys an exact map-key view"
+    );
+    assert!(
+        lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; return Object.keys(values).includes(key); }\n",
+        ),
+        "a unique unescaped local static object binding should make Object.keys an exact map-key view"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(Object: any, key: string) { const values = { red: 1, blue: 2 }; return Object.keys(values).includes(key); }\n",
+        ),
+        "shadowed Object must close the static-global Object.keys proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; values.green = 3; return Object.keys(values).includes(key); }\n",
+        ),
+        "mutation before Object.keys must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; return Object.values(values).includes(key); }\n",
+        ),
+        "Object.values must not reuse the Object.keys map-key-view capability"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { return Object.keys({ red: sideEffect() }).includes(key); }\n",
+        ),
+        "object value expressions still have to be exact-safe even when keys are static"
+    );
+}
+
+fn lowered_ts_function_exact_safe(source: &str) -> bool {
+    let interner = Interner::new();
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "object_keys.ts",
+        source.as_bytes(),
+        Lang::TypeScript,
+        &interner,
+    )
+    .expect("lower TypeScript");
+    let il = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions::default(),
+    );
+    let facts = StrictFacts::collect(&il, &interner);
+    let function = il
+        .units
+        .iter()
+        .find(|unit| unit.kind == UnitKind::Function)
+        .expect("function unit");
+    strict_exact_safe_tree(&il, &interner, &facts, function.root)
+}

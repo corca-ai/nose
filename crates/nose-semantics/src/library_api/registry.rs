@@ -421,6 +421,7 @@ fn library_api_member_callee_contracts_for_id(
         LibraryApiContractId::MapKeyView(kind) => ["keys", "keySet"]
             .into_iter()
             .filter_map(|method| library_map_key_view_contract(lang, method, 0))
+            .chain(library_object_key_view_contract(lang, "Object", "keys", 1))
             .filter(|contract| contract.result.kind == kind)
             .map(|contract| contract.callee)
             .collect(),

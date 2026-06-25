@@ -279,8 +279,8 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
     );
     assert_eq!(map_key_view.counts.evidence_producers, 1);
     assert_eq!(map_key_view.counts.contracts, 2);
-    assert_eq!(map_key_view.counts.positive_fixtures, 4);
-    assert_eq!(map_key_view.counts.hard_negatives, 2);
+    assert_eq!(map_key_view.counts.positive_fixtures, 5);
+    assert_eq!(map_key_view.counts.hard_negatives, 4);
     let property_builtin = set
         .packs()
         .iter()

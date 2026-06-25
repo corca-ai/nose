@@ -156,8 +156,8 @@ fall back to a side-table mirror when source evidence is missing.
   presence semantics.
 - Qualified API path evidence is symbol evidence, not a source fact by itself.
   The current JS/TS producer emits selected `QualifiedGlobal` facts such as
-  `Object.hasOwn`, `Object.prototype.hasOwnProperty.call`, and `Array.from`
-  only when their root global is proven unshadowed.
+  `Object.hasOwn`, `Object.prototype.hasOwnProperty.call`, `Object.keys`, and
+  `Array.from` only when their root global is proven unshadowed.
 
 The slice deliberately does not claim that all equality semantics are modeled.
 The IL still has coarse equality operators; source facts are the evidence that

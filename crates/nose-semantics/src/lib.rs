@@ -35,6 +35,7 @@ mod method_contracts;
 mod method_families;
 mod module_exports;
 mod module_semantics;
+mod object_key_views;
 mod operator_thresholds;
 mod operators;
 mod packs;
@@ -90,6 +91,11 @@ pub use method_families::*;
 pub use module_exports::*;
 pub use module_semantics::*;
 pub use nose_il::DomainEvidence;
+pub use object_key_views::{
+    js_object_key_view_argument_dependency_ids_for_call,
+    js_object_key_view_argument_map_node_at_call_span,
+    js_object_key_view_argument_map_node_for_call,
+};
 pub use operator_thresholds::{index_membership_threshold_contract, IndexMembershipThreshold};
 use operator_thresholds::{
     index_membership_threshold_matches, threshold_at_or_below_floor, threshold_below_floor,

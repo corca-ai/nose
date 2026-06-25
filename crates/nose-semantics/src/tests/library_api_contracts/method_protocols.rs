@@ -69,6 +69,29 @@ fn method_protocol_contracts_are_language_constrained() {
 }
 
 #[test]
+fn object_keys_is_map_key_view_protocol_static_global_path() {
+    let contract = library_object_key_view_contract(Lang::TypeScript, "Object", "keys", 1)
+        .expect("Object.keys key-view contract");
+    assert_eq!(contract.pack_id, MAP_KEY_VIEW_PROTOCOL_PACK_ID);
+    assert_eq!(
+        contract.id,
+        LibraryApiContractId::MapKeyView(MapKeyViewKind::Collection)
+    );
+    assert_eq!(
+        contract.callee,
+        LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver: "Object",
+            method: "keys",
+            qualified_path: "Object.keys",
+            requires_unshadowed_receiver: true,
+        }
+    );
+    assert!(library_object_key_view_contract(Lang::JavaScript, "Object", "values", 1).is_none());
+    assert!(library_object_key_view_contract(Lang::JavaScript, "Object", "keys", 2).is_none());
+    assert!(library_object_key_view_contract(Lang::Python, "Object", "keys", 1).is_none());
+}
+
+#[test]
 fn method_call_contracts_carry_receiver_and_resolution_obligations() {
     assert_eq!(
         method_call_contract(Lang::Python, "append", 1),

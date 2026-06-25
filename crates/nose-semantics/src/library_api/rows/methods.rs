@@ -48,6 +48,43 @@ pub fn library_map_key_view_contract_by_hash(
     })
 }
 
+pub fn library_object_key_view_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryMapKeyViewContract> {
+    if !js_like_lang(lang) || receiver != "Object" || method != "keys" || arg_count != 1 {
+        return None;
+    }
+    let result = MapKeyViewContract {
+        method: "keys",
+        kind: MapKeyViewKind::Collection,
+    };
+    Some(LibraryMapKeyViewContract {
+        pack_id: MAP_KEY_VIEW_PROTOCOL_PACK_ID,
+        id: LibraryApiContractId::MapKeyView(result.kind),
+        callee: LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver: "Object",
+            method: result.method,
+            qualified_path: "Object.keys",
+            requires_unshadowed_receiver: true,
+        },
+        result,
+    })
+}
+
+pub fn library_object_key_view_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<LibraryMapKeyViewContract> {
+    (method_hash == stable_symbol_hash("keys"))
+        .then(|| library_object_key_view_contract(lang, receiver, "keys", arg_count))
+        .flatten()
+}
+
 pub fn library_map_key_view_wrapper_contract(
     lang: Lang,
     receiver: &str,

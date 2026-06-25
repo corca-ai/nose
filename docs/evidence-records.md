@@ -321,10 +321,10 @@ by coincidence.
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
 whose root is proven unshadowed, such as `Object.hasOwn`,
-`Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`. The
-`QualifiedGlobal` record itself depends on same-span source evidence for the
-unshadowed root (`Object` or `Array` today), and exact/value consumers reject the
-path when that dependency is missing, ambiguous, or broken.
+`Object.prototype.hasOwnProperty.call`, `Object.keys`, `Array.from`, and
+`Array.isArray`. The `QualifiedGlobal` record itself depends on same-span source
+evidence for the unshadowed root (`Object` or `Array` today), and exact/value
+consumers reject the path when that dependency is missing, ambiguous, or broken.
 
 Guard identity is separate from sequence shape. A raw `Seq("record_guard")` or a
 matching `SequenceSurface(RecordGuard)` fact proves only that the frontend
@@ -342,6 +342,18 @@ on one supported qualified-global API path, currently `Object.hasOwn` or
 `Object.prototype.hasOwnProperty.call`. Object method spellings such as
 `value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
 ambiguous guard evidence remain closed.
+
+JS/TS `Object.keys(obj)` map-key views use the same evidence-first rule under
+`nose.protocols.map_key_views`. The admitted `LibraryApi` record is a
+`StaticGlobalMethod` contract for `Object.keys`, and depends on
+`QualifiedGlobal("Object.keys")`, `UnshadowedGlobal("Object")`, and the object
+argument proof. Inline object literals require `SequenceSurface(Map)` at the
+object sequence; local bindings additionally require the initializer
+`Effect(BindingWrite)` and reject intervening mutation or argument escape before
+the `Object.keys` call. Consumers re-run that object-argument proof when
+admitting the record, so a detached API row, `Object.values`, `Object.entries`,
+shadowed `Object`, mutation, or missing surface evidence does not prove a
+key-view.
 
 Place and effect evidence are authoritative for the exact-fragment substrate,
 value-graph field-state consumers, oracle field state, and conservative mutation
@@ -558,9 +570,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   present, receiver-method membership calls with
   `nose.protocols.receiver_membership` provenance when their map, collection, or
   set-or-map receiver proof is present, Python/Ruby `keys`, Java `keySet`, and
-  JS-family `Map.keys()` views
-  with `nose.protocols.map_key_views` provenance when exact-map receiver proof
-  is present, JS/TS/HTML-family and Java `.length`, plus Swift `count` and
+  JS-family `Map.keys()` views with `nose.protocols.map_key_views` provenance
+  when exact-map receiver proof is present, and JS/TS `Object.keys` views with
+  the same provenance when static object-argument proof is present; JS/TS/HTML-family
+  and Java `.length`, plus Swift `count` and
   `isEmpty`, with `nose.protocols.property_builtins` provenance when
   receiver-domain proof is present, Rust
   `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
@@ -712,8 +725,9 @@ callers:
   scope scan no longer reopens that exact path;
 - qualified-global symbol proof for selected JS/TS API paths: own-property
   guard evidence depends on `Object.hasOwn` or
-  `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
-  evidence for `Array.from`; static Array gates require evidence for
+  `Object.prototype.hasOwnProperty.call`, static-object map-key views require
+  evidence for `Object.keys`, and map-key view wrappers require evidence for
+  `Array.from`; static Array gates require evidence for
   `Array.isArray`. Those `QualifiedGlobal` records themselves depend on the
   appropriate unshadowed root proof, so path-shaped text or a detached API
   record does not prove identity;

@@ -155,6 +155,22 @@ pub fn admitted_map_key_view_at_call_span(
     admitted_library_span_call(il, interner, occurrence, contract)
 }
 
+pub fn admitted_object_key_view_at_call_span(
+    il: &Il,
+    interner: &Interner,
+    occurrence: LibraryApiSpanCall,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<AdmittedLibraryApiSpanCall<LibraryMapKeyViewContract>> {
+    let contract = library_object_key_view_contract_by_hash(
+        il.meta.lang,
+        receiver,
+        method_hash,
+        occurrence.arg_count,
+    )?;
+    admitted_library_span_call(il, interner, occurrence, contract)
+}
+
 pub fn admitted_map_key_view_wrapper_at_call_span(
     il: &Il,
     interner: &Interner,

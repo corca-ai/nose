@@ -260,6 +260,12 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_member_calle
             dependency_has_qualified_global_node(il, record, callee_node, qualified_path)
                 && (!requires_unshadowed_receiver
                     || dependency_has_unshadowed_global_node(il, record, receiver_node, receiver))
+                && static_global_method_extra_dependencies_match(
+                    il,
+                    interner,
+                    record,
+                    qualified_path,
+                )
         }
         LibraryApiCalleeContract::StaticGlobalFunction {
             function,
@@ -270,6 +276,22 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_member_calle
         }
         _ => false,
     }
+}
+
+fn static_global_method_extra_dependencies_match(
+    il: &Il,
+    interner: &Interner,
+    record: &EvidenceRecord,
+    qualified_path: &str,
+) -> bool {
+    if qualified_path != "Object.keys" {
+        return true;
+    }
+    let Some(call) = node_at_span_with_kind(il, record.anchor.span(), NodeKind::Call) else {
+        return false;
+    };
+    js_object_key_view_argument_dependency_ids_for_call(il, interner, call)
+        .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies))
 }
 
 pub(in crate::library_api) fn library_api_dependencies_match_method_callee(

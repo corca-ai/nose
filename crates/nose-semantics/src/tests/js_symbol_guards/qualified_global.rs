@@ -18,6 +18,14 @@ fn qualified_global_symbol_contracts_are_language_and_path_scoped() {
             requires_unshadowed_root: true,
         })
     );
+    assert_eq!(
+        qualified_global_symbol_contract(Lang::TypeScript, "Object.keys"),
+        Some(QualifiedGlobalSymbolContract {
+            path: "Object.keys",
+            root: "Object",
+            requires_unshadowed_root: true,
+        })
+    );
     assert!(qualified_global_symbol_contract(
         Lang::JavaScript,
         "Object.prototype.hasOwnProperty.call"

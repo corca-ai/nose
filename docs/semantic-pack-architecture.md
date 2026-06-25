@@ -342,8 +342,9 @@ previous semantic-kernel tranches.
    contracts. Go `slices.Contains` remains outside this slice because it is a
    namespace-function-style contract.
    The current map-key-view protocol slice is `nose.protocols.map_key_views`,
-   which owns Python/Ruby `keys`, Java `keySet`, and JS-family `Map.keys()` API
-   occurrence provenance under the shared exact-map receiver contract.
+   which owns Python/Ruby `keys`, Java `keySet`, JS-family `Map.keys()` API
+   occurrence provenance under the shared exact-map receiver contract, and
+   JS/TS `Object.keys` provenance under static object-argument proof.
    The current property-builtin protocol slice is
    `nose.protocols.property_builtins`, which owns JS/TS/HTML-family and Java
    `.length`, plus Swift `count` and `isEmpty`, API occurrence provenance under

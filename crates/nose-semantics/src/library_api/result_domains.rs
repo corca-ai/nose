@@ -43,6 +43,18 @@ pub fn library_api_materialized_result_domain_for_arity(
         LibraryApiContractId::MapKeyViewWrapper => {
             map_key_view_wrapper_materialized_result_domain(id, callee)
         }
+        LibraryApiContractId::MapKeyView(MapKeyViewKind::Collection)
+            if matches!(
+                callee,
+                LibraryApiCalleeContract::StaticGlobalMethod {
+                    receiver: "Object",
+                    method: "keys",
+                    ..
+                }
+            ) =>
+        {
+            Some(DomainEvidence::Array)
+        }
         LibraryApiContractId::RustOptionSomeConstructor => Some(DomainEvidence::Option),
         LibraryApiContractId::PromiseFactory(_) => Some(DomainEvidence::PromiseLike),
         id @ (LibraryApiContractId::RustOptionAndThen

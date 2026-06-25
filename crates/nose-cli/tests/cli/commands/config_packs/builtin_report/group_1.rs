@@ -182,8 +182,8 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(map_key_view["counts"]["evidence_producers"], 1);
     assert_eq!(map_key_view["counts"]["contracts"], 2);
     assert_eq!(map_key_view["counts"]["value_laws"], 0);
-    assert_eq!(map_key_view["counts"]["positive_fixtures"], 4);
-    assert_eq!(map_key_view["counts"]["hard_negatives"], 2);
+    assert_eq!(map_key_view["counts"]["positive_fixtures"], 5);
+    assert_eq!(map_key_view["counts"]["hard_negatives"], 4);
 
     let property_builtin = semantic_pack_by_id(&json, "nose.protocols.property_builtins");
     assert_eq!(property_builtin["hash"], "0bb1fdeb809a7e81");

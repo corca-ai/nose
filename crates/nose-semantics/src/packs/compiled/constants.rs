@@ -171,7 +171,8 @@ pub(super) const RECEIVER_MEMBERSHIP_PROTOCOL_PACKAGES: &[&str] = &[
     "java.util",
     "std::collections",
 ];
-pub(super) const MAP_KEY_VIEW_PROTOCOL_PACKAGES: &[&str] = &["dict", "Hash", "Map", "java.util"];
+pub(super) const MAP_KEY_VIEW_PROTOCOL_PACKAGES: &[&str] =
+    &["dict", "Hash", "Map", "Object", "java.util"];
 pub(super) const PROPERTY_BUILTIN_PROTOCOL_PACKAGES: &[&str] =
     &["Array", "Collection", "Swift.Collection", "java.lang"];
 pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_PACKAGES: &[&str] =
@@ -431,8 +432,11 @@ pub(super) const MAP_KEY_VIEW_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
     "map-key-view-ruby-keys-positive",
     "map-key-view-java-keyset-positive",
     "map-key-view-js-keys-positive",
+    "map-key-view-js-object-keys-positive",
     "map-key-view-non-map-receiver-hard-negative",
     "map-key-view-unsupported-arity-hard-negative",
+    "map-key-view-js-object-keys-shadowed-hard-negative",
+    "map-key-view-js-object-keys-mutated-hard-negative",
 ];
 pub(super) const PROPERTY_BUILTIN_PROTOCOL_PRODUCER_IDS: &[&str] =
     &[PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID];

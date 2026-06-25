@@ -222,6 +222,7 @@ pub fn qualified_global_symbol_contract(
         "Array.from" => ("Array.from", "Array"),
         "Array.isArray" => ("Array.isArray", "Array"),
         "Object.hasOwn" => ("Object.hasOwn", "Object"),
+        "Object.keys" => ("Object.keys", "Object"),
         "Object.prototype.hasOwnProperty.call" => {
             ("Object.prototype.hasOwnProperty.call", "Object")
         }
