@@ -124,6 +124,38 @@ fn post_lowering_emits_object_keys_key_view_only_with_object_argument_proof() {
         "direct eval before Object.keys must close key-view evidence"
     );
 
+    let for_in_target_mutation = lower_fixture(
+        "object_keys_for_in_target_mutation.ts",
+        b"function f(key: string) { const values = { red: 1, blue: 2 }; for (values.green in { green: 1 }) {} return Object.keys(values).includes(key); }\n",
+        Lang::TypeScript,
+        &interner,
+    );
+    assert!(
+        contract_api_ids(
+            &for_in_target_mutation.evidence,
+            contract.id,
+            contract.callee
+        )
+        .is_empty(),
+        "for-in target writes before Object.keys must close key-view evidence"
+    );
+
+    let for_of_target_mutation = lower_fixture(
+        "object_keys_for_of_target_mutation.ts",
+        b"function f(key: string) { const values = { red: 1, blue: 2 }; for (values.green of [\"green\"]) {} return Object.keys(values).includes(key); }\n",
+        Lang::TypeScript,
+        &interner,
+    );
+    assert!(
+        contract_api_ids(
+            &for_of_target_mutation.evidence,
+            contract.id,
+            contract.callee
+        )
+        .is_empty(),
+        "for-of target writes before Object.keys must close key-view evidence"
+    );
+
     let conditional_initializer = lower_fixture(
         "object_keys_conditional_initializer.ts",
         b"function f(flag: boolean, key: string) { if (flag) { var values = { red: 1, blue: 2 }; } return Object.keys(values).includes(key); }\n",

@@ -968,8 +968,9 @@ migrated.
   evidence. For local bindings it also requires the initializer's
   `BindingWrite` effect and rejects intervening mutation or argument escape
   before the `Object.keys` use, including JS `delete` property mutation and
-  nested local function declarations that could close over the object. Direct
-  `eval` also closes the proof.
+  `for...in` / `for...of` loop target writes. Nested local function
+  declarations that could close over the object and direct `eval` also close the
+  proof.
   Object-literal `__proto__` prototype syntax is exact-closed because it is not
   an enumerable own key; escaped identifier keys are also exact-closed.
 - JS/TS `new Map(...)` and `new Set(...)` now require construct-syntax source

@@ -350,10 +350,11 @@ JS/TS `Object.keys(obj)` map-key views use the same evidence-first rule under
 argument proof. Inline object literals require `SequenceSurface(Map)` at the
 object sequence; local bindings additionally require the initializer
 `Effect(BindingWrite)` and reject intervening mutation or argument escape before
-the `Object.keys` call, including JS `delete` property mutation. Consumers
-re-run that object-argument proof when admitting the record. A detached API row,
-`Object.values`, `Object.entries`, shadowed `Object`, mutation, nested local
-function declarations that can close over the object, direct `eval`,
+the `Object.keys` call, including JS `delete` property mutation and `for...in` /
+`for...of` loop target writes. Consumers re-run that object-argument proof when
+admitting the record. A detached API row, `Object.values`, `Object.entries`,
+shadowed `Object`, mutation, nested local function declarations that can close over
+the object, direct `eval`,
 object-literal `__proto__` prototype syntax, escaped identifier keys, or missing
 surface evidence does not prove a key-view.
 

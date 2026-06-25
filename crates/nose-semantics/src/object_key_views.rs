@@ -196,9 +196,25 @@ fn binding_mutated_or_escaped_before_use(
             NodeKind::Seq if js_delete_sequence(il, interner, node_id) => {
                 any_node_contains_binding_reference(il, interner, il.children(node_id), reference)
             }
+            NodeKind::Loop if loop_target_writes_binding(il, interner, node_id, reference) => true,
             _ => false,
         }
     })
+}
+
+fn loop_target_writes_binding(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    reference: NodeId,
+) -> bool {
+    if !matches!(il.node(node).payload, Payload::Loop(LoopKind::ForEach)) {
+        return false;
+    }
+    let Some(&target) = il.children(node).first() else {
+        return false;
+    };
+    node_contains_binding_reference(il, interner, target, reference)
 }
 
 fn js_delete_sequence(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -228,6 +244,16 @@ fn any_node_contains_binding_reference(
     nodes.iter().any(|&node| {
         node_contains_binding_reference_with_seen(il, interner, node, reference, &mut visited)
     })
+}
+
+fn node_contains_binding_reference(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    reference: NodeId,
+) -> bool {
+    let mut visited = vec![false; il.nodes.len()];
+    node_contains_binding_reference_with_seen(il, interner, node, reference, &mut visited)
 }
 
 fn node_contains_binding_reference_with_seen(

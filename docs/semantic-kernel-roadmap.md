@@ -1602,7 +1602,8 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `nose-semantics` object-argument proof in frontend lowering, value-graph
   normalization, span/node LibraryApi admission, and strict exact gates.
   Shadowed `Object`, `Object.values`/`entries`, mutation or argument escape
-  before the view, and unsafe object value expressions remain exact-closed.
+  before the view, including `delete`, direct `eval`, nested local mutators, and
+  loop target writes, and unsafe object value expressions remain exact-closed.
 - The node-level/API resolver cleanup moved property builtin field admission,
   Rust `Some` callee-node admission, HOF receiver proof in desugaring, and
   promise `.then` contract lookup behind shared admitted occurrence resolvers.

@@ -432,96 +432,89 @@ fn strict_exact_contains_does_not_use_result_domain_as_exact_tree_proof() {
 
 #[test]
 fn strict_exact_object_keys_key_view_uses_object_argument_proof() {
-    assert!(
-        lowered_ts_function_exact_safe(
+    for (name, source) in [
+        (
+            "inline static object literal",
             "function f(key: string) { return Object.keys({ red: 1, blue: 2 }).includes(key); }\n",
         ),
-        "inline static object literals should make Object.keys an exact map-key view"
-    );
-    assert!(
-        lowered_ts_function_exact_safe(
+        (
+            "unique local static object binding",
             "function f(key: string) { const values = { red: 1, blue: 2 }; return Object.keys(values).includes(key); }\n",
         ),
-        "a unique unescaped local static object binding should make Object.keys an exact map-key view"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+    ] {
+        assert!(
+            lowered_ts_function_exact_safe(source),
+            "{name} should make Object.keys an exact map-key view"
+        );
+    }
+
+    for (name, source) in [
+        (
+            "shadowed Object",
             "function f(Object: any, key: string) { const values = { red: 1, blue: 2 }; return Object.keys(values).includes(key); }\n",
         ),
-        "shadowed Object must close the static-global Object.keys proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "__proto__ object-literal prototype syntax",
             "function f(key: string) { const values = { __proto__: null, red: 1 }; return Object.keys(values).includes(key); }\n",
         ),
-        "__proto__ object-literal prototype syntax must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "escaped __proto__ object-literal prototype syntax",
             "function f(key: string) { const values = { \\u005f\\u005fproto__: null, red: 1 }; return Object.keys(values).includes(key); }\n",
         ),
-        "escaped __proto__ object-literal prototype syntax must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "mutation before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; values.green = 3; return Object.keys(values).includes(key); }\n",
         ),
-        "mutation before Object.keys must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "delete before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; delete values.red; return Object.keys(values).includes(key); }\n",
         ),
-        "delete before Object.keys must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "aliasing before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; const alias = values; alias.green = 3; return Object.keys(values).includes(key); }\n",
         ),
-        "aliasing the object before Object.keys must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "receiver call before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; values.clear(); return Object.keys(values).includes(key); }\n",
         ),
-        "receiver calls on the object before Object.keys must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "nested mutator before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; mutate(); return Object.keys(values).includes(key); function mutate() { values.green = 3; } }\n",
         ),
-        "nested function declarations can close over the object and must close the proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "direct eval before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; eval(\"values.green = 3\"); return Object.keys(values).includes(key); }\n",
         ),
-        "direct eval before Object.keys must close the object-argument proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "for-in target write before Object.keys",
+            "function f(key: string) { const values = { red: 1, blue: 2 }; for (values.green in { green: 1 }) {} return Object.keys(values).includes(key); }\n",
+        ),
+        (
+            "for-of target write before Object.keys",
+            "function f(key: string) { const values = { red: 1, blue: 2 }; for (values.green of [\"green\"]) {} return Object.keys(values).includes(key); }\n",
+        ),
+        (
+            "non-dominating conditional object initializer",
             "function f(flag: boolean, key: string) { if (flag) { var values = { red: 1, blue: 2 }; } return Object.keys(values).includes(key); }\n",
         ),
-        "non-dominating conditional object initializers must close the proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "parameter shadowing a module static object",
             "const values = { red: 1, blue: 2 }; function f(values: Record<string, number>, key: string) { return Object.keys(values).includes(key); }\n",
         ),
-        "a parameter shadowing a module static object must close the proof"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "Object.values",
             "function f(key: string) { const values = { red: 1, blue: 2 }; return Object.values(values).includes(key); }\n",
         ),
-        "Object.values must not reuse the Object.keys map-key-view capability"
-    );
-    assert!(
-        !lowered_ts_function_exact_safe(
+        (
+            "unsafe object value expression",
             "function f(key: string) { return Object.keys({ red: sideEffect() }).includes(key); }\n",
         ),
-        "object value expressions still have to be exact-safe even when keys are static"
-    );
+    ] {
+        assert!(
+            !lowered_ts_function_exact_safe(source),
+            "{name} must close the Object.keys object-argument proof"
+        );
+    }
 }
 
 fn lowered_ts_function_exact_safe(source: &str) -> bool {
