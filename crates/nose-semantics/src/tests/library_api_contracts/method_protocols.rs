@@ -439,6 +439,18 @@ fn receiver_method_api_rows_emit_only_safe_result_domains() {
         Some(DomainEvidence::Option)
     );
     assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "is_ok", 0)
+            .expect("Rust Result::is_ok contract")
+            .result_domain,
+        Some(DomainEvidence::Boolean)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "is_err", 0)
+            .expect("Rust Result::is_err contract")
+            .result_domain,
+        Some(DomainEvidence::Boolean)
+    );
+    assert_eq!(
         library_receiver_method_api_contract(Lang::TypeScript, "then", 1)
             .expect("JS-like Promise.then contract")
             .result_domain,

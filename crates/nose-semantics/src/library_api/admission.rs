@@ -275,6 +275,12 @@ fn rust_library_api_contract_provenance_ids(
         | LibraryApiContractId::RustOptionAndThen => {
             Some((RUST_STDLIB_OPTION_PACK_ID, RUST_STDLIB_OPTION_PRODUCER_ID))
         }
+        LibraryApiContractId::RustResultOkConstructor
+        | LibraryApiContractId::RustResultErrConstructor
+        | LibraryApiContractId::RustResultIsOk
+        | LibraryApiContractId::RustResultIsErr => {
+            Some((RUST_STDLIB_RESULT_PACK_ID, RUST_STDLIB_RESULT_PRODUCER_ID))
+        }
         LibraryApiContractId::ScalarIntegerMethod(_)
             if matches!(
                 callee,

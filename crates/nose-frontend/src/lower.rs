@@ -81,6 +81,7 @@ use nose_semantics::{
     library_promise_resolve_contract, library_property_builtin_contract,
     library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
+    library_rust_result_err_constructor_contract, library_rust_result_ok_constructor_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     library_static_collection_adapter_contract, library_static_index_membership_contract,
     library_swift_map_factory_contract, module_binding_mutating_method_contract,
@@ -102,7 +103,7 @@ use nose_semantics::{
     PYTHON_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, PYTHON_STDLIB_MATH_PRODUCER_ID,
     RUBY_STDLIB_SET_PACK_ID, RUBY_STDLIB_SET_PRODUCER_ID,
     RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
-    RUST_STDLIB_OPTION_PRODUCER_ID, RUST_STDLIB_VEC_PRODUCER_ID,
+    RUST_STDLIB_OPTION_PRODUCER_ID, RUST_STDLIB_RESULT_PRODUCER_ID, RUST_STDLIB_VEC_PRODUCER_ID,
     SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
 };
 use tree_sitter::Node as TsNode;

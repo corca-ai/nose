@@ -6,6 +6,7 @@ fn post_lowering_emits_property_and_rust_option_occurrences() {
     assert_ts_length_property_occurrences(&interner);
     assert_ts_promise_then_occurrences(&interner);
     assert_rust_option_occurrences(&interner);
+    assert_rust_result_occurrences(&interner);
 }
 
 fn assert_ts_length_property_occurrences(interner: &Interner) {
@@ -207,6 +208,182 @@ fn assert_rust_option_record_provenance(record: &EvidenceRecord) {
     assert_eq!(
         record.provenance.rule_hash,
         Some(stable_symbol_hash(RUST_STDLIB_OPTION_PRODUCER_ID))
+    );
+}
+
+fn assert_rust_result_occurrences(interner: &Interner) {
+    let rust_ok = lower_fixture(
+        "t.rs",
+        b"fn f(x: i32) -> Result<i32, i32> { Ok(x) }\n",
+        Lang::Rust,
+        interner,
+    );
+    let ok_contract = library_rust_result_ok_constructor_contract(Lang::Rust, "Ok", 1).unwrap();
+    let ok_call =
+        call_span_with_callee_named(&rust_ok, interner, "Ok").expect("Ok call should lower");
+    let ok_api = library_api_evidence_ids_at(
+        &rust_ok.evidence,
+        ok_call,
+        library_api_contract_id_hash(ok_contract.id),
+        library_api_callee_contract_hash(ok_contract.callee),
+        1,
+    );
+    assert_eq!(ok_api.len(), 1);
+    let ok_records = contract_api_records(&rust_ok.evidence, ok_contract.id, ok_contract.callee);
+    assert_rust_result_record_provenance(ok_records[0]);
+    assert!(result_domain_depends_on_api(
+        &rust_ok.evidence,
+        ok_call,
+        DomainEvidence::Result,
+        &ok_api,
+    ));
+
+    let rust_err = lower_fixture(
+        "t.rs",
+        b"fn f(e: i32) -> Result<i32, i32> { Err(e) }\n",
+        Lang::Rust,
+        interner,
+    );
+    let err_contract = library_rust_result_err_constructor_contract(Lang::Rust, "Err", 1).unwrap();
+    let err_call =
+        call_span_with_callee_named(&rust_err, interner, "Err").expect("Err call should lower");
+    let err_api = library_api_evidence_ids_at(
+        &rust_err.evidence,
+        err_call,
+        library_api_contract_id_hash(err_contract.id),
+        library_api_callee_contract_hash(err_contract.callee),
+        1,
+    );
+    assert_eq!(err_api.len(), 1);
+    let err_records =
+        contract_api_records(&rust_err.evidence, err_contract.id, err_contract.callee);
+    assert_rust_result_record_provenance(err_records[0]);
+    assert!(result_domain_depends_on_api(
+        &rust_err.evidence,
+        err_call,
+        DomainEvidence::Result,
+        &err_api,
+    ));
+
+    let rust_is_ok = lower_fixture(
+        "t.rs",
+        b"pub fn f(value: Result<i32, i32>) -> bool { value.is_ok() }\n",
+        Lang::Rust,
+        interner,
+    );
+    let is_ok_contract =
+        nose_semantics::library_rust_result_predicate_contract(Lang::Rust, "is_ok", 0).unwrap();
+    let is_ok_call = call_span_with_field_callee_named(&rust_is_ok, interner, "is_ok")
+        .expect("is_ok call should lower");
+    let is_ok_api = library_api_evidence_ids_at(
+        &rust_is_ok.evidence,
+        is_ok_call,
+        library_api_contract_id_hash(is_ok_contract.id),
+        library_api_callee_contract_hash(is_ok_contract.callee),
+        0,
+    );
+    assert_eq!(is_ok_api.len(), 1);
+    assert!(result_domain_depends_on_api(
+        &rust_is_ok.evidence,
+        is_ok_call,
+        DomainEvidence::Boolean,
+        &is_ok_api,
+    ));
+
+    let shadowed_result_is_ok = lower_fixture(
+        "t.rs",
+        b"struct Result<T, E> { value: T, err: E }\nimpl<T, E> Result<T, E> { fn is_ok(&self) -> bool { false } }\npub fn f(value: Result<i32, i32>) -> bool { value.is_ok() }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        contract_api_count(
+            &shadowed_result_is_ok.evidence,
+            is_ok_contract.id,
+            is_ok_contract.callee
+        ),
+        0,
+        "a local Rust Result type must close std Result predicate occurrence evidence"
+    );
+
+    let rust_is_err = lower_fixture(
+        "t.rs",
+        b"pub fn f(value: Result<i32, i32>) -> bool { value.is_err() }\n",
+        Lang::Rust,
+        interner,
+    );
+    let is_err_contract =
+        nose_semantics::library_rust_result_predicate_contract(Lang::Rust, "is_err", 0).unwrap();
+    let is_err_call = call_span_with_field_callee_named(&rust_is_err, interner, "is_err")
+        .expect("is_err call should lower");
+    let is_err_api = library_api_evidence_ids_at(
+        &rust_is_err.evidence,
+        is_err_call,
+        library_api_contract_id_hash(is_err_contract.id),
+        library_api_callee_contract_hash(is_err_contract.callee),
+        0,
+    );
+    assert_eq!(is_err_api.len(), 1);
+
+    let rust_ok_pattern = lower_fixture(
+        "t.rs",
+        b"pub fn f(value: Result<i32, i32>) -> bool { if let Ok(_) = value { true } else { false } }\n",
+        Lang::Rust,
+        interner,
+    );
+    let ok_pattern_var = named_node_span(&rust_ok_pattern, interner, NodeKind::Var, "Ok")
+        .expect("Ok pattern var should be preserved");
+    let ok_pattern_api = library_api_evidence_ids_at_node(
+        &rust_ok_pattern.evidence,
+        ok_pattern_var,
+        NodeKind::Var,
+        library_api_contract_id_hash(ok_contract.id),
+        library_api_callee_contract_hash(ok_contract.callee),
+        1,
+    );
+    assert_eq!(ok_pattern_api.len(), 1);
+
+    let shadowed_ok = lower_fixture(
+        "t.rs",
+        b"struct Ok<T>(T);\nfn f(x: Ok<i32>) -> bool { if let Ok(_) = x { true } else { false } }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        contract_api_count(&shadowed_ok.evidence, ok_contract.id, ok_contract.callee),
+        0,
+        "local Rust Ok item must close the std Result constructor occurrence"
+    );
+
+    let result_unwrap_else = lower_fixture(
+        "t.rs",
+        b"pub fn f(value: Result<i32, i32>, fallback: i32) -> i32 { value.unwrap_or_else(|_| fallback) }\n",
+        Lang::Rust,
+        interner,
+    );
+    let unwrap_contract =
+        nose_semantics::library_method_call_contract(Lang::Rust, "unwrap_or_else", 1).unwrap();
+    assert_eq!(
+        contract_api_count(
+            &result_unwrap_else.evidence,
+            unwrap_contract.id,
+            unwrap_contract.callee
+        ),
+        0,
+        "Result lazy/defaulting APIs stay out of this narrow capability"
+    );
+}
+
+fn assert_rust_result_record_provenance(record: &EvidenceRecord) {
+    assert_eq!(
+        record.provenance.pack_hash,
+        Some(stable_symbol_hash(
+            nose_semantics::RUST_STDLIB_RESULT_PACK_ID
+        ))
+    );
+    assert_eq!(
+        record.provenance.rule_hash,
+        Some(stable_symbol_hash(RUST_STDLIB_RESULT_PRODUCER_ID))
     );
 }
 

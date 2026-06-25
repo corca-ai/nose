@@ -8,6 +8,7 @@ pub enum MethodReceiverContract {
     ExactProtocol,
     ExactProtocolPairArgument,
     ExactOption,
+    ExactResult,
     ExactString,
     ExactInteger,
     ExactMap,
@@ -35,6 +36,7 @@ pub fn method_receiver_domain_requirement(
         MethodReceiverContract::ExactOption | MethodReceiverContract::RustMapGetOrExactOption => {
             Some(DomainRequirement::OPTION)
         }
+        MethodReceiverContract::ExactResult => Some(DomainRequirement::RESULT),
         MethodReceiverContract::ExactString | MethodReceiverContract::LiteralString => {
             Some(DomainRequirement::STRING)
         }

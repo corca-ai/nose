@@ -19,6 +19,10 @@ pub(super) mod sentinel {
     pub(crate) const EXC: u64 = 0xCA7C_4A4D;
     /// An early `break`'s path marker.
     pub(crate) const BREAK: u64 = 0xB2EA_C0DE;
+    /// Rust `Result::Ok` discriminant channel.
+    pub(crate) const RUST_RESULT_OK: u64 = 0x052E_5A17;
+    /// Rust `Result::Err` discriminant channel.
+    pub(crate) const RUST_RESULT_ERR: u64 = 0xE221_5A17;
 }
 
 /// The kind of a [`ValOp::Const`], carried EXPLICITLY rather than inferred from the

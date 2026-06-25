@@ -6,6 +6,7 @@ fn parameter_type_domains_are_dependency_backed_and_not_substring_guesses() {
     assert_python_typing_alias_param_domains(&interner);
     assert_python_stdlib_pack_param_domains(&interner);
     assert_ts_and_java_param_domains(&interner);
+    assert_rust_result_param_domains(&interner);
 }
 
 fn import_backed_param_domain_pack_hash(
@@ -263,5 +264,43 @@ fn assert_ts_and_java_param_domains(interner: &Interner) {
     assert_eq!(
         param_domain_record_count(&java.evidence, DomainEvidence::Collection),
         1
+    );
+}
+
+fn assert_rust_result_param_domains(interner: &Interner) {
+    let rust_result = lower_fixture(
+        "result_param.rs",
+        b"pub fn f(value: Result<i32, i32>) -> bool { value.is_ok() }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        param_domain_record_count(&rust_result.evidence, DomainEvidence::Result),
+        1,
+        "unshadowed Rust Result<T, E> should still emit parameter domain evidence"
+    );
+
+    let rust_qualified_result = lower_fixture(
+        "qualified_result_param.rs",
+        b"struct Result<T, E> { value: T, err: E }\npub fn f(value: std::result::Result<i32, i32>) -> bool { value.is_ok() }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        param_domain_record_count(&rust_qualified_result.evidence, DomainEvidence::Result),
+        1,
+        "qualified std::result::Result should not be blocked by a local Result type"
+    );
+
+    let rust_shadowed_result = lower_fixture(
+        "shadowed_result_param.rs",
+        b"struct Result<T, E> { value: T, err: E }\npub fn f(value: Result<i32, i32>) -> bool { value.is_ok() }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        param_domain_record_count(&rust_shadowed_result.evidence, DomainEvidence::Result),
+        0,
+        "a local Rust Result type must close unqualified std Result parameter evidence"
     );
 }

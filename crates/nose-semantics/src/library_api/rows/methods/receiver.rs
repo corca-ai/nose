@@ -27,6 +27,7 @@ pub fn library_receiver_method_api_contracts(
         lang, method, arg_count,
     ));
     contracts.extend(receiver_rust_option_api_contract(lang, method, arg_count));
+    contracts.extend(receiver_rust_result_api_contract(lang, method, arg_count));
     contracts.extend(receiver_promise_api_contract(lang, method, arg_count));
     contracts.extend(receiver_map_get_default_api_contract(
         lang, method, arg_count,
@@ -111,6 +112,14 @@ fn receiver_rust_option_api_contract(
             RUST_STDLIB_OPTION_PRODUCER_ID,
         )
     })
+}
+
+fn receiver_rust_result_api_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryReceiverMethodApiContract> {
+    library_rust_result_predicate_contract(lang, method, arg_count)
 }
 
 fn receiver_promise_api_contract(

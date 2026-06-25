@@ -505,6 +505,12 @@ receiver_method_contract_resolver!(
     library_rust_option_and_then_contract
 );
 
+receiver_method_contract_resolver!(
+    admitted_rust_result_predicate_at_call,
+    LibraryReceiverMethodApiContract,
+    library_rust_result_predicate_contract
+);
+
 pub fn admitted_rust_option_some_constructor_at_call(
     il: &Il,
     interner: &Interner,
@@ -522,6 +528,46 @@ pub fn admitted_rust_option_some_constructor_at_node(
 ) -> Option<AdmittedLibraryApiNode<LibraryRustOptionConstructorContract>> {
     let name = node_name(il, interner, node)?;
     let contract = library_rust_option_some_constructor_contract(il.meta.lang, name, 1)?;
+    admitted_library_node(il, interner, node, None, 1, contract)
+}
+
+pub fn admitted_rust_result_ok_constructor_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryRustResultConstructorContract>> {
+    admitted_free_name_call(il, interner, call, |name, arg_count| {
+        library_rust_result_ok_constructor_contract(il.meta.lang, name, arg_count)
+    })
+}
+
+pub fn admitted_rust_result_err_constructor_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryRustResultConstructorContract>> {
+    admitted_free_name_call(il, interner, call, |name, arg_count| {
+        library_rust_result_err_constructor_contract(il.meta.lang, name, arg_count)
+    })
+}
+
+pub fn admitted_rust_result_ok_constructor_at_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<AdmittedLibraryApiNode<LibraryRustResultConstructorContract>> {
+    let name = node_name(il, interner, node)?;
+    let contract = library_rust_result_ok_constructor_contract(il.meta.lang, name, 1)?;
+    admitted_library_node(il, interner, node, None, 1, contract)
+}
+
+pub fn admitted_rust_result_err_constructor_at_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<AdmittedLibraryApiNode<LibraryRustResultConstructorContract>> {
+    let name = node_name(il, interner, node)?;
+    let contract = library_rust_result_err_constructor_contract(il.meta.lang, name, 1)?;
     admitted_library_node(il, interner, node, None, 1, contract)
 }
 

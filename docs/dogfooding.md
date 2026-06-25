@@ -355,3 +355,15 @@ caller to seed and record its own evidence. The remaining drift is representativ
 same reviewed evidence test helpers, canonical builtin evidence fixtures, language-core provenance
 helpers, and builtin evidence upsert-helper debt from the semantic-pack migration. No new budget is
 accepted.
+
+The #525 Rust `Result` channel capability PR keeps the count at 56. Supporting `Ok`/`Err`
+constructors and `is_ok`/`is_err` predicates first surfaced production family `275bb8c2e5e605a0`
+between the Option and Result post-lower sum-type pattern recorders; that was removed by sharing
+the free-name variable `LibraryApi` recorder while leaving each capability slice to select its own
+contracts and evidence domains. The remaining drift is representative-ID churn:
+`641c27f8c0ae37ed`, `6faabbec4e234610`, and `8aefdf6c558af0bc` disappear;
+`78872d78308c99fd`, `868d099f88f94cfa`, and `b981263fc2a3f950` appear. The two test-scope IDs
+cover the same semantic-pack migration fixture debt in `LibraryApi` record builders and stdlib
+receiver/API record builders already accepted above. The production-scope ID covers the existing
+language-core provenance helper family that keeps sequence-surface and import-fact records tied to
+the semantic kernel. No new budget is accepted.

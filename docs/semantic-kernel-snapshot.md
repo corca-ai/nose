@@ -43,11 +43,13 @@ for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected
 JS-like static/global APIs and static index-membership calls, JS/TS/Java
 `length` property reads, Python builtin/import-backed APIs, Rust free-name/path
-APIs including `Option::Some`/`Option::None`, Ruby require-backed APIs, Java
+APIs including `Option::Some`/`Option::None` and `Result::Ok`/`Result::Err`,
+Ruby require-backed APIs, Java
 `java.util` APIs including selected empty constructors, JS regex API calls, and
 selected language-scoped receiver-method APIs such as collection membership,
 map lookup/defaulting, map-key views, iterator identity adapters, Rust scalar
-integer methods, Rust `Option::and_then`, Rust `zip`, and HOF/reduction methods.
+integer methods, Rust `Option::and_then`, Rust Result channel predicates,
+Rust `zip`, and HOF/reduction methods.
 Selected producer-covered factory/API calls now also emit dependent receiver-expression
 `Domain` evidence
 for their result container domain, and normalize emits binding-anchored `Domain`
@@ -98,6 +100,11 @@ still being migrated toward it.
   `nose.rust.stdlib.option` descriptor owns Rust `Some`, `None`, and
   `and_then` Option API contract and occurrence producer ids, while shadowed
   Option selectors and non-Option receivers remain hard negatives. The
+  `nose.rust.stdlib.result` descriptor owns Rust `Ok`/`Err` Result constructor
+  provenance and exact-Result `is_ok`/`is_err` predicate occurrence producer
+  ids, while shadowed selectors, local `Result` type shadows, non-Result
+  receivers, callback/default helper APIs, and panic-like unwrap surfaces remain
+  hard negatives. The
   `nose.rust.stdlib.integer_methods` descriptor owns Rust primitive integer
   `abs`/`min`/`max`/`clamp` method API contract and occurrence producer ids,
   while non-integer receivers and unsupported arities remain hard negatives. The
@@ -226,6 +233,9 @@ still being migrated toward it.
   `vec!` collection-factory API provenance,
   `nose.rust.stdlib.option`, a default builtin stdlib pack for Rust `Some`,
   `None`, and `and_then` Option API provenance,
+  `nose.rust.stdlib.result`, a default builtin stdlib pack for Rust `Ok`/`Err`
+  Result constructor provenance and exact-Result `is_ok`/`is_err` predicate
+  provenance,
   `nose.rust.stdlib.integer_methods`, a default builtin stdlib pack for Rust
   primitive integer `abs`/`min`/`max`/`clamp` method API provenance,
   `nose.java.stdlib.math`, a default builtin stdlib pack for Java `Math.abs`,

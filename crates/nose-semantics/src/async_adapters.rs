@@ -111,6 +111,32 @@ pub(super) fn rust_option_none_selector_name(lang: Lang, name: &str) -> Option<&
     })
 }
 
+pub(super) fn rust_result_ok_selector_name(lang: Lang, name: &str) -> Option<&'static str> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    Some(match name {
+        "Ok" => "Ok",
+        "Result::Ok" => "Result::Ok",
+        "std::result::Result::Ok" => "std::result::Result::Ok",
+        "core::result::Result::Ok" => "core::result::Result::Ok",
+        _ => return None,
+    })
+}
+
+pub(super) fn rust_result_err_selector_name(lang: Lang, name: &str) -> Option<&'static str> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    Some(match name {
+        "Err" => "Err",
+        "Result::Err" => "Result::Err",
+        "std::result::Result::Err" => "std::result::Result::Err",
+        "core::result::Result::Err" => "core::result::Result::Err",
+        _ => return None,
+    })
+}
+
 pub fn rust_option_some_constructor_contract(
     lang: Lang,
     name: &str,
@@ -137,6 +163,37 @@ pub fn rust_option_none_sentinel_contract(lang: Lang, name: &str) -> Option<Shad
         "Option::None" => "Option",
         "std::option::Option::None" => "std",
         "core::option::Option::None" => "core",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_result_ok_constructor_contract(lang: Lang, name: &str) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "Ok" => "Ok",
+        "Result::Ok" => "Result",
+        "std::result::Result::Ok" => "std",
+        "core::result::Result::Ok" => "core",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_result_err_constructor_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "Err" => "Err",
+        "Result::Err" => "Result",
+        "std::result::Result::Err" => "std",
+        "core::result::Result::Err" => "core",
         _ => return None,
     };
     Some(ShadowedPathContract { shadow_root })

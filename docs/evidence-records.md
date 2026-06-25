@@ -430,7 +430,11 @@ factories with `nose.python.stdlib.collection_factories` provenance-backed
 `LibraryApi` occurrence evidence, or Ruby `require "set"; Set.new(...)`
 factories with `nose.ruby.stdlib.set` provenance-backed `LibraryApi` occurrence
 evidence, or Rust `Vec::new`/`vec!` factories with `nose.rust.stdlib.vec`
-provenance-backed `LibraryApi` occurrence evidence, or selected Rust
+provenance-backed `LibraryApi` occurrence evidence, or Rust `Ok`/`Err`
+constructor channels and exact-Result `is_ok`/`is_err` predicates with
+`nose.rust.stdlib.result` provenance-backed `LibraryApi` occurrence evidence
+when selector and receiver proofs are not locally shadowed,
+or selected Rust
 `std::collections::{HashSet,BTreeSet,VecDeque}::from` factories with
 `nose.rust.stdlib.collection_factories` provenance-backed `LibraryApi`
 occurrence evidence, or selected Rust
@@ -562,7 +566,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   same pack provenance when the root-shadow policy is proven, `Some(...)`,
   selected `Some(_)` pattern selectors, bare `None`, and `and_then(...)` with
   `nose.rust.stdlib.option` provenance when Option receiver or selector proof is
-  satisfied, primitive integer `abs`/`min`/`max`/`clamp` receiver methods with
+  satisfied, `Ok(...)`/`Err(...)` constructors, selected `Ok(_)`/`Err(_)`
+  pattern selectors, and exact-Result `is_ok`/`is_err` predicates with
+  `nose.rust.stdlib.result` provenance when Result selector or receiver proof
+  is satisfied, primitive integer `abs`/`min`/`max`/`clamp` receiver methods with
   `nose.rust.stdlib.integer_methods` provenance when exact integer receiver
   proof is present, Java `Math.abs`, `Math.min`, and `Math.max` scalar integer
   APIs with `nose.java.stdlib.math` provenance when unshadowed `Math` and
@@ -600,7 +607,9 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   proof and supported entry-shape proof are present. The selector occurrence
   does not by itself
   prove the pattern semantics: `Some(_)` value-graph presence predicates also
-  require the Rust tuple-struct wildcard `Source::Pattern` fact. JS/TS/Java
+  require the Rust tuple-struct wildcard `Source::Pattern` fact, and
+  `Ok(_)`/`Err(_)` channel predicates require that pattern fact plus Result
+  domain evidence on the scrutinee. JS/TS/Java
   `length` property reads whose
   receiver proof is satisfied; Ruby
   earlier top-level `require "set"; Set.new(...)` through `Import::Require`
@@ -631,9 +640,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   nodes: map `get`, map get-default, map-key views, iterator identity adapters,
   and the language-scoped method-call contracts currently used for
   collection/map membership, count, predicates, pack-owned Rust scalar integer
-  methods, Rust `Option::and_then`, Rust `zip`, HOF, and reduction methods. Property
-  cardinality such as JS/TS `length` is modeled as `Property`, not as a method
-  call. The post-binding refresh exists because immutable
+  methods, Rust `Option::and_then`, Rust Result `is_ok`/`is_err`, Rust `zip`,
+  HOF, and reduction methods. Property cardinality such as JS/TS `length` is
+  modeled as `Property`, not as a method call. The post-binding refresh exists
+  because immutable
   binding-domain evidence is inferred after lowering; the final refresh exists
   because CFG/dataflow/algebra rewrites can replace receiver expressions with
   equivalent sequence or result values. Refreshing upserts first-party occurrence

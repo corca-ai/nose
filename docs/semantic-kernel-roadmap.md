@@ -86,6 +86,9 @@ The next code slices are intentionally incremental:
    `nose.rust.stdlib.vec` for Rust `Vec::new` and `vec!` collection-factory
    occurrence provenance, then `nose.rust.stdlib.option` for Rust `Some`,
    `None`, and `and_then` Option API occurrence provenance, then
+   `nose.rust.stdlib.result` for Rust `Ok`/`Err` constructor channel
+   provenance and exact-Result `is_ok`/`is_err` predicate occurrence
+   provenance, then
    `nose.rust.stdlib.integer_methods` for Rust primitive integer
    `abs`/`min`/`max`/`clamp` method API occurrence provenance, then
    `nose.java.stdlib.math` for Java `Math.abs`, `Math.min`, and `Math.max`
@@ -485,6 +488,25 @@ static pack metadata, Rust Option producer provenance, and admission provenance
 checks for `Some`, `None`, and `and_then`; it did not add per-node descriptor
 scans or touch candidate generation. Binary size changed 20,160,720 ->
 20,161,056 bytes for this slice.
+
+Phase 5 Rust stdlib Result measurement note, local run on 2026-06-25: product
+query-regression compared `main-412ea2c4` with the `issue-525-rust-result`
+slice on the `serde_json` Rust representative. The corpus signal was 71 Rust
+files and 655 raw `Ok`/`Err`/`is_ok`/`is_err` surface hits in that repo. Family
+location sets, kind counts, span buckets, surface counts, family-shape counts,
+fragment buckets, and reason-code counts were unchanged. The saved r3 artifacts
+are `/tmp/nose-525-serde-main-r3.json` and
+`/tmp/nose-525-serde-current-r3.json`; the compare summary is
+`/tmp/nose-525-serde-compare-r3.md`. Product JSON grew 34,799 -> 35,296 bytes
+(+497, +1.43%) from the new top-level `semantic_packs` entry. The compare
+reported one runtime investigation trigger on `serde_json` for
+`normalize+extract` 24.6 ms -> 30.9 ms (+26%), while the HoF value-graph smoke
+stayed far under budget. Follow-up issue #532 tracks an r15/alternating rerun
+and attribution for this remaining phase trigger. Root-cause note: this slice
+changed static pack
+metadata, Rust Result constructor/predicate producer provenance, exact-Result
+receiver/domain gates, and value-graph channel sentinels; it did not admit
+callback/defaulting or panic-like Result APIs.
 
 Phase 5 JavaScript builtins Promise measurement note, local run on 2026-06-21:
 product query-regression r15 compared the previous `nose.rust.stdlib.option`
@@ -909,6 +931,12 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `Some`, `None`, and `and_then` `LibraryApi` occurrence evidence now reports
   `nose.rust.stdlib.option` pack and producer provenance while preserving
   shadowed selector and non-Option receiver hard negatives.
+- Rust stdlib Result channel APIs started moving out of the broad compatibility
+  facade. `Ok`/`Err` constructor-channel occurrence evidence and exact-Result
+  `is_ok`/`is_err` predicate occurrence evidence now report
+  `nose.rust.stdlib.result` pack and producer provenance while preserving
+  shadowed selector, non-Result receiver, callback/default helper, and
+  panic-like unwrap hard negatives.
 - Rust stdlib integer methods started moving out of the broad compatibility
   facade. Primitive integer `abs`, `min`, `max`, and `clamp` `LibraryApi`
   occurrence evidence now reports `nose.rust.stdlib.integer_methods` pack and
@@ -1043,10 +1071,12 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   pack-provided evidence can replace first-party producers later without adding
   new consumer paths.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
-  `None`/`Option::None`, `Option::and_then`, and `Vec::new` moved into the
-  kernel facade with explicit shadow-root obligations. The caller still proves
-  local shadow safety, and the Rust frontend preserves `if let` pattern tests
-  instead of lowering `Some`/`None` directly to null/not-null before that proof.
+  `None`/`Option::None`, `Option::and_then`, `Ok`/`Result::Ok`,
+  `Err`/`Result::Err`, exact-Result `is_ok`/`is_err`, and `Vec::new` moved into
+  the kernel facade with explicit shadow-root obligations. The caller still
+  proves local shadow safety, and the Rust frontend preserves `if let` pattern
+  tests instead of lowering `Some`/`None` presence or `Ok`/`Err` channels
+  directly to value-graph predicates before that proof.
 - Java collection/map factory selectors, Python free-name/imported collection
   factories, Rust std collection/map factory paths, Ruby `Set.new`, and JS-like
   `new Map`/`new Set` moved behind internal `LibraryApiContract` rows in
@@ -1461,9 +1491,11 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `PropertyBuiltin` occurrence anchored to the `Field` node, JS-like `length()`
   is no longer a cardinality method contract, Rust `Some(...)`, `Some(_)`
   pattern selectors, and bare `None` now emit contract-backed Option occurrence
-  evidence, Rust `Option::and_then` and scalar integer methods require admitted
-  receiver-method occurrences, and value-graph/desugar/idiom consumers fail
-  closed when those occurrence records are missing, rejected, or
+  evidence, Rust `Ok(...)`/`Err(...)` constructors and `Ok(_)`/`Err(_)`
+  pattern selectors now emit contract-backed Result channel occurrence evidence,
+  Rust `Option::and_then`, Result `is_ok`/`is_err`, and scalar integer methods
+  require admitted receiver-method occurrences, and value-graph/desugar/idiom
+  consumers fail closed when those occurrence records are missing, rejected, or
   dependency-broken.
 - Rust range and Option-pattern recognition moved off raw IL shapes. Rust
   half-open/inclusive range expressions and tuple-struct single-wildcard

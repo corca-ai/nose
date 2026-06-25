@@ -141,6 +141,9 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.eval_rust_option_some_pattern_comparison(op, &kids, env) {
             return v;
         }
+        if let Some(v) = self.eval_rust_result_wildcard_pattern_comparison(op, &kids, env) {
+            return v;
+        }
         if let Some(v) = self.eval_static_filter_membership_comparison(op, &kids, env) {
             return v;
         }

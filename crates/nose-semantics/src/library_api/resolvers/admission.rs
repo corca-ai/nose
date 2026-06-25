@@ -352,6 +352,26 @@ impl LibraryApiContractParts for LibraryRustOptionConstructorContract {
     }
 }
 
+impl LibraryApiContractParts for LibraryRustResultConstructorContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
+impl LibraryApiContractParts for LibraryReceiverMethodApiContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
 impl LibraryApiContractParts for LibraryCollectionFactoryContract {
     fn contract_id(self) -> LibraryApiContractId {
         self.id

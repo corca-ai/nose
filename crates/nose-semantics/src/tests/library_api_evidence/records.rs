@@ -204,6 +204,28 @@ pub(crate) fn rust_stdlib_option_record(
     )
 }
 
+pub(crate) fn rust_stdlib_result_record(
+    id: u32,
+    span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    status: EvidenceStatus,
+    dependencies: &[u32],
+) -> EvidenceRecord {
+    library_api_record_with_provenance_and_arity(
+        id,
+        span,
+        contract_id,
+        callee,
+        arity,
+        status,
+        dependencies,
+        RUST_STDLIB_RESULT_PACK_ID,
+        RUST_STDLIB_RESULT_PRODUCER_ID,
+    )
+}
+
 pub(crate) fn rust_stdlib_integer_method_record(
     id: u32,
     span: Span,

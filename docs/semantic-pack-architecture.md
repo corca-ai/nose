@@ -47,6 +47,7 @@ ids. New ownership should move toward explicit ids such as `nose.lang.python`,
 `nose.javascript.builtins.collection_constructors`,
 `nose.ruby.stdlib.set`, `nose.rust.stdlib.vec`,
 `nose.rust.stdlib.option`,
+`nose.rust.stdlib.result`,
 `nose.rust.stdlib.integer_methods`,
 `nose.rust.stdlib.collection_factories`, `nose.rust.stdlib.map_factories`,
 `nose.swift.stdlib.collection_factories`,
@@ -266,6 +267,9 @@ previous semantic-kernel tranches.
    `Vec::new` and `vec!` collection-factory API occurrence provenance.
    The current Rust stdlib Option slice is `nose.rust.stdlib.option`, which
    owns Rust `Some`, `None`, and `and_then` Option API occurrence provenance.
+   The current Rust stdlib Result slice is `nose.rust.stdlib.result`, which
+   owns `Ok`/`Err` constructor channel provenance and exact-Result
+   `is_ok`/`is_err` predicate occurrence provenance.
    The current Rust stdlib integer-method slice is
    `nose.rust.stdlib.integer_methods`, which owns primitive integer
    `abs`/`min`/`max`/`clamp` method API occurrence provenance. The current

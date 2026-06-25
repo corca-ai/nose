@@ -11,10 +11,10 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, RegionKind,
-    SourceCallKind, SourceFactKind, SourceGranularity, SourcePatternKind, SourceProtocolKind,
-    SourceRangeKind, Span, Symbol, UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag,
-    UnitKind, UnitOrigin, UnitSubkind,
+    DomainEvidence, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    RegionKind, SourceCallKind, SourceFactKind, SourceGranularity, SourcePatternKind,
+    SourceProtocolKind, SourceRangeKind, Span, Symbol, UnitBodyKind, UnitDomain, UnitDomains,
+    UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
 };
 use tree_sitter::Node as TsNode;
 

@@ -2,6 +2,9 @@
 
 use super::*;
 
+mod contract_ids;
+use contract_ids::library_api_contract_ids;
+
 pub(super) fn library_api_contract_result_domain_for_arity(
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
@@ -49,148 +52,6 @@ pub(super) fn library_api_contract_id_from_hash(hash: u64) -> Option<LibraryApiC
     library_api_contract_ids()
         .into_iter()
         .find(|id| library_api_contract_id_hash(*id) == hash)
-}
-
-fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
-    let mut ids = core_library_api_contract_ids();
-    push_keyed_library_api_contract_ids(&mut ids);
-    push_method_call_library_api_contract_ids(&mut ids);
-    ids
-}
-
-fn core_library_api_contract_ids() -> Vec<LibraryApiContractId> {
-    vec![
-        LibraryApiContractId::PropertyBuiltin(Builtin::Len),
-        LibraryApiContractId::PropertyBuiltin(Builtin::IsEmpty),
-        LibraryApiContractId::PythonBuiltinCollectionFactory,
-        LibraryApiContractId::PythonImportedCollectionFactory,
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Len),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Append),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Print),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Range),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Sum),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Min),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Max),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Abs),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Enumerate),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Any),
-        LibraryApiContractId::FreeFunctionBuiltin(Builtin::All),
-        LibraryApiContractId::RustOptionSomeConstructor,
-        LibraryApiContractId::RustOptionNoneSentinel,
-        LibraryApiContractId::RustOptionAndThen,
-        LibraryApiContractId::RustStdCollectionFactory,
-        LibraryApiContractId::RustStdMapFactory,
-        LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Array),
-        LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Set),
-        LibraryApiContractId::SwiftMapFactory(SwiftMapFactoryKind::DictionaryUniqueKeysWithValues),
-        LibraryApiContractId::RustVecMacroFactory,
-        LibraryApiContractId::RustVecNewFactory,
-        LibraryApiContractId::JavaMapEntryFactory,
-        LibraryApiContractId::RubySetFactory,
-        LibraryApiContractId::JsLikeSetConstructor,
-        LibraryApiContractId::JsLikeMapConstructor,
-        LibraryApiContractId::MapKeyViewWrapper,
-        LibraryApiContractId::MapGet,
-        LibraryApiContractId::JsArrayIsArray,
-        LibraryApiContractId::JsBooleanCoercion,
-        LibraryApiContractId::RegexTest,
-        LibraryApiContractId::JsLikeStaticIndexMembership(StaticIndexMembershipKind::IndexOf),
-        LibraryApiContractId::JsLikeStaticIndexMembership(StaticIndexMembershipKind::FindIndex),
-        LibraryApiContractId::PromiseFactory(PromiseFactoryKind::Resolve),
-        LibraryApiContractId::PromiseThen,
-        LibraryApiContractId::IteratorIdentityAdapter,
-        LibraryApiContractId::StaticCollectionAdapter,
-    ]
-}
-
-fn push_keyed_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>) {
-    ids.extend(
-        [
-            ScalarIntegerMethod::Abs,
-            ScalarIntegerMethod::Min,
-            ScalarIntegerMethod::Max,
-            ScalarIntegerMethod::Clamp,
-        ]
-        .into_iter()
-        .map(LibraryApiContractId::ScalarIntegerMethod),
-    );
-    ids.extend(
-        [
-            JavaCollectionFactoryKind::ListOf,
-            JavaCollectionFactoryKind::SetOf,
-            JavaCollectionFactoryKind::ArraysAsList,
-            JavaCollectionFactoryKind::CollectionsEmptyList,
-            JavaCollectionFactoryKind::CollectionsEmptySet,
-            JavaCollectionFactoryKind::CollectionsSingleton,
-            JavaCollectionFactoryKind::CollectionsSingletonList,
-            JavaCollectionFactoryKind::GuavaImmutableListOf,
-            JavaCollectionFactoryKind::GuavaImmutableSetOf,
-        ]
-        .into_iter()
-        .map(LibraryApiContractId::JavaCollectionFactory),
-    );
-    ids.push(LibraryApiContractId::JavaCollectionConstructor(
-        JavaCollectionConstructorKind::EmptyList,
-    ));
-    ids.extend(
-        [
-            JavaMapFactoryKind::Of,
-            JavaMapFactoryKind::OfEntries,
-            JavaMapFactoryKind::CollectionsEmptyMap,
-            JavaMapFactoryKind::CollectionsSingletonMap,
-            JavaMapFactoryKind::GuavaImmutableMapOf,
-        ]
-        .into_iter()
-        .map(LibraryApiContractId::JavaMapFactory),
-    );
-    ids.extend(
-        [MapKeyViewKind::Collection, MapKeyViewKind::Iterator]
-            .into_iter()
-            .map(LibraryApiContractId::MapKeyView),
-    );
-    ids.extend(
-        [ImportedNamespaceFunctionSemantic::ProductReduction {
-            op: Op::Mul,
-            identity: 1,
-        }]
-        .into_iter()
-        .map(LibraryApiContractId::ImportedNamespaceFunction),
-    );
-}
-
-fn push_method_call_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>) {
-    ids.extend(
-        [
-            MethodSemanticContract::Builtin(Builtin::Append),
-            MethodSemanticContract::Builtin(Builtin::Print),
-            MethodSemanticContract::Builtin(Builtin::Len),
-            MethodSemanticContract::Builtin(Builtin::IsEmpty),
-            MethodSemanticContract::Builtin(Builtin::IsNull),
-            MethodSemanticContract::Builtin(Builtin::IsNotNull),
-            MethodSemanticContract::Builtin(Builtin::StartsWith),
-            MethodSemanticContract::Builtin(Builtin::EndsWith),
-            MethodSemanticContract::Builtin(Builtin::Contains),
-            MethodSemanticContract::Builtin(Builtin::StringContains),
-            MethodSemanticContract::Builtin(Builtin::Join),
-            MethodSemanticContract::Builtin(Builtin::GetOrDefault),
-            MethodSemanticContract::Builtin(Builtin::ValueOrDefault),
-            MethodSemanticContract::Builtin(Builtin::Reduce),
-            MethodSemanticContract::Builtin(Builtin::Sum),
-            MethodSemanticContract::Builtin(Builtin::Abs),
-            MethodSemanticContract::Builtin(Builtin::Min),
-            MethodSemanticContract::Builtin(Builtin::Max),
-            MethodSemanticContract::Builtin(Builtin::Zip),
-            MethodSemanticContract::Builtin(Builtin::Any),
-            MethodSemanticContract::Builtin(Builtin::All),
-            MethodSemanticContract::HoF(HoFKind::Map),
-            MethodSemanticContract::HoF(HoFKind::Filter),
-            MethodSemanticContract::HoF(HoFKind::FlatMap),
-            MethodSemanticContract::HoF(HoFKind::FilterMap),
-        ]
-        .into_iter()
-        .map(LibraryApiContractId::MethodCall),
-    );
 }
 
 pub(super) fn library_api_record_admitted_for_current_shape(
@@ -279,6 +140,36 @@ fn library_api_callee_contracts_for_id(
         .collect(),
         LibraryApiContractId::RustOptionAndThen => {
             library_rust_option_and_then_contract(lang, "and_then", 1)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::RustResultOkConstructor => [
+            "Ok",
+            "Result::Ok",
+            "std::result::Result::Ok",
+            "core::result::Result::Ok",
+        ]
+        .into_iter()
+        .filter_map(|name| library_rust_result_ok_constructor_contract(lang, name, 1))
+        .map(|contract| contract.callee)
+        .collect(),
+        LibraryApiContractId::RustResultErrConstructor => [
+            "Err",
+            "Result::Err",
+            "std::result::Result::Err",
+            "core::result::Result::Err",
+        ]
+        .into_iter()
+        .filter_map(|name| library_rust_result_err_constructor_contract(lang, name, 1))
+        .map(|contract| contract.callee)
+        .collect(),
+        LibraryApiContractId::RustResultIsOk => {
+            library_rust_result_predicate_contract(lang, "is_ok", 0)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::RustResultIsErr => {
+            library_rust_result_predicate_contract(lang, "is_err", 0)
                 .map(|contract| vec![contract.callee])
                 .unwrap_or_default()
         }

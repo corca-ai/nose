@@ -176,6 +176,13 @@ Guiding constraints for every pass:
   Rust Option pattern predicates likewise stay closed unless the selector has
   admitted `Some`/`None` API evidence and the pattern surface has Rust
   tuple-struct wildcard source evidence.
+  Rust Result channel predicates follow the same fail-closed boundary:
+  `Ok(_)`/`Err(_)` patterns and `is_ok`/`is_err` calls enter value-graph
+  equivalence only with admitted `nose.rust.stdlib.result` API evidence,
+  exact-Result receiver or scrutinee domain proof, and wildcard tuple-struct
+  pattern source evidence for pattern surfaces. Unqualified `Result<T, E>`
+  receiver proofs close when the current Rust module defines its own `Result`
+  type; lazy/defaulting and panic-like Result helpers remain opaque.
   Supported JS-like `Promise.resolve(...).then(...)` continuations can reduce in
   the value graph only after admitted Promise API evidence and PromiseLike
   receiver proof. The reduced value remains wrapped in a Promise boundary, so it

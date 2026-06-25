@@ -116,3 +116,48 @@ fn rust_if_let_option_presence_converges_with_option_predicates() {
         "a local Rust Some pattern must not be treated as Option::Some"
     );
 }
+
+#[test]
+fn rust_if_let_result_channels_converge_with_result_predicates() {
+    let i = Interner::new();
+    let if_ok = "pub fn f(value: Result<i32, i32>) -> bool {\n    if let Ok(_) = value { true } else { false }\n}\n";
+    let is_ok = "pub fn g(value: Result<i32, i32>) -> bool {\n    value.is_ok()\n}\n";
+    let if_err = "pub fn h(value: Result<i32, i32>) -> bool {\n    if let Err(_) = value { true } else { false }\n}\n";
+    let is_err = "pub fn i(value: Result<i32, i32>) -> bool {\n    value.is_err()\n}\n";
+    let shadowed_ok = "struct Ok<T>(T);\npub fn f(value: Ok<i32>) -> bool {\n    if let Ok(_) = value { true } else { false }\n}\n";
+    let shadowed_result_is_ok = "struct Result<T, E> { value: T, err: E }\nimpl<T, E> Result<T, E> { fn is_ok(&self) -> bool { false } }\npub fn f(value: Result<i32, i32>) -> bool {\n    value.is_ok()\n}\n";
+    let result_unwrap_else = "pub fn f(value: Result<i32, i32>, fallback: i32) -> i32 {\n    value.unwrap_or_else(|_| fallback)\n}\n";
+    let result_fallback =
+        "pub fn g(value: Result<i32, i32>, fallback: i32) -> i32 {\n    fallback\n}\n";
+
+    assert_eq!(
+        value_fp(&i, if_ok, Lang::Rust),
+        value_fp(&i, is_ok, Lang::Rust),
+        "if let Ok(_) should converge with is_ok()"
+    );
+    assert_eq!(
+        value_fp(&i, if_err, Lang::Rust),
+        value_fp(&i, is_err, Lang::Rust),
+        "if let Err(_) should converge with is_err()"
+    );
+    assert_ne!(
+        value_fp(&i, if_ok, Lang::Rust),
+        value_fp(&i, if_err, Lang::Rust),
+        "Ok and Err channels must stay distinct"
+    );
+    assert_ne!(
+        value_fp(&i, if_ok, Lang::Rust),
+        value_fp_named(&i, shadowed_ok, Lang::Rust, "f"),
+        "a local Rust Ok pattern must not be treated as Result::Ok"
+    );
+    assert_ne!(
+        value_fp(&i, is_ok, Lang::Rust),
+        value_fp_named(&i, shadowed_result_is_ok, Lang::Rust, "f"),
+        "a local Rust Result receiver must not be treated as std Result::is_ok"
+    );
+    assert_ne!(
+        value_fp(&i, result_unwrap_else, Lang::Rust),
+        value_fp(&i, result_fallback, Lang::Rust),
+        "Result callback/defaulting APIs are not admitted by the narrow predicate slice"
+    );
+}

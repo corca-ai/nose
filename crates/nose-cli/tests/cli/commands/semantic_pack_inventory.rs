@@ -8,11 +8,11 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
 
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["status"], "ok");
-    assert_eq!(json["totals"]["packs"], 45);
-    assert_eq!(json["totals"]["builtin_packs"], 45);
-    assert_eq!(json["totals"]["positive_fixtures"], 146);
-    assert_eq!(json["totals"]["hard_negatives"], 97);
-    assert_eq!(json["totals"]["conformance_refs"], 243);
+    assert_eq!(json["totals"]["packs"], 46);
+    assert_eq!(json["totals"]["builtin_packs"], 46);
+    assert_eq!(json["totals"]["positive_fixtures"], 150);
+    assert_eq!(json["totals"]["hard_negatives"], 102);
+    assert_eq!(json["totals"]["conformance_refs"], 252);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -27,9 +27,45 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_go_namespace_pack(packs);
     assert_c_language_pack(packs);
     assert_python_type_domain_pack(packs);
+    assert_rust_result_pack(packs);
     assert_swift_collection_factory_pack(packs);
     assert_guava_pack(packs);
     assert_compat_pack(packs);
+}
+
+fn assert_rust_result_pack(packs: &[serde_json::Value]) {
+    let rust_result = inventory_pack(packs, "nose.rust.stdlib.result");
+    assert_eq!(rust_result["kind"], "StdlibPack");
+    assert_eq!(rust_result["audit"]["exact_capable"], true);
+    assert_eq!(rust_result["audit"]["coverage_status"], "covered");
+    assert_eq!(
+        json_array_strings(&rust_result["declarations"], "contracts"),
+        vec![
+            "rust.result.ok.constructor",
+            "rust.result.err.constructor",
+            "rust.result.is_ok",
+            "rust.result.is_err"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&rust_result["conformance"], "positive_refs"),
+        vec![
+            "rust-result-ok-positive",
+            "rust-result-err-positive",
+            "rust-result-is-ok-positive",
+            "rust-result-is-err-positive"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&rust_result["conformance"], "hard_negative_refs"),
+        vec![
+            "rust-result-ok-shadow-hard-negative",
+            "rust-result-err-shadow-hard-negative",
+            "rust-result-predicate-non-result-hard-negative",
+            "rust-result-local-type-shadow-hard-negative",
+            "rust-result-callback-defaulting-hard-negative"
+        ]
+    );
 }
 
 fn inventory_packs(json: &serde_json::Value) -> &[serde_json::Value] {

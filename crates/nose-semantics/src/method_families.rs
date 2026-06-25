@@ -166,6 +166,73 @@ pub fn library_rust_option_none_sentinel_contract(
     })
 }
 
+pub fn library_rust_result_ok_constructor_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<LibraryRustResultConstructorContract> {
+    if arg_count != 1 {
+        return None;
+    }
+    let name = rust_result_ok_selector_name(lang, name)?;
+    let shadow = rust_result_ok_constructor_contract(lang, name)?;
+    Some(LibraryRustResultConstructorContract {
+        pack_id: RUST_STDLIB_RESULT_PACK_ID,
+        id: LibraryApiContractId::RustResultOkConstructor,
+        callee: LibraryApiCalleeContract::FreeName {
+            name,
+            shadow: LibraryApiShadowPolicy::ExplicitRoot(shadow.shadow_root),
+        },
+        result_domain: DomainEvidence::Result,
+    })
+}
+
+pub fn library_rust_result_err_constructor_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<LibraryRustResultConstructorContract> {
+    if arg_count != 1 {
+        return None;
+    }
+    let name = rust_result_err_selector_name(lang, name)?;
+    let shadow = rust_result_err_constructor_contract(lang, name)?;
+    Some(LibraryRustResultConstructorContract {
+        pack_id: RUST_STDLIB_RESULT_PACK_ID,
+        id: LibraryApiContractId::RustResultErrConstructor,
+        callee: LibraryApiCalleeContract::FreeName {
+            name,
+            shadow: LibraryApiShadowPolicy::ExplicitRoot(shadow.shadow_root),
+        },
+        result_domain: DomainEvidence::Result,
+    })
+}
+
+pub fn library_rust_result_predicate_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryReceiverMethodApiContract> {
+    if lang != Lang::Rust || arg_count != 0 {
+        return None;
+    }
+    let (method, id) = match method {
+        "is_ok" => ("is_ok", LibraryApiContractId::RustResultIsOk),
+        "is_err" => ("is_err", LibraryApiContractId::RustResultIsErr),
+        _ => return None,
+    };
+    Some(LibraryReceiverMethodApiContract {
+        pack_id: RUST_STDLIB_RESULT_PACK_ID,
+        id,
+        callee: LibraryApiCalleeContract::Method {
+            method,
+            receiver: MethodReceiverContract::ExactResult,
+        },
+        rule: RUST_STDLIB_RESULT_PRODUCER_ID,
+        result_domain: Some(DomainEvidence::Boolean),
+    })
+}
+
 pub fn library_rust_option_and_then_contract(
     lang: Lang,
     method: &str,

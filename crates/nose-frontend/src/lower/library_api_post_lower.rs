@@ -1,11 +1,22 @@
 use super::post_lower_evidence::*;
 use super::*;
 
+mod free_name_vars;
 mod object_key_views;
 mod receiver_methods;
+mod rust_option;
+mod rust_result;
 mod swift_factories;
+use free_name_vars::record_post_lower_free_name_var_library_api;
 use object_key_views::record_post_lower_object_key_view_library_api;
 use receiver_methods::record_post_lower_receiver_method_library_api;
+use rust_option::{
+    record_post_lower_rust_option_none_library_api,
+    record_post_lower_rust_option_some_pattern_library_api,
+};
+use rust_result::{
+    post_lower_rust_result_constructor_contract, record_post_lower_rust_result_pattern_library_api,
+};
 use swift_factories::post_lower_record_swift_map_factory_result_domain;
 
 struct PostLowerLibraryApiContract {
@@ -79,8 +90,12 @@ pub(super) fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Int
         record_post_lower_property_library_api(il, interner, field, &mut dependency_cache);
     }
     for var in vars {
+        if !post_lower_rust_sum_type_selector_candidate(il, interner, var) {
+            continue;
+        }
         record_post_lower_rust_option_some_pattern_library_api(il, interner, var);
         record_post_lower_rust_option_none_library_api(il, interner, var);
+        record_post_lower_rust_result_pattern_library_api(il, interner, var);
     }
 }
 
@@ -169,6 +184,7 @@ fn post_lower_free_name_library_api_contract(
                 },
             )
         })
+        .or_else(|| post_lower_rust_result_constructor_contract(lang, callee_name, arg_count))
         .or_else(|| {
             library_free_function_builtin_contract(lang, callee_name, arg_count).map(|contract| {
                 PostLowerLibraryApiContract {
@@ -326,6 +342,34 @@ fn post_lower_kwarg_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> O
     Some(interner.resolve(name))
 }
 
+fn post_lower_rust_sum_type_selector_candidate(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.meta.lang != Lang::Rust {
+        return false;
+    }
+    let Some(name) = post_lower_var_name(il, interner, node) else {
+        return false;
+    };
+    matches!(
+        name,
+        "Some"
+            | "Option::Some"
+            | "std::option::Option::Some"
+            | "core::option::Option::Some"
+            | "None"
+            | "Option::None"
+            | "std::option::Option::None"
+            | "core::option::Option::None"
+            | "Ok"
+            | "Result::Ok"
+            | "std::result::Result::Ok"
+            | "core::result::Result::Ok"
+            | "Err"
+            | "Result::Err"
+            | "std::result::Result::Err"
+            | "core::result::Result::Err"
+    )
+}
+
 fn record_post_lower_property_library_api(
     il: &mut Il,
     interner: &Interner,
@@ -361,78 +405,6 @@ fn record_post_lower_property_library_api(
         contract.pack_id,
         PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
         dependencies,
-    );
-    true
-}
-
-fn record_post_lower_rust_option_none_library_api(
-    il: &mut Il,
-    interner: &Interner,
-    var: NodeId,
-) -> bool {
-    let Some(name) = post_lower_var_name(il, interner, var) else {
-        return false;
-    };
-    let Some(contract) = library_rust_option_none_sentinel_contract(il.meta.lang, name) else {
-        return false;
-    };
-    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
-        return false;
-    };
-    if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-        post_lower_file_defines_name_visible_at(il, interner, candidate, il.node(var).span)
-    }) {
-        return false;
-    }
-    let Some(symbol_dependency) = post_lower_unshadowed_symbol_evidence_id(il, var, name) else {
-        return false;
-    };
-    let api = post_lower_library_api_node_evidence_with_pack_id(
-        il,
-        var,
-        contract.id,
-        contract.callee,
-        0,
-        contract.pack_id,
-        RUST_STDLIB_OPTION_PRODUCER_ID,
-        vec![symbol_dependency],
-    );
-    post_lower_record_library_api_node_result_domain(il, var, contract.result_domain, api);
-    true
-}
-
-fn record_post_lower_rust_option_some_pattern_library_api(
-    il: &mut Il,
-    interner: &Interner,
-    var: NodeId,
-) -> bool {
-    let Some(name) = post_lower_var_name(il, interner, var) else {
-        return false;
-    };
-    let Some(contract) = library_rust_option_some_constructor_contract(il.meta.lang, name, 1)
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
-        return false;
-    };
-    if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-        post_lower_file_defines_name_visible_at(il, interner, candidate, il.node(var).span)
-    }) {
-        return false;
-    }
-    let Some(symbol_dependency) = post_lower_unshadowed_symbol_evidence_id(il, var, name) else {
-        return false;
-    };
-    post_lower_library_api_node_evidence_with_pack_id(
-        il,
-        var,
-        contract.id,
-        contract.callee,
-        1,
-        contract.pack_id,
-        RUST_STDLIB_OPTION_PRODUCER_ID,
-        vec![symbol_dependency],
     );
     true
 }

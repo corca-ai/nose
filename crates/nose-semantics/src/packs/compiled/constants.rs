@@ -1,7 +1,9 @@
 use super::*;
 
+mod rust;
 mod swift;
 mod type_domains;
+pub(super) use rust::*;
 pub(super) use swift::*;
 pub(super) use type_domains::*;
 
@@ -192,11 +194,6 @@ pub(super) const PYTHON_STDLIB_MATH_PACKAGES: &[&str] = &["math"];
 pub(super) const PYTHON_STDLIB_TYPE_DOMAIN_PACKAGES: &[&str] =
     &["typing", "collections.abc", "asyncio"];
 pub(super) const RUBY_STDLIB_SET_PACKAGES: &[&str] = &["set"];
-pub(super) const RUST_STDLIB_COLLECTION_FACTORY_PACKAGES: &[&str] = &["std::collections"];
-pub(super) const RUST_STDLIB_MAP_FACTORY_PACKAGES: &[&str] = &["std::collections"];
-pub(super) const RUST_STDLIB_OPTION_PACKAGES: &[&str] = &["std::option", "core::option"];
-pub(super) const RUST_STDLIB_INTEGER_METHOD_PACKAGES: &[&str] = &["core::primitive"];
-pub(super) const RUST_STDLIB_VEC_PACKAGES: &[&str] = &["std::vec", "alloc::vec"];
 pub(super) const NO_IDS: &[&str] = &[];
 pub(super) const PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_IDS: &[&str] =
     &[PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID];
@@ -304,57 +301,6 @@ pub(super) const RUBY_STDLIB_SET_CONFORMANCE_REFS: &[&str] = &[
     "ruby-set-missing-require-hard-negative",
     "ruby-set-shadowed-hard-negative",
     "ruby-set-mutated-hard-negative",
-];
-pub(super) const RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_IDS: &[&str] =
-    &[RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID];
-pub(super) const RUST_STDLIB_COLLECTION_FACTORY_CONTRACT_IDS: &[&str] =
-    &[RUST_STDLIB_COLLECTION_FACTORY_CONTRACT_ID];
-pub(super) const RUST_STDLIB_COLLECTION_FACTORY_CONFORMANCE_REFS: &[&str] = &[
-    "rust-std-collections-hashset-from-positive",
-    "rust-std-collections-btreeset-from-positive",
-    "rust-std-collections-vecdeque-from-positive",
-    "rust-std-collections-shadowed-std-hard-negative",
-    "rust-std-collections-type-alias-std-hard-negative",
-];
-pub(super) const RUST_STDLIB_MAP_FACTORY_PRODUCER_IDS: &[&str] =
-    &[RUST_STDLIB_MAP_FACTORY_PRODUCER_ID];
-pub(super) const RUST_STDLIB_MAP_FACTORY_CONTRACT_IDS: &[&str] =
-    &[RUST_STDLIB_MAP_FACTORY_CONTRACT_ID];
-pub(super) const RUST_STDLIB_MAP_FACTORY_CONFORMANCE_REFS: &[&str] = &[
-    "rust-std-map-hashmap-from-positive",
-    "rust-std-map-btreemap-from-positive",
-    "rust-std-map-shadowed-std-hard-negative",
-    "rust-std-map-type-alias-std-hard-negative",
-];
-pub(super) const RUST_STDLIB_OPTION_PRODUCER_IDS: &[&str] = &[RUST_STDLIB_OPTION_PRODUCER_ID];
-pub(super) const RUST_STDLIB_OPTION_CONTRACT_IDS: &[&str] = &[
-    RUST_STDLIB_OPTION_SOME_CONTRACT_ID,
-    RUST_STDLIB_OPTION_NONE_CONTRACT_ID,
-    RUST_STDLIB_OPTION_AND_THEN_CONTRACT_ID,
-];
-pub(super) const RUST_STDLIB_OPTION_CONFORMANCE_REFS: &[&str] = &[
-    "rust-option-some-positive",
-    "rust-option-none-positive",
-    "rust-option-and-then-positive",
-    "rust-option-some-shadow-hard-negative",
-    "rust-option-none-shadow-hard-negative",
-    "rust-option-and-then-non-option-hard-negative",
-];
-pub(super) const RUST_STDLIB_INTEGER_METHOD_PRODUCER_IDS: &[&str] =
-    &[RUST_STDLIB_INTEGER_METHOD_PRODUCER_ID];
-pub(super) const RUST_STDLIB_INTEGER_METHOD_CONTRACT_IDS: &[&str] = &[
-    SCALAR_INTEGER_METHOD_ABS_CONTRACT_ID,
-    SCALAR_INTEGER_METHOD_MIN_CONTRACT_ID,
-    SCALAR_INTEGER_METHOD_MAX_CONTRACT_ID,
-    SCALAR_INTEGER_METHOD_CLAMP_CONTRACT_ID,
-];
-pub(super) const RUST_STDLIB_INTEGER_METHOD_CONFORMANCE_REFS: &[&str] = &[
-    "rust-integer-method-abs-positive",
-    "rust-integer-method-min-positive",
-    "rust-integer-method-max-positive",
-    "rust-integer-method-clamp-positive",
-    "rust-integer-method-non-integer-receiver-hard-negative",
-    "rust-integer-method-unsupported-arity-hard-negative",
 ];
 pub(super) const JAVA_STDLIB_MATH_PRODUCER_IDS: &[&str] = &[JAVA_STDLIB_MATH_PRODUCER_ID];
 pub(super) const JAVA_STDLIB_MATH_CONTRACT_IDS: &[&str] = &[
@@ -583,15 +529,4 @@ pub(super) const ITERATOR_IDENTITY_ADAPTER_CONFORMANCE_REFS: &[&str] = &[
     "java-iterator-identity-stream-positive",
     "iterator-identity-non-iterable-receiver-hard-negative",
     "iterator-identity-unsupported-arity-hard-negative",
-];
-pub(super) const RUST_STDLIB_VEC_PRODUCER_IDS: &[&str] = &[RUST_STDLIB_VEC_PRODUCER_ID];
-pub(super) const RUST_STDLIB_VEC_CONTRACT_IDS: &[&str] = &[
-    RUST_STDLIB_VEC_MACRO_CONTRACT_ID,
-    RUST_STDLIB_VEC_NEW_CONTRACT_ID,
-];
-pub(super) const RUST_STDLIB_VEC_CONFORMANCE_REFS: &[&str] = &[
-    "rust-vec-macro-factory-positive",
-    "rust-vec-new-factory-positive",
-    "rust-vec-macro-shadowed-hard-negative",
-    "rust-vec-new-shadowed-hard-negative",
 ];

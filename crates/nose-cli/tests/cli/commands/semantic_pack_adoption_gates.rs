@@ -20,8 +20,8 @@ fn assert_adoption_gate_totals(json: &serde_json::Value) {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["policy"]["scope"], "compiled-builtin");
     assert_eq!(json["policy"]["external_influence"], "metadata-only");
-    assert_eq!(json["totals"]["builtin_packs"], 45);
-    assert_eq!(json["totals"]["builtin_default_packs"], 45);
+    assert_eq!(json["totals"]["builtin_packs"], 46);
+    assert_eq!(json["totals"]["builtin_default_packs"], 46);
     assert_eq!(json["totals"]["builtin_optional_packs"], 0);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(json["totals"]["blocked_packs"], 0);

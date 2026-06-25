@@ -1,5 +1,95 @@
 use super::*;
 
+fn rust_result_predicate_call_il(method: &str) -> (Il, Interner, NodeId, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(621), &[]);
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern(method)),
+        sp(622),
+        &[receiver],
+    );
+    let call = b.add(NodeKind::Call, Payload::None, sp(623), &[callee]);
+    let root = b.add(NodeKind::Func, Payload::None, sp(624), &[call]);
+    (finish_il(b, root, Lang::Rust), interner, call, receiver)
+}
+
+#[test]
+fn admitted_rust_result_predicate_requires_result_receiver_and_pack_provenance() {
+    let (il, interner, call, _receiver) = rust_result_predicate_call_il("is_ok");
+    assert!(
+        admitted_rust_result_predicate_at_call(&il, &interner, call).is_none(),
+        "raw Rust is_ok call shape alone must not admit Result semantics"
+    );
+
+    let contract = library_rust_result_predicate_contract(Lang::Rust, "is_ok", 0)
+        .expect("Rust Result is_ok contract");
+    let (mut wrong_domain, interner, call, receiver) = rust_result_predicate_call_il("is_ok");
+    wrong_domain.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(wrong_domain.node(receiver).span, NodeKind::Var),
+        EvidenceKind::Domain(DomainEvidence::Option),
+        EvidenceStatus::Asserted,
+    ));
+    wrong_domain.evidence.push(rust_stdlib_result_record(
+        1,
+        wrong_domain.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
+    assert!(
+        admitted_rust_result_predicate_at_call(&wrong_domain, &interner, call).is_none(),
+        "Rust Result predicate must not admit an Option receiver dependency"
+    );
+
+    let (mut wrong_pack, interner, call, receiver) = rust_result_predicate_call_il("is_ok");
+    wrong_pack.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(wrong_pack.node(receiver).span, NodeKind::Var),
+        EvidenceKind::Domain(DomainEvidence::Result),
+        EvidenceStatus::Asserted,
+    ));
+    wrong_pack.evidence.push(library_api_record_with_provenance(
+        1,
+        wrong_pack.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+        BUILTIN_COMPAT_PACK_ID,
+        RUST_STDLIB_RESULT_PRODUCER_ID,
+    ));
+    assert!(
+        admitted_rust_result_predicate_at_call(&wrong_pack, &interner, call).is_none(),
+        "Rust Result predicate evidence under the compatibility pack is rejected"
+    );
+
+    let (mut admitted, interner, call, receiver) = rust_result_predicate_call_il("is_ok");
+    admitted.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(admitted.node(receiver).span, NodeKind::Var),
+        EvidenceKind::Domain(DomainEvidence::Result),
+        EvidenceStatus::Asserted,
+    ));
+    admitted.evidence.push(rust_stdlib_result_record(
+        1,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        0,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
+    let occurrence = admitted_rust_result_predicate_at_call(&admitted, &interner, call).unwrap();
+    assert_eq!(occurrence.contract.id, LibraryApiContractId::RustResultIsOk);
+    assert_eq!(occurrence.receiver, Some(receiver));
+    assert_eq!(occurrence.arg_count, 0);
+}
+
 #[test]
 fn admitted_rust_option_and_then_resolver_requires_pack_provenance() {
     let (il, interner, call, _receiver) = rust_option_and_then_call_il();

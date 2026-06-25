@@ -199,7 +199,7 @@ fn manifest_with_value_law_executable_gate(id: &str) -> String {
 #[test]
 fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
     let descriptors = builtin_pack_descriptors();
-    assert_eq!(descriptors.len(), 45);
+    assert_eq!(descriptors.len(), 46);
     let ids = descriptors
         .iter()
         .map(|descriptor| descriptor.id)
@@ -224,6 +224,7 @@ fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
             RUBY_STDLIB_SET_PACK_ID,
             RUST_STDLIB_VEC_PACK_ID,
             RUST_STDLIB_OPTION_PACK_ID,
+            RUST_STDLIB_RESULT_PACK_ID,
             RUST_STDLIB_INTEGER_METHOD_PACK_ID,
             RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
             RUST_STDLIB_MAP_FACTORY_PACK_ID,

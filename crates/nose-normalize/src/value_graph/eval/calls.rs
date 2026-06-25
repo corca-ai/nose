@@ -22,7 +22,7 @@ impl<'a> Builder<'a> {
                 return self.source_salted_opaque(expr, 0x4255_494C);
             }
         }
-        if let Some(v) = self.eval_builtin_predicate_call(payload, &kids, env) {
+        if let Some(v) = self.eval_builtin_predicate_call(expr, payload, &kids, env) {
             return v;
         }
         if let Some(v) = self.eval_builtin_collection_call(expr, payload, &kids, env) {
@@ -70,6 +70,7 @@ impl<'a> Builder<'a> {
     }
     fn eval_builtin_predicate_call(
         &mut self,
+        expr: NodeId,
         payload: Payload,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
@@ -101,6 +102,9 @@ impl<'a> Builder<'a> {
                 let v = self.eval(arg, env);
                 return Some(self.is_empty_value(v));
             }
+        }
+        if let Some(v) = self.eval_rust_result_predicate_call(expr, env) {
+            return Some(v);
         }
         None
     }

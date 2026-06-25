@@ -13,12 +13,14 @@ use nose_semantics::{
     library_api_property_dependencies_for_field_with_cache,
     library_api_receiver_dependencies_for_call_with_cache, library_method_call_contract,
     library_property_builtin_contract, library_rust_option_none_sentinel_contract,
-    library_rust_option_some_constructor_contract,
+    library_rust_option_some_constructor_contract, library_rust_result_err_constructor_contract,
+    library_rust_result_ok_constructor_contract,
     proven_receiver_method_api_contract_for_call_with_cache, sequence_surface_kind_for_tag,
     LibraryApiCalleeContract, LibraryApiDependencyCache, MethodBuiltinArgs,
     MethodEffectReceiverContract, MethodReceiverContract, MethodSemanticContract,
     BUILTIN_COMPAT_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
     BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID, RUST_STDLIB_OPTION_PRODUCER_ID,
+    RUST_STDLIB_RESULT_PRODUCER_ID,
 };
 
 pub(crate) fn run(il: &mut Il, interner: &Interner) {
@@ -43,6 +45,7 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
     let mut dependency_cache = LibraryApiDependencyCache::default();
     for &call in &calls {
         if !record_rust_option_some_library_api(il, interner, call)
+            && !record_rust_result_constructor_library_api(il, interner, call)
             && !record_builder_append_method_library_api(il, interner, call)
         {
             record_receiver_method_library_api(il, interner, call, &mut dependency_cache);
@@ -92,6 +95,50 @@ fn record_rust_option_some_library_api(il: &mut Il, interner: &Interner, call: N
         }),
         contract.pack_id,
         RUST_STDLIB_OPTION_PRODUCER_ID,
+        vec![symbol_dependency],
+    );
+    true
+}
+
+fn record_rust_result_constructor_library_api(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+) -> bool {
+    let kids = il.children(call);
+    let Some((&callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let Some(name) = node_name(il, interner, callee) else {
+        return false;
+    };
+    let arg_count = args.len();
+    let Some(contract) = library_rust_result_ok_constructor_contract(il.meta.lang, name, arg_count)
+        .or_else(|| library_rust_result_err_constructor_contract(il.meta.lang, name, arg_count))
+    else {
+        return false;
+    };
+    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+        return false;
+    };
+    if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+        file_defines_name_visible_at(il, interner, candidate, il.node(callee).span)
+    }) {
+        return false;
+    }
+    let Some(symbol_dependency) = unshadowed_symbol_evidence_id(il, callee, name) else {
+        return false;
+    };
+    upsert_builtin_evidence_with_pack_id(
+        il,
+        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: arg_count as u16,
+        }),
+        contract.pack_id,
+        RUST_STDLIB_RESULT_PRODUCER_ID,
         vec![symbol_dependency],
     );
     true

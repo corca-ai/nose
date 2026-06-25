@@ -249,6 +249,22 @@ pub(super) fn rust_stdlib_option_counts() -> SemanticPackCounts {
     }
 }
 
+pub(super) fn rust_stdlib_result_counts() -> SemanticPackCounts {
+    SemanticPackCounts {
+        evidence_producers: RUST_STDLIB_RESULT_PRODUCER_IDS.len(),
+        contracts: RUST_STDLIB_RESULT_CONTRACT_IDS.len(),
+        value_laws: 0,
+        positive_fixtures: RUST_STDLIB_RESULT_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| !id.contains("hard-negative"))
+            .count(),
+        hard_negatives: RUST_STDLIB_RESULT_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| id.contains("hard-negative"))
+            .count(),
+    }
+}
+
 pub(super) fn rust_stdlib_integer_method_counts() -> SemanticPackCounts {
     SemanticPackCounts {
         evidence_producers: RUST_STDLIB_INTEGER_METHOD_PRODUCER_IDS.len(),

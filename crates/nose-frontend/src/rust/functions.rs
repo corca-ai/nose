@@ -11,14 +11,15 @@ pub(super) fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<Node
             "parameter" => {
                 if let Some(pat) = p.child_by_field_name("pattern") {
                     let semantic_text = p.child_by_field_name("type").map(|ty| lo.text(ty));
-                    if let Some(domain) = lo.type_domain_from_text_with_dependencies(
-                        semantic_text.unwrap_or_else(|| lo.text(p)),
-                    ) {
+                    let type_text = semantic_text.unwrap_or_else(|| lo.text(p));
+                    if let Some(domain) = lo.type_domain_from_text_with_dependencies(type_text) {
                         if let Some(sym) = ident_of(lo, pat) {
                             let pspan = lo.span(pat);
-                            lo.record_param_domain_resolution(pspan, domain);
-                            out.push(lo.add(NodeKind::Param, Payload::Name(sym), pspan, &[]));
-                            continue;
+                            if rust_param_domain_is_safe(lo, p, type_text, domain.domain) {
+                                lo.record_param_domain_resolution(pspan, domain);
+                                out.push(lo.add(NodeKind::Param, Payload::Name(sym), pspan, &[]));
+                                continue;
+                            }
                         }
                     }
                     push_pattern_params(lo, pat, out);
@@ -32,6 +33,73 @@ pub(super) fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<Node
             _ => push_pattern_params(lo, p, out),
         }
     }
+}
+fn rust_param_domain_is_safe(
+    lo: &Lowering,
+    param: TsNode,
+    type_text: &str,
+    domain: DomainEvidence,
+) -> bool {
+    domain != DomainEvidence::Result || rust_result_type_reference_is_safe(lo, param, type_text)
+}
+fn rust_result_type_reference_is_safe(lo: &Lowering, param: TsNode, type_text: &str) -> bool {
+    match rust_compact_type_path(type_text).as_deref() {
+        Some("result") => !rust_module_scope_defines_type_name(lo, param, "Result"),
+        Some("std::result::result" | "core::result::result") => true,
+        Some(path) if path.ends_with("::result") => false,
+        _ => false,
+    }
+}
+fn rust_compact_type_path(type_text: &str) -> Option<String> {
+    let compact: String = type_text
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    let mut ty = compact
+        .split('=')
+        .next()
+        .unwrap_or(compact.as_str())
+        .trim_start_matches("::");
+    while let Some(rest) = ty.strip_prefix('&') {
+        ty = rest.strip_prefix("mut").unwrap_or(rest);
+    }
+    let head = ty.split(['<', '[', '(']).next().unwrap_or(ty);
+    (!head.is_empty()).then(|| head.to_string())
+}
+fn rust_module_scope_defines_type_name(lo: &Lowering, node: TsNode, name: &str) -> bool {
+    rust_enclosing_module_scope(node).is_some_and(|scope| {
+        Lowering::named_children(scope)
+            .into_iter()
+            .any(|child| rust_type_namespace_item_defines(lo, child, name))
+    })
+}
+fn rust_enclosing_module_scope(mut node: TsNode) -> Option<TsNode> {
+    while let Some(parent) = node.parent() {
+        if parent.kind() == "source_file"
+            || (parent.kind() == "declaration_list"
+                && parent.parent().is_some_and(|p| p.kind() == "mod_item"))
+        {
+            return Some(parent);
+        }
+        node = parent;
+    }
+    None
+}
+fn rust_type_namespace_item_defines(lo: &Lowering, node: TsNode, name: &str) -> bool {
+    if !matches!(
+        node.kind(),
+        "struct_item" | "enum_item" | "union_item" | "type_item" | "trait_item" | "mod_item"
+    ) {
+        return false;
+    }
+    node.child_by_field_name("name")
+        .or_else(|| {
+            Lowering::named_children(node)
+                .into_iter()
+                .find(|child| matches!(child.kind(), "identifier" | "type_identifier"))
+        })
+        .is_some_and(|name_node| lo.text(name_node) == name)
 }
 pub(super) fn push_pattern_params(lo: &mut Lowering, pat: TsNode, out: &mut Vec<NodeId>) {
     match pat.kind() {

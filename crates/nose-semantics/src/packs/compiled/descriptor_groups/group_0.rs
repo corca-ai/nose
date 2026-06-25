@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 21] = [
+pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 22] = [
     BuiltinPackDescriptor {
         id: BUILTIN_COMPAT_PACK_ID,
         kind: SemanticPackKind::LanguagePack,
@@ -373,6 +373,25 @@ pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 21] = [
         static_conformance_refs: RUST_STDLIB_OPTION_CONFORMANCE_REFS,
         dynamic_conformance_refs: None,
         counts: rust_stdlib_option_counts,
+    },
+    BuiltinPackDescriptor {
+        id: RUST_STDLIB_RESULT_PACK_ID,
+        kind: SemanticPackKind::StdlibPack,
+        display_name: "nose Rust stdlib Result pack",
+        trust: PackTrust::BuiltinDefault,
+        enabled_by_default: true,
+        supported_languages: RUST_LANGUAGE,
+        supported_packages: RUST_STDLIB_RESULT_PACKAGES,
+        language: None,
+        evidence_producer_ids: RUST_STDLIB_RESULT_PRODUCER_IDS,
+        source_fact_producer_ids: NO_IDS,
+        contract_ids: RUST_STDLIB_RESULT_CONTRACT_IDS,
+        type_domain_alias_contracts: NO_TYPE_DOMAIN_ALIAS_CONTRACTS,
+        static_value_law_ids: NO_IDS,
+        dynamic_value_law_ids: None,
+        static_conformance_refs: RUST_STDLIB_RESULT_CONFORMANCE_REFS,
+        dynamic_conformance_refs: None,
+        counts: rust_stdlib_result_counts,
     },
     BuiltinPackDescriptor {
         id: RUST_STDLIB_INTEGER_METHOD_PACK_ID,

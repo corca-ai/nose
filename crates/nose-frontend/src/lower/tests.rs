@@ -212,6 +212,23 @@ fn call_span_with_callee_named(il: &Il, interner: &Interner, name: &str) -> Opti
     })
 }
 
+fn call_span_with_field_callee_named(il: &Il, interner: &Interner, name: &str) -> Option<Span> {
+    il.nodes.iter().enumerate().find_map(|(idx, node)| {
+        (node.kind == NodeKind::Call
+            && il
+                .children(NodeId(idx as u32))
+                .first()
+                .is_some_and(|&callee| {
+                    il.kind(callee) == NodeKind::Field
+                        && matches!(
+                            il.node(callee).payload,
+                            Payload::Name(symbol) if interner.resolve(symbol) == name
+                        )
+                }))
+        .then_some(node.span)
+    })
+}
+
 fn result_domain_depends_on_api(
     evidence: &[EvidenceRecord],
     span: Span,

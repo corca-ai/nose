@@ -32,6 +32,10 @@ pub enum LibraryApiContractId {
     RustOptionSomeConstructor,
     RustOptionNoneSentinel,
     RustOptionAndThen,
+    RustResultOkConstructor,
+    RustResultErrConstructor,
+    RustResultIsOk,
+    RustResultIsErr,
     ScalarIntegerMethod(ScalarIntegerMethod),
     RustStdCollectionFactory,
     RustStdMapFactory,
@@ -320,6 +324,9 @@ pub(in crate::library_api) fn library_receiver_method_api_result_domain(
         }
         LibraryApiContractId::ScalarIntegerMethod(_) => Some(DomainEvidence::Integer),
         LibraryApiContractId::RustOptionAndThen => Some(DomainEvidence::Option),
+        LibraryApiContractId::RustResultIsOk | LibraryApiContractId::RustResultIsErr => {
+            Some(DomainEvidence::Boolean)
+        }
         LibraryApiContractId::PromiseThen => Some(DomainEvidence::PromiseLike),
         _ => None,
     }
@@ -440,6 +447,14 @@ pub struct LibraryRustOptionConstructorContract {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LibraryRustOptionSentinelContract {
+    pub pack_id: &'static str,
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result_domain: DomainEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryRustResultConstructorContract {
     pub pack_id: &'static str,
     pub id: LibraryApiContractId,
     pub callee: LibraryApiCalleeContract,

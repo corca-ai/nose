@@ -56,8 +56,12 @@ pub fn library_api_materialized_result_domain_for_arity(
             Some(DomainEvidence::Array)
         }
         LibraryApiContractId::RustOptionSomeConstructor => Some(DomainEvidence::Option),
+        LibraryApiContractId::RustResultOkConstructor
+        | LibraryApiContractId::RustResultErrConstructor => Some(DomainEvidence::Result),
         LibraryApiContractId::PromiseFactory(_) => Some(DomainEvidence::PromiseLike),
         id @ (LibraryApiContractId::RustOptionAndThen
+        | LibraryApiContractId::RustResultIsOk
+        | LibraryApiContractId::RustResultIsErr
         | LibraryApiContractId::ScalarIntegerMethod(_)
         | LibraryApiContractId::MapKeyView(_)
         | LibraryApiContractId::PromiseThen) => library_receiver_method_api_result_domain(id),

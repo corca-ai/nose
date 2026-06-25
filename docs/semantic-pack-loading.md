@@ -93,6 +93,9 @@ Trust is separate from channel eligibility.
   occurrence provenance;
   `nose.rust.stdlib.option` owns Rust `Some`, `None`, and `and_then` Option API
   occurrence provenance;
+  `nose.rust.stdlib.result` owns Rust `Ok`/`Err` Result constructor provenance
+  and exact-Result `is_ok`/`is_err` predicate occurrence provenance, with local
+  `Result` type shadows closed for unqualified receiver proofs;
   `nose.rust.stdlib.integer_methods` owns primitive integer
   `abs`/`min`/`max`/`clamp` method API occurrence provenance;
   `nose.java.stdlib.math` owns Java `Math.abs`, `Math.min`, and `Math.max`

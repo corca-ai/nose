@@ -35,6 +35,10 @@ pub(super) fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
         LibraryApiContractId::RustOptionSomeConstructor => "rust.option.some.constructor".into(),
         LibraryApiContractId::RustOptionNoneSentinel => "rust.option.none.sentinel".into(),
         LibraryApiContractId::RustOptionAndThen => "rust.option.and_then".into(),
+        LibraryApiContractId::RustResultOkConstructor => "rust.result.ok.constructor".into(),
+        LibraryApiContractId::RustResultErrConstructor => "rust.result.err.constructor".into(),
+        LibraryApiContractId::RustResultIsOk => "rust.result.is_ok".into(),
+        LibraryApiContractId::RustResultIsErr => "rust.result.is_err".into(),
         LibraryApiContractId::ScalarIntegerMethod(method) => {
             format!(
                 "scalar_integer_method.{}",
@@ -267,6 +271,7 @@ fn method_receiver_contract_key(receiver: MethodReceiverContract) -> String {
         MethodReceiverContract::ExactProtocol => "exact_protocol".into(),
         MethodReceiverContract::ExactProtocolPairArgument => "exact_protocol_pair_argument".into(),
         MethodReceiverContract::ExactOption => "exact_option".into(),
+        MethodReceiverContract::ExactResult => "exact_result".into(),
         MethodReceiverContract::ExactString => "exact_string".into(),
         MethodReceiverContract::ExactInteger => "exact_integer".into(),
         MethodReceiverContract::ExactMap => "exact_map".into(),

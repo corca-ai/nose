@@ -32,6 +32,9 @@ pub(super) fn prove_method_receiver(
         }
         MethodReceiverContract::ExactOption => exact_option_receiver(old, interner, domains, base)
             .then_some(ProvenReceiver::Direct(base)),
+        MethodReceiverContract::ExactResult => domains
+            .receiver_satisfies_domain(base, DomainRequirement::RESULT)
+            .then_some(ProvenReceiver::Direct(base)),
         MethodReceiverContract::ExactString => {
             exact_string_receiver(old, domains, base).then_some(ProvenReceiver::Direct(base))
         }
