@@ -377,6 +377,13 @@ uses membership canonicalization because Swift arrays preserve order and
 multiplicity, while `Set(sequence)` still can; `Dictionary(uniqueKeysWithValues:)`
 result-domain evidence now requires explicit tuple-entry shape and stays closed
 for static duplicate keys instead of materializing from arity alone.
+Follow-up hardening for #539 added Swift receiver-mutation effect rows for
+mutating collection/map methods such as `append`, `insert`, `remove`, `sort`,
+`merge`, `updateValue`, and mutable-storage callback APIs such as
+`withUnsafeMutableBufferPointer`. That lets the existing binding-domain and
+strict-exact gates keep `Set(sequence)` and related factory consumers closed
+when the source collection may be mutated between source observation and
+factory materialization, without adding Swift factory-specific API hooks.
 
 Phase 5 Java stdlib collection-constructor measurement note, local run on
 2026-06-21: product query-regression r15 compared the previous

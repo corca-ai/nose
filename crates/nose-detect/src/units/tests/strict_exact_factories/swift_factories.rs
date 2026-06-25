@@ -82,6 +82,85 @@ fn strict_exact_swift_factories_use_library_api_evidence_and_shape_boundaries() 
     ));
 }
 
+#[test]
+fn strict_exact_swift_set_factory_rejects_mutated_source_collection() {
+    assert!(
+        lowered_swift_set_factory_exact_safe(
+            br#"func f() -> Bool {
+  let values = [1, 2]
+  let s = Set(values)
+  return true
+}
+"#
+        ),
+        "unmutated Swift collection source should keep Set(sequence) exact-safe"
+    );
+    assert!(
+        !lowered_swift_set_factory_exact_safe(
+            br#"func f() -> Bool {
+  var values = [1, 2]
+  values.append(3)
+  let s = Set(values)
+  return true
+}
+"#
+        ),
+        "mutation between source collection and Set(sequence) must close exact matching"
+    );
+    assert!(
+        !lowered_swift_set_factory_exact_safe(
+            br#"func f() -> Bool {
+  var values = [1, 2]
+  values.withUnsafeMutableBufferPointer { buffer in
+    buffer[0] = 3
+  }
+  let s = Set(values)
+  return true
+}
+"#
+        ),
+        "receiver APIs that may mutate through a callback must close exact matching"
+    );
+}
+
+fn lowered_swift_set_factory_exact_safe(source: &[u8]) -> bool {
+    let interner = Interner::new();
+    let raw = nose_frontend::lower_source(
+        FileId(0),
+        "collections.swift",
+        source,
+        Lang::Swift,
+        &interner,
+    )
+    .expect("lower Swift");
+    let il = nose_normalize::normalize(
+        &raw,
+        &interner,
+        &nose_normalize::NormalizeOptions::default(),
+    );
+    let set_factory = il
+        .nodes
+        .iter()
+        .enumerate()
+        .find_map(|(idx, node)| {
+            if node.kind != NodeKind::Call {
+                return None;
+            }
+            let call = NodeId(idx as u32);
+            let callee = il.children(call).first().copied()?;
+            if il.kind(callee) != NodeKind::Var {
+                return None;
+            }
+            match il.node(callee).payload {
+                Payload::Name(name) if interner.resolve(name) == "Set" => Some(call),
+                _ => None,
+            }
+        })
+        .expect("Swift Set factory call");
+    let facts = StrictFacts::collect(&il, &interner);
+    strict_exact_swift_collection_factory_safe(&il, &interner, &facts, set_factory)
+}
+
 fn swift_collection_factory_il(interner: &Interner, factory: &str) -> (Il, NodeId) {
     let mut b = IlBuilder::new(FileId(0));
     let callee = b.add(

@@ -20,6 +20,17 @@ fn receiver_mutation_contracts_are_language_scoped_rows() {
     assert!(module_binding_mutating_method_contract(Lang::JavaScript, "addAll", 1).is_none());
     assert!(module_binding_mutating_method_contract(Lang::Java, "addAll", 1).is_some());
     assert!(module_binding_mutating_method_contract(Lang::Python, "append", 1).is_some());
+    let swift_append = module_binding_mutating_method_contract(Lang::Swift, "append", 1)
+        .expect("swift append receiver mutation contract");
+    assert_eq!(swift_append.pack_id, SWIFT_LANGUAGE_PACK_ID);
+    assert_eq!(swift_append.lang, Lang::Swift);
+    assert_eq!(swift_append.effect, EffectEvidenceKind::ReceiverMutation);
+    assert!(module_binding_mutating_method_contract(
+        Lang::Swift,
+        "withUnsafeMutableBufferPointer",
+        1
+    )
+    .is_some());
     assert!(module_binding_mutating_method_contract(Lang::Go, "append", 1).is_none());
 }
 
