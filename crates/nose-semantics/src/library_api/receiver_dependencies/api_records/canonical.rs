@@ -177,7 +177,7 @@ pub(super) fn canonical_record_provenance_and_dependencies_match(
             LibraryApiContractId::ScalarIntegerMethod(_) | LibraryApiContractId::MethodCall(_)
         );
     };
-    if !library_api_record_provenance_matches_contract(id, callee, record) {
+    if !library_api_record_provenance_matches_contract(il.meta.lang, id, callee, record) {
         return false;
     }
     match (id, callee) {

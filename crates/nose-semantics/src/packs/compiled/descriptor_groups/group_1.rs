@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 24] = [
+pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 25] = [
     BuiltinPackDescriptor {
         id: JAVA_STDLIB_MATH_PACK_ID,
         kind: SemanticPackKind::StdlibPack,
@@ -266,6 +266,25 @@ pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 24] = [
         static_conformance_refs: BUILTIN_METHOD_CALL_PROTOCOL_CONFORMANCE_REFS,
         dynamic_conformance_refs: None,
         counts: builtin_method_call_protocol_counts,
+    },
+    BuiltinPackDescriptor {
+        id: SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+        kind: SemanticPackKind::ProtocolPack,
+        display_name: "nose sequence HOF adapter protocol pack",
+        trust: PackTrust::BuiltinDefault,
+        enabled_by_default: true,
+        supported_languages: SEQUENCE_HOF_ADAPTER_PROTOCOL_LANGUAGES,
+        supported_packages: SEQUENCE_HOF_ADAPTER_PROTOCOL_PACKAGES,
+        language: None,
+        evidence_producer_ids: SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_IDS,
+        source_fact_producer_ids: NO_IDS,
+        contract_ids: SEQUENCE_HOF_ADAPTER_PROTOCOL_CONTRACT_IDS,
+        type_domain_alias_contracts: NO_TYPE_DOMAIN_ALIAS_CONTRACTS,
+        static_value_law_ids: NO_IDS,
+        dynamic_value_law_ids: None,
+        static_conformance_refs: SEQUENCE_HOF_ADAPTER_PROTOCOL_CONFORMANCE_REFS,
+        dynamic_conformance_refs: None,
+        counts: sequence_hof_adapter_protocol_counts,
     },
     BuiltinPackDescriptor {
         id: GO_STDLIB_NAMESPACE_CALL_PACK_ID,

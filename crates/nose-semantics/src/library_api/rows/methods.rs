@@ -437,7 +437,12 @@ fn method_call_contract_provenance(
     lang: Lang,
     contract: MethodCallContract,
 ) -> (&'static str, &'static str) {
-    if lang == Lang::Go
+    if rust_sequence_hof_method_call(lang, contract) {
+        (
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+        )
+    } else if lang == Lang::Go
         && matches!(
             (contract.semantic, contract.receiver, contract.args,),
             (
@@ -496,6 +501,28 @@ fn method_call_contract_provenance(
             BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
         )
     }
+}
+
+fn rust_sequence_hof_method_call(lang: Lang, contract: MethodCallContract) -> bool {
+    lang == Lang::Rust
+        && matches!(
+            (contract.semantic, contract.receiver, contract.args),
+            (
+                MethodSemanticContract::HoF(
+                    HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap,
+                ),
+                MethodReceiverContract::ExactProtocol,
+                MethodBuiltinArgs::Hof,
+            ) | (
+                MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
+                MethodReceiverContract::ExactProtocol,
+                MethodBuiltinArgs::BoolReduction,
+            ) | (
+                MethodSemanticContract::Builtin(Builtin::Len),
+                MethodReceiverContract::ExactProtocol,
+                MethodBuiltinArgs::CollectionReduction,
+            )
+        )
 }
 
 pub fn library_map_get_default_contract(

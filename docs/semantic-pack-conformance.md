@@ -123,14 +123,14 @@ behavior or pack ownership, not in a static descriptor table.
   "schema_version": 1,
   "status": "ok",
   "totals": {
-    "packs": 46,
-    "builtin_packs": 46,
-    "exact_capable_packs": 36,
+    "packs": 47,
+    "builtin_packs": 47,
+    "exact_capable_packs": 37,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 150,
-    "hard_negatives": 102,
-    "conformance_refs": 252,
-    "unsupported_refs": 13
+    "positive_fixtures": 157,
+    "hard_negatives": 109,
+    "conformance_refs": 266,
+    "unsupported_refs": 14
   },
   "evidence_policy": {
     "product_output": "required-on-implementation-pr",

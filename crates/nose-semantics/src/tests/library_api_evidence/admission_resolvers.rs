@@ -9,6 +9,7 @@ mod promise;
 mod receiver_membership;
 mod regex;
 mod scalar_integer;
+mod sequence_hof;
 mod span;
 mod static_index;
 

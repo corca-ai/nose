@@ -321,6 +321,31 @@ pub(super) fn assert_group() {
         .conformance_refs()
         .contains(&"builtin-method-call-wrong-pack-hard-negative"));
 
+    let sequence_hof_adapter = builtin_pack_descriptor(SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID)
+        .expect("sequence HOF adapter protocol descriptor");
+    assert_eq!(sequence_hof_adapter.kind, SemanticPackKind::ProtocolPack);
+    assert_eq!(sequence_hof_adapter.supported_languages, &["rust"]);
+    assert_eq!(sequence_hof_adapter.supported_packages, &["core::iter"]);
+    assert_eq!(
+        sequence_hof_adapter.evidence_producer_ids,
+        &[SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID]
+    );
+    assert!(sequence_hof_adapter.source_fact_producer_ids.is_empty());
+    assert_eq!(
+        sequence_hof_adapter.contract_ids,
+        &[SEQUENCE_HOF_ADAPTER_CONTRACT_ID]
+    );
+    assert_eq!(sequence_hof_adapter.counts().evidence_producers, 1);
+    assert_eq!(sequence_hof_adapter.counts().contracts, 1);
+    assert_eq!(sequence_hof_adapter.counts().positive_fixtures, 7);
+    assert_eq!(sequence_hof_adapter.counts().hard_negatives, 7);
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"rust-iterator-hof-missing-terminal-proof-hard-negative"));
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"rust-iterator-hof-one-shot-reuse-hard-negative"));
+
     let go_namespace_call = builtin_pack_descriptor(GO_STDLIB_NAMESPACE_CALL_PACK_ID)
         .expect("Go stdlib namespace-call descriptor");
     assert_eq!(go_namespace_call.kind, SemanticPackKind::StdlibPack);

@@ -269,6 +269,46 @@ fn method_call_contracts_cover_membership_and_map_default_lookups() {
 }
 
 #[test]
+fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
+    for (method, arity) in [
+        ("map", 1),
+        ("filter", 1),
+        ("filter_map", 1),
+        ("flat_map", 1),
+        ("any", 1),
+        ("all", 1),
+        ("count", 0),
+    ] {
+        let contract =
+            library_method_call_contract(Lang::Rust, method, arity).expect("Rust method row");
+        assert_eq!(contract.pack_id, SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID);
+        assert_eq!(
+            contract.producer_id,
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID
+        );
+        assert_eq!(
+            contract.callee,
+            LibraryApiCalleeContract::Method {
+                method,
+                receiver: MethodReceiverContract::ExactProtocol,
+            }
+        );
+    }
+
+    let js_map = library_method_call_contract(Lang::JavaScript, "map", 1)
+        .expect("JS Array.map remains generic until its language slice lands");
+    assert_eq!(js_map.pack_id, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID);
+
+    let swift_map = library_method_call_contract(Lang::Swift, "map", 1).expect("Swift map row");
+    assert_eq!(swift_map.pack_id, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID);
+
+    assert!(
+        library_method_call_contract(Lang::Rust, "find", 1).is_none(),
+        "Rust find stays closed until optional-result semantics are represented"
+    );
+}
+
+#[test]
 fn scalar_integer_methods_are_language_and_signature_constrained() {
     assert_eq!(
         scalar_integer_method_contract(Lang::Rust, "clamp", 2),

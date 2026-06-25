@@ -146,6 +146,10 @@ The next code slices are intentionally incremental:
    `nose.protocols.builtin_method_calls` for generic method-call and
    namespace-call builtin semantics not yet owned by a narrower protocol pack,
    then
+   `nose.protocols.sequence_hof_adapters` for Rust iterator
+   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance plus
+   `any`/`all`/`count` terminal proof,
+   then
    `nose.protocols.iterator_identity_adapters` for Rust
    `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
    `.stream()` iterator identity adapter occurrence provenance;
@@ -1436,6 +1440,27 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   admitted method calls also remain admissible protocol receivers through their
   same-span `MethodCall(HoF(...))` occurrence record, so downstream adapters can
   consume canonicalized HOFs without trusting selector spelling alone.
+- The Rust sequence-HOF slice split iterator HOF adapters out of the generic
+  method-call protocol pack. Rust `map`/`filter`/`filter_map`/`flat_map` and
+  `any`/`all`/`count` now require
+  `nose.protocols.sequence_hof_adapters` provenance plus explicit protocol
+  receiver proof. JS/Java/Swift/Ruby HOF rows remain on their prior provenance
+  until their own language slices land. Rust `find` stays closed because optional
+  result/default semantics are not yet represented by a safe terminal contract;
+  custom methods, missing receiver proof, eager callback assumptions, missing
+  terminal proof, one-shot iterator reuse, and `collect_vec` stay hard-negative
+  boundaries. Inventory before/after against `main@5e3b53f7`: builtin packs 46
+  -> 47, exact-capable packs 36 -> 37, positive fixtures 150 -> 157, hard
+  negatives 102 -> 109, conformance refs 252 -> 266, unsupported refs 13 -> 14.
+  2026-06-26 product query-regression compared `main@5e3b53f7` with the
+  `issue-534-rust-iterator-hof-capability` branch on the Rust `serde_json`
+  representative using `bench/type4/query_regression/query_regression.py`
+  `baseline`/`compare`, `bench/repos`, and repeats=3: 1 repo compared, 0
+  investigation triggers. The corpus-free HoF smoke stayed under budget
+  (`features` 11.40 ms, semantic query 9.66 ms; deep chain 592 tokens / 152
+  value-fingerprint nodes, wide chain 1455 / 324). The generated compare kept
+  baseline/current binary SHA-256s with build refs, so later reviewers can
+  reproduce the run from the recorded refs and commands.
 - The static API occurrence slice moved Java empty collection constructors and
   JS-like static `indexOf`/`findIndex` membership behind the same
   dependency-backed occurrence boundary. `new ArrayList<>()`/

@@ -590,9 +590,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
   `.stream()` iterator identity adapters with
   `nose.protocols.iterator_identity_adapters` provenance when protocol receiver
-  proof is present, generic method-call and namespace-call builtin semantics
-  with `nose.protocols.builtin_method_calls` provenance when no narrower pack
-  owns the row, Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
+  proof is present, Rust iterator `map`/`filter`/`filter_map`/`flat_map` HOF
+  adapters and `any`/`all`/`count` terminals with
+  `nose.protocols.sequence_hof_adapters` provenance when protocol receiver proof
+  is present, generic method-call and namespace-call builtin semantics with
+  `nose.protocols.builtin_method_calls` provenance when no narrower pack owns
+  the row, Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
   `strings.Contains`, and `slices.Contains` namespace calls with
   `nose.go.stdlib.namespace_calls` provenance when imported-namespace proof is
   present, and selected
@@ -768,10 +771,11 @@ callers:
   for pack-proven supported free-function builtins, pack-proven generic builtin method contracts,
   pack-proven map `get`, pack-proven map get-default, pack-proven map-key
   views, iterator identity adapters with
-  `nose.protocols.iterator_identity_adapters` provenance, Java `Arrays.stream`,
-  Java map entries, Rust `Some(...)`, Rust map factory receiver proof, and HOF
-  receiver proof instead of locally recombining selector strings with `LibraryApi`
-  evidence checks.
+  `nose.protocols.iterator_identity_adapters` provenance, Rust sequence-HOF
+  adapters with `nose.protocols.sequence_hof_adapters` provenance, Java
+  `Arrays.stream`, Java map entries, Rust `Some(...)`, Rust map factory receiver
+  proof, and HOF receiver proof instead of locally recombining selector strings
+  with `LibraryApi` evidence checks.
   Test fixtures may still use row constructors to mint synthetic evidence
   records;
 - value-graph direct API eval paths, node-level API consumers, and provider
@@ -801,7 +805,9 @@ callers:
   the same-span `LibraryApi(MethodCall(HoF(...)))` occurrence record as protocol
   receiver evidence. Downstream calls such as Rust `.collect()` can therefore
   depend on the admitted `filter_map`/`map`/`filter` occurrence after IL
-  canonicalization, without reopening selector-only proof. Value-graph filter
+  canonicalization, without reopening selector-only proof. For Rust iterator
+  chains, that same-span HOF record must carry
+  `nose.protocols.sequence_hof_adapters` provenance. Value-graph filter
   consumers such as `len(filter(...))`, explicit reductions over a filter, and
   static literal membership shortcuts reuse the same HOF admission; a raw
   `HoF(Filter)` payload no longer enters those paths by shape alone;

@@ -199,7 +199,13 @@ still being migrated toward it.
   `nose.protocols.builtin_method_calls` descriptor owns generic method-call
   and namespace-call builtin semantics that have not moved to a narrower
   protocol or stdlib pack, while receiver/symbol/import proof and unsupported
-  arities remain hard negatives. The `nose.go.stdlib.namespace_calls`
+  arities remain hard negatives. The
+  `nose.protocols.sequence_hof_adapters` descriptor owns Rust iterator
+  `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
+  `any`/`all`/`count` terminal proof on explicit protocol receivers, while
+  custom methods, missing receiver proof, eager callback assumptions, missing
+  terminal proof, one-shot iterator reuse, `collect_vec`, and `find` remain hard
+  negatives or unsupported boundaries. The `nose.go.stdlib.namespace_calls`
   descriptor owns Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
   `strings.Contains`, and `slices.Contains` namespace-call API occurrence
   provenance under imported namespace proof. `strings.Contains` lowers to the
@@ -684,7 +690,9 @@ migrated.
   string/collection predicates, Rust scalar integer methods with
   `nose.rust.stdlib.integer_methods` provenance, Java Math scalar integer
   methods with `nose.java.stdlib.math` provenance, Rust `Option::and_then`,
-  Rust `zip`, and HOF/reduction methods. The
+  Rust `zip`, and HOF/reduction methods. Rust iterator HOF and terminal rows
+  use `nose.protocols.sequence_hof_adapters` provenance rather than the generic
+  method-call pack. The
   occurrence record is admitted only for the exact language/method/arity row and
   depends on receiver proof: node/binding/parameter `Domain`, `SequenceSurface`,
   imported namespace or unshadowed-global `Symbol`, or a nested admitted
@@ -698,10 +706,12 @@ migrated.
   Normalized HOF receivers keep their same-span admitted `MethodCall(HoF(...))`
   occurrence as protocol evidence, so downstream adapters such as Rust
   `.collect()` can consume a canonicalized `filter_map` receiver without trusting
-  the `collect` selector alone. Value-graph filter consumers such as
-  `len(filter(...))`, explicit reductions over a filter, and static literal
-  membership shortcuts reuse HOF admission as well, so raw `HoF(Filter)` cannot
-  bypass the source/API HOF gate by appearing under another operation.
+  the `collect` selector alone; for Rust iterator HOFs this same-span occurrence
+  is admitted under `nose.protocols.sequence_hof_adapters`. Value-graph filter
+  consumers such as `len(filter(...))`, explicit reductions over a filter, and
+  static literal membership shortcuts reuse HOF admission as well, so raw
+  `HoF(Filter)` cannot bypass the source/API HOF gate by appearing under another
+  operation.
 - Type/domain evidence now has vocabulary for arrays, collections, iterables,
   iterators, sets, maps, records, options, results, promise/future-like values,
   strings, booleans, integer/float/number distinctions, byte arrays, and hashed

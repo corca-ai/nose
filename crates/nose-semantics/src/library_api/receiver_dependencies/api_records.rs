@@ -52,8 +52,12 @@ pub(crate) fn library_api_dependency_id_for_normalized_hof(
         else {
             continue;
         };
-        if !library_api_record_provenance_matches_contract(expected_id, callee, record)
-            || !normalized_hof_method_call_dependencies_match(il, receiver, record, contract)
+        if !library_api_record_provenance_matches_contract(
+            il.meta.lang,
+            expected_id,
+            callee,
+            record,
+        ) || !normalized_hof_method_call_dependencies_match(il, receiver, record, contract)
         {
             continue;
         }

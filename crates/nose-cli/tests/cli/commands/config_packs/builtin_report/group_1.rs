@@ -260,6 +260,34 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(builtin_method_call["counts"]["positive_fixtures"], 8);
     assert_eq!(builtin_method_call["counts"]["hard_negatives"], 3);
 
+    let sequence_hof_adapter = semantic_pack_by_id(&json, "nose.protocols.sequence_hof_adapters");
+    assert_eq!(sequence_hof_adapter["hash"], "2c6344624cc74477");
+    assert_eq!(sequence_hof_adapter["kind"], "ProtocolPack");
+    assert_eq!(
+        sequence_hof_adapter["display_name"],
+        "nose sequence HOF adapter protocol pack"
+    );
+    assert_eq!(sequence_hof_adapter["source"], "compiled-builtin");
+    assert_eq!(sequence_hof_adapter["influence"], "evidence-and-contracts");
+    assert_eq!(sequence_hof_adapter["trust"], "builtin-default");
+    assert_eq!(sequence_hof_adapter["enabled_by_default"], true);
+    assert_eq!(sequence_hof_adapter["path"], serde_json::Value::Null);
+    assert_eq!(sequence_hof_adapter["provider"], "Corca, Inc.");
+    assert_eq!(
+        sequence_hof_adapter["repository"],
+        "https://github.com/corca-ai/nose"
+    );
+    assert_eq!(sequence_hof_adapter["license"], "MIT");
+    assert_eq!(
+        json_array_strings(sequence_hof_adapter, "supported_languages"),
+        vec!["rust"]
+    );
+    assert_eq!(sequence_hof_adapter["counts"]["evidence_producers"], 1);
+    assert_eq!(sequence_hof_adapter["counts"]["contracts"], 1);
+    assert_eq!(sequence_hof_adapter["counts"]["value_laws"], 0);
+    assert_eq!(sequence_hof_adapter["counts"]["positive_fixtures"], 7);
+    assert_eq!(sequence_hof_adapter["counts"]["hard_negatives"], 7);
+
     let go_namespace_call = semantic_pack_by_id(&json, "nose.go.stdlib.namespace_calls");
     assert_eq!(go_namespace_call["hash"], "d3dfae6db995411b");
     assert_eq!(go_namespace_call["kind"], "StdlibPack");

@@ -375,3 +375,13 @@ production-scope language-core provenance helper family changes representative I
 `868d099f88f94cfa` disappears and `cf86f9ad6c5a533a` appears. The new representative covers the
 same semantic-kernel provenance records in `binding_evidence`, `library_api_evidence`,
 `import_facts`, and `sequence_surface`. No new budget is accepted.
+
+The #534 Rust iterator sequence-HOF capability PR keeps the count at 56. Moving Rust iterator
+HOFs into `nose.protocols.sequence_hof_adapters`, splitting the value-graph `LibraryApi` test
+helper to satisfy the file-length ratchet, and adding explicit custom-`map`/`collect_vec`
+hard-negative tests shifts representative line spans without adding a new substantial family:
+`0715a8712c2fdb76`, `b1570372c0d34139`, `cd016e6bfca96acb`, and `eddf659f3c346592` disappear;
+`03a902cddc7077f2`, `32b92ef22cfabecd`, `8cfb7e836850848f`, and `d9278c329fce1b6b` appear. The
+new IDs cover the same reviewed test/helper debt: cross-crate `evidence_with_dependencies`
+fixtures, language-core evidence fixtures, Python collection factory evidence fixtures, and HOF
+demand/materialization negative tests. No new budget is accepted.

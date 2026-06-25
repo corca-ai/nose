@@ -199,7 +199,7 @@ fn manifest_with_value_law_executable_gate(id: &str) -> String {
 #[test]
 fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
     let descriptors = builtin_pack_descriptors();
-    assert_eq!(descriptors.len(), 46);
+    assert_eq!(descriptors.len(), 47);
     let ids = descriptors
         .iter()
         .map(|descriptor| descriptor.id)
@@ -243,6 +243,7 @@ fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
             MAP_KEY_VIEW_PROTOCOL_PACK_ID,
             PROPERTY_BUILTIN_PROTOCOL_PACK_ID,
             BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
             GO_STDLIB_NAMESPACE_CALL_PACK_ID,
             ITERATOR_IDENTITY_ADAPTER_PACK_ID,
             JS_LIKE_BUILTIN_PROMISE_PACK_ID,

@@ -3,8 +3,9 @@ use nose_il::{EvidenceProvenance, FileId, FileMeta, IlBuilder, Lang, Span};
 use nose_semantics::{
     admitted_builder_append_method_call_args, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
     BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID, GO_STDLIB_NAMESPACE_CALL_PACK_ID,
-    GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID, RUST_STDLIB_OPTION_PACK_ID,
-    RUST_STDLIB_OPTION_PRODUCER_ID,
+    GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID, RUST_LANGUAGE_CORE_PRODUCER_ID, RUST_LANGUAGE_PACK_ID,
+    RUST_STDLIB_OPTION_PACK_ID, RUST_STDLIB_OPTION_PRODUCER_ID,
+    SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID, SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
 };
 
 mod call_result_domains;
@@ -217,6 +218,43 @@ fn builder_append_receiver_domain_closes_duplicate_legacy_row_when_current_exist
         .find(|record| record.status == EvidenceStatus::Asserted)
         .expect("builder append API evidence");
     assert_eq!(api.dependencies, vec![current]);
+}
+
+#[test]
+fn rust_iterator_hof_api_evidence_uses_sequence_hof_pack() {
+    let mut interner = Interner::new();
+    let (mut il, call, receiver, _) = method_call_il(&mut interner, Lang::Rust, "map", 1);
+    let receiver_domain = il.find_or_push_first_party_evidence(
+        EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
+        EvidenceKind::Domain(DomainEvidence::Collection),
+        RUST_LANGUAGE_PACK_ID,
+        RUST_LANGUAGE_CORE_PRODUCER_ID,
+        Vec::new(),
+    );
+
+    run(&mut il, &interner);
+
+    let receiver_domains = node_domain_records(&il, receiver, DomainEvidence::Collection);
+    let asserted_domains = asserted(receiver_domains.clone());
+    assert_eq!(asserted_domains.len(), 1);
+    assert_eq!(
+        asserted_domains[0].provenance,
+        language_core_provenance(Lang::Rust)
+    );
+    assert_eq!(asserted_domains[0].id, receiver_domain);
+
+    let api = library_api_records(&il, call)
+        .into_iter()
+        .find(|record| record.status == EvidenceStatus::Asserted)
+        .expect("Rust iterator map API evidence");
+    assert_eq!(
+        api.provenance,
+        pack_provenance(
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID
+        )
+    );
+    assert_eq!(api.dependencies, vec![receiver_domain]);
 }
 
 #[test]

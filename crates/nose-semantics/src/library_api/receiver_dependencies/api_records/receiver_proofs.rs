@@ -262,7 +262,8 @@ pub(super) fn asserted_library_api_dependency_contract(
     };
     let actual_id = library_api_contract_id_from_hash(contract_hash)?;
     let callee = library_api_callee_contract_for_hash(il.meta.lang, actual_id, callee_hash)?;
-    if !library_api_record_provenance_matches_contract(actual_id, callee, dependency) {
+    if !library_api_record_provenance_matches_contract(il.meta.lang, actual_id, callee, dependency)
+    {
         return None;
     }
     if matches!(actual_id, LibraryApiContractId::MethodCall(_))
@@ -442,7 +443,7 @@ pub(in crate::library_api) fn evidence_depends_on_library_api_contract(
         else {
             return false;
         };
-        library_api_record_provenance_matches_contract(actual_id, callee, dependency)
+        library_api_record_provenance_matches_contract(il.meta.lang, actual_id, callee, dependency)
             && library_api_dependency_record_has_expected_arity(actual_id, arity)
             && library_api_dependency_record_has_required_dependencies(
                 il,

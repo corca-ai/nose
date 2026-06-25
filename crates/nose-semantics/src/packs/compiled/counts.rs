@@ -425,6 +425,22 @@ pub(super) fn builtin_method_call_protocol_counts() -> SemanticPackCounts {
     }
 }
 
+pub(super) fn sequence_hof_adapter_protocol_counts() -> SemanticPackCounts {
+    SemanticPackCounts {
+        evidence_producers: SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_IDS.len(),
+        contracts: SEQUENCE_HOF_ADAPTER_PROTOCOL_CONTRACT_IDS.len(),
+        value_laws: 0,
+        positive_fixtures: SEQUENCE_HOF_ADAPTER_PROTOCOL_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| !id.contains("hard-negative"))
+            .count(),
+        hard_negatives: SEQUENCE_HOF_ADAPTER_PROTOCOL_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| id.contains("hard-negative"))
+            .count(),
+    }
+}
+
 pub(super) fn go_stdlib_namespace_call_counts() -> SemanticPackCounts {
     SemanticPackCounts {
         evidence_producers: GO_STDLIB_NAMESPACE_CALL_PRODUCER_IDS.len(),

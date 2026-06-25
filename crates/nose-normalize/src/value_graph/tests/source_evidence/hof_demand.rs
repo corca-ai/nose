@@ -94,14 +94,26 @@ fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: 
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
     ));
     let contract = library_method_call_contract(lang, "map", 1).expect(expect_msg);
-    il.evidence.push(library_api_contract_evidence(
-        1,
-        il.node(hof).span,
-        contract.id,
-        contract.callee,
-        1,
-        vec![EvidenceId(0)],
-    ));
+    let evidence = if lang == Lang::Rust {
+        rust_sequence_hof_adapter_evidence(
+            1,
+            il.node(hof).span,
+            contract.id,
+            contract.callee,
+            1,
+            vec![EvidenceId(0)],
+        )
+    } else {
+        library_api_contract_evidence(
+            1,
+            il.node(hof).span,
+            contract.id,
+            contract.callee,
+            1,
+            vec![EvidenceId(0)],
+        )
+    };
+    il.evidence.push(evidence);
 }
 
 #[test]
@@ -277,7 +289,7 @@ fn len_of_library_hof_requires_materialized_demand_profile() {
     );
     let contract =
         library_method_call_contract(Lang::Rust, "count", 0).expect("Rust count contract");
-    il.evidence.push(library_api_contract_evidence(
+    il.evidence.push(rust_sequence_hof_adapter_evidence(
         2,
         il.node(count).span,
         contract.id,

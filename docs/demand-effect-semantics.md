@@ -50,8 +50,12 @@ effects are delayed until a terminal consumer pulls an element. First-party
 library/API HOF rows now carry explicit timing for the supported surfaces:
 JS-like and Ruby `map`/`flatMap`/`filter` rows are eager per element where
 available, while Rust iterator and Java Stream `map`/`flatMap`/`filter` rows are
-pull-lazy. Admitted HOF identity alone is still not enough; consumers resolve
-the node-level demand/effect profile before opening exact behavior.
+pull-lazy. Rust iterator HOF rows require
+`nose.protocols.sequence_hof_adapters` occurrence provenance on a proven
+protocol receiver; `any`/`all` and `count` terminal rows use the same provenance
+boundary, while `collect` remains in the iterator identity/materialization
+adapter slice. Admitted HOF identity alone is still not enough; consumers
+resolve the node-level demand/effect profile before opening exact behavior.
 
 Promise `.then` now carries an async-continuation demand/effect profile in its
 contract row. That does not open exact beta-reduction by itself. The value-graph

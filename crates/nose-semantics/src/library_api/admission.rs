@@ -29,7 +29,7 @@ pub fn library_api_contract_evidence_for_call(
         saw_library_api_evidence = true;
         if record.status != EvidenceStatus::Asserted
             || api != expected
-            || !library_api_record_provenance_matches_contract(id, callee, record)
+            || !library_api_record_provenance_matches_contract(il.meta.lang, id, callee, record)
             || !il.evidence_dependencies_asserted(record)
             || !library_api_callee_shape_matches(il, interner, node, callee)
             || !library_api_dependencies_match_callee(il, interner, node, callee, record)
@@ -76,7 +76,7 @@ pub fn library_api_contract_evidence_for_node(
         saw_library_api_evidence = true;
         if record.status != EvidenceStatus::Asserted
             || api != expected
-            || !library_api_record_provenance_matches_contract(id, callee, record)
+            || !library_api_record_provenance_matches_contract(il.meta.lang, id, callee, record)
             || !il.evidence_dependencies_asserted(record)
             || !library_api_node_callee_shape_matches(il, interner, node, callee)
             || !library_api_dependencies_match_callee_node(il, interner, node, callee, record)
@@ -141,7 +141,12 @@ pub fn library_api_contract_evidence_at_call_span(
         );
         if record.status != EvidenceStatus::Asserted
             || api != expected
-            || !library_api_record_provenance_matches_contract(query.id, query.callee, record)
+            || !library_api_record_provenance_matches_contract(
+                il.meta.lang,
+                query.id,
+                query.callee,
+                record,
+            )
             || !il.evidence_dependencies_asserted(record)
             || (!source_call_matches && !span_query_matches)
         {
@@ -159,11 +164,12 @@ pub fn library_api_contract_evidence_at_call_span(
 }
 
 pub(in crate::library_api) fn library_api_record_provenance_matches_contract(
+    lang: Lang,
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
     record: &EvidenceRecord,
 ) -> bool {
-    let Some((pack_id, producer_id)) = library_api_contract_provenance_ids(id, callee) else {
+    let Some((pack_id, producer_id)) = library_api_contract_provenance_ids(lang, id, callee) else {
         return false;
     };
     library_api_record_has_builtin_provenance(record, pack_id, producer_id)
@@ -180,13 +186,14 @@ fn library_api_record_has_builtin_provenance(
 }
 
 fn library_api_contract_provenance_ids(
+    lang: Lang,
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
 ) -> Option<(&'static str, &'static str)> {
     python_library_api_contract_provenance_ids(id)
         .or_else(|| js_like_library_api_contract_provenance_ids(id))
         .or_else(|| swift_library_api_contract_provenance_ids(id))
-        .or_else(|| rust_library_api_contract_provenance_ids(id, callee))
+        .or_else(|| rust_library_api_contract_provenance_ids(lang, id, callee))
         .or_else(|| java_library_api_contract_provenance_ids(id, callee))
         .or_else(|| go_library_api_contract_provenance_ids(id, callee))
         .or_else(|| protocol_library_api_contract_provenance_ids(id, callee))
@@ -263,6 +270,7 @@ fn js_like_library_api_contract_provenance_ids(
 }
 
 fn rust_library_api_contract_provenance_ids(
+    lang: Lang,
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
 ) -> Option<(&'static str, &'static str)> {
@@ -303,8 +311,48 @@ fn rust_library_api_contract_provenance_ids(
             RUST_STDLIB_MAP_FACTORY_PACK_ID,
             RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
         )),
+        LibraryApiContractId::MethodCall(_)
+            if lang == Lang::Rust && rust_sequence_hof_method_callee(id, callee) =>
+        {
+            Some((
+                SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+                SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+            ))
+        }
         _ => None,
     }
+}
+
+fn rust_sequence_hof_method_callee(
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> bool {
+    matches!(
+        (id, callee),
+        (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
+                HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap,
+            )),
+            LibraryApiCalleeContract::Method {
+                method: "map" | "filter" | "filter_map" | "flat_map",
+                receiver: MethodReceiverContract::ExactProtocol,
+            },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                Builtin::Any | Builtin::All,
+            )),
+            LibraryApiCalleeContract::Method {
+                method: "any" | "all",
+                receiver: MethodReceiverContract::ExactProtocol,
+            },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Len)),
+            LibraryApiCalleeContract::Method {
+                method: "count",
+                receiver: MethodReceiverContract::ExactProtocol,
+            },
+        )
+    )
 }
 
 fn java_library_api_contract_provenance_ids(

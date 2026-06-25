@@ -8,11 +8,11 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
 
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["status"], "ok");
-    assert_eq!(json["totals"]["packs"], 46);
-    assert_eq!(json["totals"]["builtin_packs"], 46);
-    assert_eq!(json["totals"]["positive_fixtures"], 150);
-    assert_eq!(json["totals"]["hard_negatives"], 102);
-    assert_eq!(json["totals"]["conformance_refs"], 252);
+    assert_eq!(json["totals"]["packs"], 47);
+    assert_eq!(json["totals"]["builtin_packs"], 47);
+    assert_eq!(json["totals"]["positive_fixtures"], 157);
+    assert_eq!(json["totals"]["hard_negatives"], 109);
+    assert_eq!(json["totals"]["conformance_refs"], 266);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -30,7 +30,47 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_rust_result_pack(packs);
     assert_swift_collection_factory_pack(packs);
     assert_guava_pack(packs);
+    assert_sequence_hof_adapter_pack(packs);
     assert_compat_pack(packs);
+}
+
+fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
+    let sequence_hof = inventory_pack(packs, "nose.protocols.sequence_hof_adapters");
+    assert_eq!(sequence_hof["kind"], "ProtocolPack");
+    assert_eq!(sequence_hof["audit"]["exact_capable"], true);
+    assert_eq!(sequence_hof["audit"]["coverage_status"], "covered");
+    assert_eq!(
+        json_array_strings(&sequence_hof["declarations"], "contracts"),
+        vec!["sequence_hof.method_call"]
+    );
+    assert_eq!(
+        json_array_strings(&sequence_hof["conformance"], "positive_refs"),
+        vec![
+            "rust-iterator-hof-map-positive",
+            "rust-iterator-hof-filter-positive",
+            "rust-iterator-hof-filter-map-positive",
+            "rust-iterator-hof-flat-map-positive",
+            "rust-iterator-hof-any-terminal-positive",
+            "rust-iterator-hof-all-terminal-positive",
+            "rust-iterator-hof-count-terminal-positive"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&sequence_hof["conformance"], "hard_negative_refs"),
+        vec![
+            "rust-iterator-hof-custom-method-hard-negative",
+            "rust-iterator-hof-missing-receiver-proof-hard-negative",
+            "rust-iterator-hof-eager-callback-hard-negative",
+            "rust-iterator-hof-missing-terminal-proof-hard-negative",
+            "rust-iterator-hof-one-shot-reuse-hard-negative",
+            "rust-iterator-hof-collect-vec-hard-negative",
+            "rust-iterator-hof-find-unsupported-hard-negative"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&sequence_hof["conformance"], "unsupported_refs"),
+        vec!["rust-iterator-hof-find-unsupported-hard-negative"]
+    );
 }
 
 fn assert_rust_result_pack(packs: &[serde_json::Value]) {
