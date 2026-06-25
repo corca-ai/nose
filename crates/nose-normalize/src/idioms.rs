@@ -9,9 +9,9 @@
 
 use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    admitted_free_function_builtin_at_call, admitted_free_name_map_factory_at_call,
-    admitted_iterator_identity_adapter_at_call, admitted_library_method_call_at_call,
-    admitted_map_get_at_call, admitted_map_key_view_at_call,
+    admitted_free_function_builtin_at_call, admitted_free_function_hof_at_call,
+    admitted_free_name_map_factory_at_call, admitted_iterator_identity_adapter_at_call,
+    admitted_library_method_call_at_call, admitted_map_get_at_call, admitted_map_key_view_at_call,
     admitted_rust_option_some_constructor_at_call, admitted_static_collection_adapter_at_call,
     asserted_unshadowed_global_symbol, imported_namespace_symbol, seq_surface_contract_for_node,
     BuiltinArgContract, DomainRequirement, LibraryMapFactoryResult, MapKeyViewKind,
@@ -76,6 +76,23 @@ pub(crate) fn canon_call_with_domains(
             BuiltinArgContract::First => builtin!(contract.result.builtin, first),
             BuiltinArgContract::All => builtin!(contract.result.builtin, all),
         }
+    }
+    if let Some(admitted) = admitted_free_function_hof_at_call(old, interner, call_id) {
+        let contract = admitted.contract.result;
+        let Some(&collection_old) = args.get(contract.source_arg) else {
+            return CallCanon::None;
+        };
+        let Some(&fn_old) = args.get(contract.callback_arg) else {
+            return CallCanon::None;
+        };
+        if old.kind(fn_old) != NodeKind::Lambda {
+            return CallCanon::None;
+        }
+        return CallCanon::HoF {
+            kind: contract.kind,
+            collection_old,
+            fn_old,
+        };
     }
     if let Some(admitted) = admitted_library_method_call_at_call(old, interner, call_id) {
         let Some(base) = admitted.receiver else {

@@ -24,8 +24,9 @@ pub(in crate::library_api) use callee_shape::*;
 pub use contracts::*;
 pub(in crate::library_api) use dependency_facts::*;
 pub(in crate::library_api) use receiver_dependencies::{
-    async_receiver_dependencies_at_span, iterator_adapter_receiver_dependencies_at_span,
-    method_receiver_dependencies_at_span, static_index_membership_receiver_dependency_id,
+    async_receiver_dependencies_at_span, domain_dependency_anchor_matches_receiver,
+    iterator_adapter_receiver_dependencies_at_span, method_receiver_dependencies_at_span,
+    static_index_membership_receiver_dependency_id,
     static_index_membership_receiver_dependency_id_at_span,
 };
 pub(crate) use receiver_dependencies::{
@@ -40,10 +41,12 @@ pub use resolvers::*;
 pub use result_domains::*;
 pub use rows::*;
 
-pub(in crate::library_api) use admission::library_api_record_provenance_matches_contract;
 pub use admission::{
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
     library_api_contract_evidence_for_node,
+};
+pub(in crate::library_api) use admission::{
+    library_api_contract_obligations_match_call, library_api_record_provenance_matches_contract,
 };
 pub use imported_occurrences::{
     imported_occurrence_symbol_dependencies_valid,

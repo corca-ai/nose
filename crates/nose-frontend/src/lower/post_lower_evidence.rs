@@ -313,7 +313,7 @@ pub(super) fn post_lower_find_or_push_evidence(
     dependencies: Vec<EvidenceId>,
 ) -> Option<EvidenceId> {
     let _ = rule;
-    let (pack_id, producer_id) = nose_semantics::language_core_evidence_provenance(il.meta.lang);
+    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
     Some(il.find_or_push_builtin_evidence(anchor, kind, pack_id, producer_id, dependencies))
 }
 

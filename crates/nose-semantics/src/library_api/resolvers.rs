@@ -6,8 +6,10 @@
 use super::*;
 
 mod admission;
+mod free_names;
 
 use admission::*;
+pub use free_names::{admitted_free_function_builtin_at_call, admitted_free_function_hof_at_call};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct AdmittedLibraryApiCall<C> {
@@ -65,16 +67,6 @@ pub fn admitted_library_method_call_at_call(
         call,
         library_method_call_contracts,
     )
-}
-
-pub fn admitted_free_function_builtin_at_call(
-    il: &Il,
-    interner: &Interner,
-    call: NodeId,
-) -> Option<AdmittedLibraryApiCall<LibraryFreeFunctionBuiltinContract>> {
-    admitted_free_name_call(il, interner, call, |name, arg_count| {
-        library_free_function_builtin_contract(il.meta.lang, name, arg_count)
-    })
 }
 
 pub fn admitted_property_builtin_at_field(

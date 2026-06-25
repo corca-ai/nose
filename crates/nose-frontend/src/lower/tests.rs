@@ -7,6 +7,7 @@ mod core_misc;
 mod param_domains;
 mod post_lower_free_names;
 mod post_lower_properties;
+mod post_lower_python_iterator_builtins;
 mod post_lower_results;
 
 fn sp() -> Span {
@@ -196,7 +197,7 @@ fn named_node_span(il: &Il, interner: &Interner, kind: NodeKind, name: &str) -> 
     })
 }
 
-fn call_span_with_callee_named(il: &Il, interner: &Interner, name: &str) -> Option<Span> {
+fn call_with_callee_named(il: &Il, interner: &Interner, name: &str) -> Option<NodeId> {
     il.nodes.iter().enumerate().find_map(|(idx, node)| {
         (node.kind == NodeKind::Call
             && il
@@ -208,8 +209,12 @@ fn call_span_with_callee_named(il: &Il, interner: &Interner, name: &str) -> Opti
                         Payload::Name(symbol) if interner.resolve(symbol) == name
                     )
                 }))
-        .then_some(node.span)
+        .then_some(NodeId(idx as u32))
     })
+}
+
+fn call_span_with_callee_named(il: &Il, interner: &Interner, name: &str) -> Option<Span> {
+    call_with_callee_named(il, interner, name).map(|call| il.node(call).span)
 }
 
 fn call_span_with_field_callee_named(il: &Il, interner: &Interner, name: &str) -> Option<Span> {

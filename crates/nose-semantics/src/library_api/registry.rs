@@ -11,6 +11,10 @@ pub(super) fn library_api_contract_result_domain_for_arity(
     arity: u16,
 ) -> Option<DomainEvidence> {
     library_api_materialized_result_domain_for_arity(id, callee, arity).or(match id {
+        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
+        | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate) => {
+            Some(DomainEvidence::Iterator)
+        }
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(_)) => {
             Some(DomainEvidence::Collection)
         }
@@ -117,6 +121,9 @@ fn library_api_callee_contracts_for_id(
         }
         LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
             library_free_function_builtin_callee_contracts_for_id(lang, builtin)
+        }
+        LibraryApiContractId::FreeFunctionHof(kind) => {
+            library_free_function_hof_callee_contracts_for_id(lang, kind)
         }
         LibraryApiContractId::RustOptionSomeConstructor => [
             "Some",
@@ -380,6 +387,21 @@ fn library_free_function_builtin_callee_contracts_for_id(
     };
     candidate
         .and_then(|(name, arg_count)| library_free_function_builtin_contract(lang, name, arg_count))
+        .map(|contract| vec![contract.callee])
+        .unwrap_or_default()
+}
+
+fn library_free_function_hof_callee_contracts_for_id(
+    lang: Lang,
+    kind: HoFKind,
+) -> Vec<LibraryApiCalleeContract> {
+    let candidate = match (lang, kind) {
+        (Lang::Python, HoFKind::Map) => Some(("map", 2)),
+        (Lang::Python, HoFKind::Filter) => Some(("filter", 2)),
+        _ => None,
+    };
+    candidate
+        .and_then(|(name, arg_count)| library_free_function_hof_contract(lang, name, arg_count))
         .map(|contract| vec![contract.callee])
         .unwrap_or_default()
 }

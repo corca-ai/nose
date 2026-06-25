@@ -251,9 +251,9 @@ fn zip_comprehension_converges_with_indexed_loop() {
     // `sum(x*y for x,y in zip(a,b))` binds the tuple to Elem(a), Elem(b) and converges
     // with the indexed `a[i]*b[i]` dot-product loop (§AI).
     let i = Interner::new();
-    let zipc = "def d(a, b):\n    return sum(x * y for x, y in zip(a, b))\n";
+    let zipc = "from typing import List\ndef d(a: List[int], b: List[int]):\n    return sum(x * y for x, y in zip(a, b))\n";
     let loopv =
-        "def d(a, b):\n    s = 0\n    for i in range(len(a)):\n        s = s + a[i] * b[i]\n    return s\n";
+        "from typing import List\ndef d(a: List[int], b: List[int]):\n    s = 0\n    for i in range(len(a)):\n        s = s + a[i] * b[i]\n    return s\n";
     assert_eq!(
         value_fp(&i, zipc, Lang::Python),
         value_fp(&i, loopv, Lang::Python),
@@ -265,8 +265,8 @@ fn zip_comprehension_converges_with_indexed_loop() {
 fn dot_product_converges_across_index_zip_and_enumerate() {
     let i = Interner::new();
     let py_loop =
-        "def d(a, b):\n    s = 0\n    for i in range(len(a)):\n        s += a[i] * b[i]\n    return s\n";
-    let py_zip = "def d(a, b):\n    return sum(x * y for x, y in zip(a, b))\n";
+        "from typing import List\ndef d(a: List[int], b: List[int]):\n    s = 0\n    for i in range(len(a)):\n        s += a[i] * b[i]\n    return s\n";
+    let py_zip = "from typing import List\ndef d(a: List[int], b: List[int]):\n    return sum(x * y for x, y in zip(a, b))\n";
     let go_range = "package p\nfunc d(a []int, b []int) int {\n\ts := 0\n\tfor i, x := range a {\n\t\ts += x * b[i]\n\t}\n\treturn s\n}\n";
     let go_for = "package p\nfunc d(a []int, b []int) int {\n\ts := 0\n\tfor i := 0; i < len(a); i++ {\n\t\ts += a[i] * b[i]\n\t}\n\treturn s\n}\n";
     let rust_range = "fn d(a: &[i32], b: &[i32]) -> i32 { let mut s = 0; for i in 0..a.len() { s += a[i] * b[i]; } s }";
@@ -277,7 +277,7 @@ fn dot_product_converges_across_index_zip_and_enumerate() {
         "def d(a, b)\n  s = 0\n  i = 0\n  while i < a.length\n    s += a[i] * b[i]\n    i += 1\n  end\n  s\nend\n";
     let java_for = "class C { static int d(int[] a, int[] b) { int s = 0; for (int i = 0; i < a.length; i++) { s += a[i] * b[i]; } return s; } }";
     let c_for = "int d(int *a, int *b, int n) { int s = 0; for (int i = 0; i < n; i++) { s += a[i] * b[i]; } return s; }";
-    let bad_pair_sum = "def d(a, b):\n    return sum(x + y for x, y in zip(a, b))\n";
+    let bad_pair_sum = "from typing import List\ndef d(a: List[int], b: List[int]):\n    return sum(x + y for x, y in zip(a, b))\n";
 
     let fp = value_fp(&i, py_loop, Lang::Python);
     assert_eq!(fp, value_fp(&i, py_zip, Lang::Python));
@@ -305,8 +305,8 @@ fn enumerate_converges_with_range_index() {
     // canonical iteration index and `x`/`xs[i]` to the same element, so a first-match
     // search converges across the two iteration idioms (§AI).
     let i = Interner::new();
-    let enum_ = "def ff(xs, t):\n    for i, x in enumerate(xs):\n        if x > t:\n            return i\n    return -1\n";
-    let rng = "def ff(xs, t):\n    for i in range(len(xs)):\n        if xs[i] > t:\n            return i\n    return -1\n";
+    let enum_ = "from typing import List\ndef ff(xs: List[int], t: int):\n    for i, x in enumerate(xs):\n        if x > t:\n            return i\n    return -1\n";
+    let rng = "from typing import List\ndef ff(xs: List[int], t: int):\n    for i in range(len(xs)):\n        if xs[i] > t:\n            return i\n    return -1\n";
     assert_eq!(
         value_fp(&i, enum_, Lang::Python),
         value_fp(&i, rng, Lang::Python),

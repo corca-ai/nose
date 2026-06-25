@@ -21,6 +21,28 @@ pub(crate) fn free_function_builtin_protocol_record(
     )
 }
 
+pub(crate) fn python_iterator_builtin_protocol_record(
+    id: u32,
+    span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    status: EvidenceStatus,
+    dependencies: &[u32],
+) -> EvidenceRecord {
+    library_api_record_with_provenance_and_arity(
+        id,
+        span,
+        contract_id,
+        callee,
+        arity,
+        status,
+        dependencies,
+        PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+        PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
+    )
+}
+
 pub(crate) fn js_like_builtin_promise_record(
     id: u32,
     span: Span,

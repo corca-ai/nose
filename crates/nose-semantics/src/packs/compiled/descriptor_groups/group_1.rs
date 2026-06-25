@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 25] = [
+pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 26] = [
     BuiltinPackDescriptor {
         id: JAVA_STDLIB_MATH_PACK_ID,
         kind: SemanticPackKind::StdlibPack,
@@ -190,6 +190,25 @@ pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 25] = [
         static_conformance_refs: FREE_FUNCTION_BUILTIN_PROTOCOL_CONFORMANCE_REFS,
         dynamic_conformance_refs: None,
         counts: free_function_builtin_protocol_counts,
+    },
+    BuiltinPackDescriptor {
+        id: PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+        kind: SemanticPackKind::ProtocolPack,
+        display_name: "nose Python iterator builtin protocol pack",
+        trust: PackTrust::BuiltinDefault,
+        enabled_by_default: true,
+        supported_languages: PYTHON_ITERATOR_BUILTIN_PROTOCOL_LANGUAGES,
+        supported_packages: PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACKAGES,
+        language: None,
+        evidence_producer_ids: PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_IDS,
+        source_fact_producer_ids: NO_IDS,
+        contract_ids: PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONTRACT_IDS,
+        type_domain_alias_contracts: NO_TYPE_DOMAIN_ALIAS_CONTRACTS,
+        static_value_law_ids: NO_IDS,
+        dynamic_value_law_ids: None,
+        static_conformance_refs: PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONFORMANCE_REFS,
+        dynamic_conformance_refs: None,
+        counts: python_iterator_builtin_protocol_counts,
     },
     BuiltinPackDescriptor {
         id: RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,

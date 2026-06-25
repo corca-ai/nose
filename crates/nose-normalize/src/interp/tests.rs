@@ -4,7 +4,10 @@ mod basic;
 mod calls_symbolic;
 mod hof;
 mod state;
+mod support;
 mod try_effects;
+
+use support::append_test_python_iterator_builtin_source_dependencies;
 
 use nose_il::{
     stable_symbol_hash, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor,
@@ -19,7 +22,8 @@ use nose_semantics::{
     LibraryApiShadowPolicy, LibraryMethodCallContract, MethodReceiverContract,
     MethodSemanticContract, BUILTIN_COMPAT_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
     BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
-    FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
+    FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID, PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+    PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
 };
 
 fn language_core_provenance(lang: Lang) -> EvidenceProvenance {
@@ -126,11 +130,19 @@ fn admit_test_builtin_calls(il: &mut Il) {
                     contract.result.name,
                 ));
                 next_id += 1;
+                let mut dependencies = vec![symbol_id];
+                append_test_python_iterator_builtin_source_dependencies(
+                    il,
+                    node,
+                    builtin,
+                    &mut next_id,
+                    &mut dependencies,
+                );
                 (
                     contract.id,
                     contract.callee,
                     source_arg_count as u16,
-                    vec![symbol_id],
+                    dependencies,
                 )
             } else if let Some((contract, arity)) =
                 test_method_builtin_contract(il.meta.lang, builtin, arg_count)
@@ -146,6 +158,7 @@ fn admit_test_builtin_calls(il: &mut Il) {
             };
             il.evidence.push(test_library_api_record(
                 next_id,
+                il.meta.lang,
                 span,
                 contract_id,
                 callee,
@@ -302,14 +315,27 @@ fn test_callee_contract() -> LibraryApiCalleeContract {
 
 fn test_library_api_record(
     id: u32,
+    lang: Lang,
     span: Span,
     contract_id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let (pack_id, rule_id) = if matches!(contract_id, LibraryApiContractId::FreeFunctionBuiltin(_))
-    {
+    let (pack_id, rule_id) = if matches!(
+        (lang, contract_id),
+        (
+            Lang::Python,
+            LibraryApiContractId::FreeFunctionBuiltin(
+                Builtin::Zip | Builtin::Enumerate | Builtin::Any | Builtin::All
+            )
+        )
+    ) {
+        (
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
+        )
+    } else if matches!(contract_id, LibraryApiContractId::FreeFunctionBuiltin(_)) {
         (
             FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
             FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,

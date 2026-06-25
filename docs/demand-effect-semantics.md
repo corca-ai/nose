@@ -50,7 +50,10 @@ effects are delayed until a terminal consumer pulls an element. First-party
 library/API HOF rows now carry explicit timing for the supported surfaces:
 JS-like and Ruby `map`/`flatMap`/`filter` rows are eager per element where
 available, while Rust iterator and Java Stream `map`/`flatMap`/`filter` rows are
-pull-lazy. Rust iterator HOF rows require
+pull-lazy. Python builtin `map`/`filter` rows are also pull-lazy, but only when
+they are admitted through `nose.protocols.iterator_builtins` with unshadowed
+builtin proof, iterable-source proof, and a lambda callback shape. Rust
+iterator HOF rows require
 `nose.protocols.sequence_hof_adapters` occurrence provenance on a proven
 protocol receiver; `any`/`all` and `count` terminal rows use the same provenance
 boundary, while `collect` remains in the iterator identity/materialization
@@ -90,6 +93,10 @@ pull-lazy and the callback is not demanded until observation. `len` over a HOF i
 opened only for materialized/eager profiles; terminal reductions may consume
 profile-backed pull-lazy iterator HOFs. Raw HOF payloads, selector-only calls,
 unsupported source HOFs, and broken `LibraryApi` evidence remain closed.
+Python `list`/`tuple`/`set` materializers may consume an admitted lazy iterator
+source from `map`/`filter` or `zip`/`enumerate`, but only when the terminal
+collection factory proof and the iterator producer/source proof are both
+present.
 
 The Promise `.then` value-graph rule consumes the async-continuation contract,
 PromiseLike receiver proof, and supported settled-value proof. It keeps the

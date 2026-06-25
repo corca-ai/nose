@@ -134,6 +134,9 @@ The next code slices are intentionally incremental:
    `nose.protocols.free_function_builtins` for unshadowed Python/Go/Swift
    free-name builtin calls such as Python `len`/`range`/reductions, Go
    `len`/`append`, and Swift `abs`/`min`/`max`, then
+   `nose.protocols.iterator_builtins` for Python builtin iterator producers,
+   lazy HOF adapters, and terminals: `map`, `filter`, `zip`, `enumerate`,
+   `any`, and `all` under unshadowed builtin and iterable-source proof, then
    `nose.protocols.receiver_membership` for receiver-method `Contains`
    contracts with receiver proof, including Java/Rust/Ruby map-key membership,
    Python `__contains__`, JS-like `has`/`includes`, Java/Swift `contains`, and
@@ -1461,6 +1464,31 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   value-fingerprint nodes, wide chain 1455 / 324). The generated compare kept
   baseline/current binary SHA-256s with build refs, so later reviewers can
   reproduce the run from the recorded refs and commands.
+- The Python iterator-builtin slice split lazy builtin iterator capability out
+  of the generic free-function builtin protocol pack. Python `map`/`filter`
+  now enter normalized `HoF` semantics only under
+  `nose.protocols.iterator_builtins` provenance, unshadowed builtin proof,
+  iterable-source proof, and lambda callback shape. Python `zip` and
+  `enumerate` produce iterator result-domain evidence under the same pack,
+  while `any`/`all` are terminal/short-circuit builtins without materialized
+  iterator result domains. `list`/`tuple`/`set` materialization of lazy
+  iterator producers, including `map`/`filter` HOFs and `zip`/`enumerate`
+  builtins, opens only when both the collection factory and lazy source proof
+  are present. Shadowed builtins, wildcard imports, missing source proof,
+  callable-but-not-lambda callbacks, missing materializer proof, multi-iterable
+  `map`, nested iterator API dependencies whose own source obligations fail,
+  reassigned typed source parameters, and `sorted`/`reversed` stay closed.
+  Inventory before/after against
+  the #534 landed state: builtin packs 47 -> 48, exact-capable packs 37 -> 38,
+  positive fixtures 157 -> 164, hard negatives 109 -> 116, conformance refs 266
+  -> 280, unsupported refs 14 -> 16. 2026-06-26 product query-regression
+  compared clean `main@76cc0e81` with the
+  `issue-535-python-iterator-builtins@a5b5339a-local-fixes` generator state on the
+  Python `boltons` heldout representative using the fixed product semantic query
+  path and repeats=5: 1 repo compared, 0 investigation triggers. The
+  corpus-free HoF budget smoke stayed under budget (`features` 10.05 ms,
+  semantic query 9.52 ms; deep chain 592 tokens / 152 value-fingerprint nodes,
+  wide chain 1455 / 324).
 - The static API occurrence slice moved Java empty collection constructors and
   JS-like static `indexOf`/`findIndex` membership behind the same
   dependency-backed occurrence boundary. `new ArrayList<>()`/
@@ -1870,11 +1898,13 @@ Remaining after the #109 closeout:
   `LibraryApiContract` identity/result rows, and selected JS-like,
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
-  evidence, as do pack-proven Python/Go/Swift free-function builtins and
-  selected receiver-method families. Selected normalize idiom, value-graph, and strict
-  exact consumers now call shared `nose-semantics` admitted occurrence resolvers
-  for method, free-function builtin, map-get, map-get-default, map-key-view, regex, JS
-  static/global, static-index, iterator/static collection adapter, Rust
+  evidence, as do pack-proven Python/Go/Swift free-function builtins,
+  pack-proven Python iterator builtins, and selected receiver-method families.
+  Selected normalize idiom, value-graph, and strict exact consumers now call
+  shared `nose-semantics` admitted occurrence resolvers for method,
+  free-function builtin, free-function HOF, map-get, map-get-default,
+  map-key-view, regex, JS static/global, static-index,
+  iterator/static collection adapter, Rust
   Option/scalar/`Vec::new`, and first-party factory/constructor calls instead of
   locally recombining raw selector parsing with evidence admission. Value-graph
   direct factory/constructor eval and provider literal export safety now share

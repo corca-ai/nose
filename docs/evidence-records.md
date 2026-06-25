@@ -68,7 +68,7 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
-| `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/Swift/regex APIs, pack-proven Python/Go/Swift free-function builtins, pack-proven generic builtin method calls, and selected receiver-method families |
+| `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/Swift/regex APIs, pack-proven Python/Go/Swift free-function builtins, pack-proven Python iterator builtins, pack-proven generic builtin method calls, and selected receiver-method families |
 | `CallTarget` | proof that a specific call occurrence resolves to an explicit function, method, imported function/member, or dispatch-family target identity |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
@@ -644,7 +644,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   and the language-scoped method-call contracts currently used for
   collection/map membership, count, predicates, pack-owned Rust scalar integer
   methods, Rust `Option::and_then`, Rust Result `is_ok`/`is_err`, Rust `zip`,
-  HOF, and reduction methods. Property cardinality such as JS/TS `length` is
+  HOF, and reduction methods. Python builtin `map`/`filter` HOFs and
+  `zip`/`enumerate`/`any`/`all` occurrences live in the narrower
+  `nose.protocols.iterator_builtins` pack instead of the generic
+  free-function-builtin pack, and their records depend on unshadowed builtin
+  symbol proof plus iterable-source proof where the contract requires it.
+  Property cardinality such as JS/TS `length` is
   modeled as `Property`, not as a method call. The post-binding refresh exists
   because immutable
   binding-domain evidence is inferred after lowering; the final refresh exists
@@ -768,8 +773,9 @@ callers:
   remains separate: it can keep identical calls comparable, but it does not
   assign cross-language or library semantics;
 - normalize idiom canonicalization shares the admitted occurrence resolver layer
-  for pack-proven supported free-function builtins, pack-proven generic builtin method contracts,
-  pack-proven map `get`, pack-proven map get-default, pack-proven map-key
+  for pack-proven supported free-function builtins, pack-proven Python iterator
+  builtin HOFs, pack-proven generic builtin method contracts, pack-proven map `get`,
+  pack-proven map get-default, pack-proven map-key
   views, iterator identity adapters with
   `nose.protocols.iterator_identity_adapters` provenance, Rust sequence-HOF
   adapters with `nose.protocols.sequence_hof_adapters` provenance, Java

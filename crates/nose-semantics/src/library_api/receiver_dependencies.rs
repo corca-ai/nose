@@ -20,7 +20,8 @@ pub use api_records::{
     library_api_dependency_id_for_canonical_builtin_method_call_with_interner,
 };
 pub(in crate::library_api) use domain::{
-    domain_dependency_id_for_receiver_requirement, domain_or_sequence_dependency_ids,
+    domain_dependency_anchor_matches_receiver, domain_dependency_id_for_receiver_requirement,
+    domain_or_sequence_dependency_ids,
 };
 pub(in crate::library_api) use surface::{
     sequence_surface_dependency_id_for_receiver, static_index_membership_receiver_dependency_id,

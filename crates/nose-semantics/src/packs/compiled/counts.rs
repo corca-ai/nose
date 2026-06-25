@@ -361,6 +361,22 @@ pub(super) fn free_function_builtin_protocol_counts() -> SemanticPackCounts {
     }
 }
 
+pub(super) fn python_iterator_builtin_protocol_counts() -> SemanticPackCounts {
+    SemanticPackCounts {
+        evidence_producers: PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_IDS.len(),
+        contracts: PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONTRACT_IDS.len(),
+        value_laws: 0,
+        positive_fixtures: PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| !id.contains("hard-negative"))
+            .count(),
+        hard_negatives: PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONFORMANCE_REFS
+            .iter()
+            .filter(|id| id.contains("hard-negative"))
+            .count(),
+    }
+}
+
 pub(super) fn receiver_membership_protocol_counts() -> SemanticPackCounts {
     SemanticPackCounts {
         evidence_producers: RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_IDS.len(),

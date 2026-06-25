@@ -3,18 +3,6 @@ use super::canonical::{
 };
 use super::*;
 
-pub(super) fn normalized_hof_method_call_dependencies_match(
-    il: &Il,
-    hof: NodeId,
-    record: &EvidenceRecord,
-    contract: LibraryMethodCallContract,
-) -> bool {
-    let Some(&receiver) = il.children(hof).first() else {
-        return false;
-    };
-    receiver_contract_dependency_match(il, record, receiver, contract.result.receiver)
-}
-
 pub(super) fn method_call_receiver_dependencies_match(
     il: &Il,
     interner: Option<&Interner>,
@@ -271,7 +259,24 @@ pub(super) fn asserted_library_api_dependency_contract(
     {
         return None;
     }
+    if library_api_dependency_requires_call_obligations(actual_id)
+        && !node_at_span_with_kind(il, dependency.anchor.span(), NodeKind::Call).is_some_and(
+            |call| {
+                library_api_contract_obligations_match_call(il, None, call, actual_id, dependency)
+            },
+        )
+    {
+        return None;
+    }
     Some((actual_id, callee, arity))
+}
+
+fn library_api_dependency_requires_call_obligations(id: LibraryApiContractId) -> bool {
+    matches!(
+        id,
+        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
+            | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate)
+    )
 }
 
 pub(super) fn library_api_dependency_anchor_matches_receiver(
@@ -331,6 +336,10 @@ pub(super) fn library_api_dependency_contract_satisfies_protocol_receiver(
         LibraryApiContractId::MapKeyView(kind) => map_key_view_satisfies_receiver(kind, receiver),
         LibraryApiContractId::IteratorIdentityAdapter
         | LibraryApiContractId::StaticCollectionAdapter => {
+            protocol_api_satisfies_receiver(receiver)
+        }
+        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
+        | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate) => {
             protocol_api_satisfies_receiver(receiver)
         }
         LibraryApiContractId::MethodCall(

@@ -57,34 +57,37 @@ use crate::type_domain_aliases::{
     ResolvedTypeDomain, TypeDomainAliases, TypeDomainEvidenceProvenance,
 };
 use nose_il::{
-    stable_symbol_hash, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter,
-    EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
-    Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
-    NodeKind, Op, Payload, PlaceEvidenceKind, RegionKind, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, SourceGranularity, SourceProtocolKind, Span, Symbol, SymbolEvidenceKind, Unit,
-    UnitBodyKind, UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
+    stable_symbol_hash, Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor,
+    EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
+    FileId, FileMeta, HoFKind, Il, IlBuilder, ImportEvidenceKind, Interner, Lang,
+    LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op, Payload, PlaceEvidenceKind, RegionKind,
+    SequenceSurfaceKind, SourceCallKind, SourceComprehensionKind, SourceFactKind,
+    SourceGranularity, SourceProtocolKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitBodyKind,
+    UnitDomain, UnitDomains, UnitEvidenceFlag, UnitKind, UnitOrigin, UnitSubkind,
 };
 use nose_semantics::{
-    js_object_key_view_argument_dependency_ids_for_call, library_api_callee_contract_hash,
-    library_api_contract_id_hash, library_api_free_name_shadow_safe,
-    library_api_materialized_result_domain_for_arity,
+    binding_write_target, js_object_key_view_argument_dependency_ids_for_call,
+    language_core_evidence_provenance, language_source_fact_provenance,
+    library_api_callee_contract_hash, library_api_contract_id_hash,
+    library_api_free_name_shadow_safe, library_api_materialized_result_domain_for_arity,
     library_api_property_dependencies_for_field_with_cache,
     library_collection_factory_result_domain_for_arity, library_free_function_builtin_contract,
-    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
-    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
-    library_java_collection_constructor_contract, library_java_collection_factory_contract,
-    library_java_map_entry_contract, library_java_map_factory_contract,
-    library_js_array_is_array_contract, library_js_boolean_coercion_contract,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_factory_result_domain, library_map_key_view_wrapper_contract,
-    library_map_key_view_wrapper_result_domain, library_object_key_view_contract,
-    library_promise_resolve_contract, library_property_builtin_contract,
-    library_regex_test_contract, library_ruby_set_factory_contract,
-    library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
-    library_rust_result_err_constructor_contract, library_rust_result_ok_constructor_contract,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    library_static_collection_adapter_contract, library_static_index_membership_contract,
-    library_swift_map_factory_contract, module_binding_mutating_method_contract,
+    library_free_function_hof_contract, library_free_name_collection_factory_contract,
+    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
+    library_imported_namespace_function_contract, library_java_collection_constructor_contract,
+    library_java_collection_factory_contract, library_java_map_entry_contract,
+    library_java_map_factory_contract, library_js_array_is_array_contract,
+    library_js_boolean_coercion_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_factory_result_domain,
+    library_map_key_view_wrapper_contract, library_map_key_view_wrapper_result_domain,
+    library_object_key_view_contract, library_promise_resolve_contract,
+    library_property_builtin_contract, library_regex_test_contract,
+    library_ruby_set_factory_contract, library_rust_option_none_sentinel_contract,
+    library_rust_option_some_constructor_contract, library_rust_result_err_constructor_contract,
+    library_rust_result_ok_constructor_contract, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
+    library_static_index_membership_contract, library_swift_map_factory_contract,
+    module_binding_mutating_method_contract,
     proven_receiver_method_api_contract_for_call_with_cache, qualified_global_symbol_contract,
     sequence_surface_kind_for_tag, type_domain_from_source_text, ImportFactKind,
     LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
@@ -99,7 +102,8 @@ use nose_semantics::{
     JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PRODUCER_ID, JS_LIKE_BUILTIN_PROMISE_PRODUCER_ID,
     JS_LIKE_BUILTIN_REGEX_PRODUCER_ID, JS_LIKE_BUILTIN_STATIC_INDEX_MEMBERSHIP_PRODUCER_ID,
     MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID, PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
-    PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+    PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID, PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID,
     PYTHON_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, PYTHON_STDLIB_MATH_PRODUCER_ID,
     RUBY_STDLIB_SET_PACK_ID, RUBY_STDLIB_SET_PRODUCER_ID,
     RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
@@ -155,10 +159,8 @@ pub(crate) struct Lowering<'a> {
 
 impl<'a> Lowering<'a> {
     pub(crate) fn new(file: FileId, src: &'a [u8], lang: Lang, interner: &'a Interner) -> Self {
-        let (core_pack_id, core_producer_id) =
-            nose_semantics::language_core_evidence_provenance(lang);
-        let (source_pack_id, source_producer_id) =
-            nose_semantics::language_source_fact_provenance(lang);
+        let (core_pack_id, core_producer_id) = language_core_evidence_provenance(lang);
+        let (source_pack_id, source_producer_id) = language_source_fact_provenance(lang);
         Lowering {
             b: IlBuilder::new(file),
             src,

@@ -25,6 +25,8 @@ fn core_library_api_contract_ids() -> Vec<LibraryApiContractId> {
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::Enumerate),
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::Any),
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::All),
+        LibraryApiContractId::FreeFunctionHof(HoFKind::Map),
+        LibraryApiContractId::FreeFunctionHof(HoFKind::Filter),
         LibraryApiContractId::RustOptionSomeConstructor,
         LibraryApiContractId::RustOptionNoneSentinel,
         LibraryApiContractId::RustOptionAndThen,

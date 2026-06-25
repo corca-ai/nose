@@ -8,8 +8,10 @@ pub(super) use nose_il::{
 };
 pub(super) use nose_semantics::{
     language_core_evidence_provenance, library_free_function_builtin_contract,
-    library_free_name_map_factory_contract, library_receiver_method_api_contracts,
-    FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
+    library_free_function_hof_contract, library_free_name_map_factory_contract,
+    library_receiver_method_api_contracts, FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
+    FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID, PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+    PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
 };
 
 pub(super) fn sp() -> Span {
@@ -252,6 +254,61 @@ pub(super) fn push_free_function_builtin_library_api_evidence(
     record.provenance.pack_hash = Some(stable_symbol_hash(FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID));
     record.provenance.rule_hash = Some(stable_symbol_hash(
         FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
+    ));
+    Some(EvidenceId(id))
+}
+
+pub(super) fn push_free_function_hof_library_api_evidence(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<EvidenceId> {
+    let kids = il.children(call);
+    let (&callee, args) = kids.split_first()?;
+    let arg_count = args.len();
+    let callee_span = il.node(callee).span;
+    let call_span = il.node(call).span;
+    let Payload::Name(symbol) = il.node(callee).payload else {
+        return None;
+    };
+    let name = interner.resolve(symbol);
+    let contract = library_free_function_hof_contract(il.meta.lang, name, arg_count)?;
+    let source = args.get(contract.result.source_arg).copied()?;
+    let symbol_id = next_evidence_id(il);
+    il.evidence.push(language_core_symbol_evidence(
+        symbol_id,
+        il.meta.lang,
+        EvidenceAnchor::node(callee_span, NodeKind::Var),
+        SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash(name),
+        },
+        EvidenceStatus::Asserted,
+    ));
+    let source_id = next_evidence_id(il);
+    il.evidence.push(language_core_evidence(
+        source_id,
+        il.meta.lang,
+        EvidenceAnchor::node(il.node(source).span, il.kind(source)),
+        EvidenceKind::Domain(DomainEvidence::Collection),
+        EvidenceStatus::Asserted,
+    ));
+    let id = next_evidence_id(il);
+    il.evidence.push(evidence_with_dependencies(
+        id,
+        EvidenceAnchor::node(call_span, NodeKind::Call),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: nose_semantics::library_api_contract_id_hash(contract.id),
+            callee_hash: nose_semantics::library_api_callee_contract_hash(contract.callee),
+            arity: arg_count as u16,
+        }),
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(symbol_id), EvidenceId(source_id)],
+    ));
+    let record = il.evidence.last_mut().expect("just pushed API evidence");
+    record.provenance.pack_hash =
+        Some(stable_symbol_hash(PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID));
+    record.provenance.rule_hash = Some(stable_symbol_hash(
+        PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
     ));
     Some(EvidenceId(id))
 }

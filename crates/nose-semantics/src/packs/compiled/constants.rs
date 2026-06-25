@@ -94,6 +94,7 @@ pub(super) const JAVA_LANGUAGE: &[&str] = &["java"];
 pub(super) const JAVA_RUST_LANGUAGE: &[&str] = &["java", "rust"];
 pub(super) const MAP_GET_DEFAULT_PROTOCOL_LANGUAGES: &[&str] = &["python", "ruby", "java"];
 pub(super) const FREE_FUNCTION_BUILTIN_PROTOCOL_LANGUAGES: &[&str] = &["python", "go", "swift"];
+pub(super) const PYTHON_ITERATOR_BUILTIN_PROTOCOL_LANGUAGES: &[&str] = &["python"];
 pub(super) const RECEIVER_MEMBERSHIP_PROTOCOL_LANGUAGES: &[&str] = &[
     "python",
     "ruby",
@@ -166,6 +167,7 @@ pub(super) const MAP_GET_PROTOCOL_PACKAGES: &[&str] = &["Map", "java.util", "std
 pub(super) const MAP_GET_DEFAULT_PROTOCOL_PACKAGES: &[&str] = &["dict", "Hash", "java.util"];
 pub(super) const FREE_FUNCTION_BUILTIN_PROTOCOL_PACKAGES: &[&str] =
     &["builtins", "go.predeclared", "Swift"];
+pub(super) const PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACKAGES: &[&str] = &["builtins"];
 pub(super) const RECEIVER_MEMBERSHIP_PROTOCOL_PACKAGES: &[&str] = &[
     "Array",
     "Collection",
@@ -352,6 +354,28 @@ pub(super) const FREE_FUNCTION_BUILTIN_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
     "free-function-builtin-compatibility-pack-hard-negative",
     "free-function-builtin-wrong-producer-hard-negative",
     "free-function-builtin-unsupported-arity-hard-negative",
+];
+pub(super) const PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_IDS: &[&str] =
+    &[PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID];
+pub(super) const PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONTRACT_IDS: &[&str] = &[
+    PYTHON_ITERATOR_BUILTIN_CONTRACT_ID,
+    FREE_FUNCTION_HOF_CONTRACT_ID,
+];
+pub(super) const PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
+    "python-iterator-builtin-map-positive",
+    "python-iterator-builtin-filter-positive",
+    "python-iterator-builtin-zip-positive",
+    "python-iterator-builtin-enumerate-positive",
+    "python-iterator-builtin-any-terminal-positive",
+    "python-iterator-builtin-all-terminal-positive",
+    "python-iterator-builtin-materializer-positive",
+    "python-iterator-builtin-shadowed-hard-negative",
+    "python-iterator-builtin-wildcard-import-hard-negative",
+    "python-iterator-builtin-missing-source-proof-hard-negative",
+    "python-iterator-builtin-callback-not-lambda-hard-negative",
+    "python-iterator-builtin-missing-materializer-proof-hard-negative",
+    "python-iterator-builtin-multi-iterable-map-unsupported-hard-negative",
+    "python-iterator-builtin-sorted-reversed-unsupported-hard-negative",
 ];
 pub(super) const RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_IDS: &[&str] =
     &[RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID];

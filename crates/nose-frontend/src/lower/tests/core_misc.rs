@@ -119,7 +119,7 @@ fn generic_source_facts_use_builtin_language_pack_provenance() {
     let mut lo = Lowering::new(FileId(0), b"", Lang::Python, &interner);
     lo.record_source_fact(
         sp_at(1),
-        SourceFactKind::Comprehension(nose_il::SourceComprehensionKind::PythonListComprehension),
+        SourceFactKind::Comprehension(SourceComprehensionKind::PythonListComprehension),
     );
     let record = lo.evidence.last().expect("source fact evidence");
     assert_eq!(

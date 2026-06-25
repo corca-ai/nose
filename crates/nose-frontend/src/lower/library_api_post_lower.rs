@@ -3,12 +3,17 @@ use super::*;
 
 mod free_name_vars;
 mod object_key_views;
+mod python_iterator_builtins;
 mod receiver_methods;
 mod rust_option;
 mod rust_result;
 mod swift_factories;
 use free_name_vars::record_post_lower_free_name_var_library_api;
 use object_key_views::record_post_lower_object_key_view_library_api;
+use python_iterator_builtins::{
+    post_lower_add_iterator_source_dependencies, post_lower_free_function_builtin_api_contract,
+    post_lower_free_function_hof_api_contract,
+};
 use receiver_methods::record_post_lower_receiver_method_library_api;
 use rust_option::{
     record_post_lower_rust_option_none_library_api,
@@ -19,7 +24,7 @@ use rust_result::{
 };
 use swift_factories::post_lower_record_swift_map_factory_result_domain;
 
-struct PostLowerLibraryApiContract {
+pub(super) struct PostLowerLibraryApiContract {
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
     pack_id: &'static str,
@@ -100,7 +105,7 @@ pub(super) fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Int
 }
 
 fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, call: NodeId) -> bool {
-    let kids = il.children(call);
+    let kids = il.children(call).to_vec();
     let Some((&callee, args)) = kids.split_first() else {
         return false;
     };
@@ -127,6 +132,10 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
     else {
         return false;
     };
+    let mut dependencies = dependencies;
+    if !post_lower_add_iterator_source_dependencies(il, args, contract.id, &mut dependencies) {
+        return false;
+    }
     let is_swift_map_factory = matches!(contract.id, LibraryApiContractId::SwiftMapFactory(_));
     let api = record_post_lower_library_api_contract(il, call, arg_count, contract, dependencies);
     if is_swift_map_factory {
@@ -185,17 +194,8 @@ fn post_lower_free_name_library_api_contract(
             )
         })
         .or_else(|| post_lower_rust_result_constructor_contract(lang, callee_name, arg_count))
-        .or_else(|| {
-            library_free_function_builtin_contract(lang, callee_name, arg_count).map(|contract| {
-                PostLowerLibraryApiContract {
-                    id: contract.id,
-                    callee: contract.callee,
-                    pack_id: FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
-                    rule: FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
-                    result_domain: None,
-                }
-            })
-        })
+        .or_else(|| post_lower_free_function_hof_api_contract(lang, callee_name, arg_count))
+        .or_else(|| post_lower_free_function_builtin_api_contract(lang, callee_name, arg_count))
 }
 
 fn post_lower_collection_factory_contract(

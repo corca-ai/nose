@@ -385,3 +385,13 @@ hard-negative tests shifts representative line spans without adding a new substa
 new IDs cover the same reviewed test/helper debt: cross-crate `evidence_with_dependencies`
 fixtures, language-core evidence fixtures, Python collection factory evidence fixtures, and HOF
 demand/materialization negative tests. No new budget is accepted.
+
+The #535 Python iterator builtin capability PR also keeps the count at 56. A draft-only frontend
+test helper family between `call_span_with_callee_named`, `call_span_with_field_callee_named`, and
+the new Python iterator tests was removed by sharing the call-node lookup helper in the lowerer
+test module. The remaining drift is representative-ID churn:
+`03a902cddc7077f2`, `32b92ef22cfabecd`, `78872d78308c99fd`, and `b981263fc2a3f950` disappear;
+`4184990de7be5a2e`, `48b9d4234768340d`, `8a741b956dc35bad`, and `a14558ef919c3e76` appear. The
+new IDs cover the same reviewed fixture debt: cross-crate `evidence_with_dependencies` builders,
+language-core evidence helpers, and semantic-pack `LibraryApi` record builders now including the
+Python iterator builtin protocol record. No new budget is accepted.

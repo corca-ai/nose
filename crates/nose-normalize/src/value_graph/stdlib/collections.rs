@@ -150,6 +150,44 @@ impl<'a> Builder<'a> {
         }
     }
 
+    pub(in crate::value_graph) fn eval_python_iterator_materializer_expr(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::Python || kids.len() != 2 {
+            return None;
+        }
+        let occurrence =
+            admitted_free_name_collection_factory_at_call(self.il, self.interner, expr)?;
+        if !matches!(
+            occurrence.contract.id,
+            LibraryApiContractId::PythonBuiltinCollectionFactory
+        ) {
+            return None;
+        }
+        let source = kids[1];
+        self.proven_python_lazy_iterator_source(source)
+            .then(|| self.eval(source, env))
+    }
+
+    fn proven_python_lazy_iterator_source(&self, source: NodeId) -> bool {
+        match (self.il.kind(source), self.il.node(source).payload) {
+            (NodeKind::HoF, Payload::HoF(kind)) => {
+                admitted_hof_demand_effect_profile_at_node(self.il, source, kind)
+                    .is_some_and(|profile| profile.callback_effects_delayed_until_pull())
+            }
+            (NodeKind::Call, Payload::Builtin(Builtin::Zip)) => {
+                self.admitted_builtin_call(source, Builtin::Zip)
+            }
+            (NodeKind::Call, Payload::Builtin(Builtin::Enumerate)) => {
+                self.admitted_builtin_call(source, Builtin::Enumerate)
+            }
+            _ => false,
+        }
+    }
+
     pub(in crate::value_graph) fn eval_swift_collection_factory_expr(
         &mut self,
         expr: NodeId,

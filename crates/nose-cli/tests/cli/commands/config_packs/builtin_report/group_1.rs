@@ -109,6 +109,37 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(free_function_builtin["counts"]["positive_fixtures"], 6);
     assert_eq!(free_function_builtin["counts"]["hard_negatives"], 4);
 
+    let python_iterator_builtin = semantic_pack_by_id(&json, "nose.protocols.iterator_builtins");
+    assert_eq!(python_iterator_builtin["hash"], "d48fa65341352c6c");
+    assert_eq!(python_iterator_builtin["kind"], "ProtocolPack");
+    assert_eq!(
+        python_iterator_builtin["display_name"],
+        "nose Python iterator builtin protocol pack"
+    );
+    assert_eq!(python_iterator_builtin["source"], "compiled-builtin");
+    assert_eq!(
+        python_iterator_builtin["influence"],
+        "evidence-and-contracts"
+    );
+    assert_eq!(python_iterator_builtin["trust"], "builtin-default");
+    assert_eq!(python_iterator_builtin["enabled_by_default"], true);
+    assert_eq!(python_iterator_builtin["path"], serde_json::Value::Null);
+    assert_eq!(python_iterator_builtin["provider"], "Corca, Inc.");
+    assert_eq!(
+        python_iterator_builtin["repository"],
+        "https://github.com/corca-ai/nose"
+    );
+    assert_eq!(python_iterator_builtin["license"], "MIT");
+    assert_eq!(
+        json_array_strings(python_iterator_builtin, "supported_languages"),
+        vec!["python"]
+    );
+    assert_eq!(python_iterator_builtin["counts"]["evidence_producers"], 1);
+    assert_eq!(python_iterator_builtin["counts"]["contracts"], 2);
+    assert_eq!(python_iterator_builtin["counts"]["value_laws"], 0);
+    assert_eq!(python_iterator_builtin["counts"]["positive_fixtures"], 7);
+    assert_eq!(python_iterator_builtin["counts"]["hard_negatives"], 7);
+
     let receiver_membership = semantic_pack_by_id(&json, "nose.protocols.receiver_membership");
     assert_eq!(receiver_membership["hash"], "b01cdfb3d7ec79c9");
     assert_eq!(receiver_membership["kind"], "ProtocolPack");

@@ -30,6 +30,55 @@ fn python_unshadowed_builtin_requires_library_api_evidence() {
 }
 
 #[test]
+fn python_iterator_free_function_hof_requires_iterator_contract() {
+    let (mut il, interner, call, source, callback) = python_iterator_hof_call_il("map", true, 0);
+    assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+
+    let _ = push_free_function_hof_library_api_evidence(&mut il, &interner, call);
+    assert!(matches!(
+        canon_call(&il, &interner, call),
+        CallCanon::HoF {
+            kind: HoFKind::Map,
+            collection_old,
+            fn_old,
+        } if collection_old == source && fn_old == callback
+    ));
+}
+
+#[test]
+fn python_iterator_free_function_hof_requires_lambda_callback() {
+    let (mut il, interner, call, _, _) = python_iterator_hof_call_il("filter", false, 0);
+    let _ = push_free_function_hof_library_api_evidence(&mut il, &interner, call);
+    assert!(
+        matches!(canon_call(&il, &interner, call), CallCanon::None),
+        "filter(None-or-callable, xs) stays closed until callback semantics are explicit"
+    );
+}
+
+#[test]
+fn python_iterator_free_function_hof_rejects_unsupported_surfaces() {
+    let (mut multi_map, multi_interner, multi_call, _, _) =
+        python_iterator_hof_call_il("map", true, 2);
+    assert!(
+        push_free_function_hof_library_api_evidence(&mut multi_map, &multi_interner, multi_call)
+            .is_none(),
+        "multi-iterable map needs callback arity/product semantics before admission"
+    );
+    assert!(matches!(
+        canon_call(&multi_map, &multi_interner, multi_call),
+        CallCanon::None
+    ));
+
+    let (mut sorted, sorted_interner, sorted_call, _, _) =
+        python_iterator_hof_call_il("sorted", true, 0);
+    assert!(
+        push_free_function_hof_library_api_evidence(&mut sorted, &sorted_interner, sorted_call)
+            .is_none(),
+        "sorted needs ordering/key semantics and is not this lazy iterator capability"
+    );
+}
+
+#[test]
 fn method_hof_requires_exact_receiver() {
     let (il, interner, call) = method_call_il(Lang::JavaScript, "map", false);
     assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
@@ -237,4 +286,60 @@ fn go_namespace_contains_call(module_name: &str) -> (Il, Interner, NodeId, NodeI
         Vec::new(),
     );
     (il, interner, call, receiver)
+}
+
+fn python_iterator_hof_call_il(
+    name: &str,
+    lambda_callback: bool,
+    extra_sources: usize,
+) -> (Il, Interner, NodeId, NodeId, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern(name)),
+        sp(),
+        &[],
+    );
+    let callback = if lambda_callback {
+        let param = b.add(NodeKind::Param, Payload::Cid(10), sp(), &[]);
+        let value = b.add(NodeKind::Var, Payload::Cid(10), sp(), &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp(), &[value]);
+        let block = b.add(NodeKind::Block, Payload::None, sp(), &[ret]);
+        b.add(NodeKind::Lambda, Payload::None, sp(), &[param, block])
+    } else {
+        b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("predicate")),
+            sp(),
+            &[],
+        )
+    };
+    let source = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("xs")),
+        sp(),
+        &[],
+    );
+    let mut args = vec![callee, callback, source];
+    for idx in 0..extra_sources {
+        args.push(b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern(&format!("ys{idx}"))),
+            sp(),
+            &[],
+        ));
+    }
+    let call = b.add(NodeKind::Call, Payload::None, sp(), &args);
+    let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+    let il = b.finish(
+        root,
+        FileMeta {
+            path: "t".to_string(),
+            lang: Lang::Python,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    (il, interner, call, source, callback)
 }

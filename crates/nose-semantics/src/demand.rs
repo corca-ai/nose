@@ -425,7 +425,8 @@ pub fn library_hof_demand_timing(lang: Lang, kind: HoFKind) -> Option<HofDemandT
         | (Lang::Swift, HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter) => {
             HofDemandTiming::EagerPerElement
         }
-        (Lang::Rust, HoFKind::Map | HoFKind::FlatMap | HoFKind::FilterMap | HoFKind::Filter)
+        (Lang::Python, HoFKind::Map | HoFKind::Filter)
+        | (Lang::Rust, HoFKind::Map | HoFKind::FlatMap | HoFKind::FilterMap | HoFKind::Filter)
         | (Lang::Java, HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter) => {
             HofDemandTiming::PullLazy
         }

@@ -207,7 +207,10 @@ pub(super) fn canonical_record_provenance_and_dependencies_match(
         (
             LibraryApiContractId::FreeFunctionBuiltin(_),
             LibraryApiCalleeContract::FreeName { name, .. },
-        ) => canonical_record_has_unshadowed_symbol_dependency(il, call, record, name),
+        ) => {
+            canonical_record_has_unshadowed_symbol_dependency(il, call, record, name)
+                && library_api_contract_obligations_match_call(il, interner, call, id, record)
+        }
         (LibraryApiContractId::MethodCall(_), LibraryApiCalleeContract::Method { .. }) => {
             canonical_method_call_record_dependencies_match(
                 il,

@@ -800,17 +800,28 @@ migrated.
   `nose.java.stdlib.math`, and builder append API admission instead of
   recombining raw selector parsing with evidence admission locally. Normalize
   idiom canonicalization uses the same resolver layer for
-  supported free-function builtins, pack-proven builtin method contracts, HOF receiver
-  proof, pack-proven map `get`, pack-proven map get-default, pack-proven
-  map-key views, iterator/static collection adapters, Rust `Some(...)`, Rust
-  map factory receiver proof, Promise `resolve`, and Promise `.then` contract lookup. Promise continuation
-  reduction remains fail-closed
+  supported free-function builtins, pack-proven Python iterator builtin HOFs,
+  pack-proven builtin method contracts, HOF receiver proof, pack-proven map
+  `get`, pack-proven map get-default, pack-proven map-key views,
+  iterator/static collection adapters, Rust `Some(...)`, Rust map factory
+  receiver proof, Promise `resolve`, and Promise `.then` contract lookup.
+  Promise continuation reduction remains fail-closed
   unless a supported settled value can be recovered and the final value remains
   behind a Promise boundary. Value-level CSE paths that query
   by call span now use span-query resolvers for free-name/imported collection
   factories, Java/Ruby/Rust collection factories, free-name/Java map factories,
   Java map entries, pack-proven map `get`, pack-proven map get-default, and
   pack-proven map-key view/wrapper calls.
+- The Python iterator-builtin protocol pack now owns lazy builtin iterator
+  producer evidence for `map`, `filter`, `zip`, and `enumerate`, plus terminal
+  occurrence evidence for `any` and `all`. `map`/`filter` become normalized
+  HOFs only when the occurrence has `nose.protocols.iterator_builtins`
+  provenance, unshadowed builtin proof, iterable-source proof, and a lambda
+  callback shape. `list`/`tuple`/`set` materializers consume lazy iterator
+  producers only when both the collection factory proof and producer/source
+  proof are present. Shadowed builtins, wildcard-import ambiguity, missing
+  source proof, callable-but-not-lambda callbacks, missing materializer proof,
+  multi-iterable `map`, and `sorted`/`reversed` remain closed.
 - Opaque exact callee identity remains separate from library/API admission. A
   parameter callee or proof-backed immutable/imported callee may keep an exact
   same-callee call comparable as an opaque value operation. Same-spelled
@@ -1087,7 +1098,7 @@ Semantic knowledge still appears in several forms outside the facade:
   `LibraryApi` occurrence evidence now covers selected JS-like static/global
   APIs and static-index membership, JS/TS/Java property builtins, Python
   builtin/import-backed factories/functions, pack-proven Python/Go/Swift
-  free-function builtins, Rust free-name/path factories,
+  free-function builtins, pack-proven Python iterator builtins, Rust free-name/path factories,
   Rust Option/scalar APIs, Ruby `require "set"; Set.new(...)`, Java `java.util`
   static factories/adapters and selected empty constructors, JS regex literals,
   selected receiver-method families. Broader thenable assimilation, async/sync protocol convergence,

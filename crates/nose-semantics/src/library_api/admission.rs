@@ -1,5 +1,9 @@
 use super::*;
 
+mod iterator_sources;
+
+pub(in crate::library_api) use iterator_sources::library_api_contract_obligations_match_call;
+
 pub fn library_api_contract_evidence_for_call(
     il: &Il,
     interner: &Interner,
@@ -33,6 +37,7 @@ pub fn library_api_contract_evidence_for_call(
             || !il.evidence_dependencies_asserted(record)
             || !library_api_callee_shape_matches(il, interner, node, callee)
             || !library_api_dependencies_match_callee(il, interner, node, callee, record)
+            || !library_api_contract_obligations_match_call(il, Some(interner), node, id, record)
         {
             return LibraryApiEvidenceStatus::Rejected;
         }
@@ -217,6 +222,13 @@ fn python_library_api_contract_provenance_ids(
                 identity: 1,
             },
         ) => Some((PYTHON_STDLIB_MATH_PACK_ID, PYTHON_STDLIB_MATH_PRODUCER_ID)),
+        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
+        | LibraryApiContractId::FreeFunctionBuiltin(
+            Builtin::Zip | Builtin::Enumerate | Builtin::Any | Builtin::All,
+        ) => Some((
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
+        )),
         _ => None,
     }
 }

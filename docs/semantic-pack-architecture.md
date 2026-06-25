@@ -340,6 +340,12 @@ previous semantic-kernel tranches.
    The current free-function builtin protocol slice is
    `nose.protocols.free_function_builtins`, which owns unshadowed
    Python/Go/Swift free-name builtin API occurrence provenance.
+   The current Python iterator-builtin protocol slice is
+   `nose.protocols.iterator_builtins`, which owns dependency-backed Python
+   builtin iterator producer and terminal occurrence provenance for `map`,
+   `filter`, `zip`, `enumerate`, `any`, and `all`. Lazy producer semantics and
+   `list`/`tuple`/`set` materialization require the iterator/source proof and
+   terminal factory proof rather than a wider builtin-name allowlist.
    The current receiver-membership protocol slice is
    `nose.protocols.receiver_membership`, which owns receiver-method membership
    API occurrence provenance for map, collection, and set-or-map receiver

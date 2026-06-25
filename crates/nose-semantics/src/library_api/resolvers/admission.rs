@@ -202,6 +202,16 @@ impl LibraryApiContractParts for LibraryFreeFunctionBuiltinContract {
     }
 }
 
+impl LibraryApiContractParts for LibraryFreeFunctionHofContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
 impl LibraryApiContractParts for LibraryPropertyBuiltinContract {
     fn contract_id(self) -> LibraryApiContractId {
         self.id

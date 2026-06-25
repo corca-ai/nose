@@ -5,18 +5,18 @@
 
 use super::contract_keys::{library_api_callee_contract_key, library_api_contract_id_key};
 use crate::{
-    AsyncReceiverContract, FreeFunctionBuiltinContract, ImportedNamespaceFunctionContract,
-    ImportedNamespaceFunctionSemantic, IteratorAdapterReceiverContract,
-    IteratorIdentityAdapterContract, JavaCollectionConstructorKind, JavaCollectionFactoryKind,
-    JavaMapFactoryKind, MapGetContract, MapKeyViewContract, MapKeyViewKind,
-    MapKeyViewWrapperContract, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
-    PromiseFactoryContract, PromiseFactoryKind, PromiseThenContract, RegexTestContract,
-    ScalarIntegerMethod, ScalarIntegerMethodContract, StaticCollectionAdapterContract,
-    StaticGlobalFunctionContract, StaticGlobalMethodContract, StaticIndexMembershipContract,
-    StaticIndexMembershipKind, StaticIndexMembershipReceiverContract, SwiftCollectionFactoryKind,
-    SwiftMapFactoryKind,
+    AsyncReceiverContract, FreeFunctionBuiltinContract, FreeFunctionHofContract,
+    ImportedNamespaceFunctionContract, ImportedNamespaceFunctionSemantic,
+    IteratorAdapterReceiverContract, IteratorIdentityAdapterContract,
+    JavaCollectionConstructorKind, JavaCollectionFactoryKind, JavaMapFactoryKind, MapGetContract,
+    MapKeyViewContract, MapKeyViewKind, MapKeyViewWrapperContract, MethodCallContract,
+    MethodReceiverContract, MethodSemanticContract, PromiseFactoryContract, PromiseFactoryKind,
+    PromiseThenContract, RegexTestContract, ScalarIntegerMethod, ScalarIntegerMethodContract,
+    StaticCollectionAdapterContract, StaticGlobalFunctionContract, StaticGlobalMethodContract,
+    StaticIndexMembershipContract, StaticIndexMembershipKind,
+    StaticIndexMembershipReceiverContract, SwiftCollectionFactoryKind, SwiftMapFactoryKind,
 };
-use nose_il::{stable_symbol_hash, Builtin, DomainEvidence, Lang, SourceFactKind, Span};
+use nose_il::{stable_symbol_hash, Builtin, DomainEvidence, HoFKind, Lang, SourceFactKind, Span};
 
 mod ids;
 pub use ids::*;
@@ -29,6 +29,7 @@ pub enum LibraryApiContractId {
     SwiftCollectionFactory(SwiftCollectionFactoryKind),
     SwiftMapFactory(SwiftMapFactoryKind),
     FreeFunctionBuiltin(Builtin),
+    FreeFunctionHof(HoFKind),
     RustOptionSomeConstructor,
     RustOptionNoneSentinel,
     RustOptionAndThen,
@@ -479,6 +480,14 @@ pub struct LibraryFreeFunctionBuiltinContract {
     pub id: LibraryApiContractId,
     pub callee: LibraryApiCalleeContract,
     pub result: FreeFunctionBuiltinContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryFreeFunctionHofContract {
+    pub pack_id: &'static str,
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: FreeFunctionHofContract,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

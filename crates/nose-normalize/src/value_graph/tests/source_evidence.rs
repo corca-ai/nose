@@ -1,6 +1,7 @@
 use super::support::*;
 
 mod hof_demand;
+mod python_iterator_builtins;
 
 fn pure_inline_caller_il(interner: &Interner, with_target_evidence: bool) -> (Il, NodeId) {
     let helper_name = interner.intern("base");

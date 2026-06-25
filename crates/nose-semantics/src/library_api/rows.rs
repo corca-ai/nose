@@ -147,6 +147,23 @@ pub fn library_free_function_builtin_contract(
     })
 }
 
+pub fn library_free_function_hof_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<LibraryFreeFunctionHofContract> {
+    let result = free_function_hof_contract(lang, name, arg_count)?;
+    Some(LibraryFreeFunctionHofContract {
+        pack_id: PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+        id: LibraryApiContractId::FreeFunctionHof(result.kind),
+        callee: LibraryApiCalleeContract::FreeName {
+            name: result.name,
+            shadow: library_free_name_shadow_policy(lang, result.requires_unshadowed),
+        },
+        result,
+    })
+}
+
 pub fn library_imported_collection_factory_contract(
     lang: Lang,
     module: &str,

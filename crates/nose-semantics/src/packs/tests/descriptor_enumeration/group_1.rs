@@ -282,6 +282,31 @@ pub(super) fn assert_group() {
         .conformance_refs()
         .contains(&"free-function-builtin-compatibility-pack-hard-negative"));
 
+    let python_iterator_builtin = builtin_pack_descriptor(PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID)
+        .expect("Python iterator builtin protocol descriptor");
+    assert_eq!(python_iterator_builtin.kind, SemanticPackKind::ProtocolPack);
+    assert_eq!(python_iterator_builtin.supported_languages, &["python"]);
+    assert_eq!(python_iterator_builtin.supported_packages, &["builtins"]);
+    assert_eq!(
+        python_iterator_builtin.evidence_producer_ids,
+        &[PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID]
+    );
+    assert!(python_iterator_builtin.source_fact_producer_ids.is_empty());
+    assert_eq!(
+        python_iterator_builtin.contract_ids,
+        &[
+            PYTHON_ITERATOR_BUILTIN_CONTRACT_ID,
+            FREE_FUNCTION_HOF_CONTRACT_ID
+        ]
+    );
+    assert_eq!(python_iterator_builtin.counts().evidence_producers, 1);
+    assert_eq!(python_iterator_builtin.counts().contracts, 2);
+    assert_eq!(python_iterator_builtin.counts().positive_fixtures, 7);
+    assert_eq!(python_iterator_builtin.counts().hard_negatives, 7);
+    assert!(python_iterator_builtin
+        .conformance_refs()
+        .contains(&"python-iterator-builtin-missing-source-proof-hard-negative"));
+
     let builtin_method_call = builtin_pack_descriptor(BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID)
         .expect("builtin method-call protocol descriptor");
     assert_eq!(builtin_method_call.kind, SemanticPackKind::ProtocolPack);

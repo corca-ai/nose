@@ -8,11 +8,11 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
 
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["status"], "ok");
-    assert_eq!(json["totals"]["packs"], 47);
-    assert_eq!(json["totals"]["builtin_packs"], 47);
-    assert_eq!(json["totals"]["positive_fixtures"], 157);
-    assert_eq!(json["totals"]["hard_negatives"], 109);
-    assert_eq!(json["totals"]["conformance_refs"], 266);
+    assert_eq!(json["totals"]["packs"], 48);
+    assert_eq!(json["totals"]["builtin_packs"], 48);
+    assert_eq!(json["totals"]["positive_fixtures"], 164);
+    assert_eq!(json["totals"]["hard_negatives"], 116);
+    assert_eq!(json["totals"]["conformance_refs"], 280);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -31,7 +31,50 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_swift_collection_factory_pack(packs);
     assert_guava_pack(packs);
     assert_sequence_hof_adapter_pack(packs);
+    assert_python_iterator_builtin_pack(packs);
     assert_compat_pack(packs);
+}
+
+fn assert_python_iterator_builtin_pack(packs: &[serde_json::Value]) {
+    let iterator_builtins = inventory_pack(packs, "nose.protocols.iterator_builtins");
+    assert_eq!(iterator_builtins["kind"], "ProtocolPack");
+    assert_eq!(iterator_builtins["audit"]["exact_capable"], true);
+    assert_eq!(iterator_builtins["audit"]["coverage_status"], "covered");
+    assert_eq!(
+        json_array_strings(&iterator_builtins["declarations"], "contracts"),
+        vec!["iterator_builtin.call", "free_function_hof.call"]
+    );
+    assert_eq!(
+        json_array_strings(&iterator_builtins["conformance"], "positive_refs"),
+        vec![
+            "python-iterator-builtin-map-positive",
+            "python-iterator-builtin-filter-positive",
+            "python-iterator-builtin-zip-positive",
+            "python-iterator-builtin-enumerate-positive",
+            "python-iterator-builtin-any-terminal-positive",
+            "python-iterator-builtin-all-terminal-positive",
+            "python-iterator-builtin-materializer-positive"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&iterator_builtins["conformance"], "hard_negative_refs"),
+        vec![
+            "python-iterator-builtin-shadowed-hard-negative",
+            "python-iterator-builtin-wildcard-import-hard-negative",
+            "python-iterator-builtin-missing-source-proof-hard-negative",
+            "python-iterator-builtin-callback-not-lambda-hard-negative",
+            "python-iterator-builtin-missing-materializer-proof-hard-negative",
+            "python-iterator-builtin-multi-iterable-map-unsupported-hard-negative",
+            "python-iterator-builtin-sorted-reversed-unsupported-hard-negative"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&iterator_builtins["conformance"], "unsupported_refs"),
+        vec![
+            "python-iterator-builtin-multi-iterable-map-unsupported-hard-negative",
+            "python-iterator-builtin-sorted-reversed-unsupported-hard-negative"
+        ]
+    );
 }
 
 fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {

@@ -32,6 +32,9 @@ pub(super) fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
         LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
             format!("free_function_builtin.{}", builtin as u32)
         }
+        LibraryApiContractId::FreeFunctionHof(kind) => {
+            format!("free_function_hof.{}", kind as u32)
+        }
         LibraryApiContractId::RustOptionSomeConstructor => "rust.option.some.constructor".into(),
         LibraryApiContractId::RustOptionNoneSentinel => "rust.option.none.sentinel".into(),
         LibraryApiContractId::RustOptionAndThen => "rust.option.and_then".into(),

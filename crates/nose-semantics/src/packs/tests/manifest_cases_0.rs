@@ -245,6 +245,24 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
     assert_eq!(free_function_builtin.counts.contracts, 1);
     assert_eq!(free_function_builtin.counts.positive_fixtures, 6);
     assert_eq!(free_function_builtin.counts.hard_negatives, 4);
+    let python_iterator_builtin = set
+        .packs()
+        .iter()
+        .find(|pack| pack.id == PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID)
+        .expect("Python iterator builtin protocol summary");
+    assert_eq!(
+        python_iterator_builtin.hash,
+        stable_symbol_hash(PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID)
+    );
+    assert_eq!(python_iterator_builtin.kind, SemanticPackKind::ProtocolPack);
+    assert_eq!(
+        python_iterator_builtin.influence,
+        SemanticPackInfluence::EvidenceAndContracts
+    );
+    assert_eq!(python_iterator_builtin.counts.evidence_producers, 1);
+    assert_eq!(python_iterator_builtin.counts.contracts, 2);
+    assert_eq!(python_iterator_builtin.counts.positive_fixtures, 7);
+    assert_eq!(python_iterator_builtin.counts.hard_negatives, 7);
     let receiver_membership = set
         .packs()
         .iter()

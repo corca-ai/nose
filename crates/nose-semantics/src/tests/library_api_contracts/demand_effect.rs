@@ -211,9 +211,15 @@ fn hof_demand_effect_profiles_split_eager_and_pull_lazy_timing() {
             .unwrap()
             .callback_effects_delayed_until_pull()
     );
-    assert_eq!(
-        library_hof_demand_effect_profile(Lang::Python, HoFKind::Map),
-        None
+    assert!(
+        library_hof_demand_effect_profile(Lang::Python, HoFKind::Map)
+            .unwrap()
+            .callback_effects_delayed_until_pull()
+    );
+    assert!(
+        library_hof_demand_effect_profile(Lang::Python, HoFKind::Filter)
+            .unwrap()
+            .callback_effects_delayed_until_pull()
     );
 }
 

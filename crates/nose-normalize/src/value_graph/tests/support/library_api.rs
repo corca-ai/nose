@@ -239,6 +239,48 @@ pub(crate) fn python_stdlib_collection_factory_evidence(
     )
 }
 
+pub(crate) fn python_iterator_builtin_protocol_evidence(
+    id: u32,
+    call_span: Span,
+    contract: LibraryFreeFunctionHofContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract.id,
+        contract.callee,
+        arity,
+        dependencies,
+        (
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
+        ),
+    )
+}
+
+pub(crate) fn python_iterator_builtin_protocol_builtin_evidence(
+    id: u32,
+    call_span: Span,
+    contract: LibraryFreeFunctionBuiltinContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract.id,
+        contract.callee,
+        arity,
+        dependencies,
+        (
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
+        ),
+    )
+}
+
 pub(crate) fn java_stdlib_map_factory_evidence(
     id: u32,
     call_span: Span,

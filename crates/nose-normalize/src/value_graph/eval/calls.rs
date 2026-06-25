@@ -186,6 +186,9 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.eval_java_collection_constructor_expr(expr, kids) {
             return Some(v);
         }
+        if let Some(v) = self.eval_python_iterator_materializer_expr(expr, kids, env) {
+            return Some(v);
+        }
         if let Some(v) = self.eval_swift_collection_factory_expr(expr, kids, env) {
             return Some(v);
         }

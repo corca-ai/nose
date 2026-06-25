@@ -199,7 +199,7 @@ fn manifest_with_value_law_executable_gate(id: &str) -> String {
 #[test]
 fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
     let descriptors = builtin_pack_descriptors();
-    assert_eq!(descriptors.len(), 47);
+    assert_eq!(descriptors.len(), 48);
     let ids = descriptors
         .iter()
         .map(|descriptor| descriptor.id)
@@ -239,6 +239,7 @@ fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
             MAP_GET_PROTOCOL_PACK_ID,
             MAP_GET_DEFAULT_PROTOCOL_PACK_ID,
             FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID,
+            PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
             RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,
             MAP_KEY_VIEW_PROTOCOL_PACK_ID,
             PROPERTY_BUILTIN_PROTOCOL_PACK_ID,

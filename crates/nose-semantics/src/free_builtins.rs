@@ -17,6 +17,15 @@ pub struct FreeFunctionBuiltinContract {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct FreeFunctionHofContract {
+    pub name: &'static str,
+    pub kind: HoFKind,
+    pub source_arg: usize,
+    pub callback_arg: usize,
+    pub requires_unshadowed: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum FreeFunctionBuiltinArity {
     Exact(usize),
     AtLeast(usize),
@@ -40,6 +49,17 @@ struct FreeFunctionBuiltinRow {
     builtin: Builtin,
     args: BuiltinArgContract,
     arity: FreeFunctionBuiltinArity,
+    requires_unshadowed: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct FreeFunctionHofRow {
+    lang: Lang,
+    name: &'static str,
+    kind: HoFKind,
+    arity: FreeFunctionBuiltinArity,
+    source_arg: usize,
+    callback_arg: usize,
     requires_unshadowed: bool,
 }
 
@@ -75,6 +95,25 @@ const fn free_function_builtin_row(
     }
 }
 
+const fn free_function_hof_row(
+    lang: Lang,
+    name: &'static str,
+    kind: HoFKind,
+    arity: FreeFunctionBuiltinArity,
+    source_arg: usize,
+    callback_arg: usize,
+) -> FreeFunctionHofRow {
+    FreeFunctionHofRow {
+        lang,
+        name,
+        kind,
+        arity,
+        source_arg,
+        callback_arg,
+        requires_unshadowed: true,
+    }
+}
+
 const FREE_FUNCTION_BUILTINS: &[FreeFunctionBuiltinRow] = &[
     free_function_builtin_row(PY, "len", Builtin::Len, FIRST_ARG, ARITY_ONE),
     free_function_builtin_row(GO, "len", Builtin::Len, FIRST_ARG, ARITY_ONE),
@@ -94,6 +133,11 @@ const FREE_FUNCTION_BUILTINS: &[FreeFunctionBuiltinRow] = &[
     free_function_builtin_row(PY, "all", Builtin::All, FIRST_ARG, ARITY_ONE),
 ];
 
+const FREE_FUNCTION_HOFS: &[FreeFunctionHofRow] = &[
+    free_function_hof_row(PY, "map", HoFKind::Map, ARITY_TWO, 1, 0),
+    free_function_hof_row(PY, "filter", HoFKind::Filter, ARITY_TWO, 1, 0),
+];
+
 fn free_function_builtin_contract_from_row(
     row: &FreeFunctionBuiltinRow,
 ) -> FreeFunctionBuiltinContract {
@@ -101,6 +145,16 @@ fn free_function_builtin_contract_from_row(
         name: row.name,
         builtin: row.builtin,
         args: row.args,
+        requires_unshadowed: row.requires_unshadowed,
+    }
+}
+
+fn free_function_hof_contract_from_row(row: &FreeFunctionHofRow) -> FreeFunctionHofContract {
+    FreeFunctionHofContract {
+        name: row.name,
+        kind: row.kind,
+        source_arg: row.source_arg,
+        callback_arg: row.callback_arg,
         requires_unshadowed: row.requires_unshadowed,
     }
 }
@@ -114,4 +168,15 @@ pub fn free_function_builtin_contract(
         .iter()
         .find(|row| row.lang == lang && row.name == name && row.arity.accepts(arg_count))
         .map(free_function_builtin_contract_from_row)
+}
+
+pub fn free_function_hof_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<FreeFunctionHofContract> {
+    FREE_FUNCTION_HOFS
+        .iter()
+        .find(|row| row.lang == lang && row.name == name && row.arity.accepts(arg_count))
+        .map(free_function_hof_contract_from_row)
 }
