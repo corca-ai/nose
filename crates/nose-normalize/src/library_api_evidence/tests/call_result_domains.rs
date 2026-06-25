@@ -2,8 +2,10 @@ use super::receiver_method_result_domains::receiver_method_result_domain_il;
 use super::*;
 use nose_semantics::{
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
-    library_map_get_contract, library_method_call_contract, library_swift_map_factory_contract,
-    PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
+    library_map_get_contract, library_method_call_contract,
+    library_rust_result_ok_constructor_contract, library_rust_result_predicate_contract,
+    library_swift_map_factory_contract, PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID,
+    RUST_STDLIB_MAP_FACTORY_PRODUCER_ID, RUST_STDLIB_RESULT_PRODUCER_ID,
     SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
 };
 
@@ -253,6 +255,75 @@ fn result_domain_materialization_requires_admitted_api_evidence() {
     assert!(
         node_domain_records(&il, call, DomainEvidence::Collection).is_empty(),
         "wrong-arity LibraryApi evidence must not materialize result-domain evidence"
+    );
+}
+
+#[test]
+fn locally_recorded_result_constructor_domain_closes_on_conflicting_api_evidence() {
+    let (mut il, interner, call, callee) = free_name_call_il(Lang::Rust, "Ok", 1);
+    let contract = library_rust_result_ok_constructor_contract(Lang::Rust, "Ok", 1).unwrap();
+    let symbol = push_unshadowed_symbol(&mut il, callee, "Ok");
+    let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
+    upsert_builtin_evidence_with_pack_id(
+        &mut il,
+        anchor,
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: 2,
+        }),
+        contract.pack_id,
+        RUST_STDLIB_RESULT_PRODUCER_ID,
+        vec![symbol],
+    );
+
+    run(&mut il, &interner);
+
+    assert_eq!(
+        asserted(library_api_records(&il, call)).len(),
+        2,
+        "the local recorder still records the correct constructor occurrence"
+    );
+    assert!(
+        node_domain_records(&il, call, DomainEvidence::Result).is_empty(),
+        "conflicting same-anchor LibraryApi evidence must keep result-domain materialization closed"
+    );
+}
+
+#[test]
+fn locally_recorded_receiver_method_domain_closes_on_conflicting_api_evidence() {
+    let (mut il, interner, call, _) = receiver_method_result_domain_il(
+        Lang::Rust,
+        "result",
+        "is_ok",
+        0,
+        Some(DomainEvidence::Result),
+    );
+    let conflict = library_rust_result_predicate_contract(Lang::Rust, "is_err", 0).unwrap();
+    let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
+    upsert_builtin_evidence_with_pack_id(
+        &mut il,
+        anchor,
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(conflict.id),
+            callee_hash: library_api_callee_contract_hash(conflict.callee),
+            arity: 0,
+        }),
+        conflict.pack_id,
+        conflict.rule,
+        Vec::new(),
+    );
+
+    run(&mut il, &interner);
+
+    assert_eq!(
+        asserted(library_api_records(&il, call)).len(),
+        2,
+        "the local recorder still records the correct receiver-method occurrence"
+    );
+    assert!(
+        node_domain_records(&il, call, DomainEvidence::Boolean).is_empty(),
+        "conflicting same-anchor LibraryApi evidence must keep receiver result-domain materialization closed"
     );
 }
 

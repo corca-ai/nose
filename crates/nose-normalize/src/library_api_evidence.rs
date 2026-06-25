@@ -72,17 +72,12 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
     let mut dependency_cache = LibraryApiDependencyCache::default();
     let definition_cache = FileDefinitionVisibilityCache::default();
     for &call in &calls {
-        let recorded =
-            if record_rust_variant_constructor_library_api(il, interner, call, &definition_cache) {
-                true
-            } else if record_builder_append_method_library_api(il, interner, call) {
-                true
-            } else {
-                record_receiver_method_library_api(il, interner, call, &mut dependency_cache)
-            };
-        if !recorded {
-            record_library_api_call_result_domains(il, interner, call);
+        if !record_rust_variant_constructor_library_api(il, interner, call, &definition_cache)
+            && !record_builder_append_method_library_api(il, interner, call)
+        {
+            record_receiver_method_library_api(il, interner, call, &mut dependency_cache);
         }
+        record_library_api_call_result_domains(il, interner, call);
     }
     for field in fields {
         record_property_library_api(il, interner, field, &mut dependency_cache);
@@ -112,7 +107,7 @@ fn record_rust_variant_constructor_library_api(
     let Some(name) = node_name(il, interner, callee) else {
         return false;
     };
-    let Some((pack_id, producer_id, id, callee_contract, result_domain)) =
+    let Some((pack_id, producer_id, id, callee_contract)) =
         library_rust_option_some_constructor_contract(il.meta.lang, name, arg_count)
             .map(|contract| {
                 (
@@ -120,7 +115,6 @@ fn record_rust_variant_constructor_library_api(
                     RUST_STDLIB_OPTION_PRODUCER_ID,
                     contract.id,
                     contract.callee,
-                    contract.result_domain,
                 )
             })
             .or_else(|| {
@@ -134,7 +128,6 @@ fn record_rust_variant_constructor_library_api(
                             RUST_STDLIB_RESULT_PRODUCER_ID,
                             contract.id,
                             contract.callee,
-                            contract.result_domain,
                         )
                     })
             })
@@ -152,7 +145,7 @@ fn record_rust_variant_constructor_library_api(
     let Some(symbol_dependency) = unshadowed_symbol_evidence_id(il, callee, name) else {
         return false;
     };
-    let api = upsert_builtin_evidence_with_pack_id(
+    upsert_builtin_evidence_with_pack_id(
         il,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -164,7 +157,6 @@ fn record_rust_variant_constructor_library_api(
         producer_id,
         vec![symbol_dependency],
     );
-    record_library_api_result_domain(il, call, result_domain, api);
     true
 }
 

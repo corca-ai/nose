@@ -516,18 +516,18 @@ receiver/domain gates, and value-graph channel sentinels; it did not admit
 callback/defaulting or panic-like Result APIs.
 
 Issue #532 follow-up on 2026-06-25 remeasured the same `serde_json`
-representative at r15 after caching file-level shadow-root definition checks and
-materializing result-domain evidence directly from newly admitted API evidence.
+representative at r15 after caching file-level shadow-root definition checks
+while keeping result-domain evidence materialization on the generic admitted
+API-record path.
 The saved artifacts are `/tmp/nose-532-metrics/serde-baseline-r15.json`,
-`/tmp/nose-532-metrics/serde-optimized-r15.json`, and
-`/tmp/nose-532-metrics/serde-compare-optimized-r15.md`. Family location sets,
+`/tmp/nose-532-metrics/serde-optimized-admitted-r15.json`, and
+`/tmp/nose-532-metrics/serde-compare-admitted-r15.md`. Family location sets,
 kind counts, span buckets, surface counts, family-shape counts, fragment
 buckets, and reason-code counts stayed unchanged; product JSON remained 34,799
 -> 35,296 bytes from the existing Result pack metadata. `normalize+extract`
-cleared the trigger at 24.4 ms -> 23.7 ms, with wall time 58.98 ms -> 60.82 ms
+cleared the trigger at 24.4 ms -> 26.9 ms, with wall time 58.98 ms -> 62.48 ms
 and no query-regression investigation triggers. Root-cause note: the r3 trigger
-came from repeated `Ok`/`Err` constructor shadow-proof scans and re-admitting
-newly created API evidence through the generic preexisting-record path, not from
+came from repeated `Ok`/`Err` constructor shadow-proof scans, not from
 value-graph channel evaluation or added public semantic-kernel API.
 
 Phase 5 JavaScript builtins Promise measurement note, local run on 2026-06-21:
