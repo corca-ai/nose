@@ -462,6 +462,10 @@ fn strict_exact_object_keys_key_view_uses_object_argument_proof() {
             "function f(key: string) { const values = { \\u005f\\u005fproto__: null, red: 1 }; return Object.keys(values).includes(key); }\n",
         ),
         (
+            "numeric object-literal key",
+            "function f(key: string) { const values = { 1.0: true, red: 1 }; return Object.keys(values).includes(key); }\n",
+        ),
+        (
             "mutation before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; values.green = 3; return Object.keys(values).includes(key); }\n",
         ),

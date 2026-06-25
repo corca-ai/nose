@@ -972,7 +972,8 @@ migrated.
   declarations that could close over the object and direct `eval` also close the
   proof.
   Object-literal `__proto__` prototype syntax is exact-closed because it is not
-  an enumerable own key; escaped identifier keys are also exact-closed.
+  an enumerable own key; escaped identifier keys and numeric literal keys whose
+  runtime property names need JS canonicalization are also exact-closed.
 - JS/TS `new Map(...)` and `new Set(...)` now require construct-syntax source
   facts distinct from ordinary calls, `UnshadowedGlobal` symbol proof for the
   `Map`/`Set` constructor, and `nose.javascript.builtins.collection_constructors`

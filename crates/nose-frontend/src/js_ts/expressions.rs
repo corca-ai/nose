@@ -433,7 +433,6 @@ fn static_object_property_key(lo: &Lowering, node: TsNode) -> Option<String> {
     match node.kind() {
         "property_identifier" | "identifier" => static_identifier_property_key(lo, node),
         "string" => static_string_key(lo, node),
-        "number" => Some(lo.text(node).to_string()),
         _ => None,
     }
 }

@@ -58,6 +58,17 @@ fn post_lowering_emits_object_keys_key_view_only_with_object_argument_proof() {
         "escaped __proto__ object-literal prototype syntax must close key-view evidence"
     );
 
+    let numeric_key = lower_fixture(
+        "object_keys_numeric_key.ts",
+        b"function f(key: string) { const values = { 1.0: true, red: 1 }; return Object.keys(values).includes(key); }\n",
+        Lang::TypeScript,
+        &interner,
+    );
+    assert!(
+        contract_api_ids(&numeric_key.evidence, contract.id, contract.callee).is_empty(),
+        "numeric object-literal keys must close key-view evidence until JS key canonicalization is modeled"
+    );
+
     let mutated = lower_fixture(
         "object_keys_mutated.ts",
         b"function f(key: string) { const values = { red: 1, blue: 2 }; values.green = 3; return Object.keys(values).includes(key); }\n",

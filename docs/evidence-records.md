@@ -355,7 +355,8 @@ the `Object.keys` call, including JS `delete` property mutation and `for...in` /
 admitting the record. A detached API row, `Object.values`, `Object.entries`,
 shadowed `Object`, mutation, nested local function declarations that can close over
 the object, direct `eval`,
-object-literal `__proto__` prototype syntax, escaped identifier keys, or missing
+object-literal `__proto__` prototype syntax, escaped identifier keys, numeric
+literal keys whose runtime property names need JS canonicalization, or missing
 surface evidence does not prove a key-view.
 
 Place and effect evidence are authoritative for the exact-fragment substrate,

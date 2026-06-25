@@ -35,6 +35,7 @@ fn query_mode_semantic_proves_js_object_keys_key_view_boundaries() {
         "object_shadowed.js",
         "object_proto_key.js",
         "object_escaped_proto_key.js",
+        "object_numeric_key.js",
         "object_mutated.js",
         "object_delete_mutation.js",
         "object_alias_mutated.js",
@@ -88,6 +89,10 @@ fn write_object_keys_fixtures(dir: &Path) {
         (
             "object_escaped_proto_key.js",
             "function f(key, other) {\n  const values = { \\u005f\\u005fproto__: null, red: 1 };\n  return Object.keys(values).includes(key);\n}\n",
+        ),
+        (
+            "object_numeric_key.js",
+            "function f(key, other) {\n  const values = { 1.0: true, red: 1 };\n  return Object.keys(values).includes(key);\n}\n",
         ),
         (
             "object_mutated.js",
