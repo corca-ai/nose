@@ -88,6 +88,22 @@ pub(super) fn string_affix(value: Option<&Value>, affix: Option<&Value>, prefix:
     }
 }
 
+pub(super) fn string_contains(value: Option<&Value>, needle: Option<&Value>) -> R<Value> {
+    let (Some(Value::Str(value)), Some(Value::Str(needle))) = (value, needle) else {
+        return Ok(Value::Err);
+    };
+    if needle.is_empty() {
+        return Ok(Value::Bool(true));
+    }
+    if value.windows(needle.len()).any(|window| window == needle) {
+        return Ok(Value::Bool(true));
+    }
+    // String chunks are opaque literal/builder pieces, not characters. A chunk
+    // mismatch only proves "not the same piece sequence"; it does not prove
+    // substring absence inside a literal or across piece boundaries.
+    Err(Unsupported)
+}
+
 pub(super) fn join_strings(separator: Option<&Value>, collection: Option<&Value>) -> Value {
     let (Some(Value::Str(separator)), Some(Value::List(items))) = (separator, collection) else {
         return Value::Err;

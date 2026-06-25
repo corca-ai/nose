@@ -51,6 +51,7 @@ const ALL_BUILTINS: &[Builtin] = &[
     Builtin::StartsWith,
     Builtin::EndsWith,
     Builtin::Contains,
+    Builtin::StringContains,
     Builtin::GetOrDefault,
     Builtin::ValueOrDefault,
     Builtin::IsNull,

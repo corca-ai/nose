@@ -11,7 +11,7 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["totals"]["packs"], 45);
     assert_eq!(json["totals"]["builtin_packs"], 45);
     assert_eq!(json["totals"]["hard_negatives"], 93);
-    assert_eq!(json["totals"]["conformance_refs"], 237);
+    assert_eq!(json["totals"]["conformance_refs"], 238);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -59,7 +59,8 @@ fn assert_go_namespace_pack(packs: &[serde_json::Value]) {
             "go-stdlib-namespace-call-fmt-print-positive",
             "go-stdlib-namespace-call-strings-has-prefix-positive",
             "go-stdlib-namespace-call-strings-has-suffix-positive",
-            "go-stdlib-namespace-call-slices-contains-positive"
+            "go-stdlib-namespace-call-slices-contains-positive",
+            "go-stdlib-namespace-call-strings-contains-positive"
         ]
     );
     assert_eq!(

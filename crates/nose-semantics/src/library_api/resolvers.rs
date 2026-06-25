@@ -54,11 +54,18 @@ macro_rules! receiver_method_contract_resolver {
     };
 }
 
-receiver_method_contract_resolver!(
-    admitted_library_method_call_at_call,
-    LibraryMethodCallContract,
-    library_method_call_contract
-);
+pub fn admitted_library_method_call_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryMethodCallContract>> {
+    admitted_receiver_method_contract_call_candidates(
+        il,
+        interner,
+        call,
+        library_method_call_contracts,
+    )
+}
 
 pub fn admitted_free_function_builtin_at_call(
     il: &Il,

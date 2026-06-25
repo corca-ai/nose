@@ -164,6 +164,21 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             args: MethodBuiltinArgs::GoSliceContains,
         })
     );
+    assert_eq!(
+        method_call_contracts(Lang::Go, "Contains", 2),
+        vec![
+            MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+                receiver: MethodReceiverContract::ImportedNamespace("slices"),
+                args: MethodBuiltinArgs::GoSliceContains,
+            },
+            MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::StringContains),
+                receiver: MethodReceiverContract::ImportedNamespace("strings"),
+                args: MethodBuiltinArgs::All,
+            },
+        ]
+    );
     assert_eq!(method_call_contract(Lang::Java, "abs", 1), None);
     assert_eq!(method_call_contract(Lang::Java, "min", 2), None);
 }

@@ -146,13 +146,20 @@ pub fn method_call_contract(
     library_method_call_contract(lang, name, arg_count).map(|contract| contract.result)
 }
 
+pub fn method_call_contracts(lang: Lang, name: &str, arg_count: usize) -> Vec<MethodCallContract> {
+    library_method_call_contracts(lang, name, arg_count)
+        .into_iter()
+        .map(|contract| contract.result)
+        .collect()
+}
+
 type MethodBuiltinShape = (Builtin, MethodReceiverContract, MethodBuiltinArgs);
 
-pub(super) fn method_call_contract_shape(
+pub(super) fn method_call_contract_shapes(
     lang: Lang,
     name: &str,
     arg_count: usize,
-) -> Option<MethodCallContract> {
+) -> Vec<MethodCallContract> {
     use MethodBuiltinArgs as Args;
     use MethodReceiverContract as Receiver;
     use MethodSemanticContract as Semantic;
@@ -181,22 +188,30 @@ pub(super) fn method_call_contract_shape(
             Args::CollectionReduction,
         )
     } else if method_hof_contract(lang, name).is_some() && arg_count > 0 {
-        return Some(MethodCallContract {
+        return vec![MethodCallContract {
             semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
             receiver: Receiver::ExactProtocol,
             args: Args::Hof,
-        });
+        }];
     } else if matches!((lang, name, arg_count), (Lang::Rust, "abs", 0)) {
         (Builtin::Abs, Receiver::ExactInteger, Args::ReceiverOnly)
     } else {
-        return None;
+        return Vec::new();
     };
 
-    Some(MethodCallContract {
+    let mut contracts = vec![MethodCallContract {
         semantic: Semantic::Builtin(contract.0),
         receiver: contract.1,
         args: contract.2,
-    })
+    }];
+    if matches!((lang, name, arg_count), (Lang::Go, "Contains", 2)) {
+        contracts.push(MethodCallContract {
+            semantic: Semantic::Builtin(Builtin::StringContains),
+            receiver: Receiver::ImportedNamespace("strings"),
+            args: Args::All,
+        });
+    }
+    contracts
 }
 
 pub(super) fn method_append_contract_shape(

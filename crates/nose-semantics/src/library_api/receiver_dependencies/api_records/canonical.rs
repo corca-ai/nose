@@ -380,9 +380,11 @@ pub(super) fn library_api_method_call_record_contract(
     let LibraryApiCalleeContract::Method { method, .. } = callee else {
         return None;
     };
-    let contract = library_method_call_contract(il.meta.lang, method, arity as usize)?;
-    (contract.id == id && contract.callee == callee && contract.result.semantic == expected)
-        .then_some(contract)
+    library_method_call_contracts(il.meta.lang, method, arity as usize)
+        .into_iter()
+        .find(|contract| {
+            contract.id == id && contract.callee == callee && contract.result.semantic == expected
+        })
 }
 
 pub(super) fn canonical_method_call_record_dependencies_match(

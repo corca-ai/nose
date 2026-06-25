@@ -171,6 +171,7 @@ fn push_method_call_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>
             MethodSemanticContract::Builtin(Builtin::StartsWith),
             MethodSemanticContract::Builtin(Builtin::EndsWith),
             MethodSemanticContract::Builtin(Builtin::Contains),
+            MethodSemanticContract::Builtin(Builtin::StringContains),
             MethodSemanticContract::Builtin(Builtin::Join),
             MethodSemanticContract::Builtin(Builtin::GetOrDefault),
             MethodSemanticContract::Builtin(Builtin::ValueOrDefault),
@@ -574,7 +575,7 @@ fn method_call_contract_callees_for_semantic(
     methods
         .into_iter()
         .flat_map(|method| {
-            (0..=3).filter_map(move |arity| library_method_call_contract(lang, method, arity))
+            (0..=3).flat_map(move |arity| library_method_call_contracts(lang, method, arity))
         })
         .filter(|contract| contract.result.semantic == semantic)
         .map(|contract| contract.callee)

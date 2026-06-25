@@ -56,5 +56,6 @@ pub use receiver_dependencies::{
     library_api_dependency_id_for_canonical_builtin_method_call_with_interner,
     library_api_property_dependencies_for_field_with_cache,
     library_api_receiver_dependencies_for_call,
-    library_api_receiver_dependencies_for_call_with_cache, LibraryApiDependencyCache,
+    library_api_receiver_dependencies_for_call_with_cache,
+    proven_receiver_method_api_contract_for_call_with_cache, LibraryApiDependencyCache,
 };

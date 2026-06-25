@@ -85,45 +85,30 @@ pub(super) fn record_receiver_method_library_api(
     call: NodeId,
     dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
-    let kids = il.children(call);
-    let Some((&callee, args)) = kids.split_first() else {
-        return false;
-    };
-    if il.kind(callee) != NodeKind::Field {
-        return false;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    let method = interner.resolve(method);
-    let arg_count = args.len();
-    let Some(contract) = library_receiver_method_api_contract(il.meta.lang, method, arg_count)
-    else {
-        return false;
-    };
-    seed_receiver_method_dependencies(il, interner, callee, contract.callee);
-    let Some(dependencies) = library_api_receiver_dependencies_for_call_with_cache(
+    proven_receiver_method_api_contract_for_call_with_cache(
         il,
         interner,
         call,
-        contract.callee,
         dependency_cache,
-    ) else {
-        return false;
-    };
-    upsert_builtin_evidence_with_pack_id(
-        il,
-        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
-        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract.id),
-            callee_hash: library_api_callee_contract_hash(contract.callee),
-            arity: arg_count as u16,
-        }),
-        contract.pack_id,
-        contract.rule,
-        dependencies,
-    );
-    true
+        |il, interner, callee, callee_contract| {
+            seed_receiver_method_dependencies(il, interner, callee, callee_contract);
+        },
+    )
+    .is_some_and(|(arg_count, contract, dependencies)| {
+        upsert_builtin_evidence_with_pack_id(
+            il,
+            EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract.id),
+                callee_hash: library_api_callee_contract_hash(contract.callee),
+                arity: arg_count as u16,
+            }),
+            contract.pack_id,
+            contract.rule,
+            dependencies,
+        );
+        true
+    })
 }
 
 pub(super) fn record_library_api_result_domain(

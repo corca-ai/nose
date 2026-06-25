@@ -81,6 +81,39 @@ pub fn library_api_receiver_dependencies_for_call_with_cache(
     }
 }
 
+pub fn proven_receiver_method_api_contract_for_call_with_cache(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+    mut seed_dependencies: impl FnMut(&mut Il, &Interner, NodeId, LibraryApiCalleeContract),
+) -> Option<(usize, LibraryReceiverMethodApiContract, Vec<EvidenceId>)> {
+    let (callee_node, method, arg_count) = {
+        let kids = il.children(call);
+        let (&callee_node, args) = kids.split_first()?;
+        if il.kind(callee_node) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = il.node(callee_node).payload else {
+            return None;
+        };
+        (callee_node, interner.resolve(method), args.len())
+    };
+    for contract in library_receiver_method_api_contracts(il.meta.lang, method, arg_count) {
+        seed_dependencies(il, interner, callee_node, contract.callee);
+        if let Some(dependencies) = library_api_receiver_dependencies_for_call_with_cache(
+            il,
+            interner,
+            call,
+            contract.callee,
+            cache,
+        ) {
+            return Some((arg_count, contract, dependencies));
+        }
+    }
+    None
+}
+
 pub fn library_api_property_dependencies_for_field_with_cache(
     il: &Il,
     interner: &Interner,

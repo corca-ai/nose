@@ -163,6 +163,8 @@ pub enum Builtin {
     /// the C frontend sees an explicit unsigned 32-bit cast; it is not a general
     /// language-agnostic conversion.
     UnsignedCast32,
+    /// Case-sensitive string substring predicate over `(value, substring)`.
+    StringContains,
 }
 
 /// Kinds of canonical higher-order operation.

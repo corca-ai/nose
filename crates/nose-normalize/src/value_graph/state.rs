@@ -318,6 +318,7 @@ impl<'a> Builder<'a> {
                         || x == builtin_tag(Builtin::StartsWith)
                         || x == builtin_tag(Builtin::EndsWith)
                         || x == builtin_tag(Builtin::Contains)
+                        || x == builtin_tag(Builtin::StringContains)
                         || x == JS_PROTOTYPE_IN_CODE
                 ) =>
             {

@@ -285,6 +285,6 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(go_namespace_call["counts"]["evidence_producers"], 1);
     assert_eq!(go_namespace_call["counts"]["contracts"], 1);
     assert_eq!(go_namespace_call["counts"]["value_laws"], 0);
-    assert_eq!(go_namespace_call["counts"]["positive_fixtures"], 4);
+    assert_eq!(go_namespace_call["counts"]["positive_fixtures"], 5);
     assert_eq!(go_namespace_call["counts"]["hard_negatives"], 2);
 }

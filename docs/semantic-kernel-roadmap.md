@@ -1009,6 +1009,10 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `nose.protocols.receiver_membership` pack and producer provenance while
   preserving receiver-proof, unsupported-arity, and Go `slices.Contains`
   out-of-scope hard negatives.
+- Go stdlib namespace-call evidence now distinguishes the two Go `Contains`
+  helpers by imported namespace proof: `slices.Contains` remains collection
+  membership with `GoSliceContains` argument order, while `strings.Contains`
+  lowers to the separate `StringContains` semantic for substring membership.
 - Property-builtin protocol occurrences started moving out of the broad
   compatibility facade. JS/TS/HTML-family and Java `.length`, plus Swift
   `count` and `isEmpty`, `LibraryApi` occurrence evidence now reports

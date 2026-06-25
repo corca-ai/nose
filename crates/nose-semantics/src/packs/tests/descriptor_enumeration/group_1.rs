@@ -340,7 +340,7 @@ pub(super) fn assert_group() {
     );
     assert_eq!(go_namespace_call.counts().evidence_producers, 1);
     assert_eq!(go_namespace_call.counts().contracts, 1);
-    assert_eq!(go_namespace_call.counts().positive_fixtures, 4);
+    assert_eq!(go_namespace_call.counts().positive_fixtures, 5);
     assert_eq!(go_namespace_call.counts().hard_negatives, 2);
     assert!(go_namespace_call
         .conformance_refs()

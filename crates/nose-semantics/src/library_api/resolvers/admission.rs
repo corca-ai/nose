@@ -12,6 +12,28 @@ pub(super) fn admitted_receiver_method_contract_call<C: LibraryApiContractParts>
     })
 }
 
+pub(super) fn admitted_receiver_method_contract_call_candidates<C: LibraryApiContractParts>(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    contract_for: fn(Lang, &str, usize) -> Vec<C>,
+) -> Option<AdmittedLibraryApiCall<C>> {
+    let (callee, receiver, method, arg_count) = receiver_method_call_parts(il, interner, call)?;
+    contract_for(il.meta.lang, method, arg_count)
+        .into_iter()
+        .find_map(|contract| {
+            admitted_library_call(
+                il,
+                interner,
+                call,
+                callee,
+                Some(receiver),
+                arg_count,
+                contract,
+            )
+        })
+}
+
 pub(super) fn admitted_receiver_method_call<C: LibraryApiContractParts>(
     il: &Il,
     interner: &Interner,

@@ -343,3 +343,15 @@ labeled free-name checks; unifying those paths would be a separate dependency-ma
 not part of the Swift stdlib capability slice. Two avoidable draft families were removed before
 acceptance by sharing the post-lower `LibraryApi` emission helper and the strict-exact
 collection-factory recognizer helper. No new budget is accepted.
+
+The #523 Go `strings.Contains` stdlib helper PR keeps the count at 56. Supporting the `Contains`
+selector for both `slices` and `strings` first surfaced an avoidable production family between
+post-lower and normalize receiver-method `LibraryApi` recorders; that was removed by centralizing
+the receiver-method candidate/dependency-proof selection in the semantic kernel while leaving each
+caller to seed and record its own evidence. The remaining drift is representative-ID churn:
+`072b0b3003cf2698`, `3280184026a6a7c9`, `39a46b1fa7e4804c`, `758beda0d0ed65da`, and
+`be538d60b289f5ba` disappear; `0715a8712c2fdb76`, `0a126db1cbf0faa6`,
+`6faabbec4e234610`, `85074f64d038d1a0`, and `b1570372c0d34139` appear. They cover the
+same reviewed evidence test helpers, canonical builtin evidence fixtures, language-core provenance
+helpers, and builtin evidence upsert-helper debt from the semantic-pack migration. No new budget is
+accepted.

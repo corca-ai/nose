@@ -219,6 +219,7 @@ fn test_library_contract_id_for_builtin(builtin: Builtin) -> Option<LibraryApiCo
         | Builtin::StartsWith
         | Builtin::EndsWith
         | Builtin::Contains
+        | Builtin::StringContains
         | Builtin::GetOrDefault
         | Builtin::ValueOrDefault
         | Builtin::IsNull

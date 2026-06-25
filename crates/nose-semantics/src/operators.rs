@@ -226,7 +226,8 @@ impl OperatorSemantics {
             | Builtin::IsNotNull
             | Builtin::StartsWith
             | Builtin::EndsWith
-            | Builtin::Contains => ValueDomain::Boolean,
+            | Builtin::Contains
+            | Builtin::StringContains => ValueDomain::Boolean,
             Builtin::Join => ValueDomain::String,
             _ => ValueDomain::Unknown,
         }

@@ -175,6 +175,50 @@ fn canonical_builtin_admission_requires_import_backed_namespace_dependency() {
 }
 
 #[test]
+fn go_strings_contains_canonical_builtin_requires_namespace_pack_provenance() {
+    let interner = Interner::new();
+    let contract = library_method_call_contracts(Lang::Go, "Contains", 2)
+        .into_iter()
+        .find(|contract| {
+            contract.result.semantic == MethodSemanticContract::Builtin(Builtin::StringContains)
+        })
+        .expect("Go strings.Contains contract");
+    let mut b = IlBuilder::new(FileId(0));
+    let value = b.add(NodeKind::Var, Payload::Cid(0), sp(50), &[]);
+    let needle = b.add(NodeKind::Var, Payload::Cid(1), sp(51), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::StringContains),
+        sp(40),
+        &[value, needle],
+    );
+    let root = b.add(NodeKind::Func, Payload::None, sp(41), &[call]);
+    let mut il = finish_il(b, root, Lang::Go);
+    push_canonical_imported_namespace_dependency(&mut il, 0, 1, call, "strings");
+    il.evidence.push(builtin_method_call_protocol_record(
+        2,
+        il.node(call).span,
+        contract,
+        2,
+        EvidenceStatus::Asserted,
+        &[1],
+    ));
+
+    assert!(admitted_builtin_semantics_at_call_with_interner(
+        &il,
+        &interner,
+        call,
+        Builtin::StringContains
+    ));
+    assert!(!admitted_builtin_semantics_at_call_with_interner(
+        &il,
+        &interner,
+        call,
+        Builtin::Contains
+    ));
+}
+
+#[test]
 fn canonical_builtin_admission_rejects_namespace_dependency_from_other_call() {
     let interner = Interner::new();
     let contract =

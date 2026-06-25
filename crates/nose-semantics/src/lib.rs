@@ -84,8 +84,8 @@ use library_api::{
     library_method_selector_name,
 };
 pub use map_statics::*;
+use method_contracts::scalar_integer_method_contract_shape;
 pub use method_contracts::*;
-use method_contracts::{method_call_contract_shape, scalar_integer_method_contract_shape};
 pub use method_families::*;
 pub use module_exports::*;
 pub use module_semantics::*;

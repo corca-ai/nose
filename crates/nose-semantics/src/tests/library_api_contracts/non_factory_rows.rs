@@ -272,6 +272,43 @@ fn library_iterator_adapter_and_method_call_contracts_carry_obligations() {
             },
         })
     );
+    assert_eq!(
+        library_method_call_contracts(Lang::Go, "Contains", 2),
+        vec![
+            LibraryMethodCallContract {
+                pack_id: GO_STDLIB_NAMESPACE_CALL_PACK_ID,
+                producer_id: GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID,
+                id: LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                    Builtin::Contains,
+                )),
+                callee: LibraryApiCalleeContract::Method {
+                    method: "Contains",
+                    receiver: MethodReceiverContract::ImportedNamespace("slices"),
+                },
+                result: MethodCallContract {
+                    semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+                    receiver: MethodReceiverContract::ImportedNamespace("slices"),
+                    args: MethodBuiltinArgs::GoSliceContains,
+                },
+            },
+            LibraryMethodCallContract {
+                pack_id: GO_STDLIB_NAMESPACE_CALL_PACK_ID,
+                producer_id: GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID,
+                id: LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                    Builtin::StringContains,
+                )),
+                callee: LibraryApiCalleeContract::Method {
+                    method: "Contains",
+                    receiver: MethodReceiverContract::ImportedNamespace("strings"),
+                },
+                result: MethodCallContract {
+                    semantic: MethodSemanticContract::Builtin(Builtin::StringContains),
+                    receiver: MethodReceiverContract::ImportedNamespace("strings"),
+                    args: MethodBuiltinArgs::All,
+                },
+            },
+        ]
+    );
 }
 
 #[test]

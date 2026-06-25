@@ -82,6 +82,7 @@ impl<'a> Interp<'a> {
                 )),
                 _ => Ok(Value::Err),
             },
+            EagerBuiltinContract::StringContains => string_contains(args.first(), args.get(1)),
             EagerBuiltinContract::Join => Ok(join_strings(args.first(), args.get(1))),
             EagerBuiltinContract::Abs => match args.first() {
                 Some(Value::Int(v)) => Ok(Value::Int(v.abs())),

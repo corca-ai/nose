@@ -475,6 +475,7 @@ pub(super) const GO_STDLIB_NAMESPACE_CALL_CONFORMANCE_REFS: &[&str] = &[
     "go-stdlib-namespace-call-strings-has-prefix-positive",
     "go-stdlib-namespace-call-strings-has-suffix-positive",
     "go-stdlib-namespace-call-slices-contains-positive",
+    "go-stdlib-namespace-call-strings-contains-positive",
     "go-stdlib-namespace-call-missing-import-hard-negative",
     "go-stdlib-namespace-call-wrong-pack-hard-negative",
 ];

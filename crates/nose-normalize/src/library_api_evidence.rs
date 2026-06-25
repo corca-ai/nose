@@ -12,11 +12,12 @@ use nose_semantics::{
     library_api_contract_id_hash, library_api_free_name_shadow_safe,
     library_api_property_dependencies_for_field_with_cache,
     library_api_receiver_dependencies_for_call_with_cache, library_method_call_contract,
-    library_property_builtin_contract, library_receiver_method_api_contract,
-    library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
-    sequence_surface_kind_for_tag, LibraryApiCalleeContract, LibraryApiDependencyCache,
-    MethodBuiltinArgs, MethodEffectReceiverContract, MethodReceiverContract,
-    MethodSemanticContract, BUILTIN_COMPAT_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+    library_property_builtin_contract, library_rust_option_none_sentinel_contract,
+    library_rust_option_some_constructor_contract,
+    proven_receiver_method_api_contract_for_call_with_cache, sequence_surface_kind_for_tag,
+    LibraryApiCalleeContract, LibraryApiDependencyCache, MethodBuiltinArgs,
+    MethodEffectReceiverContract, MethodReceiverContract, MethodSemanticContract,
+    BUILTIN_COMPAT_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
     BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID, RUST_STDLIB_OPTION_PRODUCER_ID,
 };
 

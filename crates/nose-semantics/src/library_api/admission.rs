@@ -393,6 +393,15 @@ fn go_library_api_contract_provenance_ids(
             },
         )
         | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                Builtin::StringContains,
+            )),
+            LibraryApiCalleeContract::Method {
+                receiver: MethodReceiverContract::ImportedNamespace("strings"),
+                ..
+            },
+        )
+        | (
             LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Contains)),
             LibraryApiCalleeContract::Method {
                 receiver: MethodReceiverContract::ImportedNamespace("slices"),

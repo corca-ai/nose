@@ -123,13 +123,13 @@ behavior or pack ownership, not in a static descriptor table.
   "schema_version": 1,
   "status": "ok",
   "totals": {
-    "packs": 43,
-    "builtin_packs": 43,
-    "exact_capable_packs": 33,
+    "packs": 45,
+    "builtin_packs": 45,
+    "exact_capable_packs": 35,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 132,
-    "hard_negatives": 80,
-    "conformance_refs": 212,
+    "positive_fixtures": 145,
+    "hard_negatives": 93,
+    "conformance_refs": 238,
     "unsupported_refs": 13
   },
   "evidence_policy": {
@@ -145,7 +145,7 @@ behavior or pack ownership, not in a static descriptor table.
         "type_domain_aliases": [],
         "counts": {
           "contracts": 1,
-          "positive_fixtures": 4,
+          "positive_fixtures": 5,
           "hard_negatives": 2
         }
       },
@@ -154,7 +154,8 @@ behavior or pack ownership, not in a static descriptor table.
           "go-stdlib-namespace-call-fmt-print-positive",
           "go-stdlib-namespace-call-strings-has-prefix-positive",
           "go-stdlib-namespace-call-strings-has-suffix-positive",
-          "go-stdlib-namespace-call-slices-contains-positive"
+          "go-stdlib-namespace-call-slices-contains-positive",
+          "go-stdlib-namespace-call-strings-contains-positive"
         ],
         "hard_negative_refs": [
           "go-stdlib-namespace-call-missing-import-hard-negative",

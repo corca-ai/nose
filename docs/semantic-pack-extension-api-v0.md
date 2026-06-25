@@ -563,8 +563,8 @@ implicit v0 packs:
   namespace-call builtin semantics that have not moved to a narrower protocol
   pack;
 - `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`,
-  `strings.HasPrefix`/`HasSuffix`, and `slices.Contains` API occurrence
-  contracts under imported-namespace proof;
+  `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains`
+  API occurrence contracts under imported-namespace proof;
 - `nose.protocols.iterator_identity_adapters` owns the current Rust
   `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
   `.stream()` iterator identity adapter API occurrence contracts;

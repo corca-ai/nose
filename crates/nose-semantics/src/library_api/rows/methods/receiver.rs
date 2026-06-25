@@ -7,15 +7,35 @@ pub fn library_receiver_method_api_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<LibraryReceiverMethodApiContract> {
-    receiver_map_get_api_contract(lang, method, arg_count)
-        .or_else(|| receiver_map_key_view_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_iterator_adapter_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_scalar_integer_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_rust_option_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_promise_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_map_get_default_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_membership_api_contract(lang, method, arg_count))
-        .or_else(|| receiver_builtin_method_api_contract(lang, method, arg_count))
+    library_receiver_method_api_contracts(lang, method, arg_count)
+        .into_iter()
+        .next()
+}
+
+pub fn library_receiver_method_api_contracts(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Vec<LibraryReceiverMethodApiContract> {
+    let mut contracts = Vec::new();
+    contracts.extend(receiver_map_get_api_contract(lang, method, arg_count));
+    contracts.extend(receiver_map_key_view_api_contract(lang, method, arg_count));
+    contracts.extend(receiver_iterator_adapter_api_contract(
+        lang, method, arg_count,
+    ));
+    contracts.extend(receiver_scalar_integer_api_contract(
+        lang, method, arg_count,
+    ));
+    contracts.extend(receiver_rust_option_api_contract(lang, method, arg_count));
+    contracts.extend(receiver_promise_api_contract(lang, method, arg_count));
+    contracts.extend(receiver_map_get_default_api_contract(
+        lang, method, arg_count,
+    ));
+    contracts.extend(receiver_membership_api_contract(lang, method, arg_count));
+    contracts.extend(receiver_builtin_method_api_contracts(
+        lang, method, arg_count,
+    ));
+    contracts
 }
 
 fn receiver_map_get_api_contract(
@@ -138,19 +158,22 @@ fn receiver_membership_api_contract(
     })
 }
 
-fn receiver_builtin_method_api_contract(
+fn receiver_builtin_method_api_contracts(
     lang: Lang,
     method: &str,
     arg_count: usize,
-) -> Option<LibraryReceiverMethodApiContract> {
-    library_method_call_contract(lang, method, arg_count).map(|contract| {
-        receiver_method_api_contract(
-            contract.pack_id,
-            contract.id,
-            contract.callee,
-            contract.producer_id,
-        )
-    })
+) -> Vec<LibraryReceiverMethodApiContract> {
+    library_method_call_contracts(lang, method, arg_count)
+        .into_iter()
+        .map(|contract| {
+            receiver_method_api_contract(
+                contract.pack_id,
+                contract.id,
+                contract.callee,
+                contract.producer_id,
+            )
+        })
+        .collect()
 }
 
 fn receiver_method_api_contract(

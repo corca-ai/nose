@@ -29,6 +29,26 @@ fn len_of_string_is_err_not_one() {
 }
 
 #[test]
+fn string_contains_proves_only_exact_chunk_occurrence() {
+    let value = Value::Str(vec![1, 2, 3]);
+    let needle = Value::Str(vec![2]);
+    assert!(matches!(
+        string_contains(Some(&value), Some(&needle)),
+        Ok(Value::Bool(true))
+    ));
+}
+
+#[test]
+fn string_contains_fails_closed_on_opaque_substring_absence() {
+    let value = Value::Str(vec![stable_symbol_hash("abc")]);
+    let needle = Value::Str(vec![stable_symbol_hash("b")]);
+    assert!(
+        string_contains(Some(&value), Some(&needle)).is_err(),
+        "opaque string chunks cannot prove character-level substring absence"
+    );
+}
+
+#[test]
 fn unadmitted_builtin_calls_become_identified_symbolic_effects() {
     let sp = Span::synthetic(FileId(0));
     let mut b = IlBuilder::new(FileId(0));

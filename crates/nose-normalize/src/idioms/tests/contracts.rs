@@ -48,6 +48,45 @@ fn method_hof_allows_literal_sequence_receiver() {
 }
 
 #[test]
+fn go_strings_contains_is_substring_not_slice_membership() {
+    let (mut strings_il, strings_interner, strings_call, strings_receiver) =
+        go_namespace_contains_call("strings");
+    push_imported_namespace_use(&mut strings_il, 0, 1, strings_receiver, "strings");
+    let _ =
+        push_receiver_method_library_api_evidence(&mut strings_il, &strings_interner, strings_call);
+    assert!(matches!(
+        canon_call(&strings_il, &strings_interner, strings_call),
+        CallCanon::Builtin {
+            op: Builtin::StringContains,
+            arg_olds
+        } if arg_olds.len() == 2
+    ));
+
+    let (mut slices_il, slices_interner, slices_call, slices_receiver) =
+        go_namespace_contains_call("slices");
+    push_imported_namespace_use(&mut slices_il, 0, 1, slices_receiver, "slices");
+    let _ =
+        push_receiver_method_library_api_evidence(&mut slices_il, &slices_interner, slices_call);
+    assert!(matches!(
+        canon_call(&slices_il, &slices_interner, slices_call),
+        CallCanon::Builtin {
+            op: Builtin::Contains,
+            arg_olds
+        } if arg_olds.len() == 2
+    ));
+}
+
+#[test]
+fn go_strings_contains_requires_imported_namespace_proof() {
+    let (mut il, interner, call, _) = go_namespace_contains_call("strings");
+    assert!(
+        push_receiver_method_library_api_evidence(&mut il, &interner, call).is_none(),
+        "a local value named strings must not prove the Go stdlib strings namespace"
+    );
+    assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+}
+
+#[test]
 fn map_get_default_lambda_fallback_is_contract_controlled() {
     let (ruby, ruby_interner, ruby_call, ruby_fallback_value) =
         map_get_default_call_il(Lang::Ruby, "fetch", true, false);
@@ -162,4 +201,40 @@ fn method_bool_reduction_consumes_receiver_domain_evidence() {
         matches!(canon_call(&il, &interner, call), CallCanon::None),
         "conflicting receiver-domain evidence must not fall back to selector matching"
     );
+}
+
+fn go_namespace_contains_call(module_name: &str) -> (Il, Interner, NodeId, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern(module_name)),
+        sp(),
+        &[],
+    );
+    let field = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern("Contains")),
+        sp(),
+        &[receiver],
+    );
+    let value = b.add(NodeKind::Var, Payload::Cid(0), sp(), &[]);
+    let needle = b.add(
+        NodeKind::Lit,
+        Payload::LitStr(stable_symbol_hash("pre")),
+        sp(),
+        &[],
+    );
+    let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, value, needle]);
+    let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+    let il = b.finish(
+        root,
+        FileMeta {
+            path: "t".to_string(),
+            lang: Lang::Go,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    (il, interner, call, receiver)
 }

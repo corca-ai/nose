@@ -365,19 +365,35 @@ pub fn library_method_call_contract(
     name: &str,
     arg_count: usize,
 ) -> Option<LibraryMethodCallContract> {
-    let result = method_call_contract_shape(lang, name, arg_count)?;
-    let method = library_method_selector_name(name)?;
-    let (pack_id, producer_id) = method_call_contract_provenance(lang, result);
-    Some(LibraryMethodCallContract {
-        pack_id,
-        producer_id,
-        id: LibraryApiContractId::MethodCall(result.semantic),
-        callee: LibraryApiCalleeContract::Method {
-            method,
-            receiver: result.receiver,
-        },
-        result,
-    })
+    library_method_call_contracts(lang, name, arg_count)
+        .into_iter()
+        .next()
+}
+
+pub fn library_method_call_contracts(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Vec<LibraryMethodCallContract> {
+    let Some(method) = library_method_selector_name(name) else {
+        return Vec::new();
+    };
+    method_call_contract_shapes(lang, name, arg_count)
+        .into_iter()
+        .map(|result| {
+            let (pack_id, producer_id) = method_call_contract_provenance(lang, result);
+            LibraryMethodCallContract {
+                pack_id,
+                producer_id,
+                id: LibraryApiContractId::MethodCall(result.semantic),
+                callee: LibraryApiCalleeContract::Method {
+                    method,
+                    receiver: result.receiver,
+                },
+                result,
+            }
+        })
+        .collect()
 }
 
 fn method_call_contract_provenance(
@@ -393,6 +409,10 @@ fn method_call_contract_provenance(
                 MethodBuiltinArgs::All,
             ) | (
                 MethodSemanticContract::Builtin(Builtin::StartsWith | Builtin::EndsWith),
+                MethodReceiverContract::ImportedNamespace("strings"),
+                MethodBuiltinArgs::All,
+            ) | (
+                MethodSemanticContract::Builtin(Builtin::StringContains),
                 MethodReceiverContract::ImportedNamespace("strings"),
                 MethodBuiltinArgs::All,
             ) | (
@@ -446,21 +466,26 @@ pub fn library_map_get_default_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<LibraryMethodCallContract> {
-    let contract = library_method_call_contract(lang, method, arg_count)?;
-    let exact_map_get_default = contract.id
-        == LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::GetOrDefault))
-        && matches!(
-            contract.callee,
-            LibraryApiCalleeContract::Method {
-                receiver: MethodReceiverContract::ExactMap,
-                ..
-            }
-        )
-        && matches!(
-            contract.result.args,
-            MethodBuiltinArgs::MapGetDefault | MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda
-        );
-    exact_map_get_default.then_some(contract)
+    library_method_call_contracts(lang, method, arg_count)
+        .into_iter()
+        .find(|contract| {
+            contract.id
+                == LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                    Builtin::GetOrDefault,
+                ))
+                && matches!(
+                    contract.callee,
+                    LibraryApiCalleeContract::Method {
+                        receiver: MethodReceiverContract::ExactMap,
+                        ..
+                    }
+                )
+                && matches!(
+                    contract.result.args,
+                    MethodBuiltinArgs::MapGetDefault
+                        | MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda
+                )
+        })
 }
 
 pub fn library_receiver_membership_contract(
@@ -468,24 +493,28 @@ pub fn library_receiver_membership_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<LibraryMethodCallContract> {
-    let contract = library_method_call_contract(lang, method, arg_count)?;
-    let receiver_membership = contract.id
-        == LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Contains))
-        && matches!(
-            contract.callee,
-            LibraryApiCalleeContract::Method {
-                receiver: MethodReceiverContract::ExactMap
-                    | MethodReceiverContract::ExactCollectionOrMap
-                    | MethodReceiverContract::ExactCollectionOrJavaKeySet
-                    | MethodReceiverContract::ExactSetOrMap,
-                ..
-            }
-        )
-        && contract.result.args == MethodBuiltinArgs::FirstThenReceiver;
-    receiver_membership.then_some(contract)
+    library_method_call_contracts(lang, method, arg_count)
+        .into_iter()
+        .find(|contract| {
+            contract.id
+                == LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                    Builtin::Contains,
+                ))
+                && matches!(
+                    contract.callee,
+                    LibraryApiCalleeContract::Method {
+                        receiver: MethodReceiverContract::ExactMap
+                            | MethodReceiverContract::ExactCollectionOrMap
+                            | MethodReceiverContract::ExactCollectionOrJavaKeySet
+                            | MethodReceiverContract::ExactSetOrMap,
+                        ..
+                    }
+                )
+                && contract.result.args == MethodBuiltinArgs::FirstThenReceiver
+        })
 }
 
 mod receiver;
 mod selectors;
-pub use receiver::library_receiver_method_api_contract;
+pub use receiver::{library_receiver_method_api_contract, library_receiver_method_api_contracts};
 pub(crate) use selectors::library_method_selector_name;

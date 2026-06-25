@@ -89,8 +89,8 @@ Active official semantics should instead use narrow builtin packs. The current
 remaining broad slice is the generic `nose.protocols.builtin_method_calls` pack
 for method-call rows that have not yet earned a clearer stdlib/protocol
 boundary. Go namespace calls are no longer part of that catch-all: `fmt.Print*`,
-`strings.HasPrefix`/`HasSuffix`, and `slices.Contains` are owned by
-`nose.go.stdlib.namespace_calls`.
+`strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains` are
+owned by `nose.go.stdlib.namespace_calls`.
 
 Removal condition: delete the compatibility descriptor and legacy helper aliases
 only in a schema/capabilities migration that drops v0 first-party spellings and
@@ -354,8 +354,10 @@ previous semantic-kernel tranches.
    pack, such as append, cardinality, string-affix, option-default, reduction,
    and HOF-style receiver method rows. The current Go stdlib namespace-call
    slice is `nose.go.stdlib.namespace_calls`, which owns `fmt.Print*`,
-   `strings.HasPrefix`/`HasSuffix`, and `slices.Contains` API occurrence
-   provenance under imported-namespace proof.
+   `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains`
+   API occurrence provenance under imported-namespace proof. `strings.Contains`
+   uses the separate `StringContains` semantic rather than collection
+   membership.
    The current iterator identity adapter protocol slice is
    `nose.protocols.iterator_identity_adapters`, which owns Rust
    `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
