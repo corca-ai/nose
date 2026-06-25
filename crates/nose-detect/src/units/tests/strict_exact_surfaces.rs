@@ -452,9 +452,63 @@ fn strict_exact_object_keys_key_view_uses_object_argument_proof() {
     );
     assert!(
         !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { __proto__: null, red: 1 }; return Object.keys(values).includes(key); }\n",
+        ),
+        "__proto__ object-literal prototype syntax must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { \\u005f\\u005fproto__: null, red: 1 }; return Object.keys(values).includes(key); }\n",
+        ),
+        "escaped __proto__ object-literal prototype syntax must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
             "function f(key: string) { const values = { red: 1, blue: 2 }; values.green = 3; return Object.keys(values).includes(key); }\n",
         ),
         "mutation before Object.keys must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; delete values.red; return Object.keys(values).includes(key); }\n",
+        ),
+        "delete before Object.keys must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; const alias = values; alias.green = 3; return Object.keys(values).includes(key); }\n",
+        ),
+        "aliasing the object before Object.keys must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; values.clear(); return Object.keys(values).includes(key); }\n",
+        ),
+        "receiver calls on the object before Object.keys must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; mutate(); return Object.keys(values).includes(key); function mutate() { values.green = 3; } }\n",
+        ),
+        "nested function declarations can close over the object and must close the proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(key: string) { const values = { red: 1, blue: 2 }; eval(\"values.green = 3\"); return Object.keys(values).includes(key); }\n",
+        ),
+        "direct eval before Object.keys must close the object-argument proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "function f(flag: boolean, key: string) { if (flag) { var values = { red: 1, blue: 2 }; } return Object.keys(values).includes(key); }\n",
+        ),
+        "non-dominating conditional object initializers must close the proof"
+    );
+    assert!(
+        !lowered_ts_function_exact_safe(
+            "const values = { red: 1, blue: 2 }; function f(values: Record<string, number>, key: string) { return Object.keys(values).includes(key); }\n",
+        ),
+        "a parameter shadowing a module static object must close the proof"
     );
     assert!(
         !lowered_ts_function_exact_safe(

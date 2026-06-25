@@ -120,7 +120,10 @@ fn static_js_object_pair_with_string_key(il: &Il, interner: &Interner, node: Nod
     let [key, _value] = il.children(node) else {
         return false;
     };
-    matches!(il.node(*key).payload, Payload::LitStr(_))
+    matches!(
+        il.node(*key).payload,
+        Payload::LitStr(hash) if hash != stable_symbol_hash("__proto__")
+    )
 }
 
 fn unique_static_object_literal_binding_initializer(
@@ -132,15 +135,16 @@ fn unique_static_object_literal_binding_initializer(
         return None;
     }
     let scope = il.nearest_scope(reference);
-    let reference_is_free_name = matches!(il.node(reference).payload, Payload::Name(_));
-    let module_level: &[NodeId] = if reference_is_free_name && scope.is_some() {
-        il.assigns_in_scope(None)
-    } else {
-        &[]
-    };
+    let use_block = nearest_ancestor_with_kind(il, reference, NodeKind::Block)?;
+    if block_contains_nested_function(il, use_block) {
+        return None;
+    }
     let mut found = None;
-    for &assign in il.assigns_in_scope(scope).iter().chain(module_level) {
+    for &assign in il.assigns_in_scope(scope) {
         if il.node(assign).span.end_byte > il.node(reference).span.start_byte {
+            continue;
+        }
+        if parent_of(il, assign) != Some(use_block) {
             continue;
         }
         let [lhs, rhs] = il.children(assign) else {
@@ -175,32 +179,98 @@ fn binding_mutated_or_escaped_before_use(
         }
         match node.kind {
             NodeKind::Assign => {
-                let Some(&target) = il.children(node_id).first() else {
+                let [target, value] = il.children(node_id) else {
                     return false;
                 };
-                node_contains_binding_reference(il, interner, target, reference)
+                any_node_contains_binding_reference(il, interner, &[*target, *value], reference)
             }
-            NodeKind::Call => il
-                .children(node_id)
-                .iter()
-                .skip(1)
-                .any(|&arg| node_contains_binding_reference(il, interner, arg, reference)),
+            NodeKind::Call => {
+                direct_eval_call(il, interner, node_id)
+                    || any_node_contains_binding_reference(
+                        il,
+                        interner,
+                        il.children(node_id),
+                        reference,
+                    )
+            }
+            NodeKind::Seq if js_delete_sequence(il, interner, node_id) => {
+                any_node_contains_binding_reference(il, interner, il.children(node_id), reference)
+            }
             _ => false,
         }
     })
 }
 
-fn node_contains_binding_reference(
+fn js_delete_sequence(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    matches!(
+        il.node(node).payload,
+        Payload::Name(tag) if interner.resolve(tag) == "js_delete"
+    )
+}
+
+fn direct_eval_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    let Some(&callee) = il.children(node).first() else {
+        return false;
+    };
+    matches!(
+        (il.kind(callee), il.node(callee).payload),
+        (NodeKind::Var, Payload::Name(name)) if interner.resolve(name) == "eval"
+    )
+}
+
+fn any_node_contains_binding_reference(
+    il: &Il,
+    interner: &Interner,
+    nodes: &[NodeId],
+    reference: NodeId,
+) -> bool {
+    let mut visited = vec![false; il.nodes.len()];
+    nodes.iter().any(|&node| {
+        node_contains_binding_reference_with_seen(il, interner, node, reference, &mut visited)
+    })
+}
+
+fn node_contains_binding_reference_with_seen(
     il: &Il,
     interner: &Interner,
     node: NodeId,
     reference: NodeId,
+    visited: &mut [bool],
 ) -> bool {
+    let idx = node.0 as usize;
+    if idx >= visited.len() || visited[idx] {
+        return false;
+    }
+    visited[idx] = true;
     var_references_same_binding(il, interner, node, reference)
+        || il.children(node).iter().any(|&child| {
+            node_contains_binding_reference_with_seen(il, interner, child, reference, visited)
+        })
+}
+
+fn block_contains_nested_function(il: &Il, block: NodeId) -> bool {
+    let mut visited = vec![false; il.nodes.len()];
+    il.children(block)
+        .iter()
+        .any(|&child| node_contains_kind_with_seen(il, child, NodeKind::Func, &mut visited))
+}
+
+fn node_contains_kind_with_seen(
+    il: &Il,
+    node: NodeId,
+    kind: NodeKind,
+    visited: &mut [bool],
+) -> bool {
+    let idx = node.0 as usize;
+    if idx >= visited.len() || visited[idx] {
+        return false;
+    }
+    visited[idx] = true;
+    il.kind(node) == kind
         || il
             .children(node)
             .iter()
-            .any(|&child| node_contains_binding_reference(il, interner, child, reference))
+            .any(|&child| node_contains_kind_with_seen(il, child, kind, visited))
 }
 
 fn var_references_same_binding(
@@ -244,6 +314,33 @@ fn node_at_exact_span_with_kind(il: &Il, span: Span, kind: NodeKind) -> Option<N
             Some(existing) if il.node(existing).payload == node.payload => {}
             Some(_) => return None,
         }
+    }
+    found
+}
+
+fn nearest_ancestor_with_kind(il: &Il, node: NodeId, kind: NodeKind) -> Option<NodeId> {
+    let mut current = node;
+    for _ in 0..il.nodes.len() {
+        let parent = parent_of(il, current)?;
+        if il.kind(parent) == kind {
+            return Some(parent);
+        }
+        current = parent;
+    }
+    None
+}
+
+fn parent_of(il: &Il, child: NodeId) -> Option<NodeId> {
+    let mut found = None;
+    for (idx, _node) in il.nodes.iter().enumerate() {
+        let candidate = NodeId(idx as u32);
+        if !il.children(candidate).contains(&child) {
+            continue;
+        }
+        if found.is_some() {
+            return None;
+        }
+        found = Some(candidate);
     }
     found
 }

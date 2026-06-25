@@ -1,59 +1,13 @@
 use super::*;
 
+mod object_key_views;
+
 #[test]
 fn post_lowering_emits_result_domains_for_supported_factories() {
     let interner = Interner::new();
     assert_python_factory_result_domains(&interner);
     assert_rust_and_ruby_factory_result_domains(&interner);
     assert_swift_collection_factory_result_domains(&interner);
-}
-
-#[test]
-fn post_lowering_emits_object_keys_key_view_only_with_object_argument_proof() {
-    let interner = Interner::new();
-    let contract = library_object_key_view_contract(Lang::TypeScript, "Object", "keys", 1)
-        .expect("Object.keys key-view contract");
-    let ts = lower_fixture(
-        "object_keys.ts",
-        b"function f(key: string) { const values = { red: 1, blue: 2 }; return Object.keys(values).includes(key); }\n",
-        Lang::TypeScript,
-        &interner,
-    );
-    let api = contract_api_ids(&ts.evidence, contract.id, contract.callee);
-    assert_eq!(api.len(), 1);
-    let record = ts.evidence_record_by_id(api[0]).expect("Object.keys API");
-    assert!(
-        record.dependencies.len() >= 4,
-        "Object.keys key-view evidence should depend on qualified Object.keys, Object root, binding write, and object surface proof"
-    );
-    assert!(result_domain_depends_on_api(
-        &ts.evidence,
-        record.anchor.span(),
-        DomainEvidence::Array,
-        &api,
-    ));
-
-    let shadowed = lower_fixture(
-        "object_keys_shadowed.ts",
-        b"function f(Object: any, key: string) { const values = { red: 1, blue: 2 }; return Object.keys(values).includes(key); }\n",
-        Lang::TypeScript,
-        &interner,
-    );
-    assert!(
-        contract_api_ids(&shadowed.evidence, contract.id, contract.callee).is_empty(),
-        "shadowed Object must not emit Object.keys key-view API evidence"
-    );
-
-    let mutated = lower_fixture(
-        "object_keys_mutated.ts",
-        b"function f(key: string) { const values = { red: 1, blue: 2 }; values.green = 3; return Object.keys(values).includes(key); }\n",
-        Lang::TypeScript,
-        &interner,
-    );
-    assert!(
-        contract_api_ids(&mutated.evidence, contract.id, contract.callee).is_empty(),
-        "mutation between object construction and Object.keys must close key-view evidence"
-    );
 }
 
 fn assert_python_factory_result_domains(interner: &Interner) {

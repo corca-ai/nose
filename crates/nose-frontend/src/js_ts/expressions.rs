@@ -431,18 +431,28 @@ fn lower_object_pair_key(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn static_object_property_key(lo: &Lowering, node: TsNode) -> Option<String> {
     match node.kind() {
-        "property_identifier" | "identifier" => Some(lo.text(node).to_string()),
+        "property_identifier" | "identifier" => static_identifier_property_key(lo, node),
         "string" => static_string_key(lo, node),
         "number" => Some(lo.text(node).to_string()),
         _ => None,
     }
 }
 
+fn static_identifier_property_key(lo: &Lowering, node: TsNode) -> Option<String> {
+    let text = lo.text(node);
+    (!text.contains('\\')).then(|| text.to_string())
+}
+
 fn lower_object_shorthand(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let name = lo.text(node);
-    let key = lo.str_lit(name, span);
-    let value = lo.var(name, span);
+    let name = lo.text(node).to_string();
+    let key = if name.contains('\\') {
+        let tag = lo.sym("js_escaped_property_identifier");
+        lo.add(NodeKind::Seq, Payload::Name(tag), span, &[])
+    } else {
+        lo.str_lit(&name, span)
+    };
+    let value = lo.var(&name, span);
     let tag = lo.sym("pair");
     lo.add(NodeKind::Seq, Payload::Name(tag), span, &[key, value])
 }

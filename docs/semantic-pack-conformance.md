@@ -128,8 +128,8 @@ behavior or pack ownership, not in a static descriptor table.
     "exact_capable_packs": 35,
     "packs_needing_coverage": 0,
     "positive_fixtures": 146,
-    "hard_negatives": 95,
-    "conformance_refs": 241,
+    "hard_negatives": 97,
+    "conformance_refs": 243,
     "unsupported_refs": 13
   },
   "evidence_policy": {
