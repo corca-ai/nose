@@ -146,6 +146,17 @@ fn post_lowering_emits_object_keys_key_view_only_with_object_argument_proof() {
         "with scopes over the object can mutate unqualified properties and must close key-view evidence"
     );
 
+    let enclosing_with_scope = lower_fixture(
+        "object_keys_enclosing_with_scope.ts",
+        b"function f(key: string) { const values = { values: { red: 1 }, blue: 2 }; with (values) { return Object.keys(values).includes(key); } }\n",
+        Lang::TypeScript,
+        &interner,
+    );
+    assert!(
+        contract_api_ids(&enclosing_with_scope.evidence, contract.id, contract.callee).is_empty(),
+        "Object.keys inside with scopes must close key-view evidence because names are dynamically resolved"
+    );
+
     let for_in_target_mutation = lower_fixture(
         "object_keys_for_in_target_mutation.ts",
         b"function f(key: string) { const values = { red: 1, blue: 2 }; for (values.green in { green: 1 }) {} return Object.keys(values).includes(key); }\n",

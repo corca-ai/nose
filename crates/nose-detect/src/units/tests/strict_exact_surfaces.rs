@@ -494,6 +494,10 @@ fn strict_exact_object_keys_key_view_uses_object_argument_proof() {
             "function f(key: string) { const values = { red: 1, blue: 2 }; with (values) { delete red; } return Object.keys(values).includes(key); }\n",
         ),
         (
+            "Object.keys inside with scope",
+            "function f(key: string) { const values = { values: { red: 1 }, blue: 2 }; with (values) { return Object.keys(values).includes(key); } }\n",
+        ),
+        (
             "for-in target write before Object.keys",
             "function f(key: string) { const values = { red: 1, blue: 2 }; for (values.green in { green: 1 }) {} return Object.keys(values).includes(key); }\n",
         ),

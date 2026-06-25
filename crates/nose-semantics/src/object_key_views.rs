@@ -30,6 +30,9 @@ pub fn js_object_key_view_argument_map_node_for_call(
     if !js_like_lang(il.meta.lang) || il.kind(call) != NodeKind::Call {
         return None;
     }
+    if has_js_with_statement_ancestor(il, interner, call) {
+        return None;
+    }
     let [callee, object] = il.children(call) else {
         return None;
     };
@@ -231,16 +234,35 @@ fn js_with_scope_uses_binding(
     node: NodeId,
     reference: NodeId,
 ) -> bool {
-    if !matches!(
-        il.node(node).payload,
-        Payload::Name(tag) if interner.resolve(tag) == "with_statement"
-    ) {
+    if !js_with_statement(il, interner, node) {
         return false;
     }
     let Some(&scope_object) = il.children(node).first() else {
         return false;
     };
     node_contains_binding_reference(il, interner, scope_object, reference)
+}
+
+fn has_js_with_statement_ancestor(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    let mut current = node;
+    for _ in 0..il.nodes.len() {
+        let Some(parent) = parent_of(il, current) else {
+            return false;
+        };
+        if js_with_statement(il, interner, parent) {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
+fn js_with_statement(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    il.kind(node) == NodeKind::Raw
+        && matches!(
+            il.node(node).payload,
+            Payload::Name(tag) if interner.resolve(tag) == "with_statement"
+        )
 }
 
 fn direct_eval_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
