@@ -95,7 +95,7 @@ pub(super) fn record_receiver_method_library_api(
         },
     )
     .is_some_and(|(arg_count, contract, dependencies)| {
-        upsert_builtin_evidence_with_pack_id(
+        let api = upsert_builtin_evidence_with_pack_id(
             il,
             EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
             EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
@@ -107,6 +107,9 @@ pub(super) fn record_receiver_method_library_api(
             contract.rule,
             dependencies,
         );
+        if let Some(domain) = contract.result_domain {
+            record_library_api_result_domain(il, call, domain, api);
+        }
         true
     })
 }

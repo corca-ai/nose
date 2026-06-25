@@ -3,8 +3,8 @@ use recording::*;
 
 use nose_il::{
     stable_symbol_hash, Builtin, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId,
-    EvidenceKind, EvidenceRecord, EvidenceStatus, Il, Interner, LibraryApiEvidenceKind, NodeId,
-    NodeKind, Payload, SequenceSurfaceKind, Symbol, SymbolEvidenceKind,
+    EvidenceKind, EvidenceRecord, EvidenceStatus, Il, Interner, Lang, LibraryApiEvidenceKind,
+    NodeId, NodeKind, Payload, SequenceSurfaceKind, Symbol, SymbolEvidenceKind,
 };
 use nose_semantics::{
     admitted_library_api_result_domain_for_call_record, builder_append_method_contract,
@@ -22,6 +22,33 @@ use nose_semantics::{
     BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID, RUST_STDLIB_OPTION_PRODUCER_ID,
     RUST_STDLIB_RESULT_PRODUCER_ID,
 };
+use rustc_hash::FxHashMap;
+use std::cell::RefCell;
+
+#[derive(Default)]
+struct FileDefinitionVisibilityCache {
+    visible_by_file_and_name: RefCell<FxHashMap<(u32, String), bool>>,
+}
+
+impl FileDefinitionVisibilityCache {
+    fn defines_name_visible_at(
+        &self,
+        il: &Il,
+        interner: &Interner,
+        name: &str,
+        occurrence_span: nose_il::Span,
+    ) -> bool {
+        let key = (occurrence_span.file.0, name.to_owned());
+        if let Some(visible) = self.visible_by_file_and_name.borrow().get(&key) {
+            return *visible;
+        }
+        let visible = file_defines_name_visible_at(il, interner, name, occurrence_span);
+        self.visible_by_file_and_name
+            .borrow_mut()
+            .insert(key, visible);
+        visible
+    }
+}
 
 pub(crate) fn run(il: &mut Il, interner: &Interner) {
     let calls: Vec<NodeId> = il
@@ -43,14 +70,19 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
         .filter_map(|(idx, node)| (node.kind == NodeKind::Var).then_some(NodeId(idx as u32)))
         .collect();
     let mut dependency_cache = LibraryApiDependencyCache::default();
+    let definition_cache = FileDefinitionVisibilityCache::default();
     for &call in &calls {
-        if !record_rust_option_some_library_api(il, interner, call)
-            && !record_rust_result_constructor_library_api(il, interner, call)
-            && !record_builder_append_method_library_api(il, interner, call)
-        {
-            record_receiver_method_library_api(il, interner, call, &mut dependency_cache);
+        let recorded =
+            if record_rust_variant_constructor_library_api(il, interner, call, &definition_cache) {
+                true
+            } else if record_builder_append_method_library_api(il, interner, call) {
+                true
+            } else {
+                record_receiver_method_library_api(il, interner, call, &mut dependency_cache)
+            };
+        if !recorded {
+            record_library_api_call_result_domains(il, interner, call);
         }
-        record_library_api_call_result_domains(il, interner, call);
     }
     for field in fields {
         record_property_library_api(il, interner, field, &mut dependency_cache);
@@ -60,87 +92,79 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
     }
 }
 
-fn record_rust_option_some_library_api(il: &mut Il, interner: &Interner, call: NodeId) -> bool {
-    let kids = il.children(call);
-    let Some((&callee, args)) = kids.split_first() else {
-        return false;
-    };
-    let Some(name) = node_name(il, interner, callee) else {
-        return false;
-    };
-    let arg_count = args.len();
-    let Some(contract) =
-        library_rust_option_some_constructor_contract(il.meta.lang, name, arg_count)
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
-        return false;
-    };
-    if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-        file_defines_name_visible_at(il, interner, candidate, il.node(callee).span)
-    }) {
-        return false;
-    }
-    let Some(symbol_dependency) = unshadowed_symbol_evidence_id(il, callee, name) else {
-        return false;
-    };
-    upsert_builtin_evidence_with_pack_id(
-        il,
-        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
-        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract.id),
-            callee_hash: library_api_callee_contract_hash(contract.callee),
-            arity: arg_count as u16,
-        }),
-        contract.pack_id,
-        RUST_STDLIB_OPTION_PRODUCER_ID,
-        vec![symbol_dependency],
-    );
-    true
-}
-
-fn record_rust_result_constructor_library_api(
+fn record_rust_variant_constructor_library_api(
     il: &mut Il,
     interner: &Interner,
     call: NodeId,
+    definition_cache: &FileDefinitionVisibilityCache,
 ) -> bool {
+    if il.meta.lang != Lang::Rust {
+        return false;
+    }
     let kids = il.children(call);
     let Some((&callee, args)) = kids.split_first() else {
         return false;
     };
+    let arg_count = args.len();
+    if arg_count != 1 {
+        return false;
+    }
     let Some(name) = node_name(il, interner, callee) else {
         return false;
     };
-    let arg_count = args.len();
-    let Some(contract) = library_rust_result_ok_constructor_contract(il.meta.lang, name, arg_count)
-        .or_else(|| library_rust_result_err_constructor_contract(il.meta.lang, name, arg_count))
+    let Some((pack_id, producer_id, id, callee_contract, result_domain)) =
+        library_rust_option_some_constructor_contract(il.meta.lang, name, arg_count)
+            .map(|contract| {
+                (
+                    contract.pack_id,
+                    RUST_STDLIB_OPTION_PRODUCER_ID,
+                    contract.id,
+                    contract.callee,
+                    contract.result_domain,
+                )
+            })
+            .or_else(|| {
+                library_rust_result_ok_constructor_contract(il.meta.lang, name, arg_count)
+                    .or_else(|| {
+                        library_rust_result_err_constructor_contract(il.meta.lang, name, arg_count)
+                    })
+                    .map(|contract| {
+                        (
+                            contract.pack_id,
+                            RUST_STDLIB_RESULT_PRODUCER_ID,
+                            contract.id,
+                            contract.callee,
+                            contract.result_domain,
+                        )
+                    })
+            })
     else {
         return false;
     };
-    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+    let LibraryApiCalleeContract::FreeName { name, shadow } = callee_contract else {
         return false;
     };
     if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-        file_defines_name_visible_at(il, interner, candidate, il.node(callee).span)
+        definition_cache.defines_name_visible_at(il, interner, candidate, il.node(callee).span)
     }) {
         return false;
     }
     let Some(symbol_dependency) = unshadowed_symbol_evidence_id(il, callee, name) else {
         return false;
     };
-    upsert_builtin_evidence_with_pack_id(
+    let api = upsert_builtin_evidence_with_pack_id(
         il,
         EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract.id),
-            callee_hash: library_api_callee_contract_hash(contract.callee),
+            contract_hash: library_api_contract_id_hash(id),
+            callee_hash: library_api_callee_contract_hash(callee_contract),
             arity: arg_count as u16,
         }),
-        contract.pack_id,
-        RUST_STDLIB_RESULT_PRODUCER_ID,
+        pack_id,
+        producer_id,
         vec![symbol_dependency],
     );
+    record_library_api_result_domain(il, call, result_domain, api);
     true
 }
 
