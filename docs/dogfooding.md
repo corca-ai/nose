@@ -367,3 +367,11 @@ cover the same semantic-pack migration fixture debt in `LibraryApi` record build
 receiver/API record builders already accepted above. The production-scope ID covers the existing
 language-core provenance helper family that keeps sequence-surface and import-fact records tied to
 the semantic kernel. No new budget is accepted.
+
+The #532 Rust `Result` API-evidence runtime follow-up keeps the count at 56. Caching constructor
+shadow-root visibility for the Rust `Some`/`Ok`/`Err` recorder and preserving fail-closed
+result-domain materialization moves line spans in `library_api_evidence`, so the already reviewed
+production-scope language-core provenance helper family changes representative ID:
+`868d099f88f94cfa` disappears and `cf86f9ad6c5a533a` appears. The new representative covers the
+same semantic-kernel provenance records in `binding_evidence`, `library_api_evidence`,
+`import_facts`, and `sequence_surface`. No new budget is accepted.
