@@ -594,7 +594,9 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   proof is present, Rust iterator `map`/`filter`/`filter_map`/`flat_map` HOF
   adapters and `any`/`all`/`count` terminals with
   `nose.protocols.sequence_hof_adapters` provenance when protocol receiver proof
-  is present, generic method-call and namespace-call builtin semantics with
+  is present, and Swift `map`/`filter`/`flatMap` HOFs with the same provenance
+  when Array/Collection receiver proof and inline effect-closed callback proof
+  are present, generic method-call and namespace-call builtin semantics with
   `nose.protocols.builtin_method_calls` provenance when no narrower pack owns
   the row, Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
   `strings.Contains`, and `slices.Contains` namespace calls with
@@ -780,7 +782,8 @@ callers:
   pack-proven map get-default, pack-proven map-key
   views, iterator identity adapters with
   `nose.protocols.iterator_identity_adapters` provenance, Rust sequence-HOF
-  adapters with `nose.protocols.sequence_hof_adapters` provenance, Java
+  adapters and Swift Array/Collection HOFs with
+  `nose.protocols.sequence_hof_adapters` provenance, Java
   `Arrays.stream`, Java map entries, Rust `Some(...)`, Rust map factory receiver
   proof, and HOF receiver proof instead of locally recombining selector strings
   with `LibraryApi` evidence checks.

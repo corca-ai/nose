@@ -416,3 +416,11 @@ value-graph collection representative: `1639812e75927a23` disappears and `44bfd7
 appears. The new representative is a whole-impl-span `cardinality`/small `reductions` match with
 only 2 shared lines, not new extractable duplication. No new family appears, so the baseline budget
 is tightened to 54.
+
+The #537 Swift Sequence HOF capability PR tightens the count from 54 to 53. The first draft
+surfaced two avoidable test-scope families while adding Swift `map`/`filter`/`flatMap` admission:
+JS/Swift callback fixture builders and receiver-domain fail-closed IL setup. Both were deduped by
+sharing a callback fixture node helper in the admission resolver support module and a named
+cid-param/receiver fixture in receiver-domain tests. After that cleanup, accepted representative
+`1096a4a828c21a80` no longer reports and no new family appears, so the baseline budget is tightened
+again.

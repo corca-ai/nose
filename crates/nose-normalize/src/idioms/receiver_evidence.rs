@@ -9,6 +9,36 @@ pub(super) fn exact_collection_receiver(
     exact_protocol_receiver(old, interner, domains, node)
 }
 
+pub(super) fn exact_array_or_collection_receiver(
+    old: &Il,
+    interner: &Interner,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
+    node: NodeId,
+) -> bool {
+    if exact_collection_literal(old, interner, node)
+        || domains.receiver_satisfies_domain(node, DomainRequirement::ARRAY_OR_COLLECTION)
+    {
+        return true;
+    }
+    if old.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let Some(admitted) = admitted_library_method_call_at_call(old, interner, node) else {
+        return false;
+    };
+    if !matches!(
+        admitted.contract.result.semantic,
+        MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+    ) || admitted.contract.result.receiver != MethodReceiverContract::ExactArrayOrCollection
+    {
+        return false;
+    }
+    let Some(receiver) = admitted.receiver else {
+        return false;
+    };
+    exact_array_or_collection_receiver(old, interner, domains, receiver)
+}
+
 pub(super) fn exact_array_receiver(
     old: &Il,
     interner: &Interner,

@@ -34,7 +34,7 @@ pub(crate) fn push_method_call_library_api_evidence(
             Some(stable_symbol_hash(RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID));
         record.provenance.rule_hash =
             Some(stable_symbol_hash(RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID));
-    } else if is_rust_sequence_hof_method_call(il.meta.lang, contract.id, contract.callee) {
+    } else if is_sequence_hof_method_call(il.meta.lang, contract.id, contract.callee) {
         record.provenance.pack_hash =
             Some(stable_symbol_hash(SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID));
         record.provenance.rule_hash = Some(stable_symbol_hash(
@@ -77,13 +77,13 @@ fn is_map_get_default_method_call(contract: LibraryMethodCallContract) -> bool {
         )
 }
 
-fn is_rust_sequence_hof_method_call(
+fn is_sequence_hof_method_call(
     lang: Lang,
     contract_id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
 ) -> bool {
-    lang == Lang::Rust
-        && matches!(
+    match lang {
+        Lang::Rust => matches!(
             (contract_id, callee),
             (
                 LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
@@ -108,7 +108,21 @@ fn is_rust_sequence_hof_method_call(
                     receiver: MethodReceiverContract::ExactProtocol,
                 },
             )
-        )
+        ),
+        Lang::Swift => matches!(
+            (contract_id, callee),
+            (
+                LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
+                    HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
+                )),
+                LibraryApiCalleeContract::Method {
+                    method: "map" | "filter" | "flatMap",
+                    receiver: MethodReceiverContract::ExactArrayOrCollection,
+                },
+            )
+        ),
+        _ => false,
+    }
 }
 
 pub(crate) fn push_library_api_evidence_for_callee(
@@ -174,7 +188,7 @@ pub(crate) fn push_library_api_evidence_for_callee(
             arity,
             dependencies,
         )
-    } else if is_rust_sequence_hof_method_call(il.meta.lang, contract_id, callee) {
+    } else if is_sequence_hof_method_call(il.meta.lang, contract_id, callee) {
         rust_sequence_hof_adapter_evidence(
             id,
             il.node(call).span,

@@ -301,7 +301,9 @@ pub(in crate::library_api) fn receiver_dependency_ids(
         MethodReceiverContract::ExactCollectionOrMapLiteral => {
             domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
         }
-        MethodReceiverContract::ExactCollection | MethodReceiverContract::ExactCollectionOrMap => {
+        MethodReceiverContract::ExactArrayOrCollection
+        | MethodReceiverContract::ExactCollection
+        | MethodReceiverContract::ExactCollectionOrMap => {
             collection_receiver_dependency_ids(il, interner, receiver, contract, cache)
         }
         MethodReceiverContract::RustMapGetOrExactOption => {

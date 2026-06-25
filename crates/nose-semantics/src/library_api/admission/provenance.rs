@@ -29,7 +29,7 @@ fn library_api_contract_provenance_ids(
 ) -> Option<(&'static str, &'static str)> {
     python_library_api_contract_provenance_ids(id)
         .or_else(|| js_like_library_api_contract_provenance_ids(lang, id, callee))
-        .or_else(|| swift_library_api_contract_provenance_ids(id))
+        .or_else(|| swift_library_api_contract_provenance_ids(lang, id, callee))
         .or_else(|| rust_library_api_contract_provenance_ids(lang, id, callee))
         .or_else(|| java_library_api_contract_provenance_ids(id, callee))
         .or_else(|| go_library_api_contract_provenance_ids(id, callee))
@@ -66,7 +66,9 @@ fn python_library_api_contract_provenance_ids(
 }
 
 fn swift_library_api_contract_provenance_ids(
+    lang: Lang,
     id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
 ) -> Option<(&'static str, &'static str)> {
     match id {
         LibraryApiContractId::SwiftCollectionFactory(_)
@@ -74,8 +76,34 @@ fn swift_library_api_contract_provenance_ids(
             SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
             SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
         )),
+        LibraryApiContractId::MethodCall(_)
+            if lang == Lang::Swift && swift_sequence_hof_method_callee(id, callee) =>
+        {
+            Some((
+                SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+                SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+            ))
+        }
         _ => None,
     }
+}
+
+fn swift_sequence_hof_method_callee(
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> bool {
+    matches!(
+        (id, callee),
+        (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
+                HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
+            )),
+            LibraryApiCalleeContract::Method {
+                method: "map" | "filter" | "flatMap",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
+        )
+    )
 }
 
 fn js_like_library_api_contract_provenance_ids(

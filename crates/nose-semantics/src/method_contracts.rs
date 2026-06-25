@@ -5,6 +5,7 @@ use super::*;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MethodReceiverContract {
     ExactArray,
+    ExactArrayOrCollection,
     ExactCollection,
     ExactProtocol,
     ExactProtocolPairArgument,
@@ -29,6 +30,9 @@ pub fn method_receiver_domain_requirement(
 ) -> Option<DomainRequirement> {
     match receiver {
         MethodReceiverContract::ExactArray => Some(DomainRequirement::ARRAY),
+        MethodReceiverContract::ExactArrayOrCollection => {
+            Some(DomainRequirement::ARRAY_OR_COLLECTION)
+        }
         MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument
@@ -207,6 +211,18 @@ pub(super) fn method_call_contract_shapes(
         return vec![MethodCallContract {
             semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
             receiver: Receiver::ExactArray,
+            args: Args::Hof,
+        }];
+    } else if lang == Lang::Swift
+        && matches!(
+            method_hof_contract(lang, name),
+            Some(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+        )
+        && arg_count == 1
+    {
+        return vec![MethodCallContract {
+            semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
+            receiver: Receiver::ExactArrayOrCollection,
             args: Args::Hof,
         }];
     } else if !js_like_lang(lang) && method_hof_contract(lang, name).is_some() && arg_count > 0 {

@@ -492,7 +492,8 @@ pub(super) fn sequence_surface_kind_satisfies_method_receiver(
 ) -> bool {
     match contract {
         MethodReceiverContract::ExactArray => kind == SequenceSurfaceKind::Collection,
-        MethodReceiverContract::ExactCollection
+        MethodReceiverContract::ExactArrayOrCollection
+        | MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument
         | MethodReceiverContract::ExactCollectionOrJavaKeySet => {

@@ -92,6 +92,11 @@ pub(in crate::library_api) fn sequence_surface_satisfies_method_receiver(
         MethodReceiverContract::ExactArray => {
             surface.imported_literal && surface.value_tag == SEQ_VALUE_COLLECTION
         }
+        MethodReceiverContract::ExactArrayOrCollection
+            if surface.value_tag == SEQ_VALUE_COLLECTION =>
+        {
+            surface.membership_collection
+        }
         MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument

@@ -40,3 +40,18 @@ pub(super) fn rust_sequence_hof_method_call(lang: Lang, contract: MethodCallCont
             )
         )
 }
+
+pub(in crate::library_api) fn swift_sequence_hof_method_call(
+    lang: Lang,
+    contract: MethodCallContract,
+) -> bool {
+    lang == Lang::Swift
+        && matches!(
+            (contract.semantic, contract.receiver, contract.args),
+            (
+                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap),
+                MethodReceiverContract::ExactArrayOrCollection,
+                MethodBuiltinArgs::Hof,
+            )
+        )
+}

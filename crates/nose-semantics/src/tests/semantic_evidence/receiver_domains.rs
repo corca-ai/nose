@@ -11,6 +11,10 @@ fn method_receiver_contracts_expose_only_domain_backed_obligations() {
         Some(DomainRequirement::ARRAY_COLLECTION_OR_SET)
     );
     assert_eq!(
+        method_receiver_domain_requirement(MethodReceiverContract::ExactArrayOrCollection),
+        Some(DomainRequirement::ARRAY_OR_COLLECTION)
+    );
+    assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactProtocol),
         Some(DomainRequirement::ARRAY_COLLECTION_OR_SET)
     );
@@ -132,8 +136,7 @@ fn receiver_domain_evidence_at_node_is_preferred_over_param_evidence() {
     ));
 }
 
-#[test]
-fn ambiguous_receiver_domain_evidence_blocks_param_fallback() {
+fn cid_param_receiver_fixture() -> (Il, Interner, NodeId) {
     let mut b = IlBuilder::new(FileId(0));
     let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
     let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
@@ -144,27 +147,38 @@ fn ambiguous_receiver_domain_evidence_blocks_param_fallback() {
         span(0, 30, 1),
         &[param, body],
     );
-    let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::param(span(10, 12, 1)),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(evidence(
-        1,
-        EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
-        EvidenceKind::Domain(DomainEvidence::Set),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(evidence(
-        2,
-        EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        EvidenceStatus::Asserted,
-    ));
+    (
+        finish_il(b, root, Lang::TypeScript),
+        Interner::new(),
+        receiver,
+    )
+}
 
-    let interner = Interner::new();
+fn push_cid_param_domain(il: &mut Il, id: u32, domain: DomainEvidence) {
+    il.evidence.push(evidence(
+        id,
+        EvidenceAnchor::param(span(10, 12, 1)),
+        EvidenceKind::Domain(domain),
+        EvidenceStatus::Asserted,
+    ));
+}
+
+fn push_cid_receiver_domain(il: &mut Il, id: u32, domain: DomainEvidence, status: EvidenceStatus) {
+    il.evidence.push(evidence(
+        id,
+        EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
+        EvidenceKind::Domain(domain),
+        status,
+    ));
+}
+
+#[test]
+fn ambiguous_receiver_domain_evidence_blocks_param_fallback() {
+    let (mut il, interner, receiver) = cid_param_receiver_fixture();
+    push_cid_param_domain(&mut il, 0, DomainEvidence::Map);
+    push_cid_receiver_domain(&mut il, 1, DomainEvidence::Set, EvidenceStatus::Asserted);
+    push_cid_receiver_domain(&mut il, 2, DomainEvidence::Map, EvidenceStatus::Asserted);
+
     assert_eq!(domain_evidence_for_receiver(&il, &interner, receiver), None);
 }
 
@@ -439,24 +453,8 @@ fn cid_receiver_domain_uses_nearest_function_scope() {
 
 #[test]
 fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
-    let body = b.add(NodeKind::Block, Payload::None, span(18, 24, 2), &[receiver]);
-    let root = b.add(
-        NodeKind::Func,
-        Payload::None,
-        span(0, 30, 1),
-        &[param, body],
-    );
-    let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::param(span(10, 12, 1)),
-        EvidenceKind::Domain(DomainEvidence::Set),
-        EvidenceStatus::Asserted,
-    ));
+    let (mut il, interner, receiver) = cid_param_receiver_fixture();
+    push_cid_param_domain(&mut il, 0, DomainEvidence::Set);
     il.evidence.push(evidence_with_dependencies(
         1,
         EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
@@ -470,30 +468,9 @@ fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
 
 #[test]
 fn receiver_domain_index_uses_kernel_fail_closed_policy() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
-    let body = b.add(NodeKind::Block, Payload::None, span(18, 24, 2), &[receiver]);
-    let root = b.add(
-        NodeKind::Func,
-        Payload::None,
-        span(0, 30, 1),
-        &[param, body],
-    );
-    let mut il = finish_il(b, root, Lang::TypeScript);
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::param(span(10, 12, 1)),
-        EvidenceKind::Domain(DomainEvidence::Collection),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(evidence(
-        1,
-        EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        EvidenceStatus::Ambiguous,
-    ));
+    let (mut il, interner, receiver) = cid_param_receiver_fixture();
+    push_cid_param_domain(&mut il, 0, DomainEvidence::Collection);
+    push_cid_receiver_domain(&mut il, 1, DomainEvidence::Map, EvidenceStatus::Ambiguous);
 
     let domains = ReceiverDomainEvidenceIndex::new(&il, &interner);
     assert_eq!(domains.domain_evidence_for_receiver(receiver), None);

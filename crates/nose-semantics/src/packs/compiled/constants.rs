@@ -1,9 +1,11 @@
 use super::*;
 
 mod rust;
+mod sequence_hof;
 mod swift;
 mod type_domains;
 pub(super) use rust::*;
+pub(super) use sequence_hof::*;
 pub(super) use swift::*;
 pub(super) use type_domains::*;
 
@@ -151,7 +153,6 @@ pub(super) const NO_LANGUAGES: &[&str] = &[];
 pub(super) const PYTHON_LANGUAGE: &[&str] = &["python"];
 pub(super) const RUBY_LANGUAGE: &[&str] = &["ruby"];
 pub(super) const RUST_LANGUAGE: &[&str] = &["rust"];
-pub(super) const SEQUENCE_HOF_ADAPTER_PROTOCOL_LANGUAGES: &[&str] = &["rust"];
 pub(super) const NO_PACKAGES: &[&str] = &[];
 pub(super) const JAVA_STDLIB_MAP_FACTORY_PACKAGES: &[&str] = &["java.util"];
 pub(super) const JAVA_STDLIB_MAP_ENTRY_PACKAGES: &[&str] = &["java.util"];
@@ -162,7 +163,6 @@ pub(super) const JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACKAGES: &[&str] =
 pub(super) const JAVA_STDLIB_MATH_PACKAGES: &[&str] = &["java.lang"];
 pub(super) const JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACKAGES: &[&str] = &["java.util"];
 pub(super) const ITERATOR_IDENTITY_ADAPTER_PACKAGES: &[&str] = &["core::iter", "java.util.stream"];
-pub(super) const SEQUENCE_HOF_ADAPTER_PROTOCOL_PACKAGES: &[&str] = &["core::iter"];
 pub(super) const MAP_GET_PROTOCOL_PACKAGES: &[&str] = &["Map", "java.util", "std::collections"];
 pub(super) const MAP_GET_DEFAULT_PROTOCOL_PACKAGES: &[&str] = &["dict", "Hash", "java.util"];
 pub(super) const FREE_FUNCTION_BUILTIN_PROTOCOL_PACKAGES: &[&str] =
@@ -460,26 +460,6 @@ pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
     "builtin-method-call-missing-receiver-proof-hard-negative",
     "builtin-method-call-wrong-pack-hard-negative",
     "builtin-method-call-unsupported-arity-hard-negative",
-];
-pub(super) const SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_IDS: &[&str] =
-    &[SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID];
-pub(super) const SEQUENCE_HOF_ADAPTER_PROTOCOL_CONTRACT_IDS: &[&str] =
-    &[SEQUENCE_HOF_ADAPTER_CONTRACT_ID];
-pub(super) const SEQUENCE_HOF_ADAPTER_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
-    "rust-iterator-hof-map-positive",
-    "rust-iterator-hof-filter-positive",
-    "rust-iterator-hof-filter-map-positive",
-    "rust-iterator-hof-flat-map-positive",
-    "rust-iterator-hof-any-terminal-positive",
-    "rust-iterator-hof-all-terminal-positive",
-    "rust-iterator-hof-count-terminal-positive",
-    "rust-iterator-hof-custom-method-hard-negative",
-    "rust-iterator-hof-missing-receiver-proof-hard-negative",
-    "rust-iterator-hof-eager-callback-hard-negative",
-    "rust-iterator-hof-missing-terminal-proof-hard-negative",
-    "rust-iterator-hof-one-shot-reuse-hard-negative",
-    "rust-iterator-hof-collect-vec-hard-negative",
-    "rust-iterator-hof-find-unsupported-hard-negative",
 ];
 pub(super) const GO_STDLIB_NAMESPACE_CALL_PRODUCER_IDS: &[&str] =
     &[GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID];

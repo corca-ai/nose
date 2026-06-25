@@ -252,10 +252,10 @@ fn swift_type_domain(text: &str) -> Option<DomainEvidence> {
     if ty.starts_with("result<") {
         return Some(DomainEvidence::Result);
     }
-    if matches!(
-        swift_type_name(&ty),
-        "sequence" | "anysequence" | "collection" | "anycollection"
-    ) {
+    if matches!(swift_type_name(&ty), "collection" | "anycollection") {
+        return Some(DomainEvidence::Collection);
+    }
+    if matches!(swift_type_name(&ty), "sequence" | "anysequence") {
         return Some(DomainEvidence::Iterable);
     }
     match swift_type_name(&ty) {

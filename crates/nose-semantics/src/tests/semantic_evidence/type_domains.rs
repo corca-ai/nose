@@ -142,6 +142,11 @@ fn type_domain_contracts_cover_swift_signatures() {
         "items: AnySequence<Int>",
         Some(DomainEvidence::Iterable),
     );
+    assert_type_domain(
+        Lang::Swift,
+        "items: AnyCollection<Int>",
+        Some(DomainEvidence::Collection),
+    );
     assert_type_domain(Lang::Swift, "text: String", Some(DomainEvidence::String));
     assert_type_domain(Lang::Swift, "ok: Bool", Some(DomainEvidence::Boolean));
     assert_type_domain(Lang::Swift, "xs: Bitmap<String>", None);

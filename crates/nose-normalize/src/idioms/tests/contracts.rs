@@ -97,6 +97,36 @@ fn method_hof_allows_literal_array_receiver() {
 }
 
 #[test]
+fn swift_method_hof_requires_ordered_collection_receiver() {
+    let (collection, collection_interner, collection_call) =
+        typed_method_call_il(Lang::Swift, "map", ParamSemantic::Collection, false);
+    assert!(matches!(
+        canon_call(&collection, &collection_interner, collection_call),
+        CallCanon::HoF {
+            kind: HoFKind::Map,
+            ..
+        }
+    ));
+
+    let (set, set_interner, set_call) =
+        typed_method_call_il(Lang::Swift, "map", ParamSemantic::Set, false);
+    assert!(
+        matches!(canon_call(&set, &set_interner, set_call), CallCanon::None),
+        "Swift Set.map stays closed until order semantics are explicit"
+    );
+
+    let (sequence, sequence_interner, sequence_call) =
+        typed_method_call_il(Lang::Swift, "map", ParamSemantic::Iterable, false);
+    assert!(
+        matches!(
+            canon_call(&sequence, &sequence_interner, sequence_call),
+            CallCanon::None
+        ),
+        "Swift Sequence/AnySequence stays closed until one-shot reuse is represented"
+    );
+}
+
+#[test]
 fn go_strings_contains_is_substring_not_slice_membership() {
     let (mut strings_il, strings_interner, strings_call, strings_receiver) =
         go_namespace_contains_call("strings");

@@ -17,6 +17,10 @@ pub(super) fn prove_method_receiver(
     match contract {
         MethodReceiverContract::ExactArray => exact_array_receiver(old, interner, domains, base)
             .then_some(ProvenReceiver::Direct(base)),
+        MethodReceiverContract::ExactArrayOrCollection => {
+            exact_array_or_collection_receiver(old, interner, domains, base)
+                .then_some(ProvenReceiver::Direct(base))
+        }
         MethodReceiverContract::ExactCollection => {
             exact_collection_receiver(old, interner, domains, base)
                 .then_some(ProvenReceiver::Direct(base))

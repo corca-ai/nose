@@ -1,5 +1,7 @@
 use super::*;
 
+mod swift;
+
 fn sequence_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId, NodeId) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
@@ -29,10 +31,14 @@ fn sequence_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId
 }
 
 fn push_protocol_receiver_dependency(il: &mut Il, receiver: NodeId) {
+    push_receiver_domain_dependency(il, 0, receiver, DomainEvidence::Collection);
+}
+
+fn push_receiver_domain_dependency(il: &mut Il, id: u32, receiver: NodeId, domain: DomainEvidence) {
     il.evidence.push(evidence(
-        0,
+        id,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
-        EvidenceKind::Domain(DomainEvidence::Collection),
+        EvidenceKind::Domain(domain),
         EvidenceStatus::Asserted,
     ));
 }

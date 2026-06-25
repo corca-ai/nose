@@ -40,6 +40,70 @@ pub(crate) fn asserted_library_api_node_record_with_provenance(
     record
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum CallbackFixtureShape {
+    InlineFunc { cid: u32 },
+    Reference { name: &'static str },
+    EffectfulCall { callee: &'static str, arg_cid: u32 },
+    MutatingAssign { lhs_cid: u32, rhs_cid: u32 },
+    Throwing { err_cid: u32 },
+}
+
+pub(crate) fn callback_fixture_node(
+    b: &mut IlBuilder,
+    interner: &Interner,
+    shape: CallbackFixtureShape,
+    span_base: u32,
+) -> NodeId {
+    match shape {
+        CallbackFixtureShape::InlineFunc { cid } => {
+            b.add(NodeKind::Func, Payload::Cid(cid), sp(span_base), &[])
+        }
+        CallbackFixtureShape::Reference { name } => b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern(name)),
+            sp(span_base),
+            &[],
+        ),
+        CallbackFixtureShape::EffectfulCall { callee, arg_cid } => {
+            let callee = b.add(
+                NodeKind::Var,
+                Payload::Name(interner.intern(callee)),
+                sp(span_base + 1),
+                &[],
+            );
+            let arg = b.add(NodeKind::Var, Payload::Cid(arg_cid), sp(span_base + 2), &[]);
+            let call = b.add(
+                NodeKind::Call,
+                Payload::None,
+                sp(span_base + 3),
+                &[callee, arg],
+            );
+            let ret = b.add(NodeKind::Return, Payload::None, sp(span_base + 4), &[call]);
+            let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 5), &[ret]);
+            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 6), &[body])
+        }
+        CallbackFixtureShape::MutatingAssign { lhs_cid, rhs_cid } => {
+            let lhs = b.add(NodeKind::Var, Payload::Cid(lhs_cid), sp(span_base + 1), &[]);
+            let rhs = b.add(NodeKind::Var, Payload::Cid(rhs_cid), sp(span_base + 2), &[]);
+            let assign = b.add(
+                NodeKind::Assign,
+                Payload::None,
+                sp(span_base + 3),
+                &[lhs, rhs],
+            );
+            let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 4), &[assign]);
+            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 5), &[body])
+        }
+        CallbackFixtureShape::Throwing { err_cid } => {
+            let err = b.add(NodeKind::Var, Payload::Cid(err_cid), sp(span_base + 1), &[]);
+            let throw = b.add(NodeKind::Throw, Payload::None, sp(span_base + 2), &[err]);
+            let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 3), &[throw]);
+            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 4), &[body])
+        }
+    }
+}
+
 pub(crate) fn js_length_field_il() -> (Il, Interner, NodeId, NodeId) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));

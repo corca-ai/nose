@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 48);
     assert_eq!(json["totals"]["builtin_packs"], 48);
-    assert_eq!(json["totals"]["positive_fixtures"], 169);
-    assert_eq!(json["totals"]["hard_negatives"], 124);
-    assert_eq!(json["totals"]["conformance_refs"], 293);
+    assert_eq!(json["totals"]["positive_fixtures"], 172);
+    assert_eq!(json["totals"]["hard_negatives"], 131);
+    assert_eq!(json["totals"]["conformance_refs"], 303);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -95,7 +95,10 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
             "rust-iterator-hof-flat-map-positive",
             "rust-iterator-hof-any-terminal-positive",
             "rust-iterator-hof-all-terminal-positive",
-            "rust-iterator-hof-count-terminal-positive"
+            "rust-iterator-hof-count-terminal-positive",
+            "swift-sequence-hof-map-positive",
+            "swift-sequence-hof-filter-positive",
+            "swift-sequence-hof-flat-map-positive"
         ]
     );
     assert_eq!(
@@ -107,12 +110,22 @@ fn assert_sequence_hof_adapter_pack(packs: &[serde_json::Value]) {
             "rust-iterator-hof-missing-terminal-proof-hard-negative",
             "rust-iterator-hof-one-shot-reuse-hard-negative",
             "rust-iterator-hof-collect-vec-hard-negative",
-            "rust-iterator-hof-find-unsupported-hard-negative"
+            "rust-iterator-hof-find-unsupported-hard-negative",
+            "swift-sequence-hof-set-order-hard-negative",
+            "swift-sequence-hof-dictionary-order-hard-negative",
+            "swift-sequence-hof-lazy-hard-negative",
+            "swift-sequence-hof-throwing-closure-hard-negative",
+            "swift-sequence-hof-mutating-closure-hard-negative",
+            "swift-sequence-hof-any-sequence-reuse-hard-negative",
+            "swift-sequence-hof-compact-map-unsupported-hard-negative"
         ]
     );
     assert_eq!(
         json_array_strings(&sequence_hof["conformance"], "unsupported_refs"),
-        vec!["rust-iterator-hof-find-unsupported-hard-negative"]
+        vec![
+            "rust-iterator-hof-find-unsupported-hard-negative",
+            "swift-sequence-hof-compact-map-unsupported-hard-negative"
+        ]
     );
 }
 

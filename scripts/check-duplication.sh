@@ -80,6 +80,9 @@ set -euo pipefail
 # 56 -> 54 (#536 JS/TS Array HOF): adding the callback-obligation review fix unifies the inline
 # callback shape in method-call and typed/free-call IL fixtures, so two accepted test-fixture
 # families disappear. The budget is tightened with the resolved families removed.
+# 54 -> 53 (#537 Swift Sequence HOF): shared callback fixture nodes and receiver-domain setup
+# remove the draft Swift-HOF test-scope duplication plus one accepted representative from the
+# baseline. The budget is tightened again.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

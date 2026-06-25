@@ -38,6 +38,18 @@ enum JsArrayCallbackShape {
     EffectfulInlineCall,
 }
 
+impl JsArrayCallbackShape {
+    fn fixture(self) -> CallbackFixtureShape {
+        match self {
+            Self::Reference => CallbackFixtureShape::Reference { name: "callback" },
+            Self::EffectfulInlineCall => CallbackFixtureShape::EffectfulCall {
+                callee: "sideEffect",
+                arg_cid: 1,
+            },
+        }
+    }
+}
+
 fn js_array_hof_call_with_callback_il(
     method: &str,
     callback_shape: JsArrayCallbackShape,
@@ -51,7 +63,7 @@ fn js_array_hof_call_with_callback_il(
         sp(241),
         &[receiver],
     );
-    let callback = js_array_callback_node(&mut b, &interner, callback_shape, 242);
+    let callback = callback_fixture_node(&mut b, &interner, callback_shape.fixture(), 242);
     let call = b.add(NodeKind::Call, Payload::None, sp(249), &[callee, callback]);
     let root = b.add(NodeKind::Func, Payload::None, sp(250), &[call]);
     (
@@ -60,45 +72,6 @@ fn js_array_hof_call_with_callback_il(
         call,
         receiver,
     )
-}
-
-fn js_array_callback_node(
-    b: &mut IlBuilder,
-    interner: &Interner,
-    callback_shape: JsArrayCallbackShape,
-    span_base: u32,
-) -> NodeId {
-    match callback_shape {
-        JsArrayCallbackShape::Reference => b.add(
-            NodeKind::Var,
-            Payload::Name(interner.intern("callback")),
-            sp(span_base),
-            &[],
-        ),
-        JsArrayCallbackShape::EffectfulInlineCall => {
-            let effect_callee = b.add(
-                NodeKind::Var,
-                Payload::Name(interner.intern("sideEffect")),
-                sp(span_base + 1),
-                &[],
-            );
-            let effect_arg = b.add(NodeKind::Var, Payload::Cid(1), sp(span_base + 2), &[]);
-            let effect = b.add(
-                NodeKind::Call,
-                Payload::None,
-                sp(span_base + 3),
-                &[effect_callee, effect_arg],
-            );
-            let ret = b.add(
-                NodeKind::Return,
-                Payload::None,
-                sp(span_base + 4),
-                &[effect],
-            );
-            let body = b.add(NodeKind::Block, Payload::None, sp(span_base + 5), &[ret]);
-            b.add(NodeKind::Lambda, Payload::None, sp(span_base + 6), &[body])
-        }
-    }
 }
 
 fn js_array_hof_chain_with_map_callback_il(
@@ -113,7 +86,7 @@ fn js_array_hof_chain_with_map_callback_il(
         sp(261),
         &[receiver],
     );
-    let map_fn = js_array_callback_node(&mut b, &interner, callback_shape, 262);
+    let map_fn = callback_fixture_node(&mut b, &interner, callback_shape.fixture(), 262);
     let map_call = b.add(
         NodeKind::Call,
         Payload::None,
@@ -149,7 +122,7 @@ fn js_array_normalized_hof_with_callback_il(
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(280), &[]);
-    let callback = js_array_callback_node(&mut b, &interner, callback_shape, 281);
+    let callback = callback_fixture_node(&mut b, &interner, callback_shape.fixture(), 281);
     let hof = b.add(
         NodeKind::HoF,
         Payload::HoF(HoFKind::Map),

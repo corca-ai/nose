@@ -311,13 +311,13 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(sequence_hof_adapter["license"], "MIT");
     assert_eq!(
         json_array_strings(sequence_hof_adapter, "supported_languages"),
-        vec!["rust"]
+        vec!["rust", "swift"]
     );
     assert_eq!(sequence_hof_adapter["counts"]["evidence_producers"], 1);
     assert_eq!(sequence_hof_adapter["counts"]["contracts"], 1);
     assert_eq!(sequence_hof_adapter["counts"]["value_laws"], 0);
-    assert_eq!(sequence_hof_adapter["counts"]["positive_fixtures"], 7);
-    assert_eq!(sequence_hof_adapter["counts"]["hard_negatives"], 7);
+    assert_eq!(sequence_hof_adapter["counts"]["positive_fixtures"], 10);
+    assert_eq!(sequence_hof_adapter["counts"]["hard_negatives"], 14);
 
     let go_namespace_call = semantic_pack_by_id(&json, "nose.go.stdlib.namespace_calls");
     assert_eq!(go_namespace_call["hash"], "d3dfae6db995411b");

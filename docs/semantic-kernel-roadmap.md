@@ -152,7 +152,8 @@ The next code slices are intentionally incremental:
    then
    `nose.protocols.sequence_hof_adapters` for Rust iterator
    `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance plus
-   `any`/`all`/`count` terminal proof,
+   `any`/`all`/`count` terminal proof and Swift Array/Collection
+   `map`/`filter`/`flatMap` HOF occurrence provenance,
    then
    `nose.protocols.iterator_identity_adapters` for Rust
    `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
@@ -1518,6 +1519,33 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   167.22 ms -> 171.97 ms. The corpus-free HoF budget smoke stayed under budget
   (`features` 9.30 ms, semantic query 10.33 ms; deep chain 592 tokens / 152
   value-fingerprint nodes, wide chain 1455 / 324).
+- The Swift Sequence HOF slice moved Swift `map`/`filter`/`flatMap` from the
+  generic method-call protocol pack into `nose.protocols.sequence_hof_adapters`
+  for proven Array/Collection receivers. Admission now requires the sequence-HOF
+  pack provenance, Array/Collection receiver proof, and inline effect-closed
+  callbacks before Swift HOF callback demand or follow-on HOF receiver proof can
+  participate in exact behavior. `Set`, `Dictionary`, `Sequence`/`AnySequence`,
+  `.lazy`, `compactMap`, callback references, unknown calls inside callbacks,
+  captured mutation, and throwing callbacks remain closed until their ordering,
+  one-shot, optional-channel, deferred-demand, or effect contracts are modeled.
+  Inventory before/after against `main@ca7acf38`: builtin packs 48 -> 48,
+  exact-capable packs 38 -> 38, positive fixtures 169 -> 172, hard negatives
+  124 -> 131, conformance refs 293 -> 303, unsupported refs 16 -> 17. The
+  sequence-HOF pack metadata changed from Rust-only to Rust+Swift, positives
+  7 -> 10, and hard negatives 7 -> 14. Focused admission coverage for the Swift
+  HOF surfaces in scope moved from 0/3 sequence-HOF pack rows to 3/3, while the
+  adjacent hard negatives remained 0 admitted false merges. 2026-06-26 product
+  query-regression compared clean `origin/main@ca7acf38` with the
+  `issue-537-swift-sequence-hof` working-tree binary over the standard 9-repo
+  subset, repeats=5: the first run reported a noisy unrelated `boltons`
+  normalize+extract runtime trigger, and an immediate rerun with the same
+  binaries reported 9 repos compared and 0 triggers. On the Swift
+  `swift-metrics` representative, output size changed 31489 -> 31499 bytes,
+  distinct location sets stayed 3 -> 3, and the saved artifact median wall time
+  measured 37.72 ms -> 29.08 ms. The corpus-free HoF budget smoke stayed under
+  budget on the final compare rerun (`features` 9.94 ms, semantic query
+  7.81 ms; deep chain 592 tokens / 152 value-fingerprint nodes, wide chain 1455
+  / 324).
 - The static API occurrence slice moved Java empty collection constructors and
   JS-like static `indexOf`/`findIndex` membership behind the same
   dependency-backed occurrence boundary. `new ArrayList<>()`/

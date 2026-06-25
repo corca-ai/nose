@@ -207,10 +207,15 @@ still being migrated toward it.
   arities remain hard negatives. The
   `nose.protocols.sequence_hof_adapters` descriptor owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
-  `any`/`all`/`count` terminal proof on explicit protocol receivers, while
-  custom methods, missing receiver proof, eager callback assumptions, missing
-  terminal proof, one-shot iterator reuse, `collect_vec`, and `find` remain hard
-  negatives or unsupported boundaries. The `nose.go.stdlib.namespace_calls`
+  `any`/`all`/`count` terminal proof on explicit protocol receivers. It also
+  owns Swift `map`/`filter`/`flatMap` HOF occurrence provenance on proven
+  Array/Collection receivers with inline effect-closed callbacks, while Swift
+  `Set`, `Dictionary`, `Sequence`/`AnySequence`, `.lazy`, throwing or mutating
+  callbacks, and `compactMap` remain hard negatives or unsupported boundaries.
+  Rust custom methods, missing receiver proof, eager callback assumptions,
+  missing terminal proof, one-shot iterator reuse, `collect_vec`, and `find`
+  remain hard negatives or unsupported boundaries. The
+  `nose.go.stdlib.namespace_calls`
   descriptor owns Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
   `strings.Contains`, and `slices.Contains` namespace-call API occurrence
   provenance under imported namespace proof. `strings.Contains` lowers to the
@@ -713,7 +718,11 @@ migrated.
   occurrence as protocol evidence, so downstream adapters such as Rust
   `.collect()` can consume a canonicalized `filter_map` receiver without trusting
   the `collect` selector alone; for Rust iterator HOFs this same-span occurrence
-  is admitted under `nose.protocols.sequence_hof_adapters`. Value-graph filter
+  is admitted under `nose.protocols.sequence_hof_adapters`. Swift
+  `map`/`filter`/`flatMap` same-span occurrences use the same pack only when
+  their receiver proof is Array/Collection rather than arbitrary `Sequence`,
+  `Set`, or `Dictionary`, so chained Swift HOFs can reuse pack-backed receiver
+  proof without opening one-shot or ordering assumptions. Value-graph filter
   consumers such as `len(filter(...))`, explicit reductions over a filter, and
   static literal membership shortcuts reuse HOF admission as well, so raw
   `HoF(Filter)` cannot bypass the source/API HOF gate by appearing under another
