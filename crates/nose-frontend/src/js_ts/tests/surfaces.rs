@@ -1,7 +1,8 @@
 use super::support::{
-    lower_ts_with_interner, raw_names, seq_names, source_binding_count, unit_root_seq_names,
+    lower_ts_with_interner, raw_names, seq_names, sequence_surface_count_for_seq_name,
+    source_binding_count, unit_root_seq_names,
 };
-use nose_il::{SourceBindingKind, UnitKind};
+use nose_il::{SequenceSurfaceKind, SourceBindingKind, UnitKind};
 
 #[test]
 fn ts_object_opaque_surfaces_do_not_cascade_raw_wrappers() {
@@ -37,6 +38,47 @@ function build(rest: object, key: string, target: Record<string, number>) {
             "{unexpected} should lower to exact-closed structured IL, got {raw:?}"
         );
     }
+}
+
+#[test]
+fn js_sparse_arrays_do_not_emit_exact_array_literal_surface() {
+    let (il, interner) = lower_ts_with_interner(
+        r#"
+const dense = [1, 2,];
+const sparse = [1, , 2];
+const leading = [, 1];
+const trailing = [1,];
+"#,
+    );
+
+    let seq = seq_names(&il, &interner);
+    assert!(
+        seq.iter().any(|name| name == "array"),
+        "dense arrays should keep the normal array surface: {seq:?}"
+    );
+    assert!(
+        seq.iter().any(|name| name == "js_sparse_array"),
+        "array elisions should lower to an exact-closed sparse-array surface: {seq:?}"
+    );
+    assert_eq!(
+        sequence_surface_count_for_seq_name(
+            &il,
+            &interner,
+            "js_sparse_array",
+            SequenceSurfaceKind::Collection,
+        ),
+        0,
+        "sparse JS arrays must not mint collection sequence-surface proof"
+    );
+    assert!(
+        sequence_surface_count_for_seq_name(
+            &il,
+            &interner,
+            "array",
+            SequenceSurfaceKind::Collection
+        ) >= 2,
+        "dense arrays, including trailing-comma arrays, should still mint collection proof"
+    );
 }
 
 #[test]

@@ -116,9 +116,14 @@ still being migrated toward it.
   and `.then` Promise API contract and occurrence producer ids, while shadowed
   `Promise`, missing Promise-like receiver proof, and unsafe thenable
   assimilation remain hard negatives. The
-  `nose.javascript.builtins.array` descriptor owns JS/TS `Array.from` and
-  `Array.isArray` API contract and occurrence producer ids, while shadowed
-  `Array` roots and unsupported `Array.from` arities remain hard negatives. The
+  `nose.javascript.builtins.array` descriptor owns JS/TS `Array.from`,
+  `Array.isArray`, exact-Array receiver `map`/`filter`/`flatMap`, and
+  `some`/`every` API contract and occurrence producer ids, while shadowed
+  `Array` roots, unsupported `Array.from` arities, callback `thisArg` arities,
+  sparse array literals, borrowed prototype calls, effectful callbacks, generic
+  collection receivers, and deferred absence/default methods remain hard
+  negatives. Pre-call monkey-patching and receiver mutation require future
+  JS-specific place/effect proof. The
   `nose.javascript.builtins.boolean` descriptor owns JS/TS `Boolean(...)` API
   contract and occurrence producer ids, while shadowed `Boolean` roots and
   unsupported arities remain hard negatives. The
@@ -249,7 +254,8 @@ still being migrated toward it.
   `nose.javascript.builtins.promise`, a default builtin stdlib pack for JS/TS
   `Promise.resolve` and `.then` Promise API provenance,
   `nose.javascript.builtins.array`, a default builtin stdlib pack for JS/TS
-  `Array.from` and `Array.isArray` API provenance,
+  `Array.from`, `Array.isArray`, and exact-Array receiver
+  `map`/`filter`/`flatMap` plus `some`/`every` API provenance,
   `nose.javascript.builtins.boolean`, a default builtin stdlib pack for JS/TS
   `Boolean(...)` API provenance,
   `nose.javascript.builtins.regex`, a default builtin stdlib pack for JS/TS

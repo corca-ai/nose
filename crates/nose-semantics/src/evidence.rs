@@ -348,14 +348,32 @@ pub fn source_pattern_at_node(il: &Il, node: NodeId) -> Option<SourcePatternKind
 }
 
 pub fn admitted_hof_api_at_node(il: &Il, node: NodeId, kind: HoFKind) -> bool {
+    admitted_hof_api_at_node_with_interner(il, None, node, kind)
+}
+
+pub fn admitted_hof_api_at_node_with_interner(
+    il: &Il,
+    interner: Option<&Interner>,
+    node: NodeId,
+    kind: HoFKind,
+) -> bool {
     if il.kind(node) != NodeKind::HoF || il.node(node).payload != Payload::HoF(kind) {
         return false;
     }
-    library_api_dependency_id_for_normalized_hof(il, node).is_some()
+    library_api_dependency_id_for_normalized_hof(il, interner, node).is_some()
 }
 
 pub fn admitted_hof_demand_effect_profile_at_node(
     il: &Il,
+    node: NodeId,
+    kind: HoFKind,
+) -> Option<DemandEffectProfile> {
+    admitted_hof_demand_effect_profile_at_node_with_interner(il, None, node, kind)
+}
+
+pub fn admitted_hof_demand_effect_profile_at_node_with_interner(
+    il: &Il,
+    interner: Option<&Interner>,
     node: NodeId,
     kind: HoFKind,
 ) -> Option<DemandEffectProfile> {
@@ -365,7 +383,7 @@ pub fn admitted_hof_demand_effect_profile_at_node(
     if let Some(source) = source_comprehension_at_node(il, node) {
         return source_comprehension_hof_demand_effect_profile(kind, source);
     }
-    admitted_hof_api_at_node(il, node, kind)
+    admitted_hof_api_at_node_with_interner(il, interner, node, kind)
         .then(|| library_hof_demand_effect_profile(il.meta.lang, kind))
         .flatten()
 }

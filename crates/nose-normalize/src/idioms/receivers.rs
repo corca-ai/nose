@@ -15,6 +15,8 @@ pub(super) fn prove_method_receiver(
     args: &[NodeId],
 ) -> Option<ProvenReceiver> {
     match contract {
+        MethodReceiverContract::ExactArray => exact_array_receiver(old, interner, domains, base)
+            .then_some(ProvenReceiver::Direct(base)),
         MethodReceiverContract::ExactCollection => {
             exact_collection_receiver(old, interner, domains, base)
                 .then_some(ProvenReceiver::Direct(base))

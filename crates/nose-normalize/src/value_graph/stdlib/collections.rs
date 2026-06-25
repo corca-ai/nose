@@ -175,8 +175,13 @@ impl<'a> Builder<'a> {
     fn proven_python_lazy_iterator_source(&self, source: NodeId) -> bool {
         match (self.il.kind(source), self.il.node(source).payload) {
             (NodeKind::HoF, Payload::HoF(kind)) => {
-                admitted_hof_demand_effect_profile_at_node(self.il, source, kind)
-                    .is_some_and(|profile| profile.callback_effects_delayed_until_pull())
+                admitted_hof_demand_effect_profile_at_node_with_interner(
+                    self.il,
+                    Some(self.interner),
+                    source,
+                    kind,
+                )
+                .is_some_and(|profile| profile.callback_effects_delayed_until_pull())
             }
             (NodeKind::Call, Payload::Builtin(Builtin::Zip)) => {
                 self.admitted_builtin_call(source, Builtin::Zip)

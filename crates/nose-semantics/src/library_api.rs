@@ -46,7 +46,8 @@ pub use admission::{
     library_api_contract_evidence_for_node,
 };
 pub(in crate::library_api) use admission::{
-    library_api_contract_obligations_match_call, library_api_record_provenance_matches_contract,
+    library_api_contract_obligations_match_call, library_api_contract_obligations_match_node,
+    library_api_contract_requires_call_obligations, library_api_record_provenance_matches_contract,
 };
 pub use imported_occurrences::{
     imported_occurrence_symbol_dependencies_valid,

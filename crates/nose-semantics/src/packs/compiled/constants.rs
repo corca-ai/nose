@@ -246,13 +246,28 @@ pub(super) const JS_LIKE_BUILTIN_ARRAY_PRODUCER_IDS: &[&str] = &[JS_LIKE_BUILTIN
 pub(super) const JS_LIKE_BUILTIN_ARRAY_CONTRACT_IDS: &[&str] = &[
     JS_LIKE_BUILTIN_ARRAY_FROM_CONTRACT_ID,
     JS_LIKE_BUILTIN_ARRAY_IS_ARRAY_CONTRACT_ID,
+    JS_LIKE_BUILTIN_ARRAY_HOF_CONTRACT_ID,
+    JS_LIKE_BUILTIN_ARRAY_BOOL_REDUCTION_CONTRACT_ID,
 ];
 pub(super) const JS_LIKE_BUILTIN_ARRAY_CONFORMANCE_REFS: &[&str] = &[
     "js-array-from-positive",
     "js-array-is-array-positive",
+    "js-array-map-hof-positive",
+    "js-array-filter-hof-positive",
+    "js-array-flatmap-hof-positive",
+    "js-array-some-terminal-positive",
+    "js-array-every-terminal-positive",
     "js-array-from-shadowed-hard-negative",
     "js-array-from-unsupported-arity-hard-negative",
     "js-array-is-array-shadowed-hard-negative",
+    "js-array-hof-generic-pack-hard-negative",
+    "js-array-hof-missing-receiver-proof-hard-negative",
+    "js-array-hof-collection-receiver-hard-negative",
+    "js-array-hof-this-arg-hard-negative",
+    "js-array-hof-sparse-array-hard-negative",
+    "js-array-hof-borrowed-prototype-hard-negative",
+    "js-array-hof-effectful-callback-hard-negative",
+    "js-array-find-deferred-hard-negative",
 ];
 pub(super) const JS_LIKE_BUILTIN_BOOLEAN_PRODUCER_IDS: &[&str] =
     &[JS_LIKE_BUILTIN_BOOLEAN_PRODUCER_ID];

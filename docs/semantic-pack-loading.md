@@ -102,8 +102,9 @@ Trust is separate from channel eligibility.
   scalar integer API occurrence provenance;
   `nose.javascript.builtins.promise` owns JS/TS `Promise.resolve` and `.then`
   Promise API occurrence provenance;
-  `nose.javascript.builtins.array` owns JS/TS `Array.from` and
-  `Array.isArray` API occurrence provenance;
+  `nose.javascript.builtins.array` owns JS/TS `Array.from`, `Array.isArray`,
+  exact-Array receiver `map`/`filter`/`flatMap`, and `some`/`every` API
+  occurrence provenance;
   `nose.javascript.builtins.boolean` owns JS/TS `Boolean(...)` API occurrence
   provenance;
   `nose.javascript.builtins.regex` owns JS/TS regex literal `.test(...)` API

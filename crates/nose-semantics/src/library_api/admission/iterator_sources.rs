@@ -7,6 +7,10 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_call(
     id: LibraryApiContractId,
     record: &EvidenceRecord,
 ) -> bool {
+    if js_like_array_hof_callback_obligation_required(il.meta.lang, id) {
+        return js_like_array_hof_callback_obligation_matches_node(il, interner, call);
+    }
+
     let source_args = match (il.meta.lang, id) {
         (Lang::Python, LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)) => {
             &[1usize][..]
@@ -33,6 +37,144 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_call(
                 library_api_record_has_iterable_source_dependency(il, interner, record, arg)
             })
     })
+}
+
+pub(in crate::library_api) fn library_api_contract_obligations_match_node(
+    il: &Il,
+    interner: Option<&Interner>,
+    node: NodeId,
+    id: LibraryApiContractId,
+) -> bool {
+    if js_like_array_hof_callback_obligation_required(il.meta.lang, id) {
+        return js_like_array_hof_callback_obligation_matches_node(il, interner, node);
+    }
+    true
+}
+
+pub(in crate::library_api) fn library_api_contract_requires_call_obligations(
+    lang: Lang,
+    id: LibraryApiContractId,
+) -> bool {
+    iterable_source_obligation_required(lang, id)
+        || js_like_array_hof_callback_obligation_required(lang, id)
+}
+
+fn iterable_source_obligation_required(lang: Lang, id: LibraryApiContractId) -> bool {
+    matches!(
+        (lang, id),
+        (
+            Lang::Python,
+            LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
+        ) | (
+            Lang::Python,
+            LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate)
+        )
+    )
+}
+
+fn js_like_array_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId) -> bool {
+    js_like_lang(lang)
+        && matches!(
+            id,
+            LibraryApiContractId::MethodCall(
+                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+                    | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
+            )
+        )
+}
+
+fn js_like_array_hof_callback_obligation_matches_node(
+    il: &Il,
+    interner: Option<&Interner>,
+    node: NodeId,
+) -> bool {
+    let Some(&callback) = il.children(node).get(1) else {
+        return false;
+    };
+    js_like_array_hof_callback_effect_closed(il, interner, callback)
+}
+
+fn js_like_array_hof_callback_effect_closed(
+    il: &Il,
+    interner: Option<&Interner>,
+    callback: NodeId,
+) -> bool {
+    if !matches!(il.kind(callback), NodeKind::Func | NodeKind::Lambda) {
+        return false;
+    }
+    let mut stack = vec![callback];
+    while let Some(node) = stack.pop() {
+        if il.kind(node) == NodeKind::Call {
+            if !js_like_array_hof_callback_nested_call_effect_closed(il, interner, node) {
+                return false;
+            }
+            continue;
+        }
+        if il.kind(node) == NodeKind::HoF {
+            if library_api_dependency_id_for_normalized_hof(il, interner, node).is_none() {
+                return false;
+            }
+            continue;
+        }
+        if !js_like_array_hof_callback_node_effect_closed(il.kind(node)) {
+            return false;
+        }
+        stack.extend(il.children(node).iter().copied());
+    }
+    true
+}
+
+fn js_like_array_hof_callback_node_effect_closed(kind: NodeKind) -> bool {
+    matches!(
+        kind,
+        NodeKind::Func
+            | NodeKind::Lambda
+            | NodeKind::Param
+            | NodeKind::Block
+            | NodeKind::Return
+            | NodeKind::If
+            | NodeKind::Var
+            | NodeKind::Lit
+            | NodeKind::BinOp
+            | NodeKind::UnOp
+            | NodeKind::Seq
+    )
+}
+
+fn js_like_array_hof_callback_nested_call_effect_closed(
+    il: &Il,
+    interner: Option<&Interner>,
+    call: NodeId,
+) -> bool {
+    let Some(interner) = interner else {
+        return false;
+    };
+    let Some(&callee) = il.children(call).first() else {
+        return false;
+    };
+    let NodeKind::Field = il.kind(callee) else {
+        return false;
+    };
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    let arg_count = il.children(call).len().saturating_sub(1);
+    library_method_call_contracts(il.meta.lang, interner.resolve(method), arg_count)
+        .into_iter()
+        .filter(|contract| js_like_array_hof_method_call(il.meta.lang, contract.result))
+        .any(|contract| {
+            matches!(
+                library_api_contract_evidence_for_call(
+                    il,
+                    interner,
+                    call,
+                    contract.id,
+                    contract.callee,
+                    arg_count,
+                ),
+                LibraryApiEvidenceStatus::Admitted
+            )
+        })
 }
 
 fn library_api_record_has_iterable_source_dependency(
@@ -179,11 +321,7 @@ fn library_api_source_dependency_obligations_match(
     id: LibraryApiContractId,
     record: &EvidenceRecord,
 ) -> bool {
-    if !matches!(
-        id,
-        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
-            | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate)
-    ) {
+    if !library_api_contract_requires_call_obligations(il.meta.lang, id) {
         return true;
     }
     node_at_span_with_kind(il, record.anchor.span(), NodeKind::Call).is_some_and(|call| {

@@ -4,6 +4,7 @@ use super::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MethodReceiverContract {
+    ExactArray,
     ExactCollection,
     ExactProtocol,
     ExactProtocolPairArgument,
@@ -27,6 +28,7 @@ pub fn method_receiver_domain_requirement(
     receiver: MethodReceiverContract,
 ) -> Option<DomainRequirement> {
     match receiver {
+        MethodReceiverContract::ExactArray => Some(DomainRequirement::ARRAY),
         MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument
@@ -177,7 +179,19 @@ pub(super) fn method_call_contract_shapes(
         contract
     } else if method_fold_name(lang, name) && arg_count > 0 {
         (Builtin::Reduce, Receiver::ExactProtocol, Args::Fold)
-    } else if method_bool_reduction_builtin(lang, name).is_some() && arg_count > 0 {
+    } else if js_like_lang(lang)
+        && method_bool_reduction_builtin(lang, name).is_some()
+        && arg_count == 1
+    {
+        (
+            method_bool_reduction_builtin(lang, name).unwrap(),
+            Receiver::ExactArray,
+            Args::BoolReduction,
+        )
+    } else if !js_like_lang(lang)
+        && method_bool_reduction_builtin(lang, name).is_some()
+        && arg_count > 0
+    {
         (
             method_bool_reduction_builtin(lang, name).unwrap(),
             Receiver::ExactProtocol,
@@ -189,7 +203,13 @@ pub(super) fn method_call_contract_shapes(
             Receiver::ExactProtocol,
             Args::CollectionReduction,
         )
-    } else if method_hof_contract(lang, name).is_some() && arg_count > 0 {
+    } else if js_like_lang(lang) && method_hof_contract(lang, name).is_some() && arg_count == 1 {
+        return vec![MethodCallContract {
+            semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
+            receiver: Receiver::ExactArray,
+            args: Args::Hof,
+        }];
+    } else if !js_like_lang(lang) && method_hof_contract(lang, name).is_some() && arg_count > 0 {
         return vec![MethodCallContract {
             semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
             receiver: Receiver::ExactProtocol,

@@ -148,7 +148,12 @@ impl<'a> Builder<'a> {
         let Payload::HoF(kind) = self.il.node(expr).payload else {
             return false;
         };
-        let demand = admitted_hof_demand_effect_profile_at_node(self.il, expr, kind);
+        let demand = admitted_hof_demand_effect_profile_at_node_with_interner(
+            self.il,
+            Some(self.interner),
+            expr,
+            kind,
+        );
         let Some(demand) = demand else { return false };
         if !demand.proves_eager_per_element_callback_demand() {
             return false;

@@ -45,10 +45,13 @@ impl<'a> Builder<'a> {
                 | SourceComprehensionKind::PythonSetComprehension,
             ) => false,
             None => match self.il.node(arg).payload {
-                Payload::HoF(kind) => {
-                    admitted_hof_demand_effect_profile_at_node(self.il, arg, kind)
-                        .is_some_and(|profile| profile.proves_eager_per_element_callback_demand())
-                }
+                Payload::HoF(kind) => admitted_hof_demand_effect_profile_at_node_with_interner(
+                    self.il,
+                    Some(self.interner),
+                    arg,
+                    kind,
+                )
+                .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
                 _ => false,
             },
         }
@@ -68,9 +71,13 @@ impl<'a> Builder<'a> {
                 | SourceComprehensionKind::PythonSetComprehension,
             ) => false,
             None => match self.il.node(arg).payload {
-                Payload::HoF(kind) => {
-                    admitted_hof_demand_effect_profile_at_node(self.il, arg, kind).is_some()
-                }
+                Payload::HoF(kind) => admitted_hof_demand_effect_profile_at_node_with_interner(
+                    self.il,
+                    Some(self.interner),
+                    arg,
+                    kind,
+                )
+                .is_some(),
                 _ => false,
             },
         }
@@ -88,7 +95,14 @@ impl<'a> Builder<'a> {
                 | SourceComprehensionKind::PythonListComprehension,
             ) => Some(HofAdmission::SourceComprehension),
             Some(SourceComprehensionKind::PythonSetComprehension) => None,
-            None if admitted_hof_demand_effect_profile_at_node(self.il, node, kind).is_some() => {
+            None if admitted_hof_demand_effect_profile_at_node_with_interner(
+                self.il,
+                Some(self.interner),
+                node,
+                kind,
+            )
+            .is_some() =>
+            {
                 Some(HofAdmission::LibraryApi)
             }
             None => None,

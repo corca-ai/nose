@@ -395,3 +395,24 @@ test module. The remaining drift is representative-ID churn:
 new IDs cover the same reviewed fixture debt: cross-crate `evidence_with_dependencies` builders,
 language-core evidence helpers, and semantic-pack `LibraryApi` record builders now including the
 Python iterator builtin protocol record. No new budget is accepted.
+
+The #536 JS/TS Array HOF capability PR first keeps the count at 56. Adding exact Array receiver
+obligations and JS Array-pack HOF provenance shifts representative spans in the already reviewed
+semantic-evidence and HOF-demand test scaffolding:
+`4184990de7be5a2e`, `48b9d4234768340d`, `8cfb7e836850848f`, `d7dea9009200ed08`, and
+`d9278c329fce1b6b` disappear; `1096a4a828c21a80`, `1a260c845757db00`,
+`1bcf5beffb5c2932`, `42cc257ba613ae19`, and `4e655a7c9a3d22dd` appear. The new IDs cover
+the same accepted fixture debt: cross-crate `evidence_with_dependencies` builders, language-core
+evidence helpers, Python collection-factory `LibraryApi` record helpers, receiver-domain
+fail-closed tests, and HOF demand/materialization negatives now carrying JS Array HOF pack
+evidence. The sparse-array hard-negative then moves two more existing representatives:
+`3e76e062e630928d` and `7df8f46c267d1092` disappear; `2b26aa8a17d81eae` and
+`7b134f23e922f405` appear. Those cover the already reviewed `evidence_anchor_span` helper
+family and per-frontend call/constructor lowering parallelism. The callback-obligation review fix
+then drops the count from 56 to 54: `1267c115f7832175` and `f380654d807c1e90` disappear because the
+method-call and typed/free call IL fixtures now share the inline callback shape required by JS Array
+HOF admission. A final release-binary rebuild after the nested normalized-HOF callback fix moves one
+value-graph collection representative: `1639812e75927a23` disappears and `44bfd76822ddbe95`
+appears. The new representative is a whole-impl-span `cardinality`/small `reductions` match with
+only 2 shared lines, not new extractable duplication. No new family appears, so the baseline budget
+is tightened to 54.

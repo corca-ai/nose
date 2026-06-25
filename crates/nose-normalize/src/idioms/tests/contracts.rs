@@ -85,7 +85,7 @@ fn method_hof_requires_exact_receiver() {
 }
 
 #[test]
-fn method_hof_allows_literal_sequence_receiver() {
+fn method_hof_allows_literal_array_receiver() {
     let (il, interner, call) = method_call_il(Lang::JavaScript, "map", true);
     assert!(matches!(
         canon_call(&il, &interner, call),
@@ -217,7 +217,7 @@ fn zip_protocol_pair_requires_kernel_contract() {
 #[test]
 fn method_bool_reduction_allows_typed_collection_receiver() {
     let (il, interner, call) =
-        typed_method_call_il(Lang::TypeScript, "some", ParamSemantic::Collection, false);
+        typed_method_call_il(Lang::TypeScript, "some", ParamSemantic::Array, false);
     assert!(matches!(
         canon_call(&il, &interner, call),
         CallCanon::Builtin {
@@ -229,7 +229,7 @@ fn method_bool_reduction_allows_typed_collection_receiver() {
 
 #[test]
 fn method_bool_reduction_consumes_receiver_domain_evidence() {
-    let (il, interner, call, _) = receiver_domain_method_call_il(DomainEvidence::Collection);
+    let (il, interner, call, _) = receiver_domain_method_call_il(DomainEvidence::Array);
     assert!(matches!(
         canon_call(&il, &interner, call),
         CallCanon::Builtin {
@@ -239,7 +239,7 @@ fn method_bool_reduction_consumes_receiver_domain_evidence() {
     ));
 
     let (mut il, interner, call, receiver_span) =
-        receiver_domain_method_call_il(DomainEvidence::Collection);
+        receiver_domain_method_call_il(DomainEvidence::Array);
     il.evidence.push(evidence(
         next_evidence_id(&il),
         EvidenceAnchor::node(receiver_span, NodeKind::Var),

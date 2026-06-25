@@ -77,6 +77,9 @@ set -euo pipefail
 # test helpers/resolver negatives visible as separate near families. A few production families are
 # known semantic-kernel plumbing made more explicit by the migration. Reviewed in docs/dogfooding.md;
 # accepted as migration debt rather than deduped inside the architecture move.
+# 56 -> 54 (#536 JS/TS Array HOF): adding the callback-obligation review fix unifies the inline
+# callback shape in method-call and typed/free-call IL fixtures, so two accepted test-fixture
+# families disappear. The budget is tightened with the resolved families removed.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

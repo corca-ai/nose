@@ -1,7 +1,7 @@
 use nose_il::{
-    stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, GuardEvidenceKind, Il, Interner,
-    Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Op, Payload, SourceBindingKind, SourceFactKind,
-    SourceOperatorKind, Span, SymbolEvidenceKind, UnitKind,
+    stable_symbol_hash, EvidenceAnchor, EvidenceKind, EvidenceStatus, FileId, GuardEvidenceKind,
+    Il, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Op, Payload, SequenceSurfaceKind,
+    SourceBindingKind, SourceFactKind, SourceOperatorKind, Span, SymbolEvidenceKind, UnitKind,
 };
 
 pub(super) fn lower_js(src: &str) -> Il {
@@ -55,6 +55,32 @@ pub(super) fn seq_names(il: &Il, interner: &Interner) -> Vec<String> {
         out.push(interner.resolve(name).to_string());
     }
     out
+}
+
+pub(super) fn sequence_surface_count_for_seq_name(
+    il: &Il,
+    interner: &Interner,
+    tag: &str,
+    surface: SequenceSurfaceKind,
+) -> usize {
+    il.nodes
+        .iter()
+        .filter(|node| {
+            node.kind == NodeKind::Seq
+                && matches!(node.payload, Payload::Name(name) if interner.resolve(name) == tag)
+        })
+        .map(|node| EvidenceAnchor::sequence(node.span))
+        .map(|anchor| {
+            il.evidence
+                .iter()
+                .filter(|record| {
+                    record.anchor == anchor
+                        && record.kind == EvidenceKind::SequenceSurface(surface)
+                        && record.status == EvidenceStatus::Asserted
+                })
+                .count()
+        })
+        .sum()
 }
 
 pub(super) fn unit_root_seq_names(il: &Il, interner: &Interner, kind: UnitKind) -> Vec<String> {

@@ -270,6 +270,7 @@ pub(super) fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) 
 
 fn method_receiver_contract_key(receiver: MethodReceiverContract) -> String {
     match receiver {
+        MethodReceiverContract::ExactArray => "exact_array".into(),
         MethodReceiverContract::ExactCollection => "exact_collection".into(),
         MethodReceiverContract::ExactProtocol => "exact_protocol".into(),
         MethodReceiverContract::ExactProtocolPairArgument => "exact_protocol_pair_argument".into(),

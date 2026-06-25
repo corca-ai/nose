@@ -95,8 +95,9 @@ The next code slices are intentionally incremental:
    scalar integer API occurrence provenance, then
    `nose.javascript.builtins.promise` for JS/TS `Promise.resolve` and `.then`
    Promise API occurrence provenance, then
-   `nose.javascript.builtins.array` for JS/TS `Array.from` and
-   `Array.isArray` API occurrence provenance, then
+   `nose.javascript.builtins.array` for JS/TS `Array.from`, `Array.isArray`,
+   exact-Array receiver `map`/`filter`/`flatMap`, and `some`/`every` API
+   occurrence provenance, then
    `nose.javascript.builtins.boolean` for JS/TS `Boolean(...)` API occurrence
    provenance, then
    `nose.javascript.builtins.regex` for JS/TS regex literal `.test(...)` API
@@ -982,9 +983,12 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   preserving shadowed-`Promise`, missing Promise-like receiver, and unsafe
   thenable assimilation hard negatives.
 - JS/TS Array APIs started moving out of the broad compatibility facade.
-  `Array.from` and `Array.isArray` `LibraryApi` occurrence evidence now
-  reports `nose.javascript.builtins.array` pack and producer provenance while
-  preserving shadowed-`Array` and unsupported-arity hard negatives.
+  `Array.from`, `Array.isArray`, exact-Array receiver `map`/`filter`/`flatMap`,
+  and `some`/`every` `LibraryApi` occurrence evidence now reports
+  `nose.javascript.builtins.array` pack and producer provenance while preserving
+  shadowed-`Array`, unsupported static arities, callback `thisArg` arities,
+  generic collection receivers, and deferred absence/default method hard
+  negatives.
 - JS/TS Boolean coercion started moving out of the broad compatibility facade.
   `Boolean(...)` `LibraryApi` occurrence evidence now reports
   `nose.javascript.builtins.boolean` pack and producer provenance while
@@ -1489,6 +1493,31 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   corpus-free HoF budget smoke stayed under budget (`features` 10.05 ms,
   semantic query 9.52 ms; deep chain 592 tokens / 152 value-fingerprint nodes,
   wide chain 1455 / 324).
+- The JS/TS Array HOF slice split exact-Array receiver callbacks out of the
+  generic method-call protocol pack. `map`/`filter`/`flatMap` and
+  `some`/`every` now require `nose.javascript.builtins.array` provenance plus
+  exact Array receiver proof before the kernel admits callback demand or
+  terminal predicate demand. Array literal sequence surfaces can prove the
+  exact receiver, and admitted `map`/`filter`/`flatMap` results can prove a
+  follow-on Array receiver for chained calls. `map(..., thisArg)`,
+  `some(..., thisArg)`, sparse array literals, borrowed prototype calls,
+  effectful callbacks, generic Collection receiver proof, generic method-pack
+  provenance, missing receiver proof, wrong Array producer provenance,
+  `find`/`findIndex`, and `reduce` remain closed until those semantics are
+  explicitly modeled. Pre-call monkey-patching and receiver mutation remain
+  outside this slice until receiver place/effect proof is modeled for JS Array
+  HOFs. Inventory before/after against `main@2613ec11`: builtin
+  packs 48 -> 48, exact-capable packs 38 -> 38, evidence producers 57 -> 57,
+  contracts 67 -> 69, positive fixtures 164 -> 169, hard negatives 116 -> 124,
+  conformance refs 280 -> 293, unsupported refs 16 -> 16. JS Array pack
+  metadata changed from 2 -> 4 contracts, 2 -> 7 positives, and 3 -> 11 hard
+  negatives. 2026-06-26 product query-regression compared `main@2613ec11` with
+  the `issue-536-js-array-hof` branch on the JS/TS `axios` representative using
+  repeats=5: 1 repo compared, 0 investigation triggers, output size
+  46361 -> 46362 bytes, distinct location sets 14 -> 14, and median wall time
+  167.22 ms -> 171.97 ms. The corpus-free HoF budget smoke stayed under budget
+  (`features` 9.30 ms, semantic query 10.33 ms; deep chain 592 tokens / 152
+  value-fingerprint nodes, wide chain 1455 / 324).
 - The static API occurrence slice moved Java empty collection constructors and
   JS-like static `indexOf`/`findIndex` membership behind the same
   dependency-backed occurrence boundary. `new ArrayList<>()`/

@@ -218,10 +218,10 @@ pub(super) fn assert_group(json: &serde_json::Value) {
         vec!["javascript", "typescript"]
     );
     assert_eq!(js_array["counts"]["evidence_producers"], 1);
-    assert_eq!(js_array["counts"]["contracts"], 2);
+    assert_eq!(js_array["counts"]["contracts"], 4);
     assert_eq!(js_array["counts"]["value_laws"], 0);
-    assert_eq!(js_array["counts"]["positive_fixtures"], 2);
-    assert_eq!(js_array["counts"]["hard_negatives"], 3);
+    assert_eq!(js_array["counts"]["positive_fixtures"], 7);
+    assert_eq!(js_array["counts"]["hard_negatives"], 11);
 
     let js_boolean = semantic_pack_by_id(&json, "nose.javascript.builtins.boolean");
     assert_eq!(js_boolean["hash"], "7548f93fba013b5d");

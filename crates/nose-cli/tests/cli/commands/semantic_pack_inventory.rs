@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 48);
     assert_eq!(json["totals"]["builtin_packs"], 48);
-    assert_eq!(json["totals"]["positive_fixtures"], 164);
-    assert_eq!(json["totals"]["hard_negatives"], 116);
-    assert_eq!(json["totals"]["conformance_refs"], 280);
+    assert_eq!(json["totals"]["positive_fixtures"], 169);
+    assert_eq!(json["totals"]["hard_negatives"], 124);
+    assert_eq!(json["totals"]["conformance_refs"], 293);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],

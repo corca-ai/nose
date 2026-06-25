@@ -167,12 +167,14 @@ pub(super) fn assert_group() {
         &[
             JS_LIKE_BUILTIN_ARRAY_FROM_CONTRACT_ID,
             JS_LIKE_BUILTIN_ARRAY_IS_ARRAY_CONTRACT_ID,
+            JS_LIKE_BUILTIN_ARRAY_HOF_CONTRACT_ID,
+            JS_LIKE_BUILTIN_ARRAY_BOOL_REDUCTION_CONTRACT_ID,
         ]
     );
     assert_eq!(js_array.counts().evidence_producers, 1);
-    assert_eq!(js_array.counts().contracts, 2);
-    assert_eq!(js_array.counts().positive_fixtures, 2);
-    assert_eq!(js_array.counts().hard_negatives, 3);
+    assert_eq!(js_array.counts().contracts, 4);
+    assert_eq!(js_array.counts().positive_fixtures, 7);
+    assert_eq!(js_array.counts().hard_negatives, 11);
     assert!(js_array
         .conformance_refs()
         .contains(&"js-array-from-shadowed-hard-negative"));

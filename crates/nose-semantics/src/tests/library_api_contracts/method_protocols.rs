@@ -167,6 +167,49 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
         })
     );
     assert_eq!(
+        method_call_contract(Lang::TypeScript, "map", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::Map),
+            receiver: MethodReceiverContract::ExactArray,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::JavaScript, "filter", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::Filter),
+            receiver: MethodReceiverContract::ExactArray,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::JavaScript, "flatMap", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::FlatMap),
+            receiver: MethodReceiverContract::ExactArray,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::JavaScript, "some", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::Any),
+            receiver: MethodReceiverContract::ExactArray,
+            args: MethodBuiltinArgs::BoolReduction,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::TypeScript, "every", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::All),
+            receiver: MethodReceiverContract::ExactArray,
+            args: MethodBuiltinArgs::BoolReduction,
+        })
+    );
+    assert_eq!(method_call_contract(Lang::JavaScript, "map", 2), None);
+    assert_eq!(method_call_contract(Lang::JavaScript, "some", 2), None);
+    assert_eq!(method_call_contract(Lang::TypeScript, "find", 1), None);
+    assert_eq!(
         method_call_contract(Lang::JavaScript, "log", 1),
         Some(MethodCallContract {
             semantic: MethodSemanticContract::Builtin(Builtin::Print),
@@ -295,9 +338,29 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
         );
     }
 
-    let js_map = library_method_call_contract(Lang::JavaScript, "map", 1)
-        .expect("JS Array.map remains generic until its language slice lands");
-    assert_eq!(js_map.pack_id, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID);
+    for (method, arity) in [
+        ("map", 1),
+        ("filter", 1),
+        ("flatMap", 1),
+        ("some", 1),
+        ("every", 1),
+    ] {
+        let contract =
+            library_method_call_contract(Lang::JavaScript, method, arity).expect("JS method row");
+        assert_eq!(contract.pack_id, JS_LIKE_BUILTIN_ARRAY_PACK_ID);
+        assert_eq!(contract.producer_id, JS_LIKE_BUILTIN_ARRAY_PRODUCER_ID);
+        assert_eq!(
+            contract.callee,
+            LibraryApiCalleeContract::Method {
+                method,
+                receiver: MethodReceiverContract::ExactArray,
+            }
+        );
+    }
+    assert!(
+        library_method_call_contract(Lang::JavaScript, "map", 2).is_none(),
+        "JS Array.map with thisArg remains closed until callback binding is modeled"
+    );
 
     let swift_map = library_method_call_contract(Lang::Swift, "map", 1).expect("Swift map row");
     assert_eq!(swift_map.pack_id, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID);

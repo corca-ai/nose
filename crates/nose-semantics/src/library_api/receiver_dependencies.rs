@@ -392,7 +392,7 @@ pub(in crate::library_api) fn exact_protocol_receiver_dependency_ids(
     {
         return Some(vec![id]);
     }
-    if let Some(id) = library_api_dependency_id_for_normalized_hof(il, receiver) {
+    if let Some(id) = library_api_dependency_id_for_normalized_hof(il, Some(interner), receiver) {
         return Some(vec![id]);
     }
     library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
@@ -429,7 +429,10 @@ pub(in crate::library_api) fn protocol_pair_argument_receiver_dependency_ids(
         )
         .map(|id| vec![id])
     })
-    .or_else(|| library_api_dependency_id_for_normalized_hof(il, receiver).map(|id| vec![id]))
+    .or_else(|| {
+        library_api_dependency_id_for_normalized_hof(il, Some(interner), receiver)
+            .map(|id| vec![id])
+    })
     .or_else(|| {
         library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
     })

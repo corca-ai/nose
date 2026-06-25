@@ -461,9 +461,9 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
         SemanticPackInfluence::EvidenceAndContracts
     );
     assert_eq!(js_array.counts.evidence_producers, 1);
-    assert_eq!(js_array.counts.contracts, 2);
-    assert_eq!(js_array.counts.positive_fixtures, 2);
-    assert_eq!(js_array.counts.hard_negatives, 3);
+    assert_eq!(js_array.counts.contracts, 4);
+    assert_eq!(js_array.counts.positive_fixtures, 7);
+    assert_eq!(js_array.counts.hard_negatives, 11);
     let js_boolean = set
         .packs()
         .iter()

@@ -19,12 +19,8 @@ pub(super) fn typed_method_call_il(
         sp(),
         &[receiver],
     );
-    let func = b.add(
-        NodeKind::Var,
-        Payload::Name(interner.intern("f")),
-        sp(),
-        &[],
-    );
+    let func_body = b.add(NodeKind::Block, Payload::None, sp(), &[]);
+    let func = b.add(NodeKind::Lambda, Payload::None, sp(), &[func_body]);
     let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, func]);
     let body = b.add(NodeKind::Block, Payload::None, sp(), &[call]);
     let function = b.add(NodeKind::Func, Payload::None, sp(), &[param, body]);
@@ -87,11 +83,12 @@ pub(super) fn receiver_domain_method_call_il(
         sp_at(23, 28, 2),
         &[receiver],
     );
+    let func_body = b.add(NodeKind::Block, Payload::None, sp_at(29, 30, 2), &[]);
     let func = b.add(
-        NodeKind::Var,
-        Payload::Name(interner.intern("f")),
+        NodeKind::Lambda,
+        Payload::None,
         sp_at(29, 30, 2),
-        &[],
+        &[func_body],
     );
     let call = b.add(
         NodeKind::Call,

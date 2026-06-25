@@ -87,15 +87,38 @@ fn div_zero_map_len_il() -> (Il, NodeId) {
 
 fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: &str) {
     let receiver = il.children(hof)[0];
-    il.evidence.push(language_core_evidence(
-        0,
+    if matches!(
         lang,
-        EvidenceAnchor::sequence(il.node(receiver).span),
-        EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
-    ));
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    ) {
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
+            EvidenceKind::Domain(DomainEvidence::Array),
+        ));
+    } else {
+        il.evidence.push(language_core_evidence(
+            0,
+            lang,
+            EvidenceAnchor::sequence(il.node(receiver).span),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+        ));
+    }
     let contract = library_method_call_contract(lang, "map", 1).expect(expect_msg);
     let evidence = if lang == Lang::Rust {
         rust_sequence_hof_adapter_evidence(
+            1,
+            il.node(hof).span,
+            contract.id,
+            contract.callee,
+            1,
+            vec![EvidenceId(0)],
+        )
+    } else if matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    ) {
+        js_like_builtin_array_evidence(
             1,
             il.node(hof).span,
             contract.id,

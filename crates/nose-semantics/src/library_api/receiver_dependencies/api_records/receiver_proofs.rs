@@ -1,6 +1,7 @@
 use super::canonical::{
     canonical_record_has_unshadowed_symbol_dependency, library_api_method_call_record_contract,
 };
+use super::protocol_receivers::library_api_dependency_contract_satisfies_protocol_receiver;
 use super::*;
 
 pub(super) fn method_call_receiver_dependencies_match(
@@ -34,7 +35,7 @@ pub(super) fn method_call_receiver_dependencies_match(
             else {
                 return false;
             };
-            if !receiver_contract_dependency_match(il, record, receiver_node, receiver) {
+            if !receiver_contract_dependency_match(il, interner, record, receiver_node, receiver) {
                 return false;
             }
             if receiver == MethodReceiverContract::ExactProtocolPairArgument {
@@ -43,6 +44,7 @@ pub(super) fn method_call_receiver_dependencies_match(
                 };
                 return receiver_contract_dependency_match(
                     il,
+                    interner,
                     record,
                     pair,
                     MethodReceiverContract::ExactProtocol,
@@ -81,6 +83,7 @@ pub(super) fn canonical_method_receiver_node(
 
 pub(super) fn receiver_contract_dependency_match(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     receiver: NodeId,
     contract: MethodReceiverContract,
@@ -101,7 +104,7 @@ pub(super) fn receiver_contract_dependency_match(
         return true;
     }
     if matches!(il.node(receiver).payload, Payload::HoF(_))
-        && library_api_record_depends_on_normalized_hof(il, record, receiver)
+        && library_api_record_depends_on_normalized_hof(il, interner, record, receiver)
     {
         return true;
     }
@@ -115,11 +118,12 @@ pub(super) fn receiver_contract_dependency_match(
             il, record, receiver, contract,
         ) || library_api_record_depends_on_receiver_result_domain(
             il,
+            interner,
             record,
             receiver,
             requirement,
         ) || library_api_record_depends_on_receiver_protocol_api_depth(
-            il, record, receiver, contract, 4,
+            il, interner, record, receiver, contract, 4,
         );
     }
     contract == MethodReceiverContract::ExactMapLiteral
@@ -128,10 +132,11 @@ pub(super) fn receiver_contract_dependency_match(
 
 pub(super) fn library_api_record_depends_on_normalized_hof(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     receiver: NodeId,
 ) -> bool {
-    library_api_dependency_id_for_normalized_hof(il, receiver)
+    library_api_dependency_id_for_normalized_hof(il, interner, receiver)
         .is_some_and(|id| record.dependencies.contains(&id))
 }
 
@@ -181,6 +186,7 @@ pub(super) fn canonical_record_has_imported_namespace_dependency(
 
 pub(super) fn library_api_record_depends_on_receiver_result_domain(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     receiver: NodeId,
     requirement: DomainRequirement,
@@ -190,7 +196,7 @@ pub(super) fn library_api_record_depends_on_receiver_result_domain(
             return false;
         };
         let Some((actual_id, callee, arity)) =
-            asserted_library_api_dependency_contract(il, dependency)
+            asserted_library_api_dependency_contract(il, interner, dependency)
         else {
             return false;
         };
@@ -202,6 +208,7 @@ pub(super) fn library_api_record_depends_on_receiver_result_domain(
 
 pub(super) fn library_api_record_depends_on_receiver_protocol_api_depth(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     receiver: NodeId,
     contract: MethodReceiverContract,
@@ -212,7 +219,7 @@ pub(super) fn library_api_record_depends_on_receiver_protocol_api_depth(
             return false;
         };
         let Some((actual_id, callee, arity)) =
-            asserted_library_api_dependency_contract(il, dependency)
+            asserted_library_api_dependency_contract(il, interner, dependency)
         else {
             return false;
         };
@@ -220,6 +227,7 @@ pub(super) fn library_api_record_depends_on_receiver_protocol_api_depth(
             || (depth > 0
                 && library_api_dependency_record_has_receiver_proof_depth(
                     il,
+                    interner,
                     dependency,
                     receiver,
                     contract,
@@ -233,6 +241,7 @@ pub(super) fn library_api_record_depends_on_receiver_protocol_api_depth(
 
 pub(super) fn asserted_library_api_dependency_contract(
     il: &Il,
+    interner: Option<&Interner>,
     dependency: &EvidenceRecord,
 ) -> Option<(LibraryApiContractId, LibraryApiCalleeContract, u16)> {
     if dependency.status != EvidenceStatus::Asserted
@@ -259,24 +268,18 @@ pub(super) fn asserted_library_api_dependency_contract(
     {
         return None;
     }
-    if library_api_dependency_requires_call_obligations(actual_id)
+    if library_api_contract_requires_call_obligations(il.meta.lang, actual_id)
         && !node_at_span_with_kind(il, dependency.anchor.span(), NodeKind::Call).is_some_and(
             |call| {
-                library_api_contract_obligations_match_call(il, None, call, actual_id, dependency)
+                library_api_contract_obligations_match_call(
+                    il, interner, call, actual_id, dependency,
+                )
             },
         )
     {
         return None;
     }
     Some((actual_id, callee, arity))
-}
-
-fn library_api_dependency_requires_call_obligations(id: LibraryApiContractId) -> bool {
-    matches!(
-        id,
-        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
-            | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate)
-    )
 }
 
 pub(super) fn library_api_dependency_anchor_matches_receiver(
@@ -297,6 +300,7 @@ pub(super) fn library_api_dependency_anchor_matches_receiver(
 
 pub(super) fn library_api_dependency_record_has_receiver_proof_depth(
     il: &Il,
+    interner: Option<&Interner>,
     dependency: &EvidenceRecord,
     receiver: NodeId,
     contract: MethodReceiverContract,
@@ -311,6 +315,7 @@ pub(super) fn library_api_dependency_record_has_receiver_proof_depth(
         )
         || library_api_record_depends_on_receiver_result_domain(
             il,
+            interner,
             dependency,
             receiver,
             requirement,
@@ -318,62 +323,12 @@ pub(super) fn library_api_dependency_record_has_receiver_proof_depth(
         || (depth > 0
             && library_api_record_depends_on_receiver_protocol_api_depth(
                 il,
+                interner,
                 dependency,
                 receiver,
                 contract,
                 depth - 1,
             ))
-}
-
-pub(super) fn library_api_dependency_contract_satisfies_protocol_receiver(
-    il: &Il,
-    actual_id: LibraryApiContractId,
-    callee: LibraryApiCalleeContract,
-    arity: u16,
-    receiver: MethodReceiverContract,
-) -> bool {
-    match actual_id {
-        LibraryApiContractId::MapKeyView(kind) => map_key_view_satisfies_receiver(kind, receiver),
-        LibraryApiContractId::IteratorIdentityAdapter
-        | LibraryApiContractId::StaticCollectionAdapter => {
-            protocol_api_satisfies_receiver(receiver)
-        }
-        LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
-        | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate) => {
-            protocol_api_satisfies_receiver(receiver)
-        }
-        LibraryApiContractId::MethodCall(
-            MethodSemanticContract::HoF(_) | MethodSemanticContract::Builtin(Builtin::Zip),
-        ) => {
-            protocol_api_satisfies_receiver(receiver)
-                && library_api_method_call_record_contract(il, actual_id, callee, arity).is_some()
-        }
-        _ => false,
-    }
-}
-
-pub(super) fn protocol_api_satisfies_receiver(receiver: MethodReceiverContract) -> bool {
-    matches!(
-        receiver,
-        MethodReceiverContract::ExactProtocol | MethodReceiverContract::ExactProtocolPairArgument
-    )
-}
-
-pub(super) fn map_key_view_satisfies_receiver(
-    kind: MapKeyViewKind,
-    receiver: MethodReceiverContract,
-) -> bool {
-    match kind {
-        MapKeyViewKind::Collection => matches!(
-            receiver,
-            MethodReceiverContract::ExactCollection
-                | MethodReceiverContract::ExactCollectionOrMap
-                | MethodReceiverContract::ExactCollectionOrJavaKeySet
-                | MethodReceiverContract::ExactProtocol
-                | MethodReceiverContract::ExactProtocolPairArgument
-        ),
-        MapKeyViewKind::Iterator => protocol_api_satisfies_receiver(receiver),
-    }
 }
 
 pub(in crate::library_api) fn library_api_record_models_rust_map_get_default(
@@ -536,6 +491,7 @@ pub(super) fn sequence_surface_kind_satisfies_method_receiver(
     contract: MethodReceiverContract,
 ) -> bool {
     match contract {
+        MethodReceiverContract::ExactArray => kind == SequenceSurfaceKind::Collection,
         MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument

@@ -76,7 +76,11 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
                 .collect();
-            let tag = lo.sym("array");
+            let tag = if js_array_has_elision(node) {
+                lo.sym("js_sparse_array")
+            } else {
+                lo.sym("array")
+            };
             lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
         "object" => lower_object(lo, node),
@@ -109,6 +113,30 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         _ => lower_expr_rest(lo, node),
     }
+}
+
+fn js_array_has_elision(node: TsNode) -> bool {
+    let mut slot_has_element = false;
+    for idx in 0..node.child_count() {
+        let Some(child) = node.child(idx) else {
+            continue;
+        };
+        match child.kind() {
+            "," => {
+                if !slot_has_element {
+                    return true;
+                }
+                slot_has_element = false;
+            }
+            "[" | "]" => {}
+            "comment" => {}
+            _ if child.is_named() => {
+                slot_has_element = true;
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 /// Tail of [`lower_expr`]'s dispatch: destructuring patterns, parameters,

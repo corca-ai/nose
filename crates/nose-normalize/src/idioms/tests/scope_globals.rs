@@ -4,7 +4,7 @@ use super::support::*;
 #[test]
 fn method_bool_reduction_uses_lexical_param_scope() {
     let (il, interner, call) =
-        typed_method_call_il(Lang::TypeScript, "some", ParamSemantic::Collection, true);
+        typed_method_call_il(Lang::TypeScript, "some", ParamSemantic::Array, true);
     assert!(matches!(
         canon_call(&il, &interner, call),
         CallCanon::Builtin {

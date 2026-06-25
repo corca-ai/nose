@@ -280,8 +280,14 @@ previous semantic-kernel tranches.
    `nose.javascript.builtins.promise`, which owns JS/TS `Promise.resolve` and
    `.then` Promise API occurrence provenance.
    The current JavaScript builtins Array slice is
-   `nose.javascript.builtins.array`, which owns JS/TS `Array.from` and
-   `Array.isArray` API occurrence provenance.
+   `nose.javascript.builtins.array`, which owns JS/TS `Array.from`,
+   `Array.isArray`, and exact-Array receiver `map`/`filter`/`flatMap` plus
+   `some`/`every` API occurrence provenance. Array HOF rows require asserted
+   Array receiver proof and stay closed for callback `thisArg` arities,
+   sparse array literals, borrowed prototype calls, effectful callbacks,
+   generic collection receivers, and deferred absence/default methods such as
+   `find`. Pre-call monkey-patching and receiver mutation require future
+   JS-specific place/effect proof.
    The current JavaScript builtins Boolean slice is
    `nose.javascript.builtins.boolean`, which owns JS/TS `Boolean(...)` API
    occurrence provenance.

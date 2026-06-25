@@ -3,6 +3,10 @@ use super::*;
 #[test]
 fn method_receiver_contracts_expose_only_domain_backed_obligations() {
     assert_eq!(
+        method_receiver_domain_requirement(MethodReceiverContract::ExactArray),
+        Some(DomainRequirement::ARRAY)
+    );
+    assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactCollection),
         Some(DomainRequirement::ARRAY_COLLECTION_OR_SET)
     );

@@ -510,8 +510,9 @@ implicit v0 packs:
   `Math.max` scalar integer API occurrence contracts;
 - `nose.javascript.builtins.promise` owns the current JS/TS `Promise.resolve`
   and `.then` Promise API occurrence contracts;
-- `nose.javascript.builtins.array` owns the current JS/TS `Array.from` and
-  `Array.isArray` API occurrence contracts;
+- `nose.javascript.builtins.array` owns the current JS/TS `Array.from`,
+  `Array.isArray`, exact-Array receiver `map`/`filter`/`flatMap`, and
+  `some`/`every` API occurrence contracts;
 - `nose.javascript.builtins.boolean` owns the current JS/TS `Boolean(...)` API
   occurrence contract;
 - `nose.javascript.builtins.regex` owns the current JS/TS regex literal

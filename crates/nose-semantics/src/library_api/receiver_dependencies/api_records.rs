@@ -2,6 +2,7 @@ use super::*;
 
 mod canonical;
 mod normalized_hof;
+mod protocol_receivers;
 mod receiver_proofs;
 
 pub(crate) use canonical::language_core_builtin_at_call;
@@ -18,12 +19,48 @@ use normalized_hof::{
 
 pub(crate) fn library_api_dependency_id_for_normalized_hof(
     il: &Il,
+    interner: Option<&Interner>,
     receiver: NodeId,
 ) -> Option<EvidenceId> {
     let Payload::HoF(kind) = il.node(receiver).payload else {
         return None;
     };
     let anchor = EvidenceAnchor::node(il.node(receiver).span, NodeKind::Call);
+    library_api_dependency_id_for_contract_records(
+        il,
+        anchor,
+        |contract_hash| normalized_hof_contract_id_from_hash(kind, contract_hash),
+        |record, expected_id, callee, arity| {
+            library_api_record_provenance_matches_contract(
+                il.meta.lang,
+                expected_id,
+                callee,
+                record,
+            ) && library_api_contract_obligations_match_node(il, interner, receiver, expected_id)
+                && normalized_hof_dependencies_match(
+                    il,
+                    interner,
+                    receiver,
+                    record,
+                    expected_id,
+                    callee,
+                    arity,
+                )
+        },
+    )
+}
+
+fn library_api_dependency_id_for_contract_records(
+    il: &Il,
+    anchor: EvidenceAnchor,
+    mut contract_id_for_hash: impl FnMut(u64) -> Option<LibraryApiContractId>,
+    mut accepts: impl FnMut(
+        &EvidenceRecord,
+        LibraryApiContractId,
+        LibraryApiCalleeContract,
+        u16,
+    ) -> bool,
+) -> Option<EvidenceId> {
     let mut found = None;
     for record in il.evidence_anchored_at(anchor.span()) {
         if record.anchor != anchor
@@ -40,21 +77,14 @@ pub(crate) fn library_api_dependency_id_for_normalized_hof(
         else {
             continue;
         };
-        let Some(expected_id) = normalized_hof_contract_id_from_hash(kind, contract_hash) else {
+        let Some(id) = contract_id_for_hash(contract_hash) else {
             continue;
         };
-        let Some(callee) =
-            library_api_callee_contract_for_hash(il.meta.lang, expected_id, callee_hash)
+        let Some(callee) = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash)
         else {
             continue;
         };
-        if !library_api_record_provenance_matches_contract(
-            il.meta.lang,
-            expected_id,
-            callee,
-            record,
-        ) || !normalized_hof_dependencies_match(il, receiver, record, expected_id, callee, arity)
-        {
+        if !accepts(record, id, callee, arity) {
             continue;
         }
         match found {
@@ -80,6 +110,7 @@ fn normalized_hof_contract_id_from_hash(
 
 fn normalized_hof_dependencies_match(
     il: &Il,
+    interner: Option<&Interner>,
     hof: NodeId,
     record: &EvidenceRecord,
     id: LibraryApiContractId,
@@ -89,7 +120,7 @@ fn normalized_hof_dependencies_match(
     match id {
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(_)) => {
             library_api_method_call_record_contract(il, id, callee, arity).is_some_and(|contract| {
-                normalized_hof_method_call_dependencies_match(il, hof, record, contract)
+                normalized_hof_method_call_dependencies_match(il, interner, hof, record, contract)
             })
         }
         LibraryApiContractId::FreeFunctionHof(kind) => {
@@ -97,6 +128,7 @@ fn normalized_hof_dependencies_match(
                 |contract| {
                     normalized_hof_free_function_dependencies_match(
                         il,
+                        interner,
                         hof,
                         record,
                         contract.result.name,
@@ -233,40 +265,13 @@ pub(in crate::library_api) fn library_api_dependency_id_for_call_contract(
         return None;
     }
     let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
-    let mut found = None;
-    for record in il.evidence_anchored_at(anchor.span()) {
-        if record.anchor != anchor
-            || record.status != EvidenceStatus::Asserted
-            || !il.evidence_dependencies_asserted(record)
-        {
-            continue;
-        }
-        let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash,
-            callee_hash,
-            arity,
-        }) = record.kind
-        else {
-            continue;
-        };
-        let Some(id) = library_api_contract_id_from_hash(contract_hash) else {
-            continue;
-        };
-        let Some(callee) = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash)
-        else {
-            continue;
-        };
-        if !accepts(id, callee, arity) {
-            continue;
-        }
-        if !library_api_record_admitted_for_current_shape(il, interner, call, record) {
-            continue;
-        }
-        match found {
-            None => found = Some(record.id),
-            Some(existing) if existing == record.id => {}
-            Some(_) => return None,
-        }
-    }
-    found
+    library_api_dependency_id_for_contract_records(
+        il,
+        anchor,
+        library_api_contract_id_from_hash,
+        |record, id, callee, arity| {
+            accepts(id, callee, arity)
+                && library_api_record_admitted_for_current_shape(il, interner, call, record)
+        },
+    )
 }

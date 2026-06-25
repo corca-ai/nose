@@ -89,6 +89,9 @@ pub(in crate::library_api) fn sequence_surface_satisfies_method_receiver(
     contract: MethodReceiverContract,
 ) -> bool {
     match contract {
+        MethodReceiverContract::ExactArray => {
+            surface.imported_literal && surface.value_tag == SEQ_VALUE_COLLECTION
+        }
         MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactProtocol
         | MethodReceiverContract::ExactProtocolPairArgument

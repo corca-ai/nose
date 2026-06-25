@@ -11,6 +11,18 @@ pub(super) fn library_api_contract_result_domain_for_arity(
     arity: u16,
 ) -> Option<DomainEvidence> {
     library_api_materialized_result_domain_for_arity(id, callee, arity).or(match id {
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
+            HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
+        )) if matches!(
+            callee,
+            LibraryApiCalleeContract::Method {
+                receiver: MethodReceiverContract::ExactArray,
+                ..
+            }
+        ) =>
+        {
+            Some(DomainEvidence::Array)
+        }
         LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
         | LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate) => {
             Some(DomainEvidence::Iterator)

@@ -548,10 +548,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   remain dependency-free;
 - first-party lowering emits `LibraryApi` evidence for selected API occurrences
   that remain as raw nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
-  with `nose.javascript.builtins.array` provenance; `new Map(...)` and
-  `new Set(...)` with `nose.javascript.builtins.collection_constructors`
-  provenance; `Boolean(...)` with `nose.javascript.builtins.boolean`
-  provenance; regex literal `.test(...)` with
+  and exact-Array receiver `map`/`filter`/`flatMap` plus `some`/`every` with
+  `nose.javascript.builtins.array` provenance; `new Map(...)` and `new Set(...)`
+  with `nose.javascript.builtins.collection_constructors` provenance;
+  `Boolean(...)` with `nose.javascript.builtins.boolean` provenance; regex
+  literal `.test(...)` with
   `nose.javascript.builtins.regex` provenance; and static
   `indexOf`/`findIndex` membership calls whose receiver has collection
   sequence-surface proof with
@@ -677,9 +678,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `Array`; and JS-like `Promise.resolve` plus admitted Promise `.then` results
   with `nose.javascript.builtins.promise` provenance as `PromiseLike`.
   `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`,
-  `math.prod`, `Arrays.stream`, map `get`, iterator adapters, and generic
-  method contracts do not emit `Domain` records because their results are not
-  simple receiver domains under the current vocabulary;
+  `math.prod`, `Arrays.stream`, map `get`, iterator adapters, JS Array HOFs, and
+  generic method contracts do not emit `Domain` records because their result
+  domains are consumed through admitted API dependencies rather than materialized
+  as standalone receiver facts;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence under the matching
   builtin language-core pack, including Go map literal and Go map-entry surfaces
   where those tags carry first-party meaning.

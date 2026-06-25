@@ -127,9 +127,9 @@ behavior or pack ownership, not in a static descriptor table.
     "builtin_packs": 48,
     "exact_capable_packs": 38,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 164,
-    "hard_negatives": 116,
-    "conformance_refs": 280,
+    "positive_fixtures": 169,
+    "hard_negatives": 124,
+    "conformance_refs": 293,
     "unsupported_refs": 16
   },
   "evidence_policy": {

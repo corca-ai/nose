@@ -197,7 +197,7 @@ fn result_domain_materialization_excludes_hof_and_map_get_lanes() {
         "receiver",
         "map",
         1,
-        Some(DomainEvidence::Collection),
+        Some(DomainEvidence::Array),
     );
 
     run(&mut hof_il, &hof_interner);

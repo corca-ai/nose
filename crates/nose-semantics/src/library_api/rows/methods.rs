@@ -442,6 +442,11 @@ fn method_call_contract_provenance(
             SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
             SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
         )
+    } else if js_like_array_hof_method_call(lang, contract) {
+        (
+            JS_LIKE_BUILTIN_ARRAY_PACK_ID,
+            JS_LIKE_BUILTIN_ARRAY_PRODUCER_ID,
+        )
     } else if lang == Lang::Go
         && matches!(
             (contract.semantic, contract.receiver, contract.args,),
@@ -503,28 +508,6 @@ fn method_call_contract_provenance(
     }
 }
 
-fn rust_sequence_hof_method_call(lang: Lang, contract: MethodCallContract) -> bool {
-    lang == Lang::Rust
-        && matches!(
-            (contract.semantic, contract.receiver, contract.args),
-            (
-                MethodSemanticContract::HoF(
-                    HoFKind::Map | HoFKind::Filter | HoFKind::FilterMap | HoFKind::FlatMap,
-                ),
-                MethodReceiverContract::ExactProtocol,
-                MethodBuiltinArgs::Hof,
-            ) | (
-                MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
-                MethodReceiverContract::ExactProtocol,
-                MethodBuiltinArgs::BoolReduction,
-            ) | (
-                MethodSemanticContract::Builtin(Builtin::Len),
-                MethodReceiverContract::ExactProtocol,
-                MethodBuiltinArgs::CollectionReduction,
-            )
-        )
-}
-
 pub fn library_map_get_default_contract(
     lang: Lang,
     method: &str,
@@ -578,7 +561,10 @@ pub fn library_receiver_membership_contract(
         })
 }
 
+mod classification;
 mod receiver;
 mod selectors;
+pub(in crate::library_api) use classification::js_like_array_hof_method_call;
+use classification::rust_sequence_hof_method_call;
 pub use receiver::{library_receiver_method_api_contract, library_receiver_method_api_contracts};
 pub(crate) use selectors::library_method_selector_name;

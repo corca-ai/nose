@@ -93,6 +93,28 @@ pub(crate) fn js_like_builtin_static_index_membership_evidence(
     )
 }
 
+pub(crate) fn js_like_builtin_array_evidence(
+    id: u32,
+    call_span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract_id,
+        callee,
+        arity,
+        dependencies,
+        (
+            JS_LIKE_BUILTIN_ARRAY_PACK_ID,
+            JS_LIKE_BUILTIN_ARRAY_PRODUCER_ID,
+        ),
+    )
+}
+
 pub(crate) fn rust_stdlib_integer_method_evidence(
     id: u32,
     call_span: Span,

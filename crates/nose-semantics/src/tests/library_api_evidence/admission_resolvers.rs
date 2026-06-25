@@ -2,6 +2,7 @@ use super::*;
 
 mod array;
 mod iterator_adapter;
+mod js_array_hof;
 mod map_get;
 mod map_get_default;
 mod map_key_view;
