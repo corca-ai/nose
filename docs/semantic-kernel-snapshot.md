@@ -969,8 +969,8 @@ migrated.
   `BindingWrite` effect and rejects intervening mutation or argument escape
   before the `Object.keys` use, including JS `delete` property mutation and
   `for...in` / `for...of` loop target writes. Nested local function
-  declarations that could close over the object and direct `eval` also close the
-  proof.
+  declarations that could close over the object, direct `eval`, and `with`
+  scopes over the object also close the proof.
   Object-literal `__proto__` prototype syntax is exact-closed because it is not
   an enumerable own key; escaped identifier keys and numeric literal keys whose
   runtime property names need JS canonicalization are also exact-closed.

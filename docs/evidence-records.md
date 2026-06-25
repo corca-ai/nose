@@ -354,7 +354,7 @@ the `Object.keys` call, including JS `delete` property mutation and `for...in` /
 `for...of` loop target writes. Consumers re-run that object-argument proof when
 admitting the record. A detached API row, `Object.values`, `Object.entries`,
 shadowed `Object`, mutation, nested local function declarations that can close over
-the object, direct `eval`,
+the object, direct `eval`, `with` scopes over the object,
 object-literal `__proto__` prototype syntax, escaped identifier keys, numeric
 literal keys whose runtime property names need JS canonicalization, or missing
 surface evidence does not prove a key-view.

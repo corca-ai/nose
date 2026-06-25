@@ -197,6 +197,7 @@ fn binding_mutated_or_escaped_before_use(
                 any_node_contains_binding_reference(il, interner, il.children(node_id), reference)
             }
             NodeKind::Loop if loop_target_writes_binding(il, interner, node_id, reference) => true,
+            NodeKind::Raw if js_with_scope_uses_binding(il, interner, node_id, reference) => true,
             _ => false,
         }
     })
@@ -222,6 +223,24 @@ fn js_delete_sequence(il: &Il, interner: &Interner, node: NodeId) -> bool {
         il.node(node).payload,
         Payload::Name(tag) if interner.resolve(tag) == "js_delete"
     )
+}
+
+fn js_with_scope_uses_binding(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    reference: NodeId,
+) -> bool {
+    if !matches!(
+        il.node(node).payload,
+        Payload::Name(tag) if interner.resolve(tag) == "with_statement"
+    ) {
+        return false;
+    }
+    let Some(&scope_object) = il.children(node).first() else {
+        return false;
+    };
+    node_contains_binding_reference(il, interner, scope_object, reference)
 }
 
 fn direct_eval_call(il: &Il, interner: &Interner, node: NodeId) -> bool {

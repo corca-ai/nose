@@ -42,6 +42,7 @@ fn query_mode_semantic_proves_js_object_keys_key_view_boundaries() {
         "object_receiver_call.js",
         "object_hoisted_mutator.js",
         "object_direct_eval.js",
+        "object_with_scope_delete.js",
         "object_for_in_target_mutation.js",
         "object_for_of_target_mutation.js",
         "object_conditional_initializer.js",
@@ -117,6 +118,10 @@ fn write_object_keys_fixtures(dir: &Path) {
         (
             "object_direct_eval.js",
             "function f(key, other) {\n  const values = { red: 1, blue: 2 };\n  eval(\"values.green = 3\");\n  return Object.keys(values).includes(key);\n}\n",
+        ),
+        (
+            "object_with_scope_delete.js",
+            "function f(key, other) {\n  const values = { red: 1, blue: 2 };\n  with (values) { delete red; }\n  return Object.keys(values).includes(key);\n}\n",
         ),
         (
             "object_for_in_target_mutation.js",
