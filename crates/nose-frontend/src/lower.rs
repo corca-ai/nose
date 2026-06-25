@@ -83,9 +83,9 @@ use nose_semantics::{
     library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     library_static_collection_adapter_contract, library_static_index_membership_contract,
-    module_binding_mutating_method_contract, qualified_global_symbol_contract,
-    sequence_surface_kind_for_tag, type_domain_from_source_text, ImportFactKind,
-    LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
+    library_swift_map_factory_contract, module_binding_mutating_method_contract,
+    qualified_global_symbol_contract, sequence_surface_kind_for_tag, type_domain_from_source_text,
+    ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
     MethodReceiverContract, StaticIndexMembershipReceiverContract,
     FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
     JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID,
@@ -101,6 +101,7 @@ use nose_semantics::{
     PYTHON_STDLIB_MATH_PRODUCER_ID, RUBY_STDLIB_SET_PACK_ID, RUBY_STDLIB_SET_PRODUCER_ID,
     RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
     RUST_STDLIB_OPTION_PRODUCER_ID, RUST_STDLIB_VEC_PRODUCER_ID,
+    SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
 };
 use tree_sitter::Node as TsNode;
 

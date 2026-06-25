@@ -21,8 +21,11 @@ pub(super) fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         | "protocol_property_requirements" => Some(lower_property(lo, node)),
         "enum_entry" => Some(lower_enum_entry(lo, node)),
         "import_declaration" => Some(lower_import(lo, node)),
-        "typealias_declaration"
-        | "associatedtype_declaration"
+        "typealias_declaration" => {
+            record_typealias_shadow(lo, node);
+            None
+        }
+        "associatedtype_declaration"
         | "operator_declaration"
         | "precedence_group_declaration"
         | "macro_declaration"
@@ -109,6 +112,14 @@ pub(super) fn lower_extension(lo: &mut Lowering, node: TsNode) -> NodeId {
     let block = lo.add(NodeKind::Block, Payload::None, span, &kids);
     lo.push_unit_with_origin(block, UnitKind::Class, None, swift_extension_origin(node));
     block
+}
+pub(super) fn record_typealias_shadow(lo: &mut Lowering, node: TsNode) {
+    let span = lo.span(node);
+    if let Some(name) = swift_decl_name(lo, node) {
+        // Keep type-only syntax out of the structural tree while preserving the
+        // declaration as a same-file shadow for stdlib free-name contracts.
+        lo.add(NodeKind::Block, Payload::Name(name), span, &[]);
+    }
 }
 pub(super) fn lower_function(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     let span = lo.span(node);

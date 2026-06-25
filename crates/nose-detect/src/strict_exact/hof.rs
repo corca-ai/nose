@@ -147,15 +147,7 @@ pub(super) fn strict_exact_in_membership_collection_safe(
     }
     match il.kind(node) {
         NodeKind::Seq => strict_exact_membership_collection_safe(il, interner, facts, node),
-        NodeKind::Call => {
-            strict_exact_set_constructor_collection_safe(il, interner, facts, node)
-                || strict_exact_python_collection_factory_safe(il, interner, facts, node)
-                || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
-                || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
-                || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
-                || strict_exact_java_collection_factory_safe(il, interner, facts, node)
-                || strict_exact_map_key_view_collection_safe(il, interner, facts, node)
-        }
+        NodeKind::Call => strict_exact_collection_factory_call_safe(il, interner, facts, node),
         NodeKind::Var => {
             matches!(il.node(node).payload, Payload::Name(name) if facts.exact_value_name(name))
         }

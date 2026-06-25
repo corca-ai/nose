@@ -184,6 +184,23 @@ pub fn admitted_free_name_collection_factory_at_call(
     })
 }
 
+pub fn admitted_swift_collection_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (_, args) = call_parts(il, call)?;
+    if args.len() != 1 || il.kind(args[0]) == NodeKind::KwArg {
+        return None;
+    }
+    let admitted = admitted_free_name_collection_factory_at_call(il, interner, call)?;
+    matches!(
+        admitted.contract.id,
+        LibraryApiContractId::SwiftCollectionFactory(_)
+    )
+    .then_some(admitted)
+}
+
 pub fn admitted_free_name_collection_factory_at_call_span(
     il: &Il,
     interner: &Interner,
@@ -323,6 +340,18 @@ pub fn admitted_free_name_map_factory_at_call(
     })
 }
 
+pub fn admitted_swift_map_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryMapFactoryContract>> {
+    let (callee, args) = call_parts(il, call)?;
+    let name = node_name(il, interner, callee)?;
+    let first_label = call_first_argument_label(il, interner, args.first().copied()?)?;
+    let contract = library_swift_map_factory_contract(il.meta.lang, name, first_label)?;
+    admitted_library_call(il, interner, call, callee, None, args.len(), contract)
+}
+
 pub fn admitted_free_name_map_factory_at_call_span(
     il: &Il,
     interner: &Interner,
@@ -337,6 +366,16 @@ pub fn admitted_free_name_map_factory_at_call_span(
             .then(|| admitted_library_span_call(il, interner, occurrence, contract))
             .flatten()
     })
+}
+
+fn call_first_argument_label<'a>(il: &Il, interner: &'a Interner, arg: NodeId) -> Option<&'a str> {
+    if il.kind(arg) != NodeKind::KwArg {
+        return None;
+    }
+    let Payload::Name(name) = il.node(arg).payload else {
+        return None;
+    };
+    Some(interner.resolve(name))
 }
 
 pub fn admitted_java_map_factory_at_call(

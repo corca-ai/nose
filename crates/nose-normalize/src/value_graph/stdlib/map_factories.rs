@@ -116,6 +116,62 @@ impl<'a> Builder<'a> {
             _ => None,
         }
     }
+
+    pub(in crate::value_graph) fn eval_swift_map_factory_expr(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if !semantics(self.il.meta.lang)
+            .stdlib()
+            .swift_collection_factories()
+        {
+            return None;
+        }
+        let occurrence = admitted_swift_map_factory_at_call(self.il, self.interner, expr)?;
+        if occurrence.arg_count != 1 {
+            return None;
+        }
+        let [_, kwarg] = kids else {
+            return None;
+        };
+        if self.il.kind(*kwarg) != NodeKind::KwArg {
+            return None;
+        }
+        let [entry_sequence] = self.il.children(*kwarg) else {
+            return None;
+        };
+        if !self.swift_dictionary_entry_sequence_expr_safe(*entry_sequence) {
+            return None;
+        }
+        let entries = self.eval(*entry_sequence, env);
+        self.map_factory_from_seq(entries, SEQ_VALUE_TUPLE)
+    }
+
+    fn swift_dictionary_entry_sequence_expr_safe(&self, seq: NodeId) -> bool {
+        if self
+            .seq_surface(seq)
+            .is_none_or(|contract| !contract.map_entry_list)
+        {
+            return false;
+        }
+        let mut key_nodes = Vec::new();
+        for &entry in self.il.children(seq) {
+            if self
+                .seq_surface(entry)
+                .is_none_or(|contract| contract.value_tag != SEQ_VALUE_TUPLE)
+            {
+                return false;
+            }
+            let [key, _value] = self.il.children(entry) else {
+                return false;
+            };
+            key_nodes.push(*key);
+        }
+        !nodes_contain_duplicate_static_literal_keys(self.il, key_nodes)
+    }
+
     fn java_map_positional_entries_value_safe(
         &self,
         kind: JavaMapFactoryKind,

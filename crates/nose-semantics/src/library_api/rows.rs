@@ -14,6 +14,7 @@ fn library_collection_factory_pack_id(id: LibraryApiContractId) -> &'static str 
         LibraryApiContractId::PythonImportedCollectionFactory => {
             PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID
         }
+        LibraryApiContractId::SwiftCollectionFactory(_) => SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
         LibraryApiContractId::RustVecMacroFactory | LibraryApiContractId::RustVecNewFactory => {
             RUST_STDLIB_VEC_PACK_ID
         }
@@ -33,6 +34,7 @@ fn library_collection_factory_pack_id(id: LibraryApiContractId) -> &'static str 
 fn library_map_factory_pack_id(id: LibraryApiContractId) -> &'static str {
     match id {
         LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
+        LibraryApiContractId::SwiftMapFactory(_) => SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
         LibraryApiContractId::JavaMapFactory(kind) => java_map_factory_pack_id(kind),
         LibraryApiContractId::JavaMapEntryFactory => JAVA_STDLIB_MAP_ENTRY_PACK_ID,
         LibraryApiContractId::JsLikeMapConstructor => {
@@ -74,6 +76,18 @@ pub fn library_free_name_collection_factory_contract(
     lang: Lang,
     name: &str,
 ) -> Option<LibraryCollectionFactoryContract> {
+    if let Some(contract) = swift_collection_factory_contract(lang, name) {
+        let id = LibraryApiContractId::SwiftCollectionFactory(contract.kind);
+        return Some(LibraryCollectionFactoryContract {
+            pack_id: library_collection_factory_pack_id(id),
+            id,
+            callee: LibraryApiCalleeContract::FreeName {
+                name: contract.type_name,
+                shadow: LibraryApiShadowPolicy::SameName,
+            },
+            result: LibraryCollectionFactoryResult::SequenceArgument,
+        });
+    }
     FREE_NAME_COLLECTION_FACTORIES
         .iter()
         .find(|row| row.lang.is_none_or(|row_lang| row_lang == lang) && row.names.contains(&name))
@@ -103,14 +117,18 @@ pub fn library_free_name_collection_factory_contract(
 pub fn library_free_name_collection_factory_contracts(
     lang: Lang,
 ) -> impl Iterator<Item = LibraryCollectionFactoryContract> {
-    FREE_NAME_COLLECTION_FACTORIES
+    let swift = ["Array", "Set"]
+        .into_iter()
+        .filter_map(move |name| library_free_name_collection_factory_contract(lang, name));
+    let generic = FREE_NAME_COLLECTION_FACTORIES
         .iter()
         .filter(move |row| row.lang.is_none_or(|row_lang| row_lang == lang))
         .flat_map(move |row| {
             row.names
                 .iter()
                 .filter_map(move |name| library_free_name_collection_factory_contract(lang, name))
-        })
+        });
+    swift.chain(generic)
 }
 
 pub fn library_free_function_builtin_contract(
@@ -206,6 +224,37 @@ pub fn library_free_name_map_factory_contracts(
             row.names
                 .iter()
                 .filter_map(move |name| library_free_name_map_factory_contract(lang, name))
+        })
+}
+
+pub fn library_swift_map_factory_contract(
+    lang: Lang,
+    name: &str,
+    first_label: &str,
+) -> Option<LibraryMapFactoryContract> {
+    let contract = swift_map_factory_contract(lang, name, first_label)?;
+    let id = LibraryApiContractId::SwiftMapFactory(contract.kind);
+    Some(LibraryMapFactoryContract {
+        pack_id: library_map_factory_pack_id(id),
+        id,
+        callee: LibraryApiCalleeContract::LabeledFreeName {
+            name: contract.type_name,
+            first_label: contract.first_label,
+            shadow: LibraryApiShadowPolicy::SameName,
+        },
+        result: LibraryMapFactoryResult::EntrySequence {
+            entry_seq_tag: SEQ_VALUE_TUPLE,
+        },
+    })
+}
+
+pub fn library_swift_map_factory_contracts(
+    lang: Lang,
+) -> impl Iterator<Item = LibraryMapFactoryContract> {
+    [("Dictionary", "uniqueKeysWithValues")]
+        .into_iter()
+        .filter_map(move |(name, first_label)| {
+            library_swift_map_factory_contract(lang, name, first_label)
         })
 }
 

@@ -258,8 +258,10 @@ fn result_domain_depends_on_any_api(
 ) -> bool {
     evidence.iter().any(|record| {
         matches!(record.kind, EvidenceKind::Domain(actual) if actual == domain)
-            && record.dependencies.len() == 1
-            && api_ids.contains(&record.dependencies[0])
+            && record
+                .dependencies
+                .iter()
+                .any(|dependency| api_ids.contains(dependency))
     })
 }
 

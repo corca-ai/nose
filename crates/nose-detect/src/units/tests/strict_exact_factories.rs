@@ -20,6 +20,7 @@ use nose_semantics::{
 };
 
 mod java_collections;
+mod swift_factories;
 
 #[test]
 fn strict_exact_js_constructor_requires_library_api_evidence() {

@@ -5,7 +5,8 @@ use crate::{
     AsyncReceiverContract, ImportedNamespaceFunctionSemantic, IteratorAdapterReceiverContract,
     JavaCollectionConstructorKind, JavaCollectionFactoryKind, JavaMapFactoryKind, MapKeyViewKind,
     MethodReceiverContract, MethodSemanticContract, PromiseFactoryKind, ScalarIntegerMethod,
-    StaticIndexMembershipKind, StaticIndexMembershipReceiverContract,
+    StaticIndexMembershipKind, StaticIndexMembershipReceiverContract, SwiftCollectionFactoryKind,
+    SwiftMapFactoryKind,
 };
 
 pub(super) fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
@@ -18,6 +19,15 @@ pub(super) fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
         }
         LibraryApiContractId::PythonImportedCollectionFactory => {
             "python.imported.collection_factory".into()
+        }
+        LibraryApiContractId::SwiftCollectionFactory(kind) => {
+            format!(
+                "swift.collection_factory.{}",
+                swift_collection_factory_kind_key(kind)
+            )
+        }
+        LibraryApiContractId::SwiftMapFactory(kind) => {
+            format!("swift.map_factory.{}", swift_map_factory_kind_key(kind))
         }
         LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
             format!("free_function_builtin.{}", builtin as u32)
@@ -109,6 +119,19 @@ fn java_collection_factory_kind_key(kind: JavaCollectionFactoryKind) -> &'static
     }
 }
 
+fn swift_collection_factory_kind_key(kind: SwiftCollectionFactoryKind) -> &'static str {
+    match kind {
+        SwiftCollectionFactoryKind::Array => "array",
+        SwiftCollectionFactoryKind::Set => "set",
+    }
+}
+
+fn swift_map_factory_kind_key(kind: SwiftMapFactoryKind) -> &'static str {
+    match kind {
+        SwiftMapFactoryKind::DictionaryUniqueKeysWithValues => "dictionary_unique_keys_with_values",
+    }
+}
+
 fn java_collection_constructor_kind_key(kind: JavaCollectionConstructorKind) -> &'static str {
     match kind {
         JavaCollectionConstructorKind::EmptyList => "empty_list",
@@ -163,6 +186,11 @@ fn method_semantic_contract_key(semantic: MethodSemanticContract) -> String {
 pub(super) fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) -> String {
     match callee {
         LibraryApiCalleeContract::FreeName { name, .. } => format!("free_name:{name}"),
+        LibraryApiCalleeContract::LabeledFreeName {
+            name, first_label, ..
+        } => {
+            format!("labeled_free_name:{name}:{first_label}")
+        }
         LibraryApiCalleeContract::RustMacro { name, .. } => format!("rust_macro:{name}"),
         LibraryApiCalleeContract::ImportedBinding { module, exported } => {
             format!("imported_binding:{module}:{exported}")

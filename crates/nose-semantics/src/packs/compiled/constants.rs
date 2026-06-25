@@ -1,5 +1,8 @@
 use super::*;
 
+mod swift;
+pub(super) use swift::*;
+
 pub(super) const C_LANGUAGE: &[&str] = &["c"];
 pub(super) const C_LANGUAGE_FILE_EXTENSIONS: &[&str] = &["c", "h"];
 pub(super) const PYTHON_BINDING_LANGS: &[Lang] = &[Lang::Python];

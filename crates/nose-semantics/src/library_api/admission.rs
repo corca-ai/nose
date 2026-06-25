@@ -185,6 +185,7 @@ fn library_api_contract_provenance_ids(
 ) -> Option<(&'static str, &'static str)> {
     python_library_api_contract_provenance_ids(id)
         .or_else(|| js_like_library_api_contract_provenance_ids(id))
+        .or_else(|| swift_library_api_contract_provenance_ids(id))
         .or_else(|| rust_library_api_contract_provenance_ids(id, callee))
         .or_else(|| java_library_api_contract_provenance_ids(id, callee))
         .or_else(|| go_library_api_contract_provenance_ids(id, callee))
@@ -209,6 +210,19 @@ fn python_library_api_contract_provenance_ids(
                 identity: 1,
             },
         ) => Some((PYTHON_STDLIB_MATH_PACK_ID, PYTHON_STDLIB_MATH_PRODUCER_ID)),
+        _ => None,
+    }
+}
+
+fn swift_library_api_contract_provenance_ids(
+    id: LibraryApiContractId,
+) -> Option<(&'static str, &'static str)> {
+    match id {
+        LibraryApiContractId::SwiftCollectionFactory(_)
+        | LibraryApiContractId::SwiftMapFactory(_) => Some((
+            SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        )),
         _ => None,
     }
 }

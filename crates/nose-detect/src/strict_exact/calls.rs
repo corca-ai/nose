@@ -34,37 +34,7 @@ pub(super) fn strict_exact_safe_call(
                 .all(|&c| strict_exact_safe_tree(il, interner, facts, c)),
         };
     }
-    if strict_exact_set_constructor_collection_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_python_collection_factory_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_ruby_set_factory_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_rust_std_collection_factory_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_rust_vec_new_safe(il, interner, node) {
-        return true;
-    }
-    if strict_exact_java_collection_factory_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_java_collection_constructor_safe(il, interner, node) {
-        return true;
-    }
-    if strict_exact_java_map_factory_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_rust_std_map_factory_safe(il, interner, facts, node) {
-        return true;
-    }
-    if strict_exact_map_constructor_entries_safe(il, interner, facts, node) {
+    if strict_exact_factory_call_safe(il, interner, facts, node) {
         return true;
     }
     let Some(&callee) = il.children(node).first() else {
@@ -109,6 +79,21 @@ pub(super) fn strict_exact_safe_call(
     // convergence still has to pass the proof-backed contracts above or in normalization.
     strict_exact_callee_identity(il, interner, facts, node, callee)
         && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_factory_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    strict_exact_collection_factory_call_safe(il, interner, facts, node)
+        || strict_exact_rust_vec_new_safe(il, interner, node)
+        || strict_exact_java_collection_constructor_safe(il, interner, node)
+        || strict_exact_java_map_factory_safe(il, interner, facts, node)
+        || strict_exact_rust_std_map_factory_safe(il, interner, facts, node)
+        || strict_exact_swift_map_factory_safe(il, interner, facts, node)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, node)
 }
 
 pub(super) fn strict_exact_typeof_operator_safe(

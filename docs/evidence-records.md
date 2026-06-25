@@ -68,7 +68,7 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
-| `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, pack-proven Python/Go/Swift free-function builtins, pack-proven generic builtin method calls, and selected receiver-method families |
+| `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/Swift/regex APIs, pack-proven Python/Go/Swift free-function builtins, pack-proven generic builtin method calls, and selected receiver-method families |
 | `CallTarget` | proof that a specific call occurrence resolves to an explicit function, method, imported function/member, or dispatch-family target identity |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
@@ -151,6 +151,11 @@ Current builtin `LibraryApi` callee coordinates are intentionally specific:
   Python `len`, Go `append`, or Rust `Vec`, and depends on
   `Symbol(UnshadowedGlobal)` evidence at the callee anchor plus the contract's
   shadow policy.
+- `LabeledFreeName` names a language-scoped free identifier plus the first
+  argument label, such as Swift `Dictionary(uniqueKeysWithValues:)`, and
+  depends on `Symbol(UnshadowedGlobal)` evidence at the callee anchor plus the
+  contract's shadow policy. Other overload labels do not share the occurrence
+  proof.
 - `JavaUtilStaticMember` names selected Java `java.util` static factory/adaptor
   calls and depends on matching Java import-binding evidence plus source-origin
   local type shadow checks.
@@ -415,7 +420,10 @@ provenance-backed `LibraryApi` occurrence evidence, or selected Rust
 occurrence evidence, or selected Rust
 `std::collections::{HashMap,BTreeMap}::from` factories with
 `nose.rust.stdlib.map_factories` provenance-backed `LibraryApi` occurrence
-evidence, or Java `java.util.Map.of`/`Map.ofEntries` factories with
+evidence, or Swift `Array(sequence)`, `Set(sequence)`, and
+`Dictionary(uniqueKeysWithValues:)` factories with
+`nose.swift.stdlib.collection_factories` provenance-backed `LibraryApi`
+occurrence evidence, or Java `java.util.Map.of`/`Map.ofEntries` factories with
 `nose.java.stdlib.map_factories` provenance-backed `LibraryApi` occurrence
 evidence, or Java `java.util.List.of`/`Set.of`/`Arrays.asList` factories with
 `nose.java.stdlib.collection_factories` provenance-backed `LibraryApi` occurrence
@@ -568,7 +576,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   policy is proven, and selected
   `std::collections::{HashMap,BTreeMap}::from(...)` factory paths with
   `nose.rust.stdlib.map_factories` provenance when their root-shadow policy is
-  proven. The selector occurrence does not by itself
+  proven, and Swift `Array(sequence)`, `Set(sequence)`, and
+  `Dictionary(uniqueKeysWithValues:)` with
+  `nose.swift.stdlib.collection_factories` provenance when unshadowed type-name
+  proof and supported entry-shape proof are present. The selector occurrence
+  does not by itself
   prove the pattern semantics: `Some(_)` value-graph presence predicates also
   require the Rust tuple-struct wildcard `Source::Pattern` fact. JS/TS/Java
   `length` property reads whose

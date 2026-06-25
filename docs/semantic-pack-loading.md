@@ -115,6 +115,9 @@ Trust is separate from channel eligibility.
   `nose.rust.stdlib.map_factories` owns selected Rust
   `std::collections::{HashMap,BTreeMap}::from` map factory API occurrence
   provenance;
+  `nose.swift.stdlib.collection_factories` owns Swift `Array(sequence)`,
+  `Set(sequence)`, and `Dictionary(uniqueKeysWithValues:)` collection/map
+  factory API occurrence provenance;
   `nose.java.stdlib.map_factories` owns Java `java.util.Map.of` and
   `java.util.Map.ofEntries` map factory API occurrence provenance;
   `nose.java.stdlib.map_entries` owns Java `java.util.Map.entry` map-entry API

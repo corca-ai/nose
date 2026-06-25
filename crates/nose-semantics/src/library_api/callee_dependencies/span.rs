@@ -12,6 +12,7 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee_at_span(
 ) -> bool {
     match callee {
         LibraryApiCalleeContract::FreeName { .. }
+        | LibraryApiCalleeContract::LabeledFreeName { .. }
         | LibraryApiCalleeContract::RustMacro { .. }
         | LibraryApiCalleeContract::JsGlobalConstructor { .. }
         | LibraryApiCalleeContract::ImportedBinding { .. } => {
@@ -88,6 +89,20 @@ pub(in crate::library_api) fn library_api_dependencies_match_named_callee_at_spa
                     .is_some_and(|span| file_defines_name_visible_at(il, interner, candidate, span))
             })
         }
+        LibraryApiCalleeContract::LabeledFreeName {
+            name,
+            first_label,
+            shadow,
+        } => {
+            callee_span.is_some_and(|span| {
+                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
+            }) && call_first_arg_label_matches_at_span(il, interner, call_span, first_label)
+                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                    callee_span.is_some_and(|span| {
+                        file_defines_name_visible_at(il, interner, candidate, span)
+                    })
+                })
+        }
         LibraryApiCalleeContract::RustMacro { name, shadow } => {
             dependency_has_source_call(il, record, call_span, SourceCallKind::MacroInvocation)
                 && callee_span.is_some_and(|span| {
@@ -143,6 +158,18 @@ pub(in crate::library_api) fn library_api_dependencies_match_named_callee_at_spa
         }
         _ => false,
     }
+}
+
+fn call_first_arg_label_matches_at_span(
+    il: &Il,
+    interner: &Interner,
+    call_span: Span,
+    expected: &str,
+) -> bool {
+    let Some(call) = node_at_span_with_kind(il, call_span, NodeKind::Call) else {
+        return false;
+    };
+    call_first_arg_label_matches(il, interner, call, expected)
 }
 
 fn field_method_receiver_matches_span(

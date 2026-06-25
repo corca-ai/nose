@@ -526,6 +526,9 @@ implicit v0 packs:
 - `nose.rust.stdlib.map_factories` owns the current selected Rust
   `std::collections::{HashMap,BTreeMap}::from` map-factory API occurrence
   contracts;
+- `nose.swift.stdlib.collection_factories` owns Swift `Array(sequence)`,
+  `Set(sequence)`, and `Dictionary(uniqueKeysWithValues:)` collection/map
+  factory API occurrence contracts;
 - `nose.java.stdlib.map_factories` owns Java `java.util.Map.of`,
   `Map.ofEntries`, `Collections.emptyMap`, and `Collections.singletonMap`
   map-factory API occurrence contracts;

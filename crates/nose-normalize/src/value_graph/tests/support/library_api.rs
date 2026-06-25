@@ -259,6 +259,48 @@ pub(crate) fn java_stdlib_collection_factory_evidence(
     )
 }
 
+pub(crate) fn swift_stdlib_collection_factory_evidence(
+    id: u32,
+    call_span: Span,
+    contract: LibraryCollectionFactoryContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract.id,
+        contract.callee,
+        arity,
+        dependencies,
+        (
+            SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    )
+}
+
+pub(crate) fn swift_stdlib_map_factory_evidence(
+    id: u32,
+    call_span: Span,
+    contract: LibraryMapFactoryContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    library_api_contract_evidence_with_pack(
+        id,
+        call_span,
+        contract.id,
+        contract.callee,
+        arity,
+        dependencies,
+        (
+            SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        ),
+    )
+}
+
 pub(crate) fn java_guava_immutable_collection_factory_evidence(
     id: u32,
     call_span: Span,

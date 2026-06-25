@@ -13,7 +13,8 @@ use crate::{
     PromiseFactoryContract, PromiseFactoryKind, PromiseThenContract, RegexTestContract,
     ScalarIntegerMethod, ScalarIntegerMethodContract, StaticCollectionAdapterContract,
     StaticGlobalFunctionContract, StaticGlobalMethodContract, StaticIndexMembershipContract,
-    StaticIndexMembershipKind, StaticIndexMembershipReceiverContract,
+    StaticIndexMembershipKind, StaticIndexMembershipReceiverContract, SwiftCollectionFactoryKind,
+    SwiftMapFactoryKind,
 };
 use nose_il::{stable_symbol_hash, Builtin, DomainEvidence, Lang, SourceFactKind, Span};
 
@@ -25,6 +26,8 @@ pub enum LibraryApiContractId {
     PropertyBuiltin(Builtin),
     PythonBuiltinCollectionFactory,
     PythonImportedCollectionFactory,
+    SwiftCollectionFactory(SwiftCollectionFactoryKind),
+    SwiftMapFactory(SwiftMapFactoryKind),
     FreeFunctionBuiltin(Builtin),
     RustOptionSomeConstructor,
     RustOptionNoneSentinel,
@@ -88,6 +91,11 @@ pub fn library_api_free_name_shadow_safe(
 pub enum LibraryApiCalleeContract {
     FreeName {
         name: &'static str,
+        shadow: LibraryApiShadowPolicy,
+    },
+    LabeledFreeName {
+        name: &'static str,
+        first_label: &'static str,
         shadow: LibraryApiShadowPolicy,
     },
     RustMacro {
@@ -242,6 +250,12 @@ pub fn library_collection_factory_result_domain(
             } => DomainEvidence::Set,
             _ => DomainEvidence::Collection,
         },
+        LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Array) => {
+            DomainEvidence::Array
+        }
+        LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Set) => {
+            DomainEvidence::Set
+        }
         LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::SetOf)
         | LibraryApiContractId::JavaCollectionFactory(
             JavaCollectionFactoryKind::CollectionsEmptySet,
@@ -274,6 +288,7 @@ pub fn library_collection_factory_result_domain_for_arity(
         _ => {}
     }
     match contract.id {
+        LibraryApiContractId::SwiftCollectionFactory(_) if arg_count != 1 => None,
         LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::ArraysAsList)
             if arg_count == 1 =>
         {

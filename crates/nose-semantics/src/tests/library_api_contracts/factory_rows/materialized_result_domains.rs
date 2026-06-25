@@ -43,6 +43,26 @@ fn materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed() {
         ),
         Some(DomainEvidence::Collection)
     );
+    let swift_array = library_free_name_collection_factory_contract(Lang::Swift, "Array").unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(swift_array.id, swift_array.callee, 0),
+        None,
+        "Swift Array factory support is only for the one-argument sequence initializer"
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(swift_array.id, swift_array.callee, 1),
+        Some(DomainEvidence::Array)
+    );
+    let swift_set = library_free_name_collection_factory_contract(Lang::Swift, "Set").unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(swift_set.id, swift_set.callee, 2),
+        None,
+        "Swift Set factory support is only for the one-argument sequence initializer"
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(swift_set.id, swift_set.callee, 1),
+        Some(DomainEvidence::Set)
+    );
     let empty_map =
         library_java_map_factory_contract(Lang::Java, "Collections", "emptyMap").unwrap();
     assert_eq!(
@@ -64,6 +84,27 @@ fn materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed() {
     assert_eq!(
         library_api_materialized_result_domain_for_arity(singleton_map.id, singleton_map.callee, 2),
         Some(DomainEvidence::Map)
+    );
+    let swift_dictionary =
+        library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues")
+            .unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(
+            swift_dictionary.id,
+            swift_dictionary.callee,
+            0
+        ),
+        None,
+        "Swift Dictionary(uniqueKeysWithValues:) support is fixed to one labeled argument"
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(
+            swift_dictionary.id,
+            swift_dictionary.callee,
+            1
+        ),
+        None,
+        "Swift Dictionary(uniqueKeysWithValues:) needs tuple-entry proof before result-domain emission"
     );
 
     let hof = library_method_call_contract(Lang::JavaScript, "map", 1).unwrap();

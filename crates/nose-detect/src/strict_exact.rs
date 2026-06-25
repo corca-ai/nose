@@ -22,7 +22,8 @@ use nose_semantics::{
     admitted_map_key_view_wrapper_at_call, admitted_regex_test_at_call,
     admitted_ruby_set_factory_at_call, admitted_rust_option_none_sentinel_at_node,
     admitted_rust_vec_macro_factory_at_call, admitted_rust_vec_new_factory_at_call,
-    admitted_static_index_membership_at_call, admitted_terminal_count_reduction_at_call,
+    admitted_static_index_membership_at_call, admitted_swift_collection_factory_at_call,
+    admitted_swift_map_factory_at_call, admitted_terminal_count_reduction_at_call,
     asserted_unshadowed_global_symbol, call_target_evidence_status_at_call, construct_syntax_proof,
     direct_function_call_target_at_call, direct_method_call_target_at_call,
     exact_static_membership_predicate_operator, go_zero_map_default_kind,
@@ -36,7 +37,8 @@ use nose_semantics::{
     IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiContractId,
     LibraryCollectionFactoryResult, LibraryMapFactoryResult, LibraryMethodCallContract,
     MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    ReceiverDomainEvidenceIndex, StaticIndexMembershipKind,
+    ReceiverDomainEvidenceIndex, StaticIndexMembershipKind, SwiftCollectionFactoryKind,
+    SEQ_VALUE_TUPLE,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -58,9 +60,9 @@ pub(crate) use collections::{
     strict_exact_collection_contains_call_safe, strict_exact_membership_collection_safe,
 };
 use collections::{
-    strict_exact_iterator_identity_adapter_call_safe, strict_exact_map_contains_call_safe,
-    strict_exact_map_get_call_safe, strict_exact_map_get_default_call_safe,
-    strict_exact_map_key_view_collection_safe, strict_exact_proven_collection_receiver_safe,
+    strict_exact_collection_factory_call_safe, strict_exact_iterator_identity_adapter_call_safe,
+    strict_exact_map_contains_call_safe, strict_exact_map_get_call_safe,
+    strict_exact_map_get_default_call_safe, strict_exact_proven_collection_receiver_safe,
     strict_exact_proven_map_receiver_safe,
 };
 use factories::{
@@ -69,10 +71,12 @@ use factories::{
     strict_exact_rust_std_collection_factory_safe, strict_exact_rust_std_map_factory_safe,
     strict_exact_rust_vec_macro_collection_safe, strict_exact_rust_vec_new_safe,
     strict_exact_swift_default_subscript_index_safe,
+    strict_exact_swift_membership_collection_factory_safe,
 };
 pub(crate) use factories::{
     strict_exact_java_collection_factory_safe, strict_exact_java_map_factory_safe,
     strict_exact_python_collection_factory_safe, strict_exact_set_constructor_collection_safe,
+    strict_exact_swift_collection_factory_safe, strict_exact_swift_map_factory_safe,
 };
 pub(crate) use facts::StrictFacts;
 use hof::{

@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 20] = [
+pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 21] = [
     BuiltinPackDescriptor {
         id: BUILTIN_COMPAT_PACK_ID,
         kind: SemanticPackKind::LanguagePack,
@@ -430,5 +430,24 @@ pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 20] = [
         static_conformance_refs: RUST_STDLIB_MAP_FACTORY_CONFORMANCE_REFS,
         dynamic_conformance_refs: None,
         counts: rust_stdlib_map_factory_counts,
+    },
+    BuiltinPackDescriptor {
+        id: SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        kind: SemanticPackKind::StdlibPack,
+        display_name: "nose Swift stdlib collection factory pack",
+        trust: PackTrust::BuiltinDefault,
+        enabled_by_default: true,
+        supported_languages: SWIFT_LANGUAGE,
+        supported_packages: SWIFT_STDLIB_COLLECTION_FACTORY_PACKAGES,
+        language: None,
+        evidence_producer_ids: SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_IDS,
+        source_fact_producer_ids: NO_IDS,
+        contract_ids: SWIFT_STDLIB_COLLECTION_FACTORY_CONTRACT_IDS,
+        type_domain_alias_contracts: NO_TYPE_DOMAIN_ALIAS_CONTRACTS,
+        static_value_law_ids: NO_IDS,
+        dynamic_value_law_ids: None,
+        static_conformance_refs: SWIFT_STDLIB_COLLECTION_FACTORY_CONFORMANCE_REFS,
+        dynamic_conformance_refs: None,
+        counts: swift_stdlib_collection_factory_counts,
     },
 ];

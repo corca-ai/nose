@@ -327,3 +327,19 @@ and `99408319bd080594` changes to `0ca8c1c2117a5fa4` for the Java `ImmutableMap.
 builder family. A temporary production near-family between Java collection and map value-graph
 recognizers was removed by sharing the internal Java static-member call-shape helper, so no new
 budget is accepted.
+
+The #522 Swift stdlib collection factory PR also keeps the count at 56. The Swift
+`Array`/`Set`/`Dictionary(uniqueKeysWithValues:)` slice moved new tests into child modules to keep
+the file-length ratchet green, and it added the general `LabeledFreeName` callee capability for
+first-argument-label proof. That shifted eight representative family IDs:
+`0ca8c1c2117a5fa4`, `13835f6b499ba385`, `1b239d6003d12d2f`, `26775d07eef0a114`,
+`2c454f3fdff599c8`, `3ff060916c96600f`, `46c7ab6a624ab637`, and `b5c1ae278fc77802`
+disappeared; `04d39fd18168311f`, `070c8818af8421e9`, `072b0b3003cf2698`,
+`3280184026a6a7c9`, `4f5e190b35a2dac2`, `a72c9bc5138a4045`, `d984ca7d5210611e`, and
+`dbbb03b3c0fa93e8` appeared. The new test-scope IDs are the same evidence-builder,
+method-call `LibraryApi`, and Guava hard-negative fixture debt already reviewed above. The two
+production-scope IDs are the existing node/span callee-dependency matcher parallelism now including
+labeled free-name checks; unifying those paths would be a separate dependency-matcher abstraction,
+not part of the Swift stdlib capability slice. Two avoidable draft families were removed before
+acceptance by sharing the post-lower `LibraryApi` emission helper and the strict-exact
+collection-factory recognizer helper. No new budget is accepted.

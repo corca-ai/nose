@@ -13,6 +13,7 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee(
     };
     match callee {
         LibraryApiCalleeContract::FreeName { .. }
+        | LibraryApiCalleeContract::LabeledFreeName { .. }
         | LibraryApiCalleeContract::RustMacro { .. }
         | LibraryApiCalleeContract::JsGlobalConstructor { .. }
         | LibraryApiCalleeContract::ImportedBinding { .. } => {
@@ -71,6 +72,17 @@ pub(in crate::library_api) fn library_api_dependencies_match_named_callee(
     match callee {
         LibraryApiCalleeContract::FreeName { name, shadow } => {
             dependency_has_unshadowed_global_node(il, record, callee_node, name)
+                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                    file_defines_name_visible_at(il, interner, candidate, il.node(callee_node).span)
+                })
+        }
+        LibraryApiCalleeContract::LabeledFreeName {
+            name,
+            first_label,
+            shadow,
+        } => {
+            dependency_has_unshadowed_global_node(il, record, callee_node, name)
+                && call_first_arg_label_matches(il, interner, node, first_label)
                 && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
                     file_defines_name_visible_at(il, interner, candidate, il.node(callee_node).span)
                 })

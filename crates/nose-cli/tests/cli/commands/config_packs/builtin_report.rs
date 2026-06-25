@@ -25,7 +25,7 @@ fn query_json_reports_builtin_semantic_packs() {
             .as_array()
             .expect("semantic_packs should be an array")
             .len(),
-        44
+        45
     );
 
     group_0::assert_group(&json);

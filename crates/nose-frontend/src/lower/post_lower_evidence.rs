@@ -291,6 +291,20 @@ pub(super) fn post_lower_record_library_api_node_result_domain(
     );
 }
 
+pub(super) fn post_lower_sequence_surface_evidence_id(
+    il: &Il,
+    node: NodeId,
+    surface: SequenceSurfaceKind,
+) -> Option<EvidenceId> {
+    let span = il.node(node).span;
+    il.evidence.iter().find_map(|record| {
+        (record.anchor == EvidenceAnchor::sequence(span)
+            && record.kind == EvidenceKind::SequenceSurface(surface)
+            && record.status == EvidenceStatus::Asserted)
+            .then_some(record.id)
+    })
+}
+
 pub(super) fn post_lower_find_or_push_evidence(
     il: &mut Il,
     anchor: EvidenceAnchor,

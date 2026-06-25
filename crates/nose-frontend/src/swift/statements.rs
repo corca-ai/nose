@@ -42,7 +42,11 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "do_statement" => Some(lower_do(lo, node)),
         "directive" => Some(lower_directive(lo, node)),
         "statement_label" => Some(lower_statement_label(lo, node)),
-        "discard_statement" | "typealias_declaration" | "associatedtype_declaration" => None,
+        "typealias_declaration" => {
+            record_typealias_shadow(lo, node);
+            None
+        }
+        "discard_statement" | "associatedtype_declaration" => None,
         "line_comment" | "multiline_comment" => None,
         k if is_expr_kind(k) => {
             let expr = lower_expr(lo, node);

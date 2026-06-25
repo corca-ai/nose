@@ -96,6 +96,7 @@ use nose_semantics::{
     admitted_rust_option_some_constructor_at_call, admitted_rust_option_some_constructor_at_node,
     admitted_rust_vec_macro_factory_at_call_span, admitted_rust_vec_new_factory_at_call,
     admitted_scalar_integer_method_at_call, admitted_static_index_membership_at_call,
+    admitted_swift_collection_factory_at_call, admitted_swift_map_factory_at_call,
     admitted_terminal_count_reduction_at_call, asserted_unshadowed_global_symbol,
     binding_write_target, builder_append_call_args, builtin_tag, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
@@ -116,9 +117,9 @@ use nose_semantics::{
     JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiContractId, LibraryApiSpanCall,
     LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
     MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION,
-    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD,
-    SEQ_VALUE_UNTAGGED,
+    SeqSurfaceContract, StaticIndexMembershipKind, SwiftCollectionFactoryKind, ValueDomain,
+    ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
+    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use ops::*;
 use rustc_hash::{FxHashMap, FxHashSet};

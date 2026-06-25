@@ -5,6 +5,7 @@ fn post_lowering_emits_result_domains_for_supported_factories() {
     let interner = Interner::new();
     assert_python_factory_result_domains(&interner);
     assert_rust_and_ruby_factory_result_domains(&interner);
+    assert_swift_collection_factory_result_domains(&interner);
 }
 
 fn assert_python_factory_result_domains(interner: &Interner) {
@@ -242,6 +243,139 @@ fn assert_rust_and_ruby_factory_result_domains(interner: &Interner) {
         result_domain_record_count(&missing_require.evidence, DomainEvidence::Set),
         0,
         "Ruby Set.new must not emit result-domain evidence without require proof"
+    );
+}
+
+fn assert_swift_collection_factory_result_domains(interner: &Interner) {
+    let swift = lower_fixture(
+        "collections.swift",
+        br#"func f(values: [Int]) -> Bool {
+  let a = Array(values)
+  let s = Set(values)
+  let d = Dictionary(uniqueKeysWithValues: [("a", 1)])
+  return s.contains(1)
+}
+"#,
+        Lang::Swift,
+        interner,
+    );
+    let array_contract = library_free_name_collection_factory_contract(Lang::Swift, "Array")
+        .expect("Swift Array contract");
+    let array_api = contract_api_ids(&swift.evidence, array_contract.id, array_contract.callee);
+    assert!(result_domain_depends_on_any_api(
+        &swift.evidence,
+        DomainEvidence::Array,
+        &array_api,
+    ));
+    let set_contract = library_free_name_collection_factory_contract(Lang::Swift, "Set")
+        .expect("Swift Set contract");
+    let set_api = contract_api_ids(&swift.evidence, set_contract.id, set_contract.callee);
+    assert!(result_domain_depends_on_any_api(
+        &swift.evidence,
+        DomainEvidence::Set,
+        &set_api,
+    ));
+    let dictionary_contract =
+        library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues")
+            .expect("Swift Dictionary contract");
+    let dictionary_api = contract_api_ids(
+        &swift.evidence,
+        dictionary_contract.id,
+        dictionary_contract.callee,
+    );
+    assert!(result_domain_depends_on_any_api(
+        &swift.evidence,
+        DomainEvidence::Map,
+        &dictionary_api,
+    ));
+
+    let array_literal_label = lower_fixture(
+        "array_literal_label.swift",
+        br#"func f() {
+  _ = Array(arrayLiteral: 1)
+}
+"#,
+        Lang::Swift,
+        interner,
+    );
+    assert_eq!(
+        result_domain_record_count(&array_literal_label.evidence, DomainEvidence::Array),
+        0,
+        "labeled Array initializers must not emit Array(sequence) result-domain evidence"
+    );
+
+    let typealias_shadows = lower_fixture(
+        "swift_typealias_shadowed_factories.swift",
+        br#"struct MyArray {
+  init(_ values: [Int]) {}
+}
+struct MyDictionary {
+  init(uniqueKeysWithValues values: [(String, Int)]) {}
+}
+typealias Array = MyArray
+typealias Dictionary = MyDictionary
+func f(values: [Int]) {
+  _ = Array(values)
+  _ = Dictionary(uniqueKeysWithValues: [("a", 1)])
+}
+"#,
+        Lang::Swift,
+        interner,
+    );
+    assert_eq!(
+        result_domain_record_count(&typealias_shadows.evidence, DomainEvidence::Array),
+        0,
+        "Swift typealias shadows must not emit Array(sequence) result-domain evidence"
+    );
+    assert_eq!(
+        result_domain_record_count(&typealias_shadows.evidence, DomainEvidence::Map),
+        0,
+        "Swift typealias shadows must not emit Dictionary map result-domain evidence"
+    );
+
+    let dictionary_implicit_entries = lower_fixture(
+        "dictionary_implicit_entries.swift",
+        br#"func f(values: [(String, Int)]) {
+  _ = Dictionary(uniqueKeysWithValues: values)
+}
+"#,
+        Lang::Swift,
+        interner,
+    );
+    assert_eq!(
+        result_domain_record_count(&dictionary_implicit_entries.evidence, DomainEvidence::Map),
+        0,
+        "Dictionary result-domain evidence requires explicit tuple-entry sequence proof"
+    );
+
+    let duplicate_dictionary = lower_fixture(
+        "dictionary_duplicate_keys.swift",
+        br#"func f() {
+  _ = Dictionary(uniqueKeysWithValues: [("a", 1), ("a", 2)])
+}
+"#,
+        Lang::Swift,
+        interner,
+    );
+    assert_eq!(
+        result_domain_record_count(&duplicate_dictionary.evidence, DomainEvidence::Map),
+        0,
+        "Dictionary result-domain evidence must stay closed for static duplicate keys"
+    );
+
+    let dictionary_wrong_label = lower_fixture(
+        "dictionary_wrong_label.swift",
+        br#"func f(values: [Int]) {
+  _ = Dictionary(grouping: values)
+}
+"#,
+        Lang::Swift,
+        interner,
+    );
+    assert_eq!(
+        result_domain_record_count(&dictionary_wrong_label.evidence, DomainEvidence::Map),
+        0,
+        "non-uniqueKeysWithValues Dictionary initializers must not emit Map result-domain evidence"
     );
 }
 

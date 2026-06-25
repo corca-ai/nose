@@ -18,6 +18,7 @@ mod ruby;
 mod rust;
 mod source_artifacts;
 mod swift;
+mod swift_cross_file_shadows;
 mod type_domain_aliases;
 
 #[cfg(test)]
@@ -249,6 +250,7 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
 
     let t2 = std::time::Instant::now();
     module_imports::resolve_imported_immutable_bindings(&mut files, &interner);
+    swift_cross_file_shadows::close_shadowed_stdlib_factories(&mut files, &interner);
     if timing {
         eprintln!(
             "  [time] {:<12} {:>7.1}ms  (corpus import facts)",

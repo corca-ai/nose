@@ -1,5 +1,7 @@
 use super::*;
 
+mod swift_factories;
+
 #[test]
 fn post_lowering_emits_free_name_and_require_library_api_occurrences() {
     let interner = Interner::new();

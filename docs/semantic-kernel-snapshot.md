@@ -1,6 +1,6 @@
 # Semantic kernel snapshot
 
-Snapshot date: 2026-06-21. The current implementation has an internal
+Snapshot date: 2026-06-25. The current implementation has an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,
@@ -132,7 +132,13 @@ still being migrated toward it.
   negatives. The `nose.rust.stdlib.map_factories` descriptor owns selected Rust
   `std::collections::{HashMap,BTreeMap}::from` map-factory contract and
   occurrence producer ids, while shadowed `std` roots remain hard negatives.
-  The `nose.java.stdlib.map_factories` descriptor owns Java `java.util.Map.of`
+  The `nose.swift.stdlib.collection_factories` descriptor owns Swift
+  `Array(sequence)`, `Set(sequence)`, and
+  `Dictionary(uniqueKeysWithValues:)` collection/map-factory contract and
+  occurrence producer ids, while shadowed type names, same-corpus typealias
+  shadows, wrong labels, implicit tuple-entry shape, and static duplicate-key
+  inputs remain hard negatives. The
+  `nose.java.stdlib.map_factories` descriptor owns Java `java.util.Map.of`
   and `Map.ofEntries` map-factory contract and occurrence producer ids, while
   missing `java.util.Map` imports and cross-surface `Map.entry` boundary cases
   remain hard negatives. The `nose.java.stdlib.map_entries` descriptor owns Java
@@ -236,6 +242,9 @@ still being migrated toward it.
   selected Rust `std::collections` collection-factory API provenance,
   `nose.rust.stdlib.map_factories`, a default builtin stdlib pack for selected
   Rust `std::collections` map-factory API provenance, and
+  `nose.swift.stdlib.collection_factories`, a default builtin stdlib pack for
+  Swift `Array(sequence)`, `Set(sequence)`, and
+  `Dictionary(uniqueKeysWithValues:)` API provenance, and
   `nose.java.stdlib.map_factories`, a default builtin stdlib pack for Java
   `java.util.Map.of` and `Map.ofEntries` map-factory API provenance, and
   `nose.java.stdlib.map_entries`, a default builtin stdlib pack for Java
@@ -434,7 +443,12 @@ migrated.
   roots stay closed. Selected Rust stdlib
   `std::collections::{HashMap,BTreeMap}::from` map-factory `LibraryApi`
   occurrence evidence now carries `nose.rust.stdlib.map_factories` pack
-  provenance while shadowed `std` roots stay closed. Java stdlib
+  provenance while shadowed `std` roots stay closed. Swift stdlib
+  `Array(sequence)`, `Set(sequence)`, and
+  `Dictionary(uniqueKeysWithValues:)` `LibraryApi` occurrence evidence now
+  carries `nose.swift.stdlib.collection_factories` pack provenance while
+  shadowed type names, wrong labels, implicit tuple-entry shape, and duplicate
+  static keys stay closed. Java stdlib
   `java.util.Map.of` and `Map.ofEntries` map-factory `LibraryApi` occurrence
   evidence now carries `nose.java.stdlib.map_factories` pack provenance while
   missing-import and cross-surface `Map.entry` boundary cases stay closed.

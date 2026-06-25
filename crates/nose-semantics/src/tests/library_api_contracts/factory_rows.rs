@@ -1,5 +1,4 @@
 use super::*;
-
 mod materialized_result_domains;
 
 #[test]
@@ -9,8 +8,7 @@ fn free_name_contracts_are_behavior_equivalent_tables() {
         .free_name_collection_factories()
         .flat_map(|factory| factory.names.iter().copied())
         .collect();
-    assert!(py_names.contains(&"list"));
-    assert!(py_names.contains(&"frozenset"));
+    assert!(py_names.contains(&"list") && py_names.contains(&"frozenset"));
     assert!(!py_names.contains(&"Set"));
 
     let imported_py_names: Vec<_> = semantics(Lang::Python)
@@ -100,6 +98,47 @@ fn library_api_contracts_carry_identity_and_result_obligations() {
             callee: LibraryApiCalleeContract::FreeName {
                 name: "std::collections::HashMap::from",
                 shadow: LibraryApiShadowPolicy::RustStdRootForStdPath,
+            },
+            result: LibraryMapFactoryResult::EntrySequence {
+                entry_seq_tag: SEQ_VALUE_TUPLE,
+            },
+        })
+    );
+    assert_eq!(
+        library_free_name_collection_factory_contract(Lang::Swift, "Array"),
+        Some(LibraryCollectionFactoryContract {
+            pack_id: SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Array),
+            callee: LibraryApiCalleeContract::FreeName {
+                name: "Array",
+                shadow: LibraryApiShadowPolicy::SameName,
+            },
+            result: LibraryCollectionFactoryResult::SequenceArgument,
+        })
+    );
+    assert_eq!(
+        library_free_name_collection_factory_contract(Lang::Swift, "Set"),
+        Some(LibraryCollectionFactoryContract {
+            pack_id: SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Set),
+            callee: LibraryApiCalleeContract::FreeName {
+                name: "Set",
+                shadow: LibraryApiShadowPolicy::SameName,
+            },
+            result: LibraryCollectionFactoryResult::SequenceArgument,
+        })
+    );
+    assert_eq!(
+        library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues"),
+        Some(LibraryMapFactoryContract {
+            pack_id: SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+            id: LibraryApiContractId::SwiftMapFactory(
+                SwiftMapFactoryKind::DictionaryUniqueKeysWithValues
+            ),
+            callee: LibraryApiCalleeContract::LabeledFreeName {
+                name: "Dictionary",
+                first_label: "uniqueKeysWithValues",
+                shadow: LibraryApiShadowPolicy::SameName,
             },
             result: LibraryMapFactoryResult::EntrySequence {
                 entry_seq_tag: SEQ_VALUE_TUPLE,

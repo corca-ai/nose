@@ -34,6 +34,9 @@ pub fn admitted_library_api_result_domain_for_call_record(
     }
     let id = library_api_contract_id_from_hash(contract_hash)?;
     let callee = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash)?;
+    if matches!(id, LibraryApiContractId::SwiftMapFactory(_)) {
+        return None;
+    }
     let domain = library_api_materialized_result_domain_for_arity(id, callee, arity)?;
     matches!(
         library_api_contract_evidence_for_call(il, interner, call, id, callee, arity as usize),
@@ -78,6 +81,9 @@ fn core_library_api_contract_ids() -> Vec<LibraryApiContractId> {
         LibraryApiContractId::RustOptionAndThen,
         LibraryApiContractId::RustStdCollectionFactory,
         LibraryApiContractId::RustStdMapFactory,
+        LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Array),
+        LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Set),
+        LibraryApiContractId::SwiftMapFactory(SwiftMapFactoryKind::DictionaryUniqueKeysWithValues),
         LibraryApiContractId::RustVecMacroFactory,
         LibraryApiContractId::RustVecNewFactory,
         LibraryApiContractId::JavaMapEntryFactory,
@@ -234,7 +240,8 @@ fn library_api_callee_contracts_for_id(
             .map(|contract| contract.callee)
             .collect(),
         LibraryApiContractId::PythonBuiltinCollectionFactory
-        | LibraryApiContractId::RustStdCollectionFactory => {
+        | LibraryApiContractId::RustStdCollectionFactory
+        | LibraryApiContractId::SwiftCollectionFactory(_) => {
             library_free_name_collection_factory_contracts(lang)
                 .filter(|contract| contract.id == id)
                 .map(|contract| contract.callee)
@@ -300,6 +307,10 @@ fn library_api_factory_callee_contracts_for_id(
 ) -> Vec<LibraryApiCalleeContract> {
     match id {
         LibraryApiContractId::RustStdMapFactory => library_free_name_map_factory_contracts(lang)
+            .filter(|contract| contract.id == id)
+            .map(|contract| contract.callee)
+            .collect(),
+        LibraryApiContractId::SwiftMapFactory(_) => library_swift_map_factory_contracts(lang)
             .filter(|contract| contract.id == id)
             .map(|contract| contract.callee)
             .collect(),

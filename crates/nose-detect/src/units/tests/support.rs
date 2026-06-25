@@ -7,8 +7,8 @@ use nose_il::{
 use nose_semantics::{
     language_core_evidence_provenance, library_api_callee_contract_hash,
     library_api_contract_id_hash, library_method_call_contract, LibraryApiCalleeContract,
-    LibraryApiContractId, LibraryCollectionFactoryContract, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, BUILTIN_COMPAT_PACK_ID,
+    LibraryApiContractId, LibraryCollectionFactoryContract, LibraryMapFactoryContract,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, BUILTIN_COMPAT_PACK_ID,
     BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
     FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
     JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
@@ -16,7 +16,8 @@ use nose_semantics::{
     JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PRODUCER_ID, MAP_GET_DEFAULT_PROTOCOL_PACK_ID,
     MAP_GET_DEFAULT_PROTOCOL_PRODUCER_ID, PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
     PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,
-    RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID,
+    RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID, SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
 };
 
 pub(super) fn sp(line: u32) -> Span {
@@ -162,6 +163,50 @@ pub(super) fn python_builtin_collection_factory_evidence(
     ));
     record.provenance.rule_hash = Some(stable_symbol_hash(
         PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID,
+    ));
+    record
+}
+
+pub(super) fn swift_stdlib_collection_factory_evidence(
+    id: u32,
+    call_span: Span,
+    contract: LibraryCollectionFactoryContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    let mut record = library_api_contract_evidence(
+        id,
+        call_span,
+        contract.id,
+        contract.callee,
+        arity,
+        dependencies,
+    );
+    record.provenance.pack_hash = Some(stable_symbol_hash(SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID));
+    record.provenance.rule_hash = Some(stable_symbol_hash(
+        SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+    ));
+    record
+}
+
+pub(super) fn swift_stdlib_map_factory_evidence(
+    id: u32,
+    call_span: Span,
+    contract: LibraryMapFactoryContract,
+    arity: u16,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceRecord {
+    let mut record = library_api_contract_evidence(
+        id,
+        call_span,
+        contract.id,
+        contract.callee,
+        arity,
+        dependencies,
+    );
+    record.provenance.pack_hash = Some(stable_symbol_hash(SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID));
+    record.provenance.rule_hash = Some(stable_symbol_hash(
+        SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
     ));
     record
 }

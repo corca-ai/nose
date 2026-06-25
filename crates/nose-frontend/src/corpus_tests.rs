@@ -1,5 +1,13 @@
 use super::*;
-use nose_il::Lang;
+use nose_il::{
+    stable_symbol_hash, DomainEvidence, EvidenceKind, EvidenceStatus, Lang, LibraryApiEvidenceKind,
+    SymbolEvidenceKind,
+};
+use nose_semantics::{
+    library_api_callee_contract_hash, library_api_contract_id_hash,
+    library_free_name_collection_factory_contract, library_swift_map_factory_contract,
+    LibraryApiCalleeContract, LibraryApiContractId,
+};
 use std::fs;
 
 fn temp_dir(tag: &str) -> std::path::PathBuf {
@@ -142,4 +150,139 @@ fn lower_corpus_skips_obvious_cpp_headers_routed_as_c() {
         Some("unsupported-cpp-header")
     );
     let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn lower_corpus_closes_swift_stdlib_factories_shadowed_by_cross_file_typealias() {
+    let dir = temp_dir("swift_cross_file_typealias_shadow");
+    fs::write(
+        dir.join("A.swift"),
+        r#"struct MyArray {
+  init(_ values: [Int]) {}
+}
+struct MyDictionary {
+  init(uniqueKeysWithValues values: [(String, Int)]) {}
+}
+struct MySet {
+  init(_ values: [Int]) {}
+}
+typealias Array = MyArray
+typealias Set = MySet
+typealias Dictionary = MyDictionary
+"#,
+    )
+    .unwrap();
+    let consumer = dir.join("B.swift");
+    fs::write(
+        &consumer,
+        r#"func f(values: [Int]) {
+  _ = Array(values)
+  _ = Set(values)
+  _ = Dictionary(uniqueKeysWithValues: [("a", 1)])
+}
+"#,
+    )
+    .unwrap();
+
+    let corpus = lower_corpus_filtered(&[dir.as_path()], &[]);
+    let consumer_il = corpus
+        .files
+        .iter()
+        .find(|il| il.meta.path == consumer.to_string_lossy())
+        .expect("consumer Swift file should be lowered");
+    let array_contract = library_free_name_collection_factory_contract(Lang::Swift, "Array")
+        .expect("Swift Array contract");
+    let set_contract = library_free_name_collection_factory_contract(Lang::Swift, "Set")
+        .expect("Swift Set contract");
+    let dictionary_contract =
+        library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues")
+            .expect("Swift Dictionary contract");
+
+    assert_eq!(
+        asserted_contract_api_count(consumer_il, array_contract.id, array_contract.callee),
+        0,
+        "cross-file typealias Array must close stdlib Array(sequence) API evidence"
+    );
+    assert_eq!(
+        asserted_contract_api_count(consumer_il, set_contract.id, set_contract.callee),
+        0,
+        "cross-file typealias Set must close stdlib Set(sequence) API evidence"
+    );
+    assert_eq!(
+        asserted_contract_api_count(
+            consumer_il,
+            dictionary_contract.id,
+            dictionary_contract.callee
+        ),
+        0,
+        "cross-file typealias Dictionary must close stdlib Dictionary API evidence"
+    );
+    assert_eq!(
+        asserted_domain_count(consumer_il, DomainEvidence::Array),
+        0,
+        "Array(sequence) result-domain proof must depend on the closed API proof"
+    );
+    assert_eq!(
+        asserted_domain_count(consumer_il, DomainEvidence::Set),
+        0,
+        "Set(sequence) result-domain proof must depend on the closed API proof"
+    );
+    assert_eq!(
+        asserted_domain_count(consumer_il, DomainEvidence::Map),
+        0,
+        "Dictionary result-domain proof must depend on the closed API proof"
+    );
+    assert_eq!(
+        asserted_unshadowed_global_count(consumer_il, "Array")
+            + asserted_unshadowed_global_count(consumer_il, "Set")
+            + asserted_unshadowed_global_count(consumer_il, "Dictionary"),
+        0,
+        "cross-file stdlib type shadows must close unshadowed-global proofs"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+fn asserted_contract_api_count(
+    il: &Il,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> usize {
+    let contract_hash = library_api_contract_id_hash(id);
+    let callee_hash = library_api_callee_contract_hash(callee);
+    il.evidence
+        .iter()
+        .filter(|record| {
+            record.status == EvidenceStatus::Asserted
+                && matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash: actual_contract,
+                        callee_hash: actual_callee,
+                        ..
+                    }) if actual_contract == contract_hash && actual_callee == callee_hash
+                )
+        })
+        .count()
+}
+
+fn asserted_domain_count(il: &Il, expected: DomainEvidence) -> usize {
+    il.evidence
+        .iter()
+        .filter(|record| {
+            record.status == EvidenceStatus::Asserted
+                && record.kind == EvidenceKind::Domain(expected)
+        })
+        .count()
+}
+
+fn asserted_unshadowed_global_count(il: &Il, name: &str) -> usize {
+    let name_hash = stable_symbol_hash(name);
+    il.evidence
+        .iter()
+        .filter(|record| {
+            record.status == EvidenceStatus::Asserted
+                && record.kind
+                    == EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal { name_hash })
+        })
+        .count()
 }

@@ -228,6 +228,34 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(rust_maps["counts"]["positive_fixtures"], 2);
     assert_eq!(rust_maps["counts"]["hard_negatives"], 2);
 
+    let swift_collections = semantic_pack_by_id(&json, "nose.swift.stdlib.collection_factories");
+    assert_eq!(swift_collections["hash"], "d560c62d16075bfa");
+    assert_eq!(swift_collections["kind"], "StdlibPack");
+    assert_eq!(
+        swift_collections["display_name"],
+        "nose Swift stdlib collection factory pack"
+    );
+    assert_eq!(swift_collections["source"], "compiled-builtin");
+    assert_eq!(swift_collections["influence"], "evidence-and-contracts");
+    assert_eq!(swift_collections["trust"], "builtin-default");
+    assert_eq!(swift_collections["enabled_by_default"], true);
+    assert_eq!(swift_collections["path"], serde_json::Value::Null);
+    assert_eq!(swift_collections["provider"], "Corca, Inc.");
+    assert_eq!(
+        swift_collections["repository"],
+        "https://github.com/corca-ai/nose"
+    );
+    assert_eq!(swift_collections["license"], "MIT");
+    assert_eq!(
+        json_array_strings(swift_collections, "supported_languages"),
+        vec!["swift"]
+    );
+    assert_eq!(swift_collections["counts"]["evidence_producers"], 1);
+    assert_eq!(swift_collections["counts"]["contracts"], 3);
+    assert_eq!(swift_collections["counts"]["value_laws"], 0);
+    assert_eq!(swift_collections["counts"]["positive_fixtures"], 3);
+    assert_eq!(swift_collections["counts"]["hard_negatives"], 4);
+
     let java_maps = semantic_pack_by_id(&json, "nose.java.stdlib.map_factories");
     assert_eq!(java_maps["hash"], "1eecb2960193782f");
     assert_eq!(java_maps["kind"], "StdlibPack");

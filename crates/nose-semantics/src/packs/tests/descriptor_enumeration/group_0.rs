@@ -350,4 +350,33 @@ pub(super) fn assert_group() {
     assert!(rust_stdlib_maps
         .conformance_refs()
         .contains(&"rust-std-map-shadowed-std-hard-negative"));
+
+    let swift_stdlib_collections = builtin_pack_descriptor(SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID)
+        .expect("Swift stdlib collection factory descriptor");
+    assert_eq!(swift_stdlib_collections.kind, SemanticPackKind::StdlibPack);
+    assert_eq!(swift_stdlib_collections.supported_languages, &["swift"]);
+    assert_eq!(
+        swift_stdlib_collections.supported_packages,
+        &["Array", "Set", "Dictionary", "Swift"]
+    );
+    assert_eq!(
+        swift_stdlib_collections.evidence_producer_ids,
+        &[SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID]
+    );
+    assert!(swift_stdlib_collections.source_fact_producer_ids.is_empty());
+    assert_eq!(
+        swift_stdlib_collections.contract_ids,
+        &[
+            SWIFT_STDLIB_COLLECTION_FACTORY_ARRAY_CONTRACT_ID,
+            SWIFT_STDLIB_COLLECTION_FACTORY_SET_CONTRACT_ID,
+            SWIFT_STDLIB_DICTIONARY_UNIQUE_KEYS_CONTRACT_ID,
+        ]
+    );
+    assert_eq!(swift_stdlib_collections.counts().evidence_producers, 1);
+    assert_eq!(swift_stdlib_collections.counts().contracts, 3);
+    assert_eq!(swift_stdlib_collections.counts().positive_fixtures, 3);
+    assert_eq!(swift_stdlib_collections.counts().hard_negatives, 4);
+    assert!(swift_stdlib_collections
+        .conformance_refs()
+        .contains(&"swift-dictionary-implicit-entry-shape-hard-negative"));
 }

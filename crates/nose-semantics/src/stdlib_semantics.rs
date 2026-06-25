@@ -48,6 +48,10 @@ impl StdlibSemantics {
         self.lang == Lang::Rust
     }
 
+    pub fn swift_collection_factories(self) -> bool {
+        self.lang == Lang::Swift
+    }
+
     pub fn go_literal_zero_map_lookup(self) -> bool {
         self.lang == Lang::Go
     }

@@ -9,9 +9,10 @@ use super::contracts::{
     PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID, PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID,
     RUBY_STDLIB_SET_PACK_ID, RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
     RUST_STDLIB_MAP_FACTORY_PACK_ID, RUST_STDLIB_VEC_PACK_ID,
+    SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
 };
 use super::*;
-use crate::SEQ_VALUE_COLLECTION;
+use crate::{SEQ_VALUE_COLLECTION, SEQ_VALUE_TUPLE};
 use nose_il::DomainEvidence;
 
 pub fn library_api_materialized_result_domain_for_arity(
@@ -23,6 +24,7 @@ pub fn library_api_materialized_result_domain_for_arity(
         LibraryApiContractId::PythonBuiltinCollectionFactory
         | LibraryApiContractId::PythonImportedCollectionFactory
         | LibraryApiContractId::RustStdCollectionFactory
+        | LibraryApiContractId::SwiftCollectionFactory(_)
         | LibraryApiContractId::RustVecMacroFactory
         | LibraryApiContractId::RustVecNewFactory
         | LibraryApiContractId::JavaCollectionFactory(_)
@@ -32,8 +34,9 @@ pub fn library_api_materialized_result_domain_for_arity(
             collection_factory_materialized_result_domain(id, callee, arity as usize)
         }
         LibraryApiContractId::RustStdMapFactory | LibraryApiContractId::JsLikeMapConstructor => {
-            entry_sequence_map_factory_materialized_result_domain(id, callee)
+            entry_sequence_map_factory_materialized_result_domain(id, callee, arity as usize)
         }
+        LibraryApiContractId::SwiftMapFactory(_) => None,
         LibraryApiContractId::JavaMapFactory(kind) => {
             java_map_factory_materialized_result_domain(id, callee, kind, arity as usize)
         }
@@ -78,6 +81,7 @@ fn collection_factory_materialized_pack_id(id: LibraryApiContractId) -> &'static
             RUST_STDLIB_VEC_PACK_ID
         }
         LibraryApiContractId::RustStdCollectionFactory => RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
+        LibraryApiContractId::SwiftCollectionFactory(_) => SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
         LibraryApiContractId::JavaCollectionFactory(
             JavaCollectionFactoryKind::GuavaImmutableListOf
             | JavaCollectionFactoryKind::GuavaImmutableSetOf,
@@ -113,11 +117,16 @@ fn collection_factory_materialized_result(
 fn entry_sequence_map_factory_materialized_result_domain(
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
+    arity: usize,
 ) -> Option<DomainEvidence> {
+    if matches!(id, LibraryApiContractId::SwiftMapFactory(_)) && arity != 1 {
+        return None;
+    }
     Some(library_map_factory_result_domain(
         LibraryMapFactoryContract {
             pack_id: match id {
                 LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PACK_ID,
+                LibraryApiContractId::SwiftMapFactory(_) => SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
                 LibraryApiContractId::JsLikeMapConstructor => {
                     JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID
                 }
@@ -126,7 +135,10 @@ fn entry_sequence_map_factory_materialized_result_domain(
             id,
             callee,
             result: LibraryMapFactoryResult::EntrySequence {
-                entry_seq_tag: SEQ_VALUE_COLLECTION,
+                entry_seq_tag: match id {
+                    LibraryApiContractId::SwiftMapFactory(_) => SEQ_VALUE_TUPLE,
+                    _ => SEQ_VALUE_COLLECTION,
+                },
             },
         },
     ))

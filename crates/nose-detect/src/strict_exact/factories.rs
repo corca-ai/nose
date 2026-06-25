@@ -122,6 +122,58 @@ pub(super) fn strict_exact_rust_std_collection_factory_safe(
     strict_exact_membership_collection_safe(il, interner, facts, *collection)
 }
 
+pub(crate) fn strict_exact_swift_collection_factory_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    strict_exact_swift_collection_factory_safe_matching(il, interner, facts, node, |kind| {
+        kind == SwiftCollectionFactoryKind::Set
+    })
+}
+
+pub(super) fn strict_exact_swift_membership_collection_factory_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    strict_exact_swift_collection_factory_safe_matching(il, interner, facts, node, |_| true)
+}
+
+fn strict_exact_swift_collection_factory_safe_matching(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    accepts: impl Fn(SwiftCollectionFactoryKind) -> bool,
+) -> bool {
+    if !semantics(il.meta.lang)
+        .stdlib()
+        .swift_collection_factories()
+        || il.kind(node) != NodeKind::Call
+    {
+        return false;
+    }
+    let Some(occurrence) = admitted_swift_collection_factory_at_call(il, interner, node) else {
+        return false;
+    };
+    if occurrence.arg_count != 1 {
+        return false;
+    }
+    let LibraryApiContractId::SwiftCollectionFactory(kind) = occurrence.contract.id else {
+        return false;
+    };
+    if !accepts(kind) {
+        return false;
+    }
+    let [_, collection] = il.children(node) else {
+        return false;
+    };
+    strict_exact_membership_collection_safe(il, interner, facts, *collection)
+}
+
 pub(crate) fn strict_exact_java_collection_factory_safe(
     il: &Il,
     interner: &Interner,
@@ -294,6 +346,71 @@ pub(super) fn strict_exact_rust_std_map_factory_safe(
         return false;
     };
     strict_exact_map_entries_safe(il, interner, facts, *entries)
+}
+
+pub(crate) fn strict_exact_swift_map_factory_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if !semantics(il.meta.lang)
+        .stdlib()
+        .swift_collection_factories()
+        || il.kind(node) != NodeKind::Call
+    {
+        return false;
+    }
+    let Some(occurrence) = admitted_swift_map_factory_at_call(il, interner, node) else {
+        return false;
+    };
+    if occurrence.arg_count != 1 {
+        return false;
+    }
+    let [_, kwarg] = il.children(node) else {
+        return false;
+    };
+    if il.kind(*kwarg) != NodeKind::KwArg {
+        return false;
+    }
+    let [entries] = il.children(*kwarg) else {
+        return false;
+    };
+    strict_exact_swift_dictionary_entries_safe(il, interner, facts, *entries)
+}
+
+fn strict_exact_swift_dictionary_entries_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    if !seq_surface_contract_for_node(il, interner, node)
+        .is_some_and(|contract| contract.map_entry_list)
+    {
+        return false;
+    }
+    let mut keys = Vec::new();
+    for &entry in il.children(node) {
+        if seq_surface_contract_for_node(il, interner, entry)
+            .is_none_or(|contract| contract.value_tag != SEQ_VALUE_TUPLE)
+        {
+            return false;
+        }
+        let [key, value] = il.children(entry) else {
+            return false;
+        };
+        keys.push(*key);
+        if !strict_exact_safe_tree(il, interner, facts, *key)
+            || !strict_exact_safe_tree(il, interner, facts, *value)
+        {
+            return false;
+        }
+    }
+    !nodes_contain_duplicate_static_literal_keys(il, keys)
 }
 
 fn strict_exact_map_entries_safe(

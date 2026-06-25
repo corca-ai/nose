@@ -199,7 +199,7 @@ fn manifest_with_value_law_executable_gate(id: &str) -> String {
 #[test]
 fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
     let descriptors = builtin_pack_descriptors();
-    assert_eq!(descriptors.len(), 44);
+    assert_eq!(descriptors.len(), 45);
     let ids = descriptors
         .iter()
         .map(|descriptor| descriptor.id)
@@ -227,6 +227,7 @@ fn builtin_pack_descriptor_registry_names_current_compiled_packs() {
             RUST_STDLIB_INTEGER_METHOD_PACK_ID,
             RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
             RUST_STDLIB_MAP_FACTORY_PACK_ID,
+            SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
             JAVA_STDLIB_MATH_PACK_ID,
             JAVA_STDLIB_MAP_FACTORY_PACK_ID,
             JAVA_STDLIB_MAP_ENTRY_PACK_ID,

@@ -94,6 +94,13 @@ pub const RUST_STDLIB_COLLECTION_FACTORY_CONTRACT_ID: &str = "rust.std.collectio
 pub const RUST_STDLIB_MAP_FACTORY_PACK_ID: &str = "nose.rust.stdlib.map_factories";
 pub const RUST_STDLIB_MAP_FACTORY_PRODUCER_ID: &str = "rust.stdlib.map-factory-api";
 pub const RUST_STDLIB_MAP_FACTORY_CONTRACT_ID: &str = "rust.std.map_factory";
+pub const SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID: &str = "nose.swift.stdlib.collection_factories";
+pub const SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID: &str = "swift.stdlib.collection-factory-api";
+pub const SWIFT_STDLIB_COLLECTION_FACTORY_ARRAY_CONTRACT_ID: &str =
+    "swift.collection_factory.array";
+pub const SWIFT_STDLIB_COLLECTION_FACTORY_SET_CONTRACT_ID: &str = "swift.collection_factory.set";
+pub const SWIFT_STDLIB_DICTIONARY_UNIQUE_KEYS_CONTRACT_ID: &str =
+    "swift.map_factory.dictionary_unique_keys_with_values";
 pub const JAVA_STDLIB_MAP_FACTORY_PACK_ID: &str = "nose.java.stdlib.map_factories";
 pub const JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID: &str = "java.stdlib.map-factory-api";
 pub const JAVA_STDLIB_MAP_FACTORY_OF_CONTRACT_ID: &str = "java.map_factory.of";

@@ -107,6 +107,9 @@ The next code slices are intentionally incremental:
    collection-factory occurrence provenance, then
    `nose.rust.stdlib.map_factories` for selected Rust
    `std::collections::{HashMap,BTreeMap}::from` map-factory occurrence
+   provenance, then `nose.swift.stdlib.collection_factories` for Swift
+   `Array(sequence)`, `Set(sequence)`, and
+   `Dictionary(uniqueKeysWithValues:)` collection/map-factory occurrence
    provenance, then `nose.java.stdlib.map_factories` for Java `Map.of`,
    `Map.ofEntries`, `Collections.emptyMap`, and `Collections.singletonMap`
    map-factory occurrence provenance, then
@@ -348,6 +351,28 @@ by the previous receiver/method tables. The change added one reusable
 `LibraryCollectionFactoryResult::ElementArguments` lane plus fixed-arity
 fail-closed result-domain checks rather than adding consumer-specific special
 cases.
+
+Phase 5 Swift stdlib collection-factory measurement note, local run on
+2026-06-25: `nose.swift.stdlib.collection_factories` added the first Swift
+stdlib collection/map factory slice. Pack-owned contract rows changed from
+0 -> 3 by adding `Array(sequence)`, `Set(sequence)`, and
+`Dictionary(uniqueKeysWithValues:)`; static conformance refs changed from
+0 -> 3 positive and 0 -> 4 hard-negative refs. Focused semantic tests now
+cover 3/3 requested initial Swift surfaces after 0/3 were covered by a Swift
+stdlib factory pack. The implementation reused the existing
+`SequenceArgument` and `EntrySequence` result models and added one reusable
+`LabeledFreeName` callee capability for labeled free-name factories; it did not
+add consumer-specific API hooks. The slice stays fail-closed for shadowed
+`Array`/`Set`/`Dictionary`, wrong `Dictionary` labels, labeled
+`Array(arrayLiteral:)`, typed `Dictionary` pair parameters without explicit
+tuple-entry shape, and static duplicate-key `Dictionary(uniqueKeysWithValues:)`
+inputs. Follow-up review tightened exact consumers without adding API surface:
+same-corpus Swift `typealias` shadows now close the relevant unshadowed-global
+proofs and all dependent factory evidence; direct `Array(sequence)` no longer
+uses membership canonicalization because Swift arrays preserve order and
+multiplicity, while `Set(sequence)` still can; `Dictionary(uniqueKeysWithValues:)`
+result-domain evidence now requires explicit tuple-entry shape and stays closed
+for static duplicate keys instead of materializing from arity alone.
 
 Phase 5 Java stdlib collection-constructor measurement note, local run on
 2026-06-21: product query-regression r15 compared the previous
@@ -946,6 +971,12 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `nose.java.stdlib.collection_factories` pack and producer provenance while
   preserving missing-import and cross-surface constructor boundary hard
   negatives.
+- Swift stdlib collection factories started moving out of the broad
+  compatibility facade. Swift `Array(sequence)`, `Set(sequence)`, and
+  `Dictionary(uniqueKeysWithValues:)` factory `LibraryApi` occurrence evidence
+  now reports `nose.swift.stdlib.collection_factories` pack and producer
+  provenance while preserving shadowed type names, wrong labels, implicit
+  tuple-entry shape, and static duplicate-key hard negatives.
 - Java stdlib static collection adapters started moving out of the broad
   compatibility facade. `java.util.Arrays.stream` `LibraryApi` occurrence
   evidence now reports `nose.java.stdlib.static_collection_adapters` pack and

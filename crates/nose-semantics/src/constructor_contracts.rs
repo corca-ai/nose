@@ -4,6 +4,68 @@ use super::*;
 use rustc_hash::FxHashSet;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SwiftCollectionFactoryKind {
+    Array,
+    Set,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SwiftCollectionFactoryContract {
+    pub type_name: &'static str,
+    pub kind: SwiftCollectionFactoryKind,
+}
+
+pub fn swift_collection_factory_contract(
+    lang: Lang,
+    type_name: &str,
+) -> Option<SwiftCollectionFactoryContract> {
+    if lang != Lang::Swift {
+        return None;
+    }
+    Some(match type_name {
+        "Array" => SwiftCollectionFactoryContract {
+            type_name: "Array",
+            kind: SwiftCollectionFactoryKind::Array,
+        },
+        "Set" => SwiftCollectionFactoryContract {
+            type_name: "Set",
+            kind: SwiftCollectionFactoryKind::Set,
+        },
+        _ => return None,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SwiftMapFactoryKind {
+    DictionaryUniqueKeysWithValues,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SwiftMapFactoryContract {
+    pub type_name: &'static str,
+    pub first_label: &'static str,
+    pub kind: SwiftMapFactoryKind,
+}
+
+pub fn swift_map_factory_contract(
+    lang: Lang,
+    type_name: &str,
+    first_label: &str,
+) -> Option<SwiftMapFactoryContract> {
+    if lang != Lang::Swift {
+        return None;
+    }
+    Some(match (type_name, first_label) {
+        ("Dictionary", "uniqueKeysWithValues") => SwiftMapFactoryContract {
+            type_name: "Dictionary",
+            first_label: "uniqueKeysWithValues",
+            kind: SwiftMapFactoryKind::DictionaryUniqueKeysWithValues,
+        },
+        _ => return None,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum JavaCollectionFactoryKind {
     ListOf,
     SetOf,

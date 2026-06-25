@@ -1,12 +1,38 @@
 use super::post_lower_evidence::*;
 use super::*;
 
+mod receiver_methods;
+mod swift_factories;
+use receiver_methods::record_post_lower_receiver_method_library_api;
+use swift_factories::post_lower_record_swift_map_factory_result_domain;
+
 struct PostLowerLibraryApiContract {
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
     pack_id: &'static str,
     rule: &'static str,
     result_domain: Option<DomainEvidence>,
+}
+
+fn record_post_lower_library_api_contract(
+    il: &mut Il,
+    call: NodeId,
+    arg_count: usize,
+    contract: PostLowerLibraryApiContract,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceId {
+    let api = post_lower_library_api_evidence_with_pack_id(
+        il,
+        call,
+        contract.id,
+        contract.callee,
+        arg_count,
+        contract.pack_id,
+        contract.rule,
+        dependencies,
+    );
+    post_lower_record_library_api_result_domain(il, call, contract.result_domain, api);
+    api
 }
 
 pub(super) fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Interner) {
@@ -62,9 +88,15 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         return false;
     };
     let arg_count = args.len();
-    let Some(contract) =
-        post_lower_free_name_library_api_contract(il.meta.lang, callee_name, arg_count)
-    else {
+    let first_arg_label = args
+        .first()
+        .and_then(|&arg| post_lower_kwarg_name(il, interner, arg));
+    let Some(contract) = post_lower_free_name_library_api_contract(
+        il.meta.lang,
+        callee_name,
+        arg_count,
+        first_arg_label,
+    ) else {
         return false;
     };
     if il.meta.lang == Lang::Python && post_lower_has_python_wildcard_import_evidence(il) {
@@ -75,17 +107,11 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
     else {
         return false;
     };
-    let api = post_lower_library_api_evidence_with_pack_id(
-        il,
-        call,
-        contract.id,
-        contract.callee,
-        arg_count,
-        contract.pack_id,
-        contract.rule,
-        dependencies,
-    );
-    post_lower_record_library_api_result_domain(il, call, contract.result_domain, api);
+    let is_swift_map_factory = matches!(contract.id, LibraryApiContractId::SwiftMapFactory(_));
+    let api = record_post_lower_library_api_contract(il, call, arg_count, contract, dependencies);
+    if is_swift_map_factory {
+        post_lower_record_swift_map_factory_result_domain(il, interner, call, api);
+    }
     true
 }
 
@@ -93,47 +119,13 @@ fn post_lower_free_name_library_api_contract(
     lang: Lang,
     callee_name: &str,
     arg_count: usize,
+    first_arg_label: Option<&str>,
 ) -> Option<PostLowerLibraryApiContract> {
-    (arg_count == 1)
-        .then(|| library_free_name_collection_factory_contract(lang, callee_name))
-        .flatten()
-        .map(|contract| {
-            let rule = match contract.id {
-                LibraryApiContractId::PythonBuiltinCollectionFactory => {
-                    PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID
-                }
-                LibraryApiContractId::RustStdCollectionFactory => {
-                    RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID
-                }
-                _ => "library_api_free_name_collection_factory",
-            };
-            PostLowerLibraryApiContract {
-                id: contract.id,
-                callee: contract.callee,
-                pack_id: contract.pack_id,
-                rule,
-                result_domain: library_collection_factory_result_domain_for_arity(
-                    contract, arg_count,
-                ),
-            }
-        })
+    post_lower_collection_factory_contract(lang, callee_name, arg_count, first_arg_label)
         .or_else(|| {
-            (arg_count == 1)
-                .then(|| library_free_name_map_factory_contract(lang, callee_name))
-                .flatten()
-                .map(|contract| PostLowerLibraryApiContract {
-                    id: contract.id,
-                    callee: contract.callee,
-                    pack_id: contract.pack_id,
-                    rule: match contract.id {
-                        LibraryApiContractId::RustStdMapFactory => {
-                            RUST_STDLIB_MAP_FACTORY_PRODUCER_ID
-                        }
-                        _ => "library_api_free_name_map_factory",
-                    },
-                    result_domain: Some(library_map_factory_result_domain(contract)),
-                })
+            post_lower_swift_map_factory_contract(lang, callee_name, arg_count, first_arg_label)
         })
+        .or_else(|| post_lower_map_factory_contract(lang, callee_name, arg_count))
         .or_else(|| {
             library_rust_vec_macro_factory_contract(lang, callee_name).map(|contract| {
                 PostLowerLibraryApiContract {
@@ -185,6 +177,81 @@ fn post_lower_free_name_library_api_contract(
         })
 }
 
+fn post_lower_collection_factory_contract(
+    lang: Lang,
+    callee_name: &str,
+    arg_count: usize,
+    first_arg_label: Option<&str>,
+) -> Option<PostLowerLibraryApiContract> {
+    (arg_count == 1)
+        .then(|| library_free_name_collection_factory_contract(lang, callee_name))
+        .flatten()
+        .filter(|contract| {
+            !matches!(contract.id, LibraryApiContractId::SwiftCollectionFactory(_))
+                || first_arg_label.is_none()
+        })
+        .map(|contract| PostLowerLibraryApiContract {
+            id: contract.id,
+            callee: contract.callee,
+            pack_id: contract.pack_id,
+            rule: post_lower_collection_factory_rule(contract.id),
+            result_domain: library_collection_factory_result_domain_for_arity(contract, arg_count),
+        })
+}
+
+fn post_lower_collection_factory_rule(id: LibraryApiContractId) -> &'static str {
+    match id {
+        LibraryApiContractId::PythonBuiltinCollectionFactory => {
+            PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID
+        }
+        LibraryApiContractId::RustStdCollectionFactory => {
+            RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID
+        }
+        LibraryApiContractId::SwiftCollectionFactory(_) => {
+            SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID
+        }
+        _ => "library_api_free_name_collection_factory",
+    }
+}
+
+fn post_lower_swift_map_factory_contract(
+    lang: Lang,
+    callee_name: &str,
+    arg_count: usize,
+    first_arg_label: Option<&str>,
+) -> Option<PostLowerLibraryApiContract> {
+    first_arg_label
+        .filter(|_| arg_count == 1)
+        .and_then(|label| library_swift_map_factory_contract(lang, callee_name, label))
+        .map(|contract| PostLowerLibraryApiContract {
+            id: contract.id,
+            callee: contract.callee,
+            pack_id: contract.pack_id,
+            rule: SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+            result_domain: None,
+        })
+}
+
+fn post_lower_map_factory_contract(
+    lang: Lang,
+    callee_name: &str,
+    arg_count: usize,
+) -> Option<PostLowerLibraryApiContract> {
+    (arg_count == 1)
+        .then(|| library_free_name_map_factory_contract(lang, callee_name))
+        .flatten()
+        .map(|contract| PostLowerLibraryApiContract {
+            id: contract.id,
+            callee: contract.callee,
+            pack_id: contract.pack_id,
+            rule: match contract.id {
+                LibraryApiContractId::RustStdMapFactory => RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
+                _ => "library_api_free_name_map_factory",
+            },
+            result_domain: Some(library_map_factory_result_domain(contract)),
+        })
+}
+
 fn post_lower_free_name_library_api_dependencies(
     il: &mut Il,
     interner: &Interner,
@@ -195,6 +262,20 @@ fn post_lower_free_name_library_api_dependencies(
     let mut dependencies = Vec::new();
     match callee_contract {
         LibraryApiCalleeContract::FreeName { name, shadow } => {
+            if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                post_lower_file_defines_name_visible_at(
+                    il,
+                    interner,
+                    candidate,
+                    il.node(callee).span,
+                )
+            }) {
+                return None;
+            }
+            let dependency = post_lower_unshadowed_symbol_evidence_id(il, callee, name)?;
+            dependencies.push(dependency);
+        }
+        LibraryApiCalleeContract::LabeledFreeName { name, shadow, .. } => {
             if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
                 post_lower_file_defines_name_visible_at(
                     il,
@@ -228,6 +309,16 @@ fn post_lower_free_name_library_api_dependencies(
         _ => return None,
     }
     Some(dependencies)
+}
+
+fn post_lower_kwarg_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
+    if il.kind(node) != NodeKind::KwArg {
+        return None;
+    }
+    let Payload::Name(name) = il.node(node).payload else {
+        return None;
+    };
+    Some(interner.resolve(name))
 }
 
 fn record_post_lower_property_library_api(
@@ -492,87 +583,4 @@ fn record_post_lower_java_collection_constructor_library_api(
         api,
     );
     true
-}
-
-fn record_post_lower_receiver_method_library_api(
-    il: &mut Il,
-    interner: &Interner,
-    call: NodeId,
-    dependency_cache: &mut LibraryApiDependencyCache,
-) -> bool {
-    let kids = il.children(call);
-    let Some((&callee, args)) = kids.split_first() else {
-        return false;
-    };
-    if il.kind(callee) != NodeKind::Field {
-        return false;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    let method = interner.resolve(method);
-    let arg_count = args.len();
-    let Some(contract) = library_receiver_method_api_contract(il.meta.lang, method, arg_count)
-    else {
-        return false;
-    };
-    seed_post_lower_receiver_method_dependencies(il, interner, callee, contract.callee);
-    let Some(dependencies) = library_api_receiver_dependencies_for_call_with_cache(
-        il,
-        interner,
-        call,
-        contract.callee,
-        dependency_cache,
-    ) else {
-        return false;
-    };
-    let api = post_lower_library_api_evidence_with_pack_id(
-        il,
-        call,
-        contract.id,
-        contract.callee,
-        arg_count,
-        contract.pack_id,
-        contract.rule,
-        dependencies,
-    );
-    post_lower_record_library_api_result_domain(il, call, contract.result_domain, api);
-    true
-}
-
-fn seed_post_lower_receiver_method_dependencies(
-    il: &mut Il,
-    interner: &Interner,
-    callee: NodeId,
-    callee_contract: LibraryApiCalleeContract,
-) {
-    let LibraryApiCalleeContract::Method { receiver, .. } = callee_contract else {
-        return;
-    };
-    let Some(&receiver_node) = il.children(callee).first() else {
-        return;
-    };
-    match receiver {
-        MethodReceiverContract::UnshadowedGlobal(name) => {
-            if post_lower_var_name(il, interner, receiver_node) == Some(name)
-                && !post_lower_file_defines_name_visible_at(
-                    il,
-                    interner,
-                    name,
-                    il.node(receiver_node).span,
-                )
-            {
-                let _ = post_lower_unshadowed_symbol_evidence_id(il, receiver_node, name);
-            }
-        }
-        MethodReceiverContract::ImportedNamespace(module) => {
-            let _ = post_lower_imported_namespace_symbol_evidence_id(
-                il,
-                interner,
-                receiver_node,
-                module,
-            );
-        }
-        _ => {}
-    }
 }

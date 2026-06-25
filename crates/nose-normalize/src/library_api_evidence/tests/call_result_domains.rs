@@ -2,8 +2,9 @@ use super::receiver_method_result_domains::receiver_method_result_domain_il;
 use super::*;
 use nose_semantics::{
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
-    library_map_get_contract, library_method_call_contract,
+    library_map_get_contract, library_method_call_contract, library_swift_map_factory_contract,
     PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
+    SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
 };
 
 fn free_name_call_il(lang: Lang, name: &str, arg_count: usize) -> (Il, Interner, NodeId, NodeId) {
@@ -126,6 +127,65 @@ fn preexisting_map_api_records_materialize_result_domains() {
         language_core_provenance(Lang::Rust)
     );
     assert_eq!(result_domains[0].dependencies, vec![api]);
+}
+
+#[test]
+fn preexisting_swift_map_api_records_do_not_materialize_arity_only_domains() {
+    let interner = Interner::new();
+    let mut builder = IlBuilder::new(FileId(0));
+    let callee = builder.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("Dictionary")),
+        sp(10),
+        &[],
+    );
+    let values = builder.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("values")),
+        sp(11),
+        &[],
+    );
+    let kwarg = builder.add(
+        NodeKind::KwArg,
+        Payload::Name(interner.intern("uniqueKeysWithValues")),
+        sp(12),
+        &[values],
+    );
+    let call = builder.add(NodeKind::Call, Payload::None, sp(20), &[callee, kwarg]);
+    let root = builder.add(NodeKind::Func, Payload::None, sp(21), &[call]);
+    let mut il = builder.finish(
+        root,
+        FileMeta {
+            path: "swift-call-result-domain".into(),
+            lang: Lang::Swift,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    let contract =
+        library_swift_map_factory_contract(Lang::Swift, "Dictionary", "uniqueKeysWithValues")
+            .unwrap();
+    let symbol = push_unshadowed_symbol(&mut il, callee, "Dictionary");
+    let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
+    upsert_builtin_evidence_with_pack_id(
+        &mut il,
+        anchor,
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: 1,
+        }),
+        contract.pack_id,
+        SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        vec![symbol],
+    );
+
+    run(&mut il, &interner);
+
+    assert!(
+        node_domain_records(&il, call, DomainEvidence::Map).is_empty(),
+        "Swift Dictionary result domains require call-shape proof beyond arity"
+    );
 }
 
 #[test]

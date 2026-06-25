@@ -158,6 +158,24 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
     assert_eq!(rust_stdlib_maps.counts.contracts, 1);
     assert_eq!(rust_stdlib_maps.counts.positive_fixtures, 2);
     assert_eq!(rust_stdlib_maps.counts.hard_negatives, 2);
+    let swift_stdlib_collections = set
+        .packs()
+        .iter()
+        .find(|pack| pack.id == SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID)
+        .expect("Swift stdlib collection factory summary");
+    assert_eq!(
+        swift_stdlib_collections.hash,
+        stable_symbol_hash(SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID)
+    );
+    assert_eq!(swift_stdlib_collections.kind, SemanticPackKind::StdlibPack);
+    assert_eq!(
+        swift_stdlib_collections.influence,
+        SemanticPackInfluence::EvidenceAndContracts
+    );
+    assert_eq!(swift_stdlib_collections.counts.evidence_producers, 1);
+    assert_eq!(swift_stdlib_collections.counts.contracts, 3);
+    assert_eq!(swift_stdlib_collections.counts.positive_fixtures, 3);
+    assert_eq!(swift_stdlib_collections.counts.hard_negatives, 4);
     let java_stdlib_math = set
         .packs()
         .iter()

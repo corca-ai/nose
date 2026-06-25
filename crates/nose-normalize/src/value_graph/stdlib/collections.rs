@@ -149,6 +149,35 @@ impl<'a> Builder<'a> {
             _ => None,
         }
     }
+
+    pub(in crate::value_graph) fn eval_swift_collection_factory_expr(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if !semantics(self.il.meta.lang)
+            .stdlib()
+            .swift_collection_factories()
+        {
+            return None;
+        }
+        let occurrence = admitted_swift_collection_factory_at_call(self.il, self.interner, expr)?;
+        if occurrence.arg_count != 1 {
+            return None;
+        }
+        if !matches!(
+            occurrence.contract.id,
+            LibraryApiContractId::SwiftCollectionFactory(SwiftCollectionFactoryKind::Set)
+        ) {
+            return None;
+        }
+        let [_, collection] = kids else {
+            return None;
+        };
+        Some(self.eval_membership_collection(*collection, env))
+    }
+
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
         self.collection_factory_seq(value, |s, callee_value| {
             let callee = &s.nodes[callee_value as usize];

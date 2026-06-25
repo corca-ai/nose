@@ -13,6 +13,12 @@ pub(in crate::library_api) fn library_api_callee_shape_matches(
         LibraryApiCalleeContract::FreeName { .. } | LibraryApiCalleeContract::RustMacro { .. } => {
             il.kind(callee_node) == NodeKind::Var
         }
+        LibraryApiCalleeContract::LabeledFreeName {
+            name, first_label, ..
+        } => {
+            var_name_matches(il, interner, callee_node, name)
+                && call_first_arg_label_matches(il, interner, node, first_label)
+        }
         LibraryApiCalleeContract::JsGlobalConstructor { receiver, .. } => {
             var_name_matches(il, interner, callee_node, receiver)
         }
@@ -89,11 +95,27 @@ pub(in crate::library_api) fn library_api_node_callee_shape_matches(
         LibraryApiCalleeContract::FreeName { name, .. } => {
             var_name_matches(il, interner, node, name)
         }
+        LibraryApiCalleeContract::LabeledFreeName { .. } => false,
         LibraryApiCalleeContract::Property { property, .. } => {
             field_method_matches(il, interner, node, property)
         }
         _ => false,
     }
+}
+
+pub(in crate::library_api) fn call_first_arg_label_matches(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    expected: &str,
+) -> bool {
+    let Some(first_arg) = il.children(call).get(1).copied() else {
+        return false;
+    };
+    matches!(
+        (il.kind(first_arg), il.node(first_arg).payload),
+        (NodeKind::KwArg, Payload::Name(name)) if interner.resolve(name) == expected
+    )
 }
 
 pub(in crate::library_api) fn method_callee_receiver(
