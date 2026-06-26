@@ -75,6 +75,27 @@ Implementation PR checklist:
 - State the rollback action: demote pack, disable row, tighten admission, or
   revert.
 
+Implementation PR closeout gate:
+
+- Link two independent review artifacts before merge. Each artifact must name
+  the reviewer, the reviewed commit or PR state, blocking findings,
+  non-blocking follow-ups, accepted changes, and rejected feedback with reason.
+  Chat-only review summaries are not durable enough unless they are copied into
+  the PR, a linked issue, or a committed closeout artifact.
+- Attach durable product query-regression evidence for behavior-changing
+  support. The PR or linked artifact must name the baseline/current refs,
+  command shape, repo subset, repeat count, investigation-trigger count, output
+  drift, and runtime medians. Files under `/tmp` are scratch space, not
+  closeout evidence.
+- Record focused before/after counts for exact-capable rows, positive fixtures,
+  hard negatives, conformance refs, unsupported refs, and any pack/protocol
+  metadata that changed.
+- Convert unresolved review findings into linked follow-up issues before merge.
+  If required pre-merge evidence is missing, record it as a process gap instead
+  of presenting post-merge review as pre-merge review.
+- Do not close a leaf issue until the PR links the closeout evidence above and
+  the issue records any intentionally deferred semantic boundary.
+
 ## Builtin Optional To Builtin Default
 
 Promote `builtin-optional` to `builtin-default` only after corpus evidence shows
@@ -109,6 +130,8 @@ Implementation PR checklist:
   default behavior.
 - Name the smallest rollback path if false merges, noise, or runtime regression
   appears after release.
+- Satisfy the implementation PR closeout gate above if default enablement lands
+  in the same PR as behavior-changing pack rows.
 
 ## Rollback
 

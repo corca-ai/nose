@@ -54,7 +54,9 @@ and pack ecosystem.
     Descriptor, registry, naming, and reporting changes should not change family
     output except intentional metadata. Implementation PRs should run product
     query-regression output/runtime comparison and follow the gates in
-    [semantic-pack-architecture](semantic-pack-architecture.md).
+    [semantic-pack-architecture](semantic-pack-architecture.md) and the
+    closeout requirements in
+    [semantic-pack-adoption](semantic-pack-adoption.md).
 
 ## Active migration tranche
 
