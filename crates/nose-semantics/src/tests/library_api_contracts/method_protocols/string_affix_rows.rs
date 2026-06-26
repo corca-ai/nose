@@ -15,6 +15,8 @@ fn receiver_method_string_affix_rows_use_string_affix_protocol_pack() {
         (Lang::JavaScript, "endsWith", Builtin::EndsWith),
         (Lang::TypeScript, "startsWith", Builtin::StartsWith),
         (Lang::TypeScript, "endsWith", Builtin::EndsWith),
+        (Lang::Ruby, "start_with?", Builtin::StartsWith),
+        (Lang::Ruby, "end_with?", Builtin::EndsWith),
     ] {
         let contract =
             library_method_call_contract(lang, method, 1).expect("string affix method contract");

@@ -309,6 +309,8 @@ fn admitted_string_affix_requires_protocol_pack_and_string_receiver_proof() {
     assert_admitted_string_affix(Lang::TypeScript, "endsWith", Builtin::EndsWith);
     assert_admitted_string_affix(Lang::JavaScript, "startsWith", Builtin::StartsWith);
     assert_admitted_string_affix(Lang::JavaScript, "endsWith", Builtin::EndsWith);
+    assert_admitted_string_affix(Lang::Ruby, "start_with?", Builtin::StartsWith);
+    assert_admitted_string_affix(Lang::Ruby, "end_with?", Builtin::EndsWith);
 }
 
 #[test]

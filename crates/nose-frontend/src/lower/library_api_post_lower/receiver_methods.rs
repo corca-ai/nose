@@ -19,6 +19,9 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         if js_ts_string_affix_prototype_mutated_in_file(il, interner, contract) {
             return false;
         }
+        if ruby_string_affix_redefined_in_file(il, interner, contract) {
+            return false;
+        }
         record_post_lower_library_api_contract(
             il,
             call,
@@ -34,6 +37,104 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         );
         true
     })
+}
+
+fn ruby_string_affix_redefined_in_file(
+    il: &Il,
+    interner: &Interner,
+    contract: LibraryReceiverMethodApiContract,
+) -> bool {
+    if il.meta.lang != Lang::Ruby {
+        return false;
+    }
+    let LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+        Builtin::StartsWith | Builtin::EndsWith,
+    )) = contract.id
+    else {
+        return false;
+    };
+    let LibraryApiCalleeContract::Method { method, .. } = contract.callee else {
+        return false;
+    };
+    ruby_string_instance_method_redefined_in_file(il, interner, method)
+}
+
+fn ruby_string_instance_method_redefined_in_file(
+    il: &Il,
+    interner: &Interner,
+    expected_method: &str,
+) -> bool {
+    ruby_string_class_unit_redefines_method(il, interner, expected_method)
+        || ruby_string_class_eval_redefines_method(il, interner, expected_method)
+}
+
+fn ruby_string_class_unit_redefines_method(
+    il: &Il,
+    interner: &Interner,
+    expected_method: &str,
+) -> bool {
+    il.units.iter().any(|class_unit| {
+        class_unit.kind == UnitKind::Class
+            && class_unit
+                .name
+                .is_some_and(|name| ruby_string_class_name(interner.resolve(name)))
+            && il.units.iter().any(|method_unit| {
+                let class_span = il.node(class_unit.root).span;
+                let method_span = il.node(method_unit.root).span;
+                method_unit.kind == UnitKind::Method
+                    && method_unit
+                        .name
+                        .is_some_and(|name| interner.resolve(name) == expected_method)
+                    && class_span.file == method_span.file
+                    && class_span.start_byte <= method_span.start_byte
+                    && method_span.end_byte <= class_span.end_byte
+            })
+    })
+}
+
+fn ruby_string_class_eval_redefines_method(
+    il: &Il,
+    interner: &Interner,
+    expected_method: &str,
+) -> bool {
+    let method_spans: Vec<Span> = il
+        .units
+        .iter()
+        .filter(|unit| {
+            unit.kind == UnitKind::Method
+                && unit
+                    .name
+                    .is_some_and(|name| interner.resolve(name) == expected_method)
+        })
+        .map(|unit| il.node(unit.root).span)
+        .collect();
+    il.nodes.iter().enumerate().any(|(idx, node)| {
+        let call = NodeId(idx as u32);
+        node.kind == NodeKind::Call
+            && ruby_string_class_eval_call(il, interner, call)
+            && method_spans.iter().any(|&method_span| {
+                node.span.file == method_span.file
+                    && node.span.start_byte <= method_span.start_byte
+                    && method_span.end_byte <= node.span.end_byte
+            })
+    })
+}
+
+fn ruby_string_class_eval_call(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let Some(&callee) = il.children(call).first() else {
+        return false;
+    };
+    field_name(il, interner, callee) == Some("class_eval")
+        && il
+            .children(callee)
+            .first()
+            .copied()
+            .and_then(|receiver| post_lower_var_name(il, interner, receiver))
+            .is_some_and(ruby_string_class_name)
+}
+
+fn ruby_string_class_name(name: &str) -> bool {
+    matches!(name, "String" | "::String")
 }
 
 fn js_ts_string_affix_prototype_mutated_in_file(
@@ -219,6 +320,17 @@ fn seed_post_lower_receiver_method_dependencies(
                 receiver_node,
                 module,
             );
+        }
+        MethodReceiverContract::ExactString => {
+            if matches!(il.node(receiver_node).payload, Payload::LitStr(_)) {
+                let _ = post_lower_find_or_push_evidence(
+                    il,
+                    EvidenceAnchor::node(il.node(receiver_node).span, il.kind(receiver_node)),
+                    EvidenceKind::Domain(DomainEvidence::String),
+                    "string_literal_receiver_domain",
+                    Vec::new(),
+                );
+            }
         }
         _ => {}
     }

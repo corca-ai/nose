@@ -18,6 +18,10 @@ break.
 - Moved Go `strings.HasPrefix` and `strings.HasSuffix` into the string-affix
   protocol pack while preserving imported `strings` namespace proof and keeping
   `strings.Contains` in the Go namespace-call pack as substring containment.
+- Added the Ruby `String#start_with?`/`String#end_with?` proof slice under the
+  same string-affix protocol, admitting literal string receivers while keeping
+  untyped receivers, custom same-name methods, multi-affix calls, wrong
+  receivers, direction mismatches, and same-file `String` monkey patches closed.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

@@ -1,6 +1,7 @@
 use super::*;
 
 mod object_key_views;
+mod string_affix;
 
 #[test]
 fn post_lowering_emits_result_domains_for_supported_factories() {

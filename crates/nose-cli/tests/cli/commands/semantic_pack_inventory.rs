@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
-    assert_eq!(json["totals"]["positive_fixtures"], 188);
-    assert_eq!(json["totals"]["hard_negatives"], 161);
-    assert_eq!(json["totals"]["conformance_refs"], 349);
+    assert_eq!(json["totals"]["positive_fixtures"], 190);
+    assert_eq!(json["totals"]["hard_negatives"], 168);
+    assert_eq!(json["totals"]["conformance_refs"], 358);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -61,7 +61,9 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-javascript-startswith-positive",
             "string-affix-predicate-javascript-endswith-positive",
             "string-affix-predicate-go-has-prefix-positive",
-            "string-affix-predicate-go-has-suffix-positive"
+            "string-affix-predicate-go-has-suffix-positive",
+            "string-affix-predicate-ruby-start-with-positive",
+            "string-affix-predicate-ruby-end-with-positive"
         ]
     );
     assert_eq!(
@@ -88,7 +90,14 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-typescript-nested-param-string-prototype-patching-hard-negative",
             "string-affix-predicate-typescript-nested-param-object-define-property-hard-negative",
             "string-affix-predicate-typescript-block-scoped-string-prototype-patching-hard-negative",
-            "string-affix-predicate-typescript-block-scoped-object-define-property-hard-negative"
+            "string-affix-predicate-typescript-block-scoped-object-define-property-hard-negative",
+            "string-affix-predicate-ruby-untyped-receiver-hard-negative",
+            "string-affix-predicate-ruby-custom-same-name-hard-negative",
+            "string-affix-predicate-ruby-multi-affix-hard-negative",
+            "string-affix-predicate-ruby-wrong-receiver-hard-negative",
+            "string-affix-predicate-ruby-direction-mismatch-hard-negative",
+            "string-affix-predicate-ruby-monkey-patch-hard-negative",
+            "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative"
         ]
     );
     assert_eq!(

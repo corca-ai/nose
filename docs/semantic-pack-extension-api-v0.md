@@ -568,7 +568,10 @@ implicit v0 packs:
   imported `strings` namespace proof for Go `strings.HasPrefix`/`HasSuffix`;
   JS/TS untyped receivers, TypeScript `String` object wrappers, nullable
   receivers, borrowed/custom same-name calls, offsets, and direct
-  `String.prototype` patching are hard negatives;
+  `String.prototype` patching are hard negatives; Ruby literal receivers can
+  provide exact string proof, while untyped/custom Ruby receivers, multi-affix
+  calls, wrong receivers, direction mismatches, and same-file `String` monkey
+  patches stay closed;
 - `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`, `strings.Contains`,
   and `slices.Contains` API occurrence contracts under imported-namespace
   proof;

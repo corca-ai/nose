@@ -92,10 +92,11 @@ remaining broad slice is the generic `nose.protocols.builtin_method_calls` pack
 for method-call rows that have not yet earned a clearer stdlib/protocol
 boundary. String prefix/suffix predicates are now owned by
 `nose.protocols.string_affix_predicates`: receiver-method rows require exact
-string receiver proof, while Go `strings.HasPrefix`/`HasSuffix` require imported
-`strings` namespace proof. Go namespace calls are no longer part of that
-catch-all either: `fmt.Print*`, `strings.Contains`, and `slices.Contains` remain
-owned by `nose.go.stdlib.namespace_calls`.
+string receiver proof, Ruby literal receivers can provide that proof, and Go
+`strings.HasPrefix`/`HasSuffix` require imported `strings` namespace proof. Go
+namespace calls are no longer part of that catch-all either: `fmt.Print*`,
+`strings.Contains`, and `slices.Contains` remain owned by
+`nose.go.stdlib.namespace_calls`.
 
 Removal condition: delete the compatibility descriptor and legacy helper aliases
 only in a schema/capabilities migration that drops v0 first-party spellings and
@@ -382,7 +383,9 @@ previous semantic-kernel tranches.
    non-string receivers, missing or wrong Go namespace proof, wrong producer
    provenance, unsupported arities, offset argument forms, JS/TS untyped
    receivers, `String` object wrappers, nullable receivers, borrowed/custom
-   same-name calls, and direct `String.prototype` patching closed. The
+   same-name calls, direct `String.prototype` patching, Ruby untyped/custom
+   receivers, Ruby multi-affix calls, and Ruby `String` monkey patches closed.
+   The
    current Go stdlib namespace-call slice is `nose.go.stdlib.namespace_calls`,
    which owns `fmt.Print*`, `strings.Contains`, and `slices.Contains` API
    occurrence provenance under imported-namespace proof. `strings.Contains` uses

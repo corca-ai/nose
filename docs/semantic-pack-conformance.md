@@ -116,11 +116,14 @@ behavior or pack ownership, not in a static descriptor table.
 
 The builtin `nose.protocols.string_affix_predicates` pack records
 case-sensitive prefix/suffix positives across Python, Java, Rust, Swift,
-JavaScript, TypeScript, and Go. Receiver-method rows require exact string
+JavaScript, TypeScript, Go, and Ruby. Receiver-method rows require exact string
 receiver proof. Go `strings.HasPrefix` and `strings.HasSuffix` require imported
-`strings` namespace proof under the same protocol provenance. Its hard negatives
-keep direction mismatches, missing or non-string receiver proof, missing or
-wrong Go namespace proof, wrong pack or producer provenance, unsupported arity,
+`strings` namespace proof under the same protocol provenance. Ruby literal
+string receivers can provide exact string proof, while untyped Ruby receivers,
+custom same-name methods, multi-affix forms, wrong receivers, direction
+mismatches, and same-file `String` monkey patches stay closed. The pack's other
+hard negatives keep missing or non-string receiver proof, missing or wrong Go
+namespace proof, wrong pack or producer provenance, unsupported arity,
 unsupported offset argument forms, untyped JavaScript receivers, borrowed
 prototype calls, custom same-name methods, TypeScript `String` object wrappers,
 nullable receivers, and direct JS/TS `String.prototype` patching closed.
@@ -132,6 +135,8 @@ The focused #549 Go namespace-proof migration is recorded in
 [go-string-affix-closeout-549](go-string-affix-closeout-549.md).
 The focused #550 JS/TS receiver-proof hardening is recorded in
 [js-ts-string-affix-hardening-closeout-550](js-ts-string-affix-hardening-closeout-550.md).
+The focused #551 Ruby receiver-proof slice is recorded in
+[ruby-string-affix-closeout-551](ruby-string-affix-closeout-551.md).
 
 ## Builtin Inventory JSON
 
@@ -146,9 +151,9 @@ The focused #550 JS/TS receiver-proof hardening is recorded in
     "builtin_packs": 49,
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 188,
-    "hard_negatives": 161,
-    "conformance_refs": 349,
+    "positive_fixtures": 190,
+    "hard_negatives": 168,
+    "conformance_refs": 358,
     "unsupported_refs": 20
   },
   "evidence_policy": {

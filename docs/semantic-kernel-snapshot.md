@@ -208,11 +208,14 @@ still being migrated toward it.
   `nose.protocols.string_affix_predicates` descriptor owns case-sensitive
   prefix/suffix predicate contracts under exact string receiver proof for
   receiver methods and imported `strings` namespace proof for Go
-  `strings.HasPrefix`/`HasSuffix`, while direction mismatches, missing or
-  non-string receiver proof, missing or wrong Go namespace proof, wrong-pack or
-  wrong-producer evidence, unsupported arities, offset forms, JS/TS untyped
-  receivers, `String` object wrappers, nullable receivers, borrowed/custom
-  same-name calls, and direct `String.prototype` patching remain hard negatives.
+  `strings.HasPrefix`/`HasSuffix`; Ruby literal receivers provide exact string
+  proof while untyped/custom Ruby receivers, multi-affix calls, wrong receivers,
+  direction mismatches, and same-file `String` monkey patches remain closed.
+  Missing or non-string receiver proof, missing or wrong Go namespace proof,
+  wrong-pack or wrong-producer evidence, unsupported arities, offset forms,
+  JS/TS untyped receivers, `String` object wrappers, nullable receivers,
+  borrowed/custom same-name calls, and direct `String.prototype` patching remain
+  hard negatives.
   The
   `nose.protocols.sequence_hof_adapters` descriptor owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
