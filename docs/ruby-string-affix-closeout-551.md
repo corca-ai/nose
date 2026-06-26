@@ -103,7 +103,16 @@ Median: `8.982 ms -> 9.698 ms` (`+0.716 ms`).
 
 ## Review Evidence
 
-To be filled with two independent PR review links before merge.
+- Evidence/process review:
+  <https://github.com/corca-ai/nose/pull/565#issuecomment-4811371553>
+  found no blocking issues in conformance refs/counts, product-output evidence,
+  runtime evidence, docs links, or #551 done-criteria coverage.
+- Semantic soundness review:
+  <https://github.com/corca-ai/nose/pull/565#issuecomment-4811372589>
+  found a blocking `define_method` monkey-patch false-open. The follow-up review
+  <https://github.com/corca-ai/nose/pull/565#issuecomment-4811493744>
+  verified the blocker is resolved for `class String`, `String.class_eval`,
+  direct `String.define_method`, and string-name `define_method` forms.
 
 ## Rollback
 
