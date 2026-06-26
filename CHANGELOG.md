@@ -75,6 +75,11 @@ break.
   including linked independent review artifacts, query-regression evidence
   requirements, per-leaf before/after metrics, and explicit process-gap
   labeling for historical missing pre-merge review evidence.
+- Hardened the post-#533 iterator/HOF boundary: Python lazy iterator
+  materializers now preserve tuple/set/frozenset terminal identity while keeping
+  `list(map(...))` convergence, post-lower Python iterator source discovery
+  rechecks prior `LibraryApi` records through dependency-closed admission, and
+  query coverage pins effectful receiver-HOF callbacks closed.
 
 ### Changed
 - Tightened `spotclass=leaf-only` to require `graded.equal_modulo_holes=true`, so

@@ -302,10 +302,16 @@ pub(super) fn assert_group() {
     assert_eq!(python_iterator_builtin.counts().evidence_producers, 1);
     assert_eq!(python_iterator_builtin.counts().contracts, 2);
     assert_eq!(python_iterator_builtin.counts().positive_fixtures, 7);
-    assert_eq!(python_iterator_builtin.counts().hard_negatives, 7);
+    assert_eq!(python_iterator_builtin.counts().hard_negatives, 9);
     assert!(python_iterator_builtin
         .conformance_refs()
         .contains(&"python-iterator-builtin-missing-source-proof-hard-negative"));
+    assert!(python_iterator_builtin
+        .conformance_refs()
+        .contains(&"python-iterator-builtin-materializer-identity-hard-negative"));
+    assert!(python_iterator_builtin
+        .conformance_refs()
+        .contains(&"python-iterator-builtin-source-api-dependency-closure-hard-negative"));
 
     let builtin_method_call = builtin_pack_descriptor(BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID)
         .expect("builtin method-call protocol descriptor");

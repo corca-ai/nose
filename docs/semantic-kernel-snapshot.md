@@ -861,9 +861,12 @@ migrated.
   provenance, unshadowed builtin proof, iterable-source proof, and a lambda
   callback shape. `list`/`tuple`/`set` materializers consume lazy iterator
   producers only when both the collection factory proof and producer/source
-  proof are present. Shadowed builtins, wildcard-import ambiguity, missing
-  source proof, callable-but-not-lambda callbacks, missing materializer proof,
-  multi-iterable `map`, and `sorted`/`reversed` remain closed.
+  proof are present. `list(map(...))` keeps the existing list-comprehension
+  convergence, while `tuple`, `set`, and `frozenset` materializers keep distinct
+  terminal identity. Shadowed builtins, wildcard-import ambiguity, missing source
+  proof, callable-but-not-lambda callbacks, missing materializer proof, invalid
+  nested producer evidence, multi-iterable `map`, and `sorted`/`reversed` remain
+  closed.
 - Opaque exact callee identity remains separate from library/API admission. A
   parameter callee or proof-backed immutable/imported callee may keep an exact
   same-callee call comparable as an opaque value operation. Same-spelled

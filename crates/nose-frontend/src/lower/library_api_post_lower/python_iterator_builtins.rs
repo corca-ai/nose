@@ -36,28 +36,21 @@ pub(super) fn post_lower_free_function_builtin_api_contract(
 
 pub(super) fn post_lower_add_iterator_source_dependencies(
     il: &Il,
+    interner: &Interner,
     args: &[NodeId],
     id: LibraryApiContractId,
     dependencies: &mut Vec<EvidenceId>,
 ) -> bool {
-    let source_args = match (il.meta.lang, id) {
-        (Lang::Python, LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)) => {
-            &[1usize][..]
-        }
-        (Lang::Python, LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip)) => &[0usize, 1][..],
-        (
-            Lang::Python,
-            LibraryApiContractId::FreeFunctionBuiltin(
-                Builtin::Enumerate | Builtin::Any | Builtin::All,
-            ),
-        ) => &[0usize][..],
-        _ => return true,
+    let Some(source_args) = library_api_contract_iterable_source_argument_indices(il.meta.lang, id)
+    else {
+        return true;
     };
     for &arg_idx in source_args {
         let Some(&source) = args.get(arg_idx) else {
             return false;
         };
-        let Some(dependency) = post_lower_iterable_source_dependency_id(il, source) else {
+        let Some(dependency) = post_lower_iterable_source_dependency_id(il, interner, source)
+        else {
             return false;
         };
         dependencies.push(dependency);
@@ -91,7 +84,11 @@ fn post_lower_free_function_builtin_pack_and_domain(
     }
 }
 
-fn post_lower_iterable_source_dependency_id(il: &Il, source: NodeId) -> Option<EvidenceId> {
+fn post_lower_iterable_source_dependency_id(
+    il: &Il,
+    interner: &Interner,
+    source: NodeId,
+) -> Option<EvidenceId> {
     let span = il.node(source).span;
     let node_anchor = EvidenceAnchor::node(span, il.kind(source));
     let sequence_anchor = EvidenceAnchor::sequence(span);
@@ -128,6 +125,8 @@ fn post_lower_iterable_source_dependency_id(il: &Il, source: NodeId) -> Option<E
             }) if record.anchor == node_anchor
                 && post_lower_library_api_contract_is_iterable(
                     il,
+                    interner,
+                    source,
                     record,
                     contract_hash,
                     callee_hash,
@@ -204,6 +203,8 @@ fn post_lower_param_domain_dependency_matches(
 
 fn post_lower_library_api_contract_is_iterable(
     il: &Il,
+    interner: &Interner,
+    source: NodeId,
     record: &EvidenceRecord,
     contract_hash: u64,
     callee_hash: u64,
@@ -220,6 +221,17 @@ fn post_lower_library_api_contract_is_iterable(
         .any(|(id, callee)| {
             library_api_contract_id_hash(id) == contract_hash
                 && library_api_callee_contract_hash(callee) == callee_hash
+                && matches!(
+                    library_api_contract_evidence_for_call(
+                        il,
+                        interner,
+                        source,
+                        id,
+                        callee,
+                        arity as usize,
+                    ),
+                    LibraryApiEvidenceStatus::Admitted
+                )
         })
 }
 

@@ -321,6 +321,58 @@ fn query_mode_semantic_respects_python_generator_lazy_exception_timing() {
 }
 
 #[test]
+fn query_mode_semantic_respects_python_iterator_materializer_identity() {
+    let project = TempProject::new("py_iterator_materializer_identity");
+    project.write(
+        "list_map.py",
+        "def f(xs: list[int]):\n    return list(map(lambda x: x + 1, xs))\n",
+    );
+    project.write(
+        "list_comp.py",
+        "def f(xs: list[int]):\n    return [x + 1 for x in xs]\n",
+    );
+    project.write(
+        "tuple_map.py",
+        "def f(xs: list[int]):\n    return tuple(map(lambda x: x + 1, xs))\n",
+    );
+    project.write(
+        "set_map.py",
+        "def f(xs: list[int]):\n    return set(map(lambda x: x + 1, xs))\n",
+    );
+
+    let json = project.query_semantic_min_json();
+    for pair in [
+        ["list_map.py", "tuple_map.py"],
+        ["list_map.py", "set_map.py"],
+        ["tuple_map.py", "set_map.py"],
+    ] {
+        assert!(
+            !family_contains_all(&json, &pair),
+            "Python lazy iterator materializers must not merge across list/tuple/set boundaries for {pair:?}: {json}"
+        );
+    }
+}
+
+#[test]
+fn query_mode_semantic_rejects_receiver_hof_records_with_effectful_callbacks() {
+    let project = TempProject::new("receiver_hof_effectful_callback");
+    project.write(
+        "map_effect.ts",
+        "declare function audit(x: number): number;\nfunction f(xs: number[]): number[] {\n  return xs.map(x => audit(x));\n}\n",
+    );
+    project.write(
+        "loop_effect.ts",
+        "declare function audit(x: number): number;\nfunction g(xs: number[]): number[] {\n  const out: number[] = [];\n  for (const x of xs) {\n    out.push(audit(x));\n  }\n  return out;\n}\n",
+    );
+
+    let json = project.query_semantic_min_json();
+    assert!(
+        !family_contains_all(&json, &["map_effect.ts", "loop_effect.ts"]),
+        "receiver-method HOF LibraryApi records must not surface in query results when callback-effect admission rejects the call: {json}"
+    );
+}
+
+#[test]
 fn query_human_hides_generated_header_families() {
     let dir = make_generated_header_project("human");
 

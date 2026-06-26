@@ -406,6 +406,8 @@ pub(super) const PYTHON_ITERATOR_BUILTIN_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
     "python-iterator-builtin-missing-source-proof-hard-negative",
     "python-iterator-builtin-callback-not-lambda-hard-negative",
     "python-iterator-builtin-missing-materializer-proof-hard-negative",
+    "python-iterator-builtin-materializer-identity-hard-negative",
+    "python-iterator-builtin-source-api-dependency-closure-hard-negative",
     "python-iterator-builtin-multi-iterable-map-unsupported-hard-negative",
     "python-iterator-builtin-sorted-reversed-unsupported-hard-negative",
 ];

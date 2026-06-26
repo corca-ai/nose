@@ -43,7 +43,7 @@ pub use rows::*;
 
 pub use admission::{
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
-    library_api_contract_evidence_for_node,
+    library_api_contract_evidence_for_node, library_api_contract_iterable_source_argument_indices,
 };
 pub(in crate::library_api) use admission::{
     library_api_contract_obligations_match_call, library_api_contract_obligations_match_node,

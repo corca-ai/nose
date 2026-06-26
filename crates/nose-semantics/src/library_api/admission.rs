@@ -3,6 +3,7 @@ use super::*;
 mod iterator_sources;
 mod provenance;
 
+pub use iterator_sources::library_api_contract_iterable_source_argument_indices;
 pub(in crate::library_api) use iterator_sources::{
     library_api_contract_obligations_match_call, library_api_contract_obligations_match_node,
     library_api_contract_requires_call_obligations,

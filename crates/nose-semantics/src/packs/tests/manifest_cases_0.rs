@@ -262,7 +262,7 @@ fn builtin_compat_pack_hash_matches_evidence_provenance_hash_policy() {
     assert_eq!(python_iterator_builtin.counts.evidence_producers, 1);
     assert_eq!(python_iterator_builtin.counts.contracts, 2);
     assert_eq!(python_iterator_builtin.counts.positive_fixtures, 7);
-    assert_eq!(python_iterator_builtin.counts.hard_negatives, 7);
+    assert_eq!(python_iterator_builtin.counts.hard_negatives, 9);
     let receiver_membership = set
         .packs()
         .iter()

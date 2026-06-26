@@ -138,7 +138,7 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(python_iterator_builtin["counts"]["contracts"], 2);
     assert_eq!(python_iterator_builtin["counts"]["value_laws"], 0);
     assert_eq!(python_iterator_builtin["counts"]["positive_fixtures"], 7);
-    assert_eq!(python_iterator_builtin["counts"]["hard_negatives"], 7);
+    assert_eq!(python_iterator_builtin["counts"]["hard_negatives"], 9);
 
     let receiver_membership = semantic_pack_by_id(&json, "nose.protocols.receiver_membership");
     assert_eq!(receiver_membership["hash"], "b01cdfb3d7ec79c9");

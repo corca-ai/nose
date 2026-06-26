@@ -356,7 +356,9 @@ previous semantic-kernel tranches.
    builtin iterator producer and terminal occurrence provenance for `map`,
    `filter`, `zip`, `enumerate`, `any`, and `all`. Lazy producer semantics and
    `list`/`tuple`/`set` materialization require the iterator/source proof and
-   terminal factory proof rather than a wider builtin-name allowlist.
+   terminal factory proof rather than a wider builtin-name allowlist; non-list
+   materializers retain their terminal identity so tuple/set/frozenset results
+   cannot merge with list materialization or with each other.
    The current receiver-membership protocol slice is
    `nose.protocols.receiver_membership`, which owns receiver-method membership
    API occurrence provenance for map, collection, and set-or-map receiver

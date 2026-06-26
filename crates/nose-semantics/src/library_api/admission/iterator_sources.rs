@@ -1,5 +1,30 @@
 use super::*;
 
+const PYTHON_HOF_ITERABLE_SOURCE_ARGS: &[usize] = &[1];
+const PYTHON_UNARY_ITERABLE_SOURCE_ARGS: &[usize] = &[0];
+const PYTHON_BINARY_ITERABLE_SOURCE_ARGS: &[usize] = &[0, 1];
+
+pub fn library_api_contract_iterable_source_argument_indices(
+    lang: Lang,
+    id: LibraryApiContractId,
+) -> Option<&'static [usize]> {
+    match (lang, id) {
+        (Lang::Python, LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)) => {
+            Some(PYTHON_HOF_ITERABLE_SOURCE_ARGS)
+        }
+        (Lang::Python, LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip)) => {
+            Some(PYTHON_BINARY_ITERABLE_SOURCE_ARGS)
+        }
+        (
+            Lang::Python,
+            LibraryApiContractId::FreeFunctionBuiltin(
+                Builtin::Enumerate | Builtin::Any | Builtin::All,
+            ),
+        ) => Some(PYTHON_UNARY_ITERABLE_SOURCE_ARGS),
+        _ => None,
+    }
+}
+
 pub(in crate::library_api) fn library_api_contract_obligations_match_call(
     il: &Il,
     interner: Option<&Interner>,
@@ -11,18 +36,9 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_call(
         return method_hof_callback_obligation_matches_node(il, interner, call);
     }
 
-    let source_args = match (il.meta.lang, id) {
-        (Lang::Python, LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)) => {
-            &[1usize][..]
-        }
-        (Lang::Python, LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip)) => &[0usize, 1][..],
-        (
-            Lang::Python,
-            LibraryApiContractId::FreeFunctionBuiltin(
-                Builtin::Enumerate | Builtin::Any | Builtin::All,
-            ),
-        ) => &[0usize][..],
-        _ => return true,
+    let Some(source_args) = library_api_contract_iterable_source_argument_indices(il.meta.lang, id)
+    else {
+        return true;
     };
     let source_arg_offset = if matches!(il.node(call).payload, Payload::Builtin(_)) {
         0
@@ -55,21 +71,8 @@ pub(in crate::library_api) fn library_api_contract_requires_call_obligations(
     lang: Lang,
     id: LibraryApiContractId,
 ) -> bool {
-    iterable_source_obligation_required(lang, id)
+    library_api_contract_iterable_source_argument_indices(lang, id).is_some()
         || method_hof_callback_obligation_required(lang, id)
-}
-
-fn iterable_source_obligation_required(lang: Lang, id: LibraryApiContractId) -> bool {
-    matches!(
-        (lang, id),
-        (
-            Lang::Python,
-            LibraryApiContractId::FreeFunctionHof(HoFKind::Map | HoFKind::Filter)
-        ) | (
-            Lang::Python,
-            LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip | Builtin::Enumerate)
-        )
-    )
 }
 
 fn method_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId) -> bool {

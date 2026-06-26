@@ -11,8 +11,8 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
     assert_eq!(json["totals"]["positive_fixtures"], 192);
-    assert_eq!(json["totals"]["hard_negatives"], 175);
-    assert_eq!(json["totals"]["conformance_refs"], 367);
+    assert_eq!(json["totals"]["hard_negatives"], 177);
+    assert_eq!(json["totals"]["conformance_refs"], 369);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -150,6 +150,8 @@ fn assert_python_iterator_builtin_pack(packs: &[serde_json::Value]) {
             "python-iterator-builtin-missing-source-proof-hard-negative",
             "python-iterator-builtin-callback-not-lambda-hard-negative",
             "python-iterator-builtin-missing-materializer-proof-hard-negative",
+            "python-iterator-builtin-materializer-identity-hard-negative",
+            "python-iterator-builtin-source-api-dependency-closure-hard-negative",
             "python-iterator-builtin-multi-iterable-map-unsupported-hard-negative",
             "python-iterator-builtin-sorted-reversed-unsupported-hard-negative"
         ]

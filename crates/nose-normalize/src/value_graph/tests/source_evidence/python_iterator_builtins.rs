@@ -27,10 +27,54 @@ fn python_iterator_materializer_requires_factory_and_lazy_source_proof() {
     let list = with_list.children(with_list.root)[0];
     let mut builder = Builder::new(&with_list, &interner);
     let value = builder.eval(list, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Hof(k) if k == HoFKind::Map as u32),
-        "an admitted Python list(map(lambda, xs)) can consume the lazy iterator source"
+    assert_python_iterator_materializer(
+        &builder,
+        value,
+        None,
+        "an admitted Python list(map(lambda, xs)) can consume the lazy iterator source",
     );
+}
+
+#[test]
+fn python_iterator_materializer_preserves_terminal_identity() {
+    let (with_list, interner) = python_materialized_map_call_il("list", true, true);
+    let with_list = crate::desugar::run(&with_list, &interner, &crate::NormalizeOptions::default());
+    let list = with_list.children(with_list.root)[0];
+    let mut builder = Builder::new(&with_list, &interner);
+    let value = builder.eval(list, &FxHashMap::default());
+    assert_python_iterator_materializer(
+        &builder,
+        value,
+        None,
+        "list(map(...)) keeps the existing list-comprehension/HOF convergence",
+    );
+
+    for (name, expected_tag) in [
+        (
+            "tuple",
+            stable_symbol_hash("python.iterator.materializer.tuple"),
+        ),
+        (
+            "set",
+            stable_symbol_hash("python.iterator.materializer.set"),
+        ),
+        (
+            "frozenset",
+            stable_symbol_hash("python.iterator.materializer.frozenset"),
+        ),
+    ] {
+        let (il, interner) = python_materialized_map_call_il(name, true, true);
+        let il = crate::desugar::run(&il, &interner, &crate::NormalizeOptions::default());
+        let materializer = il.children(il.root)[0];
+        let mut builder = Builder::new(&il, &interner);
+        let value = builder.eval(materializer, &FxHashMap::default());
+        assert_python_iterator_materializer(
+            &builder,
+            value,
+            Some(expected_tag),
+            "non-list iterator materializers must retain their terminal identity",
+        );
+    }
 }
 
 #[test]
@@ -143,11 +187,19 @@ fn normalized_python_free_function_hof_keeps_symbol_dependency() {
 }
 
 fn python_list_map_call_il(include_list_factory_evidence: bool) -> (Il, Interner) {
+    python_materialized_map_call_il("list", include_list_factory_evidence, true)
+}
+
+fn python_materialized_map_call_il(
+    materializer_name: &str,
+    include_materializer_factory_evidence: bool,
+    include_map_evidence: bool,
+) -> (Il, Interner) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let list_callee = b.add(
         NodeKind::Var,
-        Payload::Name(interner.intern("list")),
+        Payload::Name(interner.intern(materializer_name)),
         sp(60),
         &[],
     );
@@ -188,26 +240,28 @@ fn python_list_map_call_il(include_list_factory_evidence: bool) -> (Il, Interner
         EvidenceAnchor::node(sp(63), NodeKind::Var),
         EvidenceKind::Domain(DomainEvidence::Collection),
     ));
-    let map_contract = library_free_function_hof_contract(Lang::Python, "map", 2).unwrap();
-    il.evidence.push(python_iterator_builtin_protocol_evidence(
-        2,
-        sp(61),
-        map_contract,
-        2,
-        vec![EvidenceId(0), EvidenceId(1)],
-    ));
+    if include_map_evidence {
+        let map_contract = library_free_function_hof_contract(Lang::Python, "map", 2).unwrap();
+        il.evidence.push(python_iterator_builtin_protocol_evidence(
+            2,
+            sp(61),
+            map_contract,
+            2,
+            vec![EvidenceId(0), EvidenceId(1)],
+        ));
+    }
 
     il.evidence.push(language_core_symbol_evidence(
         3,
         Lang::Python,
         EvidenceAnchor::node(sp(60), NodeKind::Var),
         SymbolEvidenceKind::UnshadowedGlobal {
-            name_hash: stable_symbol_hash("list"),
+            name_hash: stable_symbol_hash(materializer_name),
         },
     ));
-    if include_list_factory_evidence {
+    if include_materializer_factory_evidence {
         let list_contract =
-            library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
+            library_free_name_collection_factory_contract(Lang::Python, materializer_name).unwrap();
         il.evidence.push(python_builtin_collection_factory_evidence(
             4,
             sp(60),
@@ -218,6 +272,34 @@ fn python_list_map_call_il(include_list_factory_evidence: bool) -> (Il, Interner
     }
 
     (il, interner)
+}
+
+fn assert_python_iterator_materializer(
+    builder: &Builder<'_>,
+    value: ValueId,
+    wrapper_tag: Option<u64>,
+    message: &str,
+) {
+    let node = &builder.nodes[value as usize];
+    match wrapper_tag {
+        Some(tag) => {
+            assert!(
+                matches!(node.op, ValOp::Seq(actual) if actual == tag),
+                "{message}"
+            );
+            let [inner] = node.args.as_slice() else {
+                panic!("{message}");
+            };
+            assert!(
+                matches!(builder.nodes[*inner as usize].op, ValOp::Hof(k) if k == HoFKind::Map as u32),
+                "{message}"
+            );
+        }
+        None => assert!(
+            matches!(node.op, ValOp::Hof(k) if k == HoFKind::Map as u32),
+            "{message}"
+        ),
+    }
 }
 
 fn python_list_zip_call_il(

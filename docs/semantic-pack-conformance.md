@@ -158,8 +158,8 @@ The focused #552 coordinate-boundary slice is recorded in
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
     "positive_fixtures": 192,
-    "hard_negatives": 175,
-    "conformance_refs": 367,
+    "hard_negatives": 177,
+    "conformance_refs": 369,
     "unsupported_refs": 23
   },
   "evidence_policy": {

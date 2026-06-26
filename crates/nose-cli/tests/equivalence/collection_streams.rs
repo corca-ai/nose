@@ -120,6 +120,43 @@ fn string_affix_coordinate_sources_keep_safe_boundaries() {
 }
 
 #[test]
+fn python_iterator_materializer_identity_stays_behavior_defining() {
+    let i = Interner::new();
+    let list_map = "def f(xs: list[int]):\n    return list(map(lambda x: x + 1, xs))\n";
+    let list_comp = "def f(xs: list[int]):\n    return [x + 1 for x in xs]\n";
+    let tuple_map = "def f(xs: list[int]):\n    return tuple(map(lambda x: x + 1, xs))\n";
+    let set_map = "def f(xs: list[int]):\n    return set(map(lambda x: x + 1, xs))\n";
+    let frozenset_map = "def f(xs: list[int]):\n    return frozenset(map(lambda x: x + 1, xs))\n";
+
+    let list_fp = value_fp(&i, list_map, Lang::Python);
+    assert_eq!(
+        list_fp,
+        value_fp(&i, list_comp, Lang::Python),
+        "list(map(lambda, xs)) should keep converging with the equivalent list comprehension"
+    );
+    assert_ne!(
+        list_fp,
+        value_fp(&i, tuple_map, Lang::Python),
+        "tuple(map(...)) materialization is not a list materialization"
+    );
+    assert_ne!(
+        list_fp,
+        value_fp(&i, set_map, Lang::Python),
+        "set(map(...)) materialization is not a list materialization"
+    );
+    assert_ne!(
+        value_fp(&i, tuple_map, Lang::Python),
+        value_fp(&i, set_map, Lang::Python),
+        "tuple and set materializers preserve different collection semantics"
+    );
+    assert_ne!(
+        value_fp(&i, set_map, Lang::Python),
+        value_fp(&i, frozenset_map, Lang::Python),
+        "set and frozenset materializers preserve mutability/hashability boundaries"
+    );
+}
+
+#[test]
 fn java_stream_aggregates_converge_with_loops() {
     // Java stream pipelines should lower into the same shared iteration/reduction
     // shapes as enhanced-for loops: `Arrays.stream(xs)` is just the source collection,

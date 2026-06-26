@@ -133,7 +133,13 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         return false;
     };
     let mut dependencies = dependencies;
-    if !post_lower_add_iterator_source_dependencies(il, args, contract.id, &mut dependencies) {
+    if !post_lower_add_iterator_source_dependencies(
+        il,
+        interner,
+        args,
+        contract.id,
+        &mut dependencies,
+    ) {
         return false;
     }
     let is_swift_map_factory = matches!(contract.id, LibraryApiContractId::SwiftMapFactory(_));

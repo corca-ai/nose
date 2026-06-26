@@ -1,4 +1,5 @@
 use super::*;
+use nose_il::HoFKind;
 
 #[test]
 fn post_lowering_emits_python_iterator_builtin_occurrences() {
@@ -196,6 +197,112 @@ def al(values: List[int]):
         ),
         0,
         "param-domain evidence must not prove a source after the binding is reassigned"
+    );
+}
+
+#[test]
+fn post_lowering_rechecks_prior_python_iterator_source_api_dependencies() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let inner_callee = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("map")),
+        sp_at(10),
+        &[],
+    );
+    let inner_lambda = b.add(NodeKind::Lambda, Payload::None, sp_at(11), &[]);
+    let values = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("values")),
+        sp_at(12),
+        &[],
+    );
+    let inner_map = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp_at(13),
+        &[inner_callee, inner_lambda, values],
+    );
+    let outer_callee = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("map")),
+        sp_at(14),
+        &[],
+    );
+    let outer_lambda = b.add(NodeKind::Lambda, Payload::None, sp_at(15), &[]);
+    let outer_map = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp_at(16),
+        &[outer_callee, outer_lambda, inner_map],
+    );
+    let root = b.add(NodeKind::Block, Payload::None, sp_at(17), &[outer_map]);
+    let mut il = b.finish(
+        root,
+        FileMeta {
+            path: "post-lower-invalid-prior-map.py".into(),
+            lang: Lang::Python,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    let (pack_id, producer_id) = language_core_evidence_provenance(Lang::Python);
+    let inner_symbol = il.find_or_push_builtin_evidence(
+        EvidenceAnchor::node(sp_at(10), NodeKind::Var),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("map"),
+        }),
+        pack_id,
+        producer_id,
+        Vec::new(),
+    );
+    il.find_or_push_builtin_evidence(
+        EvidenceAnchor::node(sp_at(14), NodeKind::Var),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("map"),
+        }),
+        pack_id,
+        producer_id,
+        Vec::new(),
+    );
+    let contract = library_free_function_hof_contract(Lang::Python, "map", 2).unwrap();
+    let legacy_inner_api = il.find_or_push_builtin_evidence(
+        EvidenceAnchor::node(sp_at(13), NodeKind::Call),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: 2,
+        }),
+        PYTHON_ITERATOR_BUILTIN_PROTOCOL_PACK_ID,
+        PYTHON_ITERATOR_BUILTIN_PROTOCOL_PRODUCER_ID,
+        vec![inner_symbol],
+    );
+
+    library_api_post_lower::record_post_lower_library_api_evidence(&mut il, &interner);
+
+    let outer_records = il
+        .evidence
+        .iter()
+        .filter(|record| {
+            record.anchor == EvidenceAnchor::node(sp_at(16), NodeKind::Call)
+                && matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash,
+                        callee_hash,
+                        arity: 2,
+                    }) if contract_hash == library_api_contract_id_hash(contract.id)
+                        && callee_hash == library_api_callee_contract_hash(contract.callee)
+                )
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        outer_records.is_empty(),
+        "post-lower source discovery must not treat a prior source API record as iterable unless that record still passes full dependency-closed admission"
+    );
+    assert!(
+        il.evidence_record_by_id(legacy_inner_api).is_some(),
+        "the fixture's invalid prior LibraryApi record should remain present so the regression exercises source discovery"
     );
 }
 

@@ -1,5 +1,12 @@
 use super::super::*;
 
+const PYTHON_TUPLE_ITERATOR_MATERIALIZER: u64 =
+    stable_symbol_hash("python.iterator.materializer.tuple");
+const PYTHON_SET_ITERATOR_MATERIALIZER: u64 =
+    stable_symbol_hash("python.iterator.materializer.set");
+const PYTHON_FROZENSET_ITERATOR_MATERIALIZER: u64 =
+    stable_symbol_hash("python.iterator.materializer.frozenset");
+
 impl<'a> Builder<'a> {
     /// A collection sequence-literal call `Call(0, [callee, Seq(collection)])` → its
     /// `(callee, seq)`. The shared guard under every collection/map factory recognizer; `None`
@@ -168,8 +175,27 @@ impl<'a> Builder<'a> {
             return None;
         }
         let source = kids[1];
-        self.proven_python_lazy_iterator_source(source)
-            .then(|| self.eval(source, env))
+        if !self.proven_python_lazy_iterator_source(source) {
+            return None;
+        }
+        let materialized = self.eval(source, env);
+        match self.python_iterator_materializer_tag(occurrence.callee) {
+            Some(tag) => Some(self.mk(ValOp::Seq(tag), vec![materialized])),
+            None => Some(materialized),
+        }
+    }
+
+    fn python_iterator_materializer_tag(&self, callee: NodeId) -> Option<u64> {
+        let Payload::Name(name) = self.il.node(callee).payload else {
+            return None;
+        };
+        match self.interner.resolve(name) {
+            "list" => None,
+            "tuple" => Some(PYTHON_TUPLE_ITERATOR_MATERIALIZER),
+            "set" => Some(PYTHON_SET_ITERATOR_MATERIALIZER),
+            "frozenset" => Some(PYTHON_FROZENSET_ITERATOR_MATERIALIZER),
+            _ => None,
+        }
     }
 
     fn proven_python_lazy_iterator_source(&self, source: NodeId) -> bool {
