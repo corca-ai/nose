@@ -1576,6 +1576,8 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   ms -> 16.1 ms. The corpus-free HoF budget smoke stayed under budget
   (`features` 9.83 ms, semantic query 9.65 ms; deep chain 592 tokens / 152
   value-fingerprint nodes, wide chain 1455 / 324).
+  Durable closeout evidence for the #533 sequence-HOF tranche is recorded in
+  [semantic-kernel-closeout-533](semantic-kernel-closeout-533.md).
 - The static API occurrence slice moved Java empty collection constructors and
   JS-like static `indexOf`/`findIndex` membership behind the same
   dependency-backed occurrence boundary. `new ArrayList<>()`/
