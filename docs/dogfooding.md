@@ -35,7 +35,7 @@ later sections record reviewed deltas from this 36-family state.
 `18b10c46c5eef924`, `1dfaba2582163d7c`, `1fc08105c8b5d5c0`, `209fdc39157ececd`,
 `28594d5cfe2a2c75`, `3e76e062e630928d`, `4890b7227d416249`, `49cf43940d7ba72c`,
 `4ac4a88371e43e72`, `4fcb322e2465279d`, `60806a4da1fcff4f`, `6a34db62d843f27d`,
-`6e37683225332c86`, `77d8e8012b2ac08a`, `7f4ff361137cc14a`, `84df147de864f719`,
+`6e37683225332c86`, `77d8e8012b2ac08a`, `d723f2396fdd67de`, `84df147de864f719`,
 `8d3e36bdd11cf2c0`, `8f9c8cadbe769f47`, `90809d0e27461ac4`, `936f238ab2e0d6b2`,
 `98f5617cbcf09658`, `ab38dd94000926e1`, `b527e97155167c1b`, `bf4255f2994b1d65`,
 `c5f1969d0a866135`, `c9fe4dc9d9cd14f5`, `d7dea9009200ed08`, `e479623ccf355d32`,
@@ -75,6 +75,13 @@ async/protocol-boundary tests, evidence accessors, evidence-anchor helpers, swit
 folding, frontend call/dispatch parallelism, raw-name test helpers, and the coverage /
 gap-impact census loop. These are the same reviewed debt classes above or
 parallel-by-design helper boundaries; no budget increase was accepted.
+
+The 2026-06-26 JS/TS string-affix receiver hardening (#550) inserted stricter
+case-preserving TypeScript annotation helpers in `type_domain.rs`. That moved the
+`rust_integer_type` span inside the already-reviewed small predicate/helper family with
+`css::is_selector_kind` and `python::expressions::is_op_tok`; the family ID changed from
+`7f4ff361137cc14a` to `d723f2396fdd67de`, but members, value, scope, and the 52-family
+budget were unchanged.
 
 ## Verdict by candidate (critically)
 
