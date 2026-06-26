@@ -17,8 +17,8 @@ The PR changes receiver proof boundaries:
   represented;
 - prefix/suffix direction and receiver-vs-affix coordinates remain distinct;
 - same-file `class String; def start_with?` / `def end_with?` and
-  `String.class_eval` redefinitions close the corresponding Ruby affix
-  admission for that file.
+  `String.class_eval` redefinitions, including `define_method` forms, close the
+  corresponding Ruby affix admission for that file.
 
 ## Product Comparison
 
@@ -29,7 +29,7 @@ the focused Ruby hard negative fixtures and before review-evidence updates.
 Binary hashes:
 
 - baseline: `f1641955710eea8195fb4b114b7f3800b3d293dfd1aff998640dcef9250bf386`
-- current: `dfa7d33c8b2d34a2c410bed70ebd7f2f8818c499e50b8657fade62f01e9f36cd`
+- current: `10189f62d583c3325f81952bf674a10bc2f1703ecccb0ff3fff59e1885bd2738`
 
 Focused corpus:
 
@@ -39,7 +39,7 @@ Focused corpus:
 - hard negatives: untyped receiver, custom same-name receiver,
   multi-affix call, wrong receiver, direction mismatch, same-file
   `String#start_with?` monkey patch, and same-file `String.class_eval`
-  monkey patch.
+  / `define_method` monkey patches.
 
 Command:
 
@@ -77,11 +77,11 @@ nose semantic-pack inventory --format json
 | exact-capable packs | 39 | 39 |
 | packs needing coverage | 0 | 0 |
 | positive fixtures | 188 | 190 |
-| hard negatives | 161 | 168 |
-| conformance refs | 349 | 358 |
+| hard negatives | 161 | 169 |
+| conformance refs | 349 | 359 |
 | unsupported refs | 20 | 20 |
 | string-affix positives | 14 | 16 |
-| string-affix hard negatives | 22 | 29 |
+| string-affix hard negatives | 22 | 30 |
 
 ## Runtime
 
@@ -90,16 +90,16 @@ Method: 2 warmups, then 9 alternating measured repeats over the focused corpus.
 Baseline times in milliseconds:
 
 ```text
-9.318, 9.477, 10.857, 8.936, 7.349, 8.870, 7.540, 7.657, 8.958
+11.586, 10.971, 8.881, 8.971, 9.175, 8.940, 8.982, 10.658, 7.305
 ```
 
 Current times in milliseconds:
 
 ```text
-11.673, 9.514, 9.874, 9.947, 11.005, 9.651, 9.684, 9.676, 9.781
+12.135, 9.848, 9.655, 9.766, 9.698, 8.059, 8.189, 8.277, 9.804
 ```
 
-Median: `8.936 ms -> 9.781 ms` (`+0.845 ms`).
+Median: `8.982 ms -> 9.698 ms` (`+0.716 ms`).
 
 ## Review Evidence
 

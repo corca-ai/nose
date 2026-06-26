@@ -50,4 +50,5 @@ pub(in crate::packs::compiled) const STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE
     "string-affix-predicate-ruby-direction-mismatch-hard-negative",
     "string-affix-predicate-ruby-monkey-patch-hard-negative",
     "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative",
+    "string-affix-predicate-ruby-define-method-monkey-patch-hard-negative",
 ];

@@ -152,8 +152,8 @@ The focused #551 Ruby receiver-proof slice is recorded in
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
     "positive_fixtures": 190,
-    "hard_negatives": 168,
-    "conformance_refs": 358,
+    "hard_negatives": 169,
+    "conformance_refs": 359,
     "unsupported_refs": 20
   },
   "evidence_policy": {

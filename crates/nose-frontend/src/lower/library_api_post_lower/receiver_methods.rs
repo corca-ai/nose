@@ -66,6 +66,7 @@ fn ruby_string_instance_method_redefined_in_file(
 ) -> bool {
     ruby_string_class_unit_redefines_method(il, interner, expected_method)
         || ruby_string_class_eval_redefines_method(il, interner, expected_method)
+        || ruby_string_direct_define_method_redefines_method(il, interner, expected_method)
 }
 
 fn ruby_string_class_unit_redefines_method(
@@ -78,17 +79,31 @@ fn ruby_string_class_unit_redefines_method(
             && class_unit
                 .name
                 .is_some_and(|name| ruby_string_class_name(interner.resolve(name)))
-            && il.units.iter().any(|method_unit| {
+            && {
                 let class_span = il.node(class_unit.root).span;
-                let method_span = il.node(method_unit.root).span;
-                method_unit.kind == UnitKind::Method
-                    && method_unit
-                        .name
-                        .is_some_and(|name| interner.resolve(name) == expected_method)
-                    && class_span.file == method_span.file
-                    && class_span.start_byte <= method_span.start_byte
-                    && method_span.end_byte <= class_span.end_byte
-            })
+                il.units.iter().any(|method_unit| {
+                    let method_span = il.node(method_unit.root).span;
+                    method_unit.kind == UnitKind::Method
+                        && method_unit
+                            .name
+                            .is_some_and(|name| interner.resolve(name) == expected_method)
+                        && class_span.file == method_span.file
+                        && class_span.start_byte <= method_span.start_byte
+                        && method_span.end_byte <= class_span.end_byte
+                }) || il.nodes.iter().enumerate().any(|(idx, node)| {
+                    let call = NodeId(idx as u32);
+                    node.kind == NodeKind::Call
+                        && ruby_define_method_call_redefines_method(
+                            il,
+                            interner,
+                            call,
+                            expected_method,
+                        )
+                        && class_span.file == node.span.file
+                        && class_span.start_byte <= node.span.start_byte
+                        && node.span.end_byte <= class_span.end_byte
+                })
+            }
     })
 }
 
@@ -108,15 +123,34 @@ fn ruby_string_class_eval_redefines_method(
         })
         .map(|unit| il.node(unit.root).span)
         .collect();
+    let define_method_spans: Vec<Span> = il
+        .nodes
+        .iter()
+        .enumerate()
+        .filter(|(idx, node)| {
+            node.kind == NodeKind::Call
+                && ruby_define_method_call_redefines_method(
+                    il,
+                    interner,
+                    NodeId(*idx as u32),
+                    expected_method,
+                )
+        })
+        .map(|(_, node)| node.span)
+        .collect();
     il.nodes.iter().enumerate().any(|(idx, node)| {
         let call = NodeId(idx as u32);
         node.kind == NodeKind::Call
             && ruby_string_class_eval_call(il, interner, call)
-            && method_spans.iter().any(|&method_span| {
+            && (method_spans.iter().any(|&method_span| {
                 node.span.file == method_span.file
                     && node.span.start_byte <= method_span.start_byte
                     && method_span.end_byte <= node.span.end_byte
-            })
+            }) || define_method_spans.iter().any(|&define_method_span| {
+                node.span.file == define_method_span.file
+                    && node.span.start_byte <= define_method_span.start_byte
+                    && define_method_span.end_byte <= node.span.end_byte
+            }))
     })
 }
 
@@ -131,6 +165,41 @@ fn ruby_string_class_eval_call(il: &Il, interner: &Interner, call: NodeId) -> bo
             .copied()
             .and_then(|receiver| post_lower_var_name(il, interner, receiver))
             .is_some_and(ruby_string_class_name)
+}
+
+fn ruby_string_direct_define_method_redefines_method(
+    il: &Il,
+    interner: &Interner,
+    expected_method: &str,
+) -> bool {
+    il.nodes.iter().enumerate().any(|(idx, node)| {
+        let call = NodeId(idx as u32);
+        node.kind == NodeKind::Call
+            && ruby_define_method_call_redefines_method(il, interner, call, expected_method)
+            && il.children(call).first().copied().is_some_and(|callee| {
+                field_name(il, interner, callee) == Some("define_method")
+                    && il
+                        .children(callee)
+                        .first()
+                        .copied()
+                        .and_then(|receiver| post_lower_var_name(il, interner, receiver))
+                        .is_some_and(ruby_string_class_name)
+            })
+    })
+}
+
+fn ruby_define_method_call_redefines_method(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    expected_method: &str,
+) -> bool {
+    let [callee, method, ..] = il.children(call) else {
+        return false;
+    };
+    (post_lower_var_name(il, interner, *callee) == Some("define_method")
+        || field_name(il, interner, *callee) == Some("define_method"))
+        && string_literal(il, *method, expected_method)
 }
 
 fn ruby_string_class_name(name: &str) -> bool {

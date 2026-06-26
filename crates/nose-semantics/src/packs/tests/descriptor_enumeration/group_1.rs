@@ -384,7 +384,7 @@ pub(super) fn assert_group() {
     assert_eq!(string_affix.counts().evidence_producers, 1);
     assert_eq!(string_affix.counts().contracts, 1);
     assert_eq!(string_affix.counts().positive_fixtures, 16);
-    assert_eq!(string_affix.counts().hard_negatives, 29);
+    assert_eq!(string_affix.counts().hard_negatives, 30);
     for reference in [
         "string-affix-predicate-python-startswith-positive",
         "string-affix-predicate-python-endswith-positive",
@@ -423,6 +423,7 @@ pub(super) fn assert_group() {
         "string-affix-predicate-ruby-direction-mismatch-hard-negative",
         "string-affix-predicate-ruby-monkey-patch-hard-negative",
         "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative",
+        "string-affix-predicate-ruby-define-method-monkey-patch-hard-negative",
     ] {
         assert!(string_affix.conformance_refs().contains(&reference));
     }

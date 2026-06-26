@@ -134,6 +134,75 @@ end
         0,
         "same-file Ruby String.class_eval redefinitions must close admission"
     );
+
+    let define_method_patch = lower_fixture(
+        "ruby_define_method_patch.rb",
+        br#"class String
+  define_method(:start_with?) do |prefix|
+    false
+  end
+end
+
+def f
+  "prelude".start_with?("pre")
+end
+"#,
+        Lang::Ruby,
+        &interner,
+    );
+    assert_eq!(
+        contract_api_count(&define_method_patch.evidence, prefix.id, prefix.callee),
+        0,
+        "same-file Ruby String#define_method redefinitions must close admission"
+    );
+
+    let class_eval_define_method_patch = lower_fixture(
+        "ruby_class_eval_define_method_patch.rb",
+        br#"String.class_eval do
+  define_method(:start_with?) do |prefix|
+    false
+  end
+end
+
+def f
+  "prelude".start_with?("pre")
+end
+"#,
+        Lang::Ruby,
+        &interner,
+    );
+    assert_eq!(
+        contract_api_count(
+            &class_eval_define_method_patch.evidence,
+            prefix.id,
+            prefix.callee
+        ),
+        0,
+        "same-file Ruby String.class_eval define_method redefinitions must close admission"
+    );
+
+    let direct_define_method_patch = lower_fixture(
+        "ruby_direct_define_method_patch.rb",
+        br#"String.define_method(:start_with?) do |prefix|
+  false
+end
+
+def f
+  "prelude".start_with?("pre")
+end
+"#,
+        Lang::Ruby,
+        &interner,
+    );
+    assert_eq!(
+        contract_api_count(
+            &direct_define_method_patch.evidence,
+            prefix.id,
+            prefix.callee
+        ),
+        0,
+        "same-file Ruby String.define_method redefinitions must close admission"
+    );
 }
 
 fn api_record_depends_on_string_literal_domain(

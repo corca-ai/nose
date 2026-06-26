@@ -97,6 +97,7 @@ fn assert_ruby_string_affix_hard_negatives(semantic_json: &serde_json::Value, se
         "direction_mismatch.rb",
         "monkey_patch.rb",
         "class_eval_patch.rb",
+        "define_method_patch.rb",
     ] {
         assert!(
             !family_contains_all(semantic_json, &["prefix.rb", unexpected])

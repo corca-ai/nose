@@ -11,8 +11,8 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
     assert_eq!(json["totals"]["positive_fixtures"], 190);
-    assert_eq!(json["totals"]["hard_negatives"], 168);
-    assert_eq!(json["totals"]["conformance_refs"], 358);
+    assert_eq!(json["totals"]["hard_negatives"], 169);
+    assert_eq!(json["totals"]["conformance_refs"], 359);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -97,7 +97,8 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-ruby-wrong-receiver-hard-negative",
             "string-affix-predicate-ruby-direction-mismatch-hard-negative",
             "string-affix-predicate-ruby-monkey-patch-hard-negative",
-            "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative"
+            "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative",
+            "string-affix-predicate-ruby-define-method-monkey-patch-hard-negative"
         ]
     );
     assert_eq!(
