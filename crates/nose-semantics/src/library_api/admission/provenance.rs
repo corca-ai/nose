@@ -410,15 +410,6 @@ fn go_library_api_contract_provenance_ids(
         )
         | (
             LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
-                Builtin::StartsWith | Builtin::EndsWith,
-            )),
-            LibraryApiCalleeContract::Method {
-                receiver: MethodReceiverContract::ImportedNamespace("strings"),
-                ..
-            },
-        )
-        | (
-            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
                 Builtin::StringContains,
             )),
             LibraryApiCalleeContract::Method {
@@ -500,6 +491,9 @@ fn string_affix_predicate_method_callee(callee: LibraryApiCalleeContract) -> boo
         callee,
         LibraryApiCalleeContract::Method {
             receiver: MethodReceiverContract::ExactString,
+            ..
+        } | LibraryApiCalleeContract::Method {
+            receiver: MethodReceiverContract::ImportedNamespace("strings"),
             ..
         }
     )

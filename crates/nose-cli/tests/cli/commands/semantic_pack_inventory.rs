@@ -11,8 +11,8 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
     assert_eq!(json["totals"]["positive_fixtures"], 188);
-    assert_eq!(json["totals"]["hard_negatives"], 146);
-    assert_eq!(json["totals"]["conformance_refs"], 334);
+    assert_eq!(json["totals"]["hard_negatives"], 148);
+    assert_eq!(json["totals"]["conformance_refs"], 336);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -59,7 +59,9 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-typescript-startswith-positive",
             "string-affix-predicate-typescript-endswith-positive",
             "string-affix-predicate-javascript-startswith-positive",
-            "string-affix-predicate-javascript-endswith-positive"
+            "string-affix-predicate-javascript-endswith-positive",
+            "string-affix-predicate-go-has-prefix-positive",
+            "string-affix-predicate-go-has-suffix-positive"
         ]
     );
     assert_eq!(
@@ -68,6 +70,8 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-direction-mismatch-hard-negative",
             "string-affix-predicate-missing-receiver-proof-hard-negative",
             "string-affix-predicate-non-string-receiver-hard-negative",
+            "string-affix-predicate-go-missing-import-hard-negative",
+            "string-affix-predicate-go-wrong-namespace-hard-negative",
             "string-affix-predicate-wrong-pack-hard-negative",
             "string-affix-predicate-wrong-producer-hard-negative",
             "string-affix-predicate-unsupported-arity-hard-negative",
@@ -252,8 +256,6 @@ fn assert_go_namespace_pack(packs: &[serde_json::Value]) {
         json_array_strings(&go_namespace["conformance"], "positive_refs"),
         vec![
             "go-stdlib-namespace-call-fmt-print-positive",
-            "go-stdlib-namespace-call-strings-has-prefix-positive",
-            "go-stdlib-namespace-call-strings-has-suffix-positive",
             "go-stdlib-namespace-call-slices-contains-positive",
             "go-stdlib-namespace-call-strings-contains-positive"
         ]

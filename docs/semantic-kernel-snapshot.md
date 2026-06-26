@@ -206,10 +206,12 @@ still being migrated toward it.
   protocol or stdlib pack, while receiver/symbol/import proof and unsupported
   arities remain hard negatives. The
   `nose.protocols.string_affix_predicates` descriptor owns case-sensitive
-  receiver-method prefix/suffix predicate contracts under exact string receiver
-  proof, while direction mismatches, missing or non-string receiver proof,
-  wrong-pack or wrong-producer evidence, unsupported arities, and offset forms
-  remain hard negatives. The
+  prefix/suffix predicate contracts under exact string receiver proof for
+  receiver methods and imported `strings` namespace proof for Go
+  `strings.HasPrefix`/`HasSuffix`, while direction mismatches, missing or
+  non-string receiver proof, missing or wrong Go namespace proof, wrong-pack or
+  wrong-producer evidence, unsupported arities, and offset forms remain hard
+  negatives. The
   `nose.protocols.sequence_hof_adapters` descriptor owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
   `any`/`all`/`count` terminal proof on explicit protocol receivers. It also
@@ -227,8 +229,7 @@ still being migrated toward it.
   Rust custom methods, missing receiver proof, eager callback assumptions,
   missing terminal proof, one-shot iterator reuse, `collect_vec`, and `find`
   remain hard negatives or unsupported boundaries. The
-  `nose.go.stdlib.namespace_calls`
-  descriptor owns Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
+  `nose.go.stdlib.namespace_calls` descriptor owns Go `fmt.Print*`,
   `strings.Contains`, and `slices.Contains` namespace-call API occurrence
   provenance under imported namespace proof. `strings.Contains` lowers to the
   separate `StringContains` semantic so substring membership does not reuse
@@ -322,8 +323,8 @@ still being migrated toward it.
   generic method-call and namespace-call builtin semantics that have not moved
   to a narrower protocol or stdlib pack, and
   `nose.go.stdlib.namespace_calls`, a default builtin stdlib pack for Go
-  `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and
-  `slices.Contains` namespace-call API provenance, and
+  `fmt.Print*`, `strings.Contains`, and `slices.Contains` namespace-call API
+  provenance, and
   `nose.protocols.iterator_identity_adapters`, a default builtin protocol pack
   for Rust iterator identity adapters and Java `.stream()` API provenance, and
   `nose.python.stdlib.type_domain`, a default builtin stdlib pack-shaped surface

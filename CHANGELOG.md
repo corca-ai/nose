@@ -15,6 +15,9 @@ break.
   Python, Java, Rust, Swift, JavaScript, and TypeScript receiver-method positives,
   with hard negatives for non-string receivers, wrong producer provenance, and
   unsupported offset forms.
+- Moved Go `strings.HasPrefix` and `strings.HasSuffix` into the string-affix
+  protocol pack while preserving imported `strings` namespace proof and keeping
+  `strings.Contains` in the Go namespace-call pack as substring containment.
 
 ## [0.16.0] - 2026-06-26
 

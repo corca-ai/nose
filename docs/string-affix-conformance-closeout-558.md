@@ -13,8 +13,8 @@ prefix/suffix predicates:
   suffix methods already routed through the string-affix protocol pack;
 - hard negatives for non-string receiver proof, wrong producer provenance, and
   unsupported JavaScript offset argument forms;
-- no movement for Go `strings.HasPrefix`/`strings.HasSuffix`, which stays in
-  `nose.go.stdlib.namespace_calls` for #549.
+- no movement for Go `strings.HasPrefix`/`HasSuffix` in #558. That slice moved
+  later in #549.
 
 ## Product Comparison
 

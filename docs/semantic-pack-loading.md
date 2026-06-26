@@ -155,17 +155,18 @@ Trust is separate from channel eligibility.
   `nose.protocols.builtin_method_calls` owns generic method-call and
   namespace-call builtin semantics that have not moved to a narrower protocol
   pack;
-  `nose.protocols.string_affix_predicates` owns case-sensitive receiver-method
-  prefix/suffix API occurrence provenance under exact string receiver proof;
+  `nose.protocols.string_affix_predicates` owns case-sensitive prefix/suffix API
+  occurrence provenance under exact string receiver proof for receiver methods
+  and imported `strings` namespace proof for Go `strings.HasPrefix`/`HasSuffix`;
   `nose.protocols.sequence_hof_adapters` owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance plus
   `any`/`all`/`count` terminal proof, Swift Array/Collection
   `map`/`filter`/`flatMap` HOF occurrence provenance, and Ruby Enumerable
   `map`/`collect`/`select`/`filter`/`reject` HOF occurrence provenance under
   receiver and callback/block proof;
-  `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`,
-  `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains`
-  API occurrence provenance under imported-namespace proof;
+  `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`, `strings.Contains`,
+  and `slices.Contains` API occurrence provenance under imported-namespace
+  proof;
   `nose.protocols.iterator_identity_adapters` owns Rust
   `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
   `.stream()` iterator identity adapter API occurrence provenance;

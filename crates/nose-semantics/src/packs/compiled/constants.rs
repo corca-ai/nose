@@ -149,6 +149,7 @@ pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_LANGUAGES: &[&str] = &[
     "vue",
     "svelte",
     "html",
+    "go",
     "rust",
     "java",
     "ruby",
@@ -200,7 +201,7 @@ pub(super) const PROPERTY_BUILTIN_PROTOCOL_PACKAGES: &[&str] =
 pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_PACKAGES: &[&str] =
     &["Collection", "Option", "String", "console", "functools"];
 pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_PACKAGES: &[&str] =
-    &["String", "str", "Swift.String", "java.lang"];
+    &["String", "str", "Swift.String", "java.lang", "strings"];
 pub(super) const GO_STDLIB_NAMESPACE_CALL_PACKAGES: &[&str] = &["fmt", "slices", "strings"];
 pub(super) const JS_LIKE_BUILTIN_ARRAY_PACKAGES: &[&str] = &["Array"];
 pub(super) const JS_LIKE_BUILTIN_BOOLEAN_PACKAGES: &[&str] = &["Boolean"];
@@ -482,8 +483,6 @@ pub(super) const GO_STDLIB_NAMESPACE_CALL_CONTRACT_IDS: &[&str] =
     &[GO_STDLIB_NAMESPACE_CALL_CONTRACT_ID];
 pub(super) const GO_STDLIB_NAMESPACE_CALL_CONFORMANCE_REFS: &[&str] = &[
     "go-stdlib-namespace-call-fmt-print-positive",
-    "go-stdlib-namespace-call-strings-has-prefix-positive",
-    "go-stdlib-namespace-call-strings-has-suffix-positive",
     "go-stdlib-namespace-call-slices-contains-positive",
     "go-stdlib-namespace-call-strings-contains-positive",
     "go-stdlib-namespace-call-missing-import-hard-negative",

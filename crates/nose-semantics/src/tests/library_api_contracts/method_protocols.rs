@@ -1,6 +1,7 @@
 use super::*;
 
 mod sequence_hof_rows;
+mod string_affix_rows;
 
 #[test]
 fn method_protocol_contracts_are_language_constrained() {
@@ -95,54 +96,6 @@ fn object_keys_is_map_key_view_protocol_static_global_path() {
     assert!(library_object_key_view_contract(Lang::JavaScript, "Object", "values", 1).is_none());
     assert!(library_object_key_view_contract(Lang::JavaScript, "Object", "keys", 2).is_none());
     assert!(library_object_key_view_contract(Lang::Python, "Object", "keys", 1).is_none());
-}
-
-#[test]
-fn receiver_method_string_affix_rows_use_string_affix_protocol_pack() {
-    for (lang, method, semantic) in [
-        (Lang::Python, "startswith", Builtin::StartsWith),
-        (Lang::Python, "endswith", Builtin::EndsWith),
-        (Lang::Java, "startsWith", Builtin::StartsWith),
-        (Lang::Java, "endsWith", Builtin::EndsWith),
-        (Lang::Rust, "starts_with", Builtin::StartsWith),
-        (Lang::Rust, "ends_with", Builtin::EndsWith),
-        (Lang::Swift, "hasPrefix", Builtin::StartsWith),
-        (Lang::Swift, "hasSuffix", Builtin::EndsWith),
-        (Lang::JavaScript, "startsWith", Builtin::StartsWith),
-        (Lang::JavaScript, "endsWith", Builtin::EndsWith),
-        (Lang::TypeScript, "startsWith", Builtin::StartsWith),
-        (Lang::TypeScript, "endsWith", Builtin::EndsWith),
-    ] {
-        let contract =
-            library_method_call_contract(lang, method, 1).expect("string affix method contract");
-        assert_eq!(contract.pack_id, STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID);
-        assert_eq!(
-            contract.producer_id,
-            STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID
-        );
-        assert_eq!(
-            contract.id,
-            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(semantic))
-        );
-        assert_eq!(
-            contract.callee,
-            LibraryApiCalleeContract::Method {
-                method,
-                receiver: MethodReceiverContract::ExactString,
-            }
-        );
-        assert_eq!(
-            contract.result.receiver,
-            MethodReceiverContract::ExactString
-        );
-        assert_eq!(contract.result.args, MethodBuiltinArgs::ReceiverAndFirst);
-    }
-
-    let go_prefix = library_method_call_contract(Lang::Go, "HasPrefix", 2)
-        .expect("Go strings.HasPrefix contract remains namespace-owned");
-    assert_eq!(go_prefix.pack_id, GO_STDLIB_NAMESPACE_CALL_PACK_ID);
-    assert_eq!(go_prefix.producer_id, GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID);
-    assert!(library_method_call_contract(Lang::Python, "startswith", 2).is_none());
 }
 
 #[test]

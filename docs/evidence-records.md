@@ -600,10 +600,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   HOFs with the same provenance when Array/Collection receiver proof and inline
   effect-closed block proof are present, generic method-call and namespace-call builtin semantics with
   `nose.protocols.builtin_method_calls` provenance when no narrower pack owns
-  the row, Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
-  `strings.Contains`, and `slices.Contains` namespace calls with
-  `nose.go.stdlib.namespace_calls` provenance when imported-namespace proof is
-  present, and selected
+  the row, Go `strings.HasPrefix`/`HasSuffix` namespace calls with
+  `nose.protocols.string_affix_predicates` provenance when imported `strings`
+  namespace proof is present, Go `fmt.Print*`, `strings.Contains`, and
+  `slices.Contains` namespace calls with `nose.go.stdlib.namespace_calls`
+  provenance when imported-namespace proof is present, and selected
   `std::collections::{HashSet,BTreeSet,VecDeque}::from(...)` factory paths with
   `nose.rust.stdlib.collection_factories` provenance when their root-shadow
   policy is proven, and selected

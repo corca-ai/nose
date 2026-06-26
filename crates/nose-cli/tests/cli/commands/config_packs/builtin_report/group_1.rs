@@ -318,6 +318,7 @@ pub(super) fn assert_group(json: &serde_json::Value) {
             "vue",
             "svelte",
             "html",
+            "go",
             "rust",
             "java",
             "ruby",
@@ -327,8 +328,8 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(string_affix["counts"]["evidence_producers"], 1);
     assert_eq!(string_affix["counts"]["contracts"], 1);
     assert_eq!(string_affix["counts"]["value_laws"], 0);
-    assert_eq!(string_affix["counts"]["positive_fixtures"], 12);
-    assert_eq!(string_affix["counts"]["hard_negatives"], 7);
+    assert_eq!(string_affix["counts"]["positive_fixtures"], 14);
+    assert_eq!(string_affix["counts"]["hard_negatives"], 9);
 
     let sequence_hof_adapter = semantic_pack_by_id(&json, "nose.protocols.sequence_hof_adapters");
     assert_eq!(sequence_hof_adapter["hash"], "2c6344624cc74477");
@@ -383,6 +384,6 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(go_namespace_call["counts"]["evidence_producers"], 1);
     assert_eq!(go_namespace_call["counts"]["contracts"], 1);
     assert_eq!(go_namespace_call["counts"]["value_laws"], 0);
-    assert_eq!(go_namespace_call["counts"]["positive_fixtures"], 5);
+    assert_eq!(go_namespace_call["counts"]["positive_fixtures"], 3);
     assert_eq!(go_namespace_call["counts"]["hard_negatives"], 2);
 }

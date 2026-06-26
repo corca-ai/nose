@@ -115,16 +115,19 @@ The inventory also records that product-output and performance evidence are
 behavior or pack ownership, not in a static descriptor table.
 
 The builtin `nose.protocols.string_affix_predicates` pack records
-case-sensitive receiver-method prefix/suffix positives across Python, Java,
-Rust, Swift, JavaScript, and TypeScript. Its hard negatives keep direction
-mismatches, missing or non-string receiver proof, wrong pack or producer
-provenance, unsupported arity, and unsupported offset argument forms closed.
-Go `strings.HasPrefix` and `strings.HasSuffix` stay under
-`nose.go.stdlib.namespace_calls` until the namespace-proof slice moves.
+case-sensitive prefix/suffix positives across Python, Java, Rust, Swift,
+JavaScript, TypeScript, and Go. Receiver-method rows require exact string
+receiver proof. Go `strings.HasPrefix` and `strings.HasSuffix` require imported
+`strings` namespace proof under the same protocol provenance. Its hard negatives
+keep direction mismatches, missing or non-string receiver proof, missing or
+wrong Go namespace proof, wrong pack or producer provenance, unsupported arity,
+and unsupported offset argument forms closed.
 The focused #558 product comparison is recorded in
 [string-affix-conformance-closeout-558](string-affix-conformance-closeout-558.md).
 The aggregate #548 protocol extraction closeout is recorded in
 [string-affix-protocol-closeout-548](string-affix-protocol-closeout-548.md).
+The focused #549 Go namespace-proof migration is recorded in
+[go-string-affix-closeout-549](go-string-affix-closeout-549.md).
 
 ## Builtin Inventory JSON
 
@@ -140,8 +143,8 @@ The aggregate #548 protocol extraction closeout is recorded in
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
     "positive_fixtures": 188,
-    "hard_negatives": 146,
-    "conformance_refs": 334,
+    "hard_negatives": 148,
+    "conformance_refs": 336,
     "unsupported_refs": 20
   },
   "evidence_policy": {
@@ -157,15 +160,13 @@ The aggregate #548 protocol extraction closeout is recorded in
         "type_domain_aliases": [],
         "counts": {
           "contracts": 1,
-          "positive_fixtures": 5,
+          "positive_fixtures": 3,
           "hard_negatives": 2
         }
       },
       "conformance": {
         "positive_refs": [
           "go-stdlib-namespace-call-fmt-print-positive",
-          "go-stdlib-namespace-call-strings-has-prefix-positive",
-          "go-stdlib-namespace-call-strings-has-suffix-positive",
           "go-stdlib-namespace-call-slices-contains-positive",
           "go-stdlib-namespace-call-strings-contains-positive"
         ],

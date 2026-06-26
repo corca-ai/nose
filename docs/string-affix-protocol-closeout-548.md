@@ -19,8 +19,9 @@ receiver proof.
 
 #559 tracks this aggregate closeout artifact and the final #548 closure.
 
-Go `strings.HasPrefix` and `strings.HasSuffix` intentionally remain in
-`nose.go.stdlib.namespace_calls` until the namespace-proof slice moves in #549.
+Post-#548 note: #549 moves Go `strings.HasPrefix` and `strings.HasSuffix` into
+the same string-affix protocol while preserving imported `strings` namespace
+proof.
 Case-insensitive, locale-sensitive, regex/glob/path, multi-affix, and offset
 forms remain outside this tranche unless their proof obligations become explicit
 capabilities.

@@ -361,6 +361,7 @@ pub(super) fn assert_group() {
             "vue",
             "svelte",
             "html",
+            "go",
             "rust",
             "java",
             "ruby",
@@ -369,7 +370,7 @@ pub(super) fn assert_group() {
     );
     assert_eq!(
         string_affix.supported_packages,
-        &["String", "str", "Swift.String", "java.lang"]
+        &["String", "str", "Swift.String", "java.lang", "strings"]
     );
     assert_eq!(
         string_affix.evidence_producer_ids,
@@ -382,8 +383,8 @@ pub(super) fn assert_group() {
     );
     assert_eq!(string_affix.counts().evidence_producers, 1);
     assert_eq!(string_affix.counts().contracts, 1);
-    assert_eq!(string_affix.counts().positive_fixtures, 12);
-    assert_eq!(string_affix.counts().hard_negatives, 7);
+    assert_eq!(string_affix.counts().positive_fixtures, 14);
+    assert_eq!(string_affix.counts().hard_negatives, 9);
     assert!(string_affix
         .conformance_refs()
         .contains(&"string-affix-predicate-python-startswith-positive"));
@@ -407,10 +408,22 @@ pub(super) fn assert_group() {
         .contains(&"string-affix-predicate-javascript-endswith-positive"));
     assert!(string_affix
         .conformance_refs()
+        .contains(&"string-affix-predicate-go-has-prefix-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-go-has-suffix-positive"));
+    assert!(string_affix
+        .conformance_refs()
         .contains(&"string-affix-predicate-direction-mismatch-hard-negative"));
     assert!(string_affix
         .conformance_refs()
         .contains(&"string-affix-predicate-non-string-receiver-hard-negative"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-go-missing-import-hard-negative"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-go-wrong-namespace-hard-negative"));
     assert!(string_affix
         .conformance_refs()
         .contains(&"string-affix-predicate-wrong-producer-hard-negative"));
@@ -480,7 +493,7 @@ pub(super) fn assert_group() {
     );
     assert_eq!(go_namespace_call.counts().evidence_producers, 1);
     assert_eq!(go_namespace_call.counts().contracts, 1);
-    assert_eq!(go_namespace_call.counts().positive_fixtures, 5);
+    assert_eq!(go_namespace_call.counts().positive_fixtures, 3);
     assert_eq!(go_namespace_call.counts().hard_negatives, 2);
     assert!(go_namespace_call
         .conformance_refs()

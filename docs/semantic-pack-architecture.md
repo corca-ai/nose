@@ -90,11 +90,12 @@ Current intentional compatibility uses are:
 Active official semantics should instead use narrow builtin packs. The current
 remaining broad slice is the generic `nose.protocols.builtin_method_calls` pack
 for method-call rows that have not yet earned a clearer stdlib/protocol
-boundary. Receiver-method string prefix/suffix predicates are now owned by
-`nose.protocols.string_affix_predicates`. Go namespace calls are no longer part
-of that catch-all: `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
-`strings.Contains`, and `slices.Contains` are owned by
-`nose.go.stdlib.namespace_calls`.
+boundary. String prefix/suffix predicates are now owned by
+`nose.protocols.string_affix_predicates`: receiver-method rows require exact
+string receiver proof, while Go `strings.HasPrefix`/`HasSuffix` require imported
+`strings` namespace proof. Go namespace calls are no longer part of that
+catch-all either: `fmt.Print*`, `strings.Contains`, and `slices.Contains` remain
+owned by `nose.go.stdlib.namespace_calls`.
 
 Removal condition: delete the compatibility descriptor and legacy helper aliases
 only in a schema/capabilities migration that drops v0 first-party spellings and
@@ -374,16 +375,16 @@ previous semantic-kernel tranches.
    pack, such as append, cardinality, option-default, reduction, and HOF-style
    receiver method rows. The current string affix predicate protocol slice is
    `nose.protocols.string_affix_predicates`, which owns case-sensitive
-   receiver-method prefix/suffix API occurrence provenance under exact string
-   receiver proof while preserving prefix/suffix direction and
+   prefix/suffix API occurrence provenance under exact string receiver proof for
+   receiver methods and imported `strings` namespace proof for Go
+   `strings.HasPrefix`/`HasSuffix`, while preserving prefix/suffix direction and
    receiver-vs-affix argument coordinates; conformance hard negatives keep
-   non-string receivers, wrong producer provenance, unsupported arities, and
-   offset argument forms closed. The current Go stdlib namespace-call
-   slice is `nose.go.stdlib.namespace_calls`, which owns `fmt.Print*`,
-   `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains`
-   API occurrence provenance under imported-namespace proof. `strings.Contains`
-   uses the separate `StringContains` semantic rather than collection
-   membership.
+   non-string receivers, missing or wrong Go namespace proof, wrong producer
+   provenance, unsupported arities, and offset argument forms closed. The
+   current Go stdlib namespace-call slice is `nose.go.stdlib.namespace_calls`,
+   which owns `fmt.Print*`, `strings.Contains`, and `slices.Contains` API
+   occurrence provenance under imported-namespace proof. `strings.Contains` uses
+   the separate `StringContains` semantic rather than collection membership.
    The current iterator identity adapter protocol slice is
    `nose.protocols.iterator_identity_adapters`, which owns Rust
    `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java

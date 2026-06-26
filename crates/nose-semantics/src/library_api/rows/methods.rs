@@ -450,7 +450,7 @@ fn method_call_contract_provenance(
             JS_LIKE_BUILTIN_ARRAY_PACK_ID,
             JS_LIKE_BUILTIN_ARRAY_PRODUCER_ID,
         )
-    } else if receiver_method_string_affix_predicate(contract) {
+    } else if string_affix_predicate_contract(contract) {
         (
             STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID,
             STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID,
@@ -461,10 +461,6 @@ fn method_call_contract_provenance(
             (
                 MethodSemanticContract::Builtin(Builtin::Print),
                 MethodReceiverContract::ImportedNamespace("fmt"),
-                MethodBuiltinArgs::All,
-            ) | (
-                MethodSemanticContract::Builtin(Builtin::StartsWith | Builtin::EndsWith),
-                MethodReceiverContract::ImportedNamespace("strings"),
                 MethodBuiltinArgs::All,
             ) | (
                 MethodSemanticContract::Builtin(Builtin::StringContains),
@@ -516,13 +512,17 @@ fn method_call_contract_provenance(
     }
 }
 
-fn receiver_method_string_affix_predicate(contract: MethodCallContract) -> bool {
+fn string_affix_predicate_contract(contract: MethodCallContract) -> bool {
     matches!(
         (contract.semantic, contract.receiver, contract.args),
         (
             MethodSemanticContract::Builtin(Builtin::StartsWith | Builtin::EndsWith),
             MethodReceiverContract::ExactString,
             MethodBuiltinArgs::ReceiverAndFirst,
+        ) | (
+            MethodSemanticContract::Builtin(Builtin::StartsWith | Builtin::EndsWith),
+            MethodReceiverContract::ImportedNamespace("strings"),
+            MethodBuiltinArgs::All,
         )
     )
 }
