@@ -121,6 +121,8 @@ mismatches, missing or non-string receiver proof, wrong pack or producer
 provenance, unsupported arity, and unsupported offset argument forms closed.
 Go `strings.HasPrefix` and `strings.HasSuffix` stay under
 `nose.go.stdlib.namespace_calls` until the namespace-proof slice moves.
+The focused #558 product comparison is recorded in
+[string-affix-conformance-closeout-558](string-affix-conformance-closeout-558.md).
 
 ## Builtin Inventory JSON
 
