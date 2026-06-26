@@ -18,7 +18,9 @@
 //! proof-obligation: normalize.value_graph.field_writes
 //! proof-obligation: normalize.value_graph.free_monoid
 
-use nose_il::{stable_symbol_hash, Builtin, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
+use nose_il::{
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload,
+};
 use nose_semantics::{
     admitted_builtin_semantics_at_call_with_interner, builtin_demand_profile,
     direct_function_call_target_at_call, exact_java_this_field, exact_java_this_var,

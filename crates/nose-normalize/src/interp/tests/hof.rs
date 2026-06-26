@@ -204,6 +204,10 @@ fn hof_empty_collections_skip_lambda_errors() {
         empty
     );
     assert_eq!(
+        hof_with_empty_collection_and_error_lambda(HoFKind::Reject),
+        empty
+    );
+    assert_eq!(
         hof_with_empty_collection_and_error_lambda(HoFKind::FlatMap),
         empty
     );

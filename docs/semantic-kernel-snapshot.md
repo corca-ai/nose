@@ -212,6 +212,13 @@ still being migrated toward it.
   Array/Collection receivers with inline effect-closed callbacks, while Swift
   `Set`, `Dictionary`, `Sequence`/`AnySequence`, `.lazy`, throwing or mutating
   callbacks, and `compactMap` remain hard negatives or unsupported boundaries.
+  It also owns Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject` HOF
+  occurrence provenance on proven Array/Collection receivers with inline
+  effect-closed blocks. Ruby calls without blocks, `Enumerator::Lazy`,
+  framework relation receivers, custom same-name methods, Hash key/value
+  iteration, Set ordering, mutating or raising blocks, and `flat_map` remain
+  hard negatives or unsupported boundaries; `reject` carries a negated predicate
+  instead of reusing the positive filter predicate.
   Rust custom methods, missing receiver proof, eager callback assumptions,
   missing terminal proof, one-shot iterator reuse, `collect_vec`, and `find`
   remain hard negatives or unsupported boundaries. The
@@ -722,7 +729,12 @@ migrated.
   `map`/`filter`/`flatMap` same-span occurrences use the same pack only when
   their receiver proof is Array/Collection rather than arbitrary `Sequence`,
   `Set`, or `Dictionary`, so chained Swift HOFs can reuse pack-backed receiver
-  proof without opening one-shot or ordering assumptions. Value-graph filter
+  proof without opening one-shot or ordering assumptions. Ruby
+  `map`/`collect`/`select`/`filter`/`reject` same-span occurrences use the same
+  pack only when their receiver proof is Array/Collection rather than Hash,
+  Set, lazy Enumerator, or framework relation; chained Ruby HOFs can reuse
+  pack-backed receiver proof, and `reject` carries `Not(predicate)` in the value
+  graph. Value-graph filter
   consumers such as `len(filter(...))`, explicit reductions over a filter, and
   static literal membership shortcuts reuse HOF admission as well, so raw
   `HoF(Filter)` cannot bypass the source/API HOF gate by appearing under another

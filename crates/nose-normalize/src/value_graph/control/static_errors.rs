@@ -89,7 +89,7 @@ impl<'a> Builder<'a> {
         if self.il.kind(expr) == NodeKind::HoF
             && matches!(
                 self.il.node(expr).payload,
-                Payload::HoF(HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter)
+                Payload::HoF(HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter | HoFKind::Reject,)
                     | Payload::HoF(HoFKind::FilterMap)
             )
         {

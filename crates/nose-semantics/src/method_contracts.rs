@@ -213,19 +213,27 @@ pub(super) fn method_call_contract_shapes(
             receiver: Receiver::ExactArray,
             args: Args::Hof,
         }];
-    } else if lang == Lang::Swift
-        && matches!(
-            method_hof_contract(lang, name),
+    } else if matches!(
+        (lang, method_hof_contract(lang, name)),
+        (
+            Lang::Swift,
             Some(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+        ) | (
+            Lang::Ruby,
+            Some(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
         )
-        && arg_count == 1
+    ) && arg_count == 1
     {
         return vec![MethodCallContract {
             semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
             receiver: Receiver::ExactArrayOrCollection,
             args: Args::Hof,
         }];
-    } else if !js_like_lang(lang) && method_hof_contract(lang, name).is_some() && arg_count > 0 {
+    } else if !js_like_lang(lang)
+        && !matches!(lang, Lang::Swift | Lang::Ruby)
+        && method_hof_contract(lang, name).is_some()
+        && arg_count > 0
+    {
         return vec![MethodCallContract {
             semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
             receiver: Receiver::ExactProtocol,

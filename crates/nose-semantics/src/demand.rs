@@ -396,7 +396,7 @@ pub fn hof_contract(kind: HoFKind) -> HofContract {
         HoFKind::FilterMap => HofDemandProfile::FilterMap {
             callback: CallbackDemandProfile::unary_element(CallbackResultDemand::OptionalValue),
         },
-        HoFKind::Filter => HofDemandProfile::Filter {
+        HoFKind::Filter | HoFKind::Reject => HofDemandProfile::Filter {
             callback: CallbackDemandProfile::unary_element(CallbackResultDemand::Predicate),
         },
         HoFKind::Reduce => HofDemandProfile::Reduce {
@@ -421,7 +421,7 @@ pub fn library_hof_demand_timing(lang: Lang, kind: HoFKind) -> Option<HofDemandT
             Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
             HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter,
         )
-        | (Lang::Ruby, HoFKind::Map | HoFKind::Filter)
+        | (Lang::Ruby, HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
         | (Lang::Swift, HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter) => {
             HofDemandTiming::EagerPerElement
         }

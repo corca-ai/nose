@@ -1,5 +1,6 @@
 use super::*;
 
+mod ruby;
 mod swift;
 
 fn sequence_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId, NodeId) {
@@ -62,6 +63,126 @@ fn sequence_hof_record(
         SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
         SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
     )
+}
+
+struct OrderedHofPackRequirementMessages {
+    raw_shape: &'static str,
+    missing_dependency: &'static str,
+    wrong_pack: &'static str,
+    wrong_producer: &'static str,
+    admitted: &'static str,
+}
+
+fn assert_sequence_hof_requires_pack_and_ordered_receiver(
+    lang: Lang,
+    method: &'static str,
+    expected: MethodSemanticContract,
+    make_call: impl Fn() -> (Il, Interner, NodeId, NodeId),
+    rejected_domains: &[(DomainEvidence, &'static str)],
+    messages: OrderedHofPackRequirementMessages,
+) {
+    let (mut raw_shape, interner, call, receiver) = make_call();
+    push_receiver_domain_dependency(&mut raw_shape, 0, receiver, DomainEvidence::Collection);
+    assert!(
+        admitted_library_method_call_at_call(&raw_shape, &interner, call).is_none(),
+        "{}",
+        messages.raw_shape
+    );
+
+    let contract = library_method_call_contract(lang, method, 1).expect("sequence HOF row");
+    assert_eq!(
+        contract.callee,
+        LibraryApiCalleeContract::Method {
+            method,
+            receiver: MethodReceiverContract::ExactArrayOrCollection,
+        }
+    );
+
+    let (mut missing_dependency, interner, call, _receiver) = make_call();
+    missing_dependency.evidence.push(sequence_hof_record(
+        1,
+        &missing_dependency,
+        call,
+        contract,
+        1,
+        &[],
+    ));
+    assert!(
+        admitted_library_method_call_at_call(&missing_dependency, &interner, call).is_none(),
+        "{}",
+        messages.missing_dependency
+    );
+
+    let (mut wrong_pack, interner, call, receiver) = make_call();
+    push_receiver_domain_dependency(&mut wrong_pack, 0, receiver, DomainEvidence::Collection);
+    wrong_pack
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            1,
+            wrong_pack.node(call).span,
+            contract.id,
+            contract.callee,
+            1,
+            EvidenceStatus::Asserted,
+            &[0],
+            BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
+            BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&wrong_pack, &interner, call).is_none(),
+        "{}",
+        messages.wrong_pack
+    );
+
+    let (mut wrong_producer, interner, call, receiver) = make_call();
+    push_receiver_domain_dependency(&mut wrong_producer, 0, receiver, DomainEvidence::Collection);
+    wrong_producer
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            1,
+            wrong_producer.node(call).span,
+            contract.id,
+            contract.callee,
+            1,
+            EvidenceStatus::Asserted,
+            &[0],
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+            "wrong.protocols.sequence-hof-adapter-api",
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
+        "{}",
+        messages.wrong_producer
+    );
+
+    for &(domain, message) in rejected_domains {
+        let (mut il, interner, call, receiver) = make_call();
+        push_receiver_domain_dependency(&mut il, 0, receiver, domain);
+        il.evidence
+            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+        assert!(
+            admitted_library_method_call_at_call(&il, &interner, call).is_none(),
+            "{message}"
+        );
+    }
+
+    let (mut admitted, interner, call, receiver) = make_call();
+    push_receiver_domain_dependency(&mut admitted, 0, receiver, DomainEvidence::Collection);
+    admitted
+        .evidence
+        .push(sequence_hof_record(1, &admitted, call, contract, 1, &[0]));
+    let occurrence =
+        admitted_library_method_call_at_call(&admitted, &interner, call).expect(messages.admitted);
+    assert_eq!(
+        occurrence.contract.id,
+        LibraryApiContractId::MethodCall(expected)
+    );
+    assert_eq!(
+        occurrence.contract.pack_id,
+        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID
+    );
+    assert_eq!(occurrence.receiver, Some(receiver));
+    assert_eq!(occurrence.arg_count, 1);
 }
 
 #[test]

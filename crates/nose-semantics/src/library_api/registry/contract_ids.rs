@@ -142,6 +142,7 @@ fn push_method_call_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>
             MethodSemanticContract::HoF(HoFKind::Filter),
             MethodSemanticContract::HoF(HoFKind::FlatMap),
             MethodSemanticContract::HoF(HoFKind::FilterMap),
+            MethodSemanticContract::HoF(HoFKind::Reject),
         ]
         .into_iter()
         .map(LibraryApiContractId::MethodCall),

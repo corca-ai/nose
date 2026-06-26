@@ -1,9 +1,9 @@
 use super::*;
 
 pub(in crate::packs::compiled) const SEQUENCE_HOF_ADAPTER_PROTOCOL_LANGUAGES: &[&str] =
-    &["rust", "swift"];
+    &["rust", "swift", "ruby"];
 pub(in crate::packs::compiled) const SEQUENCE_HOF_ADAPTER_PROTOCOL_PACKAGES: &[&str] =
-    &["core::iter", "Swift.Collection"];
+    &["core::iter", "Swift.Collection", "Enumerable"];
 pub(in crate::packs::compiled) const SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_IDS: &[&str] =
     &[SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID];
 pub(in crate::packs::compiled) const SEQUENCE_HOF_ADAPTER_PROTOCOL_CONTRACT_IDS: &[&str] =
@@ -33,4 +33,17 @@ pub(in crate::packs::compiled) const SEQUENCE_HOF_ADAPTER_PROTOCOL_CONFORMANCE_R
     "swift-sequence-hof-mutating-closure-hard-negative",
     "swift-sequence-hof-any-sequence-reuse-hard-negative",
     "swift-sequence-hof-compact-map-unsupported-hard-negative",
+    "ruby-enumerable-hof-map-positive",
+    "ruby-enumerable-hof-collect-positive",
+    "ruby-enumerable-hof-select-positive",
+    "ruby-enumerable-hof-filter-positive",
+    "ruby-enumerable-hof-reject-positive",
+    "ruby-enumerable-hof-no-block-hard-negative",
+    "ruby-enumerable-hof-lazy-enumerator-hard-negative",
+    "ruby-enumerable-hof-framework-relation-hard-negative",
+    "ruby-enumerable-hof-custom-method-hard-negative",
+    "ruby-enumerable-hof-hash-order-hard-negative",
+    "ruby-enumerable-hof-set-order-hard-negative",
+    "ruby-enumerable-hof-mutating-block-hard-negative",
+    "ruby-enumerable-hof-flat-map-unsupported-hard-negative",
 ];

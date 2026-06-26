@@ -108,7 +108,13 @@ fn strict_exact_hof_internal_safe(
 ) -> bool {
     matches!(
         il.node(node).payload,
-        Payload::HoF(HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter | HoFKind::FilterMap)
+        Payload::HoF(
+            HoFKind::Map
+                | HoFKind::FlatMap
+                | HoFKind::Filter
+                | HoFKind::FilterMap
+                | HoFKind::Reject,
+        )
     ) && strict_exact_hof_children_safe(il, interner, facts, node)
 }
 

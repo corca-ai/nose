@@ -153,7 +153,8 @@ The next code slices are intentionally incremental:
    `nose.protocols.sequence_hof_adapters` for Rust iterator
    `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance plus
    `any`/`all`/`count` terminal proof and Swift Array/Collection
-   `map`/`filter`/`flatMap` HOF occurrence provenance,
+   `map`/`filter`/`flatMap` HOF occurrence provenance plus Ruby Enumerable
+   `map`/`collect`/`select`/`filter`/`reject` HOF occurrence provenance,
    then
    `nose.protocols.iterator_identity_adapters` for Rust
    `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
@@ -1546,6 +1547,33 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   budget on the final compare rerun (`features` 9.94 ms, semantic query
   7.81 ms; deep chain 592 tokens / 152 value-fingerprint nodes, wide chain 1455
   / 324).
+- The Ruby Enumerable HOF slice moved safe Ruby `map`/`collect` and
+  `select`/`filter`/`reject` rows from the broad non-JS method-HOF path into
+  `nose.protocols.sequence_hof_adapters` for proven Array/Collection receivers.
+  Admission now requires sequence-HOF pack provenance, exact ordered collection
+  receiver proof, and an inline effect-closed block before Ruby HOF callback
+  demand, result-domain reuse, or follow-on HOF receiver proof can open. Ruby
+  `reject` is represented as a distinct HOF kind whose value-graph predicate is
+  `Not(predicate)`, so `reject { p }` does not collapse into `select { p }`.
+  Calls without blocks, `Enumerator::Lazy`, framework-style relation receivers,
+  custom same-name methods, Hash key/value iteration, Set ordering, mutating or
+  raising blocks, and `flat_map` remain hard negatives or unsupported
+  boundaries. Inventory before/after against `main@0a42dc57`: builtin packs
+  48 -> 48, exact-capable packs 38 -> 38, positive fixtures 172 -> 177, hard
+  negatives 131 -> 139, conformance refs 303 -> 316. The sequence-HOF pack
+  metadata changed from Rust+Swift to Rust+Swift+Ruby, positives 10 -> 15, and
+  hard negatives 14 -> 22. Focused Ruby HOF admission coverage moved from 0/5
+  sequence-HOF rows to 5/5, while adjacent false merges from no-block Enumerator
+  returns, lazy enumerators, framework relations, custom methods, Hash/Set
+  receivers, and effectful blocks remain 0. 2026-06-26 product
+  query-regression compared clean `origin/main@0a42dc57` with the
+  `issue-538-ruby-enumerable-hof` working-tree binary on the standard Ruby
+  `liquid` representative, repeats=5: 1 repo compared, 0 investigation
+  triggers, result JSON bytes 28431 -> 28438, distinct location sets 4 -> 4,
+  median wall time 50.27 ms -> 49.61 ms, and `normalize+extract` median 16.5
+  ms -> 16.1 ms. The corpus-free HoF budget smoke stayed under budget
+  (`features` 9.83 ms, semantic query 9.65 ms; deep chain 592 tokens / 152
+  value-fingerprint nodes, wide chain 1455 / 324).
 - The static API occurrence slice moved Java empty collection constructors and
   JS-like static `indexOf`/`findIndex` membership behind the same
   dependency-backed occurrence boundary. `new ArrayList<>()`/

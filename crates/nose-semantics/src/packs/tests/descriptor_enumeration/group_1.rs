@@ -349,10 +349,13 @@ pub(super) fn assert_group() {
     let sequence_hof_adapter = builtin_pack_descriptor(SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID)
         .expect("sequence HOF adapter protocol descriptor");
     assert_eq!(sequence_hof_adapter.kind, SemanticPackKind::ProtocolPack);
-    assert_eq!(sequence_hof_adapter.supported_languages, &["rust", "swift"]);
+    assert_eq!(
+        sequence_hof_adapter.supported_languages,
+        &["rust", "swift", "ruby"]
+    );
     assert_eq!(
         sequence_hof_adapter.supported_packages,
-        &["core::iter", "Swift.Collection"]
+        &["core::iter", "Swift.Collection", "Enumerable"]
     );
     assert_eq!(
         sequence_hof_adapter.evidence_producer_ids,
@@ -365,8 +368,8 @@ pub(super) fn assert_group() {
     );
     assert_eq!(sequence_hof_adapter.counts().evidence_producers, 1);
     assert_eq!(sequence_hof_adapter.counts().contracts, 1);
-    assert_eq!(sequence_hof_adapter.counts().positive_fixtures, 10);
-    assert_eq!(sequence_hof_adapter.counts().hard_negatives, 14);
+    assert_eq!(sequence_hof_adapter.counts().positive_fixtures, 15);
+    assert_eq!(sequence_hof_adapter.counts().hard_negatives, 22);
     assert!(sequence_hof_adapter
         .conformance_refs()
         .contains(&"rust-iterator-hof-missing-terminal-proof-hard-negative"));
@@ -379,6 +382,12 @@ pub(super) fn assert_group() {
     assert!(sequence_hof_adapter
         .conformance_refs()
         .contains(&"swift-sequence-hof-any-sequence-reuse-hard-negative"));
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"ruby-enumerable-hof-reject-positive"));
+    assert!(sequence_hof_adapter
+        .conformance_refs()
+        .contains(&"ruby-enumerable-hof-no-block-hard-negative"));
 
     let go_namespace_call = builtin_pack_descriptor(GO_STDLIB_NAMESPACE_CALL_PACK_ID)
         .expect("Go stdlib namespace-call descriptor");

@@ -65,11 +65,14 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
     );
 }
 
-fn div_zero_map_len_il() -> (Il, NodeId) {
+fn map_len_il_with_lambda(
+    lambda: impl FnOnce(&mut IlBuilder) -> NodeId,
+    lang: Lang,
+) -> (Il, NodeId, NodeId) {
     let mut b = IlBuilder::new(FileId(0));
     let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
     let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
-    let lambda = div_zero_lambda(&mut b, 2, sp(2));
+    let lambda = lambda(&mut b);
     let hof = b.add(
         NodeKind::HoF,
         Payload::HoF(HoFKind::Map),
@@ -82,7 +85,28 @@ fn div_zero_map_len_il() -> (Il, NodeId) {
         sp(4),
         &[hof],
     );
-    (finish_test_il(b, count, Lang::Rust), hof)
+    (finish_test_il(b, count, lang), hof, count)
+}
+
+fn div_zero_map_len_il() -> (Il, NodeId) {
+    let (il, hof, _count) = map_len_il_with_lambda(|b| div_zero_lambda(b, 2, sp(2)), Lang::Rust);
+    (il, hof)
+}
+
+fn bool_predicate_source(b: &mut IlBuilder) -> (NodeId, NodeId) {
+    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+    let pred = const_bool_lambda(b, 2, true, sp(2));
+    (coll, pred)
+}
+
+fn predicate_hof(
+    b: &mut IlBuilder,
+    kind: HoFKind,
+    span: Span,
+    coll: NodeId,
+    pred: NodeId,
+) -> NodeId {
+    b.add(NodeKind::HoF, Payload::HoF(kind), span, &[coll, pred])
 }
 
 fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: &str) {
@@ -137,6 +161,24 @@ fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: 
         )
     };
     il.evidence.push(evidence);
+}
+
+fn push_ruby_sequence_hof_contract_evidence(
+    il: &mut Il,
+    id: u32,
+    hof: NodeId,
+    method: &str,
+    dependency: EvidenceId,
+) {
+    let contract = library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby HOF contract");
+    il.evidence.push(rust_sequence_hof_adapter_evidence(
+        id,
+        il.node(hof).span,
+        contract.id,
+        contract.callee,
+        1,
+        vec![dependency],
+    ));
 }
 
 #[test]
@@ -278,23 +320,7 @@ fn raw_builtin_payload_does_not_prove_static_error_demand() {
 #[test]
 fn len_of_library_hof_requires_materialized_demand_profile() {
     let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
-    let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
-    let lambda = identity_lambda(&mut b, 2, sp(2));
-    let hof = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Map),
-        sp(3),
-        &[coll, lambda],
-    );
-    let count = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Len),
-        sp(4),
-        &[hof],
-    );
-    let mut il = finish_test_il(b, count, Lang::Rust);
+    let (mut il, hof, count) = map_len_il_with_lambda(|b| identity_lambda(b, 2, sp(2)), Lang::Rust);
     push_map_contract_evidence(&mut il, Lang::Rust, hof, "Rust map contract");
     let mut builder = Builder::new(&il, &interner);
     assert!(
@@ -349,14 +375,8 @@ fn len_of_library_hof_requires_materialized_demand_profile() {
 fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
-    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let pred = const_bool_lambda(&mut b, 2, true, sp(2));
-    let filter = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Filter),
-        sp(3),
-        &[coll, pred],
-    );
+    let (coll, pred) = bool_predicate_source(&mut b);
+    let filter = predicate_hof(&mut b, HoFKind::Filter, sp(3), coll, pred);
     let mapper = identity_lambda(&mut b, 3, sp(4));
     let map = b.add(
         NodeKind::HoF,
@@ -392,14 +412,8 @@ fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
 fn len_of_raw_filter_hof_requires_filter_admission() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
-    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let pred = const_bool_lambda(&mut b, 2, true, sp(2));
-    let filter = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Filter),
-        sp(3),
-        &[coll, pred],
-    );
+    let (coll, pred) = bool_predicate_source(&mut b);
+    let filter = predicate_hof(&mut b, HoFKind::Filter, sp(3), coll, pred);
     let len = b.add(
         NodeKind::Call,
         Payload::Builtin(Builtin::Len),
@@ -423,5 +437,41 @@ fn len_of_raw_filter_hof_requires_filter_admission() {
     assert!(
         !matches!(builder.nodes[value as usize].op, ValOp::Reduce(op) if op == Op::Add as u32),
         "admitted len must not turn an unadmitted raw filter HOF into a predicate count"
+    );
+}
+
+#[test]
+fn ruby_reject_hof_carries_negated_predicate() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let (coll, pred) = bool_predicate_source(&mut b);
+    let filter = predicate_hof(&mut b, HoFKind::Filter, sp(3), coll, pred);
+    let reject = predicate_hof(&mut b, HoFKind::Reject, sp(4), coll, pred);
+    let root = b.add(NodeKind::Block, Payload::None, sp(5), &[filter, reject]);
+    let mut il = finish_test_il(b, root, Lang::Ruby);
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(il.node(coll).span, il.kind(coll)),
+        EvidenceKind::Domain(DomainEvidence::Collection),
+    ));
+    push_ruby_sequence_hof_contract_evidence(&mut il, 1, filter, "filter", EvidenceId(0));
+    push_ruby_sequence_hof_contract_evidence(&mut il, 2, reject, "reject", EvidenceId(0));
+
+    let mut builder = Builder::new(&il, &interner);
+    let filter_value = builder.eval(filter, &FxHashMap::default());
+    let reject_value = builder.eval(reject, &FxHashMap::default());
+    assert_ne!(
+        filter_value, reject_value,
+        "Ruby reject must not collapse to the same predicate as select/filter"
+    );
+    let reject_node = &builder.nodes[reject_value as usize];
+    assert!(
+        matches!(reject_node.op, ValOp::Hof(k) if k == HoFKind::Map as u32)
+            && reject_node.args.len() == 2
+            && matches!(
+                builder.nodes[reject_node.args[1] as usize].op,
+                ValOp::Un(op) if op == Op::Not as u32
+            ),
+        "Ruby reject should carry Not(predicate) through filter-like HOF semantics"
     );
 }

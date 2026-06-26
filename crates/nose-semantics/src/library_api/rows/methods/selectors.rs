@@ -68,6 +68,7 @@ pub(crate) fn library_method_selector_name(name: &str) -> Option<&'static str> {
         "nil?" => "nil?",
         "push" => "push",
         "reduce" => "reduce",
+        "reject" => "reject",
         "select" => "select",
         "size" => "size",
         "some" => "some",

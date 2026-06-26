@@ -148,123 +148,34 @@ fn swift_sequence_hof_pack_rejects_lazy_adapter_receiver() {
 
 #[test]
 fn admitted_swift_sequence_hof_requires_sequence_hof_pack_and_ordered_collection_receiver() {
-    let (mut raw_shape, interner, call, receiver) =
-        swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline);
-    push_receiver_domain_dependency(&mut raw_shape, 0, receiver, DomainEvidence::Collection);
-    assert!(
-        admitted_library_method_call_at_call(&raw_shape, &interner, call).is_none(),
-        "raw Swift map shape plus collection receiver proof is not enough"
+    assert_sequence_hof_requires_pack_and_ordered_receiver(
+        Lang::Swift,
+        "map",
+        MethodSemanticContract::HoF(HoFKind::Map),
+        || swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline),
+        &[
+            (
+                DomainEvidence::Set,
+                "Swift Set receiver proof stays closed because order is not represented",
+            ),
+            (
+                DomainEvidence::Map,
+                "Swift Dictionary receiver proof stays closed for Sequence HOF admission",
+            ),
+            (
+                DomainEvidence::Iterable,
+                "Swift AnySequence/one-shot receiver proof stays closed",
+            ),
+        ],
+        OrderedHofPackRequirementMessages {
+            raw_shape: "raw Swift map shape plus collection receiver proof is not enough",
+            missing_dependency:
+                "same-span Swift HOF evidence without ordered collection proof is rejected",
+            wrong_pack: "Swift HOF evidence under the generic method-call pack is rejected",
+            wrong_producer: "Swift HOF evidence with the wrong producer is rejected",
+            admitted: "Swift map with ordered collection proof admits",
+        },
     );
-
-    let contract = library_method_call_contract(Lang::Swift, "map", 1).expect("Swift map row");
-    assert_eq!(
-        contract.callee,
-        LibraryApiCalleeContract::Method {
-            method: "map",
-            receiver: MethodReceiverContract::ExactArrayOrCollection,
-        }
-    );
-
-    let (mut missing_dependency, interner, call, _receiver) =
-        swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline);
-    missing_dependency.evidence.push(sequence_hof_record(
-        1,
-        &missing_dependency,
-        call,
-        contract,
-        1,
-        &[],
-    ));
-    assert!(
-        admitted_library_method_call_at_call(&missing_dependency, &interner, call).is_none(),
-        "same-span Swift HOF evidence without ordered collection proof is rejected"
-    );
-
-    let (mut wrong_pack, interner, call, receiver) =
-        swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline);
-    push_receiver_domain_dependency(&mut wrong_pack, 0, receiver, DomainEvidence::Collection);
-    wrong_pack
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_pack.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
-            BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
-        ));
-    assert!(
-        admitted_library_method_call_at_call(&wrong_pack, &interner, call).is_none(),
-        "Swift HOF evidence under the generic method-call pack is rejected"
-    );
-
-    let (mut wrong_producer, interner, call, receiver) =
-        swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline);
-    push_receiver_domain_dependency(&mut wrong_producer, 0, receiver, DomainEvidence::Collection);
-    wrong_producer
-        .evidence
-        .push(library_api_record_with_provenance_and_arity(
-            1,
-            wrong_producer.node(call).span,
-            contract.id,
-            contract.callee,
-            1,
-            EvidenceStatus::Asserted,
-            &[0],
-            SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
-            "wrong.protocols.sequence-hof-adapter-api",
-        ));
-    assert!(
-        admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
-        "Swift HOF evidence with the wrong producer is rejected"
-    );
-
-    for (domain, message) in [
-        (
-            DomainEvidence::Set,
-            "Swift Set receiver proof stays closed because order is not represented",
-        ),
-        (
-            DomainEvidence::Map,
-            "Swift Dictionary receiver proof stays closed for Sequence HOF admission",
-        ),
-        (
-            DomainEvidence::Iterable,
-            "Swift AnySequence/one-shot receiver proof stays closed",
-        ),
-    ] {
-        let (mut il, interner, call, receiver) =
-            swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline);
-        push_receiver_domain_dependency(&mut il, 0, receiver, domain);
-        il.evidence
-            .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
-        assert!(
-            admitted_library_method_call_at_call(&il, &interner, call).is_none(),
-            "{message}"
-        );
-    }
-
-    let (mut admitted, interner, call, receiver) =
-        swift_sequence_hof_call_il("map", SwiftCallbackShape::Inline);
-    push_receiver_domain_dependency(&mut admitted, 0, receiver, DomainEvidence::Collection);
-    admitted
-        .evidence
-        .push(sequence_hof_record(1, &admitted, call, contract, 1, &[0]));
-    let occurrence = admitted_library_method_call_at_call(&admitted, &interner, call)
-        .expect("Swift map with ordered collection proof admits");
-    assert_eq!(
-        occurrence.contract.id,
-        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map))
-    );
-    assert_eq!(
-        occurrence.contract.pack_id,
-        SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID
-    );
-    assert_eq!(occurrence.receiver, Some(receiver));
-    assert_eq!(occurrence.arg_count, 1);
 }
 
 #[test]

@@ -117,7 +117,7 @@ impl<'a> Builder<'a> {
                     None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib]),
                 }
             }
-            HoFKind::Filter => {
+            HoFKind::Filter | HoFKind::Reject => {
                 // `filter(p, coll)` ≡ the identity map with a predicate. This keeps the
                 // element stream attached, lets nested filters fuse, and matches filtered
                 // comprehensions/builders without letting raw HOF payloads bypass proof.
@@ -130,6 +130,11 @@ impl<'a> Builder<'a> {
                 let own_pred = kids
                     .get(1)
                     .and_then(|&lambda| self.eval_lambda_body(lambda, &elems, env));
+                let own_pred = if kind == HoFKind::Reject {
+                    own_pred.map(|predicate| self.mk(ValOp::Un(Op::Not as u32), vec![predicate]))
+                } else {
+                    own_pred
+                };
                 match self.and_preds(own_pred, carried_pred) {
                     Some(predicate) => {
                         self.mk(ValOp::Hof(HoFKind::Map as u32), vec![elem, predicate])

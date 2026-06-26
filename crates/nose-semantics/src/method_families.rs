@@ -48,6 +48,7 @@ pub fn method_hof_contract(lang: Lang, name: &str) -> Option<HoFKind> {
         | (Lang::Java, "filter")
         | (Lang::Swift, "filter")
         | (Lang::Ruby, "filter" | "select") => HoFKind::Filter,
+        (Lang::Ruby, "reject") => HoFKind::Reject,
         _ => return None,
     })
 }

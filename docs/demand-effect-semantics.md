@@ -48,22 +48,25 @@ list/dict-comprehension surfaces use eager per-element demand where modeled.
 Python generator-expression surfaces use pull-lazy demand: callback errors and
 effects are delayed until a terminal consumer pulls an element. First-party
 library/API HOF rows now carry explicit timing for the supported surfaces:
-JS-like, Ruby, and Swift `map`/`flatMap`/`filter` rows are eager per element
-where available, while Rust iterator and Java Stream `map`/`flatMap`/`filter`
-rows are pull-lazy. Python builtin `map`/`filter` rows are also pull-lazy, but only when
-they are admitted through `nose.protocols.iterator_builtins` with unshadowed
-builtin proof, iterable-source proof, and a lambda callback shape. Rust
+JS-like and Swift `map`/`flatMap`/`filter` rows are eager per element where
+available; Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject` rows are
+eager per element only when an inline effect-closed block is present. Rust
+iterator and Java Stream `map`/`flatMap`/`filter` rows are pull-lazy. Python
+builtin `map`/`filter` rows are also pull-lazy, but only when they are admitted
+through `nose.protocols.iterator_builtins` with unshadowed builtin proof,
+iterable-source proof, and a lambda callback shape. Rust
 iterator HOF rows require
 `nose.protocols.sequence_hof_adapters` occurrence provenance on a proven
 protocol receiver; `any`/`all` and `count` terminal rows use the same provenance
 boundary, while Swift `map`/`filter`/`flatMap` rows use the same pack only on
-proven Array/Collection receivers with inline effect-closed callbacks.
-`Sequence`/`AnySequence`, `Set`, `Dictionary`, `compactMap`, and `.lazy`
-surfaces remain closed until their one-shot, ordering, optional-channel, or
-deferred-demand semantics are represented. `collect` remains in the iterator
-identity/materialization adapter slice. Admitted HOF identity alone is still not
-enough; consumers resolve the node-level demand/effect profile before opening
-exact behavior.
+proven Array/Collection receivers with inline effect-closed callbacks. Ruby
+Enumerable rows use the same pack only on proven Array/Collection receivers with
+inline effect-closed blocks; no-block Enumerator returns, lazy enumerators,
+framework relations, Hash/Set receivers, and `flat_map` remain closed until
+their demand, receiver, ordering, or flattening semantics are represented.
+`collect` remains in the Rust iterator identity/materialization adapter slice.
+Admitted HOF identity alone is still not enough; consumers resolve the
+node-level demand/effect profile before opening exact behavior.
 
 Promise `.then` now carries an async-continuation demand/effect profile in its
 contract row. That does not open exact beta-reduction by itself. The value-graph

@@ -65,7 +65,9 @@ impl<'a> Interp<'a> {
                     if matches!(keep, Value::Err) {
                         return Ok(Value::Err);
                     }
-                    if truthy(&keep).ok_or(Unsupported)? {
+                    let keep = truthy(&keep).ok_or(Unsupported)?;
+                    let keep = if kind == HoFKind::Reject { !keep } else { keep };
+                    if keep {
                         out.push(x);
                     }
                 }

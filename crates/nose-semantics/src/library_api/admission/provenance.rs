@@ -30,10 +30,57 @@ fn library_api_contract_provenance_ids(
     python_library_api_contract_provenance_ids(id)
         .or_else(|| js_like_library_api_contract_provenance_ids(lang, id, callee))
         .or_else(|| swift_library_api_contract_provenance_ids(lang, id, callee))
+        .or_else(|| ruby_library_api_contract_provenance_ids(lang, id, callee))
         .or_else(|| rust_library_api_contract_provenance_ids(lang, id, callee))
         .or_else(|| java_library_api_contract_provenance_ids(id, callee))
         .or_else(|| go_library_api_contract_provenance_ids(id, callee))
         .or_else(|| protocol_library_api_contract_provenance_ids(id, callee))
+}
+
+fn ruby_library_api_contract_provenance_ids(
+    lang: Lang,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> Option<(&'static str, &'static str)> {
+    match id {
+        LibraryApiContractId::MethodCall(_)
+            if lang == Lang::Ruby && ruby_sequence_hof_method_callee(id, callee) =>
+        {
+            Some((
+                SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,
+                SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID,
+            ))
+        }
+        _ => None,
+    }
+}
+
+fn ruby_sequence_hof_method_callee(
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> bool {
+    matches!(
+        (id, callee),
+        (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Map)),
+            LibraryApiCalleeContract::Method {
+                method: "map" | "collect",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Filter)),
+            LibraryApiCalleeContract::Method {
+                method: "select" | "filter",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(HoFKind::Reject)),
+            LibraryApiCalleeContract::Method {
+                method: "reject",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
+        )
+    )
 }
 
 fn python_library_api_contract_provenance_ids(

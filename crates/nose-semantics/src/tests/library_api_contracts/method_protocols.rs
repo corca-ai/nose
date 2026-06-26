@@ -33,6 +33,10 @@ fn method_protocol_contracts_are_language_constrained() {
         Some(HoFKind::Filter)
     );
     assert_eq!(
+        method_hof_contract(Lang::Ruby, "reject"),
+        Some(HoFKind::Reject)
+    );
+    assert_eq!(
         method_hof_contract(Lang::Swift, "filter"),
         Some(HoFKind::Filter)
     );
@@ -168,6 +172,26 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             args: MethodBuiltinArgs::Hof,
         })
     );
+    assert_eq!(method_call_contract(Lang::Swift, "map", 2), None);
+    assert_eq!(
+        method_call_contract(Lang::Ruby, "map", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::Map),
+            receiver: MethodReceiverContract::ExactArrayOrCollection,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(
+        method_call_contract(Lang::Ruby, "reject", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::HoF(HoFKind::Reject),
+            receiver: MethodReceiverContract::ExactArrayOrCollection,
+            args: MethodBuiltinArgs::Hof,
+        })
+    );
+    assert_eq!(method_call_contract(Lang::Ruby, "map", 0), None);
+    assert_eq!(method_call_contract(Lang::Ruby, "map", 2), None);
+    assert_eq!(method_call_contract(Lang::Ruby, "flat_map", 1), None);
     assert_eq!(
         method_call_contract(Lang::TypeScript, "map", 1),
         Some(MethodCallContract {

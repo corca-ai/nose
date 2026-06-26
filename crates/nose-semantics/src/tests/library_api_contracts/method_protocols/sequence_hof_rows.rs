@@ -71,6 +71,39 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
         library_method_call_contract(Lang::Swift, "compactMap", 1).is_none(),
         "Swift compactMap stays closed until optional-channel semantics are represented"
     );
+    assert!(
+        library_method_call_contract(Lang::Swift, "map", 2).is_none(),
+        "Swift Sequence HOF rows stay closed outside the single-callback shape"
+    );
+
+    for method in ["map", "collect", "select", "filter", "reject"] {
+        let contract =
+            library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby Enumerable HOF row");
+        assert_eq!(contract.pack_id, SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID);
+        assert_eq!(
+            contract.producer_id,
+            SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID
+        );
+        assert_eq!(
+            contract.callee,
+            LibraryApiCalleeContract::Method {
+                method,
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            }
+        );
+    }
+    assert!(
+        library_method_call_contract(Lang::Ruby, "map", 0).is_none(),
+        "Ruby Enumerable HOF rows require an explicit block"
+    );
+    assert!(
+        library_method_call_contract(Lang::Ruby, "map", 2).is_none(),
+        "Ruby Enumerable HOF rows stay closed for block-plus-argument shapes"
+    );
+    assert!(
+        library_method_call_contract(Lang::Ruby, "flat_map", 1).is_none(),
+        "Ruby flat_map stays closed until nested flattening semantics are represented"
+    );
 
     assert!(
         library_method_call_contract(Lang::Rust, "find", 1).is_none(),

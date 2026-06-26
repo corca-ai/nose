@@ -596,7 +596,9 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `nose.protocols.sequence_hof_adapters` provenance when protocol receiver proof
   is present, and Swift `map`/`filter`/`flatMap` HOFs with the same provenance
   when Array/Collection receiver proof and inline effect-closed callback proof
-  are present, generic method-call and namespace-call builtin semantics with
+  are present, and Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject`
+  HOFs with the same provenance when Array/Collection receiver proof and inline
+  effect-closed block proof are present, generic method-call and namespace-call builtin semantics with
   `nose.protocols.builtin_method_calls` provenance when no narrower pack owns
   the row, Go `fmt.Print*`, `strings.HasPrefix`/`HasSuffix`,
   `strings.Contains`, and `slices.Contains` namespace calls with
@@ -782,7 +784,7 @@ callers:
   pack-proven map get-default, pack-proven map-key
   views, iterator identity adapters with
   `nose.protocols.iterator_identity_adapters` provenance, Rust sequence-HOF
-  adapters and Swift Array/Collection HOFs with
+  adapters, Swift Array/Collection HOFs, and Ruby Enumerable HOFs with
   `nose.protocols.sequence_hof_adapters` provenance, Java
   `Arrays.stream`, Java map entries, Rust `Some(...)`, Rust map factory receiver
   proof, and HOF receiver proof instead of locally recombining selector strings
@@ -817,8 +819,11 @@ callers:
   receiver evidence. Downstream calls such as Rust `.collect()` can therefore
   depend on the admitted `filter_map`/`map`/`filter` occurrence after IL
   canonicalization, without reopening selector-only proof. For Rust iterator
-  chains, that same-span HOF record must carry
-  `nose.protocols.sequence_hof_adapters` provenance. Value-graph filter
+  chains, Swift Array/Collection chains, and Ruby Enumerable chains, that
+  same-span HOF record must carry `nose.protocols.sequence_hof_adapters`
+  provenance. Ruby `reject` records carry the distinct negated-filter HOF kind,
+  so `reject { p }` does not reuse the positive `filter { p }` predicate.
+  Value-graph filter
   consumers such as `len(filter(...))`, explicit reductions over a filter, and
   static literal membership shortcuts reuse the same HOF admission; a raw
   `HoF(Filter)` payload no longer enters those paths by shape alone;

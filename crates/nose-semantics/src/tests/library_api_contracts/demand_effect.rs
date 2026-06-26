@@ -199,6 +199,11 @@ fn hof_demand_effect_profiles_split_eager_and_pull_lazy_timing() {
             .proves_eager_per_element_callback_demand()
     );
     assert!(
+        library_hof_demand_effect_profile(Lang::Ruby, HoFKind::Reject)
+            .unwrap()
+            .proves_eager_per_element_callback_demand()
+    );
+    assert!(
         library_hof_demand_effect_profile(Lang::Swift, HoFKind::FlatMap)
             .unwrap()
             .proves_eager_per_element_callback_demand()

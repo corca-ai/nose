@@ -81,6 +81,9 @@ fn method_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId)
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
             HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
         )) if lang == Lang::Swift => true,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
+            HoFKind::Map | HoFKind::Filter | HoFKind::Reject,
+        )) if lang == Lang::Ruby => true,
         _ => false,
     }
 }
@@ -180,7 +183,9 @@ fn method_hof_callback_nested_call_effect_closed(
 }
 
 fn method_hof_callback_nested_method_call(lang: Lang, contract: MethodCallContract) -> bool {
-    js_like_array_hof_method_call(lang, contract) || swift_sequence_hof_method_call(lang, contract)
+    js_like_array_hof_method_call(lang, contract)
+        || swift_sequence_hof_method_call(lang, contract)
+        || ruby_sequence_hof_method_call(lang, contract)
 }
 
 fn library_api_record_has_iterable_source_dependency(

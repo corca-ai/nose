@@ -424,3 +424,12 @@ sharing a callback fixture node helper in the admission resolver support module 
 cid-param/receiver fixture in receiver-domain tests. After that cleanup, accepted representative
 `1096a4a828c21a80` no longer reports and no new family appears, so the baseline budget is tightened
 again.
+
+The #538 Ruby Enumerable HOF capability PR keeps the count at 53. The first draft surfaced
+avoidable test-scope families while adding Ruby `map`/`collect`/`select`/`filter`/`reject`
+admission: Ruby/Swift sequence-HOF pack requirement tests and HOF demand fixture setup. Those were
+deduped by sharing the ordered sequence-HOF pack requirement helper and the map/predicate HOF
+fixture builders. The remaining drift is representative-ID churn: `4e655a7c9a3d22dd` disappears
+and `d836cac640ba27ba` appears. The new representative covers the same reviewed HOF
+demand/materialization negative scaffolding, now anchored on the shared `map_len_il_with_lambda`
+helper plus the strict-exact pull-lazy `len` boundary test. No new budget is accepted.

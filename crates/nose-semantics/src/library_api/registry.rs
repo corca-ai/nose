@@ -12,7 +12,7 @@ pub(super) fn library_api_contract_result_domain_for_arity(
 ) -> Option<DomainEvidence> {
     library_api_materialized_result_domain_for_arity(id, callee, arity).or(match id {
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
-            HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
+            HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap | HoFKind::Reject,
         )) if matches!(
             callee,
             LibraryApiCalleeContract::Method {
@@ -472,6 +472,7 @@ fn method_call_contract_callees_for_semantic(
         "unwrap_or_else",
         "map_or",
         "reduce",
+        "reject",
         "Min",
         "Max",
         "abs",

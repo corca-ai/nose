@@ -177,4 +177,6 @@ pub enum HoFKind {
     /// Option/null-producing map: `Null` drops the item, `Err` propagates, every
     /// other value is emitted.
     FilterMap,
+    /// Inverted predicate filter, as in Ruby `Enumerable#reject`.
+    Reject,
 }

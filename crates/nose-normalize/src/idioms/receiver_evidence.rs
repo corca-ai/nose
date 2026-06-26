@@ -28,7 +28,9 @@ pub(super) fn exact_array_or_collection_receiver(
     };
     if !matches!(
         admitted.contract.result.semantic,
-        MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+        MethodSemanticContract::HoF(
+            HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap | HoFKind::Reject,
+        )
     ) || admitted.contract.result.receiver != MethodReceiverContract::ExactArrayOrCollection
     {
         return false;
@@ -58,7 +60,9 @@ pub(super) fn exact_array_receiver(
     };
     if !matches!(
         admitted.contract.result.semantic,
-        MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+        MethodSemanticContract::HoF(
+            HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap | HoFKind::Reject,
+        )
     ) || admitted.contract.result.receiver != MethodReceiverContract::ExactArray
     {
         return false;

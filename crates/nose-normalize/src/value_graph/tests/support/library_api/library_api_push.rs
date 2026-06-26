@@ -113,10 +113,22 @@ fn is_sequence_hof_method_call(
             (contract_id, callee),
             (
                 LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
-                    HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
+                    HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap | HoFKind::Reject,
                 )),
                 LibraryApiCalleeContract::Method {
                     method: "map" | "filter" | "flatMap",
+                    receiver: MethodReceiverContract::ExactArrayOrCollection,
+                },
+            )
+        ),
+        Lang::Ruby => matches!(
+            (contract_id, callee),
+            (
+                LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
+                    HoFKind::Map | HoFKind::Filter | HoFKind::Reject,
+                )),
+                LibraryApiCalleeContract::Method {
+                    method: "map" | "collect" | "select" | "filter" | "reject",
                     receiver: MethodReceiverContract::ExactArrayOrCollection,
                 },
             )
