@@ -25,8 +25,8 @@ break.
   `String.prototype.startsWith`/`endsWith` patching no longer enter primitive
   string prefix/suffix families; added explicit hard negatives for untyped
   JavaScript receivers, borrowed prototype calls, custom same-name methods,
-  wrappers, offsets, conditional prototype writes, nested-scope shadow names,
-  and `Object.defineProperty` prototype writes.
+  wrappers, offsets, conditional prototype writes, nested/block-scope shadow
+  names, and `Object.defineProperty` prototype writes.
 
 ## [0.16.0] - 2026-06-26
 

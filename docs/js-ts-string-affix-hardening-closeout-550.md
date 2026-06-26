@@ -20,7 +20,8 @@ The PR changes receiver proof boundaries, not the supported affix operation:
   `Object.defineProperty(String.prototype, "...", ...)`;
 - syntactic local shadows of `String`/`Object` do not suppress unrelated
   primitive string receiver proof, while nested function parameters named
-  `String`/`Object` do not hide real module-scope global prototype mutations;
+  `String`/`Object` and standalone block-scoped `String`/`Object` bindings do
+  not hide real module-scope global prototype mutations;
 - optional offset/position arguments, borrowed prototype calls, custom
   same-name methods, prefix/suffix direction swaps, and receiver/affix
   coordinate swaps remain closed.
@@ -28,12 +29,12 @@ The PR changes receiver proof boundaries, not the supported affix operation:
 ## Product Comparison
 
 Baseline ref: `origin/main@7bb480d617f7b9b1317d4bf02e4da2a072dbf69d`.
-Current product build ref: `d52b2faa0a5aa3507ac6effc34867a26ef5a0ecc`.
+Current product build ref: `b6045135ce7eea373e39eeee1a32abbf87a964ec`.
 
 Binary hashes:
 
 - baseline: `94b1169ea766bf04d1d43d2696d9cb3d8b11a2850c8f22f139685085cbc87c61`
-- current: `c72ffb411e151a247f2456556aedd380db1f08337a5116d455949ceb09132365`
+- current: `107909898de25aa960ced7434f2b4cd6ef6fcf36be225d7833baa5dc9921fc0e`
 
 Focused corpus:
 
@@ -47,8 +48,8 @@ Focused corpus:
   argument, `String` object wrapper, nullable receiver, optional receiver,
   prototype patch before and after the function, conditional prototype patch,
   `Object.defineProperty` prototype patch, nested-parameter `String`/`Object`
-  shadows adjacent to real global prototype patches, wrong affix literal, and
-  wrong receiver.
+  shadows and standalone block-scoped `String`/`Object` shadows adjacent to real
+  global prototype patches, wrong affix literal, and wrong receiver.
 
 Command:
 
@@ -63,19 +64,19 @@ Result:
 | family count | 3 | 3 |
 | semantic pack count | 49 | 49 |
 | investigation triggers | 0 | 0 |
-| prefix positive family members | 14 | 6 |
-| false-open members in prefix family | 8 | 0 |
+| prefix positive family members | 16 | 6 |
+| false-open members in prefix family | 10 | 0 |
 | suffix positive family members | 2 | 2 |
 
 The false-open members removed from the prefix family are the TypeScript
 `String` object wrapper, optional receiver, direct prototype patch before and
 after the function, conditional prototype patch, and
 `Object.defineProperty(String.prototype, "startsWith", ...)` patch, including
-the two nested-parameter shadow variants. Untyped JavaScript and nullable
-receivers already stayed out of the proved affix family; #550 records them as
-explicit hard negatives. The locally shadowed `String` constructor patch remains
-in the proved prefix family because it does not mutate the global string
-prototype.
+the two nested-parameter shadow variants and the two block-scoped shadow
+variants. Untyped JavaScript and nullable receivers already stayed out of the
+proved affix family; #550 records them as explicit hard negatives. The locally
+shadowed `String` constructor patch remains in the proved prefix family because
+it does not mutate the global string prototype.
 
 ## Inventory Comparison
 
@@ -92,11 +93,11 @@ nose semantic-pack inventory --format json
 | exact-capable packs | 39 | 39 |
 | packs needing coverage | 0 | 0 |
 | positive fixtures | 188 | 188 |
-| hard negatives | 148 | 159 |
-| conformance refs | 336 | 347 |
+| hard negatives | 148 | 161 |
+| conformance refs | 336 | 349 |
 | unsupported refs | 20 | 20 |
 | string-affix positives | 14 | 14 |
-| string-affix hard negatives | 9 | 20 |
+| string-affix hard negatives | 9 | 22 |
 
 ## Runtime
 
@@ -105,16 +106,16 @@ Method: 2 warmups, then 9 alternating measured repeats over the focused corpus.
 Baseline times in milliseconds:
 
 ```text
-10.930, 8.962, 8.716, 10.029, 10.254, 10.231, 12.068, 8.837, 10.140
+12.622, 12.342, 11.356, 12.811, 13.635, 11.645, 12.002, 12.556, 11.457
 ```
 
 Current times in milliseconds:
 
 ```text
-9.149, 8.887, 9.551, 7.517, 7.747, 9.154, 9.186, 9.279, 8.911
+13.827, 10.784, 13.354, 11.405, 11.657, 10.965, 12.308, 11.863, 9.876
 ```
 
-Median: `10.140 ms -> 9.149 ms` (`-0.992 ms`).
+Median: `12.342 ms -> 11.657 ms` (`-0.685 ms`).
 
 ## Review Evidence
 
@@ -134,6 +135,12 @@ Median: `10.140 ms -> 9.149 ms` (`-0.992 ms`).
   mutations. Accepted change in `d52b2faa`: prototype mutation suppression now
   uses a module-scope-only shadow check, and the durable fixture includes both
   nested-parameter regressions. Rejected feedback: none.
+- Gibbs re-review, PR #564 at `62bec114`, found one remaining blocking
+  false-open: standalone block-scoped `String`/`Object` bindings were counted as
+  module-scope shadows and could hide later real global prototype mutations.
+  Accepted change in `b6045135`: module-scope shadow detection no longer treats
+  top-level `Block` contents as module bindings, and the durable fixture includes
+  both block-scoped-shadow regressions. Rejected feedback: none.
 - Kepler evidence/process review, PR #564 at `c4cb3339`, read-only prompt
   bounded to done criteria, conformance counts, docs, and measurement evidence.
   Blocking finding: review artifacts were not durable yet. Non-blocking

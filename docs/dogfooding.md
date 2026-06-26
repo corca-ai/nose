@@ -88,10 +88,11 @@ The same #550 PR added the durable
 `crates/nose-cli/tests/fixtures/string_affix_550` product-regression corpus so
 closeout evidence no longer depends on `/tmp` scratch files. That fixture is
 intentionally repetitive: `340cd841f428840f` is the cross-language proved
-prefix family, and `2b3f6494602a5dc1` is the matching JS/TS hard-negative
-scaffold for optional/nullable/prototype-patched and nested-shadow receiver
-shapes. These are accepted test-evidence families, not production refactor
-opportunities; the reviewed default-surface budget moves from 52 to 54.
+prefix family, and `f4bd533cf627ba92` is the matching JS/TS hard-negative
+scaffold for optional/nullable/prototype-patched, nested-shadow, and
+block-scoped-shadow receiver shapes. These are accepted test-evidence families,
+not production refactor opportunities; the reviewed default-surface budget moves
+from 52 to 54.
 
 ## Verdict by candidate (critically)
 

@@ -147,8 +147,8 @@ The focused #550 JS/TS receiver-proof hardening is recorded in
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
     "positive_fixtures": 188,
-    "hard_negatives": 159,
-    "conformance_refs": 347,
+    "hard_negatives": 161,
+    "conformance_refs": 349,
     "unsupported_refs": 20
   },
   "evidence_policy": {
