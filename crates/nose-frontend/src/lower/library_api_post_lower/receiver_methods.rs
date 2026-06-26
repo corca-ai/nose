@@ -121,7 +121,7 @@ fn object_define_property_string_prototype_method(
             .children(*callee)
             .first()
             .copied()
-            .is_some_and(|base| post_lower_unshadowed_var_name(il, interner, base, "Object"))
+            .is_some_and(|base| post_lower_module_unshadowed_var_name(il, interner, base, "Object"))
         && string_prototype_object(il, interner, *target)
         && string_literal(il, *property, expected_method)
 }
@@ -132,17 +132,48 @@ fn string_prototype_object(il: &Il, interner: &Interner, node: NodeId) -> bool {
             .children(node)
             .first()
             .copied()
-            .is_some_and(|base| post_lower_unshadowed_var_name(il, interner, base, "String"))
+            .is_some_and(|base| post_lower_module_unshadowed_var_name(il, interner, base, "String"))
 }
 
-fn post_lower_unshadowed_var_name(
+fn post_lower_module_unshadowed_var_name(
     il: &Il,
     interner: &Interner,
     node: NodeId,
     expected: &str,
 ) -> bool {
     post_lower_var_name(il, interner, node) == Some(expected)
-        && !post_lower_file_defines_name_visible_at(il, interner, expected, il.node(node).span)
+        && !post_lower_module_scope_defines_name(il, interner, expected)
+}
+
+fn post_lower_module_scope_defines_name(il: &Il, interner: &Interner, expected: &str) -> bool {
+    post_lower_top_level_statements(il)
+        .into_iter()
+        .any(|stmt| post_lower_module_scope_statement_defines_name(il, interner, stmt, expected))
+}
+
+fn post_lower_module_scope_statement_defines_name(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected: &str,
+) -> bool {
+    match il.kind(node) {
+        NodeKind::Assign => il
+            .children(node)
+            .first()
+            .copied()
+            .is_some_and(|lhs| post_lower_var_name(il, interner, lhs) == Some(expected)),
+        NodeKind::Func => il.units.iter().any(|unit| {
+            unit.root == node
+                && unit
+                    .name
+                    .is_some_and(|symbol| interner.resolve(symbol) == expected)
+        }),
+        NodeKind::Block => il.children(node).iter().copied().any(|child| {
+            post_lower_module_scope_statement_defines_name(il, interner, child, expected)
+        }),
+        _ => false,
+    }
 }
 
 fn string_literal(il: &Il, node: NodeId, expected: &str) -> bool {

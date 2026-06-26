@@ -37,4 +37,6 @@ pub(in crate::packs::compiled) const STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE
     "string-affix-predicate-typescript-prototype-patching-hard-negative",
     "string-affix-predicate-typescript-conditional-prototype-patching-hard-negative",
     "string-affix-predicate-typescript-define-property-prototype-patching-hard-negative",
+    "string-affix-predicate-typescript-nested-param-string-prototype-patching-hard-negative",
+    "string-affix-predicate-typescript-nested-param-object-define-property-hard-negative",
 ];

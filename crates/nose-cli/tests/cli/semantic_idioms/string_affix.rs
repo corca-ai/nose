@@ -48,6 +48,8 @@ fn assert_string_affix_hard_negatives(semantic_json: &serde_json::Value, semanti
         "patched_after.ts",
         "conditional_patch.ts",
         "define_property_patch.ts",
+        "nested_param_string_patch.ts",
+        "nested_param_object_define_property_patch.ts",
         "affix_negative.py",
         "receiver_negative.rs",
     ] {
