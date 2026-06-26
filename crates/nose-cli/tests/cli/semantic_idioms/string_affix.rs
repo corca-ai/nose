@@ -5,7 +5,17 @@ fn query_mode_semantic_hardens_js_ts_string_affix_receivers() {
     let dir = std::env::temp_dir().join(format!("nose_string_affix_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
+    write_string_affix_corpus(&dir);
 
+    let semantic = query_min_json(&dir, "semantic");
+    let semantic_json = query_json(&semantic);
+    assert_proved_string_affix_families(&semantic_json, &semantic);
+    assert_string_affix_hard_negatives(&semantic_json, &semantic);
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+fn write_string_affix_corpus(dir: &Path) {
     fs::write(
         dir.join("prefix.py"),
         "def prefix(value: str, other: str) -> bool:\n    return value.startswith(\"pre\")\n",
@@ -92,12 +102,12 @@ fn query_mode_semantic_hardens_js_ts_string_affix_receivers() {
         "pub fn prefix_other(value: &str, other: &str) -> bool {\n    other.starts_with(\"pre\")\n}\n",
     )
     .unwrap();
+}
 
-    let semantic = query_min_json(&dir, "semantic");
-    let semantic_json = query_json(&semantic);
+fn assert_proved_string_affix_families(semantic_json: &serde_json::Value, semantic: &str) {
     assert!(
         family_contains_all(
-            &semantic_json,
+            semantic_json,
             &[
                 "prefix.py",
                 "prefix.ts",
@@ -109,14 +119,16 @@ fn query_mode_semantic_hardens_js_ts_string_affix_receivers() {
         "semantic mode should report the proved prefix affix family: {semantic}"
     );
     assert!(
-        family_contains_all(&semantic_json, &["suffix.py", "suffix.ts"]),
+        family_contains_all(semantic_json, &["suffix.py", "suffix.ts"]),
         "semantic mode should report the proved suffix affix family: {semantic}"
     );
     assert!(
-        !family_contains_all(&semantic_json, &["prefix.py", "suffix.ts"]),
+        !family_contains_all(semantic_json, &["prefix.py", "suffix.ts"]),
         "prefix and suffix coordinates must stay distinct: {semantic}"
     );
+}
 
+fn assert_string_affix_hard_negatives(semantic_json: &serde_json::Value, semantic: &str) {
     for unexpected in [
         "prefix.js",
         "borrowed_prototype.js",
@@ -130,11 +142,9 @@ fn query_mode_semantic_hardens_js_ts_string_affix_receivers() {
         "receiver_negative.rs",
     ] {
         assert!(
-            !family_contains_all(&semantic_json, &["prefix.py", unexpected])
-                && !family_contains_all(&semantic_json, &["prefix.ts", unexpected]),
+            !family_contains_all(semantic_json, &["prefix.py", unexpected])
+                && !family_contains_all(semantic_json, &["prefix.ts", unexpected]),
             "semantic mode must keep {unexpected} out of the proved affix family: {semantic}"
         );
     }
-
-    let _ = fs::remove_dir_all(&dir);
 }
