@@ -47,6 +47,10 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
         None
     );
     assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs?: string"),
+        None
+    );
+    assert_eq!(
         type_domain_from_source_text(Lang::TypeScript, "xs: Bitmap<string, number>"),
         None
     );

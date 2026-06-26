@@ -55,7 +55,23 @@ fn js_ts_string_affix_prototype_mutated_in_file(
     };
     post_lower_top_level_statements(il)
         .into_iter()
-        .any(|stmt| string_prototype_method_write(il, interner, stmt, method))
+        .any(|stmt| string_prototype_method_mutation_in_module_scope(il, interner, stmt, method))
+}
+
+fn string_prototype_method_mutation_in_module_scope(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected_method: &str,
+) -> bool {
+    if matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda) {
+        return false;
+    }
+    string_prototype_method_write(il, interner, node, expected_method)
+        || object_define_property_string_prototype_method(il, interner, node, expected_method)
+        || il.children(node).iter().copied().any(|child| {
+            string_prototype_method_mutation_in_module_scope(il, interner, child, expected_method)
+        })
 }
 
 fn string_prototype_method_write(
@@ -80,12 +96,57 @@ fn string_prototype_method_write(
             .children(target)
             .first()
             .copied()
-            .is_some_and(|prototype| {
-                field_name(il, interner, prototype) == Some("prototype")
-                    && il.children(prototype).first().copied().is_some_and(|base| {
-                        post_lower_var_name(il, interner, base) == Some("String")
-                    })
-            })
+            .is_some_and(|prototype| string_prototype_object(il, interner, prototype))
+}
+
+fn object_define_property_string_prototype_method(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected_method: &str,
+) -> bool {
+    let call = if il.kind(node) == NodeKind::ExprStmt {
+        il.children(node).first().copied().unwrap_or(node)
+    } else {
+        node
+    };
+    if il.kind(call) != NodeKind::Call {
+        return false;
+    }
+    let [callee, target, property, ..] = il.children(call) else {
+        return false;
+    };
+    field_name(il, interner, *callee) == Some("defineProperty")
+        && il
+            .children(*callee)
+            .first()
+            .copied()
+            .is_some_and(|base| post_lower_unshadowed_var_name(il, interner, base, "Object"))
+        && string_prototype_object(il, interner, *target)
+        && string_literal(il, *property, expected_method)
+}
+
+fn string_prototype_object(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    field_name(il, interner, node) == Some("prototype")
+        && il
+            .children(node)
+            .first()
+            .copied()
+            .is_some_and(|base| post_lower_unshadowed_var_name(il, interner, base, "String"))
+}
+
+fn post_lower_unshadowed_var_name(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected: &str,
+) -> bool {
+    post_lower_var_name(il, interner, node) == Some(expected)
+        && !post_lower_file_defines_name_visible_at(il, interner, expected, il.node(node).span)
+}
+
+fn string_literal(il: &Il, node: NodeId, expected: &str) -> bool {
+    matches!(il.node(node).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(expected))
 }
 
 fn field_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {

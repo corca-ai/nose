@@ -23,6 +23,9 @@ pub fn type_domain_from_source_text(lang: Lang, text: &str) -> Option<DomainEvid
 }
 
 fn ts_type_domain(text: &str) -> Option<DomainEvidence> {
+    if ts_optional_annotation(text) {
+        return None;
+    }
     let raw_ty = annotation_suffix_preserving_case(text);
     let lower_ty = raw_ty.to_ascii_lowercase();
     let lower_ty = strip_ts_prefixes(&lower_ty);
@@ -320,6 +323,10 @@ fn strip_ts_prefixes(mut ty: &str) -> &str {
         ty = rest;
     }
     ty
+}
+
+fn ts_optional_annotation(text: &str) -> bool {
+    compact_no_whitespace(text).contains("?:")
 }
 
 fn compact_no_whitespace(text: &str) -> String {

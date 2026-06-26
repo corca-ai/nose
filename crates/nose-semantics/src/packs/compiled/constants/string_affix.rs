@@ -33,5 +33,8 @@ pub(in crate::packs::compiled) const STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE
     "string-affix-predicate-javascript-custom-same-name-hard-negative",
     "string-affix-predicate-typescript-string-object-wrapper-hard-negative",
     "string-affix-predicate-typescript-nullable-receiver-hard-negative",
+    "string-affix-predicate-typescript-optional-receiver-hard-negative",
     "string-affix-predicate-typescript-prototype-patching-hard-negative",
+    "string-affix-predicate-typescript-conditional-prototype-patching-hard-negative",
+    "string-affix-predicate-typescript-define-property-prototype-patching-hard-negative",
 ];

@@ -384,7 +384,7 @@ pub(super) fn assert_group() {
     assert_eq!(string_affix.counts().evidence_producers, 1);
     assert_eq!(string_affix.counts().contracts, 1);
     assert_eq!(string_affix.counts().positive_fixtures, 14);
-    assert_eq!(string_affix.counts().hard_negatives, 15);
+    assert_eq!(string_affix.counts().hard_negatives, 18);
     assert!(string_affix
         .conformance_refs()
         .contains(&"string-affix-predicate-python-startswith-positive"));
@@ -447,7 +447,16 @@ pub(super) fn assert_group() {
         .contains(&"string-affix-predicate-typescript-nullable-receiver-hard-negative"));
     assert!(string_affix
         .conformance_refs()
+        .contains(&"string-affix-predicate-typescript-optional-receiver-hard-negative"));
+    assert!(string_affix
+        .conformance_refs()
         .contains(&"string-affix-predicate-typescript-prototype-patching-hard-negative"));
+    assert!(string_affix.conformance_refs().contains(
+        &"string-affix-predicate-typescript-conditional-prototype-patching-hard-negative"
+    ));
+    assert!(string_affix.conformance_refs().contains(
+        &"string-affix-predicate-typescript-define-property-prototype-patching-hard-negative"
+    ));
 
     let sequence_hof_adapter = builtin_pack_descriptor(SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID)
         .expect("sequence HOF adapter protocol descriptor");
