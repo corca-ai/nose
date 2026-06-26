@@ -16,6 +16,9 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         },
     )
     .is_some_and(|(arg_count, contract, dependencies)| {
+        if js_ts_string_affix_prototype_mutated_in_file(il, interner, contract) {
+            return false;
+        }
         record_post_lower_library_api_contract(
             il,
             call,
@@ -31,6 +34,68 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         );
         true
     })
+}
+
+fn js_ts_string_affix_prototype_mutated_in_file(
+    il: &Il,
+    interner: &Interner,
+    contract: LibraryReceiverMethodApiContract,
+) -> bool {
+    if !matches!(il.meta.lang, Lang::JavaScript | Lang::TypeScript) {
+        return false;
+    }
+    let LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+        Builtin::StartsWith | Builtin::EndsWith,
+    )) = contract.id
+    else {
+        return false;
+    };
+    let LibraryApiCalleeContract::Method { method, .. } = contract.callee else {
+        return false;
+    };
+    post_lower_top_level_statements(il)
+        .into_iter()
+        .any(|stmt| string_prototype_method_write(il, interner, stmt, method))
+}
+
+fn string_prototype_method_write(
+    il: &Il,
+    interner: &Interner,
+    stmt: NodeId,
+    expected_method: &str,
+) -> bool {
+    let assign = if il.kind(stmt) == NodeKind::ExprStmt {
+        il.children(stmt).first().copied().unwrap_or(stmt)
+    } else {
+        stmt
+    };
+    if il.kind(assign) != NodeKind::Assign {
+        return false;
+    }
+    let Some(&target) = il.children(assign).first() else {
+        return false;
+    };
+    field_name(il, interner, target) == Some(expected_method)
+        && il
+            .children(target)
+            .first()
+            .copied()
+            .is_some_and(|prototype| {
+                field_name(il, interner, prototype) == Some("prototype")
+                    && il.children(prototype).first().copied().is_some_and(|base| {
+                        post_lower_var_name(il, interner, base) == Some("String")
+                    })
+            })
+}
+
+fn field_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
+    if il.kind(node) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(symbol) = il.node(node).payload else {
+        return None;
+    };
+    Some(interner.resolve(symbol))
 }
 
 fn seed_post_lower_receiver_method_dependencies(

@@ -12,5 +12,7 @@ mod literal_membership;
 mod literals;
 #[path = "semantic_idioms/map_keys_defaults.rs"]
 mod map_keys_defaults;
+#[path = "semantic_idioms/string_affix.rs"]
+mod string_affix;
 #[path = "semantic_idioms/try_wrappers.rs"]
 mod try_wrappers;

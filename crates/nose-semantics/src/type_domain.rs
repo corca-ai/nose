@@ -23,42 +23,43 @@ pub fn type_domain_from_source_text(lang: Lang, text: &str) -> Option<DomainEvid
 }
 
 fn ts_type_domain(text: &str) -> Option<DomainEvidence> {
-    let ty = annotation_suffix(text);
-    let ty = strip_ts_prefixes(&ty);
-    if ty.ends_with("[]") || ty.starts_with("array<") || ty.starts_with("readonlyarray<") {
+    let raw_ty = annotation_suffix_preserving_case(text);
+    let lower_ty = raw_ty.to_ascii_lowercase();
+    let lower_ty = strip_ts_prefixes(&lower_ty);
+    if lower_ty.ends_with("[]")
+        || lower_ty.starts_with("array<")
+        || lower_ty.starts_with("readonlyarray<")
+    {
         return Some(DomainEvidence::Array);
     }
-    if ty.starts_with("map<") || ty.starts_with("readonlymap<") {
+    if lower_ty.starts_with("map<") || lower_ty.starts_with("readonlymap<") {
         return Some(DomainEvidence::Map);
     }
-    if ty.starts_with("set<") || ty.starts_with("readonlyset<") {
+    if lower_ty.starts_with("set<") || lower_ty.starts_with("readonlyset<") {
         return Some(DomainEvidence::Set);
     }
-    if ty.starts_with("iterable<") || ty.starts_with("asynciterable<") {
+    if lower_ty.starts_with("iterable<") || lower_ty.starts_with("asynciterable<") {
         return Some(DomainEvidence::Iterable);
     }
-    if ty.starts_with("iterator<") || ty.starts_with("asynciterator<") {
+    if lower_ty.starts_with("iterator<") || lower_ty.starts_with("asynciterator<") {
         return Some(DomainEvidence::Iterator);
     }
-    if ty.starts_with("promise<") {
+    if lower_ty.starts_with("promise<") {
         return Some(DomainEvidence::PromiseLike);
     }
-    if ty.starts_with("record<") {
+    if lower_ty.starts_with("record<") {
         return Some(DomainEvidence::Record);
     }
-    if ty.starts_with("result<") {
+    if lower_ty.starts_with("result<") {
         return Some(DomainEvidence::Result);
     }
-    if ty == "boolean" {
-        return Some(DomainEvidence::Boolean);
+    let primitive_ty = strip_ts_prefixes(&raw_ty);
+    match primitive_ty {
+        "boolean" => Some(DomainEvidence::Boolean),
+        "string" => Some(DomainEvidence::String),
+        "number" => Some(DomainEvidence::Number),
+        _ => None,
     }
-    if ty == "string" {
-        return Some(DomainEvidence::String);
-    }
-    if ty == "number" {
-        return Some(DomainEvidence::Number);
-    }
-    None
 }
 
 fn python_type_domain(text: &str) -> Option<DomainEvidence> {
@@ -305,11 +306,24 @@ fn annotation_suffix(text: &str) -> String {
     suffix.split('=').next().unwrap_or(suffix).to_string()
 }
 
+fn annotation_suffix_preserving_case(text: &str) -> String {
+    let compact = compact_no_whitespace(text);
+    let suffix = compact
+        .rsplit_once(':')
+        .map(|(_, ty)| ty)
+        .unwrap_or(compact.as_str());
+    suffix.split('=').next().unwrap_or(suffix).to_string()
+}
+
 fn strip_ts_prefixes(mut ty: &str) -> &str {
     while let Some(rest) = ty.strip_prefix("readonly") {
         ty = rest;
     }
     ty
+}
+
+fn compact_no_whitespace(text: &str) -> String {
+    text.chars().filter(|c| !c.is_whitespace()).collect()
 }
 
 fn strip_python_string_annotation(ty: &str) -> &str {

@@ -28,4 +28,10 @@ pub(in crate::packs::compiled) const STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE
     "string-affix-predicate-wrong-producer-hard-negative",
     "string-affix-predicate-unsupported-arity-hard-negative",
     "string-affix-predicate-unsupported-offset-hard-negative",
+    "string-affix-predicate-javascript-untyped-receiver-hard-negative",
+    "string-affix-predicate-javascript-borrowed-prototype-hard-negative",
+    "string-affix-predicate-javascript-custom-same-name-hard-negative",
+    "string-affix-predicate-typescript-string-object-wrapper-hard-negative",
+    "string-affix-predicate-typescript-nullable-receiver-hard-negative",
+    "string-affix-predicate-typescript-prototype-patching-hard-negative",
 ];

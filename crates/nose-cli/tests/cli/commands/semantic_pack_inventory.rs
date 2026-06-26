@@ -11,8 +11,8 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
     assert_eq!(json["totals"]["positive_fixtures"], 188);
-    assert_eq!(json["totals"]["hard_negatives"], 148);
-    assert_eq!(json["totals"]["conformance_refs"], 336);
+    assert_eq!(json["totals"]["hard_negatives"], 154);
+    assert_eq!(json["totals"]["conformance_refs"], 342);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -75,7 +75,13 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-wrong-pack-hard-negative",
             "string-affix-predicate-wrong-producer-hard-negative",
             "string-affix-predicate-unsupported-arity-hard-negative",
-            "string-affix-predicate-unsupported-offset-hard-negative"
+            "string-affix-predicate-unsupported-offset-hard-negative",
+            "string-affix-predicate-javascript-untyped-receiver-hard-negative",
+            "string-affix-predicate-javascript-borrowed-prototype-hard-negative",
+            "string-affix-predicate-javascript-custom-same-name-hard-negative",
+            "string-affix-predicate-typescript-string-object-wrapper-hard-negative",
+            "string-affix-predicate-typescript-nullable-receiver-hard-negative",
+            "string-affix-predicate-typescript-prototype-patching-hard-negative"
         ]
     );
     assert_eq!(
