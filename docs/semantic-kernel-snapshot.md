@@ -211,6 +211,10 @@ still being migrated toward it.
   `strings.HasPrefix`/`HasSuffix`; Ruby literal receivers provide exact string
   proof while untyped/custom Ruby receivers, multi-affix calls, wrong receivers,
   direction mismatches, and same-file `String` monkey patches remain closed.
+  Same-role parameter affixes and immutable literal binding affixes remain
+  admitted coordinate sources; wrong parameter coordinates, dynamic affix
+  expressions, mutated bindings, Python tuple affixes, and JS/Java offset forms
+  remain outside whole-string prefix/suffix proof.
   Missing or non-string receiver proof, missing or wrong Go namespace proof,
   wrong-pack or wrong-producer evidence, unsupported arities, offset forms,
   JS/TS untyped receivers, `String` object wrappers, nullable receivers,

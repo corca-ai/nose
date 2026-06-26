@@ -379,9 +379,11 @@ previous semantic-kernel tranches.
    prefix/suffix API occurrence provenance under exact string receiver proof for
    receiver methods and imported `strings` namespace proof for Go
    `strings.HasPrefix`/`HasSuffix`, while preserving prefix/suffix direction and
-   receiver-vs-affix argument coordinates; conformance hard negatives keep
-   non-string receivers, missing or wrong Go namespace proof, wrong producer
-   provenance, unsupported arities, offset argument forms, JS/TS untyped
+   receiver-vs-affix argument coordinates. Same-role parameter affixes and
+   immutable literal local/module binding affixes are covered positives;
+   conformance hard negatives keep non-string receivers, missing or wrong Go
+   namespace proof, wrong producer provenance, unsupported arities, offset
+   argument forms, wrong/dynamic/mutated affix coordinates, JS/TS untyped
    receivers, `String` object wrappers, nullable receivers, borrowed/custom
    same-name calls, direct `String.prototype` patching, Ruby untyped/custom
    receivers, Ruby multi-affix calls, and Ruby `String` monkey patches closed.

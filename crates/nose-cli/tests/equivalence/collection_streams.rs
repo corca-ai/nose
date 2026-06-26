@@ -85,6 +85,41 @@ fn swift_foreach_and_standard_apis_join_existing_semantic_families() {
 }
 
 #[test]
+fn string_affix_coordinate_sources_keep_safe_boundaries() {
+    let i = Interner::new();
+    let ts_param = "function f(subject: string, prefix: string, other: string): boolean {\n    return subject.startsWith(prefix);\n}\n";
+    let swift_param = "func f(_ subject: String, _ prefix: String, _ other: String) -> Bool {\n    return subject.hasPrefix(prefix)\n}\n";
+    let py_param = "def f(subject: str, prefix: str, other: str) -> bool:\n    return subject.startswith(prefix)\n";
+    let ts_wrong_param = "function f(subject: string, prefix: string, other: string): boolean {\n    return subject.startsWith(other);\n}\n";
+    let ts_dynamic = "function f(subject: string, prefix: string): boolean {\n    const normalized = prefix.trim();\n    return subject.startsWith(normalized);\n}\n";
+
+    let param_fp = value_fp(&i, ts_param, Lang::TypeScript);
+    assert_eq!(param_fp, value_fp(&i, swift_param, Lang::Swift));
+    assert_eq!(param_fp, value_fp(&i, py_param, Lang::Python));
+    assert_ne!(param_fp, value_fp(&i, ts_wrong_param, Lang::TypeScript));
+    assert_ne!(param_fp, value_fp(&i, ts_dynamic, Lang::TypeScript));
+
+    let py_literal = "def f(subject: str) -> bool:\n    return subject.startswith(\"pre\")\n";
+    let ts_local = "function f(subject: string): boolean {\n    const prefix = \"pre\";\n    return subject.startsWith(prefix);\n}\n";
+    let py_module =
+        "PREFIX = \"pre\"\ndef f(subject: str) -> bool:\n    return subject.startswith(PREFIX)\n";
+    let ts_mutated = "let PREFIX = \"pre\";\nPREFIX = \"other\";\nfunction f(subject: string): boolean {\n    return subject.startsWith(PREFIX);\n}\n";
+    let literal_fp = value_fp(&i, py_literal, Lang::Python);
+    assert_eq!(literal_fp, value_fp(&i, ts_local, Lang::TypeScript));
+    assert_eq!(literal_fp, value_fp(&i, py_module, Lang::Python));
+    assert_ne!(literal_fp, value_fp(&i, ts_mutated, Lang::TypeScript));
+
+    let py_tuple =
+        "def f(subject: str) -> bool:\n    return subject.startswith((\"pre\", \"alt\"))\n";
+    let js_offset = "function f(subject) {\n    return subject.startsWith(\"pre\", 1);\n}\n";
+    let java_offset =
+        "class C { boolean f(String subject) { return subject.startsWith(\"pre\", 1); } }\n";
+    assert_ne!(literal_fp, value_fp(&i, py_tuple, Lang::Python));
+    assert_ne!(literal_fp, value_fp(&i, js_offset, Lang::JavaScript));
+    assert_ne!(literal_fp, value_fp(&i, java_offset, Lang::Java));
+}
+
+#[test]
 fn java_stream_aggregates_converge_with_loops() {
     // Java stream pipelines should lower into the same shared iteration/reduction
     // shapes as enhanced-for loops: `Arrays.stream(xs)` is just the source collection,

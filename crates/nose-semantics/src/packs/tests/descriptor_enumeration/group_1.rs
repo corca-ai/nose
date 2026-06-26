@@ -383,8 +383,8 @@ pub(super) fn assert_group() {
     );
     assert_eq!(string_affix.counts().evidence_producers, 1);
     assert_eq!(string_affix.counts().contracts, 1);
-    assert_eq!(string_affix.counts().positive_fixtures, 16);
-    assert_eq!(string_affix.counts().hard_negatives, 30);
+    assert_eq!(string_affix.counts().positive_fixtures, 18);
+    assert_eq!(string_affix.counts().hard_negatives, 36);
     for reference in [
         "string-affix-predicate-python-startswith-positive",
         "string-affix-predicate-python-endswith-positive",
@@ -397,6 +397,8 @@ pub(super) fn assert_group() {
         "string-affix-predicate-go-has-suffix-positive",
         "string-affix-predicate-ruby-start-with-positive",
         "string-affix-predicate-ruby-end-with-positive",
+        "string-affix-predicate-parameter-coordinate-positive",
+        "string-affix-predicate-immutable-binding-coordinate-positive",
         "string-affix-predicate-direction-mismatch-hard-negative",
         "string-affix-predicate-non-string-receiver-hard-negative",
         "string-affix-predicate-go-missing-import-hard-negative",
@@ -424,6 +426,12 @@ pub(super) fn assert_group() {
         "string-affix-predicate-ruby-monkey-patch-hard-negative",
         "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative",
         "string-affix-predicate-ruby-define-method-monkey-patch-hard-negative",
+        "string-affix-predicate-wrong-parameter-coordinate-hard-negative",
+        "string-affix-predicate-dynamic-affix-coordinate-hard-negative",
+        "string-affix-predicate-mutated-binding-coordinate-hard-negative",
+        "string-affix-predicate-python-tuple-affix-unsupported-hard-negative",
+        "string-affix-predicate-javascript-offset-unsupported-hard-negative",
+        "string-affix-predicate-java-offset-unsupported-hard-negative",
     ] {
         assert!(string_affix.conformance_refs().contains(&reference));
     }

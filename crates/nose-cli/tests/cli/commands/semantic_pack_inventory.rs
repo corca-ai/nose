@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
-    assert_eq!(json["totals"]["positive_fixtures"], 190);
-    assert_eq!(json["totals"]["hard_negatives"], 169);
-    assert_eq!(json["totals"]["conformance_refs"], 359);
+    assert_eq!(json["totals"]["positive_fixtures"], 192);
+    assert_eq!(json["totals"]["hard_negatives"], 175);
+    assert_eq!(json["totals"]["conformance_refs"], 367);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -63,7 +63,9 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-go-has-prefix-positive",
             "string-affix-predicate-go-has-suffix-positive",
             "string-affix-predicate-ruby-start-with-positive",
-            "string-affix-predicate-ruby-end-with-positive"
+            "string-affix-predicate-ruby-end-with-positive",
+            "string-affix-predicate-parameter-coordinate-positive",
+            "string-affix-predicate-immutable-binding-coordinate-positive"
         ]
     );
     assert_eq!(
@@ -98,14 +100,23 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
             "string-affix-predicate-ruby-direction-mismatch-hard-negative",
             "string-affix-predicate-ruby-monkey-patch-hard-negative",
             "string-affix-predicate-ruby-class-eval-monkey-patch-hard-negative",
-            "string-affix-predicate-ruby-define-method-monkey-patch-hard-negative"
+            "string-affix-predicate-ruby-define-method-monkey-patch-hard-negative",
+            "string-affix-predicate-wrong-parameter-coordinate-hard-negative",
+            "string-affix-predicate-dynamic-affix-coordinate-hard-negative",
+            "string-affix-predicate-mutated-binding-coordinate-hard-negative",
+            "string-affix-predicate-python-tuple-affix-unsupported-hard-negative",
+            "string-affix-predicate-javascript-offset-unsupported-hard-negative",
+            "string-affix-predicate-java-offset-unsupported-hard-negative"
         ]
     );
     assert_eq!(
         json_array_strings(&string_affix["conformance"], "unsupported_refs"),
         vec![
             "string-affix-predicate-unsupported-arity-hard-negative",
-            "string-affix-predicate-unsupported-offset-hard-negative"
+            "string-affix-predicate-unsupported-offset-hard-negative",
+            "string-affix-predicate-python-tuple-affix-unsupported-hard-negative",
+            "string-affix-predicate-javascript-offset-unsupported-hard-negative",
+            "string-affix-predicate-java-offset-unsupported-hard-negative"
         ]
     );
 }

@@ -571,7 +571,10 @@ implicit v0 packs:
   `String.prototype` patching are hard negatives; Ruby literal receivers can
   provide exact string proof, while untyped/custom Ruby receivers, multi-affix
   calls, wrong receivers, direction mismatches, and same-file `String` monkey
-  patches stay closed;
+  patches stay closed; same-role parameter affixes and immutable literal
+  local/module binding affixes are supported coordinate sources, while wrong
+  parameter coordinates, dynamic affix expressions, mutated bindings, tuple or
+  multi-affix forms, and offset forms stay closed or unsupported;
 - `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`, `strings.Contains`,
   and `slices.Contains` API occurrence contracts under imported-namespace
   proof;

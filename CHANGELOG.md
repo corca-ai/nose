@@ -22,6 +22,10 @@ break.
   same string-affix protocol, admitting literal string receivers while keeping
   untyped receivers, custom same-name methods, multi-affix calls, wrong
   receivers, direction mismatches, and same-file `String` monkey patches closed.
+- Pinned string-affix coordinate boundaries with conformance coverage for
+  same-role parameter affixes and immutable literal bindings, while keeping
+  wrong parameters, dynamic affix expressions, mutated bindings, Python tuple
+  affixes, and JS/Java offset forms out of whole-string prefix proof.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

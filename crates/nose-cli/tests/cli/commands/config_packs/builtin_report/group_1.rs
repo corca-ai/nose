@@ -328,8 +328,8 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(string_affix["counts"]["evidence_producers"], 1);
     assert_eq!(string_affix["counts"]["contracts"], 1);
     assert_eq!(string_affix["counts"]["value_laws"], 0);
-    assert_eq!(string_affix["counts"]["positive_fixtures"], 16);
-    assert_eq!(string_affix["counts"]["hard_negatives"], 30);
+    assert_eq!(string_affix["counts"]["positive_fixtures"], 18);
+    assert_eq!(string_affix["counts"]["hard_negatives"], 36);
 
     let sequence_hof_adapter = semantic_pack_by_id(&json, "nose.protocols.sequence_hof_adapters");
     assert_eq!(sequence_hof_adapter["hash"], "2c6344624cc74477");

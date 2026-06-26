@@ -127,6 +127,10 @@ namespace proof, wrong pack or producer provenance, unsupported arity,
 unsupported offset argument forms, untyped JavaScript receivers, borrowed
 prototype calls, custom same-name methods, TypeScript `String` object wrappers,
 nullable receivers, and direct JS/TS `String.prototype` patching closed.
+Same-role parameter affix coordinates and immutable literal local/module binding
+coordinates are pinned as supported positives; wrong parameter coordinates,
+dynamic affix expressions, mutated bindings, Python tuple affixes, and JS/Java
+offset forms remain hard negatives or unsupported refs.
 The focused #558 product comparison is recorded in
 [string-affix-conformance-closeout-558](string-affix-conformance-closeout-558.md).
 The aggregate #548 protocol extraction closeout is recorded in
@@ -137,6 +141,8 @@ The focused #550 JS/TS receiver-proof hardening is recorded in
 [js-ts-string-affix-hardening-closeout-550](js-ts-string-affix-hardening-closeout-550.md).
 The focused #551 Ruby receiver-proof slice is recorded in
 [ruby-string-affix-closeout-551](ruby-string-affix-closeout-551.md).
+The focused #552 coordinate-boundary slice is recorded in
+[string-affix-coordinate-closeout-552](string-affix-coordinate-closeout-552.md).
 
 ## Builtin Inventory JSON
 
@@ -151,10 +157,10 @@ The focused #551 Ruby receiver-proof slice is recorded in
     "builtin_packs": 49,
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 190,
-    "hard_negatives": 169,
-    "conformance_refs": 359,
-    "unsupported_refs": 20
+    "positive_fixtures": 192,
+    "hard_negatives": 175,
+    "conformance_refs": 367,
+    "unsupported_refs": 23
   },
   "evidence_policy": {
     "product_output": "required-on-implementation-pr",

@@ -94,6 +94,13 @@ block-scoped-shadow receiver shapes. These are accepted test-evidence families,
 not production refactor opportunities; the reviewed default-surface budget moves
 from 52 to 54.
 
+The 2026-06-26 string-affix coordinate-boundary pass (#552) adds a more focused
+`string_affix_552` product-regression corpus for parameter, immutable binding,
+multi-affix, and offset boundaries. With the current clustering, the earlier
+cross-language proved-prefix fixture family `340cd841f428840f` is no longer
+reported as a substantial default-surface near-duplicate. This tightens the
+reviewed default-surface budget from 54 to 53; no new family is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |
