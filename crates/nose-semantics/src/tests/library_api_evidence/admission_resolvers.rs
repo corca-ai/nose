@@ -14,6 +14,7 @@ mod scalar_integer;
 mod sequence_hof;
 mod span;
 mod static_index;
+mod string_affix;
 
 mod support_core;
 mod support_factories;

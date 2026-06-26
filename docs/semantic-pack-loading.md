@@ -155,6 +155,8 @@ Trust is separate from channel eligibility.
   `nose.protocols.builtin_method_calls` owns generic method-call and
   namespace-call builtin semantics that have not moved to a narrower protocol
   pack;
+  `nose.protocols.string_affix_predicates` owns case-sensitive receiver-method
+  prefix/suffix API occurrence provenance under exact string receiver proof;
   `nose.protocols.sequence_hof_adapters` owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance plus
   `any`/`all`/`count` terminal proof, Swift Array/Collection

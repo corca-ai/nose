@@ -140,6 +140,18 @@ pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_LANGUAGES: &[&str] = &[
     "ruby",
     "swift",
 ];
+pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_LANGUAGES: &[&str] = &[
+    "python",
+    "javascript",
+    "typescript",
+    "vue",
+    "svelte",
+    "html",
+    "rust",
+    "java",
+    "ruby",
+    "swift",
+];
 pub(super) const MAP_GET_PROTOCOL_LANGUAGES: &[&str] = &[
     "java",
     "rust",
@@ -185,6 +197,8 @@ pub(super) const PROPERTY_BUILTIN_PROTOCOL_PACKAGES: &[&str] =
     &["Array", "Collection", "Swift.Collection", "java.lang"];
 pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_PACKAGES: &[&str] =
     &["Collection", "Option", "String", "console", "functools"];
+pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_PACKAGES: &[&str] =
+    &["String", "str", "Swift.String", "java.lang"];
 pub(super) const GO_STDLIB_NAMESPACE_CALL_PACKAGES: &[&str] = &["fmt", "slices", "strings"];
 pub(super) const JS_LIKE_BUILTIN_ARRAY_PACKAGES: &[&str] = &["Array"];
 pub(super) const JS_LIKE_BUILTIN_BOOLEAN_PACKAGES: &[&str] = &["Boolean"];
@@ -453,13 +467,24 @@ pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
     "builtin-method-call-js-push-positive",
     "builtin-method-call-rust-len-positive",
     "builtin-method-call-java-size-positive",
-    "builtin-method-call-python-startswith-positive",
     "builtin-method-call-python-join-positive",
     "builtin-method-call-rust-unwrap-or-positive",
     "builtin-method-call-python-reduce-positive",
     "builtin-method-call-missing-receiver-proof-hard-negative",
     "builtin-method-call-wrong-pack-hard-negative",
     "builtin-method-call-unsupported-arity-hard-negative",
+];
+pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_IDS: &[&str] =
+    &[STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID];
+pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_CONTRACT_IDS: &[&str] =
+    &[STRING_AFFIX_PREDICATE_CONTRACT_ID];
+pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
+    "string-affix-predicate-python-startswith-positive",
+    "string-affix-predicate-python-endswith-positive",
+    "string-affix-predicate-direction-mismatch-hard-negative",
+    "string-affix-predicate-missing-receiver-proof-hard-negative",
+    "string-affix-predicate-wrong-pack-hard-negative",
+    "string-affix-predicate-unsupported-arity-hard-negative",
 ];
 pub(super) const GO_STDLIB_NAMESPACE_CALL_PRODUCER_IDS: &[&str] =
     &[GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID];

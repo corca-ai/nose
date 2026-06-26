@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 26] = [
+pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 27] = [
     BuiltinPackDescriptor {
         id: JAVA_STDLIB_MATH_PACK_ID,
         kind: SemanticPackKind::StdlibPack,
@@ -285,6 +285,25 @@ pub(super) const DESCRIPTORS: [BuiltinPackDescriptor; 26] = [
         static_conformance_refs: BUILTIN_METHOD_CALL_PROTOCOL_CONFORMANCE_REFS,
         dynamic_conformance_refs: None,
         counts: builtin_method_call_protocol_counts,
+    },
+    BuiltinPackDescriptor {
+        id: STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID,
+        kind: SemanticPackKind::ProtocolPack,
+        display_name: "nose string affix predicate protocol pack",
+        trust: PackTrust::BuiltinDefault,
+        enabled_by_default: true,
+        supported_languages: STRING_AFFIX_PREDICATE_PROTOCOL_LANGUAGES,
+        supported_packages: STRING_AFFIX_PREDICATE_PROTOCOL_PACKAGES,
+        language: None,
+        evidence_producer_ids: STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_IDS,
+        source_fact_producer_ids: NO_IDS,
+        contract_ids: STRING_AFFIX_PREDICATE_PROTOCOL_CONTRACT_IDS,
+        type_domain_alias_contracts: NO_TYPE_DOMAIN_ALIAS_CONTRACTS,
+        static_value_law_ids: NO_IDS,
+        dynamic_value_law_ids: None,
+        static_conformance_refs: STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE_REFS,
+        dynamic_conformance_refs: None,
+        counts: string_affix_predicate_protocol_counts,
     },
     BuiltinPackDescriptor {
         id: SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID,

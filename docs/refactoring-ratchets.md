@@ -165,6 +165,9 @@ and behavior easier to reason about:
   factories, import facts, local binding evidence, library API spans, map
   factories/access/membership, and integer min/max/clamp calls now live in
   focused `nose-normalize/src/value_graph/stdlib/*` modules;
+- keep compiled semantic-pack count helpers split by ownership surface; protocol
+  pack counts live under `nose-semantics/src/packs/compiled/counts/protocols.rs`
+  instead of growing the count-suite root;
 - keep value-graph tests as a thin suite root plus domain modules; builder,
   factory, guard, library API, membership, promise, sequence-surface, source
   evidence, and shared fixture helpers now live under

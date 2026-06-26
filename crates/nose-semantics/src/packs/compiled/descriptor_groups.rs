@@ -3,7 +3,7 @@ use super::*;
 mod group_0;
 mod group_1;
 
-pub(super) static BUILTIN_PACK_DESCRIPTORS: [BuiltinPackDescriptor; 48] = [
+pub(super) static BUILTIN_PACK_DESCRIPTORS: [BuiltinPackDescriptor; 49] = [
     group_0::DESCRIPTORS[0],
     group_0::DESCRIPTORS[1],
     group_0::DESCRIPTORS[2],
@@ -52,4 +52,5 @@ pub(super) static BUILTIN_PACK_DESCRIPTORS: [BuiltinPackDescriptor; 48] = [
     group_1::DESCRIPTORS[23],
     group_1::DESCRIPTORS[24],
     group_1::DESCRIPTORS[25],
+    group_1::DESCRIPTORS[26],
 ];

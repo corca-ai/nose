@@ -69,6 +69,10 @@ pub const PROPERTY_BUILTIN_IS_EMPTY_CONTRACT_ID: &str = "property_builtin.is_emp
 pub const BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID: &str = "nose.protocols.builtin_method_calls";
 pub const BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID: &str = "protocols.builtin-method-call-api";
 pub const BUILTIN_METHOD_CALL_CONTRACT_ID: &str = "builtin_method.call";
+pub const STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID: &str = "nose.protocols.string_affix_predicates";
+pub const STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID: &str =
+    "protocols.string-affix-predicate-api";
+pub const STRING_AFFIX_PREDICATE_CONTRACT_ID: &str = "string_affix.predicate";
 pub const SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID: &str = "nose.protocols.sequence_hof_adapters";
 pub const SEQUENCE_HOF_ADAPTER_PROTOCOL_PRODUCER_ID: &str = "protocols.sequence-hof-adapter-api";
 pub const SEQUENCE_HOF_ADAPTER_CONTRACT_ID: &str = "sequence_hof.method_call";

@@ -36,7 +36,6 @@
     "8a741b956dc35bad",
     "a14558ef919c3e76",
     "b527e97155167c1b",
-    "b7a3fa1f37880138",
     "bf4255f2994b1d65",
     "c8961b547fcb59c7",
     "c9fe4dc9d9cd14f5",
@@ -54,7 +53,7 @@
     "f57a5ee0ebbdf114",
     "f88aeebdec4f2c68"
   ],
-  "budget": 53,
+  "budget": 52,
   "generated_by": "target/release/nose query crates all top=0 --mode near --min-value 40 --format json",
   "min_value": 40,
   "mode": "near",

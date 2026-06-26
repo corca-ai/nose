@@ -5,31 +5,7 @@ fn map_key_view_call_il(
     method: &str,
     arg_count: usize,
 ) -> (Il, Interner, NodeId, NodeId, NodeId) {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(142), &[]);
-    let callee = b.add(
-        NodeKind::Field,
-        Payload::Name(interner.intern(method)),
-        sp(143),
-        &[receiver],
-    );
-    let args = (0..arg_count)
-        .map(|idx| {
-            b.add(
-                NodeKind::Var,
-                Payload::Cid(1 + idx as u32),
-                sp(144 + idx as u32),
-                &[],
-            )
-        })
-        .collect::<Vec<_>>();
-    let mut children = Vec::with_capacity(args.len() + 1);
-    children.push(callee);
-    children.extend(args);
-    let call = b.add(NodeKind::Call, Payload::None, sp(146), &children);
-    let root = b.add(NodeKind::Func, Payload::None, sp(147), &[call]);
-    (finish_il(b, root, lang), interner, call, callee, receiver)
+    receiver_method_call_il(lang, method, arg_count, 142)
 }
 
 fn push_map_receiver_dependency(il: &mut Il, receiver: NodeId) {

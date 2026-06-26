@@ -288,8 +288,47 @@ pub(super) fn assert_group(json: &serde_json::Value) {
     assert_eq!(builtin_method_call["counts"]["evidence_producers"], 1);
     assert_eq!(builtin_method_call["counts"]["contracts"], 1);
     assert_eq!(builtin_method_call["counts"]["value_laws"], 0);
-    assert_eq!(builtin_method_call["counts"]["positive_fixtures"], 8);
+    assert_eq!(builtin_method_call["counts"]["positive_fixtures"], 7);
     assert_eq!(builtin_method_call["counts"]["hard_negatives"], 3);
+
+    let string_affix = semantic_pack_by_id(&json, "nose.protocols.string_affix_predicates");
+    assert_eq!(string_affix["hash"], "c5150f9f4b3559b4");
+    assert_eq!(string_affix["kind"], "ProtocolPack");
+    assert_eq!(
+        string_affix["display_name"],
+        "nose string affix predicate protocol pack"
+    );
+    assert_eq!(string_affix["source"], "compiled-builtin");
+    assert_eq!(string_affix["influence"], "evidence-and-contracts");
+    assert_eq!(string_affix["trust"], "builtin-default");
+    assert_eq!(string_affix["enabled_by_default"], true);
+    assert_eq!(string_affix["path"], serde_json::Value::Null);
+    assert_eq!(string_affix["provider"], "Corca, Inc.");
+    assert_eq!(
+        string_affix["repository"],
+        "https://github.com/corca-ai/nose"
+    );
+    assert_eq!(string_affix["license"], "MIT");
+    assert_eq!(
+        json_array_strings(string_affix, "supported_languages"),
+        vec![
+            "python",
+            "javascript",
+            "typescript",
+            "vue",
+            "svelte",
+            "html",
+            "rust",
+            "java",
+            "ruby",
+            "swift"
+        ]
+    );
+    assert_eq!(string_affix["counts"]["evidence_producers"], 1);
+    assert_eq!(string_affix["counts"]["contracts"], 1);
+    assert_eq!(string_affix["counts"]["value_laws"], 0);
+    assert_eq!(string_affix["counts"]["positive_fixtures"], 2);
+    assert_eq!(string_affix["counts"]["hard_negatives"], 4);
 
     let sequence_hof_adapter = semantic_pack_by_id(&json, "nose.protocols.sequence_hof_adapters");
     assert_eq!(sequence_hof_adapter["hash"], "2c6344624cc74477");

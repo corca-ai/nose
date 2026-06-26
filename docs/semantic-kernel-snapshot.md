@@ -205,6 +205,10 @@ still being migrated toward it.
   and namespace-call builtin semantics that have not moved to a narrower
   protocol or stdlib pack, while receiver/symbol/import proof and unsupported
   arities remain hard negatives. The
+  `nose.protocols.string_affix_predicates` descriptor owns case-sensitive
+  receiver-method prefix/suffix predicate contracts under exact string receiver
+  proof, while direction mismatches, missing receiver proof, wrong-pack
+  evidence, and unsupported arities remain hard negatives. The
   `nose.protocols.sequence_hof_adapters` descriptor owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
   `any`/`all`/`count` terminal proof on explicit protocol receivers. It also

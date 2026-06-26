@@ -40,6 +40,49 @@ pub(crate) fn asserted_library_api_node_record_with_provenance(
     record
 }
 
+pub(crate) fn receiver_method_call_il(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+    span_base: u32,
+) -> (Il, Interner, NodeId, NodeId, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(span_base), &[]);
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern(method)),
+        sp(span_base + 1),
+        &[receiver],
+    );
+    let args = (0..arg_count)
+        .map(|idx| {
+            b.add(
+                NodeKind::Var,
+                Payload::Cid(1 + idx as u32),
+                sp(span_base + 2 + idx as u32),
+                &[],
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut children = Vec::with_capacity(args.len() + 1);
+    children.push(callee);
+    children.extend(args);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(span_base + 2 + arg_count as u32),
+        &children,
+    );
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        sp(span_base + 3 + arg_count as u32),
+        &[call],
+    );
+    (finish_il(b, root, lang), interner, call, callee, receiver)
+}
+
 #[derive(Clone, Copy)]
 pub(crate) enum CallbackFixtureShape {
     InlineFunc { cid: u32 },

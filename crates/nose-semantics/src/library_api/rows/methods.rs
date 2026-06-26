@@ -450,6 +450,11 @@ fn method_call_contract_provenance(
             JS_LIKE_BUILTIN_ARRAY_PACK_ID,
             JS_LIKE_BUILTIN_ARRAY_PRODUCER_ID,
         )
+    } else if receiver_method_string_affix_predicate(contract) {
+        (
+            STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID,
+            STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID,
+        )
     } else if lang == Lang::Go
         && matches!(
             (contract.semantic, contract.receiver, contract.args,),
@@ -509,6 +514,17 @@ fn method_call_contract_provenance(
             BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
         )
     }
+}
+
+fn receiver_method_string_affix_predicate(contract: MethodCallContract) -> bool {
+    matches!(
+        (contract.semantic, contract.receiver, contract.args),
+        (
+            MethodSemanticContract::Builtin(Builtin::StartsWith | Builtin::EndsWith),
+            MethodReceiverContract::ExactString,
+            MethodBuiltinArgs::ReceiverAndFirst,
+        )
+    )
 }
 
 pub fn library_map_get_default_contract(

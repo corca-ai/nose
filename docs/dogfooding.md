@@ -433,3 +433,10 @@ fixture builders. The remaining drift is representative-ID churn: `4e655a7c9a3d2
 and `d836cac640ba27ba` appears. The new representative covers the same reviewed HOF
 demand/materialization negative scaffolding, now anchored on the shared `map_len_il_with_lambda`
 helper plus the strict-exact pull-lazy `len` boundary test. No new budget is accepted.
+
+The #557 string affix protocol-pack extraction tightens the count from 53 to 52. Adding
+`string_affix_call_il` first joined the existing receiver-method `LibraryApi` fixture family
+covering `map_get_default_call_il`, `map_key_view_call_il`, and
+`receiver_membership_call_il`. That was avoidable test scaffolding, so the resolver tests now share
+one named `receiver_method_call_il` helper. Accepted representative `b7a3fa1f37880138` no longer
+reports and no new default-surface family appears.

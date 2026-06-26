@@ -8,11 +8,11 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
 
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["status"], "ok");
-    assert_eq!(json["totals"]["packs"], 48);
-    assert_eq!(json["totals"]["builtin_packs"], 48);
-    assert_eq!(json["totals"]["positive_fixtures"], 177);
-    assert_eq!(json["totals"]["hard_negatives"], 139);
-    assert_eq!(json["totals"]["conformance_refs"], 316);
+    assert_eq!(json["totals"]["packs"], 49);
+    assert_eq!(json["totals"]["builtin_packs"], 49);
+    assert_eq!(json["totals"]["positive_fixtures"], 178);
+    assert_eq!(json["totals"]["hard_negatives"], 143);
+    assert_eq!(json["totals"]["conformance_refs"], 321);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -31,8 +31,40 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_swift_collection_factory_pack(packs);
     assert_guava_pack(packs);
     assert_sequence_hof_adapter_pack(packs);
+    assert_string_affix_predicate_pack(packs);
     assert_python_iterator_builtin_pack(packs);
     assert_compat_pack(packs);
+}
+
+fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
+    let string_affix = inventory_pack(packs, "nose.protocols.string_affix_predicates");
+    assert_eq!(string_affix["kind"], "ProtocolPack");
+    assert_eq!(string_affix["audit"]["exact_capable"], true);
+    assert_eq!(string_affix["audit"]["coverage_status"], "covered");
+    assert_eq!(
+        json_array_strings(&string_affix["declarations"], "contracts"),
+        vec!["string_affix.predicate"]
+    );
+    assert_eq!(
+        json_array_strings(&string_affix["conformance"], "positive_refs"),
+        vec![
+            "string-affix-predicate-python-startswith-positive",
+            "string-affix-predicate-python-endswith-positive"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&string_affix["conformance"], "hard_negative_refs"),
+        vec![
+            "string-affix-predicate-direction-mismatch-hard-negative",
+            "string-affix-predicate-missing-receiver-proof-hard-negative",
+            "string-affix-predicate-wrong-pack-hard-negative",
+            "string-affix-predicate-unsupported-arity-hard-negative"
+        ]
+    );
+    assert_eq!(
+        json_array_strings(&string_affix["conformance"], "unsupported_refs"),
+        vec!["string-affix-predicate-unsupported-arity-hard-negative"]
+    );
 }
 
 fn assert_python_iterator_builtin_pack(packs: &[serde_json::Value]) {

@@ -5,31 +5,9 @@ fn receiver_membership_call_il(
     method: &str,
     arg_count: usize,
 ) -> (Il, Interner, NodeId, NodeId) {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(162), &[]);
-    let callee = b.add(
-        NodeKind::Field,
-        Payload::Name(interner.intern(method)),
-        sp(163),
-        &[receiver],
-    );
-    let args = (0..arg_count)
-        .map(|idx| {
-            b.add(
-                NodeKind::Var,
-                Payload::Cid(1 + idx as u32),
-                sp(164 + idx as u32),
-                &[],
-            )
-        })
-        .collect::<Vec<_>>();
-    let mut children = Vec::with_capacity(args.len() + 1);
-    children.push(callee);
-    children.extend(args);
-    let call = b.add(NodeKind::Call, Payload::None, sp(168), &children);
-    let root = b.add(NodeKind::Func, Payload::None, sp(169), &[call]);
-    (finish_il(b, root, lang), interner, call, receiver)
+    let (il, interner, call, _callee, receiver) =
+        receiver_method_call_il(lang, method, arg_count, 162);
+    (il, interner, call, receiver)
 }
 
 fn push_receiver_domain_dependency(il: &mut Il, receiver: NodeId, domain: DomainEvidence) {

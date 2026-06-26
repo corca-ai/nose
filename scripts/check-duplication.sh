@@ -83,6 +83,9 @@ set -euo pipefail
 # 54 -> 53 (#537 Swift Sequence HOF): shared callback fixture nodes and receiver-domain setup
 # remove the draft Swift-HOF test-scope duplication plus one accepted representative from the
 # baseline. The budget is tightened again.
+# 53 -> 52 (#557 string affix protocol pack): the new string-affix admission resolver initially
+# joined the existing receiver-method LibraryApi fixture family. Extracting the shared
+# receiver-method call fixture removes that accepted representative with no new family.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

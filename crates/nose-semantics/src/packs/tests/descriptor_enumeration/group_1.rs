@@ -340,11 +340,59 @@ pub(super) fn assert_group() {
     );
     assert_eq!(builtin_method_call.counts().evidence_producers, 1);
     assert_eq!(builtin_method_call.counts().contracts, 1);
-    assert_eq!(builtin_method_call.counts().positive_fixtures, 8);
+    assert_eq!(builtin_method_call.counts().positive_fixtures, 7);
     assert_eq!(builtin_method_call.counts().hard_negatives, 3);
     assert!(builtin_method_call
         .conformance_refs()
         .contains(&"builtin-method-call-wrong-pack-hard-negative"));
+    assert!(!builtin_method_call
+        .conformance_refs()
+        .contains(&"builtin-method-call-python-startswith-positive"));
+
+    let string_affix = builtin_pack_descriptor(STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID)
+        .expect("string affix predicate protocol descriptor");
+    assert_eq!(string_affix.kind, SemanticPackKind::ProtocolPack);
+    assert_eq!(
+        string_affix.supported_languages,
+        &[
+            "python",
+            "javascript",
+            "typescript",
+            "vue",
+            "svelte",
+            "html",
+            "rust",
+            "java",
+            "ruby",
+            "swift"
+        ]
+    );
+    assert_eq!(
+        string_affix.supported_packages,
+        &["String", "str", "Swift.String", "java.lang"]
+    );
+    assert_eq!(
+        string_affix.evidence_producer_ids,
+        &[STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID]
+    );
+    assert!(string_affix.source_fact_producer_ids.is_empty());
+    assert_eq!(
+        string_affix.contract_ids,
+        &[STRING_AFFIX_PREDICATE_CONTRACT_ID]
+    );
+    assert_eq!(string_affix.counts().evidence_producers, 1);
+    assert_eq!(string_affix.counts().contracts, 1);
+    assert_eq!(string_affix.counts().positive_fixtures, 2);
+    assert_eq!(string_affix.counts().hard_negatives, 4);
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-python-startswith-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-python-endswith-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-direction-mismatch-hard-negative"));
 
     let sequence_hof_adapter = builtin_pack_descriptor(SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID)
         .expect("sequence HOF adapter protocol descriptor");

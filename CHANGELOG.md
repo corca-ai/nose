@@ -6,6 +6,12 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Added the builtin `nose.protocols.string_affix_predicates` protocol pack for
+  case-sensitive receiver-method prefix/suffix predicates, moving those rows out
+  of the broad builtin-method provenance path while preserving exact string
+  receiver and prefix/suffix direction boundaries.
+
 ## [0.16.0] - 2026-06-26
 
 ### Added

@@ -470,6 +470,12 @@ fn protocol_library_api_contract_provenance_ids(
                 RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID,
             ))
         }
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+            Builtin::StartsWith | Builtin::EndsWith,
+        )) if string_affix_predicate_method_callee(callee) => Some((
+            STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID,
+            STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID,
+        )),
         LibraryApiContractId::MapKeyView(_) => Some((
             MAP_KEY_VIEW_PROTOCOL_PACK_ID,
             MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
@@ -487,6 +493,16 @@ fn protocol_library_api_contract_provenance_ids(
         )),
         _ => None,
     }
+}
+
+fn string_affix_predicate_method_callee(callee: LibraryApiCalleeContract) -> bool {
+    matches!(
+        callee,
+        LibraryApiCalleeContract::Method {
+            receiver: MethodReceiverContract::ExactString,
+            ..
+        }
+    )
 }
 
 fn exact_map_method_callee(callee: LibraryApiCalleeContract) -> bool {

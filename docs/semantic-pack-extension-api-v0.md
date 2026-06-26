@@ -563,6 +563,8 @@ implicit v0 packs:
 - `nose.protocols.builtin_method_calls` owns generic method-call and
   namespace-call builtin semantics that have not moved to a narrower protocol
   pack;
+- `nose.protocols.string_affix_predicates` owns case-sensitive receiver-method
+  prefix/suffix predicate contracts under exact string receiver proof;
 - `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`,
   `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains`
   API occurrence contracts under imported-namespace proof;
