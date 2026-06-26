@@ -169,9 +169,6 @@ fn post_lower_module_scope_statement_defines_name(
                     .name
                     .is_some_and(|symbol| interner.resolve(symbol) == expected)
         }),
-        NodeKind::Block => il.children(node).iter().copied().any(|child| {
-            post_lower_module_scope_statement_defines_name(il, interner, child, expected)
-        }),
         _ => false,
     }
 }
