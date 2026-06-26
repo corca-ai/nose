@@ -18,7 +18,7 @@ The PR changes semantic ownership, not the accepted source shape:
 ## Product Comparison
 
 Baseline ref: `origin/main@e249027dc9cb5f0030b59a35f7a2fe5aa037795a`.
-Current build ref: #549 branch after the Go string-affix ownership change.
+Current build ref: `17935f4f271a7ad67f05ab7d68e240f2bb653cd3`.
 
 Binary hashes:
 

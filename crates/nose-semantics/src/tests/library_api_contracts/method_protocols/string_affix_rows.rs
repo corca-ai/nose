@@ -73,5 +73,8 @@ fn go_namespace_string_affix_rows_use_string_affix_protocol_pack() {
             MethodReceiverContract::ImportedNamespace("strings")
         );
         assert_eq!(go_affix.result.args, MethodBuiltinArgs::All);
+
+        assert!(library_method_call_contract(Lang::Go, method, 1).is_none());
+        assert!(library_method_call_contract(Lang::Go, method, 3).is_none());
     }
 }

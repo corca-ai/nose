@@ -11,6 +11,13 @@ fn string_affix_call_il(
 }
 
 fn go_namespace_string_affix_call_il(method: &str) -> (Il, Interner, NodeId, NodeId) {
+    go_namespace_string_affix_call_il_with_arg_count(method, 2)
+}
+
+fn go_namespace_string_affix_call_il_with_arg_count(
+    method: &str,
+    arg_count: usize,
+) -> (Il, Interner, NodeId, NodeId) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let strings = b.add(
@@ -25,14 +32,16 @@ fn go_namespace_string_affix_call_il(method: &str) -> (Il, Interner, NodeId, Nod
         sp(211),
         &[strings],
     );
-    let value = b.add(NodeKind::Var, Payload::Cid(1), sp(212), &[]);
-    let affix = b.add(NodeKind::Var, Payload::Cid(2), sp(213), &[]);
-    let call = b.add(
-        NodeKind::Call,
-        Payload::None,
-        sp(214),
-        &[callee, value, affix],
-    );
+    let mut children = vec![callee];
+    for idx in 0..arg_count {
+        children.push(b.add(
+            NodeKind::Var,
+            Payload::Cid(idx as u32),
+            sp(212 + idx as u32),
+            &[],
+        ));
+    }
+    let call = b.add(NodeKind::Call, Payload::None, sp(214), &children);
     let root = b.add(NodeKind::Func, Payload::None, sp(215), &[call]);
     (finish_il(b, root, Lang::Go), interner, call, strings)
 }
@@ -390,6 +399,30 @@ fn admitted_go_namespace_string_affix_requires_string_affix_pack_and_imported_na
     assert!(
         admitted_library_method_call_at_call(&wrong_direction, &interner, call).is_none(),
         "forged Go suffix evidence cannot admit a prefix source call"
+    );
+
+    let (mut unsupported_arity, interner, call, receiver) =
+        go_namespace_string_affix_call_il_with_arg_count("HasPrefix", 1);
+    let namespace_dependency = push_imported_namespace_dependency(
+        &mut unsupported_arity,
+        receiver,
+        "strings",
+        0,
+        Lang::Go,
+    );
+    unsupported_arity
+        .evidence
+        .push(builtin_method_call_protocol_record(
+            1,
+            unsupported_arity.node(call).span,
+            contract,
+            2,
+            EvidenceStatus::Asserted,
+            &[namespace_dependency],
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&unsupported_arity, &interner, call).is_none(),
+        "forged Go affix evidence cannot open unsupported source arity"
     );
 
     assert_admitted_go_namespace_string_affix("HasPrefix", Builtin::StartsWith);
