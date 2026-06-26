@@ -123,6 +123,8 @@ Go `strings.HasPrefix` and `strings.HasSuffix` stay under
 `nose.go.stdlib.namespace_calls` until the namespace-proof slice moves.
 The focused #558 product comparison is recorded in
 [string-affix-conformance-closeout-558](string-affix-conformance-closeout-558.md).
+The aggregate #548 protocol extraction closeout is recorded in
+[string-affix-protocol-closeout-548](string-affix-protocol-closeout-548.md).
 
 ## Builtin Inventory JSON
 

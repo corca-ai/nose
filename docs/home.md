@@ -91,6 +91,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-kernel-hof-demand-511](semantic-kernel-hof-demand-511.md) — issue #511 R5: HOF, demand, and materialization boundary matrix.
 - [semantic-kernel-expansion-closeout-511](semantic-kernel-expansion-closeout-511.md) — issue #511 R6 closeout: minimal capability set, builtin expansion, external authorability, remaining blockers, and validation gates.
 - [semantic-kernel-closeout-533](semantic-kernel-closeout-533.md) — closeout for the #533 sequence-HOF and iterator materialization tranche, including product metrics and process-evidence gaps.
+- [string-affix-protocol-closeout-548](string-affix-protocol-closeout-548.md) — closeout for the #548 string prefix/suffix predicate protocol extraction, including inventory, product-output, and review evidence.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
