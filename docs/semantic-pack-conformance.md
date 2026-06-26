@@ -121,13 +121,17 @@ receiver proof. Go `strings.HasPrefix` and `strings.HasSuffix` require imported
 `strings` namespace proof under the same protocol provenance. Its hard negatives
 keep direction mismatches, missing or non-string receiver proof, missing or
 wrong Go namespace proof, wrong pack or producer provenance, unsupported arity,
-and unsupported offset argument forms closed.
+unsupported offset argument forms, untyped JavaScript receivers, borrowed
+prototype calls, custom same-name methods, TypeScript `String` object wrappers,
+nullable receivers, and direct JS/TS `String.prototype` patching closed.
 The focused #558 product comparison is recorded in
 [string-affix-conformance-closeout-558](string-affix-conformance-closeout-558.md).
 The aggregate #548 protocol extraction closeout is recorded in
 [string-affix-protocol-closeout-548](string-affix-protocol-closeout-548.md).
 The focused #549 Go namespace-proof migration is recorded in
 [go-string-affix-closeout-549](go-string-affix-closeout-549.md).
+The focused #550 JS/TS receiver-proof hardening is recorded in
+[js-ts-string-affix-hardening-closeout-550](js-ts-string-affix-hardening-closeout-550.md).
 
 ## Builtin Inventory JSON
 
@@ -143,8 +147,8 @@ The focused #549 Go namespace-proof migration is recorded in
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
     "positive_fixtures": 188,
-    "hard_negatives": 148,
-    "conformance_refs": 336,
+    "hard_negatives": 154,
+    "conformance_refs": 342,
     "unsupported_refs": 20
   },
   "evidence_policy": {

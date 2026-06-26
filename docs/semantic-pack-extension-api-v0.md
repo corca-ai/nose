@@ -566,6 +566,9 @@ implicit v0 packs:
 - `nose.protocols.string_affix_predicates` owns case-sensitive prefix/suffix
   predicate contracts under exact string receiver proof for receiver methods and
   imported `strings` namespace proof for Go `strings.HasPrefix`/`HasSuffix`;
+  JS/TS untyped receivers, TypeScript `String` object wrappers, nullable
+  receivers, borrowed/custom same-name calls, offsets, and direct
+  `String.prototype` patching are hard negatives;
 - `nose.go.stdlib.namespace_calls` owns Go `fmt.Print*`, `strings.Contains`,
   and `slices.Contains` API occurrence contracts under imported-namespace
   proof;

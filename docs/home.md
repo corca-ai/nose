@@ -93,6 +93,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-kernel-closeout-533](semantic-kernel-closeout-533.md) — closeout for the #533 sequence-HOF and iterator materialization tranche, including product metrics and process-evidence gaps.
 - [string-affix-protocol-closeout-548](string-affix-protocol-closeout-548.md) — closeout for the #548 string prefix/suffix predicate protocol extraction, including inventory, product-output, and review evidence.
 - [go-string-affix-closeout-549](go-string-affix-closeout-549.md) — closeout for the #549 Go `strings.HasPrefix`/`HasSuffix` namespace-proof migration into the string-affix protocol.
+- [js-ts-string-affix-hardening-closeout-550](js-ts-string-affix-hardening-closeout-550.md) — closeout for the #550 JavaScript/TypeScript string-affix receiver proof hardening, including false-open and runtime evidence.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.

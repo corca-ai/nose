@@ -210,8 +210,10 @@ still being migrated toward it.
   receiver methods and imported `strings` namespace proof for Go
   `strings.HasPrefix`/`HasSuffix`, while direction mismatches, missing or
   non-string receiver proof, missing or wrong Go namespace proof, wrong-pack or
-  wrong-producer evidence, unsupported arities, and offset forms remain hard
-  negatives. The
+  wrong-producer evidence, unsupported arities, offset forms, JS/TS untyped
+  receivers, `String` object wrappers, nullable receivers, borrowed/custom
+  same-name calls, and direct `String.prototype` patching remain hard negatives.
+  The
   `nose.protocols.sequence_hof_adapters` descriptor owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance and
   `any`/`all`/`count` terminal proof on explicit protocol receivers. It also

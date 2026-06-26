@@ -183,6 +183,11 @@ Current builtin `LibraryApi` callee coordinates are intentionally specific:
 - `JsGlobalConstructor` and `RegexLiteralMethod` name APIs whose identity
   includes source provenance, such as construct syntax or regex-literal receiver
   proof.
+- receiver-method coordinates such as string affix predicates depend on the
+  receiver contract, not selector spelling alone. JS/TS `startsWith` and
+  `endsWith` require primitive string receiver proof; untyped JavaScript,
+  TypeScript `String` object wrappers, nullable receivers, borrowed/custom
+  same-name calls, offsets, and direct `String.prototype` patching stay closed.
 - `StaticIndexMembershipMethod` names JS-like `indexOf`/`findIndex` membership
   calls and depends on `SequenceSurface(Collection)` evidence for the exact
   receiver plus the static non-float literal receiver shape required by the
@@ -449,7 +454,10 @@ evidence, or Java `java.util.List.of`/`Set.of`/`Arrays.asList` factories with
 `nose.java.stdlib.collection_factories` provenance-backed `LibraryApi` occurrence
 evidence, or Java empty `new ArrayList<>()`/`new LinkedList<>()` constructors
 with `nose.java.stdlib.collection_constructors` provenance-backed `LibraryApi`
-occurrence evidence. Canonical
+occurrence evidence, or case-sensitive string prefix/suffix predicates with
+`nose.protocols.string_affix_predicates` provenance-backed `LibraryApi`
+occurrence evidence under exact primitive string receiver proof or Go imported
+`strings` namespace proof. Canonical
 `Append` still needs `Effect(BuilderAppendCall)`, and the builtin language-core
 normalize producer emits that effect only when the same call also has the
 same-span `LibraryApi` proof for the append API; the effect record depends on

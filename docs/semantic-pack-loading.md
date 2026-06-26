@@ -157,7 +157,10 @@ Trust is separate from channel eligibility.
   pack;
   `nose.protocols.string_affix_predicates` owns case-sensitive prefix/suffix API
   occurrence provenance under exact string receiver proof for receiver methods
-  and imported `strings` namespace proof for Go `strings.HasPrefix`/`HasSuffix`;
+  and imported `strings` namespace proof for Go `strings.HasPrefix`/`HasSuffix`,
+  while JS/TS untyped receivers, object wrappers, nullable receivers, borrowed or
+  custom same-name calls, offsets, and direct `String.prototype` patching stay
+  closed;
   `nose.protocols.sequence_hof_adapters` owns Rust iterator
   `map`/`filter`/`filter_map`/`flat_map` HOF adapter occurrence provenance plus
   `any`/`all`/`count` terminal proof, Swift Array/Collection

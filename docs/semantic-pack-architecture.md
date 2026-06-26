@@ -380,7 +380,9 @@ previous semantic-kernel tranches.
    `strings.HasPrefix`/`HasSuffix`, while preserving prefix/suffix direction and
    receiver-vs-affix argument coordinates; conformance hard negatives keep
    non-string receivers, missing or wrong Go namespace proof, wrong producer
-   provenance, unsupported arities, and offset argument forms closed. The
+   provenance, unsupported arities, offset argument forms, JS/TS untyped
+   receivers, `String` object wrappers, nullable receivers, borrowed/custom
+   same-name calls, and direct `String.prototype` patching closed. The
    current Go stdlib namespace-call slice is `nose.go.stdlib.namespace_calls`,
    which owns `fmt.Print*`, `strings.Contains`, and `slices.Contains` API
    occurrence provenance under imported-namespace proof. `strings.Contains` uses

@@ -22,6 +22,9 @@ receiver proof.
 Post-#548 note: #549 moves Go `strings.HasPrefix` and `strings.HasSuffix` into
 the same string-affix protocol while preserving imported `strings` namespace
 proof.
+Post-#549 note: #550 hardens JS/TS receiver proof by closing TypeScript
+`String` object wrappers and direct `String.prototype` patching before they can
+enter primitive string-affix families.
 Case-insensitive, locale-sensitive, regex/glob/path, multi-affix, and offset
 forms remain outside this tranche unless their proof obligations become explicit
 capabilities.
