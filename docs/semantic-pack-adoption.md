@@ -77,22 +77,31 @@ Implementation PR checklist:
 
 Implementation PR closeout gate:
 
+This gate applies to every behavior-changing semantic-pack leaf or migration PR,
+even when the work is not an ownership-lane promotion.
+
 - Link two independent review artifacts before merge. Each artifact must name
-  the reviewer, the reviewed commit or PR state, blocking findings,
-  non-blocking follow-ups, accepted changes, and rejected feedback with reason.
-  Chat-only review summaries are not durable enough unless they are copied into
-  the PR, a linked issue, or a committed closeout artifact.
+  a distinct reviewer, the reviewed commit or PR state, the review run or prompt
+  boundary, blocking findings, non-blocking follow-ups, accepted changes, and
+  rejected feedback with reason. Chat-only review summaries are not durable
+  enough unless they are copied into the PR, a linked issue, or a committed
+  closeout artifact.
 - Attach durable product query-regression evidence for behavior-changing
   support. The PR or linked artifact must name the baseline/current refs,
-  command shape, repo subset, repeat count, investigation-trigger count, output
-  drift, and runtime medians. Files under `/tmp` are scratch space, not
-  closeout evidence.
+  binary SHA-256s or build refs, command shape, repo subset, repeat count,
+  investigation-trigger count, output drift, and runtime medians. Files under
+  `/tmp` are scratch space, not
+  closeout evidence. Descriptor-only or reporting-only PRs may record an
+  explicit no-product-drift exception, but semantic-pack leaf rows that change
+  analysis behavior need durable evidence even when family output is unchanged.
 - Record focused before/after counts for exact-capable rows, positive fixtures,
   hard negatives, conformance refs, unsupported refs, and any pack/protocol
   metadata that changed.
-- Convert unresolved review findings into linked follow-up issues before merge.
-  If required pre-merge evidence is missing, record it as a process gap instead
-  of presenting post-merge review as pre-merge review.
+- Resolve every blocking review finding before merge, either by changing the PR
+  or by recording why the finding was downgraded to non-blocking. Convert only
+  non-blocking or intentionally deferred review findings into linked follow-up
+  issues before merge. If required pre-merge evidence is missing, record it as a
+  process gap instead of presenting post-merge review as pre-merge review.
 - Do not close a leaf issue until the PR links the closeout evidence above and
   the issue records any intentionally deferred semantic boundary.
 

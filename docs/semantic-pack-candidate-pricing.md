@@ -151,6 +151,8 @@ implementation still needs the normal semantic-pack adoption gates:
 - `nose semantic-pack inventory`, `adoption-gates`, and `compatibility` checks;
 - product query-regression output and runtime notes;
 - docs and rollback path.
+- the implementation PR closeout gate in
+  [semantic-pack-adoption](semantic-pack-adoption.md).
 
 ## Related
 
