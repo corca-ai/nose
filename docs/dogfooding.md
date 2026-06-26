@@ -77,11 +77,21 @@ gap-impact census loop. These are the same reviewed debt classes above or
 parallel-by-design helper boundaries; no budget increase was accepted.
 
 The 2026-06-26 JS/TS string-affix receiver hardening (#550) inserted stricter
-case-preserving TypeScript annotation helpers in `type_domain.rs`. That moved the
-`rust_integer_type` span inside the already-reviewed small predicate/helper family with
-`css::is_selector_kind` and `python::expressions::is_op_tok`; the family ID changed from
-`7f4ff361137cc14a` to `d723f2396fdd67de`, but members, value, scope, and the 52-family
-budget were unchanged.
+case-preserving and optional-parameter TypeScript annotation helpers in
+`type_domain.rs`. That moved the `rust_integer_type` span inside the
+already-reviewed small predicate/helper family with `css::is_selector_kind` and
+`python::expressions::is_op_tok`; the family ID changed from `7f4ff361137cc14a`
+to `d723f2396fdd67de`, then to `1e76918c4878bab0`, but members, value, and
+scope were unchanged.
+
+The same #550 PR added the durable
+`crates/nose-cli/tests/fixtures/string_affix_550` product-regression corpus so
+closeout evidence no longer depends on `/tmp` scratch files. That fixture is
+intentionally repetitive: `340cd841f428840f` is the cross-language proved
+prefix family, and `2454018026a20717` is the matching JS/TS hard-negative
+scaffold for optional/nullable/prototype-patched receiver shapes. These are
+accepted test-evidence families, not production refactor opportunities; the
+reviewed default-surface budget moves from 52 to 54.
 
 ## Verdict by candidate (critically)
 
