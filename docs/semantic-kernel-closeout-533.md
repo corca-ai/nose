@@ -45,8 +45,9 @@ investigation triggers:
 | #537 | standard 9-repo subset, plus Swift `swift-metrics` | 5 | rerun reported 9 repos compared, 0 triggers; `swift-metrics` JSON 31489 -> 31499 bytes, locations 3 -> 3, median wall 37.72 ms -> 29.08 ms. |
 | #538 | Ruby `liquid` | 5 | 1 repo compared, 0 triggers; JSON 28431 -> 28438 bytes, locations 4 -> 4, median wall 50.27 ms -> 49.61 ms, `normalize+extract` 16.5 ms -> 16.1 ms. |
 
-Durability note: the roadmap and GitHub comments preserve the command shape,
-refs, metrics, and trigger counts. Some raw compare files were generated under
+Durability note: the roadmap and GitHub records preserve summaries, refs,
+metrics, and trigger counts where available. They do not uniformly preserve raw
+compare artifacts for every leaf. Some raw compare files were generated under
 `/tmp`; those scratch files are not durable closeout artifacts. Future
 behavior-changing semantic-pack leaf PRs must follow the closeout gate in
 [semantic-pack-adoption](semantic-pack-adoption.md), including durable binary
@@ -56,11 +57,11 @@ identity and query-regression artifact records.
 
 | issue | PR | durable review evidence | status |
 |---|---|---|---|
-| #534 | #542 | PR comments record two independent pre-merge reviews: semantic/provenance and coverage/docs closeout. | Satisfies the #533 closeout gate. |
-| #535 | #543 | PR comments record review-fix and final verification summaries, including accepted changes and local verification. Reviewer identity and artifact links are weaker than the later closeout gate. | Process gap recorded. |
+| #534 | #542 | PR comments record two independent pre-merge reviews: [semantic/provenance](https://github.com/corca-ai/nose/pull/542#issuecomment-4801999583) and [coverage/docs closeout](https://github.com/corca-ai/nose/pull/542#issuecomment-4801999717). | Satisfies the #533 closeout gate. |
+| #535 | #543 | PR comments record [review-fix](https://github.com/corca-ai/nose/pull/543#issuecomment-4803151095) and [final verification](https://github.com/corca-ai/nose/pull/543#issuecomment-4803556204) summaries, including accepted changes and local verification. Reviewer identity and artifact links are weaker than the later closeout gate. | Process gap recorded. |
 | #536 | #544 | No durable PR review comments or GitHub review artifacts found after merge. | Process gap recorded. |
-| #537 | #545 | Issue closeout comment names two reviews and one fixed `.lazy` hard-negative gap. The PR does not link durable review artifacts. | Process gap recorded. |
-| #538 | #546 | Post-merge semantic review found no blockers and listed non-blocking Ruby follow-ups. No durable pre-merge PR review comments were found. | Process gap recorded. |
+| #537 | #545 | Issue closeout comment [names two reviews](https://github.com/corca-ai/nose/issues/537#issuecomment-4805173961) and one fixed `.lazy` hard-negative gap. The PR does not link durable review artifacts. | Process gap recorded. |
+| #538 | #546 | [Post-merge semantic review](https://github.com/corca-ai/nose/pull/546#issuecomment-4805593486) found no blockers and listed non-blocking Ruby follow-ups. No durable pre-merge PR review comments were found. | Process gap recorded. |
 
 The post-merge semantic review found no blocking issue in the merged tranche.
 It did identify non-blocking follow-ups:
@@ -86,7 +87,7 @@ The tranche should not be treated as process-complete under the stricter
 post-#554 gate. #553 remains open to preserve or backfill per-leaf evidence
 where possible and to label any missing pre-merge artifacts honestly.
 
-## See Also
+## See also
 
 Back to [semantic-kernel-roadmap](semantic-kernel-roadmap.md). Current behavior
 status is in [semantic-kernel-snapshot](semantic-kernel-snapshot.md). Adoption
