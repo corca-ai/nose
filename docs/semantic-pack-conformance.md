@@ -114,6 +114,14 @@ The inventory also records that product-output and performance evidence are
 `required-on-implementation-pr`. Those measurements live in the PR that changes
 behavior or pack ownership, not in a static descriptor table.
 
+The builtin `nose.protocols.string_affix_predicates` pack records
+case-sensitive receiver-method prefix/suffix positives across Python, Java,
+Rust, Swift, JavaScript, and TypeScript. Its hard negatives keep direction
+mismatches, missing or non-string receiver proof, wrong pack or producer
+provenance, unsupported arity, and unsupported offset argument forms closed.
+Go `strings.HasPrefix` and `strings.HasSuffix` stay under
+`nose.go.stdlib.namespace_calls` until the namespace-proof slice moves.
+
 ## Builtin Inventory JSON
 
 `nose semantic-pack inventory --format json` emits schema version 1:
@@ -127,10 +135,10 @@ behavior or pack ownership, not in a static descriptor table.
     "builtin_packs": 49,
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 178,
-    "hard_negatives": 143,
-    "conformance_refs": 321,
-    "unsupported_refs": 19
+    "positive_fixtures": 188,
+    "hard_negatives": 146,
+    "conformance_refs": 334,
+    "unsupported_refs": 20
   },
   "evidence_policy": {
     "product_output": "required-on-implementation-pr",

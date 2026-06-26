@@ -108,8 +108,10 @@ fn receiver_method_string_affix_rows_use_string_affix_protocol_pack() {
         (Lang::Rust, "ends_with", Builtin::EndsWith),
         (Lang::Swift, "hasPrefix", Builtin::StartsWith),
         (Lang::Swift, "hasSuffix", Builtin::EndsWith),
-        (Lang::TypeScript, "startsWith", Builtin::StartsWith),
+        (Lang::JavaScript, "startsWith", Builtin::StartsWith),
         (Lang::JavaScript, "endsWith", Builtin::EndsWith),
+        (Lang::TypeScript, "startsWith", Builtin::StartsWith),
+        (Lang::TypeScript, "endsWith", Builtin::EndsWith),
     ] {
         let contract =
             library_method_call_contract(lang, method, 1).expect("string affix method contract");

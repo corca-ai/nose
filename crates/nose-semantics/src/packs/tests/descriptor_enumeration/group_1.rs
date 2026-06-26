@@ -382,8 +382,8 @@ pub(super) fn assert_group() {
     );
     assert_eq!(string_affix.counts().evidence_producers, 1);
     assert_eq!(string_affix.counts().contracts, 1);
-    assert_eq!(string_affix.counts().positive_fixtures, 2);
-    assert_eq!(string_affix.counts().hard_negatives, 4);
+    assert_eq!(string_affix.counts().positive_fixtures, 12);
+    assert_eq!(string_affix.counts().hard_negatives, 7);
     assert!(string_affix
         .conformance_refs()
         .contains(&"string-affix-predicate-python-startswith-positive"));
@@ -392,7 +392,31 @@ pub(super) fn assert_group() {
         .contains(&"string-affix-predicate-python-endswith-positive"));
     assert!(string_affix
         .conformance_refs()
+        .contains(&"string-affix-predicate-java-startswith-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-rust-starts-with-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-swift-has-prefix-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-typescript-startswith-positive"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-javascript-endswith-positive"));
+    assert!(string_affix
+        .conformance_refs()
         .contains(&"string-affix-predicate-direction-mismatch-hard-negative"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-non-string-receiver-hard-negative"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-wrong-producer-hard-negative"));
+    assert!(string_affix
+        .conformance_refs()
+        .contains(&"string-affix-predicate-unsupported-offset-hard-negative"));
 
     let sequence_hof_adapter = builtin_pack_descriptor(SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID)
         .expect("sequence HOF adapter protocol descriptor");

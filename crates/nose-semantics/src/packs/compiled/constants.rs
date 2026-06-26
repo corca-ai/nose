@@ -2,10 +2,12 @@ use super::*;
 
 mod rust;
 mod sequence_hof;
+mod string_affix;
 mod swift;
 mod type_domains;
 pub(super) use rust::*;
 pub(super) use sequence_hof::*;
+pub(super) use string_affix::*;
 pub(super) use swift::*;
 pub(super) use type_domains::*;
 
@@ -473,18 +475,6 @@ pub(super) const BUILTIN_METHOD_CALL_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
     "builtin-method-call-missing-receiver-proof-hard-negative",
     "builtin-method-call-wrong-pack-hard-negative",
     "builtin-method-call-unsupported-arity-hard-negative",
-];
-pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_IDS: &[&str] =
-    &[STRING_AFFIX_PREDICATE_PROTOCOL_PRODUCER_ID];
-pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_CONTRACT_IDS: &[&str] =
-    &[STRING_AFFIX_PREDICATE_CONTRACT_ID];
-pub(super) const STRING_AFFIX_PREDICATE_PROTOCOL_CONFORMANCE_REFS: &[&str] = &[
-    "string-affix-predicate-python-startswith-positive",
-    "string-affix-predicate-python-endswith-positive",
-    "string-affix-predicate-direction-mismatch-hard-negative",
-    "string-affix-predicate-missing-receiver-proof-hard-negative",
-    "string-affix-predicate-wrong-pack-hard-negative",
-    "string-affix-predicate-unsupported-arity-hard-negative",
 ];
 pub(super) const GO_STDLIB_NAMESPACE_CALL_PRODUCER_IDS: &[&str] =
     &[GO_STDLIB_NAMESPACE_CALL_PRODUCER_ID];

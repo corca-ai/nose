@@ -11,6 +11,10 @@ break.
   case-sensitive receiver-method prefix/suffix predicates, moving those rows out
   of the broad builtin-method provenance path while preserving exact string
   receiver and prefix/suffix direction boundaries.
+- Expanded the string-affix protocol pack's conformance inventory across
+  Python, Java, Rust, Swift, JavaScript, and TypeScript receiver-method positives,
+  with hard negatives for non-string receivers, wrong producer provenance, and
+  unsupported offset forms.
 
 ## [0.16.0] - 2026-06-26
 

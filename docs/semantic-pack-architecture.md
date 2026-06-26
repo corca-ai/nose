@@ -376,7 +376,9 @@ previous semantic-kernel tranches.
    `nose.protocols.string_affix_predicates`, which owns case-sensitive
    receiver-method prefix/suffix API occurrence provenance under exact string
    receiver proof while preserving prefix/suffix direction and
-   receiver-vs-affix argument coordinates. The current Go stdlib namespace-call
+   receiver-vs-affix argument coordinates; conformance hard negatives keep
+   non-string receivers, wrong producer provenance, unsupported arities, and
+   offset argument forms closed. The current Go stdlib namespace-call
    slice is `nose.go.stdlib.namespace_calls`, which owns `fmt.Print*`,
    `strings.HasPrefix`/`HasSuffix`, `strings.Contains`, and `slices.Contains`
    API occurrence provenance under imported-namespace proof. `strings.Contains`

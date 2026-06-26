@@ -10,13 +10,17 @@ fn string_affix_call_il(
     (il, interner, call, receiver)
 }
 
-fn push_string_receiver_dependency(il: &mut Il, receiver: NodeId) {
+fn push_receiver_domain_dependency(il: &mut Il, receiver: NodeId, domain: DomainEvidence) {
     il.evidence.push(evidence(
         0,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
-        EvidenceKind::Domain(DomainEvidence::String),
+        EvidenceKind::Domain(domain),
         EvidenceStatus::Asserted,
     ));
+}
+
+fn push_string_receiver_dependency(il: &mut Il, receiver: NodeId) {
+    push_receiver_domain_dependency(il, receiver, DomainEvidence::String);
 }
 
 fn assert_admitted_string_affix(lang: Lang, method: &str, builtin: Builtin) {
@@ -77,6 +81,26 @@ fn admitted_string_affix_requires_protocol_pack_and_string_receiver_proof() {
         "affix evidence without exact string receiver proof is rejected"
     );
 
+    let (mut wrong_domain, interner, call, receiver) =
+        string_affix_call_il(Lang::JavaScript, "startsWith", 1);
+    push_receiver_domain_dependency(&mut wrong_domain, receiver, DomainEvidence::Collection);
+    let js_prefix_contract = library_method_call_contract(Lang::JavaScript, "startsWith", 1)
+        .expect("JavaScript startsWith contract");
+    wrong_domain
+        .evidence
+        .push(builtin_method_call_protocol_record(
+            1,
+            wrong_domain.node(call).span,
+            js_prefix_contract,
+            1,
+            EvidenceStatus::Asserted,
+            &[0],
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&wrong_domain, &interner, call).is_none(),
+        "affix evidence with a non-string receiver domain is rejected"
+    );
+
     let (mut wrong_pack, interner, call, receiver) =
         string_affix_call_il(Lang::Python, "startswith", 1);
     push_string_receiver_dependency(&mut wrong_pack, receiver);
@@ -96,6 +120,27 @@ fn admitted_string_affix_requires_protocol_pack_and_string_receiver_proof() {
     assert!(
         admitted_library_method_call_at_call(&wrong_pack, &interner, call).is_none(),
         "string affix evidence under the broad builtin-method pack is rejected"
+    );
+
+    let (mut wrong_producer, interner, call, receiver) =
+        string_affix_call_il(Lang::Python, "startswith", 1);
+    push_string_receiver_dependency(&mut wrong_producer, receiver);
+    wrong_producer
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            1,
+            wrong_producer.node(call).span,
+            contract.id,
+            contract.callee,
+            1,
+            EvidenceStatus::Asserted,
+            &[0],
+            STRING_AFFIX_PREDICATE_PROTOCOL_PACK_ID,
+            "wrong.protocols.string-affix-predicate-api",
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&wrong_producer, &interner, call).is_none(),
+        "string affix evidence with the wrong producer provenance is rejected"
     );
 
     let (mut wrong_direction, interner, call, receiver) =
@@ -136,8 +181,34 @@ fn admitted_string_affix_requires_protocol_pack_and_string_receiver_proof() {
         "forged affix evidence cannot open unsupported arity"
     );
 
+    let (mut unsupported_offset, interner, call, receiver) =
+        string_affix_call_il(Lang::JavaScript, "startsWith", 2);
+    push_string_receiver_dependency(&mut unsupported_offset, receiver);
+    unsupported_offset
+        .evidence
+        .push(builtin_method_call_protocol_record(
+            1,
+            unsupported_offset.node(call).span,
+            js_prefix_contract,
+            1,
+            EvidenceStatus::Asserted,
+            &[0],
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&unsupported_offset, &interner, call).is_none(),
+        "forged affix evidence cannot open the JS offset argument form"
+    );
+
     assert_admitted_string_affix(Lang::Python, "startswith", Builtin::StartsWith);
     assert_admitted_string_affix(Lang::Python, "endswith", Builtin::EndsWith);
+    assert_admitted_string_affix(Lang::Java, "startsWith", Builtin::StartsWith);
+    assert_admitted_string_affix(Lang::Java, "endsWith", Builtin::EndsWith);
     assert_admitted_string_affix(Lang::Rust, "starts_with", Builtin::StartsWith);
+    assert_admitted_string_affix(Lang::Rust, "ends_with", Builtin::EndsWith);
+    assert_admitted_string_affix(Lang::Swift, "hasPrefix", Builtin::StartsWith);
     assert_admitted_string_affix(Lang::Swift, "hasSuffix", Builtin::EndsWith);
+    assert_admitted_string_affix(Lang::TypeScript, "startsWith", Builtin::StartsWith);
+    assert_admitted_string_affix(Lang::TypeScript, "endsWith", Builtin::EndsWith);
+    assert_admitted_string_affix(Lang::JavaScript, "startsWith", Builtin::StartsWith);
+    assert_admitted_string_affix(Lang::JavaScript, "endsWith", Builtin::EndsWith);
 }

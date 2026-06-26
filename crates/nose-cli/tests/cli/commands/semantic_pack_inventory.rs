@@ -10,9 +10,9 @@ fn semantic_pack_inventory_json_reports_builtin_coverage() {
     assert_eq!(json["status"], "ok");
     assert_eq!(json["totals"]["packs"], 49);
     assert_eq!(json["totals"]["builtin_packs"], 49);
-    assert_eq!(json["totals"]["positive_fixtures"], 178);
-    assert_eq!(json["totals"]["hard_negatives"], 143);
-    assert_eq!(json["totals"]["conformance_refs"], 321);
+    assert_eq!(json["totals"]["positive_fixtures"], 188);
+    assert_eq!(json["totals"]["hard_negatives"], 146);
+    assert_eq!(json["totals"]["conformance_refs"], 334);
     assert_eq!(json["totals"]["packs_needing_coverage"], 0);
     assert_eq!(
         json["evidence_policy"]["product_output"],
@@ -49,7 +49,17 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
         json_array_strings(&string_affix["conformance"], "positive_refs"),
         vec![
             "string-affix-predicate-python-startswith-positive",
-            "string-affix-predicate-python-endswith-positive"
+            "string-affix-predicate-python-endswith-positive",
+            "string-affix-predicate-java-startswith-positive",
+            "string-affix-predicate-java-endswith-positive",
+            "string-affix-predicate-rust-starts-with-positive",
+            "string-affix-predicate-rust-ends-with-positive",
+            "string-affix-predicate-swift-has-prefix-positive",
+            "string-affix-predicate-swift-has-suffix-positive",
+            "string-affix-predicate-typescript-startswith-positive",
+            "string-affix-predicate-typescript-endswith-positive",
+            "string-affix-predicate-javascript-startswith-positive",
+            "string-affix-predicate-javascript-endswith-positive"
         ]
     );
     assert_eq!(
@@ -57,13 +67,19 @@ fn assert_string_affix_predicate_pack(packs: &[serde_json::Value]) {
         vec![
             "string-affix-predicate-direction-mismatch-hard-negative",
             "string-affix-predicate-missing-receiver-proof-hard-negative",
+            "string-affix-predicate-non-string-receiver-hard-negative",
             "string-affix-predicate-wrong-pack-hard-negative",
-            "string-affix-predicate-unsupported-arity-hard-negative"
+            "string-affix-predicate-wrong-producer-hard-negative",
+            "string-affix-predicate-unsupported-arity-hard-negative",
+            "string-affix-predicate-unsupported-offset-hard-negative"
         ]
     );
     assert_eq!(
         json_array_strings(&string_affix["conformance"], "unsupported_refs"),
-        vec!["string-affix-predicate-unsupported-arity-hard-negative"]
+        vec![
+            "string-affix-predicate-unsupported-arity-hard-negative",
+            "string-affix-predicate-unsupported-offset-hard-negative"
+        ]
     );
 }
 
