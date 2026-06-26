@@ -103,7 +103,16 @@ Median: `7.475 ms -> 7.309 ms` (`-0.166 ms`).
 
 ## Review Evidence
 
-To be filled with two independent PR review links before merge.
+- Semantic-boundary review:
+  <https://github.com/corca-ai/nose/pull/566#issuecomment-4811704675>
+  found no blocking issues in same-role parameter coordinates, immutable literal
+  binding coordinates, wrong/dynamic/mutated coordinate hard negatives, or
+  deferred tuple/multi/offset forms.
+- Evidence/process review:
+  <https://github.com/corca-ai/nose/pull/566#issuecomment-4811730827>
+  found no blocking issues in conformance refs/counts, unsupported refs,
+  focused product output, inventory/runtime evidence, docs/changelog links, or
+  the duplication-ratchet tightening.
 
 ## Rollback
 
