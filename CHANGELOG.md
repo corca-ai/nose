@@ -61,6 +61,12 @@ break.
   unimported scoped paths stay closed. On `crates`, this reduces the
   callee-identity recall-loss bucket from 251 to 235 while preserving zero false
   merges and zero canon-preservation violations.
+- Added exact-safe Rust struct-expression sequence surfaces. Rust struct
+  literals now carry `SequenceSurface(RustStructExpression)` evidence instead of
+  relying on untagged `Seq`, recovering the imported-member target-present
+  follow-ups from the scoped-call slice and reducing `crates` exact-admission
+  rejections from 735 to 707 while preserving zero false merges and zero
+  canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

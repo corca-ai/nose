@@ -1,6 +1,7 @@
 use super::*;
 
 mod imports;
+mod surfaces;
 
 fn match_case_rhs_ints(src: &str) -> Vec<i64> {
     let interner = Interner::new();

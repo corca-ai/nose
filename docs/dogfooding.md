@@ -126,6 +126,17 @@ support and local fixture modules. These are accepted as fixture debt for named
 fail-closed scenarios, not production refactoring debt. The reviewed
 default-surface count remains 53; no budget increase is accepted.
 
+The 2026-06-27 Rust struct-expression surface slice (#580) adds a
+`rust_struct_expression` sequence-surface contract row and moves Rust
+struct-literal surface assertions into a focused module. This shifts two
+already accepted representative IDs without increasing the reviewed
+default-surface count: `55390d59f97e804b` becomes `57be5bd4067b5967` for the
+source-backed async/yield/try protocol-boundary fixture family, and
+`cf86f9ad6c5a533a` becomes `d48c1b96caba9588` for the semantic-kernel
+language-core provenance helper family covering binding, library API, import
+facts, and sequence-surface records. The reviewed default-surface count remains
+53; no budget increase is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

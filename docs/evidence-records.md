@@ -70,7 +70,7 @@ The current implemented kinds are:
 | `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
 | `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/Swift/regex APIs, pack-proven Python/Go/Swift free-function builtins, pack-proven Python iterator builtins, pack-proven generic builtin method calls, and selected receiver-method families |
 | `CallTarget` | proof that a specific call occurrence resolves to an explicit function, method, imported function/member, or dispatch-family target identity |
-| `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
+| `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals/entries, or Rust struct expressions |
 
 Rust `use` producers use the same `Import`/`Symbol` vocabulary as other static
 imports. Simple static imports such as `use m::f;` keep their existing
@@ -334,10 +334,11 @@ row in place instead of minting a duplicate; if an equivalent current row
 already exists, stale broad duplicates are closed as ambiguous.
 
 Sequence-surface evidence is also authoritative for exact/value-graph aggregate
-semantics. A lowered `Seq("array")`, `Seq("object")`, `Seq("tuple")`, or
-language-specific tag does not by itself prove exact-tree safety, collection
-membership, map-entry-list shape, imported-literal eligibility, or a canonical
-value-graph tag. Consumers resolve the tag only when a matching
+semantics. A lowered `Seq("array")`, `Seq("object")`, `Seq("tuple")`,
+`Seq("rust_struct_expression")`, or other language-specific tag does not by
+itself prove exact-tree safety, collection membership, map-entry-list shape,
+imported-literal eligibility, or a canonical value-graph tag. Consumers resolve
+the tag only when a matching
 `SequenceSurface` record exists at the same sequence anchor with matching
 builtin language-core provenance and its dependencies remain asserted. Missing,
 conflicting, ambiguous, broad/wrong-language, external, or wrong-kind surface
@@ -889,7 +890,10 @@ callers:
   helper instead. Go zero-map literal lookup also requires
   `SequenceSurface(GoCompositeMapLiteral)` and `SequenceSurface(GoMapEntry)`, so
   `composite_literal`/`keyed_element` tag spelling alone no longer admits the
-  exact map-default path;
+  exact map-default path. Rust struct literals similarly require
+  `SequenceSurface(RustStructExpression)`; that surface is exact-tree-safe but
+  is not a collection, map, membership receiver, map-entry list, or imported
+  literal proof;
 - C byte-pack value-graph laws consume the first-party C byte-pack contract,
   `Domain(ByteArray)` base evidence, and source-cast evidence for the unsigned
   high lane where required. Raw `UnsignedCast32` builtin payloads without

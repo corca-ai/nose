@@ -30,6 +30,10 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
 - [#578 cycle log](../bench/recall_loss/issue-578-cycle.v1.json) records the
   next Rust scoped-path recovery slice: scoped calls whose root already has
   dependency-backed import evidence now emit imported member call-target proof.
+- [#580 cycle log](../bench/recall_loss/issue-580-cycle.v1.json) records the
+  Rust struct-expression surface slice: struct literals now carry exact-safe
+  `SequenceSurface` proof, which closes the imported-member target-present
+  follow-ups exposed by #578 while keeping raw sequences closed.
 
 Regenerate the full local reports with:
 
@@ -115,14 +119,26 @@ scoped-path primary surface drops from `72` to `50`; the remaining dominant
 surface is now member/receiver call-target proof, with two newly exposed
 `imported-member-target-present-call-contract-proof` follow-ups.
 
+The #580 recovery slice reduces overall exact-admission rejections from `735` to
+`707` and the callee-identity bucket from `235` to `221`, again with
+`false_merges == 0` and `canon_preservation_violations == 0`. It does not loosen
+untagged `Seq`: Rust struct literals now lower as `Seq("rust_struct_expression")`
+and must carry matching `SequenceSurface::RustStructExpression` evidence. That
+surface is exact-tree-safe but is not a collection, map, membership receiver,
+map-entry list, or imported literal proof. This closes the
+`imported-member-target-present-call-contract-proof` primary surface (`2 -> 0`),
+reduces member-call primary loss (`98 -> 93`), and removes many Rust struct
+literal source-surface losses (`73 -> 52`). Newly exact-safe but too-small units
+move to the explicit value-fingerprint floor bucket (`6 -> 13`).
+
 The current top `crates` buckets are:
 
 | reason | count | next capability |
 |---|---:|---|
-| `receiver-domain-proof-missing` | 240 | receiver-domain evidence instead of selector spelling |
-| `import-symbol-callee-identity-proof-missing` | 235 | reusable member/receiver callee identity evidence |
-| `mutation-effect-boundary` | 132 | effect and place contracts |
-| `source-surface-proof-missing` | 73 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
+| `receiver-domain-proof-missing` | 241 | receiver-domain evidence instead of selector spelling |
+| `import-symbol-callee-identity-proof-missing` | 221 | reusable member/receiver callee identity evidence |
+| `mutation-effect-boundary` | 131 | effect and place contracts |
+| `source-surface-proof-missing` | 52 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
 | `hof-demand-effect-proof-missing` | 28 | HOF demand/effect/materialization profile |
 | `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |
 

@@ -262,6 +262,7 @@ pub enum SequenceSurfaceKind {
     OwnPropertyGuard,
     GoCompositeMapLiteral,
     GoMapEntry,
+    RustStructExpression,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

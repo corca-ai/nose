@@ -169,7 +169,7 @@ schema:
 | `Effect` | builder append, non-overloadable index write, self-field write, binding write, receiver mutation, opaque argument escape |
 | `LibraryApi` | occurrence proof that a call, field, property, constructor, macro, or sentinel matches one contract coordinate |
 | `CallTarget` | explicit call target proof for direct functions/methods, imported function/member coordinates, and dispatch-family facts |
-| `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, record guard, own-property guard, Go map literal, or Go map entry |
+| `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, record guard, own-property guard, Go map literal/entry, or Rust struct expression |
 
 The producer declaration must include:
 

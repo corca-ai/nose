@@ -397,7 +397,12 @@ pub(super) fn lower_struct_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .collect()
         })
         .unwrap_or_default();
-    lo.add(NodeKind::Seq, Payload::None, span, &kids)
+    lo.add(
+        NodeKind::Seq,
+        Payload::Name(lo.sym("rust_struct_expression")),
+        span,
+        &kids,
+    )
 }
 pub(super) fn rust_bin_op(text: &str) -> Option<Op> {
     // Rust's binary operators are exactly the shared C-family set.

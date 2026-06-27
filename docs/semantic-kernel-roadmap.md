@@ -1213,8 +1213,9 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   membership collection admission, map-entry-list admission, imported-literal
   eligibility, and value-graph tags, so Go `composite_literal` map surfaces no
   longer leak into generic collection semantics. Untagged `Seq` is now
-  non-semantic by default; static membership and idiom receiver gates consume
-  explicit membership-collection surface proof.
+  non-semantic by default; Rust struct literals have their own exact-safe
+  `SequenceSurface(RustStructExpression)` surface, and static membership and
+  idiom receiver gates consume explicit membership-collection surface proof.
 - JS/TS object surfaces were narrowed: static property keys remain exact
   map/object entries, computed property names are exact-closed until key
   evaluation semantics are contracted, and object `.length` no longer lowers to

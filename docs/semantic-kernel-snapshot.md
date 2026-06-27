@@ -831,8 +831,10 @@ migrated.
   evidence now lowers to the untagged sequence value in the value graph, not a
   spelling-derived raw hash. Untagged `Seq` remains an internal grouping surface
   and does not itself prove exact collection semantics; the older Python empty
-  sequence collection case is
-  handled only by the explicit collection profile path.
+  sequence collection case is handled only by the explicit collection profile
+  path. Rust struct literals use `SequenceSurface(RustStructExpression)`, which
+  is exact-tree-safe but stays separate from collection, map, membership,
+  map-entry, and imported-literal contracts.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through library method contracts plus exact
   protocol receiver proof, not through a bare method-name check.

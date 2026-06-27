@@ -64,3 +64,8 @@ python3 scripts/recall-loss-callee-census.py \
   scoped-path recovery slice: imported roots such as `Span::new` now feed
   dependency-backed imported member call-target evidence while raw `crate`,
   `std`, unimported, and ambiguous roots stay closed.
+- [issue-580-cycle.v1.json](issue-580-cycle.v1.json) records the Rust
+  struct-expression surface slice: Rust struct literals now carry exact-safe
+  `SequenceSurface` evidence, recovering the imported-member target-present
+  follow-ups from #578 while keeping untagged sequences and collection/map
+  contracts separate.

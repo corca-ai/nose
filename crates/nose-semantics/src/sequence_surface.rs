@@ -9,6 +9,7 @@ pub const SEQ_VALUE_MAP: u64 = 3;
 pub const SEQ_VALUE_PAIR: u64 = 4;
 pub const SEQ_VALUE_RECORD_GUARD: u64 = 7;
 pub const SEQ_VALUE_OWN_PROPERTY_GUARD: u64 = 8;
+pub const SEQ_VALUE_RUST_STRUCT_EXPRESSION: u64 = stable_symbol_hash("rust_struct_expression");
 
 /// Kernel contract for a lowered `Seq` surface tag.
 ///
@@ -41,6 +42,9 @@ pub fn sequence_surface_kind_for_tag(lang: Lang, tag: Option<&str>) -> Option<Se
             Some(SequenceSurfaceKind::GoCompositeMapLiteral)
         }
         Some("keyed_element") if lang == Lang::Go => Some(SequenceSurfaceKind::GoMapEntry),
+        Some("rust_struct_expression") if lang == Lang::Rust => {
+            Some(SequenceSurfaceKind::RustStructExpression)
+        }
         _ => None,
     }
 }
@@ -110,6 +114,13 @@ pub(super) fn seq_surface_contract_for_tag(
         SequenceSurfaceKind::GoMapEntry => SeqSurfaceContract {
             value_tag: stable_symbol_hash("keyed_element"),
             exact_tree_safe: false,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        SequenceSurfaceKind::RustStructExpression => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_RUST_STRUCT_EXPRESSION,
+            exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,

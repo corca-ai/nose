@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle",
+  "issue": 580,
+  "parent_issue": 567,
+  "generated_on": "2026-06-27",
+  "selected_reason": "import-symbol-callee-identity-proof-missing",
+  "secondary_reason": "source-surface-proof-missing",
+  "what_changed": [
+    "Rust struct literals now lower to Seq(\"rust_struct_expression\") instead of an untagged Seq.",
+    "The new Rust-only SequenceSurface::RustStructExpression contract is exact-tree-safe but not a collection, map, membership receiver, map-entry list, or imported literal proof.",
+    "This lets functions such as Interner::new, whose body combines an exact-safe Rust struct literal with import-backed associated constructors, enter exact admission without treating raw associated-function spelling as type identity.",
+    "Untagged Seq, Go composite literals, Rust patterns, collection/map domains, and receiver-domain contracts remain fail-closed unless they carry their own matching evidence."
+  ],
+  "before_report": {
+    "artifact": "target/recall-loss.before-member-contract.json",
+    "summary": {
+      "total_units": 6153,
+      "interpretable_units": 852,
+      "excluded_units": 5301,
+      "canon_checked": 70,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 735
+    },
+    "completeness": {
+      "behavior_equal_pairs": 82,
+      "fingerprint_equal_pairs": 38,
+      "completeness_percent": 46.34146341463415,
+      "under_merged_behavior_groups": 2
+    },
+    "selected_reason_count": 235
+  },
+  "after_report": {
+    "artifact": "target/recall-loss.after-rust-struct-surface.json",
+    "summary": {
+      "total_units": 6155,
+      "interpretable_units": 853,
+      "excluded_units": 5302,
+      "canon_checked": 70,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 707
+    },
+    "completeness": {
+      "behavior_equal_pairs": 82,
+      "fingerprint_equal_pairs": 38,
+      "completeness_percent": 46.34146341463415,
+      "under_merged_behavior_groups": 2
+    },
+    "selected_reason_count": 221
+  },
+  "bucket_delta": {
+    "admission_rejections": -28,
+    "selected_reason": -14,
+    "receiver-domain-proof-missing": 1,
+    "mutation-effect-boundary": -1,
+    "source-surface-proof-missing": -21,
+    "hof-demand-effect-proof-missing": 0,
+    "unsupported-runtime-boundary": 0,
+    "library-api-occurrence-proof-missing": 0,
+    "value-fingerprint-too-small": 7
+  },
+  "callee_surface_delta": {
+    "member-call-target-proof": {
+      "before": 98,
+      "after": 93,
+      "delta": -5
+    },
+    "scoped-path-call-target-proof": {
+      "before": 50,
+      "after": 46,
+      "delta": -4
+    },
+    "local-or-parameter-call-target-proof": {
+      "before": 71,
+      "after": 71,
+      "delta": 0
+    },
+    "direct-function-target-present-call-contract-proof": {
+      "before": 9,
+      "after": 9,
+      "delta": 0
+    },
+    "imported-function-target-present-call-contract-proof": {
+      "before": 3,
+      "after": 0,
+      "delta": -3
+    },
+    "imported-member-target-present-call-contract-proof": {
+      "before": 2,
+      "after": 0,
+      "delta": -2
+    },
+    "unshadowed-global-call-target-proof": {
+      "before": 2,
+      "after": 2,
+      "delta": 0
+    }
+  },
+  "hard_gate": {
+    "false_merges_before": 0,
+    "false_merges_after": 0,
+    "canon_preservation_violations_before": 0,
+    "canon_preservation_violations_after": 0,
+    "gate_passed": true
+  },
+  "decision": {
+    "recovered_units": 28,
+    "notes": [
+      "The two imported-member target-present primary representatives exposed by #578 disappear from the primary callee surface.",
+      "The source-surface bucket also drops because Rust struct literals no longer remain untagged exact-closed sequences.",
+      "The value-fingerprint-too-small bucket increases from 6 to 13: these units are now strict-exact-safe, but their value fingerprints remain below the exact-claim substance floor.",
+      "One receiver-domain unit becomes newly visible after the struct-expression surface opens its enclosing exact path; it remains in a narrower named bucket."
+    ],
+    "follow_up": "Continue with receiver-domain evidence for Rust self/field receivers and remaining member-call proof without opening builder chains or raw receiver spelling."
+  },
+  "fixture_refs": [
+    "crates/nose-frontend/src/rust/tests/surfaces.rs::struct_literal_emits_rust_struct_expression_surface_evidence",
+    "crates/nose-semantics/src/tests/semantic_evidence/sequence_surfaces.rs::rust_struct_expression_surface_is_exact_safe_but_not_collection_like",
+    "crates/nose-detect/src/units/tests/strict_exact_surfaces.rs::strict_exact_sequence_surfaces_require_evidence"
+  ]
+}

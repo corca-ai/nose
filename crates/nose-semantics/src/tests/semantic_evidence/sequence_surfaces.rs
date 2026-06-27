@@ -375,3 +375,20 @@ fn go_zero_map_surface_helpers_require_evidence() {
     ));
     assert!(go_zero_map_entry_contract_for_node(&il, &interner, entry).is_some());
 }
+
+#[test]
+fn rust_struct_expression_surface_is_exact_safe_but_not_collection_like() {
+    let rust_struct = seq_surface_contract(Lang::Rust, Some("rust_struct_expression")).unwrap();
+    assert_eq!(rust_struct.value_tag, SEQ_VALUE_RUST_STRUCT_EXPRESSION);
+    assert!(rust_struct.exact_tree_safe);
+    assert!(!rust_struct.membership_collection);
+    assert!(!rust_struct.map_entry_list);
+    assert!(!rust_struct.imported_literal);
+
+    assert!(seq_surface_contract(Lang::JavaScript, Some("rust_struct_expression")).is_none());
+    assert!(
+        seq_surface_contract(Lang::Rust, None).is_some_and(|contract| {
+            !contract.exact_tree_safe && contract.value_tag == SEQ_VALUE_UNTAGGED
+        })
+    );
+}
