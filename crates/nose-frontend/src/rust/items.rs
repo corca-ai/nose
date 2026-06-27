@@ -29,25 +29,255 @@ pub(super) fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 }
 pub(super) fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let span = lo.span(node);
-    let text = lo.text(node).trim().trim_end_matches(';').trim();
-    let path = text.strip_prefix("use ")?.trim();
-    if path.contains('*') || path.contains('{') {
+    let text = lo.text(node);
+    let brace_import = text.contains('{') || text.contains('}');
+    let imports = rust_static_imports(text, span)?;
+    if brace_import {
+        for import in imports {
+            match import.kind {
+                RustStaticImportKind::Binding { exported } => {
+                    crate::lower::import_binding_evidence_only(
+                        lo,
+                        import.span,
+                        &import.local,
+                        &import.module,
+                        &exported,
+                    );
+                }
+                RustStaticImportKind::Namespace => {
+                    crate::lower::import_namespace_evidence_only(
+                        lo,
+                        import.span,
+                        &import.local,
+                        &import.module,
+                    );
+                }
+            }
+        }
+        return Some(crate::lower::import_tokens(lo, node));
+    }
+    let ids = imports
+        .into_iter()
+        .map(|import| match import.kind {
+            RustStaticImportKind::Binding { exported } => crate::lower::import_binding(
+                lo,
+                import.span,
+                &import.local,
+                &import.module,
+                &exported,
+            ),
+            RustStaticImportKind::Namespace => {
+                crate::lower::import_namespace(lo, import.span, &import.local, &import.module)
+            }
+        })
+        .collect::<Vec<_>>();
+    match ids.as_slice() {
+        [] => None,
+        [id] => Some(*id),
+        _ => Some(lo.add(NodeKind::Seq, Payload::None, span, &ids)),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RustStaticImport {
+    span: Span,
+    local: String,
+    module: String,
+    kind: RustStaticImportKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum RustStaticImportKind {
+    Binding { exported: String },
+    Namespace,
+}
+
+fn rust_static_imports(text: &str, span: Span) -> Option<Vec<RustStaticImport>> {
+    let (body, body_offset) = rust_use_body(text)?;
+    if body.contains('*') {
         return None;
     }
-    let (path, local) = if let Some((path, local)) = path.split_once(" as ") {
-        (path.trim(), local.trim())
-    } else {
-        let local = path.rsplit("::").next()?.trim();
-        (path, local)
-    };
-    let (module, exported) = path.rsplit_once("::")?;
-    Some(crate::lower::import_binding(
-        lo,
-        span,
+    if body.contains('{') || body.contains('}') {
+        return rust_brace_static_imports(text, span, body, body_offset);
+    }
+    let item = rust_single_static_import(body, body_offset, text, span)?;
+    Some(vec![item])
+}
+
+fn rust_use_body(text: &str) -> Option<(&str, usize)> {
+    let start = text.find("use ")? + "use ".len();
+    let semi = text.rfind(';').unwrap_or(text.len());
+    let raw = text.get(start..semi)?;
+    let (body, trim_start) = trim_with_offset(raw);
+    let (body, _) = trim_end_with_len(body);
+    (!body.is_empty()).then_some((body, start + trim_start))
+}
+
+fn rust_single_static_import(
+    body: &str,
+    body_offset: usize,
+    full_text: &str,
+    declaration_span: Span,
+) -> Option<RustStaticImport> {
+    let parsed = parse_rust_use_item(body)?;
+    let (module, exported) = split_rust_path_for_binding(&parsed.path)?;
+    let local = parsed.local.unwrap_or_else(|| exported.clone());
+    Some(RustStaticImport {
+        span: span_for_text_range(
+            declaration_span,
+            full_text,
+            body_offset,
+            body_offset + body.len(),
+        ),
         local,
-        module.trim(),
-        exported.trim(),
-    ))
+        module,
+        kind: RustStaticImportKind::Binding { exported },
+    })
+}
+
+fn rust_brace_static_imports(
+    full_text: &str,
+    declaration_span: Span,
+    body: &str,
+    body_offset: usize,
+) -> Option<Vec<RustStaticImport>> {
+    let open = body.find('{')?;
+    let close = body.rfind('}')?;
+    if open >= close
+        || body[open + 1..close].contains('{')
+        || body[open + 1..close].contains('}')
+        || !body[close + 1..].trim().is_empty()
+    {
+        return None;
+    }
+    let prefix = body[..open].trim().trim_end_matches("::").trim();
+    if prefix.is_empty() || relative_rust_use_prefix(prefix) {
+        return None;
+    }
+    let items = &body[open + 1..close];
+    let items_offset = body_offset + open + 1;
+    let mut imports = Vec::new();
+    for (item, item_offset) in comma_separated_use_items(items, items_offset) {
+        let parsed = parse_rust_use_item(item)?;
+        let item_span = span_for_text_range(
+            declaration_span,
+            full_text,
+            item_offset,
+            item_offset + item.len(),
+        );
+        if parsed.path == "self" {
+            let local = parsed
+                .local
+                .unwrap_or_else(|| prefix.rsplit("::").next().unwrap_or(prefix).to_string());
+            imports.push(RustStaticImport {
+                span: item_span,
+                local,
+                module: prefix.to_string(),
+                kind: RustStaticImportKind::Namespace,
+            });
+            continue;
+        }
+        let (path_prefix, exported) = split_rust_path_tail(&parsed.path)?;
+        let module = path_prefix
+            .map(|path_prefix| format!("{prefix}::{path_prefix}"))
+            .unwrap_or_else(|| prefix.to_string());
+        let local = parsed.local.unwrap_or_else(|| exported.clone());
+        imports.push(RustStaticImport {
+            span: item_span,
+            local,
+            module,
+            kind: RustStaticImportKind::Binding { exported },
+        });
+    }
+    (!imports.is_empty()).then_some(imports)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ParsedRustUseItem {
+    path: String,
+    local: Option<String>,
+}
+
+fn parse_rust_use_item(item: &str) -> Option<ParsedRustUseItem> {
+    let item = item.trim();
+    if item.is_empty() || item.contains('{') || item.contains('}') || item.contains('*') {
+        return None;
+    }
+    let (path, local) = if let Some((path, local)) = item.split_once(" as ") {
+        (path.trim(), Some(local.trim().to_string()))
+    } else {
+        (item, None)
+    };
+    if path.is_empty() || local.as_deref().is_some_and(str::is_empty) {
+        return None;
+    }
+    Some(ParsedRustUseItem {
+        path: path.to_string(),
+        local,
+    })
+}
+
+fn split_rust_path_for_binding(path: &str) -> Option<(String, String)> {
+    let (module, exported) = path.rsplit_once("::")?;
+    let module = module.trim();
+    let exported = exported.trim();
+    (!module.is_empty() && !exported.is_empty()).then(|| (module.to_string(), exported.to_string()))
+}
+
+fn split_rust_path_tail(path: &str) -> Option<(Option<String>, String)> {
+    if let Some((prefix, tail)) = path.rsplit_once("::") {
+        let prefix = prefix.trim();
+        let tail = tail.trim();
+        (!prefix.is_empty() && !tail.is_empty())
+            .then(|| (Some(prefix.to_string()), tail.to_string()))
+    } else {
+        let tail = path.trim();
+        (!tail.is_empty()).then(|| (None, tail.to_string()))
+    }
+}
+
+fn relative_rust_use_prefix(prefix: &str) -> bool {
+    prefix == "self"
+        || prefix == "super"
+        || prefix.starts_with("self::")
+        || prefix.starts_with("super::")
+}
+
+fn comma_separated_use_items<'a>(
+    items: &'a str,
+    items_offset: usize,
+) -> impl Iterator<Item = (&'a str, usize)> + 'a {
+    items.split(',').scan(0usize, move |cursor, part| {
+        let raw_start = *cursor;
+        *cursor += part.len() + 1;
+        let (trimmed, leading) = trim_with_offset(part);
+        let (trimmed, _) = trim_end_with_len(trimmed);
+        (!trimmed.is_empty()).then_some((trimmed, items_offset + raw_start + leading))
+    })
+}
+
+fn trim_with_offset(value: &str) -> (&str, usize) {
+    let trimmed = value.trim_start();
+    (trimmed, value.len() - trimmed.len())
+}
+
+fn trim_end_with_len(value: &str) -> (&str, usize) {
+    let trimmed = value.trim_end();
+    (trimmed, trimmed.len())
+}
+
+fn span_for_text_range(base: Span, text: &str, start: usize, end: usize) -> Span {
+    let before = &text[..start.min(text.len())];
+    let inside = &text[start.min(text.len())..end.min(text.len())];
+    let start_line = base.start_line + before.bytes().filter(|&b| b == b'\n').count() as u32;
+    let end_line = start_line + inside.bytes().filter(|&b| b == b'\n').count() as u32;
+    Span::new(
+        base.file,
+        base.start_byte + start as u32,
+        base.start_byte + end as u32,
+        start_line,
+        end_line,
+    )
 }
 /// `impl`/`trait`/`struct`/`enum` → a `Class` unit whose body holds methods (each
 /// also a unit) or field declarations, so similar types/impls cluster.

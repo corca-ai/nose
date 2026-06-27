@@ -62,10 +62,35 @@ pub(crate) fn import_binding_with_symbol_evidence(
     )
 }
 
+pub(crate) fn import_binding_evidence_only(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    module: &str,
+    exported: &str,
+) -> Option<EvidenceId> {
+    record_import_fact_evidence(
+        lo,
+        span,
+        local,
+        ImportFactKind::Binding,
+        &[module, exported],
+    )
+}
+
 /// A strict semantic proof fact for a static namespace import:
 /// local namespace → module coordinate.
 pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, module: &str) -> NodeId {
     import_fact_with_symbol_evidence(lo, span, local, ImportFactKind::Namespace, &[module]).0
+}
+
+pub(crate) fn import_namespace_evidence_only(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    module: &str,
+) -> Option<EvidenceId> {
+    record_import_fact_evidence(lo, span, local, ImportFactKind::Namespace, &[module])
 }
 
 /// Shared shape of static-import proof facts. The assignment remains in IL so
@@ -81,6 +106,20 @@ fn import_fact_with_symbol_evidence(
     let lhs = lo.var(local, span);
     let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
     let rhs = lo.add(NodeKind::Seq, Payload::None, span, &strs);
+    let symbol_evidence = record_import_fact_evidence(lo, span, local, kind, coords);
+    (
+        lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
+        symbol_evidence,
+    )
+}
+
+fn record_import_fact_evidence(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    kind: ImportFactKind,
+    coords: &[&str],
+) -> Option<EvidenceId> {
     let evidence_kind = match kind {
         ImportFactKind::Binding if coords.len() == 2 => {
             EvidenceKind::Import(ImportEvidenceKind::Binding {
@@ -93,12 +132,7 @@ fn import_fact_with_symbol_evidence(
                 module_hash: stable_symbol_hash(coords[0]),
             })
         }
-        _ => {
-            return (
-                lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
-                None,
-            );
-        }
+        _ => return None,
     };
     let symbol_kind = match kind {
         ImportFactKind::Binding if coords.len() == 2 => {
@@ -112,12 +146,7 @@ fn import_fact_with_symbol_evidence(
                 module_hash: stable_symbol_hash(coords[0]),
             })
         }
-        _ => {
-            return (
-                lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
-                None,
-            );
-        }
+        _ => return None,
     };
     lo.record_evidence(EvidenceAnchor::sequence(span), evidence_kind, "import_fact");
     lo.record_evidence(
@@ -130,10 +159,7 @@ fn import_fact_with_symbol_evidence(
         symbol_kind,
         "symbol_import_identity",
     );
-    (
-        lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
-        Some(symbol_evidence),
-    )
+    Some(symbol_evidence)
 }
 
 /// Emit a `Var` token for every named leaf (identifier, string fragment, path

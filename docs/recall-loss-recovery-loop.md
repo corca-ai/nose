@@ -23,6 +23,10 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
 - [#574 callee census](../bench/recall_loss/issue-574-callee-census.v1.json)
   records the remaining callee-identity bucket by language and call-target
   surface for the #567 import-backed immutable provenance epic.
+- [#576 cycle log](../bench/recall_loss/issue-576-cycle.v1.json) records the
+  first recovery slice after the census: Rust brace `use` declarations now emit
+  per-item imported symbol evidence that feeds the existing imported
+  call-target producer.
 
 Regenerate the full local reports with:
 
@@ -90,13 +94,21 @@ local-or-parameter calls (`115`), member calls (`92`), and scoped-path calls
 call-target proof before expanding the same evidence shape into broader
 import-backed immutable value provenance under #567.
 
+The #576 recovery slice reduces the callee-identity bucket from `264` to `251`
+without changing the hard gate (`false_merges == 0`,
+`canon_preservation_violations == 0`). It does this by proving Rust brace import
+bindings such as `use crate::m::{f, T};` as per-item `Import`/`Symbol` evidence
+while leaving wildcard imports, nested brace imports, and `self`/`super`-relative
+brace prefixes closed. This shrinks the local-or-parameter primary surface from
+`115` to `71`; the next dominant targets are scoped paths and member calls.
+
 The current top `crates` buckets are:
 
 | reason | count | next capability |
 |---|---:|---|
-| `import-symbol-callee-identity-proof-missing` | 264 | reusable callee identity evidence |
-| `receiver-domain-proof-missing` | 238 | receiver-domain evidence instead of selector spelling |
-| `mutation-effect-boundary` | 134 | effect and place contracts |
+| `import-symbol-callee-identity-proof-missing` | 251 | reusable scoped/member callee identity evidence |
+| `receiver-domain-proof-missing` | 240 | receiver-domain evidence instead of selector spelling |
+| `mutation-effect-boundary` | 133 | effect and place contracts |
 | `source-surface-proof-missing` | 73 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
 | `hof-demand-effect-proof-missing` | 28 | HOF demand/effect/materialization profile |
 | `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |

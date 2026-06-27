@@ -72,6 +72,15 @@ The current implemented kinds are:
 | `CallTarget` | proof that a specific call occurrence resolves to an explicit function, method, imported function/member, or dispatch-family target identity |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
+Rust `use` producers use the same `Import`/`Symbol` vocabulary as other static
+imports. Simple static imports such as `use m::f;` keep their existing
+assignment-shaped import proof. Static brace imports such as `use m::{f, T};`
+emit per-item evidence-only binding proofs so the import syntax remains a
+low-signal token sequence while call-target and library-api consumers can still
+depend on a precise local binding. Wildcard imports, nested brace imports, and
+`self`/`super`-relative brace prefixes stay closed until a producer can prove a
+non-ambiguous coordinate.
+
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
 the contract id, callee coordinate, arity, and dependencies for a specific
 `Call`, `Field`, or `Var` node, depending on the contract surface.

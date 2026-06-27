@@ -50,6 +50,11 @@ break.
   callee bucket by call-target surface, including local/parameter calls,
   member calls, scoped paths, imported/global target proof labels, and already
   target-present call-contract proof labels.
+- Added Rust brace `use` import binding evidence for static, non-wildcard import
+  lists. The existing imported call-target producer can now prove calls through
+  bindings such as `use crate::m::{f, T}; f(...)`, reducing the `crates`
+  callee-identity recall-loss bucket from 264 to 251 while preserving zero false
+  merges and zero canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

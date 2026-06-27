@@ -109,6 +109,13 @@ overlap while the old accepted representative `e88e8f81d527af19` is no longer
 reported. The reviewed default-surface count remains 53; no budget increase is
 accepted.
 
+The 2026-06-27 Rust brace-import evidence slice (#576) adds a focused Rust
+frontend import-test module. That line movement changes the accepted
+async/yield/try protocol-boundary scaffold family ID from `60806a4da1fcff4f` to
+`55390d59f97e804b`; members and judgment stay the same (`python/tests.rs`
+await/yield protocol tests plus the Rust try-expression protocol test). The
+reviewed default-surface count remains 53; no budget increase is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

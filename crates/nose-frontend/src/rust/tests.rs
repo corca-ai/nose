@@ -1,5 +1,7 @@
 use super::*;
 
+mod imports;
+
 fn match_case_rhs_ints(src: &str) -> Vec<i64> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.rs", src.as_bytes(), &interner).expect("lower");

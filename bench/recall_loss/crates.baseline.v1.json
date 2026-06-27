@@ -19,12 +19,12 @@
   },
   "current": {
     "summary": {
-      "total_units": 6122,
-      "interpretable_units": 847,
-      "excluded_units": 5275,
-      "canon_checked": 69,
+      "total_units": 6140,
+      "interpretable_units": 852,
+      "excluded_units": 5288,
+      "canon_checked": 70,
       "canon_preservation_violations": 0,
-      "admission_rejections": 764
+      "admission_rejections": 752
     },
     "soundness_gate": {
       "fingerprint_groups": 38,
@@ -37,9 +37,9 @@
     },
     "completeness": {
       "behavior_groups": 3,
-      "behavior_equal_pairs": 71,
+      "behavior_equal_pairs": 82,
       "fingerprint_equal_pairs": 38,
-      "completeness_percent": 53.521126760563384,
+      "completeness_percent": 46.34146341463415,
       "under_merged_behavior_groups": 2,
       "structurally_near_under_merged_groups": 0
     },
@@ -47,13 +47,13 @@
       "core-missing": 0,
       "battery-bail": 1,
       "empty-fingerprint": 1,
-      "uninterpretable": 5272,
+      "uninterpretable": 5285,
       "path-bail": 1
     },
     "admission_rejections_by_reason": {
-      "import-symbol-callee-identity-proof-missing": 264,
-      "receiver-domain-proof-missing": 238,
-      "mutation-effect-boundary": 134,
+      "import-symbol-callee-identity-proof-missing": 251,
+      "receiver-domain-proof-missing": 240,
+      "mutation-effect-boundary": 133,
       "source-surface-proof-missing": 73,
       "hof-demand-effect-proof-missing": 28,
       "unsupported-runtime-boundary": 14,
@@ -96,6 +96,20 @@
     "artifact": "bench/recall_loss/issue-574-callee-census.v1.json",
     "follow_up": "Start with Rust local/scoped path call-target proof, then use the same evidence shape for import-backed immutable value provenance under #567."
   },
+  "cycle_576_rust_brace_import_targets": {
+    "source": "issue-576",
+    "selected_reason": "import-symbol-callee-identity-proof-missing",
+    "before_count": 264,
+    "after_count": 251,
+    "delta": -13,
+    "local_or_parameter_primary_before": 115,
+    "local_or_parameter_primary_after": 71,
+    "imported_function_target_present_before": 1,
+    "imported_function_target_present_after": 3,
+    "hard_gate_preserved": true,
+    "artifact": "bench/recall_loss/issue-576-cycle.v1.json",
+    "follow_up": "Recover Rust scoped-path and member call-target evidence without treating path spelling alone as target identity."
+  },
   "attribution_improvement": {
     "opaque_strict_exact_unsafe_before": 758,
     "unattributed_strict_exact_unsafe_after": 0,
@@ -106,7 +120,7 @@
   "representative_buckets": [
     {
       "reason": "import-symbol-callee-identity-proof-missing",
-      "count": 264,
+      "count": 251,
       "examples": [
         "crates/nose-cli/src/command_dispatch.rs:89",
         "crates/nose-cli/src/divergence.rs:32",
@@ -115,7 +129,7 @@
     },
     {
       "reason": "receiver-domain-proof-missing",
-      "count": 238,
+      "count": 240,
       "examples": [
         "crates/nose-cli/src/baseline.rs:158",
         "crates/nose-cli/src/falsify.rs:42",
@@ -124,11 +138,11 @@
     },
     {
       "reason": "mutation-effect-boundary",
-      "count": 134,
+      "count": 133,
       "examples": [
         "crates/nose-cli/src/baseline_comparison.rs:81",
         "crates/nose-cli/src/detect_command.rs:152",
-        "crates/nose-cli/src/ignores.rs:416"
+        "crates/nose-cli/src/divergence/detect.rs:160"
       ]
     },
     {

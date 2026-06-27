@@ -30,12 +30,13 @@ Compare two full reports with:
 python3 scripts/recall-loss-diff.py before.json after.json
 ```
 
-Build the #574 callee-identity census from a full report with:
+Build a callee-identity census from a full report with:
 
 ```sh
 python3 scripts/recall-loss-callee-census.py \
   target/recall-loss.crates.json \
-  > bench/recall_loss/issue-574-callee-census.v1.json
+  --format json \
+  > target/callee-census.json
 ```
 
 ## Files
@@ -55,3 +56,7 @@ python3 scripts/recall-loss-callee-census.py \
 - [issue-574-callee-census.v1.json](issue-574-callee-census.v1.json) records
   the #567/#574 census of the remaining callee-identity bucket by language and
   call-target surface.
+- [issue-576-cycle.v1.json](issue-576-cycle.v1.json) records the first recovery
+  slice after the census: Rust brace `use` imports now feed dependency-backed
+  imported call-target evidence while wildcard/nested/relative brace imports
+  stay closed.
