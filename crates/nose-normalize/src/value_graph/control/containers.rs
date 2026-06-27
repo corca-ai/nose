@@ -53,24 +53,61 @@ impl<'a> Builder<'a> {
         stmt: NodeId,
         env: &mut FxHashMap<u32, ValueId>,
     ) {
-        let binding = self.il.children(stmt).first().copied().and_then(|lhs| {
-            match (self.il.kind(lhs), self.il.node(lhs).payload) {
-                (NodeKind::Var, Payload::Cid(cid)) => self
-                    .il
-                    .cid_names
-                    .get(cid as usize)
-                    .copied()
-                    .map(|name| (cid, name)),
-                _ => None,
-            }
-        });
-        self.process_stmt(stmt, env);
-        let Some((cid, name)) = binding else {
+        let Some((lhs, rhs)) = self.il.assignment_var_parts(stmt) else {
+            self.process_stmt(stmt, env);
             return;
         };
-        if let Some(&value) = env.get(&cid) {
-            self.global_env.insert(name, value);
+        let binding = match self.il.node(lhs).payload {
+            Payload::Cid(cid) => self.il.cid_names.get(cid as usize).copied().map(|name| {
+                self.container_binding_value(lhs, rhs, name, env)
+                    .map(|value| ContainerBinding::Name(name, value))
+                    .unwrap_or(ContainerBinding::Cid(cid, name))
+            }),
+            Payload::Name(name) => self
+                .container_binding_value(lhs, rhs, name, env)
+                .map(|value| ContainerBinding::Name(name, value)),
+            _ => None,
+        };
+        match binding {
+            Some(ContainerBinding::Name(name, value)) => {
+                self.global_env.insert(name, value);
+                return;
+            }
+            Some(ContainerBinding::Cid(cid, name)) => {
+                self.process_stmt(stmt, env);
+                if let Some(&value) = env.get(&cid) {
+                    self.global_env.insert(name, value);
+                }
+                return;
+            }
+            None => {}
         }
+        self.process_stmt(stmt, env);
+    }
+
+    fn container_binding_value(
+        &mut self,
+        lhs: NodeId,
+        rhs: NodeId,
+        name: Symbol,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if self.module_binding_mutated(name) {
+            return None;
+        }
+        let binding_domain =
+            nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, lhs)?;
+        let value = self.eval(rhs, env);
+        if self.immutable_binding_safe(rhs, env) {
+            return Some(value);
+        }
+        if binding_domain.is_map() {
+            return self.proven_map_value(value);
+        }
+        if binding_domain.is_collection_or_set() {
+            return self.proven_collection_value(value);
+        }
+        None
     }
 
     pub(in crate::value_graph) fn compact_coupled_recurrence(
@@ -120,4 +157,9 @@ impl<'a> Builder<'a> {
         }
         false
     }
+}
+
+enum ContainerBinding {
+    Cid(u32, Symbol),
+    Name(Symbol, ValueId),
 }

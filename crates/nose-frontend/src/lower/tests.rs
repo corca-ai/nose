@@ -312,6 +312,16 @@ fn param_domain_record_count(evidence: &[EvidenceRecord], domain: DomainEvidence
     param_domain_records(evidence, domain).len()
 }
 
+fn binding_domain_record_count(evidence: &[EvidenceRecord], domain: DomainEvidence) -> usize {
+    evidence
+        .iter()
+        .filter(|record| {
+            matches!(record.anchor, EvidenceAnchor::Binding { .. })
+                && matches!(record.kind, EvidenceKind::Domain(actual) if actual == domain)
+        })
+        .count()
+}
+
 fn param_domain_record_count_from_pack(
     evidence: &[EvidenceRecord],
     domain: DomainEvidence,

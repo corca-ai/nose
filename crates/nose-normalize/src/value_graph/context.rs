@@ -398,7 +398,11 @@ impl<'a> Builder<'a> {
                 .any(|&child| self.node_contains_cid(child, cid))
     }
 
-    fn immutable_binding_safe(&self, node: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
+    pub(in crate::value_graph) fn immutable_binding_safe(
+        &self,
+        node: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> bool {
         match self.il.kind(node) {
             NodeKind::Raw
             | NodeKind::Call

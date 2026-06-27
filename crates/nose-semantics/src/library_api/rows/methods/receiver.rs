@@ -1,4 +1,6 @@
-use crate::library_api::contracts::library_receiver_method_api_result_domain;
+use crate::library_api::contracts::{
+    library_iterator_identity_adapter_result_domain, library_receiver_method_api_result_domain,
+};
 
 use super::*;
 
@@ -75,12 +77,16 @@ fn receiver_iterator_adapter_api_contract(
     arg_count: usize,
 ) -> Option<LibraryReceiverMethodApiContract> {
     library_iterator_identity_adapter_contract(lang, method, arg_count).map(|contract| {
-        receiver_method_api_contract(
-            contract.pack_id,
-            contract.id,
-            contract.callee,
-            ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID,
-        )
+        LibraryReceiverMethodApiContract {
+            pack_id: contract.pack_id,
+            id: contract.id,
+            callee: contract.callee,
+            rule: ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID,
+            result_domain: library_iterator_identity_adapter_result_domain(
+                contract.callee,
+                arg_count,
+            ),
+        }
     })
 }
 

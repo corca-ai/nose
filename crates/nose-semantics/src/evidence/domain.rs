@@ -235,30 +235,8 @@ fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvid
         return None;
     }
     match il.node(node).payload {
-        Payload::Cid(cid) => match nearest_scope(il, node) {
-            // A reassigned binding no longer proves its parameter's declared domain: the
-            // current value may have a different domain (e.g. a `list[int]` parameter
-            // rebound to a `str`). This mirrors the `Payload::Name` reassignment guard
-            // below; without it the alpha-renamed (Cid) form — the form that actually runs
-            // on the normalized IL value-graph/idiom consumers see — would fail open and
-            // admit, for instance, substring membership as collection membership.
-            Some(scope) if cid_is_assigned_in_scope(il, cid, scope) => None,
-            Some(scope) => unique_domain_evidence_for_params(
-                il,
-                il.children(scope).iter().copied().filter(move |&child| {
-                    il.kind(child) == NodeKind::Param
-                        && matches!(il.node(child).payload, Payload::Cid(param_cid) if param_cid == cid)
-                }),
-            ),
-            None => unique_domain_evidence_for_params(
-                il,
-                il.nodes.iter().enumerate().filter_map(move |(idx, candidate)| {
-                    (candidate.kind == NodeKind::Param
-                        && matches!(candidate.payload, Payload::Cid(param_cid) if param_cid == cid))
-                    .then_some(NodeId(idx as u32))
-                }),
-            ),
-        },
+        Payload::Cid(cid) => receiver_cid_param_span(il, node, cid)
+            .and_then(|span| domain_evidence_at_span(il, span)),
         Payload::Name(name) => {
             let (scope, param) = nearest_named_param_scope(il, node, name)?;
             if name_is_assigned_in_scope(il, name, scope) {
@@ -278,7 +256,7 @@ fn domain_evidence_for_binding_reference(
     if il.kind(node) != NodeKind::Var {
         return EvidenceResolution::Missing;
     }
-    let lhs = match unique_binding_lhs_for_var_reference(il, node) {
+    let lhs = match unique_binding_lhs_for_var_reference(il, interner, node) {
         EvidenceResolution::Found(lhs) => lhs,
         EvidenceResolution::Ambiguous => return EvidenceResolution::Ambiguous,
         EvidenceResolution::Missing => return EvidenceResolution::Missing,
@@ -316,6 +294,7 @@ fn domain_evidence_at_binding_lhs(
 
 pub(crate) fn unique_binding_lhs_for_var_reference(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
 ) -> EvidenceResolution<NodeId> {
     let scope = nearest_scope(il, node);
@@ -336,7 +315,9 @@ pub(crate) fn unique_binding_lhs_for_var_reference(
         let Some(&lhs) = il.children(assign).first() else {
             continue;
         };
-        if !var_references_same_binding(il, lhs, node) {
+        if !var_references_same_binding(il, lhs, node)
+            && !free_name_reference_matches_binding_domain(il, interner, lhs, node)
+        {
             continue;
         }
         match found {
@@ -346,6 +327,48 @@ pub(crate) fn unique_binding_lhs_for_var_reference(
         }
     }
     found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn free_name_reference_matches_binding_domain(
+    il: &Il,
+    interner: &Interner,
+    lhs: NodeId,
+    reference: NodeId,
+) -> bool {
+    let Payload::Name(name) = il.node(reference).payload else {
+        return false;
+    };
+    binding_lhs_matches_local_hash(
+        il,
+        interner,
+        lhs,
+        stable_symbol_hash(interner.resolve(name)),
+    )
+}
+
+fn binding_lhs_matches_local_hash(
+    il: &Il,
+    interner: &Interner,
+    lhs: NodeId,
+    local_hash: u64,
+) -> bool {
+    node_name_hash(il, interner, lhs) == Some(local_hash)
+        || binding_lhs_has_live_domain_hash(il, lhs, local_hash)
+}
+
+fn binding_lhs_has_live_domain_hash(il: &Il, lhs: NodeId, local_hash: u64) -> bool {
+    let span = il.node(lhs).span;
+    il.evidence_anchored_at(span).any(|record| {
+        matches!(
+            record.anchor,
+            EvidenceAnchor::Binding {
+                span: anchor_span,
+                local_hash: anchor_hash,
+            } if anchor_span == span && anchor_hash == local_hash
+        ) && matches!(record.kind, EvidenceKind::Domain(_))
+            && record.status == EvidenceStatus::Asserted
+            && il.evidence_dependencies_asserted(record)
+    })
 }
 
 pub(crate) fn assignment_is_visible_at_reference(
@@ -372,18 +395,50 @@ pub(crate) fn var_references_same_binding(il: &Il, lhs: NodeId, reference: NodeI
     }
 }
 
-fn unique_domain_evidence_for_params(
-    il: &Il,
-    params: impl Iterator<Item = NodeId>,
-) -> Option<DomainEvidence> {
+pub(crate) fn receiver_cid_param_span(il: &Il, receiver: NodeId, cid: u32) -> Option<Span> {
+    let Some(scope) = nearest_scope(il, receiver) else {
+        return unique_param_span_for_cid(
+            il,
+            il.nodes
+                .iter()
+                .enumerate()
+                .filter_map(move |(idx, candidate)| {
+                    (candidate.kind == NodeKind::Param
+                        && matches!(candidate.payload, Payload::Cid(param_cid) if param_cid == cid))
+                    .then_some(NodeId(idx as u32))
+                }),
+        );
+    };
+    if cid_is_assigned_in_scope(il, cid, scope) {
+        return None;
+    }
+    if let Some(span) = unique_param_span_for_cid(il, params_in_scope_with_cid(il, scope, cid)) {
+        return Some(span);
+    }
+    if il.kind(scope) != NodeKind::Lambda {
+        return None;
+    }
+    let func_scope = enclosing_func_scope(il, receiver)?;
+    if cid_is_assigned_in_scope(il, cid, func_scope) {
+        return None;
+    }
+    unique_param_span_for_cid(il, params_in_scope_with_cid(il, func_scope, cid))
+}
+
+fn params_in_scope_with_cid(il: &Il, scope: NodeId, cid: u32) -> impl Iterator<Item = NodeId> + '_ {
+    il.children(scope).iter().copied().filter(move |&child| {
+        il.kind(child) == NodeKind::Param
+            && matches!(il.node(child).payload, Payload::Cid(param_cid) if param_cid == cid)
+    })
+}
+
+fn unique_param_span_for_cid(il: &Il, params: impl Iterator<Item = NodeId>) -> Option<Span> {
     let mut found = None;
     for param in params {
-        let Some(domain) = domain_evidence_for_param(il, param) else {
-            continue;
-        };
+        let span = il.node(param).span;
         match found {
-            None => found = Some(domain),
-            Some(existing) if existing == domain => {}
+            None => found = Some(span),
+            Some(existing) if existing == span => {}
             Some(_) => return None,
         }
     }
@@ -451,4 +506,27 @@ fn cid_is_assigned_in_scope(il: &Il, cid: u32, scope: NodeId) -> bool {
 
 pub(crate) fn nearest_scope(il: &Il, node: NodeId) -> Option<NodeId> {
     il.nearest_scope(node)
+}
+
+fn enclosing_func_scope(il: &Il, node: NodeId) -> Option<NodeId> {
+    let span = il.node(node).span;
+    il.nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, candidate)| {
+            candidate.kind == NodeKind::Func
+                && candidate.span.file == span.file
+                && candidate.span.start_byte <= span.start_byte
+                && candidate.span.end_byte >= span.end_byte
+        })
+        .min_by_key(|(idx, candidate)| {
+            (
+                candidate
+                    .span
+                    .end_byte
+                    .saturating_sub(candidate.span.start_byte),
+                *idx,
+            )
+        })
+        .map(|(idx, _)| NodeId(idx as u32))
 }

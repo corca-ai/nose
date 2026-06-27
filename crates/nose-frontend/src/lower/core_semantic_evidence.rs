@@ -38,12 +38,13 @@ impl<'a> Lowering<'a> {
                 }
             }
             NodeKind::Assign => {
-                if let [target, _value] = children {
+                if let [target, value] = children {
                     self.record_evidence(
                         EvidenceAnchor::node(span, kind),
                         EvidenceKind::Effect(EffectEvidenceKind::BindingWrite),
                         "effect_binding_write",
                     );
+                    self.record_assignment_binding_domain(*target, *value);
                     if self.non_overloadable_index_assignment_target(*target) {
                         self.record_evidence(
                             EvidenceAnchor::node(span, kind),
@@ -64,6 +65,62 @@ impl<'a> Lowering<'a> {
             }
             _ => {}
         }
+    }
+
+    fn record_assignment_binding_domain(&mut self, target: NodeId, value: NodeId) {
+        let Some(local_hash) = self.binding_target_hash(target) else {
+            return;
+        };
+        let Some((domain, dependency)) = self.unique_node_domain_evidence(value) else {
+            return;
+        };
+        let anchor = EvidenceAnchor::binding(self.b.node(target).span, local_hash);
+        if self.binding_domain_record_exists(anchor, domain) {
+            return;
+        }
+        self.record_evidence_with_dependencies(
+            anchor,
+            EvidenceKind::Domain(domain),
+            "binding_domain_from_value",
+            vec![dependency],
+        );
+    }
+
+    fn binding_target_hash(&self, target: NodeId) -> Option<u64> {
+        if self.b.kind(target) != NodeKind::Var {
+            return None;
+        }
+        match self.b.payload(target) {
+            Payload::Name(name) => Some(stable_symbol_hash(self.interner.resolve(name))),
+            _ => None,
+        }
+    }
+
+    fn unique_node_domain_evidence(&self, node: NodeId) -> Option<(DomainEvidence, EvidenceId)> {
+        let anchor = EvidenceAnchor::node(self.b.node(node).span, self.b.kind(node));
+        let mut found = None;
+        for record in &self.evidence {
+            if record.anchor != anchor || record.status != EvidenceStatus::Asserted {
+                continue;
+            }
+            let EvidenceKind::Domain(domain) = record.kind else {
+                continue;
+            };
+            match found {
+                None => found = Some((domain, record.id)),
+                Some((existing, _)) if existing == domain => {}
+                Some(_) => return None,
+            }
+        }
+        found
+    }
+
+    fn binding_domain_record_exists(&self, anchor: EvidenceAnchor, domain: DomainEvidence) -> bool {
+        self.evidence.iter().any(|record| {
+            record.anchor == anchor
+                && record.kind == EvidenceKind::Domain(domain)
+                && record.status == EvidenceStatus::Asserted
+        })
     }
 
     fn record_call_mutation_evidence(&mut self, span: Span, kind: NodeKind, children: &[NodeId]) {

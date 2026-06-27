@@ -19,6 +19,9 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     match node.kind() {
         "let_declaration" => {
             let pattern = node.child_by_field_name("pattern");
+            let type_domain = node
+                .child_by_field_name("type")
+                .and_then(|ty| lo.type_domain_from_text_with_dependencies(lo.text(ty)));
             let rhs = node
                 .child_by_field_name("value")
                 .map(|v| lower_expr(lo, v))
@@ -43,7 +46,13 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             }
             let lhs = pattern
                 .and_then(|p| ident_of(lo, p))
-                .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
+                .map(|s| {
+                    let local = lo.interner.resolve(s).to_string();
+                    if let Some(domain) = type_domain.clone() {
+                        lo.record_binding_domain_resolution(span, &local, domain);
+                    }
+                    lo.add(NodeKind::Var, Payload::Name(s), span, &[])
+                })
                 .unwrap_or_else(|| lo.empty_block(span));
             Some(lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]))
         }

@@ -32,6 +32,20 @@ impl<'a> Lowering<'a> {
         );
     }
 
+    pub(crate) fn record_binding_domain_resolution(
+        &mut self,
+        span: Span,
+        local: &str,
+        domain: ResolvedTypeDomain,
+    ) {
+        self.record_evidence_with_provenance_dependencies(
+            EvidenceAnchor::binding(span, stable_symbol_hash(local)),
+            EvidenceKind::Domain(domain.domain),
+            domain.provenance.evidence_provenance,
+            domain.dependencies,
+        );
+    }
+
     pub(crate) fn record_param_domain_with_provenance(
         &mut self,
         span: Span,

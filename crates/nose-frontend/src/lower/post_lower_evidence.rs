@@ -264,9 +264,9 @@ pub(super) fn post_lower_record_library_api_result_domain(
     call: NodeId,
     result_domain: Option<DomainEvidence>,
     api: EvidenceId,
-) {
+) -> Option<EvidenceId> {
     if let Some(domain) = result_domain {
-        let _ = post_lower_find_or_push_evidence(
+        return post_lower_find_or_push_evidence(
             il,
             EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
             EvidenceKind::Domain(domain),
@@ -274,6 +274,7 @@ pub(super) fn post_lower_record_library_api_result_domain(
             vec![api],
         );
     }
+    None
 }
 
 pub(super) fn post_lower_record_library_api_node_result_domain(

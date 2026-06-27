@@ -24,6 +24,7 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         }
         record_post_lower_library_api_contract(
             il,
+            interner,
             call,
             arg_count,
             PostLowerLibraryApiContract {

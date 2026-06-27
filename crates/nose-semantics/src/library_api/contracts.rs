@@ -333,6 +333,26 @@ pub(in crate::library_api) fn library_receiver_method_api_result_domain(
     }
 }
 
+pub(in crate::library_api) fn library_iterator_identity_adapter_result_domain(
+    callee: LibraryApiCalleeContract,
+    arity: usize,
+) -> Option<DomainEvidence> {
+    let LibraryApiCalleeContract::IteratorAdapterMethod { method, .. } = callee else {
+        return None;
+    };
+    if arity != 0 {
+        return None;
+    }
+    match method {
+        "iter" | "into_iter" | "iter_mut" | "copied" | "cloned" | "stream" => {
+            Some(DomainEvidence::Iterator)
+        }
+        "to_vec" => Some(DomainEvidence::Collection),
+        "collect" => None,
+        _ => None,
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LibraryMapGetContract {
     pub pack_id: &'static str,

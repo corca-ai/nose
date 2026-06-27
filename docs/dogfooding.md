@@ -137,6 +137,19 @@ language-core provenance helper family covering binding, library API, import
 facts, and sequence-surface records. The reviewed default-surface count remains
 53; no budget increase is accepted.
 
+The 2026-06-27 receiver-domain recovery slice (#582) changes value-graph
+module/static binding seeding enough to move the already accepted
+context/export assignment-counting family from `209fdc39157ececd` to
+`d0198581ac228459`; the members and judgment remain the same
+(`value_graph/context.rs` module binding seeding and
+`module_imports/exports.rs` imported literal export collection). The same
+self-query now reports `318c7eb92b77189f`, a production value-graph whole-impl
+span between `field_state.rs` and `stdlib/bindings.rs` with one shared line and
+one removable line. That is detector span noise over small helper impl blocks,
+not extractable duplication. The reviewed default-surface count moves from
+53 to 54; the budget increase accepts this surfacing without accepting new
+avoidable duplication.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

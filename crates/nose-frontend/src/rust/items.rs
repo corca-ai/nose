@@ -410,10 +410,15 @@ pub(super) fn lower_field_decl(lo: &mut Lowering, node: TsNode) -> Option<NodeId
 }
 pub(super) fn lower_value_item(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let lhs = node
-        .child_by_field_name("name")
+    let name = node.child_by_field_name("name");
+    let lhs = name
         .map(|n| lo.var(lo.text(n), span))
         .unwrap_or_else(|| lo.empty_block(span));
+    if let (Some(name), Some(type_node)) = (name, node.child_by_field_name("type")) {
+        if let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(type_node)) {
+            lo.record_binding_domain_resolution(span, lo.text(name), domain);
+        }
+    }
     let rhs = node
         .child_by_field_name("value")
         .map(|v| lower_expr(lo, v))

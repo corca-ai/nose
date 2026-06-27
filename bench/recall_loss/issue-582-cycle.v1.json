@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle",
+  "issue": 582,
+  "parent_issue": 567,
+  "generated_on": "2026-06-27",
+  "selected_reason": "receiver-domain-proof-missing",
+  "what_changed": [
+    "Iterator identity adapter contracts now expose fixed result-domain evidence for safe rows: Rust iter/into_iter/iter_mut/copied/cloned and Java stream produce Iterator, while Rust to_vec produces Collection.",
+    "Rust collect remains closed for fixed result-domain emission because its result type is caller-selected.",
+    "Strict exact receiver-domain gates now consume asserted Domain evidence anchored to exact receiver nodes, including Call receivers, instead of restricting the cache facade to Var receivers.",
+    "Rust typed const/static items and typed let bindings now emit binding-domain evidence through the existing binding-domain resolver.",
+    "Collection literal assignments now materialize dependency-backed binding-domain evidence from the literal SequenceSurface/Domain proof, including local Rust/Swift bindings and JS module-scope bindings.",
+    "Canonical builtin admission can validate binding-domain proof chains after normalization inlines the receiver value, including static/module map bindings, while strict exact keeps mutation-sensitive receivers closed when ReceiverMutation evidence appears before use.",
+    "Receiver-domain lookup for alpha-renamed method receivers can follow a captured enclosing function parameter domain inside a lambda without crossing function boundaries."
+  ],
+  "before_report": {
+    "artifact": "target/recall-loss.before-receiver-domain.json",
+    "summary": {
+      "total_units": 6156,
+      "interpretable_units": 853,
+      "excluded_units": 5303,
+      "canon_checked": 70,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 707
+    },
+    "completeness": {
+      "behavior_equal_pairs": 82,
+      "fingerprint_equal_pairs": 38,
+      "completeness_percent": 46.34146341463415,
+      "under_merged_behavior_groups": 2
+    },
+    "selected_reason_count": 241
+  },
+  "after_report": {
+    "artifact": "target/recall-loss.after-receiver-domain-final.json",
+    "summary": {
+      "total_units": 6191,
+      "interpretable_units": 854,
+      "excluded_units": 5337,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 708
+    },
+    "completeness": {
+      "behavior_equal_pairs": 83,
+      "fingerprint_equal_pairs": 39,
+      "completeness_percent": 46.98795180722892,
+      "under_merged_behavior_groups": 2
+    },
+    "selected_reason_count": 239
+  },
+  "bucket_delta": {
+    "admission_rejections": 1,
+    "selected_reason": -2,
+    "receiver-domain-proof-missing": -2,
+    "import-symbol-callee-identity-proof-missing": 1,
+    "mutation-effect-boundary": -1,
+    "source-surface-proof-missing": 0,
+    "hof-demand-effect-proof-missing": 2,
+    "unsupported-runtime-boundary": 0,
+    "library-api-occurrence-proof-missing": 1,
+    "value-fingerprint-too-small": 0
+  },
+  "hard_gate": {
+    "false_merges_before": 0,
+    "false_merges_after": 0,
+    "canon_preservation_violations_before": 0,
+    "canon_preservation_violations_after": 0,
+    "gate_passed": true
+  },
+  "decision": {
+    "notes": [
+      "The selected bucket moved 241 -> 239 and completeness improved 38/82 -> 39/83 by letting normalized receiver values retain dependency-backed binding-domain proof instead of selector-specific exceptions.",
+      "The total exact-admission rejection count increased by 1 while hard gates stayed closed; the increase is attributed to structured callee-identity/HOF/library-API occurrence buckets in newly touched code, not to unattributed exact-safety loss.",
+      "Strict exact now rejects mutation-sensitive receiver-domain use when ReceiverMutation evidence appears before the receiver use, preserving the Swift Set(sequence) mutation boundary while still admitting unmutated binding-domain receivers."
+    ],
+    "follow_up": "Design cross-file field/constant domain provenance before trying to recover f.locations.iter(), imported generated constant arrays, or similar external receiver surfaces."
+  },
+  "fixture_refs": [
+    "crates/nose-semantics/src/tests/library_api_contracts/factory_rows/materialized_result_domains.rs::materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed",
+    "crates/nose-semantics/src/tests/library_api_contracts/method_protocols.rs::receiver_method_api_rows_emit_only_safe_result_domains",
+    "crates/nose-frontend/src/lower/tests/post_lower_results/iterator_adapters.rs::post_lowering_emits_result_domains_for_supported_receiver_methods",
+    "crates/nose-frontend/src/lower/tests/param_domains.rs::parameter_type_domains_are_dependency_backed_and_not_substring_guesses",
+    "crates/nose-frontend/src/lower/tests/core_misc.rs::collection_literal_assignments_emit_binding_domain_evidence",
+    "crates/nose-detect/src/units/tests/strict_exact_call_receiver_domains.rs::strict_exact_contains_consumes_call_receiver_domain_evidence",
+    "crates/nose-detect/src/units/tests/strict_exact_factories/swift_factories.rs::strict_exact_swift_set_factory_rejects_mutated_source_collection"
+  ]
+}

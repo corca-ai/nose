@@ -5,9 +5,9 @@
 //! orchestration in `units.rs`; proof policy lives here.
 
 use nose_il::{
-    stable_symbol_hash, Builtin, CallTargetEvidenceKind, EvidenceAnchor, EvidenceKind, HoFKind, Il,
-    Interner, Lang, LitClass, NodeId, NodeKind, Op, Payload, SourceBindingKind,
-    SourceComprehensionKind, SourceFactKind, Span, Symbol,
+    stable_symbol_hash, Builtin, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor,
+    EvidenceKind, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op, Payload,
+    SourceBindingKind, SourceComprehensionKind, SourceFactKind, Span, Symbol,
 };
 use nose_normalize::module_facts::collect_module_mutations;
 use nose_semantics::{
@@ -64,8 +64,8 @@ pub(crate) use collections::{
 use collections::{
     strict_exact_collection_factory_call_safe, strict_exact_iterator_identity_adapter_call_safe,
     strict_exact_map_contains_call_safe, strict_exact_map_get_call_safe,
-    strict_exact_map_get_default_call_safe, strict_exact_proven_collection_receiver_safe,
-    strict_exact_proven_map_receiver_safe,
+    strict_exact_map_get_default_call_safe, strict_exact_map_receiver_or_factory_safe,
+    strict_exact_proven_collection_receiver_safe, strict_exact_proven_map_receiver_safe,
 };
 use factories::{
     strict_exact_go_literal_zero_map_index_safe, strict_exact_java_collection_constructor_safe,

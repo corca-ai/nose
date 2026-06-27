@@ -7,6 +7,7 @@ fn parameter_type_domains_are_dependency_backed_and_not_substring_guesses() {
     assert_python_stdlib_pack_param_domains(&interner);
     assert_ts_and_java_param_domains(&interner);
     assert_rust_result_param_domains(&interner);
+    assert_rust_binding_type_domains(&interner);
 }
 
 fn import_backed_param_domain_pack_hash(
@@ -302,5 +303,19 @@ fn assert_rust_result_param_domains(interner: &Interner) {
         param_domain_record_count(&rust_shadowed_result.evidence, DomainEvidence::Result),
         0,
         "a local Rust Result type must close unqualified std Result parameter evidence"
+    );
+}
+
+fn assert_rust_binding_type_domains(interner: &Interner) {
+    let rust = lower_fixture(
+        "binding_domains.rs",
+        b"const IDS: &[&str] = &[\"a\"];\nfn f() { let xs: Vec<i32> = Vec::new(); let n = IDS.len() + xs.len(); }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        binding_domain_record_count(&rust.evidence, DomainEvidence::Collection),
+        2,
+        "Rust const/static and typed let bindings should emit binding-domain evidence"
     );
 }

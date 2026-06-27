@@ -121,6 +121,29 @@ fn materialized_result_domain_mapping_keeps_unsafe_call_lanes_closed() {
         "Map.get value semantics are not a fixed container result domain"
     );
 
+    let rust_iter = library_iterator_identity_adapter_contract(Lang::Rust, "iter", 0).unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(rust_iter.id, rust_iter.callee, 0),
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(rust_iter.id, rust_iter.callee, 1),
+        None,
+        "iterator adapter result-domain evidence must stay arity-checked"
+    );
+    let rust_to_vec = library_iterator_identity_adapter_contract(Lang::Rust, "to_vec", 0).unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(rust_to_vec.id, rust_to_vec.callee, 0),
+        Some(DomainEvidence::Collection)
+    );
+    let rust_collect =
+        library_iterator_identity_adapter_contract(Lang::Rust, "collect", 0).unwrap();
+    assert_eq!(
+        library_api_materialized_result_domain_for_arity(rust_collect.id, rust_collect.callee, 0),
+        None,
+        "collect result type is caller-selected and must not emit a fixed result domain"
+    );
+
     let guava_map = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of").unwrap();
     assert_eq!(
         library_api_materialized_result_domain_for_arity(guava_map.id, guava_map.callee, 20),

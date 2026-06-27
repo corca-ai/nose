@@ -528,6 +528,30 @@ fn receiver_method_api_rows_emit_only_safe_result_domains() {
     );
 
     assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "iter", 0)
+            .expect("Rust iterator adapter contract")
+            .result_domain,
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "copied", 0)
+            .expect("Rust copied iterator adapter contract")
+            .result_domain,
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Rust, "to_vec", 0)
+            .expect("Rust to_vec adapter contract")
+            .result_domain,
+        Some(DomainEvidence::Collection)
+    );
+    assert_eq!(
+        library_receiver_method_api_contract(Lang::Java, "stream", 0)
+            .expect("Java stream adapter contract")
+            .result_domain,
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
         library_receiver_method_api_contract(Lang::Rust, "collect", 0)
             .expect("Rust iterator adapter contract")
             .result_domain,

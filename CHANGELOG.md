@@ -67,6 +67,21 @@ break.
   follow-ups from the scoped-call slice and reducing `crates` exact-admission
   rejections from 735 to 707 while preserving zero false merges and zero
   canon-preservation violations.
+- Added receiver-domain recovery infrastructure for iterator adapter chains.
+  Rust `iter`/`into_iter`/`iter_mut`/`copied`/`cloned` and Java `stream` now
+  materialize `Iterator` result-domain evidence, Rust `to_vec` materializes
+  `Collection`, and Rust `collect` remains closed because its result type is
+  caller-selected. Strict exact receiver gates now consume asserted `Domain`
+  evidence on call receivers; typed `const`/`static`/`let` plus collection
+  literal assignments now emit dependency-backed binding-domain evidence. After
+  normalization inlines a receiver value, canonical builtin admission can follow
+  the original binding proof chain, including static/module map bindings and
+  HOF callbacks that capture typed function parameters, while strict exact still
+  closes mutated receivers through `ReceiverMutation` evidence. On `crates`, the
+  receiver-domain bucket moves `241 -> 239`, completeness improves `38/82 ->
+  39/83`, and hard gates remain at zero false merges and zero
+  canon-preservation violations; the remaining blocker is cross-file
+  field/constant domain provenance.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

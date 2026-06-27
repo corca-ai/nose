@@ -75,9 +75,9 @@ use model::{
     Sink, SinkKind, ValNode, ValOp, ValueId,
 };
 use nose_il::{
-    stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LitClass,
-    LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind,
-    SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol,
+    stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor, EvidenceKind, EvidenceStatus,
+    HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind,
+    SourceComprehensionKind, SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol,
 };
 use nose_semantics::{
     admitted_builder_append_method_call_args, admitted_builtin_semantics_at_call_with_interner,

@@ -29,16 +29,26 @@ impl<'a> Builder<'a> {
         if self.il.kind(expr) != NodeKind::Var {
             return None;
         }
-        let Payload::Cid(cid) = self.il.node(expr).payload else {
-            return None;
+        let (lhs, rhs, self_referential) = match self.il.node(expr).payload {
+            Payload::Cid(cid) => {
+                let (lhs, rhs) = self.local_binding_initializer(cid, expr)?;
+                (lhs, rhs, self.node_contains_cid(rhs, cid))
+            }
+            Payload::Name(name) => {
+                if self.module_binding_mutated(name) {
+                    return None;
+                }
+                let (lhs, rhs) = self.module_binding_initializer(name, expr)?;
+                (lhs, rhs, self.node_contains_binding_name(rhs, name))
+            }
+            _ => return None,
         };
-        let (lhs, rhs) = self.local_binding_initializer(cid, expr)?;
         if !nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, lhs)
             .is_some_and(accepts_domain)
         {
             return None;
         }
-        if self.node_contains_cid(rhs, cid) {
+        if self_referential {
             return None;
         }
         Some(self.eval(rhs, env))
@@ -67,5 +77,51 @@ impl<'a> Builder<'a> {
             }
         }
         rhs
+    }
+    fn module_binding_initializer(
+        &self,
+        name: Symbol,
+        use_node: NodeId,
+    ) -> Option<(NodeId, NodeId)> {
+        let local_hash = stable_symbol_hash(self.interner.resolve(name));
+        let mut found = None;
+        for assign in top_level_statements_for(self.il) {
+            let Some((lhs, rhs)) = self.il.assignment_var_parts(assign) else {
+                continue;
+            };
+            if self.il.node(assign).span.end_byte > self.il.node(use_node).span.start_byte {
+                continue;
+            }
+            if !self.binding_lhs_has_domain_hash(lhs, local_hash) {
+                continue;
+            }
+            if found.is_some() {
+                return None;
+            }
+            found = Some((lhs, rhs));
+        }
+        found
+    }
+    fn binding_lhs_has_domain_hash(&self, lhs: NodeId, local_hash: u64) -> bool {
+        let span = self.il.node(lhs).span;
+        self.il.evidence_anchored_at(span).any(|record| {
+            matches!(
+                record.anchor,
+                EvidenceAnchor::Binding {
+                    span: anchor_span,
+                    local_hash: anchor_hash,
+                } if anchor_span == span && anchor_hash == local_hash
+            ) && matches!(record.kind, EvidenceKind::Domain(_))
+                && record.status == EvidenceStatus::Asserted
+                && self.il.evidence_dependencies_asserted(record)
+        })
+    }
+    fn node_contains_binding_name(&self, node: NodeId, name: Symbol) -> bool {
+        self.il.var_binding_name(node) == Some(name)
+            || self
+                .il
+                .children(node)
+                .iter()
+                .any(|&child| self.node_contains_binding_name(child, name))
     }
 }

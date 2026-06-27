@@ -282,20 +282,36 @@ corresponding `ImportedBinding` symbol evidence, and a rebound alias closes that
 path.
 `Type(NominalDomain)` rows can map a scoped nominal type hash to a domain, but
 type names alone are not proof; the dependent `Domain` record still needs a
-valid symbol/import/scope chain. `nose-semantics` resolves `Domain` evidence on
-exact receiver-expression node anchors, then binding anchors for immutable
-local/module variables, then parameter anchors. A conflicting, ambiguous, or
-dependency-broken receiver-domain record closes that receiver proof and must not
-fall back to side-table mirrors or selector spelling. Binding-anchor lookup
+valid symbol/import/scope chain. Rust typed `const`/`static` items and typed
+`let` bindings now emit binding-anchored `Domain` evidence through the same
+type-domain vocabulary as parameters; this is receiver-domain proof for the
+binding, not exact value proof for the initializer. Proven collection
+`SequenceSurface` records also materialize dependency-backed `Domain(Collection)`
+evidence on the `Seq` node, so literal collection receivers and typed collection
+receivers flow through the same receiver-domain capability. Assignments whose
+right-hand side has a unique asserted node-domain proof may also emit a
+binding-anchored `Domain` record that depends on that right-hand-side proof;
+after normalization inlines the value, canonical builtin admission can follow
+that proof chain back to the exact receiver node instead of trusting selector or
+binding spelling. Module/static free-name references that survive normalization
+may also match binding-domain evidence by the binding `local_hash`, but still
+only when the binding evidence is asserted, dependency-closed, visible before the
+use, and unambiguous. `nose-semantics`
+resolves `Domain` evidence on exact receiver-expression node anchors, then
+binding anchors for immutable local/module variables, then parameter anchors. A
+conflicting, ambiguous, or dependency-broken receiver-domain record closes that
+receiver proof and must not fall back to side-table mirrors or selector
+spelling. Binding-anchor lookup
 matches both source span and `local_hash`, and a binding proof is applied to a
 receiver only when the assignment is visible before that receiver use. When a
 receiver is an alpha-renamed parameter or local binding reference, lookup is
 constrained to the nearest function/lambda scope where appropriate so
 same-numbered parameter/local ids from other units do not prove the current
-receiver. Method receiver contracts expose their domain-backed obligations
-through `DomainRequirement`; obligations such as imported namespace, unshadowed
-global, exact map literal, and future demand/effect constraints remain separate
-checks.
+receiver; a receiver inside a lambda may follow a captured enclosing function
+parameter's domain evidence, but this fallback does not cross a `Func` boundary.
+Method receiver contracts expose their domain-backed obligations through
+`DomainRequirement`; obligations such as imported namespace, unshadowed global,
+exact map literal, and future demand/effect constraints remain separate checks.
 
 Parameter `Domain` evidence also seeds the semantic-kernel `ValueDomain`
 contract used by value-graph and recursion laws. That bridge is intentionally
@@ -632,8 +648,13 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `iter`/`into_iter`/`iter_mut`/`collect`/`to_vec`/`copied`/`cloned` and Java
   `.stream()` iterator identity adapters with
   `nose.protocols.iterator_identity_adapters` provenance when protocol receiver
-  proof is present, Rust iterator `map`/`filter`/`filter_map`/`flat_map` HOF
-  adapters and `any`/`all`/`count` terminals with
+  proof is present. Those adapter occurrences now materialize result-domain
+  evidence for safe fixed cases: Rust `iter`/`into_iter`/`iter_mut`/
+  `copied`/`cloned` and Java `.stream()` prove `Iterator`, Rust `to_vec` proves
+  `Collection`, and Rust `collect` deliberately emits no fixed domain because
+  the target type is caller-selected. Rust iterator
+  `map`/`filter`/`filter_map`/`flat_map` HOF adapters and
+  `any`/`all`/`count` terminals with
   `nose.protocols.sequence_hof_adapters` provenance when protocol receiver proof
   is present, and Swift `map`/`filter`/`flatMap` HOFs with the same provenance
   when Array/Collection receiver proof and inline effect-closed callback proof
@@ -768,7 +789,13 @@ callers:
   consumers prefer concrete factory/result-shape canonicalization before using a
   domain-shaped fallback, and strict exact consumers may use domain evidence only
   for receiver-domain obligations. They do not promote an opaque binding with a
-  collection/map domain into a generally exact-safe variable value;
+  collection/map domain into a generally exact-safe variable value, and they
+  still close mutation-sensitive receiver uses when asserted `ReceiverMutation`
+  evidence appears before the receiver use. Normalize may seed a module/static
+  container binding into the method receiver environment when its initializer has
+  `Map` or collection domain proof and passes immutable-binding or proven
+  container-shape checks, but it does not also add that binding as an independent
+  class-data fingerprint sink merely because the receiver proof exists;
 - import proof parsing for compatibility helpers, with value-graph import
   identity and imported literal replacement consuming evidence-only facts;
 - cross-file imported literal replacement copies the provider's closed evidence
@@ -823,7 +850,11 @@ callers:
   pack-proven map-key-view, regex, JS static/global,
   static-index, iterator-adapter, Rust Option sentinel, Rust `Vec::new`, and first-party
   collection/map factory and constructor paths instead of locally recombining
-  selector strings with evidence checks. Opaque same-callee exact identity
+  selector strings with evidence checks. Normalized
+  `Builtin::GetOrDefault(receiver, key, default)` is exact-safe only when the
+  receiver is a proven map receiver/factory or an already exact-safe non-binding
+  literal/factory value, and the key/default arguments are exact-safe. Opaque
+  same-callee exact identity
   remains separate: it can keep identical calls comparable, but it does not
   assign cross-language or library semantics;
 - normalize idiom canonicalization shares the admitted occurrence resolver layer

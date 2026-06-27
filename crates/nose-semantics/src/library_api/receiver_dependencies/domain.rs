@@ -38,7 +38,7 @@ pub(in crate::library_api) fn domain_dependency_id_for_receiver_requirement(
     // are visited in evidence order, exactly like the pass they replace.
     let mut indices = il.evidence_indices_anchored_at(il.node(receiver).span);
     if let EvidenceResolution::Found(lhs) =
-        unique_binding_lhs_for_var_reference_cached(il, receiver, cache)
+        unique_binding_lhs_for_var_reference_cached(il, interner, receiver, cache)
     {
         indices.extend(il.evidence_indices_anchored_at(il.node(lhs).span));
     }
@@ -88,10 +88,10 @@ pub(in crate::library_api) fn domain_dependency_anchor_matches_receiver(
         }
         EvidenceAnchor::Binding { span, local_hash } => {
             matches!(
-                unique_binding_lhs_for_var_reference_cached(il, receiver, cache),
+                unique_binding_lhs_for_var_reference_cached(il, interner, receiver, cache),
                 EvidenceResolution::Found(lhs)
                     if il.node(lhs).span == span
-                        && node_name_hash(il, interner, lhs) == Some(local_hash)
+                        && binding_lhs_matches_local_hash(il, interner, lhs, local_hash)
             )
         }
         EvidenceAnchor::Param { span } => {
@@ -103,19 +103,21 @@ pub(in crate::library_api) fn domain_dependency_anchor_matches_receiver(
 
 pub(in crate::library_api) fn unique_binding_lhs_for_var_reference_cached(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     cache: &mut LibraryApiDependencyCache,
 ) -> EvidenceResolution<NodeId> {
     if let Some(&cached) = cache.binding_lhs_by_reference.get(&node) {
         return cached;
     }
-    let resolution = unique_binding_lhs_for_var_reference_with_cache(il, node, cache);
+    let resolution = unique_binding_lhs_for_var_reference_with_cache(il, interner, node, cache);
     cache.binding_lhs_by_reference.insert(node, resolution);
     resolution
 }
 
 pub(in crate::library_api) fn unique_binding_lhs_for_var_reference_with_cache(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     cache: &mut LibraryApiDependencyCache,
 ) -> EvidenceResolution<NodeId> {
@@ -135,7 +137,9 @@ pub(in crate::library_api) fn unique_binding_lhs_for_var_reference_with_cache(
         let Some(&lhs) = il.children(assign).first() else {
             continue;
         };
-        if !var_references_same_binding(il, lhs, node) {
+        if !var_references_same_binding(il, lhs, node)
+            && !free_name_reference_matches_binding_domain(il, interner, lhs, node)
+        {
             continue;
         }
         match found {
@@ -145,6 +149,48 @@ pub(in crate::library_api) fn unique_binding_lhs_for_var_reference_with_cache(
         }
     }
     found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn free_name_reference_matches_binding_domain(
+    il: &Il,
+    interner: &Interner,
+    lhs: NodeId,
+    reference: NodeId,
+) -> bool {
+    let Payload::Name(name) = il.node(reference).payload else {
+        return false;
+    };
+    binding_lhs_matches_local_hash(
+        il,
+        interner,
+        lhs,
+        stable_symbol_hash(interner.resolve(name)),
+    )
+}
+
+fn binding_lhs_matches_local_hash(
+    il: &Il,
+    interner: &Interner,
+    lhs: NodeId,
+    local_hash: u64,
+) -> bool {
+    node_name_hash(il, interner, lhs) == Some(local_hash)
+        || binding_lhs_has_live_domain_hash(il, lhs, local_hash)
+}
+
+fn binding_lhs_has_live_domain_hash(il: &Il, lhs: NodeId, local_hash: u64) -> bool {
+    let span = il.node(lhs).span;
+    il.evidence_anchored_at(span).any(|record| {
+        matches!(
+            record.anchor,
+            EvidenceAnchor::Binding {
+                span: anchor_span,
+                local_hash: anchor_hash,
+            } if anchor_span == span && anchor_hash == local_hash
+        ) && matches!(record.kind, EvidenceKind::Domain(_))
+            && record.status == EvidenceStatus::Asserted
+            && il.evidence_dependencies_asserted(record)
+    })
 }
 
 pub(in crate::library_api) fn nearest_scope_cached(
@@ -187,28 +233,9 @@ pub(in crate::library_api) fn receiver_cid_param_span_with_cache(
     il: &Il,
     receiver: NodeId,
     cid: u32,
-    cache: &mut LibraryApiDependencyCache,
+    _cache: &mut LibraryApiDependencyCache,
 ) -> Option<Span> {
-    let scope = nearest_scope_cached(il, receiver, cache);
-    let mut found = None;
-    for (idx, candidate) in il.nodes.iter().enumerate() {
-        if candidate.kind != NodeKind::Param {
-            continue;
-        }
-        let id = NodeId(idx as u32);
-        if nearest_scope_cached(il, id, cache) != scope {
-            continue;
-        }
-        if !matches!(candidate.payload, Payload::Cid(param_cid) if param_cid == cid) {
-            continue;
-        }
-        match found {
-            None => found = Some(candidate.span),
-            Some(existing) if existing == candidate.span => {}
-            Some(_) => return None,
-        }
-    }
-    found
+    receiver_cid_param_span(il, receiver, cid)
 }
 
 pub(in crate::library_api) fn receiver_named_param_span_with_cache(

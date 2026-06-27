@@ -452,6 +452,47 @@ fn cid_receiver_domain_uses_nearest_function_scope() {
 }
 
 #[test]
+fn cid_receiver_domain_reaches_captured_function_param_inside_lambda() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
+    let lambda_param = b.add(NodeKind::Param, Payload::Cid(1), span(42, 43, 2), &[]);
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(60, 62, 3), &[]);
+    let stmt = b.add(
+        NodeKind::ExprStmt,
+        Payload::None,
+        span(60, 62, 3),
+        &[receiver],
+    );
+    let lambda_body = b.add(NodeKind::Block, Payload::None, span(58, 64, 3), &[stmt]);
+    let lambda = b.add(
+        NodeKind::Lambda,
+        Payload::None,
+        span(40, 80, 2),
+        &[lambda_param, lambda_body],
+    );
+    let body = b.add(NodeKind::Block, Payload::None, span(30, 90, 2), &[lambda]);
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        span(0, 100, 1),
+        &[param, body],
+    );
+    let mut il = finish_il(b, root, Lang::TypeScript);
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::param(span(10, 12, 1)),
+        EvidenceKind::Domain(DomainEvidence::Array),
+        EvidenceStatus::Asserted,
+    ));
+
+    assert_eq!(
+        domain_evidence_for_receiver(&il, &interner, receiver),
+        Some(DomainEvidence::Array)
+    );
+}
+
+#[test]
 fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
     let (mut il, interner, receiver) = cid_param_receiver_fixture();
     push_cid_param_domain(&mut il, 0, DomainEvidence::Set);

@@ -1,5 +1,6 @@
 use super::*;
 
+mod iterator_adapters;
 mod object_key_views;
 mod string_affix;
 

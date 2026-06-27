@@ -86,6 +86,10 @@ set -euo pipefail
 # 53 -> 52 (#557 string affix protocol pack): the new string-affix admission resolver initially
 # joined the existing receiver-method LibraryApi fixture family. Extracting the shared
 # receiver-method call fixture removes that accepted representative with no new family.
+# 53 -> 54 (#582 receiver-domain recovery): module/static binding seeding moves the accepted
+# context/export assignment-counting representative and surfaces one small value-graph whole-impl
+# span with only one shared/removable line. Reviewed in docs/dogfooding.md; accepted as detector
+# span noise, not avoidable duplication.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

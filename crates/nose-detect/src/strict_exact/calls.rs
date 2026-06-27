@@ -16,6 +16,13 @@ pub(super) fn strict_exact_safe_call(
                 strict_exact_safe_tree(il, interner, facts, kids[0])
                     && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
             }
+            Builtin::GetOrDefault if kids.len() == 3 => {
+                (strict_exact_map_receiver_or_factory_safe(il, interner, facts, kids[0], false)
+                    || (il.kind(kids[0]) != NodeKind::Var
+                        && strict_exact_safe_tree(il, interner, facts, kids[0])))
+                    && strict_exact_safe_tree(il, interner, facts, kids[1])
+                    && strict_exact_safe_tree(il, interner, facts, kids[2])
+            }
             Builtin::Len if kids.len() == 1 => {
                 if admitted_terminal_count_reduction_at_call(il, node) {
                     strict_exact_terminal_reduction_arg_safe(il, interner, facts, kids[0])

@@ -57,8 +57,8 @@ pub use effects::*;
 pub use evidence::*;
 use evidence::{
     assignment_is_visible_at_reference, nearest_named_param_scope, nearest_scope,
-    strict_numeric_operand_operator, unique_asserted_evidence_at, unique_evidence_at,
-    var_references_same_binding, EvidenceResolution,
+    receiver_cid_param_span, strict_numeric_operand_operator, unique_asserted_evidence_at,
+    unique_evidence_at, var_references_same_binding, EvidenceResolution,
 };
 pub use free_builtins::*;
 pub use guard_evidence::*;

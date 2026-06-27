@@ -49,6 +49,63 @@ fn js_static_index_membership_emits_occurrence_evidence() {
             )
         })
     }));
+    let collection_domain = il
+        .evidence
+        .iter()
+        .find(|record| {
+            matches!(
+                record.anchor,
+                EvidenceAnchor::Node {
+                    kind: NodeKind::Seq,
+                    ..
+                }
+            ) && record.kind == EvidenceKind::Domain(DomainEvidence::Collection)
+        })
+        .expect("collection literal should emit receiver-domain evidence");
+    assert!(collection_domain.dependencies.iter().any(|id| {
+        il.evidence_record_by_id(*id).is_some_and(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection)
+            )
+        })
+    }));
+}
+
+#[test]
+fn collection_literal_assignments_emit_binding_domain_evidence() {
+    let interner = Interner::new();
+    let il = lower_fixture(
+        "binding_literal.rs",
+        b"fn f(value: &str) -> bool { let values = [\"red\", \"blue\"]; values.contains(&value) }",
+        Lang::Rust,
+        &interner,
+    );
+    assert_eq!(
+        binding_domain_record_count(&il.evidence, DomainEvidence::Collection),
+        1,
+        "collection literal assignments should expose dependency-backed binding-domain evidence"
+    );
+    let binding_domain = il
+        .evidence
+        .iter()
+        .find(|record| {
+            matches!(record.anchor, EvidenceAnchor::Binding { .. })
+                && record.kind == EvidenceKind::Domain(DomainEvidence::Collection)
+        })
+        .expect("binding domain evidence");
+    assert!(binding_domain.dependencies.iter().any(|id| {
+        il.evidence_record_by_id(*id).is_some_and(|record| {
+            record.kind == EvidenceKind::Domain(DomainEvidence::Collection)
+                && matches!(
+                    record.anchor,
+                    EvidenceAnchor::Node {
+                        kind: NodeKind::Seq,
+                        ..
+                    }
+                )
+        })
+    }));
 }
 
 #[test]

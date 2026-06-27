@@ -5,6 +5,7 @@ mod free_name_vars;
 mod object_key_views;
 mod python_iterator_builtins;
 mod receiver_methods;
+mod result_bindings;
 mod rust_option;
 mod rust_result;
 mod swift_factories;
@@ -15,6 +16,7 @@ use python_iterator_builtins::{
     post_lower_free_function_hof_api_contract,
 };
 use receiver_methods::record_post_lower_receiver_method_library_api;
+use result_bindings::post_lower_record_assignment_binding_domain_from_call_result;
 use rust_option::{
     record_post_lower_rust_option_none_library_api,
     record_post_lower_rust_option_some_pattern_library_api,
@@ -34,6 +36,7 @@ pub(super) struct PostLowerLibraryApiContract {
 
 fn record_post_lower_library_api_contract(
     il: &mut Il,
+    interner: &Interner,
     call: NodeId,
     arg_count: usize,
     contract: PostLowerLibraryApiContract,
@@ -49,7 +52,17 @@ fn record_post_lower_library_api_contract(
         contract.rule,
         dependencies,
     );
-    post_lower_record_library_api_result_domain(il, call, contract.result_domain, api);
+    if let Some(result_domain) =
+        post_lower_record_library_api_result_domain(il, call, contract.result_domain, api)
+    {
+        post_lower_record_assignment_binding_domain_from_call_result(
+            il,
+            interner,
+            call,
+            contract.result_domain,
+            result_domain,
+        );
+    }
     api
 }
 
@@ -143,7 +156,14 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         return false;
     }
     let is_swift_map_factory = matches!(contract.id, LibraryApiContractId::SwiftMapFactory(_));
-    let api = record_post_lower_library_api_contract(il, call, arg_count, contract, dependencies);
+    let api = record_post_lower_library_api_contract(
+        il,
+        interner,
+        call,
+        arg_count,
+        contract,
+        dependencies,
+    );
     if is_swift_map_factory {
         post_lower_record_swift_map_factory_result_domain(il, interner, call, api);
     }

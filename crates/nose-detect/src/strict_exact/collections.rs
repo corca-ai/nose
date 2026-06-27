@@ -127,7 +127,7 @@ pub(super) fn strict_exact_map_get_default_call_safe(
         && strict_exact_map_get_default_args_safe(il, interner, facts, node, result.args)
 }
 
-fn strict_exact_map_receiver_or_factory_safe(
+pub(super) fn strict_exact_map_receiver_or_factory_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,
@@ -289,15 +289,70 @@ fn strict_exact_typed_collection_param_receiver_safe(
 
 fn strict_exact_typed_receiver_safe(
     il: &Il,
-    _interner: &Interner,
+    interner: &Interner,
     facts: &StrictFacts,
     receiver: NodeId,
     requirement: DomainRequirement,
 ) -> bool {
+    facts.receiver_satisfies_domain(receiver, requirement)
+        && !receiver_mutated_before_use(il, interner, receiver)
+}
+
+fn receiver_mutated_before_use(il: &Il, interner: &Interner, receiver: NodeId) -> bool {
     if il.kind(receiver) != NodeKind::Var {
         return false;
     }
-    facts.receiver_satisfies_domain(receiver, requirement)
+    let use_start = il.node(receiver).span.start_byte;
+    il.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::Call || node.span.end_byte > use_start {
+            return false;
+        }
+        let call = NodeId(idx as u32);
+        call_has_receiver_mutation_effect(il, call)
+            && node_contains_same_binding_reference(il, interner, call, receiver)
+    })
+}
+
+fn call_has_receiver_mutation_effect(il: &Il, call: NodeId) -> bool {
+    il.evidence_anchored_at(il.node(call).span).any(|record| {
+        record.anchor == EvidenceAnchor::node(il.node(call).span, NodeKind::Call)
+            && record.kind == EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation)
+            && record.status == nose_il::EvidenceStatus::Asserted
+            && il.evidence_dependencies_asserted(record)
+    })
+}
+
+fn node_contains_same_binding_reference(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    receiver: NodeId,
+) -> bool {
+    same_var_binding_reference(il, interner, node, receiver)
+        || il
+            .children(node)
+            .iter()
+            .any(|&child| node_contains_same_binding_reference(il, interner, child, receiver))
+}
+
+fn same_var_binding_reference(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    receiver: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::Var || il.kind(receiver) != NodeKind::Var {
+        return false;
+    }
+    match (il.node(node).payload, il.node(receiver).payload) {
+        (Payload::Cid(left), Payload::Cid(right)) => left == right,
+        (Payload::Name(left), Payload::Name(right)) => left == right,
+        (Payload::Cid(cid), Payload::Name(name)) | (Payload::Name(name), Payload::Cid(cid)) => il
+            .cid_names
+            .get(cid as usize)
+            .is_some_and(|&symbol| interner.resolve(symbol) == interner.resolve(name)),
+        _ => false,
+    }
 }
 
 pub(super) fn strict_exact_proven_collection_receiver_safe(

@@ -1,8 +1,11 @@
+use self::inlined_binding::domain_dependency_record_matches_canonical_receiver;
 use super::canonical::{
     canonical_record_has_unshadowed_symbol_dependency, library_api_method_call_record_contract,
 };
 use super::protocol_receivers::library_api_dependency_contract_satisfies_protocol_receiver;
 use super::*;
+
+mod inlined_binding;
 
 pub(super) fn method_call_receiver_dependencies_match(
     il: &Il,
@@ -96,6 +99,7 @@ pub(super) fn receiver_contract_dependency_match(
     if contract == MethodReceiverContract::RustMapGetOrExactOption
         && evidence_depends_on_library_api_contract(
             il,
+            interner,
             record,
             LibraryApiContractId::MapGet,
             Some(receiver),
@@ -111,6 +115,7 @@ pub(super) fn receiver_contract_dependency_match(
     if let Some(requirement) = method_receiver_domain_requirement(contract) {
         return library_api_record_depends_on_receiver_requirement(
             il,
+            interner,
             record,
             receiver,
             requirement,
@@ -200,7 +205,7 @@ pub(super) fn library_api_record_depends_on_receiver_result_domain(
         else {
             return false;
         };
-        library_api_dependency_anchor_matches_receiver(il, dependency.anchor, receiver)
+        library_api_dependency_anchor_matches_receiver(il, interner, dependency.anchor, receiver)
             && library_api_contract_result_domain_for_arity(actual_id, callee, arity)
                 .is_some_and(|domain| requirement.accepts(domain))
     })
@@ -223,7 +228,7 @@ pub(super) fn library_api_record_depends_on_receiver_protocol_api_depth(
         else {
             return false;
         };
-        (library_api_dependency_anchor_matches_receiver(il, dependency.anchor, receiver)
+        (library_api_dependency_anchor_matches_receiver(il, interner, dependency.anchor, receiver)
             || (depth > 0
                 && library_api_dependency_record_has_receiver_proof_depth(
                     il,
@@ -284,6 +289,7 @@ pub(super) fn asserted_library_api_dependency_contract(
 
 pub(super) fn library_api_dependency_anchor_matches_receiver(
     il: &Il,
+    interner: Option<&Interner>,
     anchor: EvidenceAnchor,
     receiver: NodeId,
 ) -> bool {
@@ -295,7 +301,10 @@ pub(super) fn library_api_dependency_anchor_matches_receiver(
                 || (span.file == receiver_span.file
                     && span.start_byte <= receiver_span.start_byte
                     && span.end_byte >= receiver_span.end_byte)
-    )
+    ) || interner.is_some_and(|interner| {
+        let mut cache = LibraryApiDependencyCache::default();
+        domain_dependency_anchor_matches_receiver(il, interner, receiver, anchor, &mut cache)
+    })
 }
 
 pub(super) fn library_api_dependency_record_has_receiver_proof_depth(
@@ -309,10 +318,13 @@ pub(super) fn library_api_dependency_record_has_receiver_proof_depth(
     let Some(requirement) = method_receiver_domain_requirement(contract) else {
         return false;
     };
-    library_api_record_depends_on_receiver_requirement(il, dependency, receiver, requirement)
-        || library_api_record_depends_on_receiver_sequence_surface(
-            il, dependency, receiver, contract,
-        )
+    library_api_record_depends_on_receiver_requirement(
+        il,
+        interner,
+        dependency,
+        receiver,
+        requirement,
+    ) || library_api_record_depends_on_receiver_sequence_surface(il, dependency, receiver, contract)
         || library_api_record_depends_on_receiver_result_domain(
             il,
             interner,
@@ -367,6 +379,7 @@ pub(in crate::library_api) fn library_api_record_models_rust_map_get_default(
     };
     evidence_depends_on_library_api_contract(
         il,
+        None,
         record,
         LibraryApiContractId::MapGet,
         Some(map_receiver),
@@ -375,6 +388,7 @@ pub(in crate::library_api) fn library_api_record_models_rust_map_get_default(
 
 pub(in crate::library_api) fn evidence_depends_on_library_api_contract(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     expected_id: LibraryApiContractId,
     required_receiver: Option<NodeId>,
@@ -411,6 +425,7 @@ pub(in crate::library_api) fn evidence_depends_on_library_api_contract(
             && library_api_dependency_record_has_expected_arity(actual_id, arity)
             && library_api_dependency_record_has_required_dependencies(
                 il,
+                interner,
                 dependency,
                 actual_id,
                 required_receiver,
@@ -430,6 +445,7 @@ pub(super) fn library_api_dependency_record_has_expected_arity(
 
 pub(super) fn library_api_dependency_record_has_required_dependencies(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     id: LibraryApiContractId,
     required_receiver: Option<NodeId>,
@@ -438,6 +454,7 @@ pub(super) fn library_api_dependency_record_has_required_dependencies(
         LibraryApiContractId::MapGet => required_receiver.is_some_and(|receiver| {
             library_api_record_depends_on_receiver_requirement(
                 il,
+                interner,
                 record,
                 receiver,
                 DomainRequirement::MAP,
@@ -449,6 +466,7 @@ pub(super) fn library_api_dependency_record_has_required_dependencies(
 
 pub(super) fn library_api_record_depends_on_receiver_requirement(
     il: &Il,
+    interner: Option<&Interner>,
     record: &EvidenceRecord,
     receiver: NodeId,
     requirement: DomainRequirement,
@@ -463,7 +481,9 @@ pub(super) fn library_api_record_depends_on_receiver_requirement(
         dependency.status == EvidenceStatus::Asserted
             && il.evidence_dependencies_asserted(dependency)
             && requirement.accepts(domain)
-            && domain_dependency_matches_canonical_receiver(il, dependency.anchor, receiver)
+            && domain_dependency_record_matches_canonical_receiver(
+                il, interner, dependency, receiver,
+            )
     })
 }
 
@@ -516,9 +536,16 @@ pub(super) fn sequence_surface_kind_satisfies_method_receiver(
 
 pub(super) fn domain_dependency_matches_canonical_receiver(
     il: &Il,
+    interner: Option<&Interner>,
     anchor: EvidenceAnchor,
     receiver: NodeId,
 ) -> bool {
+    if let Some(interner) = interner {
+        let mut cache = LibraryApiDependencyCache::default();
+        return domain_dependency_anchor_matches_receiver(
+            il, interner, receiver, anchor, &mut cache,
+        );
+    }
     match anchor {
         EvidenceAnchor::Node { span, kind } => {
             span == il.node(receiver).span && kind == il.kind(receiver)

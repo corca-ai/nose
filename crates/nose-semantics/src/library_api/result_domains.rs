@@ -1,7 +1,8 @@
 //! Fixed result-domain materialization for admitted library API occurrences.
 
 use super::contracts::{
-    library_collection_factory_result_domain_for_arity, library_map_factory_result_domain,
+    library_collection_factory_result_domain_for_arity,
+    library_iterator_identity_adapter_result_domain, library_map_factory_result_domain,
     library_map_key_view_wrapper_result_domain, library_receiver_method_api_result_domain,
     JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
     JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_MAP_FACTORY_PACK_ID,
@@ -59,6 +60,9 @@ pub fn library_api_materialized_result_domain_for_arity(
         LibraryApiContractId::RustResultOkConstructor
         | LibraryApiContractId::RustResultErrConstructor => Some(DomainEvidence::Result),
         LibraryApiContractId::PromiseFactory(_) => Some(DomainEvidence::PromiseLike),
+        LibraryApiContractId::IteratorIdentityAdapter => {
+            library_iterator_identity_adapter_result_domain(callee, arity as usize)
+        }
         id @ (LibraryApiContractId::RustOptionAndThen
         | LibraryApiContractId::RustResultIsOk
         | LibraryApiContractId::RustResultIsErr

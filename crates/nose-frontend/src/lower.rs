@@ -33,6 +33,13 @@ pub(crate) const INTENTIONAL_RAW_BOUNDARY_TAGS: &[&str] = &[
     "macro_rule_body",
 ];
 
+fn sequence_surface_domain(surface: SequenceSurfaceKind) -> Option<DomainEvidence> {
+    match surface {
+        SequenceSurfaceKind::Collection => Some(DomainEvidence::Collection),
+        _ => None,
+    }
+}
+
 /// Whether a `Raw` node's surface tag is a deliberate protocol boundary (vs a lowering gap).
 #[must_use]
 pub(crate) fn is_protocol_boundary_tag(tag: &str) -> bool {
@@ -226,11 +233,19 @@ impl<'a> Lowering<'a> {
                 _ => return id,
             };
             if let Some(surface) = sequence_surface_kind_for_tag(self.lang, tag) {
-                self.record_evidence(
+                let surface_id = self.record_evidence(
                     EvidenceAnchor::sequence(span),
                     EvidenceKind::SequenceSurface(surface),
                     "sequence_surface",
                 );
+                if let Some(domain) = sequence_surface_domain(surface) {
+                    self.record_evidence_with_dependencies(
+                        EvidenceAnchor::node(span, NodeKind::Seq),
+                        EvidenceKind::Domain(domain),
+                        "sequence_surface_domain",
+                        vec![surface_id],
+                    );
+                }
             }
         }
         id

@@ -34,6 +34,10 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   Rust struct-expression surface slice: struct literals now carry exact-safe
   `SequenceSurface` proof, which closes the imported-member target-present
   follow-ups exposed by #578 while keeping raw sequences closed.
+- [#582 cycle log](../bench/recall_loss/issue-582-cycle.v1.json) records the
+  receiver-domain recovery slice: iterator-adapter result domains,
+  dependency-backed literal binding domains, normalized binding proof-chain
+  admission, and mutation-closed strict exact receiver use.
 
 Regenerate the full local reports with:
 
@@ -145,6 +149,26 @@ The current top `crates` buckets are:
 These are capability gaps, not feature requests. A future PR should close a
 bucket by adding reusable evidence or an admission capability, not by adding a
 one-off API exception.
+
+The #582 receiver-domain recovery slice keeps the hard gates closed while adding
+local infrastructure for iterator-adapter result domains and call-node
+receiver-domain consumption. Rust `iter`/`into_iter`/`iter_mut`/`copied`/
+`cloned` and Java `stream` now emit `Iterator` result-domain evidence; Rust
+`to_vec` emits `Collection`; Rust `collect` remains closed because its result
+type is caller-selected. Strict exact consumers now read asserted `Domain`
+evidence anchored to call receivers, and typed `const`/`static`/`let` plus
+literal assignments emit binding-domain evidence from existing
+SequenceSurface/Domain proof. Canonical builtin admission now follows the
+binding proof chain after normalization inlines the receiver value, while strict
+exact still closes receiver-domain use when `ReceiverMutation` evidence appears
+before the use. The local `crates` run moved `receiver-domain-proof-missing`
+from `241` to `239`, with `false_merges == 0`,
+`canon_preservation_violations == 0`, and completeness improving from `38/82`
+to `39/83`. Total exact-admission rejections moved `707 -> 708`; the increase
+lands in structured callee-identity/HOF/library-API occurrence buckets, not in
+unattributed unsafe exact admission. The remaining receiver-domain cases still
+point at cross-file field/constant domain provenance, not more
+selector-specific iterator exceptions.
 
 ## See Also
 
