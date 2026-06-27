@@ -90,6 +90,9 @@ set -euo pipefail
 # context/export assignment-counting representative and surfaces one small value-graph whole-impl
 # span with only one shared/removable line. Reviewed in docs/dogfooding.md; accepted as detector
 # span noise, not avoidable duplication.
+# 54 -> 54 (#587 Rust module resolution 1-3): context-aware imported literal export collection
+# moves the accepted context/export assignment-counting representative again. Reviewed in
+# docs/dogfooding.md; no new budget is accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

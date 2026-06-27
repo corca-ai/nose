@@ -5,7 +5,8 @@ use super::bindings::{
 use super::modules::java_class_module_hashes;
 use super::FileImportContext;
 use nose_il::{
-    stable_symbol_hash, Corpus, EvidenceKind, Il, ImportEvidenceKind, Interner, NodeId, UnitKind,
+    stable_symbol_hash, Corpus, EvidenceKind, Il, ImportEvidenceKind, Interner, Lang, NodeId,
+    NodeKind, Payload, UnitKind,
 };
 use nose_semantics::{imported_literal_export_rejection_reason, imported_literal_export_safe};
 use serde::Serialize;
@@ -197,6 +198,14 @@ fn provider_miss(
             .with_reason("eligible-but-not-snapshotted");
     }
     if !scan.module_seen {
+        if importer_lang == Lang::Rust && rust_stdlib_module_hash(module_hash) {
+            return ProviderMiss::without_provider("provider-rust-stdlib-boundary");
+        }
+        if importer_lang == Lang::Rust
+            && rust_workspace_crate_module_hash(contexts, importer_file_idx, module_hash)
+        {
+            return ProviderMiss::without_provider("provider-workspace-crate-boundary");
+        }
         return ProviderMiss::without_provider("provider-module-missing");
     }
     if !scan.same_lang_module_seen {
@@ -209,6 +218,7 @@ fn provider_miss(
         .or(scan.self_seen)
         .or(scan.unsafe_seen)
         .or(scan.rhs_missing_seen)
+        .or(scan.non_value_export_seen)
         .or(scan.export_rejection_seen)
         .unwrap_or_else(|| ProviderMiss::without_provider("provider-export-missing"))
 }
@@ -219,7 +229,7 @@ struct ProviderFile<'a> {
     il: &'a Il,
     file_idx: usize,
     importer_file_idx: usize,
-    importer_lang: nose_il::Lang,
+    importer_lang: Lang,
     module_hash: u64,
     exported_hash: u64,
 }
@@ -239,10 +249,12 @@ fn inspect_provider_file(file: ProviderFile<'_>, scan: &mut ProviderScan) {
             file_idx: file.file_idx,
             importer_file_idx: file.importer_file_idx,
             importer_lang: file.importer_lang,
-            module_hashes: &context.module_hashes,
+            module_matches: context.module_matches_import_from(
+                &file.contexts[file.importer_file_idx],
+                file.module_hash,
+            ),
             statements: top_level,
             binding_uses,
-            module_hash: file.module_hash,
             exported_hash: file.exported_hash,
         },
         scan,
@@ -282,10 +294,9 @@ fn inspect_java_class_provider_scope(
             file_idx: file.file_idx,
             importer_file_idx: file.importer_file_idx,
             importer_lang: file.importer_lang,
-            module_hashes: &class_module_hashes,
+            module_matches: class_module_hashes.contains(&file.module_hash),
             statements: &statements,
             binding_uses,
-            module_hash: file.module_hash,
             exported_hash: file.exported_hash,
         },
         scan,
@@ -297,11 +308,10 @@ struct ProviderScope<'a> {
     interner: &'a Interner,
     file_idx: usize,
     importer_file_idx: usize,
-    importer_lang: nose_il::Lang,
-    module_hashes: &'a [u64],
+    importer_lang: Lang,
+    module_matches: bool,
     statements: &'a [NodeId],
     binding_uses: &'a BindingUseIndex,
-    module_hash: u64,
     exported_hash: u64,
 }
 
@@ -314,12 +324,13 @@ struct ProviderScan {
     self_seen: Option<ProviderMiss>,
     unsafe_seen: Option<ProviderMiss>,
     rhs_missing_seen: Option<ProviderMiss>,
+    non_value_export_seen: Option<ProviderMiss>,
     export_rejection_seen: Option<ProviderMiss>,
     safe_candidates: Vec<ProviderMiss>,
 }
 
 fn inspect_provider_scope(scope: ProviderScope<'_>, scan: &mut ProviderScan) {
-    if !scope.module_hashes.contains(&scope.module_hash) {
+    if !scope.module_matches {
         return;
     }
     scan.module_seen = true;
@@ -339,6 +350,12 @@ fn inspect_provider_scope(scope: ProviderScope<'_>, scan: &mut ProviderScan) {
         })
         .collect();
     if matching.is_empty() {
+        if let Some(miss) = rust_non_literal_export_miss(&scope) {
+            scan.export_seen = true;
+            if scan.non_value_export_seen.is_none() {
+                scan.non_value_export_seen = Some(miss);
+            }
+        }
         return;
     }
     scan.export_seen = true;
@@ -388,6 +405,147 @@ fn inspect_provider_scope(scope: ProviderScope<'_>, scan: &mut ProviderScan) {
     }
     let safe = location_miss(scope.il, stmt, "eligible-but-not-snapshotted");
     scan.safe_candidates.push(safe);
+}
+
+fn rust_non_literal_export_miss(scope: &ProviderScope<'_>) -> Option<ProviderMiss> {
+    if scope.il.meta.lang != Lang::Rust {
+        return None;
+    }
+    for stmt in scope
+        .statements
+        .iter()
+        .copied()
+        .chain(scope.il.children(scope.il.root).iter().copied())
+    {
+        if let Some(miss) = rust_non_literal_export_item_miss(scope, stmt) {
+            return Some(miss);
+        }
+    }
+    None
+}
+
+fn rust_non_literal_export_item_miss(
+    scope: &ProviderScope<'_>,
+    stmt: NodeId,
+) -> Option<ProviderMiss> {
+    if rust_function_item_matches(scope.il, scope.interner, stmt, scope.exported_hash) {
+        return Some(location_miss(
+            scope.il,
+            stmt,
+            "provider-callable-export-boundary",
+        ));
+    }
+    if rust_named_node_matches(scope.il, scope.interner, stmt, scope.exported_hash) {
+        let reason = match scope.il.kind(stmt) {
+            NodeKind::Module => "provider-module-namespace-boundary",
+            NodeKind::Block => "provider-type-export-boundary",
+            _ => return None,
+        };
+        return Some(location_miss(scope.il, stmt, reason));
+    }
+    None
+}
+
+fn rust_function_item_matches(
+    il: &Il,
+    interner: &Interner,
+    stmt: NodeId,
+    exported_hash: u64,
+) -> bool {
+    il.units.iter().any(|unit| {
+        unit.kind == UnitKind::Function
+            && unit.root == stmt
+            && unit
+                .name
+                .is_some_and(|name| stable_symbol_hash(interner.resolve(name)) == exported_hash)
+    })
+}
+
+fn rust_named_node_matches(il: &Il, interner: &Interner, stmt: NodeId, exported_hash: u64) -> bool {
+    matches!(
+        il.node(stmt).payload,
+        Payload::Name(name) if stable_symbol_hash(interner.resolve(name)) == exported_hash
+    )
+}
+
+fn rust_stdlib_module_hash(module_hash: u64) -> bool {
+    const STDLIB_MODULES: &[&str] = &[
+        "alloc",
+        "alloc::borrow",
+        "alloc::boxed",
+        "alloc::collections",
+        "alloc::rc",
+        "alloc::string",
+        "alloc::sync",
+        "alloc::vec",
+        "core",
+        "core::cmp",
+        "core::convert",
+        "core::fmt",
+        "core::hash",
+        "core::iter",
+        "core::marker",
+        "core::mem",
+        "core::ops",
+        "core::option",
+        "core::result",
+        "core::slice",
+        "core::str",
+        "std",
+        "std::borrow",
+        "std::cmp",
+        "std::collections",
+        "std::env",
+        "std::ffi",
+        "std::fmt",
+        "std::fs",
+        "std::hash",
+        "std::io",
+        "std::iter",
+        "std::mem",
+        "std::num",
+        "std::ops",
+        "std::path",
+        "std::process",
+        "std::rc",
+        "std::str",
+        "std::string",
+        "std::sync",
+        "std::thread",
+        "std::time",
+        "std::vec",
+    ];
+    STDLIB_MODULES
+        .iter()
+        .any(|module| stable_symbol_hash(module) == module_hash)
+}
+
+fn rust_workspace_crate_module_hash(
+    contexts: &[FileImportContext],
+    importer_file_idx: usize,
+    module_hash: u64,
+) -> bool {
+    let Some(importer_crate) = contexts[importer_file_idx]
+        .rust_module
+        .as_ref()
+        .map(|module| module.crate_key.as_str())
+    else {
+        return false;
+    };
+    contexts
+        .iter()
+        .filter_map(|context| context.rust_module.as_ref())
+        .filter(|module| module.crate_key != importer_crate)
+        .filter_map(|module| {
+            let crate_name = module.crate_key.rsplit('/').next()?.replace('-', "_");
+            let module = if module.parts.is_empty() {
+                crate_name
+            } else {
+                format!("{crate_name}::{}", module.parts.join("::"))
+            };
+            Some(module)
+        })
+        .any(|module| stable_symbol_hash(&module) == module_hash)
 }
 
 fn location_miss(il: &Il, stmt: NodeId, reason: &'static str) -> ProviderMiss {

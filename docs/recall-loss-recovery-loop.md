@@ -280,6 +280,20 @@ is `provider-export-missing` on `crate::...` imports (`68` rows). Before opening
 that slice, split unsupported stdlib, external crate, and workspace-crate imports
 out of the actionable module-resolution bucket so package semantics stay closed.
 
+The #587 initial module-resolution slice applies that split and opens only the
+literal-safe part of same-repo Rust module lookup. Rust file identity now treats
+`src/lib.rs`, `src/main.rs`, and `mod.rs` as crate/module owners, and imported
+snapshot lookup derives `self::...`/`super::...` aliases from the importer and
+provider file identities before accepting a provider-owned immutable literal.
+Non-value exports stay closed but are no longer mixed into generic miss buckets:
+callables, type exports, module namespaces, Rust stdlib imports, and workspace
+crate imports now have separate census reasons. On `crates`, the generic
+module/export target moved `378 -> 139` (`provider-module-missing` `255 -> 130`,
+`provider-export-missing` `123 -> 9`) while successful imported snapshot records
+move `0 -> 1`; hard gates remain at `false_merges == 0` and
+`canon_preservation_violations == 0`. The checked-in measurement is
+[`issue-587-module-resolution-1-3.v1.json`](../bench/recall_loss/issue-587-module-resolution-1-3.v1.json).
+
 ## See Also
 
 - [recall-loss-diagnostics](recall-loss-diagnostics.md)

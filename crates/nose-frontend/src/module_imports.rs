@@ -19,7 +19,9 @@ use bindings::{
 };
 pub use diagnostics::{imported_immutable_snapshot_census, ImportSnapshotCensus};
 use exports::collect_literal_exports;
-use modules::file_module_hashes;
+use modules::{
+    file_module_hashes, rust_importable_module_hashes, rust_module_identity, RustModuleIdentity,
+};
 use namespace_members::{collect_namespace_member_replacements, NamespaceMemberReplacement};
 use nose_il::{EvidenceId, Il, Interner, NodeId};
 use nose_semantics::semantics;
@@ -55,7 +57,7 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
     if exports.is_empty() {
         return;
     }
-    for (&(module_hash, exported_hash), export) in &exports {
+    for (&(module_hash, exported_hash), export) in exports.iter_keyed() {
         record_immutable_literal_export_evidence(
             &mut files[export.file_idx],
             export.rhs,
@@ -82,8 +84,8 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
                 .filter_map(|stmt| {
                     let local = assignment_name(il, stmt)?;
                     let proof = import_binding_proof(il, stmt)?;
-                    let key = (proof.module_hash, proof.exported_hash);
-                    let export = exports.get(&key)?;
+                    let export =
+                        exports.get(&contexts, file_idx, proof.module_hash, proof.exported_hash)?;
                     if export.file_idx == file_idx {
                         return None;
                     }
@@ -176,6 +178,7 @@ fn append_replacement_snapshot(
 struct FileImportContext {
     top_level: Option<Vec<NodeId>>,
     module_hashes: Vec<u64>,
+    rust_module: Option<RustModuleIdentity>,
     binding_uses: Option<BindingUseIndex>,
 }
 
@@ -188,8 +191,19 @@ impl FileImportContext {
         Self {
             top_level: participates.then(|| collect_top_level_statements(il)),
             module_hashes: file_module_hashes(il),
+            rust_module: rust_module_identity(&il.meta.path),
             binding_uses: participates.then(|| BindingUseIndex::new(il, interner)),
         }
+    }
+
+    fn module_matches_import_from(&self, importer: &Self, module_hash: u64) -> bool {
+        if let (Some(provider), Some(importer)) = (&self.rust_module, &importer.rust_module) {
+            return rust_importable_module_hashes(provider, importer).contains(&module_hash);
+        }
+        if self.module_hashes.contains(&module_hash) {
+            return true;
+        }
+        false
     }
 }
 

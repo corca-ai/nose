@@ -1,11 +1,12 @@
 use super::bindings::{assignment_name, import_namespace_proof, BindingUseIndex};
+use super::exports::LiteralExports;
 use super::snapshot::{snapshot_subtree, SubtreeSnapshot};
-use super::{ExportedBinding, FileImportContext};
+use super::FileImportContext;
 use nose_il::{stable_symbol_hash, Il, Interner, NodeId, NodeKind, Payload, Symbol};
 use nose_semantics::{
     binding_write_target, opaque_argument_escape_args, receiver_mutation_call_receiver, semantics,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 pub(super) struct NamespaceMemberReplacement {
     pub(super) node: NodeId,
@@ -20,7 +21,7 @@ pub(super) fn collect_namespace_member_replacements(
     files: &[Il],
     interner: &Interner,
     contexts: &[FileImportContext],
-    exports: &FxHashMap<(u64, u64), ExportedBinding>,
+    exports: &LiteralExports,
 ) -> Vec<Vec<NamespaceMemberReplacement>> {
     files
         .iter()
@@ -59,7 +60,7 @@ fn collect_file_namespace_replacements(
     il: &Il,
     top_level: &[NodeId],
     binding_uses: &BindingUseIndex,
-    exports: &FxHashMap<(u64, u64), ExportedBinding>,
+    exports: &LiteralExports,
 ) -> Vec<NamespaceMemberReplacement> {
     let namespace_imports: Vec<NamespaceImport> = top_level
         .iter()
@@ -101,7 +102,7 @@ fn collect_file_namespace_replacements(
                 continue;
             }
             let exported_hash = stable_symbol_hash(interner.resolve(exported));
-            let Some(export) = exports.get(&(import.module_hash, exported_hash)) else {
+            let Some(export) = exports.get_exact(import.module_hash, exported_hash) else {
                 continue;
             };
             if export.file_idx == file_idx || files[export.file_idx].meta.lang != il.meta.lang {

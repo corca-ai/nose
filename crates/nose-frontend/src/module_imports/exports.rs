@@ -8,13 +8,86 @@ use nose_il::{stable_symbol_hash, Il, Interner, NodeId, Symbol, UnitKind};
 use nose_semantics::{imported_literal_export_safe, semantics};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+pub(super) struct LiteralExports {
+    by_key: FxHashMap<(u64, u64), ExportedBinding>,
+    records: Vec<LiteralExportRecord>,
+}
+
+struct LiteralExportRecord {
+    exported_hash: u64,
+    binding: ExportedBinding,
+}
+
+impl LiteralExports {
+    pub(super) fn is_empty(&self) -> bool {
+        self.by_key.is_empty() && self.records.is_empty()
+    }
+
+    pub(super) fn iter_keyed(&self) -> impl Iterator<Item = (&(u64, u64), &ExportedBinding)> {
+        self.by_key.iter()
+    }
+
+    pub(super) fn get(
+        &self,
+        contexts: &[FileImportContext],
+        importer_file_idx: usize,
+        module_hash: u64,
+        exported_hash: u64,
+    ) -> Option<&ExportedBinding> {
+        if contexts[importer_file_idx].rust_module.is_some() {
+            return self.unique_record_match(
+                contexts,
+                importer_file_idx,
+                module_hash,
+                exported_hash,
+            );
+        }
+        if let Some(export) = self.by_key.get(&(module_hash, exported_hash)) {
+            return Some(export);
+        }
+        self.unique_record_match(contexts, importer_file_idx, module_hash, exported_hash)
+    }
+
+    fn unique_record_match(
+        &self,
+        contexts: &[FileImportContext],
+        importer_file_idx: usize,
+        module_hash: u64,
+        exported_hash: u64,
+    ) -> Option<&ExportedBinding> {
+        let importer_context = &contexts[importer_file_idx];
+        let mut matched = self
+            .records
+            .iter()
+            .filter(|record| record.exported_hash == exported_hash)
+            .filter(|record| {
+                contexts[record.binding.file_idx]
+                    .module_matches_import_from(importer_context, module_hash)
+            });
+        let first = matched.next()?;
+        if matched.next().is_some() {
+            return None;
+        }
+        Some(&first.binding)
+    }
+
+    pub(super) fn get_exact(
+        &self,
+        module_hash: u64,
+        exported_hash: u64,
+    ) -> Option<&ExportedBinding> {
+        self.by_key.get(&(module_hash, exported_hash))
+    }
+}
+
 pub(super) fn collect_literal_exports(
     files: &[Il],
     interner: &Interner,
     contexts: &[FileImportContext],
-) -> FxHashMap<(u64, u64), ExportedBinding> {
+) -> LiteralExports {
     let mut exports = FxHashMap::default();
     let mut ambiguous = FxHashSet::default();
+    let mut records = Vec::new();
     for (file_idx, il) in files.iter().enumerate() {
         let context = &contexts[file_idx];
         if !context.module_hashes.is_empty() {
@@ -37,6 +110,7 @@ pub(super) fn collect_literal_exports(
                 ExportCollections {
                     exports: &mut exports,
                     ambiguous: &mut ambiguous,
+                    records: &mut records,
                 },
             );
         }
@@ -78,6 +152,7 @@ pub(super) fn collect_literal_exports(
                 ExportCollections {
                     exports: &mut exports,
                     ambiguous: &mut ambiguous,
+                    records: &mut records,
                 },
             );
         }
@@ -85,7 +160,10 @@ pub(super) fn collect_literal_exports(
     for key in ambiguous {
         exports.remove(&key);
     }
-    exports
+    LiteralExports {
+        by_key: exports,
+        records,
+    }
 }
 
 struct StatementExportScope<'a> {
@@ -99,6 +177,7 @@ struct StatementExportScope<'a> {
 struct ExportCollections<'a> {
     exports: &'a mut FxHashMap<(u64, u64), ExportedBinding>,
     ambiguous: &'a mut FxHashSet<(u64, u64)>,
+    records: &'a mut Vec<LiteralExportRecord>,
 }
 
 fn collect_statement_exports(
@@ -131,6 +210,14 @@ fn collect_statement_exports(
         }
         let exported = stable_symbol_hash(interner.resolve(name));
         let deps = import_dependency_snapshots(il, rhs, scope.top_level);
+        out.records.push(LiteralExportRecord {
+            exported_hash: exported,
+            binding: ExportedBinding {
+                file_idx: scope.file_idx,
+                deps: deps.clone(),
+                rhs,
+            },
+        });
         for &module in scope.module_hashes {
             let key = (module, exported);
             if out

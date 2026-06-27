@@ -150,6 +150,14 @@ not extractable duplication. The reviewed default-surface count moves from
 53 to 54; the budget increase accepts this surfacing without accepting new
 avoidable duplication.
 
+The 2026-06-28 Rust module-resolution slice (#587 1-3) moves imported literal
+export collection into a richer context-aware shape. That shifts the already
+accepted context/export assignment-counting family ID from `d0198581ac228459`
+to `5d2ee58ae63af599`; the members and judgment remain the same
+(`value_graph/context.rs` module binding seeding and
+`module_imports/exports.rs` imported literal export collection). The reviewed
+default-surface count remains 54; no budget increase is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

@@ -1,0 +1,162 @@
+use super::super::bindings::{assignment_name, assignment_rhs, collect_top_level_statements};
+use super::super::{imported_immutable_snapshot_census, resolve_imported_immutable_bindings};
+use super::support::snapshot_count;
+use nose_il::{Corpus, FileId, Interner, Lang, NodeKind};
+
+#[test]
+fn rust_crate_import_resolves_mod_rs_literal_export() {
+    let interner = Interner::new();
+    let provider = lower_rust_file(
+        FileId(0),
+        "crates/demo/src/constants/mod.rs",
+        "pub(crate) const LIMIT: i64 = 7;\n",
+        &interner,
+    );
+    let importer = lower_rust_file(
+        FileId(1),
+        "crates/demo/src/consumer.rs",
+        "use crate::constants::LIMIT;\nfn read() -> i64 { LIMIT }\n",
+        &interner,
+    );
+
+    let mut files = vec![provider, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[1]), 1);
+    let rhs = imported_binding_rhs(&files[1], &interner, "LIMIT");
+    assert_eq!(files[1].kind(rhs), NodeKind::Lit);
+    assert_eq!(files[1].node(rhs).span.file, FileId(0));
+}
+
+#[test]
+fn rust_super_import_resolves_parent_relative_literal_export() {
+    let interner = Interner::new();
+    let provider = lower_rust_file(
+        FileId(0),
+        "crates/demo/src/parent/constants.rs",
+        "pub(crate) const LIMIT: i64 = 7;\n",
+        &interner,
+    );
+    let importer = lower_rust_file(
+        FileId(1),
+        "crates/demo/src/parent/child.rs",
+        "use super::constants::LIMIT;\nfn read() -> i64 { LIMIT }\n",
+        &interner,
+    );
+
+    let mut files = vec![provider, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[1]), 1);
+    let rhs = imported_binding_rhs(&files[1], &interner, "LIMIT");
+    assert_eq!(files[1].kind(rhs), NodeKind::Lit);
+    assert_eq!(files[1].node(rhs).span.file, FileId(0));
+}
+
+#[test]
+fn rust_bare_sibling_import_resolves_literal_export_without_src_root() {
+    let interner = Interner::new();
+    let provider = lower_rust_file(
+        FileId(0),
+        "fixtures/demo/rust_values.rs",
+        "pub const VALUES: [&str; 2] = [\"red\", \"blue\"];\n",
+        &interner,
+    );
+    let importer = lower_rust_file(
+        FileId(1),
+        "fixtures/demo/rust_imported_membership.rs",
+        "use rust_values::VALUES;\n\npub fn membership(value: &str) -> bool {\n    VALUES.contains(&value)\n}\n",
+        &interner,
+    );
+
+    let mut files = vec![provider, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[1]), 1);
+    let rhs = imported_binding_rhs(&files[1], &interner, "VALUES");
+    assert_eq!(files[1].kind(rhs), NodeKind::Seq);
+    assert_eq!(files[1].node(rhs).span.file, FileId(0));
+}
+
+#[test]
+fn rust_census_splits_non_value_and_unsupported_provider_boundaries() {
+    let interner = Interner::new();
+    let files = vec![
+        lower_rust_file(
+            FileId(0),
+            "crates/demo/src/lib.rs",
+            "mod helpers;\nmod model;\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(1),
+            "crates/demo/src/helpers.rs",
+            "pub(crate) fn run() {}\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(2),
+            "crates/demo/src/model.rs",
+            "pub(crate) struct Thing { value: i64 }\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(3),
+            "crates/demo/src/consumer.rs",
+            "\
+use crate::helpers;\n\
+use crate::helpers::run;\n\
+use crate::model::Thing;\n\
+use std::path::Path;\n\
+fn f() {}\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(4),
+            "crates/other-crate/src/lib.rs",
+            "pub fn other() {}\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(5),
+            "crates/demo/src/workspace_consumer.rs",
+            "use other_crate::other;\nfn f() {}\n",
+            &interner,
+        ),
+    ];
+    let corpus = Corpus::new(interner, files);
+    let census = imported_immutable_snapshot_census(&corpus);
+
+    assert_reason_count(&census, "provider-callable-export-boundary", 1);
+    assert_reason_count(&census, "provider-module-namespace-boundary", 1);
+    assert_reason_count(&census, "provider-rust-stdlib-boundary", 1);
+    assert_reason_count(&census, "provider-type-export-boundary", 1);
+    assert_reason_count(&census, "provider-workspace-crate-boundary", 1);
+}
+
+fn lower_rust_file(file: FileId, path: &str, src: &str, interner: &Interner) -> nose_il::Il {
+    crate::lower_source(file, path, src.as_bytes(), Lang::Rust, interner)
+        .expect("lower Rust test file")
+}
+
+fn imported_binding_rhs(il: &nose_il::Il, interner: &Interner, name: &str) -> nose_il::NodeId {
+    collect_top_level_statements(il)
+        .into_iter()
+        .find_map(|stmt| {
+            assignment_name(il, stmt)
+                .is_some_and(|symbol| interner.resolve(symbol) == name)
+                .then(|| assignment_rhs(il, stmt))
+                .flatten()
+        })
+        .expect("import binding RHS")
+}
+
+fn assert_reason_count(census: &super::super::ImportSnapshotCensus, reason: &str, expected: usize) {
+    let actual = census
+        .misses_by_reason
+        .iter()
+        .find(|row| row.key == reason)
+        .map(|row| row.count)
+        .unwrap_or_default();
+    assert_eq!(actual, expected, "{reason}");
+}

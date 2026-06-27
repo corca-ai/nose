@@ -117,6 +117,14 @@ break.
   after #567, splits them by reason, crate, import surface, and top files, and
   points the first implementation slice at same-crate `crate::...` export lookup
   after unsupported stdlib/external/workspace imports are separated.
+- Added the first #587 Rust import-snapshot module-resolution slice. Rust
+  provider lookup now recognizes `mod.rs`/crate-root ownership and safe
+  importer-relative `self::...`/`super::...` aliases for immutable literal
+  exports, while the census separates callable, type, module namespace, stdlib,
+  and workspace-crate boundaries from generic module/export misses. On `crates`,
+  the generic module/export target moves `378 -> 139`, successful imported
+  snapshot records move `0 -> 1`, and hard gates remain at zero false merges and
+  zero canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

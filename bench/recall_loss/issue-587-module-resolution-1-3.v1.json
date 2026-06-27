@@ -1,0 +1,73 @@
+{
+  "schema": "nose.recall_loss.issue_587.module_resolution_1_3.v1",
+  "issue": 587,
+  "slice": "initial module/export resolution steps 1-3",
+  "date": "2026-06-28",
+  "command": "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-587-after.json",
+  "baseline_artifact": "bench/recall_loss/issue-587-module-export-census.v1.json",
+  "goal": "Separate unsupported/non-value import snapshot boundaries from same-repo Rust module/export lookup, while opening only dependency-backed immutable literal exports.",
+  "hard_gates": {
+    "false_merges": 0,
+    "canon_preservation_violations": 0
+  },
+  "before": {
+    "source": "issue-587 starting census after #567 closeout",
+    "snapshot_records": 0,
+    "unresolved_binding_imports": 384,
+    "module_export_target_rows": 378,
+    "misses_by_reason": {
+      "provider-module-missing": 255,
+      "provider-export-missing": 123,
+      "importer-binding-mutated": 3,
+      "provider-sequence-surface-not-import-literal-safe": 2,
+      "provider-aggregate-child-reference-boundary": 1
+    }
+  },
+  "after": {
+    "source": "target/recall-loss.issue-587-after.json",
+    "snapshot_records": 1,
+    "unresolved_binding_imports": 386,
+    "generic_module_export_target_rows": 139,
+    "misses_by_reason": {
+      "provider-module-missing": 130,
+      "provider-callable-export-boundary": 73,
+      "provider-type-export-boundary": 55,
+      "provider-rust-stdlib-boundary": 48,
+      "provider-workspace-crate-boundary": 47,
+      "provider-module-namespace-boundary": 19,
+      "provider-export-missing": 9,
+      "importer-binding-mutated": 3,
+      "provider-sequence-surface-not-import-literal-safe": 2
+    }
+  },
+  "deltas": {
+    "snapshot_records": 1,
+    "provider-module-missing": -125,
+    "provider-export-missing": -114,
+    "generic_module_export_target_rows": -239,
+    "generic_module_export_target_reduction_ratio": 0.632,
+    "new_closed_boundary_rows": {
+      "provider-callable-export-boundary": 73,
+      "provider-type-export-boundary": 55,
+      "provider-rust-stdlib-boundary": 48,
+      "provider-workspace-crate-boundary": 47,
+      "provider-module-namespace-boundary": 19
+    }
+  },
+  "implemented_capabilities": [
+    "Rust crate-root module identity now recognizes src/lib.rs, src/main.rs, and mod.rs ownership for imported immutable literal provider lookup.",
+    "Rust importer-relative module lookup now derives self:: and super:: aliases from provider/importer file identities before matching an immutable literal export.",
+    "The import snapshot census now reports callable, type, module namespace, Rust stdlib, and workspace-crate boundaries separately from generic provider-module-missing/provider-export-missing.",
+    "Non-value Rust exports remain closed; only provider-owned literal-safe assignments can create ImportedLiteralSnapshot evidence."
+  ],
+  "notes": [
+    "The after unresolved_binding_imports count includes new focused Rust test fixtures and copied import-dependency surfaces; the durable #587 progress metric for this slice is the generic module/export target rows, which moved 378 -> 139.",
+    "The remaining generic provider-export-missing rows are mostly re-export or unsupported export-shape cases and should be priced separately before admitting new snapshot forms."
+  ],
+  "validation": [
+    "cargo test -p nose-frontend module_imports --lib",
+    "cargo test -p nose-frontend --lib",
+    "cargo test -p nose-cli --test cli",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-587-after.json"
+  ]
+}
