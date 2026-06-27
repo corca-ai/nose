@@ -187,6 +187,7 @@ and must be explicitly enabled by the user.
 ## See also
 
 - [semantic-kernel](semantic-kernel.md)
+- [recall-loss-diagnostics](recall-loss-diagnostics.md)
 - Current implementation status is recorded in
   [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
   work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).

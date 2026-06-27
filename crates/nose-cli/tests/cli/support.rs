@@ -133,6 +133,10 @@ impl TempProject {
         fs::write(&path, src).unwrap_or_else(|err| panic!("write {}: {err}", path.display()));
     }
 
+    pub(crate) fn path(&self) -> &Path {
+        &self.dir
+    }
+
     pub(crate) fn query_json(&self, mode: &str, extra_args: &[&str]) -> serde_json::Value {
         let mut args = vec!["query", self.dir.to_str().unwrap(), "--mode", mode];
         args.extend_from_slice(extra_args);

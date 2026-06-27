@@ -313,5 +313,8 @@ and may change to improve readability. The stable contract is documented in
 Hidden `behavioral-gate`, `detect`, `verify`, `features`, `eval`, and `ceiling` commands
 exist for strict/research workflows — an experimental Type-4 benchmark harness and oracle
 tooling, not stable integration surfaces; do not build automation around them without
-checking the current binary. They are hidden from `--help` because `query` is the command
+checking the current binary. `verify --recall-loss-report <file>` writes the local
+[recall-loss diagnostics](recall-loss-diagnostics.md) artifact used by
+semantic-kernel PRs to attribute fail-closed recall loss while preserving the
+hard soundness gate. They are hidden from `--help` because `query` is the command
 for everyday use; the [benchmark](benchmark.md) page documents them.

@@ -35,6 +35,7 @@ mod query_semantic_packs;
 mod query_terms;
 mod query_views;
 mod query_witness;
+mod recall_loss_report;
 mod report_text;
 mod runtime;
 mod schema_versions;

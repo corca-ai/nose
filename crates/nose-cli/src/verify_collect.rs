@@ -12,6 +12,10 @@ pub(super) struct VerifyRec {
     /// Can the exact `semantic` channel ever claim this unit (strict-exact-safe
     /// and above the degenerate-fingerprint floor)? Scopes the HARD gate.
     pub(super) claimable: bool,
+    /// The strict exact-safety half of the exact-claim gate, kept separate so
+    /// recall-loss diagnostics can distinguish safety rejection from a small
+    /// value fingerprint.
+    pub(super) exact_safe: bool,
     /// Hash of the unit's declared parameter domains. The oracle binds battery
     /// rows under declared-type coercion, so two units are battery-COMPARABLE
     /// only when their declarations agree; a disagreement across different
@@ -377,6 +381,7 @@ fn collect_file_verify_recs(
             tokens,
             loc: format!("{}:{}", file_path, span.start_line),
             claimable,
+            exact_safe,
             domain_sig: param_domain_signature(n, root),
             file_idx,
             core_root,

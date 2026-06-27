@@ -282,6 +282,12 @@ pub(crate) enum Cmd {
         /// (vj ≥ 0.7 are the strongest: structurally near AND behavior-equal).
         #[arg(long)]
         leads: Option<PathBuf>,
+        /// Write a local recall-loss diagnostics report. The artifact combines
+        /// soundness gate numbers, oracle under-merges, fail-closed exclusions,
+        /// and structured exact-admission rejections. It never sends data remotely
+        /// and omits raw source snippets by default.
+        #[arg(long)]
+        recall_loss_report: Option<PathBuf>,
         /// Write a JSON census of the units the oracle could NOT interpret — exclusion
         /// reasons, the construct tags they carry, and how much fingerprint-merge mass
         /// is unverified per construct. The instrument for ranking oracle-coverage work

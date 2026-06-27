@@ -174,6 +174,13 @@ Classify each drift as one of:
 - measured recall change;
 - bug fix.
 
+When a PR changes exact semantic admission, also attach a local
+[`recall-loss diagnostics`](recall-loss-diagnostics.md) summary from
+`nose verify <path> --max-violations 0 --recall-loss-report <file>`. The hard
+gate remains false merges `0` and canon-preservation violations `0`; the
+diagnostics report is the soft gate that attributes under-merges, oracle
+exclusions, and exact-admission rejections to structured reason buckets.
+
 Behavior-change defaults:
 
 - Descriptor-only and reporting-only phases should preserve family output except

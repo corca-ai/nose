@@ -49,7 +49,11 @@ Build a research-grade, practical semantic kernel that:
 - keeps fuzzy or uncertain knowledge useful in candidate generation and `near`
   ranking without letting it approve exact fingerprint equality;
 - records why a semantic match was accepted: which pack, contract, semantic facts,
-  laws, and proof or test status were involved.
+  laws, and proof or test status were involved;
+- records why exact semantic admission was rejected in local
+  [recall-loss diagnostics](recall-loss-diagnostics.md), so stricter admission
+  can preserve or improve soundness without silently losing recoverable Type-4
+  recall.
 
 The standard is: a pack contributes semantic evidence; the kernel validates the
 evidence shape and decides whether it is admissible for a given analysis channel

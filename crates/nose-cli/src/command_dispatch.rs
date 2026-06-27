@@ -65,6 +65,7 @@ pub(crate) fn run() -> Result<()> {
             json,
             max_violations,
             leads,
+            recall_loss_report,
             exclusion_census,
             falsify,
         } => cmd_verify(
@@ -73,6 +74,7 @@ pub(crate) fn run() -> Result<()> {
             json,
             max_violations,
             leads,
+            recall_loss_report,
             exclusion_census,
             falsify,
         ),
@@ -130,6 +132,7 @@ fn cmd_verify(
     json: bool,
     max_violations: Option<usize>,
     leads: Option<PathBuf>,
+    recall_loss_report: Option<PathBuf>,
     exclusion_census: Option<PathBuf>,
     falsify: bool,
 ) -> Result<()> {
@@ -148,6 +151,15 @@ fn cmd_verify(
     if let Some(path) = &exclusion_census {
         verify_census::write_report(path, &oracle.census)?;
         println!("exclusion census written to {}", path.display());
+    }
+    if let Some(path) = &recall_loss_report {
+        crate::recall_loss_report::write_report(
+            path,
+            &oracle,
+            &paths,
+            no_cfg_norm,
+            max_violations,
+        )?;
     }
 
     if json {

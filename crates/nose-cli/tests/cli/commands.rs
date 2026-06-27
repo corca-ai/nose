@@ -12,6 +12,8 @@ mod ignores_sarif;
 mod proposal_query;
 #[path = "commands/query_reinvented.rs"]
 mod query_reinvented;
+#[path = "commands/recall_loss_report.rs"]
+mod recall_loss_report;
 #[path = "commands/semantic_pack_adoption_gates.rs"]
 mod semantic_pack_adoption_gates;
 #[path = "commands/semantic_pack_compatibility.rs"]

@@ -96,6 +96,12 @@ The output is a draft packet skeleton for manual curation. Before committing it,
 human evidence in `real_frontier.v1.json`, classify the proof invariant, record adjacent hard
 negatives, and add a focused gate.
 
+For semantic-kernel PRs, prefer also writing
+[`recall-loss diagnostics`](recall-loss-diagnostics.md) with
+`nose verify <path> --max-violations 0 --recall-loss-report <file>`. It embeds
+the under-merge signal and adds soundness gate numbers, oracle exclusions, and
+structured exact-admission rejection buckets.
+
 ## Relationship to existing Type-4 tools
 
 - `bench/type4/generate.py` creates evidence-carrying synthetic pairs. It is the

@@ -32,6 +32,10 @@ break.
   TypeScript/Rust collection membership, and TypeScript/Java/Rust/Go string
   affix coordinates, with hard negatives for mutated providers, wrong defaults,
   consumer namespace shadowing, and dynamic re-export paths.
+- Added `nose verify --recall-loss-report <file>`, a local diagnostics artifact
+  for semantic-kernel work that combines hard soundness gate numbers,
+  under-merged behavior groups, oracle exclusions, and structured exact-admission
+  rejection buckets without including raw source snippets by default.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object
