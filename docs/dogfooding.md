@@ -514,3 +514,12 @@ covering `map_get_default_call_il`, `map_key_view_call_il`, and
 `receiver_membership_call_il`. That was avoidable test scaffolding, so the resolver tests now share
 one named `receiver_method_call_il` helper. Accepted representative `b7a3fa1f37880138` no longer
 reports and no new default-surface family appears.
+
+The #567 import-snapshot recall-loss census keeps the count at 54 after the
+earlier phase 1/2 imported-provider snapshot fixtures expanded the baseline.
+Adding `import_snapshot_census` to the local recall-loss report shifts the
+already reviewed reporting/oracle representative from `6f1baed465ffcde9` to
+`190f0a721624d635`. The reported locations remain the same
+`report_falsify`/`soundness_gate` production overlap recorded for #570, so this
+is representative-ID churn rather than new extractable duplication. No new
+budget is accepted.

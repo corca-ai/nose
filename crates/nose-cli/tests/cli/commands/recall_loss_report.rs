@@ -65,6 +65,89 @@ def custom_call(v):\n    return helper(v)\n",
 }
 
 #[test]
+fn recall_loss_report_includes_import_snapshot_miss_census() {
+    let project = TempProject::new("recall_loss_import_snapshot_census");
+    project.write("maps.py", "LOOKUP = {\"red\": 1, \"blue\": 2}\n");
+    project.write(
+        "safe_imported.py",
+        "from maps import LOOKUP\n\n\
+def lookup(value):\n    return LOOKUP.get(value, 0)\n",
+    );
+    project.write("values.py", "VALUES = [\"red\", \"blue\"]\n");
+    project.write(
+        "shadowed.py",
+        "def set(_values):\n    return object()\n\
+VALUES = set([\"red\", \"blue\"])\n",
+    );
+    project.write(
+        "shadowed_imported.py",
+        "from shadowed import VALUES\n\n\
+def member(value):\n    return value in VALUES\n",
+    );
+    project.write(
+        "mutated_provider.py",
+        "VALUES = [\"red\", \"blue\"]\n\
+VALUES.append(\"green\")\n",
+    );
+    project.write(
+        "mutated_provider_imported.py",
+        "from mutated_provider import VALUES\n\n\
+def member(value):\n    return value in VALUES\n",
+    );
+    project.write(
+        "mutated_importer.py",
+        "from values import VALUES\n\
+VALUES.append(\"green\")\n\n\
+def member(value):\n    return value in VALUES\n",
+    );
+    let report_path = project.path().join("recall-loss.json");
+    let out = run_raw(&[
+        "verify",
+        project.path().to_str().unwrap(),
+        "--max-violations",
+        "0",
+        "--recall-loss-report",
+        report_path.to_str().unwrap(),
+    ]);
+    assert!(out.contains("GATE: 0"));
+
+    let report_text = fs::read_to_string(&report_path).expect("recall-loss report");
+    let report: serde_json::Value =
+        serde_json::from_str(&report_text).expect("recall-loss report JSON");
+    let census = &report["import_snapshot_census"];
+    assert!(
+        census["summary"]["snapshot_records"].as_u64().unwrap_or(0) >= 1,
+        "expected at least one successful imported snapshot: {report}"
+    );
+    assert_eq!(census["summary"]["reported_misses"], 3);
+    let reasons = census["misses_by_reason"]
+        .as_array()
+        .expect("misses_by_reason should be an array");
+    for expected in [
+        "provider-library-api-proof-missing",
+        "provider-binding-unsafe",
+        "importer-binding-mutated",
+    ] {
+        assert!(
+            reasons
+                .iter()
+                .any(|item| item["key"] == expected && item["count"] == 1),
+            "expected import snapshot miss reason {expected}: {report}"
+        );
+    }
+    assert!(
+        census["misses"]
+            .as_array()
+            .expect("misses should be an array")
+            .iter()
+            .all(|item| item["snapshot_kind"] == "binding-import"
+                && item["module_hash"].is_u64()
+                && item["exported_hash"].is_u64()),
+        "miss rows should expose stable hashes without source snippets: {report}"
+    );
+}
+
+#[test]
 fn recall_loss_report_ratchets_representative_admission_buckets() {
     let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let paths = [

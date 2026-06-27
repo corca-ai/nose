@@ -46,6 +46,10 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   records imported immutable provider snapshots for existing Python and Java
   collection factory contracts, reusing `LibraryApi` proof and exact-safe
   provider arguments across the import boundary.
+- [#567 phase 3 import-snapshot census log](../bench/recall_loss/issue-567-phase3-import-snapshot-census.v1.json)
+  records the reporting closeout: local recall-loss reports now expose
+  successful snapshot counts plus unresolved binding-import miss reasons, so the
+  next imported-value slice can be selected from corpus evidence.
 
 Regenerate the full local reports with:
 
@@ -209,13 +213,27 @@ recall-loss report remains at `false_merges == 0` and
 because this PR adds new test/helper units, and the increase is attributed to
 the existing import-symbol callee-identity bucket.
 
-The current top `crates` buckets after #567 phase 2 are:
+The #567 phase 3 reporting closeout adds `import_snapshot_census` to local
+recall-loss reports. This is reporting-only: it does not admit new snapshots or
+change clone families. The full `crates` report remains at `false_merges == 0`
+and `canon_preservation_violations == 0`; admission rejections move
+`711 -> 716` because the reporting implementation and CLI fixture add new Rust
+test/helper units. The new census shows that `crates` currently has `0`
+successful imported snapshot records and `384` unresolved binding imports:
+`provider-module-missing` `255`, `provider-export-missing` `123`,
+`importer-binding-mutated` `3`, and
+`provider-aggregate-children-not-exact-safe` `3`. That makes the next
+imported-value decision explicit: most `crates` misses are module/export
+resolution scope, while the provider-aggregate slice is the small actionable
+semantic export-safety surface.
+
+The current top `crates` buckets after #567 phase 3 are:
 
 | reason | count | next capability |
 |---|---:|---|
-| `receiver-domain-proof-missing` | 239 | cross-file field/constant domain provenance |
-| `import-symbol-callee-identity-proof-missing` | 225 | reusable member/receiver callee identity evidence |
-| `mutation-effect-boundary` | 130 | effect and place contracts |
+| `receiver-domain-proof-missing` | 240 | cross-file field/constant domain provenance |
+| `import-symbol-callee-identity-proof-missing` | 226 | reusable member/receiver callee identity evidence |
+| `mutation-effect-boundary` | 133 | effect and place contracts |
 | `source-surface-proof-missing` | 52 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
 | `hof-demand-effect-proof-missing` | 30 | HOF demand/effect/materialization profile |
 | `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |

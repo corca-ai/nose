@@ -44,6 +44,7 @@ The current schema is `recall_loss_report.v1.json`:
 | `completeness` | Behavior groups, behavior-equal pairs, fingerprint-equal pairs, completeness percentage, and under-merged groups. |
 | `oracle_under_merges` | Behavior-equal but fingerprint-split pairs, sorted by value-Jaccard nearness. This is the structured form of the `--leads` signal. |
 | `oracle_exclusions` | Fail-closed oracle exclusions by reason and unit location. |
+| `import_snapshot_census` | Corpus-level imported immutable snapshot diagnostics: successful snapshot record counts, unresolved binding-import miss counts by reason/language, and stable hash/location rows for follow-up fixtures. |
 | `admission_rejections` | Interpretable units whose exact semantic claim is closed, with structured reason, gate, capability, missing evidence, oracle status, and stable location. |
 | `by_reason` | Rollups for admission rejections by reason/gate/capability. |
 | `top_opportunities` | Ranked under-merge opportunities that future capability work can turn into fixtures or focused follow-up issues. |
@@ -79,6 +80,26 @@ reason but splits its `missing_evidence` labels by call-target surface, such as
 target-present call-contract proof labels. Build the checked-in census with
 `scripts/recall-loss-callee-census.py`.
 
+`import_snapshot_census` is also diagnostics-only. It does not make an imported
+value exact-safe. It records why a proven binding import did not become an
+imported immutable snapshot after corpus import resolution. Current miss reasons
+include:
+
+| reason | meaning |
+|---|---|
+| `provider-module-missing` | The imported module hash has no provider file in the analyzed corpus. |
+| `provider-export-missing` | A provider module exists, but no matching exported binding was found. |
+| `provider-export-ambiguous` | More than one provider binding could own the same module/export coordinate. |
+| `cross-language-boundary` | A same-coordinate provider exists only in a different lowered language. |
+| `self-import-boundary` | The only matching provider is the importer file itself. |
+| `importer-binding-mutated` | The importer mutates the imported binding before it could be snapshotted. |
+| `provider-binding-unsafe` | The provider binding is mutated or escapes through an opaque call argument. |
+| `provider-library-api-proof-missing` | The provider RHS is a factory call without admitted `LibraryApi` proof. |
+| `provider-factory-arguments-not-exact-safe` | The provider factory is proven, but its arguments are not export-safe. |
+| `provider-aggregate-children-not-exact-safe` | The provider aggregate has a surface proof, but its children are not export-safe imported literal values. |
+| `provider-sequence-surface-proof-missing` | The provider aggregate lacks the sequence-surface proof required for imported literal export. |
+| `unsupported-provider-rhs-shape` | The provider RHS is not a literal, supported aggregate, or supported factory call. |
+
 ## PR reporting
 
 For any PR that changes exact semantic admission, include this table or the same
@@ -92,6 +113,7 @@ fields in prose:
 | under-merged behavior groups |  |  | Soft signal: increased misses need attribution. |
 | oracle exclusions by reason |  |  | Soft signal: budget/path/uninterpretable growth needs a cause. |
 | admission rejections by structured reason |  |  | Main recall-loss signal. |
+| import snapshot misses by reason |  |  | Process signal for deciding the next imported-value capability slice. |
 | top attributed recall-loss bucket |  |  | Name the follow-up capability, fixture, or unsupported boundary. |
 
 Use `scripts/recall-loss-diff.py before.json after.json` for the before/after

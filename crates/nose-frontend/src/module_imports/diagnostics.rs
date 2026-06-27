@@ -1,0 +1,434 @@
+use super::bindings::{
+    assignment_name, assignment_rhs, collect_statements_for_root, import_binding_proof,
+    BindingUseIndex,
+};
+use super::modules::java_class_module_hashes;
+use super::FileImportContext;
+use nose_il::{
+    stable_symbol_hash, Corpus, EvidenceKind, Il, ImportEvidenceKind, Interner, NodeId, UnitKind,
+};
+use nose_semantics::{imported_literal_export_rejection_reason, imported_literal_export_safe};
+use serde::Serialize;
+use std::collections::BTreeMap;
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ImportSnapshotCensus {
+    pub summary: ImportSnapshotSummary,
+    pub snapshots_by_language: Vec<ImportSnapshotCount>,
+    pub misses_by_reason: Vec<ImportSnapshotCount>,
+    pub misses_by_language: Vec<ImportSnapshotCount>,
+    pub misses: Vec<ImportSnapshotMiss>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ImportSnapshotSummary {
+    pub snapshot_records: usize,
+    pub unresolved_binding_imports: usize,
+    pub reported_misses: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ImportSnapshotCount {
+    pub key: String,
+    pub count: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ImportSnapshotMiss {
+    pub snapshot_kind: &'static str,
+    pub reason: &'static str,
+    pub language: &'static str,
+    pub importer_file: String,
+    pub importer_line: u32,
+    pub provider_file: Option<String>,
+    pub provider_line: Option<u32>,
+    pub module_hash: u64,
+    pub exported_hash: u64,
+}
+
+pub fn imported_immutable_snapshot_census(corpus: &Corpus) -> ImportSnapshotCensus {
+    let contexts: Vec<FileImportContext> = corpus
+        .files
+        .iter()
+        .map(|il| FileImportContext::new(il, &corpus.interner))
+        .collect();
+    let snapshots_by_language = snapshot_records_by_language(&corpus.files);
+    let snapshot_records = snapshots_by_language.values().sum();
+    let misses = unresolved_binding_import_misses(&corpus.files, &corpus.interner, &contexts);
+    let unresolved_binding_imports = misses.len();
+
+    ImportSnapshotCensus {
+        summary: ImportSnapshotSummary {
+            snapshot_records,
+            unresolved_binding_imports,
+            reported_misses: misses.len(),
+        },
+        snapshots_by_language: count_rows(snapshots_by_language),
+        misses_by_reason: count_rows(count_misses_by(&misses, |miss| miss.reason)),
+        misses_by_language: count_rows(count_misses_by(&misses, |miss| miss.language)),
+        misses,
+    }
+}
+
+fn snapshot_records_by_language(files: &[Il]) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for il in files {
+        let count = il
+            .evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot { .. })
+                )
+            })
+            .count();
+        if count > 0 {
+            *counts.entry(il.meta.lang.name().to_string()).or_default() += count;
+        }
+    }
+    counts
+}
+
+fn unresolved_binding_import_misses(
+    files: &[Il],
+    interner: &Interner,
+    contexts: &[FileImportContext],
+) -> Vec<ImportSnapshotMiss> {
+    let mut misses = Vec::new();
+    for (file_idx, il) in files.iter().enumerate() {
+        let context = &contexts[file_idx];
+        let Some(top_level) = context.top_level.as_deref() else {
+            continue;
+        };
+        let Some(binding_uses) = context.binding_uses.as_ref() else {
+            continue;
+        };
+        for &stmt in top_level {
+            let Some(local) = assignment_name(il, stmt) else {
+                continue;
+            };
+            let Some(proof) = import_binding_proof(il, stmt) else {
+                continue;
+            };
+            let provider = if binding_uses.binding_mutated(il, local, stmt) {
+                ProviderMiss {
+                    reason: "importer-binding-mutated",
+                    provider_file: None,
+                    provider_line: None,
+                }
+            } else {
+                provider_miss(
+                    files,
+                    interner,
+                    contexts,
+                    file_idx,
+                    proof.module_hash,
+                    proof.exported_hash,
+                )
+            };
+            misses.push(ImportSnapshotMiss {
+                snapshot_kind: "binding-import",
+                reason: provider.reason,
+                language: il.meta.lang.name(),
+                importer_file: il.meta.path.clone(),
+                importer_line: il.node(stmt).span.start_line,
+                provider_file: provider.provider_file,
+                provider_line: provider.provider_line,
+                module_hash: proof.module_hash,
+                exported_hash: proof.exported_hash,
+            });
+        }
+    }
+    misses.sort_by(|a, b| {
+        a.reason
+            .cmp(b.reason)
+            .then(a.importer_file.cmp(&b.importer_file))
+            .then(a.importer_line.cmp(&b.importer_line))
+            .then(a.module_hash.cmp(&b.module_hash))
+            .then(a.exported_hash.cmp(&b.exported_hash))
+    });
+    misses
+}
+
+struct ProviderMiss {
+    reason: &'static str,
+    provider_file: Option<String>,
+    provider_line: Option<u32>,
+}
+
+fn provider_miss(
+    files: &[Il],
+    interner: &Interner,
+    contexts: &[FileImportContext],
+    importer_file_idx: usize,
+    module_hash: u64,
+    exported_hash: u64,
+) -> ProviderMiss {
+    let importer_lang = files[importer_file_idx].meta.lang;
+    let mut scan = ProviderScan::default();
+
+    for (file_idx, il) in files.iter().enumerate() {
+        inspect_provider_file(
+            ProviderFile {
+                interner,
+                contexts,
+                il,
+                file_idx,
+                importer_file_idx,
+                importer_lang,
+                module_hash,
+                exported_hash,
+            },
+            &mut scan,
+        );
+    }
+
+    if scan.safe_candidates.len() > 1 {
+        return scan
+            .safe_candidates
+            .remove(0)
+            .with_reason("provider-export-ambiguous");
+    }
+    if scan.safe_candidates.len() == 1 {
+        return scan
+            .safe_candidates
+            .remove(0)
+            .with_reason("eligible-but-not-snapshotted");
+    }
+    if !scan.module_seen {
+        return ProviderMiss::without_provider("provider-module-missing");
+    }
+    if !scan.same_lang_module_seen {
+        return ProviderMiss::without_provider("cross-language-boundary");
+    }
+    if !scan.export_seen {
+        return ProviderMiss::without_provider("provider-export-missing");
+    }
+    scan.duplicate_seen
+        .or(scan.self_seen)
+        .or(scan.unsafe_seen)
+        .or(scan.rhs_missing_seen)
+        .or(scan.export_rejection_seen)
+        .unwrap_or_else(|| ProviderMiss::without_provider("provider-export-missing"))
+}
+
+struct ProviderFile<'a> {
+    interner: &'a Interner,
+    contexts: &'a [FileImportContext],
+    il: &'a Il,
+    file_idx: usize,
+    importer_file_idx: usize,
+    importer_lang: nose_il::Lang,
+    module_hash: u64,
+    exported_hash: u64,
+}
+
+fn inspect_provider_file(file: ProviderFile<'_>, scan: &mut ProviderScan) {
+    let context = &file.contexts[file.file_idx];
+    let Some(top_level) = context.top_level.as_deref() else {
+        return;
+    };
+    let Some(binding_uses) = context.binding_uses.as_ref() else {
+        return;
+    };
+    inspect_provider_scope(
+        ProviderScope {
+            il: file.il,
+            interner: file.interner,
+            file_idx: file.file_idx,
+            importer_file_idx: file.importer_file_idx,
+            importer_lang: file.importer_lang,
+            module_hashes: &context.module_hashes,
+            statements: top_level,
+            binding_uses,
+            module_hash: file.module_hash,
+            exported_hash: file.exported_hash,
+        },
+        scan,
+    );
+    if !nose_semantics::semantics(file.il.meta.lang)
+        .modules()
+        .java_class_literal_exports()
+    {
+        return;
+    }
+    for unit in &file.il.units {
+        inspect_java_class_provider_scope(&file, binding_uses, unit, scan);
+    }
+}
+
+fn inspect_java_class_provider_scope(
+    file: &ProviderFile<'_>,
+    binding_uses: &BindingUseIndex,
+    unit: &nose_il::Unit,
+    scan: &mut ProviderScan,
+) {
+    if unit.kind != UnitKind::Class {
+        return;
+    }
+    let Some(class_name) = unit.name else {
+        return;
+    };
+    let class_module_hashes = java_class_module_hashes(file.il, file.interner, class_name);
+    if class_module_hashes.is_empty() {
+        return;
+    }
+    let statements = collect_statements_for_root(file.il, unit.root);
+    inspect_provider_scope(
+        ProviderScope {
+            il: file.il,
+            interner: file.interner,
+            file_idx: file.file_idx,
+            importer_file_idx: file.importer_file_idx,
+            importer_lang: file.importer_lang,
+            module_hashes: &class_module_hashes,
+            statements: &statements,
+            binding_uses,
+            module_hash: file.module_hash,
+            exported_hash: file.exported_hash,
+        },
+        scan,
+    );
+}
+
+struct ProviderScope<'a> {
+    il: &'a Il,
+    interner: &'a Interner,
+    file_idx: usize,
+    importer_file_idx: usize,
+    importer_lang: nose_il::Lang,
+    module_hashes: &'a [u64],
+    statements: &'a [NodeId],
+    binding_uses: &'a BindingUseIndex,
+    module_hash: u64,
+    exported_hash: u64,
+}
+
+#[derive(Default)]
+struct ProviderScan {
+    module_seen: bool,
+    same_lang_module_seen: bool,
+    export_seen: bool,
+    duplicate_seen: Option<ProviderMiss>,
+    self_seen: Option<ProviderMiss>,
+    unsafe_seen: Option<ProviderMiss>,
+    rhs_missing_seen: Option<ProviderMiss>,
+    export_rejection_seen: Option<ProviderMiss>,
+    safe_candidates: Vec<ProviderMiss>,
+}
+
+fn inspect_provider_scope(scope: ProviderScope<'_>, scan: &mut ProviderScan) {
+    if !scope.module_hashes.contains(&scope.module_hash) {
+        return;
+    }
+    scan.module_seen = true;
+    if scope.il.meta.lang != scope.importer_lang {
+        return;
+    }
+    scan.same_lang_module_seen = true;
+
+    let matching: Vec<NodeId> = scope
+        .statements
+        .iter()
+        .copied()
+        .filter(|&stmt| {
+            assignment_name(scope.il, stmt).is_some_and(|name| {
+                stable_symbol_hash(scope.interner.resolve(name)) == scope.exported_hash
+            })
+        })
+        .collect();
+    if matching.is_empty() {
+        return;
+    }
+    scan.export_seen = true;
+    if matching.len() != 1 {
+        if scan.duplicate_seen.is_none() {
+            scan.duplicate_seen = Some(location_miss(
+                scope.il,
+                matching[0],
+                "provider-export-ambiguous",
+            ));
+        }
+        return;
+    }
+
+    let stmt = matching[0];
+    if scope.file_idx == scope.importer_file_idx {
+        if scan.self_seen.is_none() {
+            scan.self_seen = Some(location_miss(scope.il, stmt, "self-import-boundary"));
+        }
+        return;
+    }
+    let Some(name) = assignment_name(scope.il, stmt) else {
+        return;
+    };
+    if scope
+        .binding_uses
+        .exported_binding_unsafe(scope.il, name, stmt)
+    {
+        if scan.unsafe_seen.is_none() {
+            scan.unsafe_seen = Some(location_miss(scope.il, stmt, "provider-binding-unsafe"));
+        }
+        return;
+    }
+    let Some(rhs) = assignment_rhs(scope.il, stmt) else {
+        if scan.rhs_missing_seen.is_none() {
+            scan.rhs_missing_seen = Some(location_miss(scope.il, stmt, "provider-rhs-missing"));
+        }
+        return;
+    };
+    if !imported_literal_export_safe(scope.il, scope.interner, rhs) {
+        if scan.export_rejection_seen.is_none() {
+            let reason = imported_literal_export_rejection_reason(scope.il, scope.interner, rhs)
+                .unwrap_or("provider-export-not-snapshot-safe");
+            scan.export_rejection_seen = Some(location_miss(scope.il, stmt, reason));
+        }
+        return;
+    }
+    let safe = location_miss(scope.il, stmt, "eligible-but-not-snapshotted");
+    scan.safe_candidates.push(safe);
+}
+
+fn location_miss(il: &Il, stmt: NodeId, reason: &'static str) -> ProviderMiss {
+    ProviderMiss {
+        reason,
+        provider_file: Some(il.meta.path.clone()),
+        provider_line: Some(il.node(stmt).span.start_line),
+    }
+}
+
+impl ProviderMiss {
+    fn without_provider(reason: &'static str) -> Self {
+        Self {
+            reason,
+            provider_file: None,
+            provider_line: None,
+        }
+    }
+
+    fn with_reason(mut self, reason: &'static str) -> Self {
+        self.reason = reason;
+        self
+    }
+}
+
+fn count_misses_by(
+    misses: &[ImportSnapshotMiss],
+    key: impl Fn(&ImportSnapshotMiss) -> &'static str,
+) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for miss in misses {
+        *counts.entry(key(miss).to_string()).or_default() += 1;
+    }
+    counts
+}
+
+fn count_rows(counts: BTreeMap<String, usize>) -> Vec<ImportSnapshotCount> {
+    let mut rows: Vec<_> = counts
+        .into_iter()
+        .map(|(key, count)| ImportSnapshotCount { key, count })
+        .collect();
+    rows.sort_by(|a, b| b.count.cmp(&a.count).then(a.key.cmp(&b.key)));
+    rows
+}

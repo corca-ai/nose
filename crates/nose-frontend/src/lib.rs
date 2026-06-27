@@ -26,6 +26,7 @@ mod corpus_tests;
 
 pub use coverage::{coverage, CoverageReport};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};
+pub use module_imports::{imported_immutable_snapshot_census, ImportSnapshotCensus};
 
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;

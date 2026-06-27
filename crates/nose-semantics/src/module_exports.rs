@@ -29,6 +29,23 @@ pub fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) 
     }
 }
 
+/// Coarse diagnostic reason for a provider-owned value that cannot currently be
+/// snapshotted across an immutable import boundary.
+pub fn imported_literal_export_rejection_reason(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<&'static str> {
+    if imported_literal_export_safe(il, interner, node) {
+        return None;
+    }
+    Some(match il.kind(node) {
+        NodeKind::Seq => imported_literal_seq_rejection_reason(il, interner, node),
+        NodeKind::Call => imported_factory_call_rejection_reason(il, interner, node),
+        _ => "unsupported-provider-rhs-shape",
+    })
+}
+
 fn imported_literal_seq_safe(il: &Il, interner: &Interner, seq: NodeId) -> bool {
     if go_zero_map_literal_export_safe(il, interner, seq) {
         return true;
@@ -39,6 +56,20 @@ fn imported_literal_seq_safe(il: &Il, interner: &Interner, seq: NodeId) -> bool 
             .children(seq)
             .iter()
             .all(|&child| literal_export_value_safe(il, interner, child))
+}
+
+fn imported_literal_seq_rejection_reason(
+    il: &Il,
+    interner: &Interner,
+    seq: NodeId,
+) -> &'static str {
+    if go_zero_map_literal_contract_for_node(il, interner, seq).is_some()
+        || seq_surface_contract_for_node(il, interner, seq).is_some()
+    {
+        "provider-aggregate-children-not-exact-safe"
+    } else {
+        "provider-sequence-surface-proof-missing"
+    }
 }
 
 fn go_zero_map_literal_export_safe(il: &Il, interner: &Interner, seq: NodeId) -> bool {
@@ -110,6 +141,36 @@ fn imported_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) ->
         }
         None => false,
     }
+}
+
+fn imported_factory_call_rejection_reason(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> &'static str {
+    if importable_factory_api_occurrence_present(il, interner, call) {
+        "provider-factory-arguments-not-exact-safe"
+    } else {
+        "provider-library-api-proof-missing"
+    }
+}
+
+fn importable_factory_api_occurrence_present(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    admitted_js_like_map_constructor_at_call(il, interner, call).is_some()
+        || admitted_js_like_set_constructor_at_call(il, interner, call).is_some()
+        || admitted_free_name_collection_factory_at_call(il, interner, call).is_some()
+        || admitted_imported_collection_factory_at_call(il, interner, call).is_some()
+        || admitted_java_collection_factory_at_call(il, interner, call).is_some()
+        || admitted_ruby_set_factory_at_call(il, interner, call).is_some()
+        || match semantics(il.meta.lang).stdlib().imported_map_factory() {
+            Some(ImportedMapFactoryContract::JavaMap) => {
+                admitted_java_map_factory_at_call(il, interner, call).is_some()
+            }
+            Some(ImportedMapFactoryContract::RustStdMap) => {
+                admitted_free_name_map_factory_at_call(il, interner, call).is_some()
+            }
+            None => false,
+        }
 }
 
 fn imported_collection_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {

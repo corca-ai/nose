@@ -36,6 +36,11 @@ break.
   for semantic-kernel work that combines hard soundness gate numbers,
   under-merged behavior groups, oracle exclusions, and structured exact-admission
   rejection buckets without including raw source snippets by default.
+- Added import-snapshot census data to local recall-loss reports. The JSON now
+  includes successful imported-literal snapshot counts plus unresolved
+  binding-import miss reasons such as missing provider modules/exports,
+  importer mutation, provider mutation/escape, missing provider `LibraryApi`
+  proof, and provider aggregate shapes that are not export-safe.
 - Split recall-loss exact-admission rejections into capability-oriented buckets
   for callee identity, receiver domain, library API occurrence, HOF
   demand/effect, source surface, mutation/effect, unsupported runtime

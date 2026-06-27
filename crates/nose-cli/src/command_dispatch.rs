@@ -167,6 +167,7 @@ fn cmd_verify(args: VerifyArgs) -> Result<()> {
     if let Some(path) = &recall_loss_report {
         crate::recall_loss_report::write_report(
             path,
+            &corpus,
             &oracle,
             &paths,
             no_cfg_norm,

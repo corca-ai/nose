@@ -39,6 +39,11 @@ python3 scripts/recall-loss-callee-census.py \
   > target/callee-census.json
 ```
 
+Full reports also include `import_snapshot_census`, which records successful
+imported immutable snapshot counts and unresolved binding-import miss reasons.
+Use that section directly when deciding the next import-backed provider-value
+slice.
+
 ## Files
 
 - [crates.baseline.v1.json](crates.baseline.v1.json) records the current
@@ -69,3 +74,12 @@ python3 scripts/recall-loss-callee-census.py \
   `SequenceSurface` evidence, recovering the imported-member target-present
   follow-ups from #578 while keeping untagged sequences and collection/map
   contracts separate.
+- [issue-567-phase1-js-ts-constructors.v1.json](issue-567-phase1-js-ts-constructors.v1.json)
+  records imported immutable provider snapshots for JS/TS `new Map(...)` and
+  `new Set(...)`.
+- [issue-567-phase2-collection-factories.v1.json](issue-567-phase2-collection-factories.v1.json)
+  records imported immutable provider snapshots for existing Python and Java
+  collection factory contracts.
+- [issue-567-phase3-import-snapshot-census.v1.json](issue-567-phase3-import-snapshot-census.v1.json)
+  records the report-infrastructure closeout: recall-loss artifacts now include
+  import snapshot success counts and binding-import miss reasons.

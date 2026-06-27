@@ -8,6 +8,7 @@
 //! module-binding seed can reuse its mutation and canonicalization logic.
 
 mod bindings;
+mod diagnostics;
 mod exports;
 mod modules;
 mod namespace_members;
@@ -16,6 +17,7 @@ mod snapshot;
 use bindings::{
     assignment_name, collect_top_level_statements, import_binding_proof, BindingUseIndex,
 };
+pub use diagnostics::{imported_immutable_snapshot_census, ImportSnapshotCensus};
 use exports::collect_literal_exports;
 use modules::file_module_hashes;
 use namespace_members::{collect_namespace_member_replacements, NamespaceMemberReplacement};

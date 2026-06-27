@@ -17,6 +17,7 @@ struct RecallLossReport {
     completeness: Completeness,
     oracle_under_merges: Vec<UnderMerge>,
     oracle_exclusions: OracleExclusions,
+    import_snapshot_census: nose_frontend::ImportSnapshotCensus,
     admission_rejections: Vec<AdmissionRejection>,
     by_reason: Vec<ReasonRollup>,
     top_opportunities: Vec<TopOpportunity>,
@@ -137,6 +138,7 @@ struct ReasonCount {
 
 pub(super) fn write_report(
     path: &Path,
+    corpus: &Corpus,
     oracle: &VerifyOracle,
     paths: &[PathBuf],
     no_cfg_norm: bool,
@@ -144,12 +146,19 @@ pub(super) fn write_report(
 ) -> Result<()> {
     std::fs::write(
         path,
-        serde_json::to_string_pretty(&build_report(oracle, paths, no_cfg_norm, max_violations))?,
+        serde_json::to_string_pretty(&build_report(
+            corpus,
+            oracle,
+            paths,
+            no_cfg_norm,
+            max_violations,
+        ))?,
     )
     .with_context(|| format!("writing recall-loss report {}", path.display()))
 }
 
 fn build_report(
+    corpus: &Corpus,
     oracle: &VerifyOracle,
     paths: &[PathBuf],
     no_cfg_norm: bool,
@@ -187,6 +196,7 @@ fn build_report(
         completeness,
         oracle_under_merges: under_merges,
         oracle_exclusions: oracle_exclusions(&oracle.exclusions),
+        import_snapshot_census: nose_frontend::imported_immutable_snapshot_census(corpus),
         admission_rejections,
         by_reason,
         top_opportunities,
