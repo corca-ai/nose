@@ -38,6 +38,14 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   receiver-domain recovery slice: iterator-adapter result domains,
   dependency-backed literal binding domains, normalized binding proof-chain
   admission, and mutation-closed strict exact receiver use.
+- [#567 phase 1 JS/TS constructor log](../bench/recall_loss/issue-567-phase1-js-ts-constructors.v1.json)
+  records imported immutable provider snapshots for JS/TS `new Map(...)` and
+  `new Set(...)`, reusing existing constructor `LibraryApi` proof across the
+  import boundary.
+- [#567 phase 2 collection factory log](../bench/recall_loss/issue-567-phase2-collection-factories.v1.json)
+  records imported immutable provider snapshots for existing Python and Java
+  collection factory contracts, reusing `LibraryApi` proof and exact-safe
+  provider arguments across the import boundary.
 
 Regenerate the full local reports with:
 
@@ -135,7 +143,7 @@ reduces member-call primary loss (`98 -> 93`), and removes many Rust struct
 literal source-surface losses (`73 -> 52`). Newly exact-safe but too-small units
 move to the explicit value-fingerprint floor bucket (`6 -> 13`).
 
-The current top `crates` buckets are:
+After #580 and before the receiver-domain slice, the top `crates` buckets were:
 
 | reason | count | next capability |
 |---|---:|---|
@@ -169,6 +177,50 @@ lands in structured callee-identity/HOF/library-API occurrence buckets, not in
 unattributed unsafe exact admission. The remaining receiver-domain cases still
 point at cross-file field/constant domain provenance, not more
 selector-specific iterator exceptions.
+
+The #567 phase 1 JS/TS constructor slice keeps the hard gates closed while
+opening imported immutable snapshots for provider-owned `new Map(...)` and
+`new Set(...)`. This does not add new API shapes: provider export safety now
+reuses the existing `JsLikeMapConstructor` and `JsLikeSetConstructor`
+`LibraryApi` occurrence proofs, including construct syntax and unshadowed-global
+callee obligations, before copying the provider evidence into the importer.
+Focused product fixtures move JS/TS imported Map defaults from `0/2` to `2/2`
+supported positives and JS/TS imported Set membership from `0/2` to `2/2`,
+while missing constructor evidence, provider-local `Map`/`Set` shadows,
+provider/importer mutation, wrong contents, and raw import-coordinate sequences
+stay closed. The full `crates` recall-loss report remains at
+`false_merges == 0` and `canon_preservation_violations == 0`; admission
+rejections move `708 -> 710` because this PR adds new Rust test/helper units,
+and the increase is attributed to the existing callee-identity bucket.
+
+The #567 phase 2 collection-factory slice applies the same capability path to
+existing collection factory contracts instead of adding selector exceptions.
+Provider export safety now admits provider-owned collection-factory calls only
+through already-admitted `LibraryApi` occurrence proof plus exact-safe literal
+arguments. The product fixture delta is Python imported collection membership
+`0/2 -> 2/2` for builtin `set([...])` and imported
+`collections.deque([...])`, and Java imported collection membership
+`0/2 -> 2/2` for static-imported `List.of(...)` and `Set.of(...)` provider
+bindings. Missing `LibraryApi` proof, provider-local factory shadowing,
+provider/importer mutation, wrong contents, and ambiguous single-argument
+`Arrays.asList(...)` provider snapshots remain closed. The full `crates`
+recall-loss report remains at `false_merges == 0` and
+`canon_preservation_violations == 0`; admission rejections move `710 -> 711`
+because this PR adds new test/helper units, and the increase is attributed to
+the existing import-symbol callee-identity bucket.
+
+The current top `crates` buckets after #567 phase 2 are:
+
+| reason | count | next capability |
+|---|---:|---|
+| `receiver-domain-proof-missing` | 239 | cross-file field/constant domain provenance |
+| `import-symbol-callee-identity-proof-missing` | 225 | reusable member/receiver callee identity evidence |
+| `mutation-effect-boundary` | 130 | effect and place contracts |
+| `source-surface-proof-missing` | 52 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
+| `hof-demand-effect-proof-missing` | 30 | HOF demand/effect/materialization profile |
+| `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |
+| `value-fingerprint-too-small` | 13 | explicit low-substance floor policy |
+| `library-api-occurrence-proof-missing` | 8 | missing occurrence evidence, not selector spelling |
 
 ## See Also
 

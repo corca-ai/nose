@@ -98,7 +98,10 @@ fall back to a side-table mirror when source evidence is missing.
   for narrow syntax proof, while broad type, place, symbol, and domain evidence
   uses the language-core producer for the same builtin language pack. Cross-file
   module-import immutable literal export/snapshot proof is also language-core
-  evidence.
+  evidence, and provider snapshots can copy existing factory `LibraryApi`
+  evidence for supported immutable JS/TS constructor-backed values plus Python
+  and Java collection/map factory values after export safety proves exact-safe
+  provider arguments.
 - JS/TS lowering emits source facts for construct syntax, async `await`
   boundaries, generator `yield` boundaries, regex literals, strict equality,
   strict inequality, loose equality, loose inequality, unary `typeof`, and
@@ -137,8 +140,15 @@ fall back to a side-table mirror when source evidence is missing.
   surfaces where the consumer demand is immediate and the body remains exact-safe.
 - JS-like `new Set(...)` and `new Map(...)` can enter exact matching only when
   construct syntax is proven, the `Set`/`Map` callee has unshadowed-global
-  symbol proof, and the collection/map argument remains exact-safe. Plain
-  `Set(...)` and `Map(...)` stay closed.
+  symbol proof, and the collection/map argument remains exact-safe. The same
+  admitted constructor proof can now be copied through cross-file immutable
+  import snapshots for provider-owned JS/TS `new Set(...)` and `new Map(...)`.
+  Plain `Set(...)` and `Map(...)` stay closed.
+- Python and Java imported collection factory snapshots are not source-fact
+  shortcuts. They reuse existing `LibraryApi` occurrence proof, import/symbol
+  dependencies, and exact-safe provider argument checks before copying provider
+  evidence into importers. Missing API proof, shadows, mutation facts, and
+  ambiguous factory result shapes stay closed.
 - JS/TS regex literal `.test(value)` can enter exact matching only when the
   receiver is proven to be a regex literal. Ordinary string `.test(...)` stays
   closed.

@@ -1,13 +1,17 @@
 //! Provider-side literal export contracts for cross-file immutable import replacement.
 
 use crate::{
-    admitted_free_name_map_factory_at_call, admitted_java_map_entry_at_call,
-    admitted_java_map_factory_at_call, go_zero_map_default_kind,
+    admitted_free_name_collection_factory_at_call, admitted_free_name_map_factory_at_call,
+    admitted_imported_collection_factory_at_call, admitted_java_collection_factory_at_call,
+    admitted_java_map_entry_at_call, admitted_java_map_factory_at_call,
+    admitted_js_like_map_constructor_at_call, admitted_js_like_set_constructor_at_call,
+    admitted_ruby_set_factory_at_call, go_zero_map_default_kind,
     go_zero_map_entry_contract_for_node, go_zero_map_literal_contract_for_node,
-    import_fact_evidence_rhs, java_map_factory_positional_arg_count_supported,
-    java_map_factory_uses_positional_entries, nodes_contain_duplicate_static_literal_keys,
-    nodes_contain_static_null_literal, semantics, seq_surface_contract_for_node,
-    ImportedMapFactoryContract, JavaMapFactoryKind, LibraryMapFactoryResult,
+    import_fact_evidence_rhs, java_collection_factory_rejects_null_literal,
+    java_map_factory_positional_arg_count_supported, java_map_factory_uses_positional_entries,
+    nodes_contain_duplicate_static_literal_keys, nodes_contain_static_null_literal, semantics,
+    seq_surface_contract_for_node, ImportedMapFactoryContract, JavaMapFactoryKind,
+    LibraryApiContractId, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 
@@ -17,7 +21,10 @@ pub fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) 
     match il.kind(node) {
         NodeKind::Lit => true,
         NodeKind::Seq => imported_literal_seq_safe(il, interner, node),
-        NodeKind::Call => imported_map_factory_call_safe(il, interner, node),
+        NodeKind::Call => {
+            imported_map_factory_call_safe(il, interner, node)
+                || imported_collection_factory_call_safe(il, interner, node)
+        }
         _ => false,
     }
 }
@@ -93,6 +100,9 @@ fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool
 }
 
 fn imported_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    if js_like_map_constructor_call_safe(il, interner, call) {
+        return true;
+    }
     match semantics(il.meta.lang).stdlib().imported_map_factory() {
         Some(ImportedMapFactoryContract::JavaMap) => java_map_factory_call_safe(il, interner, call),
         Some(ImportedMapFactoryContract::RustStdMap) => {
@@ -100,6 +110,153 @@ fn imported_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) ->
         }
         None => false,
     }
+}
+
+fn imported_collection_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    free_name_collection_factory_call_safe(il, interner, call)
+        || imported_binding_collection_factory_call_safe(il, interner, call)
+        || java_collection_factory_call_safe(il, interner, call)
+        || ruby_set_factory_call_safe(il, interner, call)
+        || js_like_set_constructor_call_safe(il, interner, call)
+}
+
+fn free_name_collection_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    let Some((_callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let Some(occurrence) = admitted_free_name_collection_factory_at_call(il, interner, call) else {
+        return false;
+    };
+    collection_factory_args_export_safe(il, interner, occurrence.contract.result, args)
+}
+
+fn imported_binding_collection_factory_call_safe(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> bool {
+    let kids = il.children(call);
+    let Some((_callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let Some(occurrence) = admitted_imported_collection_factory_at_call(il, interner, call) else {
+        return false;
+    };
+    collection_factory_args_export_safe(il, interner, occurrence.contract.result, args)
+}
+
+fn java_collection_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    let Some((_callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let Some(occurrence) = admitted_java_collection_factory_at_call(il, interner, call) else {
+        return false;
+    };
+    if matches!(
+        occurrence.contract.id,
+        LibraryApiContractId::JavaCollectionFactory(kind)
+            if java_collection_factory_rejects_null_literal(kind)
+    ) && nodes_contain_static_null_literal(il, args.iter().copied())
+    {
+        return false;
+    }
+    collection_factory_args_export_safe(il, interner, occurrence.contract.result, args)
+}
+
+fn ruby_set_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    let Some((_callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let Some(occurrence) = admitted_ruby_set_factory_at_call(il, interner, call) else {
+        return false;
+    };
+    collection_factory_args_export_safe(il, interner, occurrence.contract.result, args)
+}
+
+fn collection_factory_args_export_safe(
+    il: &Il,
+    interner: &Interner,
+    result: LibraryCollectionFactoryResult,
+    args: &[NodeId],
+) -> bool {
+    match result {
+        LibraryCollectionFactoryResult::SequenceArgument
+        | LibraryCollectionFactoryResult::StaticNonFloatSequenceArgument => {
+            args.len() == 1 && literal_export_value_safe(il, interner, args[0])
+        }
+        LibraryCollectionFactoryResult::EmptySequence => args.is_empty(),
+        LibraryCollectionFactoryResult::ElementArguments => {
+            args.len() == 1 && literal_export_value_safe(il, interner, args[0])
+        }
+        LibraryCollectionFactoryResult::VariadicElements {
+            single_arg_spreads_array,
+        } => {
+            if args.len() == 1 && single_arg_spreads_array {
+                return false;
+            }
+            args.iter()
+                .all(|&arg| literal_export_value_safe(il, interner, arg))
+        }
+    }
+}
+
+fn js_like_map_constructor_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    if kids.len() != 2 {
+        return false;
+    }
+    let Some(occurrence) = admitted_js_like_map_constructor_at_call(il, interner, call) else {
+        return false;
+    };
+    if occurrence.arg_count != 1 {
+        return false;
+    }
+    let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = occurrence.contract.result
+    else {
+        return false;
+    };
+    if entry_seq_tag != crate::SEQ_VALUE_COLLECTION {
+        return false;
+    }
+    js_like_map_entry_sequence_export_safe(il, interner, kids[1])
+}
+
+fn js_like_set_constructor_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    if kids.len() != 2 {
+        return false;
+    }
+    let Some(occurrence) = admitted_js_like_set_constructor_at_call(il, interner, call) else {
+        return false;
+    };
+    if occurrence.arg_count != 1 {
+        return false;
+    }
+    if occurrence.contract.result != LibraryCollectionFactoryResult::StaticNonFloatSequenceArgument
+    {
+        return false;
+    }
+    literal_export_value_safe(il, interner, kids[1])
+}
+
+fn js_like_map_entry_sequence_export_safe(il: &Il, interner: &Interner, entries: NodeId) -> bool {
+    if !literal_export_value_safe(il, interner, entries) {
+        return false;
+    }
+    if !seq_surface_contract_for_node(il, interner, entries)
+        .is_some_and(|contract| contract.exact_tree_safe)
+    {
+        return false;
+    }
+    il.children(entries).iter().all(|&entry| {
+        il.kind(entry) == NodeKind::Seq
+            && il.children(entry).len() == 2
+            && seq_surface_contract_for_node(il, interner, entry)
+                .is_some_and(|contract| contract.exact_tree_safe)
+    })
 }
 
 fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {

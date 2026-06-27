@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle",
+  "issue": 567,
+  "phase": 2,
+  "generated_on": "2026-06-27",
+  "selected_reason": "imported-immutable-collection-factory-provenance-gap",
+  "what_changed": [
+    "Provider-side imported literal export safety now admits existing free-name collection factory calls only through their admitted LibraryApi occurrence proof.",
+    "Provider-side imported literal export safety now admits existing imported-binding collection factory calls only through their admitted LibraryApi occurrence proof.",
+    "Provider-side imported literal export safety now admits existing Java collection factory calls only through their admitted LibraryApi occurrence proof, exact-safe literal arguments, and static-null policy for null-rejecting immutable factories.",
+    "The shared export-safety helper also reuses existing Ruby Set.new occurrence admission, but Ruby module-import snapshots are not counted in the product delta because the module-import resolver does not currently route Ruby provider/importer pairs.",
+    "Missing LibraryApi evidence, provider-local factory shadowing, provider/importer mutations, wrong contents, ambiguous single-argument Arrays.asList(...) providers, and raw import-coordinate sequences remain closed."
+  ],
+  "product_fixture_delta": {
+    "imported_python_collection_membership_positive": {
+      "before_supported": 0,
+      "after_supported": 2,
+      "total": 2,
+      "fixtures": [
+        "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_python_imported_collection_factories"
+      ],
+      "covered_provider_shapes": [
+        "set([literal, ...])",
+        "collections.deque([literal, ...])"
+      ]
+    },
+    "imported_java_collection_membership_positive": {
+      "before_supported": 0,
+      "after_supported": 2,
+      "total": 2,
+      "fixtures": [
+        "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_java_imported_collection_factories"
+      ],
+      "covered_provider_shapes": [
+        "java.util.List.of(literal, ...)",
+        "java.util.Set.of(literal, ...)"
+      ]
+    },
+    "frontend_collection_snapshot_hard_negatives": {
+      "before_supported": 0,
+      "after_supported": 5,
+      "total": 5,
+      "notes": [
+        "Missing Java collection-factory LibraryApi evidence blocks snapshots.",
+        "Ambiguous single-argument Arrays.asList(...) provider snapshots stay closed.",
+        "Missing Python builtin collection-factory LibraryApi evidence blocks snapshots.",
+        "Missing Python stdlib imported collection-factory LibraryApi evidence blocks snapshots.",
+        "Provider-local Python builtin factory shadowing blocks snapshots."
+      ]
+    }
+  },
+  "before_report": {
+    "artifact": "target/recall-loss.after-phase1.json",
+    "summary": {
+      "total_units": 6207,
+      "interpretable_units": 856,
+      "excluded_units": 5351,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 710
+    },
+    "completeness": {
+      "behavior_equal_pairs": 83,
+      "fingerprint_equal_pairs": 39,
+      "completeness_percent": 46.98795180722892,
+      "under_merged_behavior_groups": 2
+    }
+  },
+  "after_report": {
+    "artifact": "target/recall-loss.after-phase2.json",
+    "summary": {
+      "total_units": 6220,
+      "interpretable_units": 857,
+      "excluded_units": 5363,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 711
+    },
+    "completeness": {
+      "behavior_equal_pairs": 83,
+      "fingerprint_equal_pairs": 39,
+      "completeness_percent": 46.98795180722892,
+      "under_merged_behavior_groups": 2
+    }
+  },
+  "bucket_delta": {
+    "admission_rejections": 1,
+    "receiver-domain-proof-missing": 0,
+    "import-symbol-callee-identity-proof-missing": 1,
+    "mutation-effect-boundary": 0,
+    "source-surface-proof-missing": 0,
+    "hof-demand-effect-proof-missing": 0,
+    "unsupported-runtime-boundary": 0,
+    "library-api-occurrence-proof-missing": 0,
+    "value-fingerprint-too-small": 0
+  },
+  "hard_gate": {
+    "false_merges_before": 0,
+    "false_merges_after": 0,
+    "canon_preservation_violations_before": 0,
+    "canon_preservation_violations_after": 0,
+    "gate_passed": true
+  },
+  "decision": {
+    "notes": [
+      "The full crates recall-loss report did not move oracle completeness because the new capability is pinned by focused imported-value fixtures rather than an existing crates corpus under-merge.",
+      "The +1 admission rejection comes from additional test/helper units introduced by this change; it lands in the structured import-symbol callee-identity bucket, with no new top opportunities and no hard-gate movement.",
+      "This phase strengthens the semantic kernel by reusing existing LibraryApi collection-factory capabilities across the import-snapshot boundary instead of adding selector-specific API exceptions."
+    ],
+    "follow_up": "Phase 3 should add import-snapshot miss-reason instrumentation and corpus census reporting, so future support expansion is driven by observable provider/export blockers rather than hand-picked language surfaces."
+  },
+  "fixture_refs": [
+    "crates/nose-semantics/src/module_exports.rs",
+    "crates/nose-frontend/src/module_imports/tests/collection_snapshots.rs",
+    "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_python_imported_collection_factories",
+    "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_java_imported_collection_factories"
+  ]
+}

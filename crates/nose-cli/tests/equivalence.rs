@@ -52,6 +52,12 @@ mod collection_streams;
 mod convergence_probes;
 #[path = "equivalence/css_surfaces.rs"]
 mod css_surfaces;
+#[path = "equivalence/imported_collection_membership.rs"]
+mod imported_collection_membership;
+#[path = "equivalence/imported_js_ts_collection_membership.rs"]
+mod imported_js_ts_collection_membership;
+#[path = "equivalence/imported_js_ts_map_defaults.rs"]
+mod imported_js_ts_map_defaults;
 #[path = "equivalence/inline_and_anchors.rs"]
 mod inline_and_anchors;
 #[path = "equivalence/iteration_contracts.rs"]

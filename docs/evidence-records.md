@@ -259,6 +259,17 @@ import identity likewise consumes only sequence `Import` evidence and
 materializes dedicated internal import values, never raw `ValOp::Seq` proof
 objects.
 
+Imported immutable provider snapshots follow the same rule. A provider binding
+whose RHS is a collection or map factory call is exportable only when the call
+already has admitted `LibraryApi` occurrence proof and the provider arguments
+are exact-safe literal values or exact-safe aggregate surfaces. Current snapshot
+consumers reuse existing factory capabilities for JS/TS `new Map(...)` and
+`new Set(...)`, Python builtin/imported collection factories, and Java
+collection/map factories. Raw import coordinates, local selector names,
+provider-local shadows, ambiguous `Arrays.asList(...)` single-argument
+providers, and provider/importer mutation facts do not prove immutable provider
+values.
+
 Symbol identity follows the same rule. A method selector such as `abs` or a
 receiver spelling such as `Math` is not proof. Exact consumers must require a
 language-scoped contract plus symbol evidence. Imported binding/namespace symbol
@@ -806,7 +817,8 @@ callers:
   policy admitting concrete root literals, requiring sequence-surface proof for
   literal containers, using Go zero-map literal/entry contracts for Go imported
   map values, and requiring admitted `LibraryApi` proof for supported Java/Rust
-  map factories, while corpus-level module/export matching remains
+  map factories plus JS/TS `new Map(...)` and `new Set(...)` constructor
+  snapshots, while corpus-level module/export matching remains
   frontend-owned. Go namespace-member snapshots such as `tables.Lookup` are
   consumer rewrites, not broad namespace proof: they require asserted namespace
   import evidence, a unique provider export, no provider mutation/escape, no

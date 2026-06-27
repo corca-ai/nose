@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle",
+  "issue": 567,
+  "phase": 1,
+  "generated_on": "2026-06-27",
+  "selected_reason": "imported-immutable-constructor-provenance-gap",
+  "what_changed": [
+    "Provider-side imported literal export safety now admits JS/TS new Map(...) only through the existing JsLikeMapConstructor LibraryApi occurrence proof.",
+    "Provider-side imported literal export safety now admits JS/TS new Set(...) only through the existing JsLikeSetConstructor LibraryApi occurrence proof.",
+    "The imported snapshot copies provider constructor evidence into the importer with provider source-origin spans and rewired dependency ids, so importer-local names cannot shadow provider-proven Map/Set globals.",
+    "Plain Map(...)/Set(...), provider-local constructor shadowing, provider/importer mutations, wrong contents, missing LibraryApi evidence, and raw import-coordinate sequences remain closed."
+  ],
+  "product_fixture_delta": {
+    "imported_js_ts_map_default_positive": {
+      "before_supported": 0,
+      "after_supported": 2,
+      "total": 2,
+      "fixtures": [
+        "crates/nose-cli/tests/equivalence/imported_js_ts_map_defaults.rs::literal_map_default_lookup_converges_with_js_ts_imported_bindings"
+      ]
+    },
+    "imported_js_ts_set_membership_positive": {
+      "before_supported": 0,
+      "after_supported": 2,
+      "total": 2,
+      "fixtures": [
+        "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings"
+      ]
+    },
+    "frontend_constructor_snapshot_hard_negatives": {
+      "before_supported": 0,
+      "after_supported": 4,
+      "total": 4,
+      "notes": [
+        "Missing JS/TS constructor LibraryApi evidence blocks snapshots.",
+        "Provider-local Map/Set shadowing blocks snapshots."
+      ]
+    }
+  },
+  "before_report": {
+    "artifact": "target/recall-loss.before-phase1.json",
+    "summary": {
+      "total_units": 6191,
+      "interpretable_units": 854,
+      "excluded_units": 5337,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 708
+    },
+    "completeness": {
+      "behavior_equal_pairs": 83,
+      "fingerprint_equal_pairs": 39,
+      "completeness_percent": 46.98795180722892,
+      "under_merged_behavior_groups": 2
+    }
+  },
+  "after_report": {
+    "artifact": "target/recall-loss.after-phase1.json",
+    "summary": {
+      "total_units": 6207,
+      "interpretable_units": 856,
+      "excluded_units": 5351,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 710
+    },
+    "completeness": {
+      "behavior_equal_pairs": 83,
+      "fingerprint_equal_pairs": 39,
+      "completeness_percent": 46.98795180722892,
+      "under_merged_behavior_groups": 2
+    }
+  },
+  "bucket_delta": {
+    "admission_rejections": 2,
+    "receiver-domain-proof-missing": 0,
+    "import-symbol-callee-identity-proof-missing": 2,
+    "mutation-effect-boundary": 0,
+    "source-surface-proof-missing": 0,
+    "hof-demand-effect-proof-missing": 0,
+    "unsupported-runtime-boundary": 0,
+    "library-api-occurrence-proof-missing": 0,
+    "value-fingerprint-too-small": 0
+  },
+  "hard_gate": {
+    "false_merges_before": 0,
+    "false_merges_after": 0,
+    "canon_preservation_violations_before": 0,
+    "canon_preservation_violations_after": 0,
+    "gate_passed": true
+  },
+  "decision": {
+    "notes": [
+      "The full crates recall-loss report did not move oracle completeness because the new capability is pinned by focused imported-value fixtures rather than an existing crates corpus under-merge.",
+      "The +2 admission rejections come from additional Rust test/helper units introduced by this change; they land in the structured callee-identity bucket, with no new top opportunities and no hard-gate movement.",
+      "This phase strengthens the semantic kernel by reusing existing constructor LibraryApi capabilities across the import-snapshot boundary instead of adding selector-specific API exceptions."
+    ],
+    "follow_up": "Phase 2 should generalize the same imported immutable provider-snapshot lane to more existing collection/map factory contracts, starting with Java collection factories and Ruby require-backed Set providers. Phase 3 should add recall-loss/reporting instrumentation for import-snapshot miss reasons so corpus gaps become visible without adding one-off APIs."
+  },
+  "fixture_refs": [
+    "crates/nose-semantics/src/module_exports.rs",
+    "crates/nose-frontend/src/module_imports/tests/js_ts_snapshots.rs",
+    "crates/nose-cli/tests/equivalence/imported_js_ts_map_defaults.rs::literal_map_default_lookup_converges_with_js_ts_imported_bindings",
+    "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings"
+  ]
+}

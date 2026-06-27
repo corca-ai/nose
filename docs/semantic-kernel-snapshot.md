@@ -11,6 +11,11 @@ value-domain/law contracts, and sequence-surface facts.
 Cross-file immutable import replacement now covers dependency-backed root
 literals, supported imported collection/map values, and Go imported namespace
 members without treating raw names or import coordinate literals as proof.
+The imported provider-value lane reuses existing `LibraryApi` occurrence
+capabilities across the import boundary for JS/TS `new Map(...)`/`new Set(...)`,
+Python builtin/imported collection factories, and Java collection/map
+factories; provider-local shadows, mutation facts, raw coordinate sequences, and
+ambiguous provider factory shapes stay closed.
 JS/TS, Python, and Rust `await` expressions are preserved as raw async protocol
 boundaries with `Source::Protocol(Await)` evidence instead of being erased into
 their operand. JS/TS and Python `yield` expressions are preserved as generator
@@ -162,7 +167,10 @@ still being migrated toward it.
   negatives. The `nose.java.stdlib.collection_factories` descriptor owns Java
   `java.util.List.of`, `Set.of`, and `Arrays.asList` collection-factory
   contract and occurrence producer ids, while missing imports and
-  cross-surface constructor boundary cases remain hard negatives. The
+  cross-surface constructor boundary cases remain hard negatives. Imported
+  provider snapshots reuse these occurrence proofs only for exact-safe provider
+  arguments; ambiguous single-argument `Arrays.asList(...)` providers remain
+  closed at the export boundary. The
   `nose.java.ecosystem.guava.immutable_collection_factories` descriptor owns
   Guava `ImmutableList.of`, `ImmutableSet.of`, and `ImmutableMap.of` factory
   contract and occurrence producer ids, while `copyOf`, missing imports,
@@ -908,8 +916,9 @@ migrated.
   helper that admits concrete root literals, requires sequence-surface proof for
   literal containers, uses the Go zero-map literal/entry contracts for imported
   Go map values, and uses shared admitted occurrence resolvers for Java/Rust map
-  factory calls; raw import-coordinate sequences remain rejected as provider
-  literal children. Go namespace-member consumers such as `tables.Lookup` can be
+  factory calls plus JS/TS `new Map(...)` and `new Set(...)` constructor calls;
+  raw import-coordinate sequences remain rejected as provider literal children.
+  Go namespace-member consumers such as `tables.Lookup` can be
   replaced with a provider snapshot only when the namespace import proof is
   asserted, the provider export is unique and immutable, the consumer namespace
   is not rebound or parameter-shadowed, and the selected member is not written,
@@ -1141,10 +1150,11 @@ Semantic knowledge still appears in several forms outside the facade:
   evidence subgraph into the importer, preserves provider source-origin spans,
   rewires dependency ids, and records `ImportedLiteralSnapshot` provenance tied
   to the importer static import proof. The current positive product slice covers
-  imported map-default values for Python, Java, and Go, imported immutable
-  collection membership for TypeScript and Rust, and imported string-affix
-  coordinates for TypeScript, Java, Rust, and Go, with mutation, shadowing,
-  wrong-default, and re-export hard negatives;
+  imported map-default values for Python, Java, Go, and JS/TS constructor-backed
+  Maps, imported immutable collection membership for JS/TS constructor-backed
+  Sets plus TypeScript/Rust literals, and imported string-affix coordinates for
+  TypeScript, Java, Rust, and Go, with mutation, shadowing, wrong-default, and
+  re-export hard negatives;
 - broader value-domain evidence and LawPack records beyond the current
   first-party `nose.value_graph.laws` pilot for factor distribution and clamp;
 - named value-graph rule modules that still consume internal `Builder` facts
