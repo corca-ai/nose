@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "report_kind": "epic-closeout",
+  "issue": 567,
+  "generated_on": "2026-06-28",
+  "title": "Import-backed immutable value provenance",
+  "goal": "Represent immutable value provenance for imported and cross-file bindings so exact semantic admission can safely use collection, map, string, and value coordinates beyond same-file literals and locals.",
+  "requirement_audit": [
+    {
+      "requirement": "Census: refresh corpus signal for membership_contains and map_default_lookup imported/cross-file binding cases.",
+      "status": "complete",
+      "evidence": [
+        "bench/recall_loss/issue-567-phase3-import-snapshot-census.v1.json",
+        "bench/recall_loss/issue-567-phase4-aggregate-boundary-triage.v1.json",
+        "docs/recall-loss-diagnostics.md",
+        "docs/recall-loss-recovery-loop.md"
+      ],
+      "result": "Local recall-loss reports now include import_snapshot_census. On crates after phase 4, unresolved binding imports remain 384: provider-module-missing 255, provider-export-missing 123, importer-binding-mutated 3, provider-sequence-surface-not-import-literal-safe 2, and provider-aggregate-child-reference-boundary 1."
+    },
+    {
+      "requirement": "Evidence substrate: define the minimal Source/Symbol/Domain/LibraryApi dependency shape for immutable exported values.",
+      "status": "complete",
+      "evidence": [
+        "crates/nose-il/src/node/evidence.rs",
+        "crates/nose-semantics/src/import_facts.rs",
+        "crates/nose-semantics/src/module_exports.rs",
+        "crates/nose-frontend/src/module_imports/snapshot.rs",
+        "docs/evidence-records.md",
+        "docs/semantic-kernel-snapshot.md"
+      ],
+      "result": "ImportedLiteralSnapshot records imported immutable provenance, provider export safety is shared in nose-semantics, and frontend snapshot copy preserves provider source-origin spans while rewiring dependency ids through imported binding evidence."
+    },
+    {
+      "requirement": "Positive slice: same-repo Python/TS/Java/Rust/Go imported immutable collection/map bindings where coordinates are static and mutation-free.",
+      "status": "complete",
+      "evidence": [
+        "crates/nose-cli/tests/cli/semantic_idioms/imported_immutable.rs",
+        "crates/nose-cli/tests/equivalence/literal_map_defaults.rs",
+        "crates/nose-cli/tests/equivalence/imported_js_ts_map_defaults.rs",
+        "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs",
+        "crates/nose-cli/tests/equivalence/imported_collection_membership.rs"
+      ],
+      "result": "Focused product fixtures now cover imported map-default coordinates for Python, Java, Go, Rust, and JS/TS Map constructors; imported collection membership for TypeScript/Rust literals, JS/TS Set constructors, Python set/deque factories, and Java List.of/Set.of factories; and imported string-affix coordinates for TypeScript, Java, Rust, and Go."
+    },
+    {
+      "requirement": "Hard negatives: mutated provider binding, consumer rebinding, wildcard/ambiguous imports, dynamic export/import, cross-file side effects, map-key/value confusion.",
+      "status": "complete",
+      "evidence": [
+        "crates/nose-cli/tests/cli/semantic_idioms/imported_immutable.rs",
+        "crates/nose-cli/tests/equivalence/literal_map_defaults.rs",
+        "crates/nose-cli/tests/equivalence/imported_js_ts_map_defaults.rs",
+        "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs",
+        "crates/nose-cli/tests/equivalence/imported_collection_membership.rs",
+        "crates/nose-frontend/src/module_imports/tests/go_namespace.rs",
+        "crates/nose-frontend/src/module_imports/tests/js_ts_snapshots.rs",
+        "crates/nose-frontend/src/module_imports/tests/collection_snapshots.rs",
+        "crates/nose-semantics/src/tests/semantic_evidence/sequence_surfaces.rs"
+      ],
+      "result": "The closeout inventory records 32 focused guard assertions/groups: 4 initial product hard negatives, 16 phase-1/2 product equivalence hard negatives, 9 frontend snapshot gate groups, and 3 aggregate-boundary diagnostic reason pins. False merges remain zero on every checked recall-loss phase."
+    },
+    {
+      "requirement": "Product metrics: before/after focused query families, false-merge count, hard-negative count, and runtime delta.",
+      "status": "complete",
+      "evidence": [
+        "bench/recall_loss/issue-567-phase1-js-ts-constructors.v1.json",
+        "bench/recall_loss/issue-567-phase2-collection-factories.v1.json",
+        "bench/recall_loss/issue-567-phase3-import-snapshot-census.v1.json",
+        "bench/recall_loss/issue-567-phase4-aggregate-boundary-triage.v1.json",
+        "bench/recall_loss/issue-567-closeout.v1.json"
+      ],
+      "result": "Focused positive fixtures moved from 0/2 to 2/2 for JS/TS imported Map defaults, JS/TS imported Set membership, Python imported collection factories, and Java imported collection factories. Hard gates remained false_merges 0 -> 0 and canon_preservation_violations 0 -> 0 in phases 1-4. Closeout runtime on the #584/#585 delta has stable product output and median wall time 488.03ms -> 445.77ms."
+    }
+  ],
+  "capability_result": {
+    "newly_admitted_exact_safe_families": [
+      {
+        "family": "map_default_lookup",
+        "languages_and_coordinates": [
+          "Python imported literal dict binding",
+          "Java imported Map.of binding",
+          "Go imported namespace map member",
+          "Rust use-imported const entry array consumed by HashMap::from",
+          "JavaScript/TypeScript imported new Map(...) provider binding"
+        ]
+      },
+      {
+        "family": "membership_contains",
+        "languages_and_coordinates": [
+          "TypeScript imported immutable literal array binding",
+          "Rust use-imported const array binding",
+          "JavaScript/TypeScript imported new Set(...) provider binding",
+          "Python imported set([...]) and collections.deque([...]) provider bindings",
+          "Java static-imported List.of(...) and Set.of(...) provider bindings"
+        ]
+      },
+      {
+        "family": "string_affix",
+        "languages_and_coordinates": [
+          "TypeScript imported string affix binding",
+          "Java static-imported string affix binding",
+          "Rust use-imported string affix binding",
+          "Go imported namespace string affix member"
+        ]
+      }
+    ],
+    "closed_boundaries": [
+      "No broad cross-file constant propagation.",
+      "No package ecosystem semantics.",
+      "No dynamic import, eval, reflection, or side-effecting re-export admission.",
+      "No exact admission without dependency-backed import, binding, domain or LibraryApi, and mutation evidence.",
+      "No raw import-coordinate sequence as value proof."
+    ]
+  },
+  "phase_metrics": [
+    {
+      "phase": 1,
+      "artifact": "bench/recall_loss/issue-567-phase1-js-ts-constructors.v1.json",
+      "focused_positive_delta": {
+        "imported_js_ts_map_default_positive": "0/2 -> 2/2",
+        "imported_js_ts_set_membership_positive": "0/2 -> 2/2"
+      },
+      "hard_negative_delta": "frontend constructor snapshot hard negatives 0/4 -> 4/4",
+      "hard_gate": "false_merges 0 -> 0; canon_preservation_violations 0 -> 0"
+    },
+    {
+      "phase": 2,
+      "artifact": "bench/recall_loss/issue-567-phase2-collection-factories.v1.json",
+      "focused_positive_delta": {
+        "imported_python_collection_membership_positive": "0/2 -> 2/2",
+        "imported_java_collection_membership_positive": "0/2 -> 2/2"
+      },
+      "hard_negative_delta": "frontend collection snapshot hard negatives 0/5 -> 5/5",
+      "hard_gate": "false_merges 0 -> 0; canon_preservation_violations 0 -> 0"
+    },
+    {
+      "phase": 3,
+      "artifact": "bench/recall_loss/issue-567-phase3-import-snapshot-census.v1.json",
+      "focused_positive_delta": {
+        "recall_loss_import_snapshot_census_section": "0/1 -> 1/1"
+      },
+      "hard_negative_delta": "pinned miss reasons include provider-library-api-proof-missing, provider-binding-unsafe, and importer-binding-mutated",
+      "hard_gate": "false_merges 0 -> 0; canon_preservation_violations 0 -> 0"
+    },
+    {
+      "phase": 4,
+      "artifact": "bench/recall_loss/issue-567-phase4-aggregate-boundary-triage.v1.json",
+      "focused_positive_delta": {
+        "import_snapshot_aggregate_reason_precision": "0/1 -> 1/1"
+      },
+      "hard_negative_delta": "provider-aggregate-children-not-exact-safe 3 -> 0, split into closed boundary reasons",
+      "hard_gate": "false_merges 0 -> 0; canon_preservation_violations 0 -> 0"
+    }
+  ],
+  "runtime_delta": {
+    "initial_imported_provenance_measurement": {
+      "scope": "dbb688e7 -> 14d5d248 initial imported immutable provenance product slice",
+      "source": "CHANGELOG.md Performance entry introduced with 14d5d248",
+      "command": "release nose query crates all top=0 --mode semantic --format json with NOSE_TIME over five paired runs",
+      "median_wall_time": "0.92s -> 0.95s (+3.3%)",
+      "median_import_resolve": "145.4ms -> 151.7ms (+4.3%)",
+      "rendered_json_bytes": "54288 -> 54288 (0.0%)"
+    },
+    "closeout_incremental_measurement": {
+      "scope": "37027b543db4ab7dd91ae15c820a5420e018f329 -> 00fa35f0b66e394f76d6a918d7611fd70111276d (#584/#585 closeout phases)",
+      "command": "release nose query crates all top=0 --mode semantic --format json with NOSE_TIME over five paired runs",
+      "input": "current crates worktree at 00fa35f0b66e394f76d6a918d7611fd70111276d",
+      "pre_closeout_binary_sha256": "1c98ac80f5baca244a3ef909f3e4153c2038a60af9a8b0db9a39c314d3d943e3",
+      "current_binary_sha256": "455e1c576fadf2386a78e5b6972c477c84df255ec64f6949b95fff632a6e6f89",
+      "median_wall_ms": "488.03 -> 445.77 (-8.7%)",
+      "median_import_resolve_ms": "69.6 -> 72.0 (+3.4%)",
+      "median_normalize_extract_ms": "194.4 -> 177.4 (-8.7%)",
+      "family_count": "31 -> 31",
+      "rendered_json_bytes": "67200 -> 67200 (0.0%)",
+      "result": "No product-output drift and no runtime degradation on the closeout delta."
+    },
+    "repository_self_gates": {
+      "local_gate_commands": [
+        "cargo test -p nose-cli --test cli imported_immutable -- --nocapture",
+        "cargo test -p nose-cli --test equivalence imported_ -- --nocapture",
+        "cargo test -p nose-semantics semantic_evidence::sequence_surfaces -- --nocapture",
+        "cargo test -p nose-semantics -p nose-frontend -p nose-normalize -p nose-detect",
+        "cargo test -p nose-cli --test cli recall_loss_report -- --nocapture",
+        "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.closeout.json",
+        "cargo clippy --all-targets --all-features -- -D warnings",
+        "./scripts/check-duplication.sh",
+        "awiki lint --root docs",
+        "cargo fmt --all -- --check",
+        "git diff --check"
+      ],
+      "github_ci_reference": {
+        "pre_epic_reference_pr": "https://github.com/corca-ai/nose/pull/568",
+        "latest_closeout_pr": "https://github.com/corca-ai/nose/pull/585",
+        "latest_closeout_ci": "All required CI checks passed before merge: build/test/lint/dup-gate, llvm-cov coverage, MSRV, awiki, Lean proofs, unused-deps/advisories/licenses."
+      }
+    }
+  },
+  "closeout_decision": {
+    "status": "complete",
+    "reason": "The semantic-kernel capability is dependency-backed and reusable, focused product fixtures recover the imported immutable coordinate families, hard negatives and recall-loss hard gates stay closed, import-snapshot misses are now measured for future prioritization, and runtime evidence shows the #584/#585 closeout phases did not degrade the product query path."
+  }
+}

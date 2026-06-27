@@ -108,6 +108,10 @@ break.
   proof, provider-local shadows, provider/importer mutations, wrong contents,
   and ambiguous single-argument `Arrays.asList(...)` provider snapshots stay
   closed.
+- Added the #567 imported immutable provenance closeout artifact and narrative
+  closeout, tying the phase logs to the epic requirements, admitted coordinate
+  families, hard-negative inventory, import-snapshot census boundaries, and
+  runtime evidence.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object
@@ -120,11 +124,16 @@ break.
 
 ### Performance
 - Compared the #567 import-backed immutable provenance change against
-  `origin/main` (`dbb688e7`) with release `nose query crates all top=0 --mode
-  semantic --format json` and `NOSE_TIME` over five paired runs. Median wall
-  time stayed in budget at `0.92s -> 0.95s` (+3.3%), `import-resolve` stayed in
-  budget at `145.4ms -> 151.7ms` (+4.3%), and the rendered JSON size stayed
-  identical at 54,288 bytes.
+  the pre-#567 baseline `dbb688e7` with release `nose query crates all top=0
+  --mode semantic --format json` and `NOSE_TIME` over five paired runs. Median
+  wall time stayed in budget at `0.92s -> 0.95s` (+3.3%), `import-resolve`
+  stayed in budget at `145.4ms -> 151.7ms` (+4.3%), and the rendered JSON size
+  stayed identical at 54,288 bytes.
+- Rechecked the #584/#585 closeout delta against `37027b54` with the same
+  release query over five paired runs on the current `crates` input. Product
+  output stayed stable (`31 -> 31` families, 67,200 JSON bytes unchanged) and
+  median wall time improved `488.03ms -> 445.77ms` (-8.7%); `import-resolve`
+  remained within budget at `69.6ms -> 72.0ms` (+3.4%).
 
 ## [0.16.0] - 2026-06-26
 

@@ -105,6 +105,12 @@ include:
 | `provider-sequence-surface-proof-missing` | The provider aggregate lacks the sequence-surface proof required for imported literal export. |
 | `unsupported-provider-rhs-shape` | The provider RHS is not a literal, supported aggregate, or supported factory call. |
 
+The #567 import-backed immutable provenance closeout is the reference example
+for using this census to end a capability slice without widening admission. See
+[import-backed immutable provenance closeout](import-backed-immutable-provenance-closeout-567.md)
+and the checked-in
+[closeout artifact](../bench/recall_loss/issue-567-closeout.v1.json).
+
 ## PR reporting
 
 For any PR that changes exact semantic admission, include this table or the same

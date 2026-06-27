@@ -54,6 +54,11 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   records the first census-driven triage pass: the broad provider-aggregate miss
   bucket is split into non-import-literal sequence surfaces and child reference
   boundaries without admitting new snapshots.
+- [#567 closeout log](../bench/recall_loss/issue-567-closeout.v1.json)
+  records the epic-level audit: requirement coverage, exact-safe imported
+  coordinate families, hard-negative inventory, hard-gate status, and runtime
+  measurements. The narrative closeout is
+  [import-backed immutable provenance closeout](import-backed-immutable-provenance-closeout-567.md).
 
 Regenerate the full local reports with:
 
@@ -256,9 +261,18 @@ The current top `crates` buckets after #567 phase 4 are:
 | `value-fingerprint-too-small` | 13 | explicit low-substance floor policy |
 | `library-api-occurrence-proof-missing` | 8 | missing occurrence evidence, not selector spelling |
 
+The #567 closeout keeps that phase-4 decision intact. The epic is complete as an
+imported immutable value capability: product fixtures now cover the supported
+map-default, membership, and string-affix coordinate families; hard negatives
+remain closed; and import-snapshot misses are measurable. The follow-up is not
+to relax aggregate child export safety. The remaining large census buckets are
+module/export resolution scope and should be planned as a separate milestone if
+import snapshots remain the priority.
+
 ## See Also
 
 - [recall-loss-diagnostics](recall-loss-diagnostics.md)
+- [import-backed immutable provenance closeout](import-backed-immutable-provenance-closeout-567.md)
 - [semantic-pack-architecture](semantic-pack-architecture.md)
 - [source-facts](source-facts.md)
 - [evidence-records](evidence-records.md)

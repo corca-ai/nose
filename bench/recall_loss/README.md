@@ -87,3 +87,6 @@ slice.
   records the first census-driven triage pass: the broad provider-aggregate
   miss bucket is split into non-import-literal sequence surfaces and child
   reference boundaries without admitting new snapshots.
+- [issue-567-closeout.v1.json](issue-567-closeout.v1.json) records the epic
+  closeout audit: requirement coverage, admitted imported-coordinate families,
+  hard-negative inventory, false-merge hard gates, and product/runtime evidence.

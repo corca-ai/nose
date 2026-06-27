@@ -99,6 +99,7 @@ fundamentals; the rest is grouped by area.
 - [js-ts-string-affix-hardening-closeout-550](js-ts-string-affix-hardening-closeout-550.md) — closeout for the #550 JavaScript/TypeScript string-affix receiver proof hardening, including false-open and runtime evidence.
 - [ruby-string-affix-closeout-551](ruby-string-affix-closeout-551.md) — closeout for the #551 Ruby `String#start_with?`/`String#end_with?` proof slice, including product-output, inventory, and runtime evidence.
 - [string-affix-coordinate-closeout-552](string-affix-coordinate-closeout-552.md) — closeout for the #552 string-affix coordinate boundary hardening, including parameter/binding coordinates and deferred multi/offset forms.
+- [import-backed-immutable-provenance-closeout-567](import-backed-immutable-provenance-closeout-567.md) — closeout for the #567 imported immutable value provenance capability, including admitted coordinate families, hard-negative boundaries, recall-loss census, and runtime evidence.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
