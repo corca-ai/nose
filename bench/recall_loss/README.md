@@ -90,3 +90,7 @@ slice.
 - [issue-567-closeout.v1.json](issue-567-closeout.v1.json) records the epic
   closeout audit: requirement coverage, admitted imported-coordinate families,
   hard-negative inventory, false-merge hard gates, and product/runtime evidence.
+- [issue-587-module-export-census.v1.json](issue-587-module-export-census.v1.json)
+  records the #587 starting census for the next import-snapshot milestone:
+  module/export miss counts by reason, crate, import surface, top files, and
+  recommended implementation order.

@@ -112,6 +112,11 @@ break.
   closeout, tying the phase logs to the epic requirements, admitted coordinate
   families, hard-negative inventory, import-snapshot census boundaries, and
   runtime evidence.
+- Added the #587 import-snapshot module/export resolution tracker and starting
+  census artifact. The census selects the remaining module/export miss rows
+  after #567, splits them by reason, crate, import surface, and top files, and
+  points the first implementation slice at same-crate `crate::...` export lookup
+  after unsupported stdlib/external/workspace imports are separated.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

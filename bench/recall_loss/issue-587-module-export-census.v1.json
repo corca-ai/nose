@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-census",
+  "issue": 587,
+  "issue_url": "https://github.com/corca-ai/nose/issues/587",
+  "generated_on": "2026-06-28",
+  "source_report": "target/recall-loss.closeout.json",
+  "source_command": "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.closeout.json",
+  "selected_scope": "import_snapshot_census misses where reason is provider-module-missing or provider-export-missing",
+  "summary": {
+    "selected_misses": 378,
+    "language": "rust",
+    "total_unresolved_binding_imports": 384,
+    "excluded_from_this_census": {
+      "importer-binding-mutated": 3,
+      "provider-sequence-surface-not-import-literal-safe": 2,
+      "provider-aggregate-child-reference-boundary": 1
+    }
+  },
+  "by_reason": [
+    {
+      "key": "provider-module-missing",
+      "count": 255
+    },
+    {
+      "key": "provider-export-missing",
+      "count": 123
+    }
+  ],
+  "by_crate": [
+    {
+      "key": "crates/nose-frontend",
+      "count": 91
+    },
+    {
+      "key": "crates/nose-cli",
+      "count": 88
+    },
+    {
+      "key": "crates/nose-detect",
+      "count": 76
+    },
+    {
+      "key": "crates/nose-semantics",
+      "count": 45
+    },
+    {
+      "key": "crates/nose-normalize",
+      "count": 37
+    },
+    {
+      "key": "crates/nose-il",
+      "count": 20
+    },
+    {
+      "key": "crates/nose-markdown",
+      "count": 19
+    },
+    {
+      "key": "crates/nose-eval",
+      "count": 2
+    }
+  ],
+  "by_import_surface": [
+    {
+      "key": "external-or-local-use",
+      "count": 127
+    },
+    {
+      "key": "crate-root-use",
+      "count": 98
+    },
+    {
+      "key": "super-use",
+      "count": 54
+    },
+    {
+      "key": "rust-stdlib-use",
+      "count": 50
+    },
+    {
+      "key": "workspace-crate-use",
+      "count": 48
+    },
+    {
+      "key": "self-use",
+      "count": 1
+    }
+  ],
+  "reason_by_import_surface": {
+    "provider-export-missing": {
+      "crate-root-use": 68,
+      "external-or-local-use": 54,
+      "self-use": 1
+    },
+    "provider-module-missing": {
+      "rust-stdlib-use": 50,
+      "external-or-local-use": 73,
+      "super-use": 54,
+      "crate-root-use": 30,
+      "workspace-crate-use": 48
+    }
+  },
+  "reason_by_crate": {
+    "provider-export-missing": {
+      "crates/nose-cli": 26,
+      "crates/nose-detect": 21,
+      "crates/nose-frontend": 25,
+      "crates/nose-il": 16,
+      "crates/nose-markdown": 11,
+      "crates/nose-normalize": 6,
+      "crates/nose-semantics": 18
+    },
+    "provider-module-missing": {
+      "crates/nose-cli": 62,
+      "crates/nose-detect": 55,
+      "crates/nose-eval": 2,
+      "crates/nose-frontend": 66,
+      "crates/nose-il": 4,
+      "crates/nose-markdown": 8,
+      "crates/nose-normalize": 31,
+      "crates/nose-semantics": 27
+    }
+  },
+  "top_files": [
+    {
+      "file": "crates/nose-cli/src/legacy_prelude.rs",
+      "count": 10
+    },
+    {
+      "file": "crates/nose-detect/src/units/fragments.rs",
+      "count": 8
+    },
+    {
+      "file": "crates/nose-detect/src/units.rs",
+      "count": 7
+    },
+    {
+      "file": "crates/nose-normalize/src/value_graph.rs",
+      "count": 7
+    },
+    {
+      "file": "crates/nose-cli/src/command_dispatch.rs",
+      "count": 6
+    },
+    {
+      "file": "crates/nose-cli/src/query_model.rs",
+      "count": 6
+    },
+    {
+      "file": "crates/nose-frontend/src/js_ts/expressions.rs",
+      "count": 6
+    },
+    {
+      "file": "crates/nose-cli/src/ignores.rs",
+      "count": 5
+    },
+    {
+      "file": "crates/nose-frontend/src/js_ts/control.rs",
+      "count": 5
+    },
+    {
+      "file": "crates/nose-frontend/src/lower/library_api_post_lower.rs",
+      "count": 5
+    },
+    {
+      "file": "crates/nose-semantics/src/library_api/rows/methods.rs",
+      "count": 5
+    },
+    {
+      "file": "crates/nose-semantics/src/packs.rs",
+      "count": 5
+    }
+  ],
+  "top_roots_by_reason": {
+    "provider-module-missing": [
+      {
+        "key": "super",
+        "count": 54
+      },
+      {
+        "key": "std",
+        "count": 50
+      },
+      {
+        "key": "crate",
+        "count": 30
+      },
+      {
+        "key": "nose_il",
+        "count": 24
+      },
+      {
+        "key": "rustc_hash",
+        "count": 24
+      },
+      {
+        "key": "tree_sitter",
+        "count": 21
+      },
+      {
+        "key": "nose_semantics",
+        "count": 18
+      },
+      {
+        "key": "anyhow",
+        "count": 15
+      },
+      {
+        "key": "serde",
+        "count": 11
+      },
+      {
+        "key": "nose_normalize",
+        "count": 5
+      }
+    ],
+    "provider-export-missing": [
+      {
+        "key": "crate",
+        "count": 68
+      },
+      {
+        "key": "classification",
+        "count": 4
+      },
+      {
+        "key": "context",
+        "count": 3
+      },
+      {
+        "key": "model",
+        "count": 3
+      },
+      {
+        "key": "canonical",
+        "count": 2
+      },
+      {
+        "key": "regex",
+        "count": 2
+      }
+    ]
+  },
+  "representative_imports": {
+    "provider-export-missing_crate_root_use": [
+      {
+        "importer_file": "crates/nose-cli/src/command_dispatch.rs",
+        "importer_line": 10,
+        "import_line_text": "use crate::il_command::cmd_il;"
+      },
+      {
+        "importer_file": "crates/nose-cli/src/query_model.rs",
+        "importer_line": 2,
+        "import_line_text": "use crate::divergence::{DivergenceItem, DivergenceJson};"
+      },
+      {
+        "importer_file": "crates/nose-detect/src/units.rs",
+        "importer_line": 17,
+        "import_line_text": "use crate::fragment::FragmentKind;"
+      }
+    ],
+    "provider-module-missing_super_use": [
+      {
+        "importer_file": "crates/nose-detect/src/units/fragments.rs",
+        "importer_line": 6,
+        "import_line_text": "use super::tree::subtree_spans_within;"
+      },
+      {
+        "importer_file": "crates/nose-frontend/src/js_ts/expressions.rs",
+        "importer_line": 1,
+        "import_line_text": "use super::control::{lower_aug_assignment, lower_update};"
+      }
+    ],
+    "unsupported_boundary_examples": [
+      {
+        "importer_file": "crates/nose-cli/src/baseline.rs",
+        "importer_line": 14,
+        "import_line_text": "use std::path::Path;",
+        "boundary": "rust-stdlib-use"
+      },
+      {
+        "importer_file": "crates/nose-cli/src/baseline_comparison.rs",
+        "importer_line": 2,
+        "import_line_text": "use anyhow::Result;",
+        "boundary": "external-crate-use"
+      },
+      {
+        "importer_file": "crates/nose-cli/src/legacy_prelude.rs",
+        "importer_line": 38,
+        "import_line_text": "pub(crate) use nose_il::{Corpus, FileId, Interner, Lang};",
+        "boundary": "workspace-crate-use"
+      }
+    ]
+  },
+  "recommended_order": [
+    {
+      "step": 1,
+      "target": "Boundary split for intentionally unsupported imports",
+      "why": "stdlib, external crate, and workspace-crate imports account for at least 98 provider-module-missing rows and should not inflate the same-repo module-resolution target."
+    },
+    {
+      "step": 2,
+      "target": "Same-crate crate-root provider-export lookup",
+      "why": "provider-export-missing + crate-root-use is the largest clearly same-repo actionable slice at 68 rows."
+    },
+    {
+      "step": 3,
+      "target": "Relative super-use module resolution",
+      "why": "super-use accounts for 54 provider-module-missing rows and needs parent-module ownership proof before provider lookup."
+    },
+    {
+      "step": 4,
+      "target": "Local sibling module and direct pub use pricing",
+      "why": "provider-export-missing external-or-local-use roots are mostly local module names; they need module-tree proof and hard negatives for ambiguous re-exports."
+    }
+  ],
+  "hard_gates": {
+    "false_merges": 0,
+    "canon_preservation_violations": 0,
+    "must_remain": "No exact admission without dependency-backed module, export, provider value, and mutation evidence."
+  }
+}

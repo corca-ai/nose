@@ -84,6 +84,11 @@ large import-snapshot census buckets are module/export resolution scope:
 stay the priority, start a separate module-resolution milestone rather than
 relaxing imported literal admission.
 
+That milestone is
+[#587](https://github.com/corca-ai/nose/issues/587). Its checked-in starting
+census is
+[issue-587-module-export-census.v1.json](../bench/recall_loss/issue-587-module-export-census.v1.json).
+
 ## See also
 
 - [recall-loss-diagnostics](recall-loss-diagnostics.md)

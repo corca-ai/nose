@@ -59,6 +59,10 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   coordinate families, hard-negative inventory, hard-gate status, and runtime
   measurements. The narrative closeout is
   [import-backed immutable provenance closeout](import-backed-immutable-provenance-closeout-567.md).
+- [#587 module/export census](../bench/recall_loss/issue-587-module-export-census.v1.json)
+  records the starting point for the follow-up import-snapshot milestone:
+  provider module/export miss counts by reason, crate, import surface, top
+  files, and recommended implementation order.
 
 Regenerate the full local reports with:
 
@@ -268,6 +272,13 @@ remain closed; and import-snapshot misses are measurable. The follow-up is not
 to relax aggregate child export safety. The remaining large census buckets are
 module/export resolution scope and should be planned as a separate milestone if
 import snapshots remain the priority.
+
+Issue #587 is that separate milestone. Its starting census selects the
+`provider-module-missing` and `provider-export-missing` rows from the #567
+closeout report: `378` rows, all Rust. The largest clearly same-repo first slice
+is `provider-export-missing` on `crate::...` imports (`68` rows). Before opening
+that slice, split unsupported stdlib, external crate, and workspace-crate imports
+out of the actionable module-resolution bucket so package semantics stay closed.
 
 ## See Also
 
