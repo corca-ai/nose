@@ -407,7 +407,7 @@ pub(super) fn report_verify_calibration(recs: &[VerifyRec]) {
 }
 
 /// Multiset Jaccard over two sorted `u64` vectors (intersection / union by count).
-fn multiset_jaccard_u64(a: &[u64], b: &[u64]) -> f64 {
+pub(super) fn multiset_jaccard_u64(a: &[u64], b: &[u64]) -> f64 {
     let (mut i, mut j, mut inter) = (0, 0, 0usize);
     while i < a.len() && j < b.len() {
         match a[i].cmp(&b[j]) {

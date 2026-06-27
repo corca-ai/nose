@@ -180,6 +180,9 @@ When a PR changes exact semantic admission, also attach a local
 gate remains false merges `0` and canon-preservation violations `0`; the
 diagnostics report is the soft gate that attributes under-merges, oracle
 exclusions, and exact-admission rejections to structured reason buckets.
+Use [`recall-loss-recovery-loop`](recall-loss-recovery-loop.md) for the
+checked-in baseline surfaces and `scripts/recall-loss-diff.py` for deterministic
+PR before/after tables.
 
 Behavior-change defaults:
 

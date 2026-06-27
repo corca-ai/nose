@@ -44,6 +44,7 @@ mod source_lines;
 mod style;
 mod surfaces;
 mod timing;
+mod verify_admission;
 mod verify_census;
 mod verify_collect;
 mod verify_report;

@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-baseline-summary",
+  "surface": "mixed-language-corpus-slice",
+  "generated_on": "2026-06-27",
+  "command": "cargo run -q -p nose-cli -- verify bench/repos/chi/middleware/content_type.go bench/repos/boltons/boltons/iterutils.py bench/repos/thor/lib/thor/actions.rb bench/repos/radash/src/array.ts bench/repos/hyperfine/src/util/number.rs bench/repos/swift-metrics/Sources/CoreMetrics/Metrics.swift --max-violations 0 --recall-loss-report target/recall-loss.corpus-slice.json",
+  "slice_paths": [
+    "bench/repos/chi/middleware/content_type.go",
+    "bench/repos/boltons/boltons/iterutils.py",
+    "bench/repos/thor/lib/thor/actions.rb",
+    "bench/repos/radash/src/array.ts",
+    "bench/repos/hyperfine/src/util/number.rs",
+    "bench/repos/swift-metrics/Sources/CoreMetrics/Metrics.swift"
+  ],
+  "current": {
+    "summary": {
+      "total_units": 274,
+      "interpretable_units": 63,
+      "excluded_units": 211,
+      "canon_checked": 10,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 51
+    },
+    "soundness_gate": {
+      "fingerprint_groups": 4,
+      "false_merges": 0,
+      "lossy_fingerprint_collisions": 0,
+      "advisory_disagreements": 0,
+      "canon_preservation_violations": 0,
+      "max_violations": 0,
+      "gate_passed": true
+    },
+    "completeness": {
+      "behavior_groups": 1,
+      "behavior_equal_pairs": 6,
+      "fingerprint_equal_pairs": 6,
+      "completeness_percent": 100.0,
+      "under_merged_behavior_groups": 0,
+      "structurally_near_under_merged_groups": 0
+    },
+    "oracle_exclusions": {
+      "core-missing": 0,
+      "battery-bail": 0,
+      "empty-fingerprint": 38,
+      "uninterpretable": 166,
+      "path-bail": 7
+    },
+    "admission_rejections_by_reason": {
+      "import-symbol-callee-identity-proof-missing": 26,
+      "unsupported-runtime-boundary": 18,
+      "value-fingerprint-too-small": 5,
+      "library-api-occurrence-proof-missing": 1,
+      "source-surface-proof-missing": 1,
+      "unattributed-strict-exact-unsafe": 0
+    }
+  },
+  "representative_buckets": [
+    {
+      "reason": "import-symbol-callee-identity-proof-missing",
+      "count": 26,
+      "examples": [
+        "bench/repos/boltons/boltons/iterutils.py:193",
+        "bench/repos/boltons/boltons/iterutils.py:223",
+        "bench/repos/boltons/boltons/iterutils.py:262"
+      ]
+    },
+    {
+      "reason": "unsupported-runtime-boundary",
+      "count": 18,
+      "examples": [
+        "bench/repos/boltons/boltons/iterutils.py:61",
+        "bench/repos/boltons/boltons/iterutils.py:205",
+        "bench/repos/swift-metrics/Sources/CoreMetrics/Metrics.swift:89"
+      ]
+    },
+    {
+      "reason": "library-api-occurrence-proof-missing",
+      "count": 1,
+      "examples": [
+        "bench/repos/boltons/boltons/iterutils.py:926"
+      ]
+    },
+    {
+      "reason": "source-surface-proof-missing",
+      "count": 1,
+      "examples": [
+        "bench/repos/boltons/boltons/iterutils.py:1043"
+      ]
+    }
+  ]
+}

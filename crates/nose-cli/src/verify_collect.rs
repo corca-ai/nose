@@ -1,4 +1,5 @@
 use crate::legacy_prelude::*;
+use crate::verify_admission::{exact_admission_rejection, ExactAdmissionRejectionDiagnostic};
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {
@@ -12,10 +13,9 @@ pub(super) struct VerifyRec {
     /// Can the exact `semantic` channel ever claim this unit (strict-exact-safe
     /// and above the degenerate-fingerprint floor)? Scopes the HARD gate.
     pub(super) claimable: bool,
-    /// The strict exact-safety half of the exact-claim gate, kept separate so
-    /// recall-loss diagnostics can distinguish safety rejection from a small
-    /// value fingerprint.
-    pub(super) exact_safe: bool,
+    /// Diagnostics-only reason for a unit that cannot enter the exact semantic
+    /// claim surface. This does not participate in the product admission gate.
+    pub(super) admission_rejection: Option<ExactAdmissionRejectionDiagnostic>,
     /// Hash of the unit's declared parameter domains. The oracle binds battery
     /// rows under declared-type coercion, so two units are battery-COMPARABLE
     /// only when their declarations agree; a disagreement across different
@@ -372,6 +372,8 @@ fn collect_file_verify_recs(
             .copied()
             .unwrap_or(true);
         let claimable = nose_detect::exact_claim_eligible_parts(exact_safe, fp.len());
+        let admission_rejection =
+            exact_admission_rejection(n, interner, root, exact_safe, fp.len());
         oracle.recs.push(VerifyRec {
             fp,
             beh,
@@ -381,7 +383,7 @@ fn collect_file_verify_recs(
             tokens,
             loc: format!("{}:{}", file_path, span.start_line),
             claimable,
-            exact_safe,
+            admission_rejection,
             domain_sig: param_domain_signature(n, root),
             file_idx,
             core_root,

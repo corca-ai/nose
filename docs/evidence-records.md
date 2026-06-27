@@ -478,6 +478,12 @@ shadow checks, and match the current receiver/callee span when that span is
 available. If normalization erases an import occurrence into a seeded import
 value, consumers pass no occurrence span and rely on that validated dependency
 instead of accepting an unrelated imported symbol elsewhere in the file.
+Recall-loss reports use these same evidence boundaries when attributing
+fail-closed exact admission to callee identity, receiver domain, library API
+occurrence, HOF demand/effect, source surface, mutation/effect, and unsupported
+runtime buckets. See
+[recall-loss-recovery-loop](recall-loss-recovery-loop.md) for the checked-in
+baseline and cycle process.
 
 ## Current Producers
 

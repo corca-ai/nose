@@ -21,6 +21,16 @@ The command reuses the same interpreter oracle as `nose verify`. The human
 stdout remains the existing soundness/completeness report; the JSON artifact is
 written only to the requested path.
 
+Compare two local reports with:
+
+```sh
+python3 scripts/recall-loss-diff.py before.json after.json
+```
+
+The comparison is deterministic and suitable for PR comments: it shows hard gate
+deltas, completeness and under-merge deltas, oracle exclusion deltas, admission
+rejection deltas by reason, and top opportunities added or removed.
+
 ## Report shape
 
 The current schema is `recall_loss_report.v1.json`:
@@ -38,18 +48,26 @@ The current schema is `recall_loss_report.v1.json`:
 | `by_reason` | Rollups for admission rejections by reason/gate/capability. |
 | `top_opportunities` | Ranked under-merge opportunities that future capability work can turn into fixtures or focused follow-up issues. |
 
-The first implementation attributes exact-claim closures to these structured
-buckets:
+The current admission-rejection taxonomy is diagnostics-only; it does not widen
+or narrow product admission by itself.
 
-- `strict-exact-unsafe`: the unit is interpretable by the oracle, but the strict
-  exact-safety gate keeps it out of the exact semantic claim surface;
-- `value-fingerprint-too-small`: the unit is strict-exact-safe, but its value
-  fingerprint is below the non-degenerate exact-claim floor.
+| reason | meaning |
+|---|---|
+| `import-symbol-callee-identity-proof-missing` | An ordinary call is interpretable, but exact admission lacks reusable proof of the callee/import/symbol target. |
+| `receiver-domain-proof-missing` | A receiver method call needs receiver-domain evidence rather than selector-name inference. |
+| `library-api-occurrence-proof-missing` | A canonical builtin/API occurrence lacks admitted pack or producer evidence. |
+| `hof-demand-effect-proof-missing` | A higher-order surface lacks a demand, effect, and materialization profile. |
+| `source-surface-proof-missing` | A source construct, operator, comprehension, or syntax distinction is required but not proven. |
+| `mutation-effect-boundary` | Mutation, place, or effect obligations close exact admission until an effect-preserving contract exists. |
+| `unsupported-runtime-boundary` | Runtime/protocol boundaries such as raw lowered constructs, try/throw, splat, or keyword-argument surfaces intentionally fail closed. |
+| `value-fingerprint-too-small` | The unit is strict-exact-safe, but its value fingerprint is below the non-degenerate exact-claim floor. |
+| `unattributed-strict-exact-unsafe` | Fallback for unknown strict-exact rejection. This should stay visible and should trend toward zero. |
 
-More specific semantic-kernel gates should add narrower reasons over time, such
-as receiver-domain proof, import/symbol proof, library API occurrence proof, HOF
-demand/materialization proof, immutable imported snapshot proof, or pack/version
-proof. Unknown cases should stay explicit instead of being guessed.
+Unknown cases must remain explicit as `unattributed-strict-exact-unsafe`; do not
+guess.
+
+The checked-in baseline summaries and the five-cycle recovery log are described
+in [recall-loss-recovery-loop](recall-loss-recovery-loop.md).
 
 ## PR reporting
 
@@ -65,6 +83,9 @@ fields in prose:
 | oracle exclusions by reason |  |  | Soft signal: budget/path/uninterpretable growth needs a cause. |
 | admission rejections by structured reason |  |  | Main recall-loss signal. |
 | top attributed recall-loss bucket |  |  | Name the follow-up capability, fixture, or unsupported boundary. |
+
+Use `scripts/recall-loss-diff.py before.json after.json` for the before/after
+table when both full local reports are available.
 
 Hard gate:
 
@@ -87,6 +108,8 @@ Soft regression gate:
   `nose verify --leads` becomes Type-4 target packets.
 - [`semantic-pack-architecture`](semantic-pack-architecture.md) defines the
   product behavior gate for semantic-pack and semantic-kernel changes.
+- [`recall-loss-recovery-loop`](recall-loss-recovery-loop.md) defines the
+  checked-in baseline summaries, report diff workflow, and cycle contract.
 - [`source-facts`](source-facts.md) and [`evidence-records`](evidence-records.md)
   define the evidence that future narrow admission-rejection buckets should
   reference.

@@ -36,6 +36,12 @@ break.
   for semantic-kernel work that combines hard soundness gate numbers,
   under-merged behavior groups, oracle exclusions, and structured exact-admission
   rejection buckets without including raw source snippets by default.
+- Split recall-loss exact-admission rejections into capability-oriented buckets
+  for callee identity, receiver domain, library API occurrence, HOF
+  demand/effect, source surface, mutation/effect, unsupported runtime
+  boundaries, and value-fingerprint floor; added deterministic report diff
+  tooling plus checked-in `crates` and mixed-language corpus-slice baselines for
+  the semantic-kernel recovery loop.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

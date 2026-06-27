@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle-log",
+  "issue": 570,
+  "generated_on": "2026-06-27",
+  "baseline_summary": "bench/recall_loss/crates.baseline.v1.json",
+  "gate": {
+    "surface": "crates",
+    "false_merges": 0,
+    "canon_preservation_violations": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "selected_reason": "import-symbol-callee-identity-proof-missing",
+      "rank_on_crates": 1,
+      "count_on_crates": 385,
+      "decision": "classified-actionable",
+      "capability_direction": "callee identity evidence should prove imported, local, or member call targets without adding per-API feature hooks.",
+      "fixture_refs": [
+        "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_ratchets_representative_admission_buckets",
+        "crates/nose-cli/src/baseline.rs:42"
+      ],
+      "after_report": "target/recall-loss.crates.json",
+      "hard_gate": "false_merges=0, canon_preservation_violations=0"
+    },
+    {
+      "cycle": 2,
+      "selected_reason": "receiver-domain-proof-missing",
+      "rank_on_crates": 2,
+      "count_on_crates": 276,
+      "decision": "classified-actionable",
+      "capability_direction": "receiver-domain evidence should prove the semantic domain of the receiver, not infer it from selector spelling.",
+      "fixture_refs": [
+        "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_ratchets_representative_admission_buckets",
+        "crates/nose-cli/src/baseline.rs:158"
+      ],
+      "after_report": "target/recall-loss.crates.json",
+      "hard_gate": "false_merges=0, canon_preservation_violations=0"
+    },
+    {
+      "cycle": 3,
+      "selected_reason": "hof-demand-effect-proof-missing",
+      "rank_on_crates": 3,
+      "count_on_crates": 28,
+      "decision": "classified-actionable",
+      "capability_direction": "HOF exact admission should require reusable demand, effect, and materialization profiles instead of one-off API allowlists.",
+      "fixture_refs": [
+        "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_ratchets_representative_admission_buckets",
+        "crates/nose-cli/src/divergence/git.rs:97"
+      ],
+      "after_report": "target/recall-loss.crates.json",
+      "hard_gate": "false_merges=0, canon_preservation_violations=0"
+    },
+    {
+      "cycle": 4,
+      "selected_reason": "mutation-effect-boundary",
+      "rank_on_crates": 4,
+      "count_on_crates": 22,
+      "decision": "classified-actionable",
+      "capability_direction": "mutation-sensitive exact admission should require effect and place contracts before opening builder or receiver-mutating calls.",
+      "fixture_refs": [
+        "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_ratchets_representative_admission_buckets",
+        "crates/nose-cli/src/oracle_gate.rs:412"
+      ],
+      "after_report": "target/recall-loss.crates.json",
+      "hard_gate": "false_merges=0, canon_preservation_violations=0"
+    },
+    {
+      "cycle": 5,
+      "selected_reason": "source-surface-proof-missing",
+      "rank_on_crates": 5,
+      "count_on_crates": 21,
+      "decision": "classified-actionable",
+      "capability_direction": "source-surface evidence should preserve construct, operator, comprehension, and protocol distinctions that IL shape alone cannot prove.",
+      "fixture_refs": [
+        "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_ratchets_representative_admission_buckets",
+        "crates/nose-detect/src/fragment/conditional_guard.rs:51"
+      ],
+      "after_report": "target/recall-loss.crates.json",
+      "hard_gate": "false_merges=0, canon_preservation_violations=0"
+    }
+  ],
+  "unsupported_boundary": {
+    "selected_reason": "unsupported-runtime-boundary",
+    "rank_on_crates": 6,
+    "count_on_crates": 14,
+    "decision": "intentional-fail-closed",
+    "policy": "Runtime/protocol surfaces such as raw lowered boundaries, try/throw, splat, and keyword-argument boundaries remain closed until a protocol contract proves their evaluation, exception, demand, and effect obligations.",
+    "fixture_refs": [
+      "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_ratchets_representative_admission_buckets",
+      "crates/nose-cli/src/baseline.rs:162"
+    ]
+  },
+  "end_to_end_improvement": {
+    "selected_reason": "unattributed-strict-exact-unsafe",
+    "before_count": 758,
+    "after_count": 0,
+    "improvement": "The former opaque strict-exact rejection bucket is split into narrower capability or intentional-boundary reasons while preserving the hard gate.",
+    "hard_gate_before": "false_merges=0, canon_preservation_violations=0",
+    "hard_gate_after": "false_merges=0, canon_preservation_violations=0"
+  }
+}

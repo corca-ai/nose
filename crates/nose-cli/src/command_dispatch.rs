@@ -68,7 +68,7 @@ pub(crate) fn run() -> Result<()> {
             recall_loss_report,
             exclusion_census,
             falsify,
-        } => cmd_verify(
+        } => cmd_verify(VerifyArgs {
             paths,
             no_cfg_norm,
             json,
@@ -77,7 +77,7 @@ pub(crate) fn run() -> Result<()> {
             recall_loss_report,
             exclusion_census,
             falsify,
-        ),
+        }),
         Cmd::BehavioralGate {
             paths,
             manifest,
@@ -126,7 +126,7 @@ fn run_detect_cmd(cmd: Cmd) -> Result<()> {
     })
 }
 
-fn cmd_verify(
+struct VerifyArgs {
     paths: Vec<PathBuf>,
     no_cfg_norm: bool,
     json: bool,
@@ -135,7 +135,19 @@ fn cmd_verify(
     recall_loss_report: Option<PathBuf>,
     exclusion_census: Option<PathBuf>,
     falsify: bool,
-) -> Result<()> {
+}
+
+fn cmd_verify(args: VerifyArgs) -> Result<()> {
+    let VerifyArgs {
+        paths,
+        no_cfg_norm,
+        json,
+        max_violations,
+        leads,
+        recall_loss_report,
+        exclusion_census,
+        falsify,
+    } = args;
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-baseline-summary",
+  "surface": "crates",
+  "generated_on": "2026-06-27",
+  "command": "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.crates.json",
+  "prior_coarse_baseline": {
+    "source": "issue-570-starting-point-from-issue-569",
+    "total_units": 6102,
+    "interpretable_units": 847,
+    "excluded_units": 5255,
+    "false_merges": 0,
+    "canon_preservation_violations": 0,
+    "completeness_percent": 53.521126760563384,
+    "under_merged_behavior_groups": 2,
+    "admission_rejections": 764,
+    "strict-exact-unsafe": 758,
+    "value-fingerprint-too-small": 6
+  },
+  "current": {
+    "summary": {
+      "total_units": 6108,
+      "interpretable_units": 847,
+      "excluded_units": 5261,
+      "canon_checked": 69,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 764
+    },
+    "soundness_gate": {
+      "fingerprint_groups": 38,
+      "false_merges": 0,
+      "lossy_fingerprint_collisions": 0,
+      "advisory_disagreements": 5,
+      "canon_preservation_violations": 0,
+      "max_violations": 0,
+      "gate_passed": true
+    },
+    "completeness": {
+      "behavior_groups": 3,
+      "behavior_equal_pairs": 71,
+      "fingerprint_equal_pairs": 38,
+      "completeness_percent": 53.521126760563384,
+      "under_merged_behavior_groups": 2,
+      "structurally_near_under_merged_groups": 0
+    },
+    "oracle_exclusions": {
+      "core-missing": 0,
+      "battery-bail": 1,
+      "empty-fingerprint": 1,
+      "uninterpretable": 5258,
+      "path-bail": 1
+    },
+    "admission_rejections_by_reason": {
+      "import-symbol-callee-identity-proof-missing": 385,
+      "receiver-domain-proof-missing": 276,
+      "hof-demand-effect-proof-missing": 28,
+      "mutation-effect-boundary": 22,
+      "source-surface-proof-missing": 21,
+      "unsupported-runtime-boundary": 14,
+      "library-api-occurrence-proof-missing": 12,
+      "value-fingerprint-too-small": 6,
+      "unattributed-strict-exact-unsafe": 0
+    }
+  },
+  "attribution_improvement": {
+    "opaque_strict_exact_unsafe_before": 758,
+    "unattributed_strict_exact_unsafe_after": 0,
+    "narrow_or_intentional_strict_exact_rejections_after": 758,
+    "opaque_reduction_percent": 100.0,
+    "hard_gate_preserved": true
+  },
+  "representative_buckets": [
+    {
+      "reason": "import-symbol-callee-identity-proof-missing",
+      "count": 385,
+      "examples": [
+        "crates/nose-cli/src/baseline.rs:42",
+        "crates/nose-cli/src/baseline_comparison.rs:81",
+        "crates/nose-cli/src/command_dispatch.rs:89"
+      ]
+    },
+    {
+      "reason": "receiver-domain-proof-missing",
+      "count": 276,
+      "examples": [
+        "crates/nose-cli/src/baseline.rs:158",
+        "crates/nose-cli/src/falsify.rs:42",
+        "crates/nose-cli/src/family_display.rs:9"
+      ]
+    },
+    {
+      "reason": "hof-demand-effect-proof-missing",
+      "count": 28,
+      "examples": [
+        "crates/nose-cli/src/divergence/git.rs:97",
+        "crates/nose-cli/src/divergence/git.rs:110",
+        "crates/nose-cli/src/path_utils.rs:8"
+      ]
+    },
+    {
+      "reason": "mutation-effect-boundary",
+      "count": 22,
+      "examples": [
+        "crates/nose-cli/src/oracle_gate.rs:412",
+        "crates/nose-cli/src/oracle_gate.rs:528",
+        "crates/nose-cli/src/query_opportunities.rs:30"
+      ]
+    },
+    {
+      "reason": "source-surface-proof-missing",
+      "count": 21,
+      "examples": [
+        "crates/nose-cli/src/divergence/detect.rs:201",
+        "crates/nose-cli/src/oracle_gate.rs:392",
+        "crates/nose-detect/src/fragment/conditional_guard.rs:51"
+      ]
+    },
+    {
+      "reason": "unsupported-runtime-boundary",
+      "count": 14,
+      "examples": [
+        "crates/nose-cli/src/baseline.rs:162",
+        "crates/nose-cli/src/oracle_gate.rs:268",
+        "crates/nose-cli/src/verify_census.rs:205"
+      ]
+    }
+  ]
+}

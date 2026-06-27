@@ -316,5 +316,7 @@ tooling, not stable integration surfaces; do not build automation around them wi
 checking the current binary. `verify --recall-loss-report <file>` writes the local
 [recall-loss diagnostics](recall-loss-diagnostics.md) artifact used by
 semantic-kernel PRs to attribute fail-closed recall loss while preserving the
-hard soundness gate. They are hidden from `--help` because `query` is the command
-for everyday use; the [benchmark](benchmark.md) page documents them.
+hard soundness gate; the checked-in baseline and diff workflow are in
+[recall-loss-recovery-loop](recall-loss-recovery-loop.md). They are hidden from
+`--help` because `query` is the command for everyday use; the
+[benchmark](benchmark.md) page documents them.

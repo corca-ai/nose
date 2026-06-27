@@ -1,4 +1,5 @@
 use crate::legacy_prelude::*;
+use crate::verify_report::multiset_jaccard_u64;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -328,10 +329,7 @@ fn best_split_pair(mut reps: Vec<&VerifyRec>) -> UnderMerge {
 }
 
 fn admission_rejections(recs: &[VerifyRec]) -> Vec<AdmissionRejection> {
-    let mut items: Vec<_> = recs
-        .iter()
-        .filter_map(|rec| unit_admission_rejection(rec).map(|reason| reason.to_rejection(rec)))
-        .collect();
+    let mut items: Vec<_> = recs.iter().filter_map(unit_admission_rejection).collect();
     items.sort_by(|a, b| {
         a.loc
             .file
@@ -342,64 +340,28 @@ fn admission_rejections(recs: &[VerifyRec]) -> Vec<AdmissionRejection> {
     items
 }
 
-#[derive(Clone, Copy)]
-enum UnitRejectionReason {
-    StrictExactUnsafe,
-    ValueFingerprintFloor,
-}
-
-impl UnitRejectionReason {
-    fn to_rejection(self, rec: &VerifyRec) -> AdmissionRejection {
-        match self {
-            UnitRejectionReason::StrictExactUnsafe => AdmissionRejection {
-                reason: "strict-exact-unsafe",
-                admission_gate: "strict-exact-safety",
-                capability_id: "exact-semantic-merge",
-                pack_id: None,
-                missing_evidence: vec!["strict-exact-safe-tree"],
-                oracle_status: "interpretable",
-                loc: loc(rec),
-                value_fingerprint_len: rec.fp.len(),
-            },
-            UnitRejectionReason::ValueFingerprintFloor => AdmissionRejection {
-                reason: "value-fingerprint-too-small",
-                admission_gate: "exact-claim-value-fingerprint-floor",
-                capability_id: "exact-semantic-merge",
-                pack_id: None,
-                missing_evidence: vec!["non-degenerate-value-fingerprint"],
-                oracle_status: "interpretable",
-                loc: loc(rec),
-                value_fingerprint_len: rec.fp.len(),
-            },
-        }
-    }
-
-    fn label(self) -> &'static str {
-        match self {
-            UnitRejectionReason::StrictExactUnsafe => "strict-exact-unsafe",
-            UnitRejectionReason::ValueFingerprintFloor => "value-fingerprint-too-small",
-        }
-    }
-}
-
-fn unit_admission_rejection(rec: &VerifyRec) -> Option<UnitRejectionReason> {
-    if rec.claimable {
-        return None;
-    }
-    if !rec.exact_safe {
-        Some(UnitRejectionReason::StrictExactUnsafe)
-    } else {
-        Some(UnitRejectionReason::ValueFingerprintFloor)
-    }
+fn unit_admission_rejection(rec: &VerifyRec) -> Option<AdmissionRejection> {
+    rec.admission_rejection
+        .as_ref()
+        .map(|reason| AdmissionRejection {
+            reason: reason.reason,
+            admission_gate: reason.admission_gate,
+            capability_id: reason.capability_id,
+            pack_id: reason.pack_id,
+            missing_evidence: reason.missing_evidence.clone(),
+            oracle_status: "interpretable",
+            loc: loc(rec),
+            value_fingerprint_len: rec.fp.len(),
+        })
 }
 
 fn pair_admission_reasons(a: &VerifyRec, b: &VerifyRec) -> Vec<String> {
     let mut reasons = Vec::new();
-    if let Some(reason) = unit_admission_rejection(a) {
-        reasons.push(format!("a:{}", reason.label()));
+    if let Some(reason) = &a.admission_rejection {
+        reasons.push(format!("a:{}", reason.reason));
     }
-    if let Some(reason) = unit_admission_rejection(b) {
-        reasons.push(format!("b:{}", reason.label()));
+    if let Some(reason) = &b.admission_rejection {
+        reasons.push(format!("b:{}", reason.reason));
     }
     if reasons.is_empty() {
         reasons.push("fingerprint-split".to_string());
@@ -545,25 +507,4 @@ fn language_from_path(path: &str) -> String {
         _ => "unknown",
     }
     .to_string()
-}
-
-fn multiset_jaccard_u64(a: &[u64], b: &[u64]) -> f64 {
-    let (mut i, mut j, mut inter) = (0, 0, 0usize);
-    while i < a.len() && j < b.len() {
-        match a[i].cmp(&b[j]) {
-            std::cmp::Ordering::Less => i += 1,
-            std::cmp::Ordering::Greater => j += 1,
-            std::cmp::Ordering::Equal => {
-                inter += 1;
-                i += 1;
-                j += 1;
-            }
-        }
-    }
-    let union = a.len() + b.len() - inter;
-    if union == 0 {
-        1.0
-    } else {
-        inter as f64 / union as f64
-    }
 }

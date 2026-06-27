@@ -306,6 +306,14 @@ pub(super) fn lookup_dict_provider(interner: &Interner, lookup: Symbol) -> Il {
 /// `consumer.py` importer binding `LOOKUP` from `tables` with an asserted
 /// static-import proof. Returns the importer and its import assignment.
 pub(super) fn lookup_import_consumer(lookup: Symbol) -> (Il, NodeId) {
+    lookup_import_consumer_with_lang(lookup, Lang::Python, "consumer.py")
+}
+
+pub(super) fn lookup_import_consumer_with_lang(
+    lookup: Symbol,
+    lang: Lang,
+    path: &str,
+) -> (Il, NodeId) {
     let import_span = Span::new(FileId(1), 0, 24, 1, 1);
     let mut b = IlBuilder::new(FileId(1));
     let lhs = b.add(NodeKind::Var, Payload::Name(lookup), import_span, &[]);
@@ -342,8 +350,8 @@ pub(super) fn lookup_import_consumer(lookup: Symbol) -> (Il, NodeId) {
     let mut importer = b.finish(
         root,
         FileMeta {
-            path: "consumer.py".into(),
-            lang: Lang::Python,
+            path: path.into(),
+            lang,
         },
         Vec::new(),
         Vec::new(),

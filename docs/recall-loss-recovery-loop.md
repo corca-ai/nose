@@ -1,0 +1,94 @@
+# Recall-loss recovery loop
+
+The recall-loss recovery loop turns `nose verify --recall-loss-report` from a
+one-off artifact into a semantic-kernel process. The goal is to make exact
+semantic admission stricter or equally strict while reducing unattributed recall
+loss. When recall cannot be recovered safely, the loop records the missing
+capability or the intentional unsupported boundary.
+
+## Baselines
+
+Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
+
+- [crates baseline](../bench/recall_loss/crates.baseline.v1.json) records the
+  current `crates` surface.
+- [corpus-slice baseline](../bench/recall_loss/corpus-slice.baseline.v1.json)
+  records a small mixed-language slice across Go, Python, Ruby, TypeScript,
+  Rust, and Swift.
+- [#570 cycle log](../bench/recall_loss/issue-570-cycles.v1.json) records the
+  first five top-bucket cycles and the unsupported runtime boundary decision.
+
+Regenerate the full local reports with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.crates.json
+
+cargo run -q -p nose-cli -- verify \
+  bench/repos/chi/middleware/content_type.go \
+  bench/repos/boltons/boltons/iterutils.py \
+  bench/repos/thor/lib/thor/actions.rb \
+  bench/repos/radash/src/array.ts \
+  bench/repos/hyperfine/src/util/number.rs \
+  bench/repos/swift-metrics/Sources/CoreMetrics/Metrics.swift \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.corpus-slice.json
+```
+
+Compare two reports with:
+
+```sh
+python3 scripts/recall-loss-diff.py before.json after.json
+```
+
+## Cycle Contract
+
+Each semantic-kernel cycle records:
+
+- the baseline report and selected reason bucket;
+- representative fixture or linked existing fixture;
+- whether the result is recovered, classified actionable, precision-hardened, or
+  intentionally unsupported;
+- before/after hard gate numbers;
+- before/after recall-loss bucket numbers;
+- docs and changelog updates.
+
+The hard gate is not negotiable:
+
+- `false_merges == 0`;
+- `canon_preservation_violations == 0`.
+
+The soft gate is attribution quality. A stricter admission change may increase
+rejections, but the increase must land in a structured bucket with a named
+capability, fixture, and follow-up policy.
+
+## #570 Starting Result
+
+The first coarse `crates` baseline had `758` units in the opaque
+`strict-exact-unsafe` bucket. The #570 attribution pass reduced
+`unattributed-strict-exact-unsafe` to `0` while preserving false merges `0` and
+canon-preservation violations `0`.
+
+The current top `crates` buckets are:
+
+| reason | count | next capability |
+|---|---:|---|
+| `import-symbol-callee-identity-proof-missing` | 385 | reusable callee identity evidence |
+| `receiver-domain-proof-missing` | 276 | receiver-domain evidence instead of selector spelling |
+| `hof-demand-effect-proof-missing` | 28 | HOF demand/effect/materialization profile |
+| `mutation-effect-boundary` | 22 | effect and place contracts |
+| `source-surface-proof-missing` | 21 | construct/operator/comprehension/source-surface evidence |
+| `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |
+
+These are capability gaps, not feature requests. A future PR should close a
+bucket by adding reusable evidence or an admission capability, not by adding a
+one-off API exception.
+
+## See Also
+
+- [recall-loss-diagnostics](recall-loss-diagnostics.md)
+- [semantic-pack-architecture](semantic-pack-architecture.md)
+- [source-facts](source-facts.md)
+- [evidence-records](evidence-records.md)
+- [demand-effect-semantics](demand-effect-semantics.md)

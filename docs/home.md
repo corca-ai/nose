@@ -82,6 +82,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-kernel](semantic-kernel.md) — semantic-kernel and pack architecture: language/library semantics, extension boundaries, responsibility model, and exact-channel eligibility.
 - [semantic-pack-architecture](semantic-pack-architecture.md) — the #473 migration rulebook for builtin/external pack terminology, kernel-vs-pack ownership, behavior gates, and performance gates.
 - [recall-loss-diagnostics](recall-loss-diagnostics.md) — local diagnostics and PR-reporting metrics for attributing fail-closed recall loss while preserving the hard exact-soundness gate.
+- [recall-loss-recovery-loop](recall-loss-recovery-loop.md) — checked-in baseline summaries, report diff workflow, and five-cycle recovery/attribution loop for semantic-kernel work.
 - [semantic-pack-adoption](semantic-pack-adoption.md) — promotion, rollback, and adoption-gate reports for moving external or optional packs into official builtin support without forking semantic vocabulary.
 - [semantic-pack-compatibility](semantic-pack-compatibility.md) — manifest API, installed-version, kernel-vocabulary, and fail-closed external-influence compatibility policy for semantic packs.
 - [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md) — narrow-slice candidate matrix for future large-ecosystem builtin packs such as Guava, Lodash, NumPy, and RxJS.

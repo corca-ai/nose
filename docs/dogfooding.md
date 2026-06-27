@@ -101,6 +101,14 @@ cross-language proved-prefix fixture family `340cd841f428840f` is no longer
 reported as a substantial default-surface near-duplicate. This tightens the
 reviewed default-surface budget from 54 to 53; no new family is accepted.
 
+The 2026-06-27 recall-loss attribution pass (#570) adds a local JSON
+`soundness_gate` beside the existing human `report_falsify` path. Both walk
+fingerprint groups and count hard-gate/advisory outcomes, so the current binary
+now reports `6f1baed465ffcde9` for that accepted reporting/oracle grouping
+overlap while the old accepted representative `e88e8f81d527af19` is no longer
+reported. The reviewed default-surface count remains 53; no budget increase is
+accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |
