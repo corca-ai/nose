@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle",
+  "issue": 567,
+  "phase": 4,
+  "generated_on": "2026-06-27",
+  "selected_reason": "provider-aggregate-children-not-exact-safe",
+  "what_changed": [
+    "The imported literal export rejection reporter now separates root sequence surfaces that are exact-tree-safe but not import-literal-safe.",
+    "The reporter now separates importable aggregate children that are binding references, field paths, or index expressions from ordinary child export-safety failures.",
+    "The reporter now has a pinned reason for aggregate children that are import-coordinate placeholders.",
+    "Imported snapshot admission is unchanged; this phase only improves miss attribution."
+  ],
+  "product_fixture_delta": {
+    "import_snapshot_aggregate_reason_precision": {
+      "before_supported": 0,
+      "after_supported": 1,
+      "total": 1,
+      "fixtures": [
+        "crates/nose-semantics/src/tests/semantic_evidence/sequence_surfaces.rs::imported_literal_export_rejection_reports_reference_children",
+        "crates/nose-semantics/src/tests/semantic_evidence/sequence_surfaces.rs::imported_literal_export_safety_rejects_import_coordinate_children"
+      ],
+      "pinned_reasons": [
+        "provider-sequence-surface-not-import-literal-safe",
+        "provider-aggregate-child-reference-boundary",
+        "provider-aggregate-child-import-coordinate-boundary"
+      ]
+    }
+  },
+  "before_report": {
+    "artifact": "target/recall-loss.aggregate-before.json",
+    "summary": {
+      "total_units": 6237,
+      "interpretable_units": 862,
+      "excluded_units": 5375,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 716
+    },
+    "import_snapshot_census": {
+      "snapshot_records": 0,
+      "unresolved_binding_imports": 384,
+      "reported_misses": 384,
+      "misses_by_reason": {
+        "provider-module-missing": 255,
+        "provider-export-missing": 123,
+        "importer-binding-mutated": 3,
+        "provider-aggregate-children-not-exact-safe": 3
+      }
+    }
+  },
+  "after_report": {
+    "artifact": "target/recall-loss.aggregate-after.json",
+    "summary": {
+      "total_units": 6240,
+      "interpretable_units": 863,
+      "excluded_units": 5377,
+      "canon_checked": 72,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 717
+    },
+    "completeness": {
+      "behavior_equal_pairs": 83,
+      "fingerprint_equal_pairs": 39,
+      "completeness_percent": 46.98795180722892,
+      "under_merged_behavior_groups": 2
+    },
+    "import_snapshot_census": {
+      "snapshot_records": 0,
+      "unresolved_binding_imports": 384,
+      "reported_misses": 384,
+      "misses_by_reason": {
+        "provider-module-missing": 255,
+        "provider-export-missing": 123,
+        "importer-binding-mutated": 3,
+        "provider-sequence-surface-not-import-literal-safe": 2,
+        "provider-aggregate-child-reference-boundary": 1
+      }
+    }
+  },
+  "bucket_delta": {
+    "provider-aggregate-children-not-exact-safe": -3,
+    "provider-sequence-surface-not-import-literal-safe": 2,
+    "provider-aggregate-child-reference-boundary": 1,
+    "admission_rejections": 1,
+    "import-symbol-callee-identity-proof-missing": 1
+  },
+  "hard_gate": {
+    "false_merges_before": 0,
+    "false_merges_after": 0,
+    "canon_preservation_violations_before": 0,
+    "canon_preservation_violations_after": 0,
+    "gate_passed": true
+  },
+  "decision": {
+    "notes": [
+      "The phase-3 provider-aggregate bucket did not contain a safe imported literal export opportunity.",
+      "Two cases are Rust re-export paths (`pub use context::...`), where the provider RHS has a sequence surface but that surface is not an imported literal value surface.",
+      "One case is the compiled semantic-pack descriptor table assembled from indexed references into grouped descriptor arrays.",
+      "Admitting these as imported immutable snapshots would treat references as literal provider values, so the strict semantic-kernel decision is to keep them closed and report them explicitly."
+    ],
+    "follow_up": "Do not continue #567 by widening aggregate child export safety. The remaining large buckets are module/export resolution scope; if import snapshots stay the priority, start a separate module-resolution milestone rather than broadening imported literal admission."
+  },
+  "fixture_refs": [
+    "crates/nose-semantics/src/module_exports.rs",
+    "crates/nose-semantics/src/tests/semantic_evidence/sequence_surfaces.rs",
+    "docs/recall-loss-diagnostics.md"
+  ]
+}

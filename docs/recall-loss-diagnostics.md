@@ -97,6 +97,11 @@ include:
 | `provider-library-api-proof-missing` | The provider RHS is a factory call without admitted `LibraryApi` proof. |
 | `provider-factory-arguments-not-exact-safe` | The provider factory is proven, but its arguments are not export-safe. |
 | `provider-aggregate-children-not-exact-safe` | The provider aggregate has a surface proof, but its children are not export-safe imported literal values. |
+| `provider-sequence-surface-not-import-literal-safe` | The provider aggregate has a proven sequence surface, but that surface is not an imported-literal value surface. |
+| `provider-aggregate-child-reference-boundary` | The provider aggregate contains a child reference, field path, or index expression rather than a literal/export-safe value. |
+| `provider-aggregate-child-import-coordinate-boundary` | The provider aggregate contains an import-coordinate placeholder; coordinates are proof, not imported literal values. |
+| `provider-aggregate-child-surface-not-exact-safe` | A nested provider aggregate child has a sequence surface that is not exact-tree-safe. |
+| `provider-aggregate-child-call-boundary` | A provider aggregate child is a call expression without a supported imported-literal child contract. |
 | `provider-sequence-surface-proof-missing` | The provider aggregate lacks the sequence-surface proof required for imported literal export. |
 | `unsupported-provider-rhs-shape` | The provider RHS is not a literal, supported aggregate, or supported factory call. |
 

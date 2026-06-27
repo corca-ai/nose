@@ -83,3 +83,7 @@ slice.
 - [issue-567-phase3-import-snapshot-census.v1.json](issue-567-phase3-import-snapshot-census.v1.json)
   records the report-infrastructure closeout: recall-loss artifacts now include
   import snapshot success counts and binding-import miss reasons.
+- [issue-567-phase4-aggregate-boundary-triage.v1.json](issue-567-phase4-aggregate-boundary-triage.v1.json)
+  records the first census-driven triage pass: the broad provider-aggregate
+  miss bucket is split into non-import-literal sequence surfaces and child
+  reference boundaries without admitting new snapshots.

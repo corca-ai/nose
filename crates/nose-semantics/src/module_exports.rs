@@ -63,13 +63,16 @@ fn imported_literal_seq_rejection_reason(
     interner: &Interner,
     seq: NodeId,
 ) -> &'static str {
-    if go_zero_map_literal_contract_for_node(il, interner, seq).is_some()
-        || seq_surface_contract_for_node(il, interner, seq).is_some()
-    {
-        "provider-aggregate-children-not-exact-safe"
-    } else {
-        "provider-sequence-surface-proof-missing"
+    if go_zero_map_literal_contract_for_node(il, interner, seq).is_some() {
+        return literal_export_children_rejection_reason(il, interner, il.children(seq));
     }
+    let Some(contract) = seq_surface_contract_for_node(il, interner, seq) else {
+        return "provider-sequence-surface-proof-missing";
+    };
+    if !contract.imported_literal {
+        return "provider-sequence-surface-not-import-literal-safe";
+    }
+    literal_export_children_rejection_reason(il, interner, il.children(seq))
 }
 
 fn go_zero_map_literal_export_safe(il: &Il, interner: &Interner, seq: NodeId) -> bool {
@@ -127,6 +130,54 @@ fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool
             .all(|&child| literal_export_value_safe(il, interner, child)),
         NodeKind::Call => java_map_entry_call_safe(il, interner, node),
         _ => false,
+    }
+}
+
+fn literal_export_children_rejection_reason(
+    il: &Il,
+    interner: &Interner,
+    children: &[NodeId],
+) -> &'static str {
+    children
+        .iter()
+        .find_map(|&child| literal_export_value_rejection_reason(il, interner, child))
+        .unwrap_or("provider-aggregate-children-not-exact-safe")
+}
+
+fn literal_export_value_rejection_reason(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<&'static str> {
+    match il.kind(node) {
+        NodeKind::Lit => None,
+        NodeKind::Seq => {
+            if import_fact_evidence_rhs(il, node).is_some() {
+                return Some("provider-aggregate-child-import-coordinate-boundary");
+            }
+            let contract = seq_surface_contract_for_node(il, interner, node)?;
+            if !contract.exact_tree_safe {
+                return Some("provider-aggregate-child-surface-not-exact-safe");
+            }
+            il.children(node)
+                .iter()
+                .find_map(|&child| literal_export_value_rejection_reason(il, interner, child))
+        }
+        NodeKind::UnOp => il
+            .children(node)
+            .iter()
+            .find_map(|&child| literal_export_value_rejection_reason(il, interner, child)),
+        NodeKind::Var | NodeKind::Field | NodeKind::Index => {
+            Some("provider-aggregate-child-reference-boundary")
+        }
+        NodeKind::Call => {
+            if java_map_entry_call_safe(il, interner, node) {
+                None
+            } else {
+                Some("provider-aggregate-child-call-boundary")
+            }
+        }
+        _ => Some("provider-aggregate-children-not-exact-safe"),
     }
 }
 

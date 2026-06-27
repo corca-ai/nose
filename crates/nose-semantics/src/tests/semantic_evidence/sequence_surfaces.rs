@@ -183,7 +183,7 @@ fn imported_literal_export_safety_rejects_import_coordinate_children() {
         EvidenceStatus::Asserted,
         Lang::JavaScript,
     ));
-    il.evidence.push(evidence(
+    il.evidence.push(language_core_evidence(
         1,
         EvidenceAnchor::sequence(sp(7)),
         EvidenceKind::Import(ImportEvidenceKind::Binding {
@@ -191,9 +191,43 @@ fn imported_literal_export_safety_rejects_import_coordinate_children() {
             exported_hash: stable_symbol_hash("VALUE"),
         }),
         EvidenceStatus::Asserted,
+        Lang::JavaScript,
     ));
 
     assert!(!imported_literal_export_safe(&il, &interner, root_value));
+    assert_eq!(
+        imported_literal_export_rejection_reason(&il, &interner, root_value),
+        Some("provider-aggregate-child-import-coordinate-boundary")
+    );
+}
+
+#[test]
+fn imported_literal_export_rejection_reports_reference_children() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let array = interner.intern("array");
+    let referenced = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("DESCRIPTOR")),
+        sp(9),
+        &[],
+    );
+    let root_value = b.add(NodeKind::Seq, Payload::Name(array), sp(9), &[referenced]);
+    let root = b.add(NodeKind::Block, Payload::None, sp(9), &[root_value]);
+    let mut il = finish_il(b, root, Lang::Rust);
+    il.evidence.push(language_core_evidence(
+        0,
+        EvidenceAnchor::sequence(sp(9)),
+        EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+        EvidenceStatus::Asserted,
+        Lang::Rust,
+    ));
+
+    assert!(!imported_literal_export_safe(&il, &interner, root_value));
+    assert_eq!(
+        imported_literal_export_rejection_reason(&il, &interner, root_value),
+        Some("provider-aggregate-child-reference-boundary")
+    );
 }
 
 #[test]

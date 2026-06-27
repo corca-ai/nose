@@ -50,6 +50,10 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   records the reporting closeout: local recall-loss reports now expose
   successful snapshot counts plus unresolved binding-import miss reasons, so the
   next imported-value slice can be selected from corpus evidence.
+- [#567 phase 4 aggregate-boundary triage log](../bench/recall_loss/issue-567-phase4-aggregate-boundary-triage.v1.json)
+  records the first census-driven triage pass: the broad provider-aggregate miss
+  bucket is split into non-import-literal sequence surfaces and child reference
+  boundaries without admitting new snapshots.
 
 Regenerate the full local reports with:
 
@@ -224,15 +228,27 @@ successful imported snapshot records and `384` unresolved binding imports:
 `importer-binding-mutated` `3`, and
 `provider-aggregate-children-not-exact-safe` `3`. That makes the next
 imported-value decision explicit: most `crates` misses are module/export
-resolution scope, while the provider-aggregate slice is the small actionable
-semantic export-safety surface.
+resolution scope, while the provider-aggregate slice is the small triage target.
 
-The current top `crates` buckets after #567 phase 3 are:
+The #567 phase 4 aggregate-boundary triage follows that target and keeps
+imported snapshot admission unchanged. The broad
+`provider-aggregate-children-not-exact-safe` bucket moves `3 -> 0`: two cases
+are Rust `pub use context::...` re-export paths reported as
+`provider-sequence-surface-not-import-literal-safe`, and one case is the
+compiled semantic-pack descriptor table assembled from indexed descriptor
+references, reported as `provider-aggregate-child-reference-boundary`. The full
+`crates` report remains at `false_merges == 0` and
+`canon_preservation_violations == 0`; completeness stays `39/83`, and
+admission rejections move `716 -> 717` because this diagnostics-only pass adds
+new Rust semantic tests. The decision is to keep these closed: admitting them as
+snapshots would treat references as literal provider values.
+
+The current top `crates` buckets after #567 phase 4 are:
 
 | reason | count | next capability |
 |---|---:|---|
 | `receiver-domain-proof-missing` | 240 | cross-file field/constant domain provenance |
-| `import-symbol-callee-identity-proof-missing` | 226 | reusable member/receiver callee identity evidence |
+| `import-symbol-callee-identity-proof-missing` | 227 | reusable member/receiver callee identity evidence |
 | `mutation-effect-boundary` | 133 | effect and place contracts |
 | `source-surface-proof-missing` | 52 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
 | `hof-demand-effect-proof-missing` | 30 | HOF demand/effect/materialization profile |

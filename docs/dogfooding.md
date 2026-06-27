@@ -523,3 +523,12 @@ already reviewed reporting/oracle representative from `6f1baed465ffcde9` to
 `report_falsify`/`soundness_gate` production overlap recorded for #570, so this
 is representative-ID churn rather than new extractable duplication. No new
 budget is accepted.
+
+The #567 aggregate-boundary triage keeps the count at 54. Adding focused
+semantic evidence tests shifts two already reviewed Guava/collection-factory
+test helper representatives: `070c8818af8421e9` becomes `678befa6db9e5c5d`
+for the repeated `eleven_entry_payloads` hard-negative fixture, and
+`d984ca7d5210611e` becomes `8a02be14d3980cd3` for the Guava map factory IL
+builder family across detect, normalize, and semantics tests. These remain
+test-scope fixture debt already accepted in the collection-factory capability
+work; no new budget is accepted.

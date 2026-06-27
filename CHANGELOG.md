@@ -41,6 +41,10 @@ break.
   binding-import miss reasons such as missing provider modules/exports,
   importer mutation, provider mutation/escape, missing provider `LibraryApi`
   proof, and provider aggregate shapes that are not export-safe.
+- Refined import-snapshot census aggregate miss attribution without widening
+  imported snapshot admission. Provider aggregates that are proven exact
+  surfaces but not import-literal surfaces now report separately from aggregates
+  whose children are binding references or import-coordinate placeholders.
 - Split recall-loss exact-admission rejections into capability-oriented buckets
   for callee identity, receiver domain, library API occurrence, HOF
   demand/effect, source surface, mutation/effect, unsupported runtime
