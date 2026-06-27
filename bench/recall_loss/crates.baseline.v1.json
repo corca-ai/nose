@@ -19,9 +19,9 @@
   },
   "current": {
     "summary": {
-      "total_units": 6108,
+      "total_units": 6111,
       "interpretable_units": 847,
-      "excluded_units": 5261,
+      "excluded_units": 5264,
       "canon_checked": 69,
       "canon_preservation_violations": 0,
       "admission_rejections": 764
@@ -47,20 +47,33 @@
       "core-missing": 0,
       "battery-bail": 1,
       "empty-fingerprint": 1,
-      "uninterpretable": 5258,
+      "uninterpretable": 5261,
       "path-bail": 1
     },
     "admission_rejections_by_reason": {
-      "import-symbol-callee-identity-proof-missing": 385,
-      "receiver-domain-proof-missing": 276,
+      "import-symbol-callee-identity-proof-missing": 264,
+      "receiver-domain-proof-missing": 238,
+      "mutation-effect-boundary": 134,
+      "source-surface-proof-missing": 73,
       "hof-demand-effect-proof-missing": 28,
-      "mutation-effect-boundary": 22,
-      "source-surface-proof-missing": 21,
       "unsupported-runtime-boundary": 14,
-      "library-api-occurrence-proof-missing": 12,
+      "library-api-occurrence-proof-missing": 7,
       "value-fingerprint-too-small": 6,
       "unattributed-strict-exact-unsafe": 0
     }
+  },
+  "cycle_572_attribution_refinement": {
+    "source": "issue-572",
+    "selected_reason": "import-symbol-callee-identity-proof-missing",
+    "before_count": 385,
+    "after_count": 264,
+    "delta": -121,
+    "moved_to": {
+      "mutation-effect-boundary": 112,
+      "source-surface-proof-missing": 52
+    },
+    "hard_gate_preserved": true,
+    "follow_up": "Recover the remaining pure scoped/path callee identity cases with reusable symbol evidence instead of reopening expression-statement effect or macro surfaces."
   },
   "attribution_improvement": {
     "opaque_strict_exact_unsafe_before": 758,
@@ -72,20 +85,38 @@
   "representative_buckets": [
     {
       "reason": "import-symbol-callee-identity-proof-missing",
-      "count": 385,
+      "count": 264,
       "examples": [
-        "crates/nose-cli/src/baseline.rs:42",
-        "crates/nose-cli/src/baseline_comparison.rs:81",
-        "crates/nose-cli/src/command_dispatch.rs:89"
+        "crates/nose-cli/src/command_dispatch.rs:89",
+        "crates/nose-cli/src/divergence.rs:32",
+        "crates/nose-cli/src/divergence/git.rs:5"
       ]
     },
     {
       "reason": "receiver-domain-proof-missing",
-      "count": 276,
+      "count": 238,
       "examples": [
         "crates/nose-cli/src/baseline.rs:158",
         "crates/nose-cli/src/falsify.rs:42",
         "crates/nose-cli/src/family_display.rs:9"
+      ]
+    },
+    {
+      "reason": "mutation-effect-boundary",
+      "count": 134,
+      "examples": [
+        "crates/nose-cli/src/baseline_comparison.rs:81",
+        "crates/nose-cli/src/detect_command.rs:152",
+        "crates/nose-cli/src/ignores.rs:416"
+      ]
+    },
+    {
+      "reason": "source-surface-proof-missing",
+      "count": 73,
+      "examples": [
+        "crates/nose-cli/src/baseline.rs:42",
+        "crates/nose-cli/src/divergence/detect.rs:201",
+        "crates/nose-cli/src/markdown.rs:93"
       ]
     },
     {
@@ -95,24 +126,6 @@
         "crates/nose-cli/src/divergence/git.rs:97",
         "crates/nose-cli/src/divergence/git.rs:110",
         "crates/nose-cli/src/path_utils.rs:8"
-      ]
-    },
-    {
-      "reason": "mutation-effect-boundary",
-      "count": 22,
-      "examples": [
-        "crates/nose-cli/src/oracle_gate.rs:412",
-        "crates/nose-cli/src/oracle_gate.rs:528",
-        "crates/nose-cli/src/query_opportunities.rs:30"
-      ]
-    },
-    {
-      "reason": "source-surface-proof-missing",
-      "count": 21,
-      "examples": [
-        "crates/nose-cli/src/divergence/detect.rs:201",
-        "crates/nose-cli/src/oracle_gate.rs:392",
-        "crates/nose-detect/src/fragment/conditional_guard.rs:51"
       ]
     },
     {

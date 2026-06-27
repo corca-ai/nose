@@ -97,6 +97,16 @@ fn strict_exact_rejection_reason(
         };
     }
 
+    if subtree_has(il, root, rust_macro_invocation_call) {
+        return ExactAdmissionRejectionDiagnostic {
+            reason: "source-surface-proof-missing",
+            admission_gate: "strict-exact-source-surface",
+            capability_id: "source-surface-evidence",
+            pack_id: None,
+            missing_evidence: vec!["rust-macro-expansion-contract"],
+        };
+    }
+
     if subtree_has(il, root, |il, node| {
         il.kind(node) == nose_il::NodeKind::Call
     }) {
@@ -154,6 +164,7 @@ fn effect_boundary_node(il: &nose_il::Il, node: NodeId) -> bool {
                         nose_il::NodeKind::Field | nose_il::NodeKind::Index
                     )
                 })
+                || expression_statement_call(il, node)
         }
     }
 }
@@ -161,6 +172,15 @@ fn effect_boundary_node(il: &nose_il::Il, node: NodeId) -> bool {
 fn builtin_call_node(il: &nose_il::Il, node: NodeId) -> bool {
     il.kind(node) == nose_il::NodeKind::Call
         && matches!(il.node(node).payload, nose_il::Payload::Builtin(_))
+}
+
+fn expression_statement_call(il: &nose_il::Il, node: NodeId) -> bool {
+    il.kind(node) == nose_il::NodeKind::ExprStmt
+        && il.children(node).first().is_some_and(|&expr| {
+            subtree_has(il, expr, |il, node| {
+                il.kind(node) == nose_il::NodeKind::Call
+            })
+        })
 }
 
 fn receiver_method_call(il: &nose_il::Il, interner: &Interner, node: NodeId) -> bool {
@@ -206,6 +226,9 @@ fn receiver_method_call(il: &nose_il::Il, interner: &Interner, node: NodeId) -> 
 }
 
 fn source_surface_boundary_node(il: &nose_il::Il, node: NodeId) -> bool {
+    if rust_macro_invocation_call(il, node) {
+        return true;
+    }
     matches!(
         il.kind(node),
         nose_il::NodeKind::Seq
@@ -214,4 +237,17 @@ fn source_surface_boundary_node(il: &nose_il::Il, node: NodeId) -> bool {
             | nose_il::NodeKind::BinOp
             | nose_il::NodeKind::UnOp
     )
+}
+
+fn rust_macro_invocation_call(il: &nose_il::Il, node: NodeId) -> bool {
+    il.meta.lang == nose_il::Lang::Rust
+        && il.kind(node) == nose_il::NodeKind::Call
+        && il.evidence_anchored_at(il.node(node).span).any(|record| {
+            matches!(
+                record.kind,
+                nose_il::EvidenceKind::Source(nose_il::SourceFactKind::Call(
+                    nose_il::SourceCallKind::MacroInvocation
+                ))
+            )
+        })
 }

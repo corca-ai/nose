@@ -40,3 +40,7 @@ python3 scripts/recall-loss-diff.py before.json after.json
   and Swift.
 - [issue-570-cycles.v1.json](issue-570-cycles.v1.json) records the five focused
   top-bucket cycles and the explicit unsupported/fail-closed boundary decision.
+- [issue-572-cycle.v1.json](issue-572-cycle.v1.json) records the first
+  post-#570 refinement cycle: expression-statement effect boundaries and Rust
+  macro surfaces are split out of the callee-identity bucket while preserving
+  the hard gate.

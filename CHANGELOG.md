@@ -42,6 +42,10 @@ break.
   boundaries, and value-fingerprint floor; added deterministic report diff
   tooling plus checked-in `crates` and mixed-language corpus-slice baselines for
   the semantic-kernel recovery loop.
+- Refined recall-loss attribution for expression-statement effect boundaries
+  and unmodeled Rust macro invocations: discarded call results now land in the
+  effect boundary bucket, while `format!`/other uncontracted macros land in the
+  source-surface bucket instead of broad callee-identity loss.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

@@ -46,9 +46,10 @@
       "path-bail": 7
     },
     "admission_rejections_by_reason": {
-      "import-symbol-callee-identity-proof-missing": 26,
+      "import-symbol-callee-identity-proof-missing": 23,
       "unsupported-runtime-boundary": 18,
       "value-fingerprint-too-small": 5,
+      "mutation-effect-boundary": 3,
       "library-api-occurrence-proof-missing": 1,
       "source-surface-proof-missing": 1,
       "unattributed-strict-exact-unsafe": 0
@@ -57,7 +58,7 @@
   "representative_buckets": [
     {
       "reason": "import-symbol-callee-identity-proof-missing",
-      "count": 26,
+      "count": 23,
       "examples": [
         "bench/repos/boltons/boltons/iterutils.py:193",
         "bench/repos/boltons/boltons/iterutils.py:223",
@@ -71,6 +72,15 @@
         "bench/repos/boltons/boltons/iterutils.py:61",
         "bench/repos/boltons/boltons/iterutils.py:205",
         "bench/repos/swift-metrics/Sources/CoreMetrics/Metrics.swift:89"
+      ]
+    },
+    {
+      "reason": "mutation-effect-boundary",
+      "count": 3,
+      "examples": [
+        "bench/repos/boltons/boltons/iterutils.py:1487",
+        "bench/repos/boltons/boltons/iterutils.py:1530",
+        "bench/repos/thor/lib/thor/actions.rb:48"
       ]
     },
     {

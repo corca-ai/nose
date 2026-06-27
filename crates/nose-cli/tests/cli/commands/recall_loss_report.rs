@@ -122,3 +122,63 @@ fn recall_loss_report_ratchets_representative_admission_buckets() {
         "bucket ratchet should not leave opaque strict-exact rejections: {report}"
     );
 }
+
+#[test]
+fn recall_loss_report_splits_rust_effect_and_macro_boundaries_from_callee_identity() {
+    let project = TempProject::new("recall_loss_rust_callee_boundaries");
+    project.write(
+        "sample.rs",
+        "use std::fs;\n\
+use std::path::Path;\n\n\
+pub fn write_fixture(dir: &Path) {\n\
+    fs::write(dir.join(\"case.txt\"), \"value\").unwrap();\n\
+}\n\n\
+pub fn format_key(key: u64) -> String {\n\
+    format!(\"{key:016x}\")\n\
+}\n",
+    );
+    let report_path = project.path().join("recall-loss.json");
+    let out = run_raw(&[
+        "verify",
+        project.path().to_str().unwrap(),
+        "--max-violations",
+        "0",
+        "--recall-loss-report",
+        report_path.to_str().unwrap(),
+    ]);
+    assert!(out.contains("GATE: 0"));
+
+    let report_text = fs::read_to_string(&report_path).expect("recall-loss report");
+    let report: serde_json::Value =
+        serde_json::from_str(&report_text).expect("recall-loss report JSON");
+    let reasons = report["by_reason"]
+        .as_array()
+        .expect("by_reason should be an array");
+    assert!(
+        reasons
+            .iter()
+            .any(|item| item["reason"] == "mutation-effect-boundary"
+                && item["count"].as_u64().unwrap_or(0) >= 1),
+        "expected fs::write to be attributed to the effect boundary: {report}"
+    );
+    assert!(
+        reasons
+            .iter()
+            .any(|item| item["reason"] == "source-surface-proof-missing"
+                && item["count"].as_u64().unwrap_or(0) >= 1),
+        "expected format! to be attributed to the Rust macro source boundary: {report}"
+    );
+    assert!(
+        report["admission_rejections"]
+            .as_array()
+            .expect("admission_rejections should be an array")
+            .iter()
+            .any(|item| item["reason"] == "source-surface-proof-missing"
+                && item["missing_evidence"]
+                    .as_array()
+                    .is_some_and(|items| items
+                        .iter()
+                        .any(|value| value == "rust-macro-expansion-contract"))),
+        "expected macro-specific missing evidence: {report}"
+    );
+}

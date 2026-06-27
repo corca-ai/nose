@@ -57,8 +57,8 @@ or narrow product admission by itself.
 | `receiver-domain-proof-missing` | A receiver method call needs receiver-domain evidence rather than selector-name inference. |
 | `library-api-occurrence-proof-missing` | A canonical builtin/API occurrence lacks admitted pack or producer evidence. |
 | `hof-demand-effect-proof-missing` | A higher-order surface lacks a demand, effect, and materialization profile. |
-| `source-surface-proof-missing` | A source construct, operator, comprehension, or syntax distinction is required but not proven. |
-| `mutation-effect-boundary` | Mutation, place, or effect obligations close exact admission until an effect-preserving contract exists. |
+| `source-surface-proof-missing` | A source construct, operator, comprehension, Rust macro invocation, or syntax distinction is required but not proven. |
+| `mutation-effect-boundary` | Mutation, place, side-effecting call, or effect obligations close exact admission until an effect-preserving contract exists. |
 | `unsupported-runtime-boundary` | Runtime/protocol boundaries such as raw lowered constructs, try/throw, splat, or keyword-argument surfaces intentionally fail closed. |
 | `value-fingerprint-too-small` | The unit is strict-exact-safe, but its value fingerprint is below the non-degenerate exact-claim floor. |
 | `unattributed-strict-exact-unsafe` | Fallback for unknown strict-exact rejection. This should stay visible and should trend toward zero. |
@@ -68,6 +68,10 @@ guess.
 
 The checked-in baseline summaries and the five-cycle recovery log are described
 in [recall-loss-recovery-loop](recall-loss-recovery-loop.md).
+The #572 cycle also records a diagnostics-only refinement: expression-statement
+calls that need an effect contract stay in the effect boundary bucket, and
+unmodeled Rust macros such as `format!` stay in the source-surface bucket until
+a macro expansion or library contract proves their behavior.
 
 ## PR reporting
 

@@ -17,6 +17,9 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   Rust, and Swift.
 - [#570 cycle log](../bench/recall_loss/issue-570-cycles.v1.json) records the
   first five top-bucket cycles and the unsupported runtime boundary decision.
+- [#572 cycle log](../bench/recall_loss/issue-572-cycle.v1.json) records the
+  first post-#570 refinement cycle, which splits expression-statement effect
+  boundaries and Rust macro source surfaces out of the callee-identity bucket.
 
 Regenerate the full local reports with:
 
@@ -70,15 +73,21 @@ The first coarse `crates` baseline had `758` units in the opaque
 `unattributed-strict-exact-unsafe` to `0` while preserving false merges `0` and
 canon-preservation violations `0`.
 
+The #572 refinement keeps the same hard gate while moving expression-statement
+effect boundaries and unmodeled Rust macro invocations out of the
+callee-identity bucket. That sharpens the remaining exact-recovery target: pure
+scoped/path callees still need reusable symbol/callee evidence, while discarded
+call results and unmodeled macro expansion stay closed.
+
 The current top `crates` buckets are:
 
 | reason | count | next capability |
 |---|---:|---|
-| `import-symbol-callee-identity-proof-missing` | 385 | reusable callee identity evidence |
-| `receiver-domain-proof-missing` | 276 | receiver-domain evidence instead of selector spelling |
+| `import-symbol-callee-identity-proof-missing` | 264 | reusable callee identity evidence |
+| `receiver-domain-proof-missing` | 238 | receiver-domain evidence instead of selector spelling |
+| `mutation-effect-boundary` | 134 | effect and place contracts |
+| `source-surface-proof-missing` | 73 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
 | `hof-demand-effect-proof-missing` | 28 | HOF demand/effect/materialization profile |
-| `mutation-effect-boundary` | 22 | effect and place contracts |
-| `source-surface-proof-missing` | 21 | construct/operator/comprehension/source-surface evidence |
 | `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |
 
 These are capability gaps, not feature requests. A future PR should close a

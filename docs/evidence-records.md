@@ -511,11 +511,14 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   expressions emit source-comprehension facts so exact consumers can distinguish
   eager materialized lists, lazy generators, set deduplication, and dict
   materialization even when the lowered HOF body shape is similar. Rust range
-  expressions emit half-open or inclusive range source facts, and Rust
-  tuple-struct single-wildcard patterns such as `Some(_)` emit pattern source
-  facts. These facts are syntax provenance only: the full-index range rewrite
-  also needs an admitted `len` contract, and Option pattern predicates also need
-  admitted `Some`/`None` API occurrence evidence and receiver-domain proof;
+  expressions emit half-open or inclusive range source facts, Rust macro
+  invocations emit call source facts, and Rust tuple-struct single-wildcard
+  patterns such as `Some(_)` emit pattern source facts. These facts are syntax
+  provenance only: the full-index range rewrite also needs an admitted `len`
+  contract, Option pattern predicates also need admitted `Some`/`None` API
+  occurrence evidence and receiver-domain proof, and unmodeled Rust macros stay
+  in recall-loss `source-surface-proof-missing` until a macro expansion or
+  library contract proves their behavior;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
 - selected top-level Ruby literal `require "module"` calls that occur before a

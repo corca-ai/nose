@@ -118,7 +118,10 @@ fall back to a side-table mirror when source evidence is missing.
   provenance and the specialized `c.source.cast.unsigned32` producer id.
 - Rust lowering emits source facts for macro invocation syntax, half-open versus
   inclusive range expressions, tuple-struct single-wildcard patterns such as
-  `Some(_)`, `.await`, async blocks, and `?` error propagation.
+  `Some(_)`, `.await`, async blocks, and `?` error propagation. Macro facts are
+  syntax provenance only: recall-loss diagnostics attribute unmodeled Rust
+  macros such as `format!` to `source-surface-proof-missing` until a library or
+  macro-expansion contract proves their behavior.
 - JS/TS, Python, and Rust `await` lowering preserves `Raw("await", value)`
   instead of erasing the source operation. JS/TS and Python `yield` preserves
   `Raw("yield", value)`. Rust `async {}` and `?` are preserved as

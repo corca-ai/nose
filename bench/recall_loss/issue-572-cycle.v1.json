@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "report_kind": "recall-loss-cycle-log",
+  "issue": 572,
+  "generated_on": "2026-06-27",
+  "baseline_summary": "bench/recall_loss/crates.baseline.v1.json",
+  "selected_reason": "import-symbol-callee-identity-proof-missing",
+  "decision": "precision-hardened-attribution",
+  "before_report": "target/recall-loss.before.json",
+  "after_report": "target/recall-loss.after.json",
+  "hard_gate": {
+    "surface": "crates",
+    "false_merges_before": 0,
+    "false_merges_after": 0,
+    "canon_preservation_violations_before": 0,
+    "canon_preservation_violations_after": 0
+  },
+  "bucket_delta": {
+    "import-symbol-callee-identity-proof-missing": {
+      "before": 385,
+      "after": 264,
+      "delta": -121
+    },
+    "mutation-effect-boundary": {
+      "before": 22,
+      "after": 134,
+      "delta": 112
+    },
+    "source-surface-proof-missing": {
+      "before": 21,
+      "after": 73,
+      "delta": 52
+    },
+    "unattributed-strict-exact-unsafe": {
+      "before": 0,
+      "after": 0,
+      "delta": 0
+    }
+  },
+  "what_changed": [
+    "Expression-statement calls that need an effect contract are attributed to mutation-effect-boundary instead of callee-identity proof loss.",
+    "Rust macro invocations without admitted macro/library semantics are attributed to source-surface-proof-missing with rust-macro-expansion-contract as missing evidence.",
+    "Exact admission behavior remains unchanged; this cycle narrows the next recoverable callee-identity target."
+  ],
+  "fixture_refs": [
+    "crates/nose-cli/tests/cli/commands/recall_loss_report.rs:recall_loss_report_splits_rust_effect_and_macro_boundaries_from_callee_identity",
+    "crates/nose-cli/tests/cli/semantic_idioms/literal_membership/fixture.rs:4",
+    "crates/nose-cli/src/baseline.rs:42"
+  ],
+  "follow_up": {
+    "issue": 567,
+    "target": "remaining pure scoped/path callee identity cases",
+    "policy": "Recover with reusable symbol/callee evidence and hard negatives for shadowed paths, local overrides, expression-statement effects, and unmodeled macros."
+  }
+}
