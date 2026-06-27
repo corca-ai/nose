@@ -60,3 +60,7 @@ python3 scripts/recall-loss-callee-census.py \
   slice after the census: Rust brace `use` imports now feed dependency-backed
   imported call-target evidence while wildcard/nested/relative brace imports
   stay closed.
+- [issue-578-cycle.v1.json](issue-578-cycle.v1.json) records the next Rust
+  scoped-path recovery slice: imported roots such as `Span::new` now feed
+  dependency-backed imported member call-target evidence while raw `crate`,
+  `std`, unimported, and ambiguous roots stay closed.

@@ -39,6 +39,22 @@ pub(super) fn record_imported_call_target(
                     vec![target.dependency],
                 );
             }
+            if let Some(target) =
+                imported_scoped_member_target(il, interner, callee, provenance, cache)
+            {
+                upsert(
+                    il,
+                    EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+                    EvidenceKind::CallTarget(CallTargetEvidenceKind::ImportedMember {
+                        module_hash: target.module_hash,
+                        exported_hash: target.exported_hash,
+                        member_hash: target.member_hash,
+                    }),
+                    IMPORTED_MEMBER_RULE,
+                    provenance,
+                    vec![target.dependency],
+                );
+            }
         }
         NodeKind::Field => {
             if let Some(target) = imported_member_target(il, interner, callee, provenance, cache) {
@@ -94,6 +110,47 @@ fn imported_function_target(
     })
 }
 
+fn imported_scoped_member_target(
+    il: &mut Il,
+    interner: &Interner,
+    callee: NodeId,
+    provenance: CallTargetEvidenceProvenance,
+    cache: &mut ImportedOccurrenceValidationCache,
+) -> Option<ImportedMemberTarget> {
+    let (root, suffix) = scoped_var_root_and_suffix(il, interner, callee)?;
+    let root_hash = stable_symbol_hash(root);
+    let (symbol, binding_dependency) =
+        unique_binding_symbol_for_hash(il, root_hash, ImportedBindingUse::MemberReceiver)?;
+    let dependency = upsert_valid_imported_symbol_occurrence(
+        il,
+        interner,
+        callee,
+        symbol,
+        binding_dependency,
+        provenance,
+        cache,
+    )?;
+    let member_hash = stable_symbol_hash(suffix);
+    match symbol {
+        SymbolEvidenceKind::ImportedBinding {
+            module_hash,
+            exported_hash,
+        } => Some(ImportedMemberTarget {
+            module_hash,
+            exported_hash,
+            member_hash,
+            dependency,
+        }),
+        SymbolEvidenceKind::ImportedNamespace { module_hash } => Some(ImportedMemberTarget {
+            module_hash,
+            exported_hash: member_hash,
+            member_hash,
+            dependency,
+        }),
+        _ => None,
+    }
+}
+
 fn imported_member_target(
     il: &mut Il,
     interner: &Interner,
@@ -147,6 +204,14 @@ fn unique_binding_symbol_for_var(
     imported_use: ImportedBindingUse,
 ) -> Option<(SymbolEvidenceKind, EvidenceId)> {
     let local_hash = node_name_hash(il, interner, node)?;
+    unique_binding_symbol_for_hash(il, local_hash, imported_use)
+}
+
+fn unique_binding_symbol_for_hash(
+    il: &Il,
+    local_hash: u64,
+    imported_use: ImportedBindingUse,
+) -> Option<(SymbolEvidenceKind, EvidenceId)> {
     let mut found = None;
     for record in il.evidence_binding_anchored(local_hash) {
         let EvidenceKind::Symbol(symbol) = record.kind else {
@@ -165,6 +230,29 @@ fn unique_binding_symbol_for_var(
         }
     }
     found
+}
+
+fn scoped_var_root_and_suffix<'a>(
+    il: &Il,
+    interner: &'a Interner,
+    node: NodeId,
+) -> Option<(&'a str, &'a str)> {
+    if il.meta.lang != nose_il::Lang::Rust || il.kind(node) != NodeKind::Var {
+        return None;
+    }
+    let Payload::Name(symbol) = il.node(node).payload else {
+        return None;
+    };
+    let path = interner.resolve(symbol);
+    let (root, suffix) = path.split_once("::")?;
+    if root.is_empty()
+        || suffix.is_empty()
+        || suffix.split("::").any(str::is_empty)
+        || matches!(root, "crate" | "self" | "super" | "std" | "core" | "alloc")
+    {
+        return None;
+    }
+    Some((root, suffix))
 }
 
 fn imported_symbol_allowed_for_use(

@@ -55,6 +55,18 @@ fn field_call_il(interner: &Interner, method: &str) -> (Il, NodeId, NodeId) {
     (finish_il(b, call, Lang::Python), call, callee)
 }
 
+fn scoped_var_call_il(interner: &Interner, path: &str) -> (Il, NodeId) {
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern(path)),
+        sp(40),
+        &[],
+    );
+    let call = b.add(NodeKind::Call, Payload::None, sp(41), &[callee]);
+    (finish_il(b, call, Lang::Rust), call)
+}
+
 #[test]
 fn imported_function_call_target_requires_matching_local_selector() {
     let interner = Interner::new();
@@ -182,6 +194,78 @@ fn wrong_imported_function_selector_is_rejected_not_missing() {
         CallTargetEvidenceStatus::Rejected
     );
     assert_eq!(call_target_evidence_at_call(&il, &interner, call), None);
+}
+
+#[test]
+fn imported_member_call_target_admits_scoped_var_suffix_shape() {
+    let interner = Interner::new();
+    let (mut il, call) = scoped_var_call_il(&interner, "Span::new");
+    let target = CallTargetEvidenceKind::ImportedMember {
+        module_hash: stable_symbol_hash("nose_il"),
+        exported_hash: stable_symbol_hash("Span"),
+        member_hash: stable_symbol_hash("new"),
+    };
+    il.evidence.push(call_target_record(
+        0,
+        sp(41),
+        Lang::Rust,
+        target,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+
+    assert_eq!(
+        call_target_evidence_at_call(&il, &interner, call),
+        Some(target)
+    );
+    assert!(imported_member_call_target_at_call(&il, &interner, call));
+}
+
+#[test]
+fn imported_member_call_target_rejects_wrong_scoped_var_suffix() {
+    let interner = Interner::new();
+    let (mut il, call) = scoped_var_call_il(&interner, "Span::new");
+    il.evidence.push(call_target_record(
+        0,
+        sp(41),
+        Lang::Rust,
+        CallTargetEvidenceKind::ImportedMember {
+            module_hash: stable_symbol_hash("nose_il"),
+            exported_hash: stable_symbol_hash("Span"),
+            member_hash: stable_symbol_hash("with_file"),
+        },
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+
+    assert_eq!(
+        call_target_evidence_status_at_call(&il, &interner, call),
+        CallTargetEvidenceStatus::Rejected
+    );
+}
+
+#[test]
+fn imported_member_call_target_requires_full_nested_scoped_suffix() {
+    let interner = Interner::new();
+    let (mut il, call) = scoped_var_call_il(&interner, "json::value::from_value");
+    let target = CallTargetEvidenceKind::ImportedMember {
+        module_hash: stable_symbol_hash("serde_json"),
+        exported_hash: stable_symbol_hash("value::from_value"),
+        member_hash: stable_symbol_hash("value::from_value"),
+    };
+    il.evidence.push(call_target_record(
+        0,
+        sp(41),
+        Lang::Rust,
+        target,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+
+    assert_eq!(
+        call_target_evidence_at_call(&il, &interner, call),
+        Some(target)
+    );
 }
 
 #[test]

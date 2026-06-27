@@ -25,13 +25,15 @@ pub(super) fn strict_exact_callee_identity(
             CallTargetEvidenceStatus::Rejected => false,
             CallTargetEvidenceStatus::Admitted(CallTargetEvidenceKind::ImportedFunction {
                 ..
+            })
+            | CallTargetEvidenceStatus::Admitted(CallTargetEvidenceKind::ImportedMember {
+                ..
             }) => true,
             CallTargetEvidenceStatus::Admitted(CallTargetEvidenceKind::DirectFunction {
                 ..
             }) => facts.direct_function_target_at_call(il, interner, call),
             CallTargetEvidenceStatus::Admitted(
                 CallTargetEvidenceKind::DirectMethod { .. }
-                | CallTargetEvidenceKind::ImportedMember { .. }
                 | CallTargetEvidenceKind::DynamicDispatch { .. },
             ) => false,
             CallTargetEvidenceStatus::Missing => {

@@ -116,6 +116,16 @@ async/yield/try protocol-boundary scaffold family ID from `60806a4da1fcff4f` to
 await/yield protocol tests plus the Rust try-expression protocol test). The
 reviewed default-surface count remains 53; no budget increase is accepted.
 
+The 2026-06-27 import-backed Rust scoped call-target slice (#578) adds focused
+call-target proof and hard-negative tests. The current detector no longer
+reports two accepted test-scaffold representatives (`0b353c6f21118d2d`,
+`522c5d5dc73163e7`) and instead reports `cc9936001342542f`, a test-only
+construction scaffold shared by direct/scoped call-target evidence fixtures,
+plus `016becf550d84d34`, the tiny shared `sp` helper repeated across test
+support and local fixture modules. These are accepted as fixture debt for named
+fail-closed scenarios, not production refactoring debt. The reviewed
+default-surface count remains 53; no budget increase is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

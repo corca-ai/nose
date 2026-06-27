@@ -19,12 +19,12 @@
   },
   "current": {
     "summary": {
-      "total_units": 6140,
+      "total_units": 6153,
       "interpretable_units": 852,
-      "excluded_units": 5288,
+      "excluded_units": 5301,
       "canon_checked": 70,
       "canon_preservation_violations": 0,
-      "admission_rejections": 752
+      "admission_rejections": 735
     },
     "soundness_gate": {
       "fingerprint_groups": 38,
@@ -47,13 +47,13 @@
       "core-missing": 0,
       "battery-bail": 1,
       "empty-fingerprint": 1,
-      "uninterpretable": 5285,
+      "uninterpretable": 5298,
       "path-bail": 1
     },
     "admission_rejections_by_reason": {
-      "import-symbol-callee-identity-proof-missing": 251,
+      "import-symbol-callee-identity-proof-missing": 235,
       "receiver-domain-proof-missing": 240,
-      "mutation-effect-boundary": 133,
+      "mutation-effect-boundary": 132,
       "source-surface-proof-missing": 73,
       "hof-demand-effect-proof-missing": 28,
       "unsupported-runtime-boundary": 14,
@@ -110,6 +110,20 @@
     "artifact": "bench/recall_loss/issue-576-cycle.v1.json",
     "follow_up": "Recover Rust scoped-path and member call-target evidence without treating path spelling alone as target identity."
   },
+  "cycle_578_import_backed_rust_scoped_targets": {
+    "source": "issue-578",
+    "selected_reason": "import-symbol-callee-identity-proof-missing",
+    "before_count": 251,
+    "after_count": 235,
+    "delta": -16,
+    "scoped_path_primary_before": 72,
+    "scoped_path_primary_after": 50,
+    "imported_member_target_present_before": 0,
+    "imported_member_target_present_after": 2,
+    "hard_gate_preserved": true,
+    "artifact": "bench/recall_loss/issue-578-cycle.v1.json",
+    "follow_up": "Recover remaining Rust member/receiver call-target evidence and imported-member target-present call-contract gaps without treating associated-function spelling alone as type identity."
+  },
   "attribution_improvement": {
     "opaque_strict_exact_unsafe_before": 758,
     "unattributed_strict_exact_unsafe_after": 0,
@@ -120,7 +134,7 @@
   "representative_buckets": [
     {
       "reason": "import-symbol-callee-identity-proof-missing",
-      "count": 251,
+      "count": 235,
       "examples": [
         "crates/nose-cli/src/command_dispatch.rs:89",
         "crates/nose-cli/src/divergence.rs:32",

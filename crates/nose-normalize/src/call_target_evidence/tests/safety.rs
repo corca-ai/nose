@@ -157,3 +157,64 @@ fn symbol_evidence_suppresses_direct_function_raw_name_fallback() {
     ));
     assert_eq!(call_target_evidence_at_call(&il, &interner, call), None);
 }
+
+#[test]
+fn does_not_emit_scoped_member_target_without_imported_root_proof() {
+    let interner = Interner::new();
+    let span_new = interner.intern("Span::new");
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(NodeKind::Var, Payload::Name(span_new), sp(10), &[]);
+    let call = b.add(NodeKind::Call, Payload::None, sp(11), &[callee]);
+    let ret = b.add(NodeKind::Return, Payload::None, sp(12), &[call]);
+    let body = b.add(NodeKind::Block, Payload::None, sp(13), &[ret]);
+    let func = b.add(NodeKind::Func, Payload::None, wide_sp(8, 20), &[body]);
+    let module = b.add(NodeKind::Module, Payload::None, wide_sp(0, 30), &[func]);
+    let mut il = b.finish(
+        module,
+        FileMeta {
+            path: "t".into(),
+            lang: Lang::Rust,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+
+    run(&mut il, &interner);
+
+    assert_eq!(call_target_evidence_at_call(&il, &interner, call), None);
+}
+
+#[test]
+fn does_not_emit_scoped_member_target_for_language_roots() {
+    let interner = Interner::new();
+    let var_os = interner.intern("std::env::var_os");
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(NodeKind::Var, Payload::Name(var_os), sp(10), &[]);
+    let call = b.add(NodeKind::Call, Payload::None, sp(11), &[callee]);
+    let ret = b.add(NodeKind::Return, Payload::None, sp(12), &[call]);
+    let body = b.add(NodeKind::Block, Payload::None, sp(13), &[ret]);
+    let func = b.add(NodeKind::Func, Payload::None, wide_sp(8, 20), &[body]);
+    let module = b.add(NodeKind::Module, Payload::None, wide_sp(0, 30), &[func]);
+    let mut il = b.finish(
+        module,
+        FileMeta {
+            path: "t".into(),
+            lang: Lang::Rust,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    il.evidence.push(binding_symbol(
+        0,
+        sp(1),
+        "std",
+        SymbolEvidenceKind::ImportedNamespace {
+            module_hash: stable_symbol_hash("std"),
+        },
+        EvidenceStatus::Asserted,
+    ));
+
+    run(&mut il, &interner);
+
+    assert_eq!(call_target_evidence_at_call(&il, &interner, call), None);
+}

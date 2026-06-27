@@ -55,6 +55,12 @@ break.
   bindings such as `use crate::m::{f, T}; f(...)`, reducing the `crates`
   callee-identity recall-loss bucket from 264 to 251 while preserving zero false
   merges and zero canon-preservation violations.
+- Added import-backed Rust scoped member call-target evidence. Scoped callees
+  such as `Span::new()` now enter exact opaque call identity only when the root
+  has dependency-backed import evidence; raw `crate::...`, `std::...`, and
+  unimported scoped paths stay closed. On `crates`, this reduces the
+  callee-identity recall-loss bucket from 251 to 235 while preserving zero false
+  merges and zero canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

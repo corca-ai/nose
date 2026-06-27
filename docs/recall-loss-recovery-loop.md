@@ -27,6 +27,9 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   first recovery slice after the census: Rust brace `use` declarations now emit
   per-item imported symbol evidence that feeds the existing imported
   call-target producer.
+- [#578 cycle log](../bench/recall_loss/issue-578-cycle.v1.json) records the
+  next Rust scoped-path recovery slice: scoped calls whose root already has
+  dependency-backed import evidence now emit imported member call-target proof.
 
 Regenerate the full local reports with:
 
@@ -102,13 +105,23 @@ while leaving wildcard imports, nested brace imports, and `self`/`super`-relativ
 brace prefixes closed. This shrinks the local-or-parameter primary surface from
 `115` to `71`; the next dominant targets are scoped paths and member calls.
 
+The #578 recovery slice reduces the callee-identity bucket from `251` to `235`
+while preserving the same hard gate. It proves only import-backed Rust scoped
+calls: a lowered scoped callee such as `Span::new` can emit
+`CallTarget::ImportedMember` when `Span` has a unique static imported binding or
+namespace proof. Raw `crate::...`, `self::...`, `super::...`,
+`std/core/alloc::...`, unimported roots, and ambiguous roots remain closed. The
+scoped-path primary surface drops from `72` to `50`; the remaining dominant
+surface is now member/receiver call-target proof, with two newly exposed
+`imported-member-target-present-call-contract-proof` follow-ups.
+
 The current top `crates` buckets are:
 
 | reason | count | next capability |
 |---|---:|---|
-| `import-symbol-callee-identity-proof-missing` | 251 | reusable scoped/member callee identity evidence |
 | `receiver-domain-proof-missing` | 240 | receiver-domain evidence instead of selector spelling |
-| `mutation-effect-boundary` | 133 | effect and place contracts |
+| `import-symbol-callee-identity-proof-missing` | 235 | reusable member/receiver callee identity evidence |
+| `mutation-effect-boundary` | 132 | effect and place contracts |
 | `source-surface-proof-missing` | 73 | Rust macro/source-surface contracts and construct/operator/comprehension evidence |
 | `hof-demand-effect-proof-missing` | 28 | HOF demand/effect/materialization profile |
 | `unsupported-runtime-boundary` | 14 | intentional fail-closed runtime/protocol boundary |

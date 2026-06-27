@@ -168,6 +168,7 @@ fn call_target_matches_call_shape(
         }
         CallTargetEvidenceKind::ImportedMember { member_hash, .. } => {
             field_selector_matches(il, interner, callee, member_hash)
+                || scoped_var_suffix_matches(il, interner, callee, member_hash)
         }
     }
 }
@@ -199,6 +200,24 @@ fn field_selector_matches(
     }
     match il.node(callee).payload {
         Payload::Name(name) => interner.symbol_hash(name) == expected_hash,
+        _ => false,
+    }
+}
+
+fn scoped_var_suffix_matches(
+    il: &Il,
+    interner: &Interner,
+    callee: NodeId,
+    expected_hash: u64,
+) -> bool {
+    if il.kind(callee) != NodeKind::Var {
+        return false;
+    }
+    match il.node(callee).payload {
+        Payload::Name(name) => interner
+            .resolve(name)
+            .split_once("::")
+            .is_some_and(|(_, suffix)| stable_symbol_hash(suffix) == expected_hash),
         _ => false,
     }
 }

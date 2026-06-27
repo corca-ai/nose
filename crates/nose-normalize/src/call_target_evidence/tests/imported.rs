@@ -166,6 +166,116 @@ fn emits_imported_member_call_target_from_imported_binding_receiver() {
 }
 
 #[test]
+fn emits_imported_member_call_target_from_scoped_imported_binding_root() {
+    let interner = Interner::new();
+    let span_new = interner.intern("Span::new");
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(NodeKind::Var, Payload::Name(span_new), sp(10), &[]);
+    let call = b.add(NodeKind::Call, Payload::None, sp(11), &[callee]);
+    let ret = b.add(NodeKind::Return, Payload::None, sp(12), &[call]);
+    let body = b.add(NodeKind::Block, Payload::None, sp(13), &[ret]);
+    let func = b.add(NodeKind::Func, Payload::None, wide_sp(8, 20), &[body]);
+    let module = b.add(NodeKind::Module, Payload::None, wide_sp(0, 30), &[func]);
+    let mut il = b.finish(
+        module,
+        FileMeta {
+            path: "t".into(),
+            lang: Lang::Rust,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    il.evidence.push(binding_symbol(
+        0,
+        sp(1),
+        "Span",
+        SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash("nose_il"),
+            exported_hash: stable_symbol_hash("Span"),
+        },
+        EvidenceStatus::Asserted,
+    ));
+
+    run(&mut il, &interner);
+
+    let expected = CallTargetEvidenceKind::ImportedMember {
+        module_hash: stable_symbol_hash("nose_il"),
+        exported_hash: stable_symbol_hash("Span"),
+        member_hash: stable_symbol_hash("new"),
+    };
+    assert_eq!(
+        call_target_evidence_at_call(&il, &interner, call),
+        Some(expected)
+    );
+    assert!(imported_member_call_target_at_call(&il, &interner, call));
+    let target_record = il
+        .evidence
+        .iter()
+        .find(|record| record.kind == EvidenceKind::CallTarget(expected))
+        .expect("scoped imported member call-target evidence");
+    let [occurrence_dependency] = target_record.dependencies.as_slice() else {
+        panic!("scoped call-target should depend on exactly one occurrence symbol");
+    };
+    let occurrence = il
+        .evidence_record_by_id(*occurrence_dependency)
+        .expect("occurrence dependency");
+    assert_eq!(
+        occurrence.anchor,
+        EvidenceAnchor::node(il.node(callee).span, NodeKind::Var)
+    );
+    assert_eq!(
+        occurrence.kind,
+        EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash("nose_il"),
+            exported_hash: stable_symbol_hash("Span"),
+        })
+    );
+    assert_eq!(occurrence.dependencies, vec![EvidenceId(0)]);
+}
+
+#[test]
+fn scoped_imported_member_call_target_uses_full_suffix_for_nested_paths() {
+    let interner = Interner::new();
+    let value_from = interner.intern("json::value::from_value");
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(NodeKind::Var, Payload::Name(value_from), sp(10), &[]);
+    let call = b.add(NodeKind::Call, Payload::None, sp(11), &[callee]);
+    let ret = b.add(NodeKind::Return, Payload::None, sp(12), &[call]);
+    let body = b.add(NodeKind::Block, Payload::None, sp(13), &[ret]);
+    let func = b.add(NodeKind::Func, Payload::None, wide_sp(8, 20), &[body]);
+    let module = b.add(NodeKind::Module, Payload::None, wide_sp(0, 30), &[func]);
+    let mut il = b.finish(
+        module,
+        FileMeta {
+            path: "t".into(),
+            lang: Lang::Rust,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    il.evidence.push(binding_symbol(
+        0,
+        sp(1),
+        "json",
+        SymbolEvidenceKind::ImportedNamespace {
+            module_hash: stable_symbol_hash("serde_json"),
+        },
+        EvidenceStatus::Asserted,
+    ));
+
+    run(&mut il, &interner);
+
+    assert_eq!(
+        call_target_evidence_at_call(&il, &interner, call),
+        Some(CallTargetEvidenceKind::ImportedMember {
+            module_hash: stable_symbol_hash("serde_json"),
+            exported_hash: stable_symbol_hash("value::from_value"),
+            member_hash: stable_symbol_hash("value::from_value"),
+        })
+    );
+}
+
+#[test]
 fn updates_legacy_first_party_imported_function_records() {
     let interner = Interner::new();
     let p = interner.intern("p");

@@ -135,9 +135,14 @@ matching `nose.lang.*` pack provenance for the lowered file language:
 - `ImportedMember` for field callees whose receiver has a unique asserted
   `Symbol(ImportedNamespace)` or `Symbol(ImportedBinding)` proof. Imported
   namespace receivers use the module/member coordinate; imported binding
-  receivers use the module/export/member coordinate. Receiver rebinding,
-  ambiguous/conflicting symbol evidence, dependency-broken import proof, and
-  selector mismatches stay closed.
+  receivers use the module/export/member coordinate. The same target kind also
+  covers Rust scoped callees lowered as `Var("Root::suffix")` when `Root` has a
+  unique dependency-backed imported binding or namespace proof; the target
+  validates the full suffix, so nested paths are not reduced to their final
+  segment. Receiver/root rebinding, ambiguous/conflicting symbol evidence,
+  dependency-broken import proof, selector or suffix mismatches, raw
+  `crate`/`self`/`super`/`std`/`core`/`alloc` roots, and unimported scoped roots
+  stay closed.
   Node-anchored `UnshadowedGlobal` and `ImportedNamespace` identity helpers
   admit only matching builtin language-core provenance; broad, wrong-language,
   external, ambiguous, or dependency-broken occurrence rows do not prove public

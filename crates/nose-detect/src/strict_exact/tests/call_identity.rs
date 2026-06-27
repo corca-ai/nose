@@ -195,6 +195,49 @@ fn imported_member_call_target_opens_static_member_identity() {
 }
 
 #[test]
+fn imported_member_call_target_opens_scoped_var_member_identity() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("Span::new")),
+        sp(170),
+        &[],
+    );
+    let call = b.add(NodeKind::Call, Payload::None, sp(171), &[callee]);
+    let root = b.add(NodeKind::Block, Payload::None, sp(169), &[call]);
+    let mut il = b.finish(
+        root,
+        FileMeta {
+            path: "t.rs".into(),
+            lang: Lang::Rust,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+
+    let facts = StrictFacts::collect(&il, &interner);
+    assert!(
+        !strict_exact_safe_tree(&il, &interner, &facts, call),
+        "scoped spelling alone must not prove a static member call target"
+    );
+
+    il.evidence.push(call_target_evidence(
+        0,
+        Lang::Rust,
+        sp(171),
+        CallTargetEvidenceKind::ImportedMember {
+            module_hash: stable_symbol_hash("nose_il"),
+            exported_hash: stable_symbol_hash("Span"),
+            member_hash: stable_symbol_hash("new"),
+        },
+        Vec::new(),
+    ));
+    let facts = StrictFacts::collect(&il, &interner);
+    assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+}
+
+#[test]
 fn normalized_imported_function_call_target_opens_opaque_exact_identity() {
     let interner = Interner::new();
     let il = normalized_python(
