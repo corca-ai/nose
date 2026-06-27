@@ -72,6 +72,12 @@ The #572 cycle also records a diagnostics-only refinement: expression-statement
 calls that need an effect contract stay in the effect boundary bucket, and
 unmodeled Rust macros such as `format!` stay in the source-surface bucket until
 a macro expansion or library contract proves their behavior.
+The #574 cycle keeps the same `import-symbol-callee-identity-proof-missing`
+reason but splits its `missing_evidence` labels by call-target surface, such as
+`local-or-parameter-call-target-proof`, `scoped-path-call-target-proof`,
+`member-call-target-proof`, imported/global target proof labels, and admitted
+target-present call-contract proof labels. Build the checked-in census with
+`scripts/recall-loss-callee-census.py`.
 
 ## PR reporting
 

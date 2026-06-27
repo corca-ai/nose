@@ -182,3 +182,47 @@ pub fn format_key(key: u64) -> String {\n\
         "expected macro-specific missing evidence: {report}"
     );
 }
+
+#[test]
+fn recall_loss_report_classifies_callee_identity_surfaces() {
+    let project = TempProject::new("recall_loss_callee_identity_surfaces");
+    project.write(
+        "sample.rs",
+        "pub fn call_local(x: u64) -> u64 {\n\
+    helper(x)\n\
+}\n\n\
+pub fn call_scoped(x: u64) -> u64 {\n\
+    helper_mod::value(x)\n\
+}\n",
+    );
+    let report_path = project.path().join("recall-loss.json");
+    let out = run_raw(&[
+        "verify",
+        project.path().to_str().unwrap(),
+        "--max-violations",
+        "0",
+        "--recall-loss-report",
+        report_path.to_str().unwrap(),
+    ]);
+    assert!(out.contains("GATE: 0"));
+
+    let report_text = fs::read_to_string(&report_path).expect("recall-loss report");
+    let report: serde_json::Value =
+        serde_json::from_str(&report_text).expect("recall-loss report JSON");
+    let rejections = report["admission_rejections"]
+        .as_array()
+        .expect("admission_rejections should be an array");
+    for expected in [
+        "local-or-parameter-call-target-proof",
+        "scoped-path-call-target-proof",
+    ] {
+        assert!(
+            rejections.iter().any(|item| item["reason"]
+                == "import-symbol-callee-identity-proof-missing"
+                && item["missing_evidence"]
+                    .as_array()
+                    .is_some_and(|items| items.iter().any(|value| value == expected))),
+            "expected callee identity evidence label {expected}: {report}"
+        );
+    }
+}

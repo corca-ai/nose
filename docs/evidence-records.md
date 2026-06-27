@@ -134,6 +134,15 @@ matching `nose.lang.*` pack provenance for the lowered file language:
   external, ambiguous, or dependency-broken occurrence rows do not prove public
   global/imported-namespace identity.
 
+Recall-loss #574 uses the same vocabulary to split the remaining
+`import-symbol-callee-identity-proof-missing` bucket by `missing_evidence`
+labels such as `local-or-parameter-call-target-proof`,
+`scoped-path-call-target-proof`, `member-call-target-proof`, imported/global
+target proof labels, and target-present call-contract proof labels. These
+labels are diagnostics only: they identify the next reusable evidence capability
+and do not admit a call without the corresponding dependency-closed
+`CallTarget` proof plus the required call contract.
+
 There is not yet a builtin producer for `DirectMethod` or `DynamicDispatch`.
 Duplicate function names, lexical shadowing, nested/non-top-level functions,
 methods without explicit target proof, computed callees, selector mismatches,

@@ -20,6 +20,9 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
 - [#572 cycle log](../bench/recall_loss/issue-572-cycle.v1.json) records the
   first post-#570 refinement cycle, which splits expression-statement effect
   boundaries and Rust macro source surfaces out of the callee-identity bucket.
+- [#574 callee census](../bench/recall_loss/issue-574-callee-census.v1.json)
+  records the remaining callee-identity bucket by language and call-target
+  surface for the #567 import-backed immutable provenance epic.
 
 Regenerate the full local reports with:
 
@@ -78,6 +81,14 @@ effect boundaries and unmodeled Rust macro invocations out of the
 callee-identity bucket. That sharpens the remaining exact-recovery target: pure
 scoped/path callees still need reusable symbol/callee evidence, while discarded
 call results and unmodeled macro expansion stay closed.
+
+The #574 census keeps the `import-symbol-callee-identity-proof-missing` count at
+`264` but makes the inside of that bucket actionable. On `crates`, the remaining
+units are overwhelmingly Rust (`261/264`). The largest call-target surfaces are
+local-or-parameter calls (`115`), member calls (`92`), and scoped-path calls
+(`45`). That points the next implementation slice at Rust local/scoped path
+call-target proof before expanding the same evidence shape into broader
+import-backed immutable value provenance under #567.
 
 The current top `crates` buckets are:
 

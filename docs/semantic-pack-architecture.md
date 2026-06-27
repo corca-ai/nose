@@ -182,7 +182,9 @@ diagnostics report is the soft gate that attributes under-merges, oracle
 exclusions, and exact-admission rejections to structured reason buckets.
 Use [`recall-loss-recovery-loop`](recall-loss-recovery-loop.md) for the
 checked-in baseline surfaces and `scripts/recall-loss-diff.py` for deterministic
-PR before/after tables.
+PR before/after tables. When the top bucket is callee identity, use
+`scripts/recall-loss-callee-census.py` to split it by call-target surface before
+adding semantic-pack or kernel capabilities.
 
 Behavior-change defaults:
 

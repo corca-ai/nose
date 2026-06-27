@@ -19,9 +19,9 @@
   },
   "current": {
     "summary": {
-      "total_units": 6111,
+      "total_units": 6122,
       "interpretable_units": 847,
-      "excluded_units": 5264,
+      "excluded_units": 5275,
       "canon_checked": 69,
       "canon_preservation_violations": 0,
       "admission_rejections": 764
@@ -47,7 +47,7 @@
       "core-missing": 0,
       "battery-bail": 1,
       "empty-fingerprint": 1,
-      "uninterpretable": 5261,
+      "uninterpretable": 5272,
       "path-bail": 1
     },
     "admission_rejections_by_reason": {
@@ -74,6 +74,27 @@
     },
     "hard_gate_preserved": true,
     "follow_up": "Recover the remaining pure scoped/path callee identity cases with reusable symbol evidence instead of reopening expression-statement effect or macro surfaces."
+  },
+  "cycle_574_callee_census": {
+    "source": "issue-574",
+    "selected_reason": "import-symbol-callee-identity-proof-missing",
+    "total": 264,
+    "by_language": {
+      "rust": 261,
+      "typescript": 2,
+      "javascript": 1
+    },
+    "by_primary_surface": {
+      "local-or-parameter-call-target-proof": 115,
+      "member-call-target-proof": 92,
+      "scoped-path-call-target-proof": 45,
+      "direct-function-target-present-call-contract-proof": 9,
+      "unshadowed-global-call-target-proof": 2,
+      "imported-function-target-present-call-contract-proof": 1
+    },
+    "hard_gate_preserved": true,
+    "artifact": "bench/recall_loss/issue-574-callee-census.v1.json",
+    "follow_up": "Start with Rust local/scoped path call-target proof, then use the same evidence shape for import-backed immutable value provenance under #567."
   },
   "attribution_improvement": {
     "opaque_strict_exact_unsafe_before": 758,

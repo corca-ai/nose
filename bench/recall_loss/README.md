@@ -30,6 +30,14 @@ Compare two full reports with:
 python3 scripts/recall-loss-diff.py before.json after.json
 ```
 
+Build the #574 callee-identity census from a full report with:
+
+```sh
+python3 scripts/recall-loss-callee-census.py \
+  target/recall-loss.crates.json \
+  > bench/recall_loss/issue-574-callee-census.v1.json
+```
+
 ## Files
 
 - [crates.baseline.v1.json](crates.baseline.v1.json) records the current
@@ -44,3 +52,6 @@ python3 scripts/recall-loss-diff.py before.json after.json
   post-#570 refinement cycle: expression-statement effect boundaries and Rust
   macro surfaces are split out of the callee-identity bucket while preserving
   the hard gate.
+- [issue-574-callee-census.v1.json](issue-574-callee-census.v1.json) records
+  the #567/#574 census of the remaining callee-identity bucket by language and
+  call-target surface.

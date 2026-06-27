@@ -46,6 +46,10 @@ break.
   and unmodeled Rust macro invocations: discarded call results now land in the
   effect boundary bucket, while `format!`/other uncontracted macros land in the
   source-surface bucket instead of broad callee-identity loss.
+- Added a recall-loss callee-identity census workflow that splits the remaining
+  callee bucket by call-target surface, including local/parameter calls,
+  member calls, scoped paths, imported/global target proof labels, and already
+  target-present call-contract proof labels.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object
