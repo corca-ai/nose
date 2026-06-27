@@ -26,6 +26,12 @@ break.
   same-role parameter affixes and immutable literal bindings, while keeping
   wrong parameters, dynamic affix expressions, mutated bindings, Python tuple
   affixes, and JS/Java offset forms out of whole-string prefix proof.
+- Added import-backed immutable value provenance for dependency-backed root
+  literals and Go namespace members. Imported exact families now cover the
+  initial #567 product slice: Python/Java/Go map-default values,
+  TypeScript/Rust collection membership, and TypeScript/Java/Rust/Go string
+  affix coordinates, with hard negatives for mutated providers, wrong defaults,
+  consumer namespace shadowing, and dynamic re-export paths.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object
@@ -35,6 +41,14 @@ break.
   JavaScript receivers, borrowed prototype calls, custom same-name methods,
   wrappers, offsets, conditional prototype writes, nested/block-scope shadow
   names, and `Object.defineProperty` prototype writes.
+
+### Performance
+- Compared the #567 import-backed immutable provenance change against
+  `origin/main` (`dbb688e7`) with release `nose query crates all top=0 --mode
+  semantic --format json` and `NOSE_TIME` over five paired runs. Median wall
+  time stayed in budget at `0.92s -> 0.95s` (+3.3%), `import-resolve` stayed in
+  budget at `145.4ms -> 151.7ms` (+4.3%), and the rendered JSON size stayed
+  identical at 54,288 bytes.
 
 ## [0.16.0] - 2026-06-26
 

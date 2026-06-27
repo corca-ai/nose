@@ -4,6 +4,8 @@ use super::*;
 mod dynamic_membership;
 #[path = "semantic_idioms/guards.rs"]
 mod guards;
+#[path = "semantic_idioms/imported_immutable.rs"]
+mod imported_immutable;
 #[path = "semantic_idioms/library_api.rs"]
 mod library_api;
 #[path = "semantic_idioms/literal_membership.rs"]

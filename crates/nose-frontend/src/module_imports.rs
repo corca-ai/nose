@@ -10,6 +10,7 @@
 mod bindings;
 mod exports;
 mod modules;
+mod namespace_members;
 mod snapshot;
 
 use bindings::{
@@ -17,12 +18,13 @@ use bindings::{
 };
 use exports::collect_literal_exports;
 use modules::file_module_hashes;
+use namespace_members::{collect_namespace_member_replacements, NamespaceMemberReplacement};
 use nose_il::{EvidenceId, Il, Interner, NodeId};
 use nose_semantics::semantics;
 use snapshot::{
     append_snapshot, prepend_root_statement, record_immutable_literal_export_evidence,
-    record_imported_literal_snapshot_evidence, replace_assignment_rhs, snapshot_subtree,
-    SubtreeSnapshot,
+    record_imported_literal_snapshot_evidence, replace_assignment_rhs, replace_node_references,
+    snapshot_subtree, SubtreeSnapshot,
 };
 
 #[derive(Clone)]
@@ -101,21 +103,25 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
                 .collect()
         })
         .collect();
+    let namespace_replacements =
+        collect_namespace_member_replacements(files, interner, &contexts, &exports);
 
+    apply_import_replacements(files, replacements);
+    apply_namespace_member_replacements(files, namespace_replacements);
+}
+
+fn apply_import_replacements(files: &mut [Il], replacements: Vec<Vec<ImportReplacement>>) {
     for (file_idx, file_replacements) in replacements.into_iter().enumerate() {
         for replacement in file_replacements {
-            let mut snapshot_evidence = Vec::new();
-            for dep in replacement.deps {
-                let dep = append_snapshot(&mut files[file_idx], &dep);
-                snapshot_evidence.extend(dep.evidence);
-                prepend_root_statement(&mut files[file_idx], dep.root);
-            }
-            let rhs = append_snapshot(&mut files[file_idx], &replacement.rhs_snapshot);
-            snapshot_evidence.extend(rhs.evidence);
-            replace_assignment_rhs(&mut files[file_idx], replacement.stmt, rhs.root);
+            let (rhs, snapshot_evidence) = append_replacement_snapshot(
+                &mut files[file_idx],
+                replacement.deps,
+                replacement.rhs_snapshot,
+            );
+            replace_assignment_rhs(&mut files[file_idx], replacement.stmt, rhs);
             record_imported_literal_snapshot_evidence(
                 &mut files[file_idx],
-                rhs.root,
+                rhs,
                 replacement.module_hash,
                 replacement.exported_hash,
                 replacement.import_evidence,
@@ -123,6 +129,46 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
             );
         }
     }
+}
+
+fn apply_namespace_member_replacements(
+    files: &mut [Il],
+    replacements: Vec<Vec<NamespaceMemberReplacement>>,
+) {
+    for (file_idx, file_replacements) in replacements.into_iter().enumerate() {
+        for replacement in file_replacements {
+            let (rhs, snapshot_evidence) = append_replacement_snapshot(
+                &mut files[file_idx],
+                replacement.deps,
+                replacement.rhs_snapshot,
+            );
+            replace_node_references(&mut files[file_idx], replacement.node, rhs);
+            record_imported_literal_snapshot_evidence(
+                &mut files[file_idx],
+                rhs,
+                replacement.module_hash,
+                replacement.exported_hash,
+                replacement.import_evidence,
+                snapshot_evidence,
+            );
+        }
+    }
+}
+
+fn append_replacement_snapshot(
+    il: &mut Il,
+    deps: Vec<SubtreeSnapshot>,
+    rhs_snapshot: SubtreeSnapshot,
+) -> (NodeId, Vec<EvidenceId>) {
+    let mut snapshot_evidence = Vec::new();
+    for dep in deps {
+        let dep = append_snapshot(il, &dep);
+        snapshot_evidence.extend(dep.evidence);
+        prepend_root_statement(il, dep.root);
+    }
+    let rhs = append_snapshot(il, &rhs_snapshot);
+    snapshot_evidence.extend(rhs.evidence);
+    (rhs.root, snapshot_evidence)
 }
 
 struct FileImportContext {
@@ -135,7 +181,8 @@ impl FileImportContext {
     fn new(il: &Il, interner: &Interner) -> Self {
         let module_semantics = semantics(il.meta.lang).modules();
         let participates = module_semantics.sibling_literal_exports()
-            || module_semantics.java_class_literal_exports();
+            || module_semantics.java_class_literal_exports()
+            || module_semantics.go_import_namespace_facts();
         Self {
             top_level: participates.then(|| collect_top_level_statements(il)),
             module_hashes: file_module_hashes(il),

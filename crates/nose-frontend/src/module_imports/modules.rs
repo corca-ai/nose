@@ -1,4 +1,4 @@
-use nose_il::{stable_symbol_hash, Il, Interner, Symbol};
+use nose_il::{stable_symbol_hash, Il, Interner, Lang, Symbol};
 use nose_semantics::semantics;
 use rustc_hash::FxHashSet;
 use std::path::Path;
@@ -24,6 +24,9 @@ pub(super) fn file_module_hashes(il: &Il) -> Vec<u64> {
             hashes.push(stable_symbol_hash(&format!("crate::{module}")));
             hashes.push(stable_symbol_hash(&format!("self::{module}")));
         }
+    }
+    if il.meta.lang == Lang::Go {
+        hashes.extend(go_directory_module_hashes(&il.meta.path));
     }
     dedupe_hashes(hashes)
 }
@@ -114,6 +117,17 @@ fn suffix_module_names(parts: &[String], separator: &str) -> Vec<String> {
         }
     }
     out
+}
+
+fn go_directory_module_hashes(path: &str) -> Vec<u64> {
+    let Some(mut parts) = path_parts_without_extension(path, &["go"]) else {
+        return Vec::new();
+    };
+    parts.pop();
+    suffix_module_names(&parts, "/")
+        .into_iter()
+        .map(|module| stable_symbol_hash(&module))
+        .collect()
 }
 
 fn dedupe_hashes(hashes: Vec<u64>) -> Vec<u64> {

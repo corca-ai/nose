@@ -182,6 +182,59 @@ fn resolve_imported_literal_records_snapshot_provenance_dependencies() {
 }
 
 #[test]
+fn resolve_imported_root_literal_records_snapshot_provenance() {
+    let interner = Interner::new();
+    let provider = crate::lower_source(
+        FileId(0),
+        "prefixes.py",
+        b"PREFIX = \"pre\"\n",
+        Lang::Python,
+        &interner,
+    )
+    .expect("lower Python provider");
+    let importer = crate::lower_source(
+        FileId(1),
+        "consumer.py",
+        b"from prefixes import PREFIX\n",
+        Lang::Python,
+        &interner,
+    )
+    .expect("lower Python importer");
+
+    let mut files = vec![provider, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+    let import_stmt = super::super::bindings::collect_top_level_statements(&files[1])
+        .into_iter()
+        .find(|&stmt| {
+            super::super::bindings::assignment_name(&files[1], stmt)
+                .is_some_and(|name| interner.resolve(name) == "PREFIX")
+        })
+        .expect("import assignment");
+    let replaced_rhs = assignment_rhs(&files[1], import_stmt).unwrap();
+
+    assert_eq!(files[1].kind(replaced_rhs), NodeKind::Lit);
+    assert_eq!(
+        files[1].node(replaced_rhs).span.file,
+        FileId(0),
+        "copied root literal keeps provider source origin"
+    );
+    assert!(
+        files[1].evidence.iter().any(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot {
+                    module_hash,
+                    exported_hash,
+                    root_kind: NodeKind::Lit,
+                }) if module_hash == stable_symbol_hash("prefixes")
+                    && exported_hash == stable_symbol_hash("PREFIX")
+            )
+        }),
+        "root literals should carry imported snapshot provenance"
+    );
+}
+
+#[test]
 fn resolve_imported_literal_does_not_snapshot_across_languages() {
     let interner = Interner::new();
     let lookup = interner.intern("LOOKUP");

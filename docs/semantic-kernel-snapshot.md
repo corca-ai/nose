@@ -1,6 +1,6 @@
 # Semantic kernel snapshot
 
-Snapshot date: 2026-06-25. The current implementation has an internal
+Snapshot date: 2026-06-27. The current implementation has an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,
@@ -8,6 +8,9 @@ receiver-domain evidence resolution, and a shared evidence-record substrate for
 source, domain, import, symbol-identity, type-alias, guard,
 place/effect, mutation-risk effect, selected library API occurrence,
 value-domain/law contracts, and sequence-surface facts.
+Cross-file immutable import replacement now covers dependency-backed root
+literals, supported imported collection/map values, and Go imported namespace
+members without treating raw names or import coordinate literals as proof.
 JS/TS, Python, and Rust `await` expressions are preserved as raw async protocol
 boundaries with `Source::Protocol(Await)` evidence instead of being erased into
 their operand. JS/TS and Python `yield` expressions are preserved as generator
@@ -900,9 +903,15 @@ migrated.
   occurrences. The replacement records `ImportedLiteralSnapshot` provenance
   depending on the importer static import proof plus copied provider evidence.
   Provider-side literal export safety now consumes a shared `nose-semantics`
-  helper that requires sequence-surface proof for literal containers and shared
-  admitted occurrence resolvers for Java/Rust map factory calls; raw
-  import-coordinate sequences remain rejected as provider literal children.
+  helper that admits concrete root literals, requires sequence-surface proof for
+  literal containers, uses the Go zero-map literal/entry contracts for imported
+  Go map values, and uses shared admitted occurrence resolvers for Java/Rust map
+  factory calls; raw import-coordinate sequences remain rejected as provider
+  literal children. Go namespace-member consumers such as `tables.Lookup` can be
+  replaced with a provider snapshot only when the namespace import proof is
+  asserted, the provider export is unique and immutable, the consumer namespace
+  is not rebound or parameter-shadowed, and the selected member is not written,
+  receiver-mutated, or passed to an opaque escaping call.
   Provider and importer module-binding mutation proof now consumes shared
   mutation-risk `Effect` evidence and rejects direct binding mutations, direct
   place writes such as `LOOKUP.clear()`, `LOOKUP.push(...)`, and
@@ -1129,7 +1138,11 @@ Semantic knowledge still appears in several forms outside the facade:
   now a shared `nose-semantics` policy. Replacement copies the provider's closed
   evidence subgraph into the importer, preserves provider source-origin spans,
   rewires dependency ids, and records `ImportedLiteralSnapshot` provenance tied
-  to the importer static import proof;
+  to the importer static import proof. The current positive product slice covers
+  imported map-default values for Python, Java, and Go, imported immutable
+  collection membership for TypeScript and Rust, and imported string-affix
+  coordinates for TypeScript, Java, Rust, and Go, with mutation, shadowing,
+  wrong-default, and re-export hard negatives;
 - broader value-domain evidence and LawPack records beyond the current
   first-party `nose.value_graph.laws` pilot for factor distribution and clamp;
 - named value-graph rule modules that still consume internal `Builder` facts

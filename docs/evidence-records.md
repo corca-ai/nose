@@ -743,9 +743,15 @@ callers:
   rewiring dependency ids, then records `Import(ImportedLiteralSnapshot)`
   provenance that depends on the importer import proof and copied provider
   evidence. Provider literal export safety is now a shared `nose-semantics`
-  policy requiring sequence-surface proof for literal containers and admitted
-  `LibraryApi` proof for supported Java/Rust map factories, while corpus-level
-  module/export matching remains frontend-owned;
+  policy admitting concrete root literals, requiring sequence-surface proof for
+  literal containers, using Go zero-map literal/entry contracts for Go imported
+  map values, and requiring admitted `LibraryApi` proof for supported Java/Rust
+  map factories, while corpus-level module/export matching remains
+  frontend-owned. Go namespace-member snapshots such as `tables.Lookup` are
+  consumer rewrites, not broad namespace proof: they require asserted namespace
+  import evidence, a unique provider export, no provider mutation/escape, no
+  consumer namespace rebinding or parameter shadowing, and no member write,
+  receiver mutation, or opaque argument escape;
 - imported namespace/binding symbol proof for normalize idiom admission,
   value-graph namespace fallbacks, and strict exact gates, without raw assignment
   fallback;

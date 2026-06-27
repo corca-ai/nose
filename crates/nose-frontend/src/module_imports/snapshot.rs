@@ -312,6 +312,17 @@ pub(super) fn replace_assignment_rhs(il: &mut Il, stmt: NodeId, rhs: NodeId) {
     }
 }
 
+pub(super) fn replace_node_references(il: &mut Il, old: NodeId, new: NodeId) {
+    for edge in &mut il.edges {
+        if *edge == old {
+            *edge = new;
+        }
+    }
+    if il.root == old {
+        il.root = new;
+    }
+}
+
 pub(super) fn record_imported_literal_snapshot_evidence(
     il: &mut Il,
     rhs: NodeId,

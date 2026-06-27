@@ -9,6 +9,11 @@ pub(super) struct ImportBindingProof {
     pub(super) evidence: EvidenceId,
 }
 
+pub(super) struct ImportNamespaceProof {
+    pub(super) module_hash: u64,
+    pub(super) evidence: EvidenceId,
+}
+
 pub(super) fn import_dependency_snapshots(
     il: &Il,
     rhs: NodeId,
@@ -85,6 +90,19 @@ pub(super) fn import_binding_proof(il: &Il, stmt: NodeId) -> Option<ImportBindin
     Some(ImportBindingProof {
         module_hash: fact.module_hash,
         exported_hash,
+        evidence: proof.evidence,
+    })
+}
+
+pub(super) fn import_namespace_proof(il: &Il, stmt: NodeId) -> Option<ImportNamespaceProof> {
+    let rhs = assignment_rhs(il, stmt)?;
+    let proof = import_fact_proof_rhs(il, rhs)?;
+    let fact = proof.fact;
+    if fact.kind != ImportFactKind::Namespace {
+        return None;
+    }
+    Some(ImportNamespaceProof {
+        module_hash: fact.module_hash,
         evidence: proof.evidence,
     })
 }

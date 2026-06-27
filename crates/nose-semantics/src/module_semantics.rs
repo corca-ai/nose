@@ -71,6 +71,13 @@ impl ModuleSemantics {
                 drop_init_file: false,
                 rust_crate_self_aliases: true,
             }),
+            Lang::Go => Some(ModulePathSpec {
+                extensions: &["go"],
+                separator: "/",
+                include_relative_dot: false,
+                drop_init_file: false,
+                rust_crate_self_aliases: false,
+            }),
             _ => None,
         }
     }
