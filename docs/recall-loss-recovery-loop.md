@@ -311,6 +311,20 @@ as `provider-reexport-*` boundary reasons. Hard gates remain at
 measurement is
 [`issue-587-reexport-pricing.v1.json`](../bench/recall_loss/issue-587-reexport-pricing.v1.json).
 
+The #587 residual census checks whether another same-repo provider-resolution
+slice is warranted before widening implementation. After the re-export slice,
+the remaining generic module/export target is `91` rows, or `92` if the
+re-export target-export tail is included. Most of that is not same-repo module
+resolution: `75` rows are external crate imports (`rustc_hash`, `tree_sitter`,
+`anyhow`, `serde`, `regex`, `clap`, `ignore`), `2` are residual workspace-crate
+boundary gaps, and `2` are residual `std::cell` rows. The same-repo tail is much
+smaller: `9` relative-`super` rows and `2` local export misses. The next
+implementation slice should therefore split external/std/workspace residuals
+out of `provider-module-missing` as explicit closed boundaries before deciding
+whether the relative-`super` tail is worth opening. The checked-in measurement
+is
+[`issue-587-residual-census.v1.json`](../bench/recall_loss/issue-587-residual-census.v1.json).
+
 ## See Also
 
 - [recall-loss-diagnostics](recall-loss-diagnostics.md)

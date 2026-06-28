@@ -1,0 +1,71 @@
+{
+  "schema": "nose.recall_loss.issue_587.residual_census.v1",
+  "issue": 587,
+  "slice": "post-reexport residual module/export census",
+  "date": "2026-06-28",
+  "source_report": "target/recall-loss.issue-587-reexport-after.json",
+  "baseline_artifact": "bench/recall_loss/issue-587-reexport-pricing.v1.json",
+  "goal": "Classify the remaining generic Rust module/export misses after the #587 re-export slice before deciding whether another same-repo provider-resolution implementation is warranted.",
+  "summary": {
+    "snapshot_records": 1,
+    "unresolved_binding_imports": 386,
+    "generic_module_export_target_rows": 91,
+    "residual_rows_including_reexport_target": 92
+  },
+  "residual_by_reason": {
+    "provider-module-missing": 89,
+    "provider-export-missing": 2,
+    "provider-reexport-target-export-missing": 1
+  },
+  "residual_classification": {
+    "external_crate_boundary": 75,
+    "relative_super_residual": 9,
+    "workspace_crate_boundary_gap": 2,
+    "rust_stdlib_boundary_gap": 2,
+    "local_export_missing": 2,
+    "non_use_anchor_noise": 1,
+    "reexport_target_export_missing": 1
+  },
+  "external_crate_roots": {
+    "rustc_hash": 25,
+    "tree_sitter": 21,
+    "anyhow": 15,
+    "serde": 10,
+    "regex": 2,
+    "clap": 1,
+    "ignore": 1
+  },
+  "representatives": {
+    "relative_super_residual": [
+      "crates/nose-detect/src/report/tests/support.rs:4 use super::super::RefactorFamily;",
+      "crates/nose-detect/src/units/features.rs:1 use super::UnitExtractCtx;",
+      "crates/nose-frontend/src/module_imports/tests/support.rs:1 use super::super::resolve_imported_immutable_bindings;",
+      "crates/nose-normalize/src/recursion/tail.rs:5 use super::Rebuilder;"
+    ],
+    "local_export_missing": [
+      "crates/nose-il/src/unit.rs:2 use crate::node::NodeId;",
+      "crates/nose-semantics/src/library_api/imported_occurrences.rs:2 use crate::evidence::span_contains;"
+    ],
+    "workspace_crate_boundary_gap": [
+      "crates/nose-detect/src/report/tests/support.rs:2 use nose_il::UnitKind::Function;",
+      "crates/nose-frontend/src/module_imports/diagnostics.rs:7 use nose_il::{Corpus, EvidenceKind, Il, ImportEvidenceKind, Interner};"
+    ],
+    "rust_stdlib_boundary_gap": [
+      "crates/nose-normalize/src/library_api_evidence.rs:26 use std::cell::RefCell;",
+      "crates/nose-semantics/src/evidence/domain.rs:3 use std::cell::RefCell;"
+    ],
+    "reexport_target_export_missing": [
+      "crates/nose-semantics/src/packs/tests/descriptor_enumeration/group_2.rs:2 use crate::PYTHON_STDLIB_TYPE_DOMAIN_PRODUCER_ID;"
+    ]
+  },
+  "decision": {
+    "next_pr": "Split external crate, residual workspace-crate, and residual stdlib imports out of provider-module-missing as explicit closed boundaries.",
+    "do_not_admit": [
+      "external crates as provider modules",
+      "stdlib modules as provider files",
+      "workspace crate imports without a separate cross-crate import capability",
+      "relative-super imports until a focused same-repo provider slice proves unique ownership"
+    ],
+    "expected_effect": "provider-module-missing should drop from 89 to roughly 10 without changing snapshot_records, false_merges, or canon_preservation_violations."
+  }
+}

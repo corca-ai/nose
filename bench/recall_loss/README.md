@@ -102,3 +102,7 @@ slice.
   records the direct Rust public re-export slice: one-hop `pub use` lookup for
   already literal-safe provider exports, bare child module aliases, and
   re-export-specific boundary reasons.
+- [issue-587-residual-census.v1.json](issue-587-residual-census.v1.json)
+  records the post-re-export #587 residual census: the remaining generic
+  module/export misses are mostly external crate imports, with a smaller
+  relative-`super` and local export tail for follow-up triage.

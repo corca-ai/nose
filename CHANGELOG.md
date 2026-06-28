@@ -134,6 +134,11 @@ break.
   `provider-export-missing` moves `9 -> 2`, and re-export targets are reported
   through dedicated `provider-reexport-*` boundary reasons with zero false
   merges and zero canon-preservation violations.
+- Added the #587 residual module/export census. The remaining generic target is
+  mostly external crate imports rather than same-repo Rust resolution: `75`
+  external crate rows, `2` residual workspace-crate rows, and `2` residual
+  `std::cell` rows, leaving a much smaller same-repo tail of `9`
+  relative-`super` rows and `2` local export misses.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object
