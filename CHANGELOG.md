@@ -135,10 +135,17 @@ break.
   through dedicated `provider-reexport-*` boundary reasons with zero false
   merges and zero canon-preservation violations.
 - Added the #587 residual module/export census. The remaining generic target is
-  mostly external crate imports rather than same-repo Rust resolution: `75`
-  external crate rows, `2` residual workspace-crate rows, and `2` residual
-  `std::cell` rows, leaving a much smaller same-repo tail of `9`
+  mostly external crate imports rather than same-repo Rust resolution: `76`
+  external crate rows, `1` residual workspace-crate row, and `2` residual
+  `std::cell` rows, leaving a much smaller same-repo tail of `11`
   relative-`super` rows and `2` local export misses.
+- Added the #587 residual boundary split. Known external dependency imports now
+  report as `provider-external-crate-boundary`, residual `std::cell` imports
+  join the stdlib boundary, and a residual `nose_il::UnitKind` type-namespace
+  import joins the workspace-crate boundary. On `crates`,
+  `provider-module-missing` moves `90 -> 11`, generic module/export target rows
+  move `92 -> 13`, imported snapshot records stay `1`, and hard gates remain at
+  zero false merges and zero canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

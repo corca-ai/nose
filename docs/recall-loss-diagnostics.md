@@ -90,10 +90,12 @@ include:
 | `provider-module-missing` | The imported module hash has no provider file in the analyzed corpus. |
 | `provider-export-missing` | A provider module exists, but no matching exported binding was found. |
 | `provider-export-ambiguous` | More than one provider binding could own the same module/export coordinate. |
+| `provider-external-crate-boundary` | The import targets a known external crate dependency, which is outside same-corpus provider lookup. |
 | `provider-reexport-ambiguous` | More than one direct public re-export could own the requested module/export coordinate. |
 | `provider-reexport-callable-boundary` | A direct public re-export resolves to a callable item, not an immutable literal provider value. |
 | `provider-reexport-type-boundary` | A direct public re-export resolves to a type item, not an immutable literal provider value. |
 | `provider-reexport-module-namespace-boundary` | A direct public re-export resolves to a module namespace, not an immutable literal provider value. |
+| `provider-reexport-external-crate-boundary` | A direct public re-export target resolves to a known external crate boundary. |
 | `provider-reexport-target-export-missing` | A direct public re-export exists, but its target module has no matching export in the analyzed corpus. |
 | `provider-reexport-target-module-missing` | A direct public re-export exists, but its target module is not resolved in the analyzed corpus. |
 | `cross-language-boundary` | A same-coordinate provider exists only in a different lowered language. |

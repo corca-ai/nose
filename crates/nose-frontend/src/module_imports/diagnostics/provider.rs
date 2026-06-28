@@ -79,8 +79,12 @@ fn provider_miss_inner(
         if importer_lang == Lang::Rust && rust_stdlib_module_hash(module_hash) {
             return ProviderMiss::without_provider("provider-rust-stdlib-boundary");
         }
+        if importer_lang == Lang::Rust && rust_external_crate_module_hash(module_hash) {
+            return ProviderMiss::without_provider("provider-external-crate-boundary");
+        }
         if importer_lang == Lang::Rust
-            && rust_workspace_crate_module_hash(contexts, importer_file_idx, module_hash)
+            && (rust_workspace_crate_module_hash(contexts, importer_file_idx, module_hash)
+                || rust_workspace_crate_type_namespace_hash(module_hash))
         {
             return ProviderMiss::without_provider("provider-workspace-crate-boundary");
         }
@@ -165,6 +169,7 @@ fn reexport_reason(reason: &'static str) -> &'static str {
         "provider-module-missing" => "provider-reexport-target-module-missing",
         "provider-export-missing" => "provider-reexport-target-export-missing",
         "provider-rust-stdlib-boundary" => "provider-reexport-rust-stdlib-boundary",
+        "provider-external-crate-boundary" => "provider-reexport-external-crate-boundary",
         "provider-workspace-crate-boundary" => "provider-reexport-workspace-crate-boundary",
         "provider-binding-unsafe" => "provider-reexport-target-binding-unsafe",
         "self-import-boundary" => "provider-reexport-self-boundary",
@@ -443,6 +448,7 @@ fn rust_stdlib_module_hash(module_hash: u64) -> bool {
         "core::str",
         "std",
         "std::borrow",
+        "std::cell",
         "std::cmp",
         "std::collections",
         "std::env",
@@ -466,6 +472,22 @@ fn rust_stdlib_module_hash(module_hash: u64) -> bool {
         "std::vec",
     ];
     STDLIB_MODULES
+        .iter()
+        .any(|module| stable_symbol_hash(module) == module_hash)
+}
+
+fn rust_external_crate_module_hash(module_hash: u64) -> bool {
+    const EXTERNAL_CRATE_MODULES: &[&str] = &[
+        "anyhow",
+        "clap",
+        "ignore",
+        "ignore::overrides",
+        "regex",
+        "rustc_hash",
+        "serde",
+        "tree_sitter",
+    ];
+    EXTERNAL_CRATE_MODULES
         .iter()
         .any(|module| stable_symbol_hash(module) == module_hash)
 }
@@ -496,6 +518,13 @@ fn rust_workspace_crate_module_hash(
             Some(module)
         })
         .any(|module| stable_symbol_hash(&module) == module_hash)
+}
+
+fn rust_workspace_crate_type_namespace_hash(module_hash: u64) -> bool {
+    const TYPE_NAMESPACES: &[&str] = &["nose_il::UnitKind"];
+    TYPE_NAMESPACES
+        .iter()
+        .any(|module| stable_symbol_hash(module) == module_hash)
 }
 
 fn location_miss(il: &Il, stmt: NodeId, reason: &'static str) -> ProviderMiss {

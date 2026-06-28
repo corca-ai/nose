@@ -312,18 +312,32 @@ measurement is
 [`issue-587-reexport-pricing.v1.json`](../bench/recall_loss/issue-587-reexport-pricing.v1.json).
 
 The #587 residual census checks whether another same-repo provider-resolution
-slice is warranted before widening implementation. After the re-export slice,
-the remaining generic module/export target is `91` rows, or `92` if the
-re-export target-export tail is included. Most of that is not same-repo module
-resolution: `75` rows are external crate imports (`rustc_hash`, `tree_sitter`,
-`anyhow`, `serde`, `regex`, `clap`, `ignore`), `2` are residual workspace-crate
-boundary gaps, and `2` are residual `std::cell` rows. The same-repo tail is much
-smaller: `9` relative-`super` rows and `2` local export misses. The next
+slice is warranted before widening implementation. After the re-export slice
+and diagnostics module split, the remaining generic module/export target is
+`92` rows, or `93` if the re-export target-export tail is included. Most of
+that is not same-repo module resolution: `76` rows are external crate imports
+(`rustc_hash`, `tree_sitter`, `anyhow`, `serde`, `regex`, `clap`, `ignore`),
+`1` is a residual workspace-crate boundary gap, and `2` are residual
+`std::cell` rows. The same-repo tail is much smaller: `11` relative-`super`
+rows and `2` local export misses. The next
 implementation slice should therefore split external/std/workspace residuals
 out of `provider-module-missing` as explicit closed boundaries before deciding
 whether the relative-`super` tail is worth opening. The checked-in measurement
 is
 [`issue-587-residual-census.v1.json`](../bench/recall_loss/issue-587-residual-census.v1.json).
+
+The #587 residual boundary split implements that diagnostics-only step. Known
+external crate imports now report as `provider-external-crate-boundary`,
+residual `std::cell` imports join `provider-rust-stdlib-boundary`, and the
+remaining `nose_il::UnitKind` type-namespace import joins
+`provider-workspace-crate-boundary`. This does not admit new snapshot values;
+it only prices closed boundaries more accurately. On `crates`,
+`provider-module-missing` moves `90 -> 11`, generic module/export target rows
+move `92 -> 13`, and the residual set including the re-export target-export tail
+moves `93 -> 14`. Successful imported snapshot records stay `1`; hard gates
+remain at `false_merges == 0` and `canon_preservation_violations == 0`. The
+checked-in measurement is
+[`issue-587-residual-boundary-split.v1.json`](../bench/recall_loss/issue-587-residual-boundary-split.v1.json).
 
 ## See Also
 

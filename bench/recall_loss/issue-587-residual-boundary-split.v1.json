@@ -1,0 +1,72 @@
+{
+  "schema": "nose.recall_loss.issue_587.residual_boundary_split.v1",
+  "issue": 587,
+  "slice": "external, stdlib, and workspace residual boundary split",
+  "date": "2026-06-28",
+  "command": "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-587-boundaries-after.json",
+  "baseline_artifact": "bench/recall_loss/issue-587-residual-census.v1.json",
+  "goal": "Move residual external crate, stdlib, and workspace-crate imports out of provider-module-missing without admitting them as provider modules or snapshot values.",
+  "hard_gates": {
+    "false_merges": 0,
+    "canon_preservation_violations": 0,
+    "completeness": "39/83"
+  },
+  "before": {
+    "source": "target/recall-loss.issue-587-boundaries-before.json",
+    "snapshot_records": 1,
+    "unresolved_binding_imports": 388,
+    "generic_module_export_target_rows": 92,
+    "residual_rows_including_reexport_target": 93,
+    "misses_by_reason": {
+      "provider-module-missing": 90,
+      "provider-export-missing": 2,
+      "provider-reexport-target-export-missing": 1,
+      "provider-rust-stdlib-boundary": 48,
+      "provider-workspace-crate-boundary": 47
+    }
+  },
+  "after": {
+    "source": "target/recall-loss.issue-587-boundaries-after.json",
+    "snapshot_records": 1,
+    "unresolved_binding_imports": 388,
+    "generic_module_export_target_rows": 13,
+    "residual_rows_including_reexport_target": 14,
+    "misses_by_reason": {
+      "provider-external-crate-boundary": 76,
+      "provider-module-missing": 11,
+      "provider-export-missing": 2,
+      "provider-reexport-target-export-missing": 1,
+      "provider-rust-stdlib-boundary": 50,
+      "provider-workspace-crate-boundary": 48
+    }
+  },
+  "deltas": {
+    "snapshot_records": 0,
+    "provider-module-missing": -79,
+    "generic_module_export_target_rows": -79,
+    "provider-external-crate-boundary": 76,
+    "provider-rust-stdlib-boundary": 2,
+    "provider-workspace-crate-boundary": 1
+  },
+  "implemented_capabilities": [
+    "Rust import snapshot diagnostics now report known external dependency imports as provider-external-crate-boundary instead of generic provider-module-missing.",
+    "The residual std::cell import rows now join provider-rust-stdlib-boundary.",
+    "The residual nose_il::UnitKind type-namespace import now joins provider-workspace-crate-boundary.",
+    "No new imported snapshot admission path was added; these imports remain closed provider boundaries."
+  ],
+  "remaining_same_repo_tail": {
+    "provider-module-missing": 11,
+    "provider-export-missing": 2,
+    "provider-reexport-target-export-missing": 1,
+    "representatives": [
+      "crates/nose-detect/src/report/tests/support.rs:4 use super::super::RefactorFamily;",
+      "crates/nose-frontend/src/module_imports/tests/support.rs:1 use super::super::resolve_imported_immutable_bindings;",
+      "crates/nose-il/src/unit.rs:2 use crate::node::NodeId;",
+      "crates/nose-semantics/src/library_api/imported_occurrences.rs:2 use crate::evidence::span_contains;"
+    ]
+  },
+  "validation": [
+    "cargo test -p nose-frontend module_imports --lib",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-587-boundaries-after.json"
+  ]
+}

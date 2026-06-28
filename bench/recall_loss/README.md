@@ -106,3 +106,7 @@ slice.
   records the post-re-export #587 residual census: the remaining generic
   module/export misses are mostly external crate imports, with a smaller
   relative-`super` and local export tail for follow-up triage.
+- [issue-587-residual-boundary-split.v1.json](issue-587-residual-boundary-split.v1.json)
+  records the #587 residual boundary split: external crate, residual stdlib, and
+  residual workspace-crate imports are priced as explicit closed boundaries
+  instead of generic provider-module misses.

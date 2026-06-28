@@ -255,7 +255,9 @@ fn rust_census_splits_non_value_and_unsupported_provider_boundaries() {
 use crate::helpers;\n\
 use crate::helpers::run;\n\
 use crate::model::Thing;\n\
+use anyhow::Result;\n\
 use std::path::Path;\n\
+use std::cell::RefCell;\n\
 fn f() {}\n",
             &interner,
         ),
@@ -271,15 +273,22 @@ fn f() {}\n",
             "use other_crate::other;\nfn f() {}\n",
             &interner,
         ),
+        lower_rust_file(
+            FileId(6),
+            "crates/demo/src/workspace_type_consumer.rs",
+            "use nose_il::UnitKind::Function;\nfn f() {}\n",
+            &interner,
+        ),
     ];
     let corpus = Corpus::new(interner, files);
     let census = imported_immutable_snapshot_census(&corpus);
 
     assert_reason_count(&census, "provider-callable-export-boundary", 1);
+    assert_reason_count(&census, "provider-external-crate-boundary", 1);
     assert_reason_count(&census, "provider-module-namespace-boundary", 1);
-    assert_reason_count(&census, "provider-rust-stdlib-boundary", 1);
+    assert_reason_count(&census, "provider-rust-stdlib-boundary", 2);
     assert_reason_count(&census, "provider-type-export-boundary", 1);
-    assert_reason_count(&census, "provider-workspace-crate-boundary", 1);
+    assert_reason_count(&census, "provider-workspace-crate-boundary", 2);
 }
 
 fn lower_rust_file(file: FileId, path: &str, src: &str, interner: &Interner) -> nose_il::Il {
