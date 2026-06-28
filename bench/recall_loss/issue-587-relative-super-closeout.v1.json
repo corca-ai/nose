@@ -1,0 +1,75 @@
+{
+  "schema": "nose.recall_loss.issue_587.relative_super_closeout.v1",
+  "issue": 587,
+  "slice": "relative super parent-module closeout",
+  "date": "2026-06-28",
+  "command": "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-587-relative-super-after.json",
+  "baseline_artifact": "bench/recall_loss/issue-587-residual-boundary-split.v1.json",
+  "goal": "Resolve the remaining relative-super Rust provider-module misses by matching imports that name the parent or grandparent module itself.",
+  "hard_gates": {
+    "false_merges": 0,
+    "canon_preservation_violations": 0,
+    "completeness": "39/83"
+  },
+  "before": {
+    "source": "target/recall-loss.issue-587-relative-super-before.json",
+    "snapshot_records": 1,
+    "unresolved_binding_imports": 388,
+    "generic_module_export_target_rows": 13,
+    "residual_rows_including_reexport_target": 14,
+    "misses_by_reason": {
+      "provider-module-missing": 11,
+      "provider-export-missing": 2,
+      "provider-reexport-target-export-missing": 1,
+      "provider-callable-export-boundary": 107,
+      "provider-type-export-boundary": 62,
+      "provider-reexport-type-boundary": 4
+    }
+  },
+  "after": {
+    "source": "target/recall-loss.issue-587-relative-super-after.json",
+    "snapshot_records": 1,
+    "unresolved_binding_imports": 388,
+    "generic_module_export_target_rows": 2,
+    "residual_rows_including_reexport_target": 3,
+    "misses_by_reason": {
+      "provider-module-missing": 0,
+      "provider-export-missing": 2,
+      "provider-reexport-target-export-missing": 1,
+      "provider-callable-export-boundary": 110,
+      "provider-type-export-boundary": 69,
+      "provider-reexport-type-boundary": 5
+    }
+  },
+  "deltas": {
+    "snapshot_records": 0,
+    "provider-module-missing": -11,
+    "generic_module_export_target_rows": -11,
+    "residual_rows_including_reexport_target": -11,
+    "provider-callable-export-boundary": 3,
+    "provider-type-export-boundary": 7,
+    "provider-reexport-type-boundary": 1
+  },
+  "implemented_capabilities": [
+    "Rust importer-relative provider lookup now treats super and repeated super aliases as the parent module itself when the provider module is exactly that ancestor.",
+    "Imports such as use super::Item and use super::super::Item now find same-crate parent or grandparent module providers.",
+    "Literal-safe parent-module exports can be snapshotted through those aliases; the current crates corpus has no new literal snapshot records in this slice.",
+    "Non-value parent-module exports now close under callable, type, or re-export type boundary reasons instead of generic provider-module-missing."
+  ],
+  "remaining_same_repo_tail": {
+    "provider-module-missing": 0,
+    "provider-export-missing": 2,
+    "provider-reexport-target-export-missing": 1,
+    "representatives": [
+      "crates/nose-il/src/unit.rs:2 use crate::node::NodeId;",
+      "crates/nose-semantics/src/library_api/imported_occurrences.rs:2 use crate::evidence::span_contains;",
+      "crates/nose-semantics/src/packs/tests/descriptor_enumeration/group_2.rs:2 use crate::PYTHON_STDLIB_TYPE_DOMAIN_PRODUCER_ID;"
+    ]
+  },
+  "validation": [
+    "cargo fmt --all -- --check",
+    "cargo test -p nose-frontend module_imports --lib",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-587-relative-super-after.json",
+    "python3 scripts/recall-loss-diff.py target/recall-loss.issue-587-relative-super-before.json target/recall-loss.issue-587-relative-super-after.json"
+  ]
+}

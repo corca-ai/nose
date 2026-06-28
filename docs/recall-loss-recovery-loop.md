@@ -339,6 +339,22 @@ remain at `false_merges == 0` and `canon_preservation_violations == 0`. The
 checked-in measurement is
 [`issue-587-residual-boundary-split.v1.json`](../bench/recall_loss/issue-587-residual-boundary-split.v1.json).
 
+The #587 relative-`super` closeout handles the last generic Rust
+`provider-module-missing` rows. Importer-relative provider lookup already knew
+how to build aliases such as `super::child`; the missing case was when the
+import names the parent module itself, such as `use super::Item` or
+`use super::super::Item`. That alias now resolves to the same-crate parent or
+grandparent module provider. On `crates`, `provider-module-missing` moves
+`11 -> 0`, generic module/export target rows move `13 -> 2`, and the residual
+set including the re-export target-export tail moves `14 -> 3`. The moved rows
+remain closed as non-value boundaries (`provider-callable-export-boundary`,
+`provider-type-export-boundary`, or `provider-reexport-type-boundary`) rather
+than becoming snapshot values; successful imported snapshot records stay `1`,
+with `false_merges == 0` and `canon_preservation_violations == 0`. The remaining
+tail is export-only (`2` local export misses and `1` re-export target export
+miss), so #587's module-missing work is complete. The checked-in measurement is
+[`issue-587-relative-super-closeout.v1.json`](../bench/recall_loss/issue-587-relative-super-closeout.v1.json).
+
 ## See Also
 
 - [recall-loss-diagnostics](recall-loss-diagnostics.md)

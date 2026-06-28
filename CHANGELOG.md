@@ -146,6 +146,13 @@ break.
   `provider-module-missing` moves `90 -> 11`, generic module/export target rows
   move `92 -> 13`, imported snapshot records stay `1`, and hard gates remain at
   zero false merges and zero canon-preservation violations.
+- Added the #587 relative-super closeout. Rust provider lookup now treats
+  `super` and repeated `super` aliases as the parent module itself when an
+  import names a parent or grandparent module export directly. On `crates`,
+  `provider-module-missing` moves `11 -> 0`, generic module/export target rows
+  move `13 -> 2`, imported snapshot records stay `1`, and the moved rows close
+  as callable/type/re-export type boundaries with zero false merges and zero
+  canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

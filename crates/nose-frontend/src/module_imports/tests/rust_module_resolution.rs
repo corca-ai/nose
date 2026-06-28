@@ -5,102 +5,62 @@ use nose_il::{Corpus, FileId, Interner, Lang, NodeKind};
 
 #[test]
 fn rust_crate_import_resolves_mod_rs_literal_export() {
-    let interner = Interner::new();
-    let provider = lower_rust_file(
-        FileId(0),
+    assert_rust_literal_import_snapshot(
         "crates/demo/src/constants/mod.rs",
         "pub(crate) const LIMIT: i64 = 7;\n",
-        &interner,
-    );
-    let importer = lower_rust_file(
-        FileId(1),
         "crates/demo/src/consumer.rs",
         "use crate::constants::LIMIT;\nfn read() -> i64 { LIMIT }\n",
-        &interner,
+        "LIMIT",
+        NodeKind::Lit,
     );
-
-    let mut files = vec![provider, importer];
-    resolve_imported_immutable_bindings(&mut files, &interner);
-
-    assert_eq!(snapshot_count(&files[1]), 1);
-    let rhs = imported_binding_rhs(&files[1], &interner, "LIMIT");
-    assert_eq!(files[1].kind(rhs), NodeKind::Lit);
-    assert_eq!(files[1].node(rhs).span.file, FileId(0));
 }
 
 #[test]
 fn rust_super_import_resolves_parent_relative_literal_export() {
-    let interner = Interner::new();
-    let provider = lower_rust_file(
-        FileId(0),
+    assert_rust_literal_import_snapshot(
         "crates/demo/src/parent/constants.rs",
         "pub(crate) const LIMIT: i64 = 7;\n",
-        &interner,
-    );
-    let importer = lower_rust_file(
-        FileId(1),
         "crates/demo/src/parent/child.rs",
         "use super::constants::LIMIT;\nfn read() -> i64 { LIMIT }\n",
-        &interner,
+        "LIMIT",
+        NodeKind::Lit,
     );
+}
 
-    let mut files = vec![provider, importer];
-    resolve_imported_immutable_bindings(&mut files, &interner);
-
-    assert_eq!(snapshot_count(&files[1]), 1);
-    let rhs = imported_binding_rhs(&files[1], &interner, "LIMIT");
-    assert_eq!(files[1].kind(rhs), NodeKind::Lit);
-    assert_eq!(files[1].node(rhs).span.file, FileId(0));
+#[test]
+fn rust_super_import_resolves_parent_module_literal_export() {
+    assert_rust_literal_import_snapshot(
+        "crates/demo/src/units.rs",
+        "pub(crate) const LIMIT: i64 = 7;\n",
+        "crates/demo/src/units/features.rs",
+        "use super::LIMIT;\nfn read() -> i64 { LIMIT }\n",
+        "LIMIT",
+        NodeKind::Lit,
+    );
 }
 
 #[test]
 fn rust_bare_child_import_resolves_nested_module_literal_export() {
-    let interner = Interner::new();
-    let provider = lower_rust_file(
-        FileId(0),
+    assert_rust_literal_import_snapshot(
         "crates/demo/src/units/fragments/context.rs",
         "pub(crate) const LIMIT: i64 = 7;\n",
-        &interner,
-    );
-    let importer = lower_rust_file(
-        FileId(1),
         "crates/demo/src/units/fragments.rs",
         "use context::LIMIT;\nfn read() -> i64 { LIMIT }\n",
-        &interner,
+        "LIMIT",
+        NodeKind::Lit,
     );
-
-    let mut files = vec![provider, importer];
-    resolve_imported_immutable_bindings(&mut files, &interner);
-
-    assert_eq!(snapshot_count(&files[1]), 1);
-    let rhs = imported_binding_rhs(&files[1], &interner, "LIMIT");
-    assert_eq!(files[1].kind(rhs), NodeKind::Lit);
-    assert_eq!(files[1].node(rhs).span.file, FileId(0));
 }
 
 #[test]
 fn rust_bare_sibling_import_resolves_literal_export_without_src_root() {
-    let interner = Interner::new();
-    let provider = lower_rust_file(
-        FileId(0),
+    assert_rust_literal_import_snapshot(
         "fixtures/demo/rust_values.rs",
         "pub const VALUES: [&str; 2] = [\"red\", \"blue\"];\n",
-        &interner,
-    );
-    let importer = lower_rust_file(
-        FileId(1),
         "fixtures/demo/rust_imported_membership.rs",
         "use rust_values::VALUES;\n\npub fn membership(value: &str) -> bool {\n    VALUES.contains(&value)\n}\n",
-        &interner,
+        "VALUES",
+        NodeKind::Seq,
     );
-
-    let mut files = vec![provider, importer];
-    resolve_imported_immutable_bindings(&mut files, &interner);
-
-    assert_eq!(snapshot_count(&files[1]), 1);
-    let rhs = imported_binding_rhs(&files[1], &interner, "VALUES");
-    assert_eq!(files[1].kind(rhs), NodeKind::Seq);
-    assert_eq!(files[1].node(rhs).span.file, FileId(0));
 }
 
 #[test]
@@ -227,6 +187,43 @@ fn rust_reexport_to_callable_stays_non_value_boundary() {
 }
 
 #[test]
+fn rust_census_resolves_parent_module_relative_non_value_boundaries() {
+    let interner = Interner::new();
+    let files = vec![
+        lower_rust_file(
+            FileId(0),
+            "crates/demo/src/units.rs",
+            "pub(crate) struct UnitExtractCtx;\npub(crate) fn lower() {}\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(1),
+            "crates/demo/src/units/features.rs",
+            "use super::UnitExtractCtx;\nuse super::lower;\nfn f() {}\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(2),
+            "crates/demo/src/report.rs",
+            "pub(crate) struct RefactorFamily;\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(3),
+            "crates/demo/src/report/tests/support.rs",
+            "use super::super::RefactorFamily;\nfn f() {}\n",
+            &interner,
+        ),
+    ];
+    let corpus = Corpus::new(interner, files);
+    let census = imported_immutable_snapshot_census(&corpus);
+
+    assert_reason_count(&census, "provider-callable-export-boundary", 1);
+    assert_reason_count(&census, "provider-module-missing", 0);
+    assert_reason_count(&census, "provider-type-export-boundary", 2);
+}
+
+#[test]
 fn rust_census_splits_non_value_and_unsupported_provider_boundaries() {
     let interner = Interner::new();
     let files = vec![
@@ -294,6 +291,27 @@ fn f() {}\n",
 fn lower_rust_file(file: FileId, path: &str, src: &str, interner: &Interner) -> nose_il::Il {
     crate::lower_source(file, path, src.as_bytes(), Lang::Rust, interner)
         .expect("lower Rust test file")
+}
+
+fn assert_rust_literal_import_snapshot(
+    provider_path: &str,
+    provider_src: &str,
+    importer_path: &str,
+    importer_src: &str,
+    local: &str,
+    expected_kind: NodeKind,
+) {
+    let interner = Interner::new();
+    let provider = lower_rust_file(FileId(0), provider_path, provider_src, &interner);
+    let importer = lower_rust_file(FileId(1), importer_path, importer_src, &interner);
+
+    let mut files = vec![provider, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[1]), 1);
+    let rhs = imported_binding_rhs(&files[1], &interner, local);
+    assert_eq!(files[1].kind(rhs), expected_kind);
+    assert_eq!(files[1].node(rhs).span.file, FileId(0));
 }
 
 fn imported_binding_rhs(il: &nose_il::Il, interner: &Interner, name: &str) -> nose_il::NodeId {

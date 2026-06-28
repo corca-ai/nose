@@ -82,9 +82,6 @@ pub(super) fn rust_importable_module_hashes(
         let Some(remaining) = provider.parts.strip_prefix(base) else {
             continue;
         };
-        if remaining.is_empty() {
-            continue;
-        }
         let mut alias_parts = vec!["super"; levels_up];
         let remaining = remaining.iter().map(String::as_str);
         alias_parts.extend(remaining);

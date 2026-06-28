@@ -110,3 +110,7 @@ slice.
   records the #587 residual boundary split: external crate, residual stdlib, and
   residual workspace-crate imports are priced as explicit closed boundaries
   instead of generic provider-module misses.
+- [issue-587-relative-super-closeout.v1.json](issue-587-relative-super-closeout.v1.json)
+  records the #587 relative-super closeout: imports that name the parent module
+  itself now resolve to callable/type boundaries, moving
+  `provider-module-missing` `11 -> 0` without admitting new snapshots.
