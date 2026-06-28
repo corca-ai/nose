@@ -78,6 +78,23 @@ pub(crate) fn import_binding_evidence_only(
     )
 }
 
+pub(crate) fn re_export_binding_evidence_only(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    target_module: &str,
+    target_exported: &str,
+) -> EvidenceId {
+    lo.record_evidence(
+        EvidenceAnchor::binding(span, stable_symbol_hash(local)),
+        EvidenceKind::Import(ImportEvidenceKind::ReExportBinding {
+            target_module_hash: stable_symbol_hash(target_module),
+            target_exported_hash: stable_symbol_hash(target_exported),
+        }),
+        "import_re_export_binding",
+    )
+}
+
 /// A strict semantic proof fact for a static namespace import:
 /// local namespace → module coordinate.
 pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, module: &str) -> NodeId {

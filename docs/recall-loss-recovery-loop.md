@@ -294,6 +294,23 @@ move `0 -> 1`; hard gates remain at `false_merges == 0` and
 `canon_preservation_violations == 0`. The checked-in measurement is
 [`issue-587-module-resolution-1-3.v1.json`](../bench/recall_loss/issue-587-module-resolution-1-3.v1.json).
 
+The #587 direct re-export slice adds proof for public Rust `pub use` bindings
+without treating re-export syntax as value proof. The lowerer now emits
+first-party `ReExportBinding` evidence for direct public `use` declarations,
+and corpus import resolution follows one same-corpus re-export hop only when the
+target is already a unique literal-safe provider export. Private `use`,
+wildcard/nested brace forms, ambiguous re-exports, and non-value targets remain
+closed. The same slice also recognizes same-crate bare child module aliases such
+as `context::Item` from a parent module file. On `crates`, existing re-exports
+mostly point at types and callables rather than literal provider values, so
+successful imported snapshot records stay `1`; the generic module/export target
+rows move `139 -> 91`, `provider-module-missing` moves `130 -> 89`, and
+`provider-export-missing` moves `9 -> 2`, with direct re-export targets priced
+as `provider-reexport-*` boundary reasons. Hard gates remain at
+`false_merges == 0` and `canon_preservation_violations == 0`. The checked-in
+measurement is
+[`issue-587-reexport-pricing.v1.json`](../bench/recall_loss/issue-587-reexport-pricing.v1.json).
+
 ## See Also
 
 - [recall-loss-diagnostics](recall-loss-diagnostics.md)

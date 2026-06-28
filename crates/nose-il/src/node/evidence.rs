@@ -90,6 +90,10 @@ pub enum ImportEvidenceKind {
         module_hash: u64,
         exported_hash: u64,
     },
+    ReExportBinding {
+        target_module_hash: u64,
+        target_exported_hash: u64,
+    },
     Namespace {
         module_hash: u64,
     },

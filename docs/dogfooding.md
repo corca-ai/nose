@@ -158,6 +158,20 @@ to `5d2ee58ae63af599`; the members and judgment remain the same
 `module_imports/exports.rs` imported literal export collection). The reviewed
 default-surface count remains 54; no budget increase is accepted.
 
+The 2026-06-28 Rust direct re-export slice (#587) adds one-hop public `use`
+alias evidence to imported literal export collection. This shifts three already
+reviewed production representatives without increasing the default-surface
+count: the context/export assignment-counting family moves from
+`5d2ee58ae63af599` to `2a3ff0019f8a1765`; the value-graph whole-impl span
+moves from `61c01561e227df11` to `2a5aa3db45d33592` after `value_dag.rs`
+learns to ignore re-export alias proof as a value referent; and the
+semantic-kernel language-core provenance helper family moves from
+`d48c1b96caba9588` to `40de0ff958ad1b55` as
+`module_imports/exports.rs::trusted_language_core_record` joins the existing
+binding/library/import/sequence provenance shape. These remain reviewed
+plumbing/span-noise families, not new avoidable duplication. The reviewed
+default-surface count remains 54; no budget increase is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

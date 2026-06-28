@@ -359,7 +359,8 @@ impl<'a> FileReferents<'a> {
                 }
                 // Literal-export/snapshot evidence anchors at a LOCAL definition, so its
                 // referent is the def's content, not a path-embedding module coordinate.
-                ImportEvidenceKind::ImmutableLiteralExport { .. }
+                ImportEvidenceKind::ReExportBinding { .. }
+                | ImportEvidenceKind::ImmutableLiteralExport { .. }
                 | ImportEvidenceKind::ImportedLiteralSnapshot { .. } => None,
             })
     }

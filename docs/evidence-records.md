@@ -258,6 +258,12 @@ stays closed instead of falling back to the raw sequence shape. Value-graph
 import identity likewise consumes only sequence `Import` evidence and
 materializes dedicated internal import values, never raw `ValOp::Seq` proof
 objects.
+Rust public re-export proof follows the same rule. A direct `pub use` may emit
+`Import(ReExportBinding)` evidence for the alias and its target coordinate, but
+that evidence is only a module/export alias proof. Imported immutable snapshots
+may follow one same-corpus re-export hop only when the target binding is already
+literal-safe under the normal provider checks. Private `use`, wildcard/nested
+brace re-exports, ambiguous aliases, and non-value targets remain closed.
 
 Imported immutable provider snapshots follow the same rule. A provider binding
 whose RHS is a collection or map factory call is exportable only when the call

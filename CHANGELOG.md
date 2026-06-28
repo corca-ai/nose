@@ -125,6 +125,15 @@ break.
   the generic module/export target moves `378 -> 139`, successful imported
   snapshot records move `0 -> 1`, and hard gates remain at zero false merges and
   zero canon-preservation violations.
+- Added the next #587 Rust re-export pricing slice. Direct public `pub use`
+  bindings now emit re-export alias evidence, and imported immutable snapshot
+  lookup follows one same-corpus re-export hop only when the target is already a
+  unique literal-safe provider export. Private uses, wildcard/nested brace
+  re-exports, ambiguous aliases, non-value targets, and raw coordinates remain
+  closed. On `crates`, generic module/export target rows move `139 -> 91`,
+  `provider-export-missing` moves `9 -> 2`, and re-export targets are reported
+  through dedicated `provider-reexport-*` boundary reasons with zero false
+  merges and zero canon-preservation violations.
 
 ### Fixed
 - Hardened JS/TS string-affix receiver proof so TypeScript `String` object

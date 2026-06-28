@@ -54,6 +54,31 @@ fn rust_super_import_resolves_parent_relative_literal_export() {
 }
 
 #[test]
+fn rust_bare_child_import_resolves_nested_module_literal_export() {
+    let interner = Interner::new();
+    let provider = lower_rust_file(
+        FileId(0),
+        "crates/demo/src/units/fragments/context.rs",
+        "pub(crate) const LIMIT: i64 = 7;\n",
+        &interner,
+    );
+    let importer = lower_rust_file(
+        FileId(1),
+        "crates/demo/src/units/fragments.rs",
+        "use context::LIMIT;\nfn read() -> i64 { LIMIT }\n",
+        &interner,
+    );
+
+    let mut files = vec![provider, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[1]), 1);
+    let rhs = imported_binding_rhs(&files[1], &interner, "LIMIT");
+    assert_eq!(files[1].kind(rhs), NodeKind::Lit);
+    assert_eq!(files[1].node(rhs).span.file, FileId(0));
+}
+
+#[test]
 fn rust_bare_sibling_import_resolves_literal_export_without_src_root() {
     let interner = Interner::new();
     let provider = lower_rust_file(
@@ -76,6 +101,129 @@ fn rust_bare_sibling_import_resolves_literal_export_without_src_root() {
     let rhs = imported_binding_rhs(&files[1], &interner, "VALUES");
     assert_eq!(files[1].kind(rhs), NodeKind::Seq);
     assert_eq!(files[1].node(rhs).span.file, FileId(0));
+}
+
+#[test]
+fn rust_pub_use_reexport_resolves_literal_export_one_hop() {
+    let interner = Interner::new();
+    let values = lower_rust_file(
+        FileId(0),
+        "crates/demo/src/constants.rs",
+        "pub(crate) const LIMIT: i64 = 7;\n",
+        &interner,
+    );
+    let barrel = lower_rust_file(
+        FileId(1),
+        "crates/demo/src/lib.rs",
+        "mod constants;\npub(crate) use constants::LIMIT as MAX;\n",
+        &interner,
+    );
+    let importer = lower_rust_file(
+        FileId(2),
+        "crates/demo/src/consumer.rs",
+        "use crate::MAX;\nfn read() -> i64 { MAX }\n",
+        &interner,
+    );
+
+    let mut files = vec![values, barrel, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[2]), 1);
+    let rhs = imported_binding_rhs(&files[2], &interner, "MAX");
+    assert_eq!(files[2].kind(rhs), NodeKind::Lit);
+    assert_eq!(files[2].node(rhs).span.file, FileId(0));
+}
+
+#[test]
+fn rust_private_use_does_not_open_reexport_snapshot() {
+    let interner = Interner::new();
+    let values = lower_rust_file(
+        FileId(0),
+        "crates/demo/src/constants.rs",
+        "pub(crate) const LIMIT: i64 = 7;\n",
+        &interner,
+    );
+    let private_barrel = lower_rust_file(
+        FileId(1),
+        "crates/demo/src/lib.rs",
+        "mod constants;\nuse constants::LIMIT;\n",
+        &interner,
+    );
+    let importer = lower_rust_file(
+        FileId(2),
+        "crates/demo/src/consumer.rs",
+        "use crate::LIMIT;\nfn read() -> i64 { LIMIT }\n",
+        &interner,
+    );
+
+    let mut files = vec![values, private_barrel, importer];
+    resolve_imported_immutable_bindings(&mut files, &interner);
+
+    assert_eq!(snapshot_count(&files[2]), 0);
+}
+
+#[test]
+fn rust_ambiguous_reexport_stays_closed_and_reported() {
+    let interner = Interner::new();
+    let files = vec![
+        lower_rust_file(
+            FileId(0),
+            "crates/demo/src/a.rs",
+            "pub(crate) const VALUE: i64 = 1;\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(1),
+            "crates/demo/src/b.rs",
+            "pub(crate) const VALUE: i64 = 2;\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(2),
+            "crates/demo/src/lib.rs",
+            "mod a;\nmod b;\npub use a::VALUE;\npub use b::VALUE;\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(3),
+            "crates/demo/src/consumer.rs",
+            "use crate::VALUE;\nfn read() -> i64 { VALUE }\n",
+            &interner,
+        ),
+    ];
+    let corpus = Corpus::new(interner, files);
+    let census = imported_immutable_snapshot_census(&corpus);
+
+    assert_reason_count(&census, "provider-reexport-ambiguous", 1);
+}
+
+#[test]
+fn rust_reexport_to_callable_stays_non_value_boundary() {
+    let interner = Interner::new();
+    let files = vec![
+        lower_rust_file(
+            FileId(0),
+            "crates/demo/src/functions.rs",
+            "pub(crate) fn run() {}\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(1),
+            "crates/demo/src/lib.rs",
+            "mod functions;\npub use functions::run;\n",
+            &interner,
+        ),
+        lower_rust_file(
+            FileId(2),
+            "crates/demo/src/consumer.rs",
+            "use crate::run;\nfn f() {}\n",
+            &interner,
+        ),
+    ];
+    let corpus = Corpus::new(interner, files);
+    let census = imported_immutable_snapshot_census(&corpus);
+
+    assert_reason_count(&census, "provider-reexport-callable-boundary", 1);
 }
 
 #[test]

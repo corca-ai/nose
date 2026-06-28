@@ -1090,7 +1090,10 @@ migrated.
   import coordinate sequences can no longer become proof-bearing value nodes by
   tag shape. Imported literal replacement also consumes evidence-only import
   facts; missing or ambiguous `Import` evidence no longer proves a cross-file
-  replacement.
+  replacement. Rust direct public re-exports now emit
+  `Import(ReExportBinding)` as alias proof, not value proof; imported literal
+  replacement may follow one such same-corpus hop only to an already
+  literal-safe provider export.
 - Symbol identity evidence now covers static imported binding/namespace aliases
   and JS/TS static-global value occurrences such as `Math`, `console`, `Array`,
   `Map`, `Set`, and `undefined` when the frontend proves no local shadow.

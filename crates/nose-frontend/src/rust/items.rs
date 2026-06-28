@@ -31,6 +31,7 @@ pub(super) fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<Nod
     let span = lo.span(node);
     let text = lo.text(node);
     let brace_import = text.contains('{') || text.contains('}');
+    let public_re_export = rust_public_use(text);
     let imports = rust_static_imports(text, span)?;
     if brace_import {
         for import in imports {
@@ -43,6 +44,15 @@ pub(super) fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<Nod
                         &import.module,
                         &exported,
                     );
+                    if public_re_export {
+                        crate::lower::re_export_binding_evidence_only(
+                            lo,
+                            import.span,
+                            &import.local,
+                            &import.module,
+                            &exported,
+                        );
+                    }
                 }
                 RustStaticImportKind::Namespace => {
                     crate::lower::import_namespace_evidence_only(
@@ -59,13 +69,24 @@ pub(super) fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<Nod
     let ids = imports
         .into_iter()
         .map(|import| match import.kind {
-            RustStaticImportKind::Binding { exported } => crate::lower::import_binding(
-                lo,
-                import.span,
-                &import.local,
-                &import.module,
-                &exported,
-            ),
+            RustStaticImportKind::Binding { exported } => {
+                if public_re_export {
+                    crate::lower::re_export_binding_evidence_only(
+                        lo,
+                        import.span,
+                        &import.local,
+                        &import.module,
+                        &exported,
+                    );
+                }
+                crate::lower::import_binding(
+                    lo,
+                    import.span,
+                    &import.local,
+                    &import.module,
+                    &exported,
+                )
+            }
             RustStaticImportKind::Namespace => {
                 crate::lower::import_namespace(lo, import.span, &import.local, &import.module)
             }
@@ -111,6 +132,18 @@ fn rust_use_body(text: &str) -> Option<(&str, usize)> {
     let (body, trim_start) = trim_with_offset(raw);
     let (body, _) = trim_end_with_len(body);
     (!body.is_empty()).then_some((body, start + trim_start))
+}
+
+fn rust_public_use(text: &str) -> bool {
+    let trimmed = text.trim_start();
+    if trimmed.starts_with("pub use ") {
+        return true;
+    }
+    let Some(rest) = trimmed.strip_prefix("pub(") else {
+        return false;
+    };
+    rest.split_once(')')
+        .is_some_and(|(_, after)| after.trim_start().starts_with("use "))
 }
 
 fn rust_single_static_import(

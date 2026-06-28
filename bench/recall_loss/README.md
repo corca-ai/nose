@@ -94,3 +94,11 @@ slice.
   records the #587 starting census for the next import-snapshot milestone:
   module/export miss counts by reason, crate, import surface, top files, and
   recommended implementation order.
+- [issue-587-module-resolution-1-3.v1.json](issue-587-module-resolution-1-3.v1.json)
+  records the first #587 implementation slice: Rust crate/module identity,
+  `self::`/`super::` provider lookup, and boundary splitting for callable,
+  type, module namespace, stdlib, and workspace-crate imports.
+- [issue-587-reexport-pricing.v1.json](issue-587-reexport-pricing.v1.json)
+  records the direct Rust public re-export slice: one-hop `pub use` lookup for
+  already literal-safe provider exports, bare child module aliases, and
+  re-export-specific boundary reasons.

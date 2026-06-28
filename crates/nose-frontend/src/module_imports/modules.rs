@@ -69,6 +69,7 @@ pub(super) fn rust_importable_module_hashes(
     let mut hashes = rust_absolute_module_hashes(provider);
     if let Some(remaining) = provider.parts.strip_prefix(importer.parts.as_slice()) {
         if !remaining.is_empty() {
+            hashes.push(stable_symbol_hash(&remaining.join("::")));
             hashes.push(stable_symbol_hash(&format!(
                 "self::{}",
                 remaining.join("::")

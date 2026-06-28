@@ -93,6 +93,9 @@ set -euo pipefail
 # 54 -> 54 (#587 Rust module resolution 1-3): context-aware imported literal export collection
 # moves the accepted context/export assignment-counting representative again. Reviewed in
 # docs/dogfooding.md; no new budget is accepted.
+# 54 -> 54 (#587 Rust direct re-exports): one-hop public-use alias evidence moves the accepted
+# context/export representative, the value-graph whole-impl span, and the semantic-kernel
+# provenance-helper representative. Reviewed in docs/dogfooding.md; no new budget is accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
