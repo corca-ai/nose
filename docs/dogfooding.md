@@ -255,6 +255,15 @@ helpers, and language-core record constructors across frontend, normalize, and
 semantics). The reviewed default-surface count remains 53; no budget increase
 is accepted.
 
+The 2026-06-30 oracle-exclusion obligation reporting slice adds diagnostics-only
+rollups for runtime/protocol units that fail closed before oracle
+interpretation. That shifts the already reviewed reporting/oracle overlap
+family from `1f785cf0498fe78d` to `cdfa7334daa1135b`; the members remain
+`verify_report.rs::report_falsify` and
+`recall_loss_report.rs::soundness_gate`. This is representative-ID churn from
+nearby report-shape movement, not new extractable duplication. The reviewed
+default-surface count remains 53; no budget increase is accepted.
+
 ## Verdict by candidate (critically)
 
 | family | what it is | judgment | action |

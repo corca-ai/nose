@@ -43,14 +43,8 @@ fn strict_exact_rejection_reason(
     interner: &Interner,
     root: NodeId,
 ) -> ExactAdmissionRejectionDiagnostic {
-    if let Some(missing_evidence) = runtime_boundary_missing_evidence(il, interner, root) {
-        return ExactAdmissionRejectionDiagnostic {
-            reason: "unsupported-runtime-boundary",
-            admission_gate: "strict-exact-safety",
-            capability_id: "runtime-boundary-model",
-            pack_id: None,
-            missing_evidence,
-        };
+    if let Some(diagnostic) = runtime_boundary_rejection_diagnostic(il, interner, root) {
+        return diagnostic;
     }
 
     if subtree_has(il, root, |il, node| il.kind(node) == nose_il::NodeKind::HoF) {
@@ -134,6 +128,22 @@ fn strict_exact_rejection_reason(
         pack_id: None,
         missing_evidence: vec!["strict-exact-safe-tree"],
     }
+}
+
+pub(crate) fn runtime_boundary_rejection_diagnostic(
+    il: &nose_il::Il,
+    interner: &Interner,
+    root: NodeId,
+) -> Option<ExactAdmissionRejectionDiagnostic> {
+    runtime_boundary_missing_evidence(il, interner, root).map(|missing_evidence| {
+        ExactAdmissionRejectionDiagnostic {
+            reason: "unsupported-runtime-boundary",
+            admission_gate: "strict-exact-safety",
+            capability_id: "runtime-boundary-model",
+            pack_id: None,
+            missing_evidence,
+        }
+    })
 }
 
 fn subtree_has(

@@ -316,6 +316,13 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   and Swift `await` protocol boundaries now share
   `async-await-scheduling-contract`; exact admission remains closed with
   `semantic_admission_delta = 0`.
+- [oracle-exclusion-obligation-reporting-2026-06-30.v1.json](oracle-exclusion-obligation-reporting-2026-06-30.v1.json)
+  records the follow-up recall-loss report-shape refinement: runtime/protocol
+  oracle exclusions can now carry diagnostics-only obligation attribution under
+  `oracle_exclusions.by_obligation`. A focused fixture verifies JS/TS, Python,
+  Rust, and Swift await exclusions roll up to
+  `scheduling-boundary/async-await-scheduling-contract-missing`, while
+  top-level `by_obligation` stays interpretable-only.
 - [promise-protocol-hard-negatives-2026-06-28.v1.json](promise-protocol-hard-negatives-2026-06-28.v1.json)
   records the follow-up Promise hard-negative slice. It keeps exact admission
   closed while pinning async-function/sync, Promise executor/sync,

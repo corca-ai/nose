@@ -28,8 +28,9 @@ python3 scripts/recall-loss-diff.py before.json after.json
 ```
 
 The comparison is deterministic and suitable for PR comments: it shows hard gate
-deltas, completeness and under-merge deltas, oracle exclusion deltas, admission
-rejection deltas by reason, and top opportunities added or removed.
+deltas, completeness and under-merge deltas, oracle exclusion deltas by reason
+and obligation, admission rejection deltas by reason, and top opportunities
+added or removed.
 
 ## Report shape
 
@@ -43,15 +44,25 @@ The current schema is `recall_loss_report.v1.json`:
 | `soundness_gate` | Fingerprint groups, false merges, advisory disagreements, canon-preservation violations, `--max-violations`, and gate result. |
 | `completeness` | Behavior groups, behavior-equal pairs, fingerprint-equal pairs, completeness percentage, and under-merged groups. |
 | `oracle_under_merges` | Behavior-equal but fingerprint-split pairs, sorted by value-Jaccard nearness. This is the structured form of the `--leads` signal. |
-| `oracle_exclusions` | Fail-closed oracle exclusions by reason and unit location. |
+| `oracle_exclusions` | Fail-closed oracle exclusions by reason, optional obligation attribution, and unit location. |
 | `import_snapshot_census` | Corpus-level imported immutable snapshot diagnostics: successful snapshot record counts, unresolved binding-import miss counts by reason/language, and stable hash/location rows for follow-up fixtures. |
 | `admission_rejections` | Interpretable units whose exact semantic claim is closed, with structured reason, gate, capability, missing evidence, #594 obligation family/subreason, oracle status, and stable location. |
 | `by_reason` | Rollups for admission rejections by reason/gate/capability. |
-| `by_obligation` | Rollups for admission rejections by #594 obligation family and stable subreason. |
+| `by_obligation` | Rollups for interpretable admission rejections by #594 obligation family and stable subreason. |
 | `top_opportunities` | Ranked under-merge opportunities that future capability work can turn into fixtures or focused follow-up issues. |
 
 The current admission-rejection taxonomy is diagnostics-only; it does not widen
 or narrow product admission by itself.
+
+`oracle_exclusions.by_obligation` is separate from top-level `by_obligation`.
+Top-level `by_obligation` counts only oracle-interpretable units whose exact
+semantic claim was closed. `oracle_exclusions.by_obligation` counts
+fail-closed units that the oracle could not interpret but that still have a
+diagnostics-only capability attribution, such as a lowered runtime/protocol
+boundary. Excluded-unit attribution reuses the same `reason`,
+`missing_evidence`, `obligation_family`, and `obligation_subreason` vocabulary
+as admission rejections, but carries `oracle_status: "excluded"` and does not
+open exact admission.
 
 | reason | meaning |
 |---|---|
@@ -122,7 +133,12 @@ runtime-boundary evidence by scheduling, executor callback, rejection channel,
 and aggregate-result obligations. Current reports use the language-neutral
 `async-await-scheduling-contract` label for `Source::Protocol(Await)` across
 JS/TS, Python, Rust, and Swift, while legacy checked artifacts may still contain
-the older Promise-specific await label. The checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
+the older Promise-specific await label. The follow-up [oracle-exclusion obligation reporting](../bench/recall_loss/oracle-exclusion-obligation-reporting-2026-06-30.v1.json)
+keeps that label visible even when await-only runtime/protocol units are excluded
+before admission-rejection rows exist: JS/TS, Python, Rust, and Swift fixtures
+roll up under `oracle_exclusions.by_obligation` as
+`scheduling-boundary/async-await-scheduling-contract-missing`, while the
+top-level interpretable `by_obligation` stays separate. The checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
 connect the JS/TS source-prevalence group (`29,094` Promise/async occurrences)
 to report labels such as legacy `promise-await-scheduling-contract`,
 `promise-async-function-scheduling-contract`,

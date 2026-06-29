@@ -1,5 +1,8 @@
 use crate::legacy_prelude::*;
-use crate::verify_admission::{exact_admission_rejection, ExactAdmissionRejectionDiagnostic};
+use crate::verify_admission::{
+    exact_admission_rejection, runtime_boundary_rejection_diagnostic,
+    ExactAdmissionRejectionDiagnostic,
+};
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {
@@ -56,6 +59,7 @@ pub(super) struct VerifyExcludedUnit {
     pub(super) start: u32,
     pub(super) end: u32,
     pub(super) tokens: usize,
+    pub(super) diagnostic: Option<ExactAdmissionRejectionDiagnostic>,
 }
 
 #[derive(Default)]
@@ -69,12 +73,31 @@ pub(super) struct VerifyExclusions {
 }
 
 impl VerifyExclusions {
+    fn record_core_missing(&mut self, file: &str, span: nose_il::Span, tokens: usize) {
+        self.record(VerifyExclusionReason::CoreMissing, file, span, tokens, None);
+    }
+
+    fn record_battery_bail(&mut self, file: &str, span: nose_il::Span, tokens: usize) {
+        self.record(VerifyExclusionReason::BatteryBail, file, span, tokens, None);
+    }
+
+    fn record_empty_fingerprint(&mut self, file: &str, span: nose_il::Span, tokens: usize) {
+        self.record(
+            VerifyExclusionReason::EmptyFingerprint,
+            file,
+            span,
+            tokens,
+            None,
+        );
+    }
+
     fn record(
         &mut self,
         reason: VerifyExclusionReason,
         file: &str,
         span: nose_il::Span,
         tokens: usize,
+        diagnostic: Option<ExactAdmissionRejectionDiagnostic>,
     ) {
         match reason {
             VerifyExclusionReason::CoreMissing => self.core_missing += 1,
@@ -89,6 +112,7 @@ impl VerifyExclusions {
             start: span.start_line,
             end: span.end_line,
             tokens,
+            diagnostic,
         });
     }
 
@@ -283,13 +307,13 @@ fn collect_file_verify_recs(
             push_verify_census(oracle, loc, n, root, &[], "no-core-span");
             oracle
                 .exclusions
-                .record(VerifyExclusionReason::CoreMissing, file_path, span0, tokens);
+                .record_core_missing(file_path, span0, tokens);
             continue;
         };
         if verify_battery_over_budget(tokens, battery.len()) {
             oracle
                 .exclusions
-                .record(VerifyExclusionReason::BatteryBail, file_path, span0, tokens);
+                .record_battery_bail(file_path, span0, tokens);
             push_verify_census(oracle, loc, core, core_root, &[], "battery-bail");
             continue;
         }
@@ -304,20 +328,13 @@ fn collect_file_verify_recs(
         // binds n = len(array) so the oracle interprets `f(xs,n)` under the same
         // convention the value graph used to merge it; gated on the contract actually
         // firing, so a non-contract false merge is still exposed by the free battery.
-        let (fp, contracts) = match value_context {
-            Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
-                n, root, interner, context,
-            ),
-            None => nose_normalize::value_fingerprint_and_contracts(n, root, interner),
-        };
+        let (fp, contracts) =
+            unit_value_fingerprint_and_contracts(value_context, n, root, interner);
         if fp.is_empty() {
             push_verify_census(oracle, loc, n, root, &[], "empty-fp");
-            oracle.exclusions.record(
-                VerifyExclusionReason::EmptyFingerprint,
-                file_path,
-                span0,
-                tokens,
-            );
+            oracle
+                .exclusions
+                .record_empty_fingerprint(file_path, span0, tokens);
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
@@ -336,7 +353,10 @@ fn collect_file_verify_recs(
                 ("battery-bail", VerifyExclusionReason::Uninterpretable)
             };
             push_verify_census(oracle, loc, core, core_root, &fp, census_reason);
-            oracle.exclusions.record(reason, file_path, span0, tokens);
+            let diagnostic = oracle_exclusion_diagnostic(reason, n, interner, root);
+            oracle
+                .exclusions
+                .record(reason, file_path, span0, tokens, diagnostic);
             continue;
         };
         push_verify_census(oracle, loc, core, core_root, &fp, "interpretable");
@@ -388,6 +408,37 @@ fn collect_file_verify_recs(
             file_idx,
             core_root,
         });
+    }
+}
+
+fn unit_value_fingerprint_and_contracts(
+    value_context: Option<&nose_normalize::ValueFingerprintContext>,
+    il: &nose_il::Il,
+    root: nose_il::NodeId,
+    interner: &Interner,
+) -> (Vec<u64>, Vec<(u32, u32)>) {
+    match value_context {
+        Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
+            il, root, interner, context,
+        ),
+        None => nose_normalize::value_fingerprint_and_contracts(il, root, interner),
+    }
+}
+
+fn oracle_exclusion_diagnostic(
+    reason: VerifyExclusionReason,
+    il: &nose_il::Il,
+    interner: &Interner,
+    root: nose_il::NodeId,
+) -> Option<ExactAdmissionRejectionDiagnostic> {
+    match reason {
+        VerifyExclusionReason::Uninterpretable => {
+            runtime_boundary_rejection_diagnostic(il, interner, root)
+        }
+        VerifyExclusionReason::CoreMissing
+        | VerifyExclusionReason::BatteryBail
+        | VerifyExclusionReason::EmptyFingerprint
+        | VerifyExclusionReason::PathBail => None,
     }
 }
 

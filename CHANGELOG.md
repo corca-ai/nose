@@ -123,6 +123,10 @@ break.
   Swift. Legacy Promise-specific await labels remain readable for old checked
   artifacts, but new reports reserve Promise labels for Promise API and producer
   semantics.
+- Refined recall-loss reports so runtime/protocol units excluded before oracle
+  interpretation can still carry diagnostics-only obligation attribution under
+  `oracle_exclusions.by_obligation`. The top-level `by_obligation` rollup stays
+  limited to oracle-interpretable admission rejections.
 - Refined import-snapshot census reporting to separate missing provider modules,
   missing exports, re-export boundaries, external/stdlib/workspace boundaries,
   provider/importer mutation, missing provider API proof, and aggregate shapes

@@ -85,6 +85,7 @@ pub(super) struct UnderMerge {
 #[derive(Serialize)]
 pub(super) struct OracleExclusions {
     pub(super) counts: Vec<ReasonCount>,
+    pub(super) by_obligation: Vec<OracleExclusionObligationRollup>,
     pub(super) units: Vec<ExcludedUnit>,
 }
 
@@ -92,6 +93,30 @@ pub(super) struct OracleExclusions {
 pub(super) struct ExcludedUnit {
     pub(super) reason: &'static str,
     pub(super) loc: Location,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) attribution: Option<OracleExclusionAttribution>,
+}
+
+#[derive(Serialize)]
+pub(super) struct OracleExclusionAttribution {
+    pub(super) reason: &'static str,
+    pub(super) admission_gate: &'static str,
+    pub(super) capability_id: &'static str,
+    pub(super) pack_id: Option<&'static str>,
+    pub(super) missing_evidence: Vec<&'static str>,
+    pub(super) obligation_family: &'static str,
+    pub(super) obligation_subreason: &'static str,
+    pub(super) oracle_status: &'static str,
+}
+
+#[derive(Serialize)]
+pub(super) struct OracleExclusionObligationRollup {
+    pub(super) exclusion_reason: &'static str,
+    pub(super) attribution_reason: &'static str,
+    pub(super) obligation_family: String,
+    pub(super) obligation_subreason: String,
+    pub(super) count: usize,
+    pub(super) oracle_excluded: usize,
 }
 
 #[derive(Clone, Serialize)]

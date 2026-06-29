@@ -364,6 +364,12 @@ JS/TS, Python, Rust, and Swift. Legacy checked Promise diagnostics may still
 mention `promise-await-scheduling-contract`, but new recall-loss reports should
 reserve Promise-specific labels for Promise API/producer semantics, not for the
 shared await protocol boundary.
+The follow-up [oracle-exclusion obligation reporting](../bench/recall_loss/oracle-exclusion-obligation-reporting-2026-06-30.v1.json)
+keeps the same capability vocabulary visible when a runtime/protocol unit is
+excluded before oracle interpretation. Await-only JS/TS, Python, Rust, and
+Swift fixtures now report under `oracle_exclusions.by_obligation` as
+`scheduling-boundary/async-await-scheduling-contract-missing`; exact admission
+and top-level interpretable `by_obligation` remain unchanged.
 
 ## Non-API Statement
 

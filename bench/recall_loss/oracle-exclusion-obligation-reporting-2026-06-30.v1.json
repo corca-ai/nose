@@ -1,0 +1,81 @@
+{
+  "report_kind": "oracle-exclusion-obligation-reporting",
+  "schema_version": 1,
+  "generated_on": "2026-06-30",
+  "scope": {
+    "kind": "reporting-only",
+    "summary": "Oracle-excluded runtime/protocol units can now carry diagnostics-only obligation attribution without entering exact admission.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "shared runtime-boundary obligation attribution for fail-closed oracle exclusions",
+    "not_a_feature_list": [
+      "No language-specific await admission path was opened.",
+      "No public semantic-pack API was added.",
+      "Interpretable admission rollups remain separate from oracle-exclusion rollups."
+    ],
+    "reused_capability": "runtime-boundary-model",
+    "reused_obligation_mapping": "recall_loss_report::obligations::rejection_obligation"
+  },
+  "focused_fixture": {
+    "test": "recall_loss_report_attributes_await_oracle_exclusions_to_shared_scheduling_obligation",
+    "command": "cargo test -q -p nose-cli recall_loss_report_attributes_await_oracle_exclusions_to_shared_scheduling_obligation --test cli",
+    "languages": [
+      "javascript",
+      "typescript",
+      "python",
+      "rust",
+      "swift"
+    ],
+    "expected_oracle_exclusion_rollup": {
+      "exclusion_reason": "uninterpretable",
+      "attribution_reason": "unsupported-runtime-boundary",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-await-scheduling-contract-missing",
+      "minimum_oracle_excluded": 5
+    },
+    "separation_invariant": "The focused await rows are reported under oracle_exclusions.by_obligation and are not mixed into the interpretable by_obligation rollup."
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss.oracle-exclusion-await.crates.json",
+    "total_units": 6602,
+    "interpretable_units": 893,
+    "excluded_units": 5709,
+    "admission_rejections": 742,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 81,
+    "canon_preservation_violations": 0,
+    "gate_passed": true
+  },
+  "current_crates_oracle_exclusion_obligations": [
+    {
+      "exclusion_reason": "uninterpretable",
+      "attribution_reason": "unsupported-runtime-boundary",
+      "obligation_family": "exception-channel",
+      "obligation_subreason": "exception-channel-contract-missing",
+      "count": 554,
+      "oracle_excluded": 554
+    },
+    {
+      "exclusion_reason": "uninterpretable",
+      "attribution_reason": "unsupported-runtime-boundary",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "runtime-protocol-boundary-contract-missing",
+      "count": 3,
+      "oracle_excluded": 3
+    }
+  ],
+  "validation_commands": [
+    "cargo test -q -p nose-cli recall_loss_report_attributes_await_oracle_exclusions_to_shared_scheduling_obligation --test cli",
+    "cargo test -q -p nose-cli await_protocol_missing_evidence_is_language_neutral --lib",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.oracle-exclusion-await.crates.json"
+  ],
+  "next_exact_work_policy": {
+    "status": "closed_until_evidence",
+    "summary": "The report can now quantify fail-closed runtime/protocol exclusions by obligation. Future recovery still needs dependency-closed scheduling, exception/rejection channel, lifecycle, and callback/effect evidence before exact admission changes."
+  }
+}

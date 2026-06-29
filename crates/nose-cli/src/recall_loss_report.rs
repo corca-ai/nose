@@ -1,4 +1,5 @@
 use crate::legacy_prelude::*;
+use crate::verify_admission::ExactAdmissionRejectionDiagnostic;
 use crate::verify_report::multiset_jaccard_u64;
 use std::collections::HashMap;
 use std::path::Path;
@@ -345,6 +346,7 @@ fn top_opportunities(under_merges: &[UnderMerge]) -> Vec<TopOpportunity> {
 }
 
 fn oracle_exclusions(exclusions: &VerifyExclusions) -> OracleExclusions {
+    let by_obligation = oracle_exclusion_obligation_rollups(&exclusions.units);
     let mut units: Vec<_> = exclusions
         .units
         .iter()
@@ -357,6 +359,7 @@ fn oracle_exclusions(exclusions: &VerifyExclusions) -> OracleExclusions {
                 tokens: unit.tokens,
                 language: language_from_path(&unit.file),
             },
+            attribution: unit.diagnostic.as_ref().map(oracle_exclusion_attribution),
         })
         .collect();
     units.sort_by(|a, b| {
@@ -389,8 +392,73 @@ fn oracle_exclusions(exclusions: &VerifyExclusions) -> OracleExclusions {
                 count: exclusions.path_bail,
             },
         ],
+        by_obligation,
         units,
     }
+}
+
+fn oracle_exclusion_attribution(
+    diagnostic: &ExactAdmissionRejectionDiagnostic,
+) -> OracleExclusionAttribution {
+    let (obligation_family, obligation_subreason) =
+        rejection_obligation(diagnostic.reason, &diagnostic.missing_evidence);
+    OracleExclusionAttribution {
+        reason: diagnostic.reason,
+        admission_gate: diagnostic.admission_gate,
+        capability_id: diagnostic.capability_id,
+        pack_id: diagnostic.pack_id,
+        missing_evidence: diagnostic.missing_evidence.clone(),
+        obligation_family,
+        obligation_subreason,
+        oracle_status: "excluded",
+    }
+}
+
+fn oracle_exclusion_obligation_rollups(
+    units: &[VerifyExcludedUnit],
+) -> Vec<OracleExclusionObligationRollup> {
+    let mut by_key: HashMap<(&'static str, &'static str, &'static str, &'static str), usize> =
+        HashMap::new();
+    for unit in units {
+        let Some(diagnostic) = &unit.diagnostic else {
+            continue;
+        };
+        let (obligation_family, obligation_subreason) =
+            rejection_obligation(diagnostic.reason, &diagnostic.missing_evidence);
+        *by_key
+            .entry((
+                unit.reason.label(),
+                diagnostic.reason,
+                obligation_family,
+                obligation_subreason,
+            ))
+            .or_default() += 1;
+    }
+    let mut rollups: Vec<_> = by_key
+        .into_iter()
+        .map(
+            |(
+                (exclusion_reason, attribution_reason, obligation_family, obligation_subreason),
+                count,
+            )| OracleExclusionObligationRollup {
+                exclusion_reason,
+                attribution_reason,
+                obligation_family: obligation_family.to_string(),
+                obligation_subreason: obligation_subreason.to_string(),
+                count,
+                oracle_excluded: count,
+            },
+        )
+        .collect();
+    rollups.sort_by(|a, b| {
+        b.count
+            .cmp(&a.count)
+            .then(a.exclusion_reason.cmp(b.exclusion_reason))
+            .then(a.attribution_reason.cmp(b.attribution_reason))
+            .then(a.obligation_family.cmp(&b.obligation_family))
+            .then(a.obligation_subreason.cmp(&b.obligation_subreason))
+    });
+    rollups
 }
 
 fn loc(rec: &VerifyRec) -> Location {
