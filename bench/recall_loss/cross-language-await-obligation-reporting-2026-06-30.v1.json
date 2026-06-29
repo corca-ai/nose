@@ -1,0 +1,73 @@
+{
+  "report_kind": "cross-language-await-obligation-reporting",
+  "schema_version": 1,
+  "generated_on": "2026-06-30",
+  "scope": {
+    "kind": "reporting-only",
+    "summary": "Source::Protocol(Await) now reports the language-neutral async-await scheduling obligation instead of a Promise-specific await label.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "shared async await scheduling boundary",
+    "not_a_feature_list": [
+      "No new public semantic-pack API was added.",
+      "No language-specific await admission path was opened.",
+      "Legacy Promise await labels remain readable only for old checked artifacts."
+    ],
+    "current_label": "async-await-scheduling-contract",
+    "legacy_label": "promise-await-scheduling-contract"
+  },
+  "language_coverage": [
+    {
+      "language": "javascript-typescript",
+      "source_protocol": "Await",
+      "missing_evidence": "async-await-scheduling-contract"
+    },
+    {
+      "language": "python",
+      "source_protocol": "Await",
+      "missing_evidence": "async-await-scheduling-contract"
+    },
+    {
+      "language": "rust",
+      "source_protocol": "Await",
+      "missing_evidence": "async-await-scheduling-contract"
+    },
+    {
+      "language": "swift",
+      "source_protocol": "Await",
+      "missing_evidence": "async-await-scheduling-contract"
+    }
+  ],
+  "current_crates_gate": {
+    "report": "target/recall-loss.cross-language-await.crates.json",
+    "total_units": 6593,
+    "interpretable_units": 892,
+    "excluded_units": 5701,
+    "admission_rejections": 741,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 81,
+    "canon_preservation_violations": 0,
+    "gate_passed": true
+  },
+  "validation_commands": [
+    "cargo test -q -p nose-cli await_protocol_missing_evidence_is_language_neutral --lib",
+    "cargo test -q -p nose-cli aggregate_executor_scheduler_and_lifecycle_labels_have_specific_obligations --lib",
+    "cargo test -q -p nose-cli runtime_boundary --lib",
+    "cargo test -q -p nose-cli recall_loss_report_splits_promise_protocol_boundaries --test cli",
+    "cargo test -q -p nose-cli query_mode_semantic_rejects_unproven_python_await_sync_convergence --test cli",
+    "cargo test -q -p nose-cli query_mode_semantic_rejects_unproven_rust_await_sync_convergence --test cli",
+    "cargo test -q -p nose-cli query_mode_semantic_rejects_unproven_swift_await_sync_convergence --test cli",
+    "python3 -m py_compile scripts/scheduling-lifecycle-boundary-audit.py",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --output target/scheduling-lifecycle-boundary-audit.await-label-check.json",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.cross-language-await.crates.json"
+  ],
+  "next_exact_work_policy": {
+    "status": "closed_until_priced",
+    "summary": "Python, Rust, Swift, and JS/TS await boundaries now share the same scheduling obligation name. Future exact recovery still needs dependency-closed scheduling, success/error channel, cancellation/liveness, and callback/effect proof for the target language slice."
+  }
+}

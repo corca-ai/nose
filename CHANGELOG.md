@@ -118,6 +118,11 @@ break.
   opening exact admission. Timer, microtask, scheduler wait liveness, one-shot
   timer/frame cancellation, and interval cancellation reporting now also have
   dedicated obligation labels.
+- Renamed current await-boundary recall-loss reporting to the language-neutral
+  `async-await-scheduling-contract` obligation across JS/TS, Python, Rust, and
+  Swift. Legacy Promise-specific await labels remain readable for old checked
+  artifacts, but new reports reserve Promise labels for Promise API and producer
+  semantics.
 - Refined import-snapshot census reporting to separate missing provider modules,
   missing exports, re-export boundaries, external/stdlib/workspace boundaries,
   provider/importer mutation, missing provider API proof, and aggregate shapes

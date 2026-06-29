@@ -82,7 +82,7 @@ class Pattern:
 
 
 PATTERNS: tuple[Pattern, ...] = (
-    Pattern("javascript-typescript", "js-ts.async.await", "await", "scheduling-boundary", "promise-await-scheduling-contract-missing", "await scheduling", "await is scheduling and thenable assimilation, not sync value equivalence", re.compile(r"\bawait\b")),
+    Pattern("javascript-typescript", "js-ts.async.await", "await", "scheduling-boundary", "async-await-scheduling-contract-missing", "await scheduling", "await is scheduling and thenable assimilation, not sync value equivalence", re.compile(r"\bawait\b")),
     Pattern("javascript-typescript", "js-ts.async.function", "async function", "scheduling-boundary", "promise-async-function-scheduling-contract-missing", "async function scheduling", "async functions have Promise scheduling and rejection boundaries even without explicit await", re.compile(r"\basync\s+(?:function\b|[A-Za-z_$]|\([^)]*\)\s*=>)")),
     Pattern("javascript-typescript", "js-ts.promise.executor", "new Promise", "executor-callback", "promise-executor-timing-contract-missing", "executor timing", "new Promise needs executor timing, resolve/reject callback, and throw-to-rejection contracts", re.compile(r"\bnew\s+Promise\s*(?:<[^;\n(){}]*>)?\s*\(")),
     Pattern("javascript-typescript", "js-ts.promise.aggregate", "Promise.all", "success-error-result-channel", "promise-aggregate-all-fulfilled-contract-missing", "all-fulfilled aggregate", "Promise.all needs ordered all-fulfilled value and first rejection semantics", re.compile(r"\bPromise\s*\.\s*all\s*(?:<[^;\n(){}]*>)?\s*\(")),
@@ -93,13 +93,13 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("javascript-typescript", "js-ts.promise.scheduler", "scheduler.yield", "scheduling-boundary", "scheduler-yield-microtask-order-contract-missing", "scheduler yield", "scheduler.yield needs microtask/order proof", re.compile(r"\bscheduler\s*\.\s*yield\s*\(")),
     Pattern("javascript-typescript", "js-ts.promise.interval", "setInterval", "lifecycle-materialization-boundary", "interval-async-iteration-lifecycle-contract-missing", "interval lifecycle", "setInterval and timers interval streams have repeated emission, cancellation, and liveness semantics", re.compile(r"(?<![A-Za-z0-9_$])setInterval\s*\(")),
     Pattern("javascript-typescript", "js-ts.cancellation.abort", "AbortController/AbortSignal", "cancellation-liveness-boundary", "abort-signal-cancellation-contract-missing", "cancellation signal", "AbortSignal/AbortController can change scheduling and rejection outcomes", re.compile(r"\b(?:AbortController|AbortSignal)\b")),
-    Pattern("python", "python.async.await", "await", "scheduling-boundary", "python-await-scheduling-contract-missing", "await scheduling", "Python await has coroutine scheduling and exception channel semantics", re.compile(r"\bawait\b")),
+    Pattern("python", "python.async.await", "await", "scheduling-boundary", "async-await-scheduling-contract-missing", "await scheduling", "Python await has coroutine scheduling and exception channel semantics", re.compile(r"\bawait\b")),
     Pattern("python", "python.async.function", "async def", "scheduling-boundary", "python-async-function-scheduling-contract-missing", "async function scheduling", "async def creates coroutine protocol boundaries", re.compile(r"\basync\s+def\b")),
     Pattern("python", "python.async.iteration", "async for/with", "lifecycle-materialization-boundary", "python-async-iterator-lifecycle-contract-missing", "async iterator lifecycle", "async for/with needs awaitable lifecycle and cleanup proof", re.compile(r"\basync\s+(?:for|with)\b")),
     Pattern("python", "python.asyncio.aggregate", "asyncio.gather/wait", "success-error-result-channel", "python-asyncio-aggregate-channel-contract-missing", "asyncio aggregate", "asyncio gather/wait need aggregate completion, cancellation, and exception semantics", re.compile(r"\basyncio\s*\.\s*(?:gather|wait)\s*\(")),
     Pattern("python", "python.asyncio.scheduler", "asyncio.create_task/sleep", "scheduling-boundary", "python-asyncio-scheduler-contract-missing", "asyncio scheduler", "asyncio task/sleep APIs create scheduler and cancellation boundaries", re.compile(r"\basyncio\s*\.\s*(?:create_task|ensure_future|sleep)\s*\(")),
     Pattern("python", "python.generator.yield", "yield", "lifecycle-materialization-boundary", "generator-yield-lifecycle-contract-missing", "generator lifecycle", "yield has suspension and iterator lifecycle semantics", re.compile(r"\byield(?:\s+from)?\b")),
-    Pattern("rust", "rust.async.await", ".await", "scheduling-boundary", "rust-await-scheduling-contract-missing", "future await", "Rust .await polls a Future and must keep wake/scheduling effects explicit", re.compile(r"\.\s*await\b")),
+    Pattern("rust", "rust.async.await", ".await", "scheduling-boundary", "async-await-scheduling-contract-missing", "future await", "Rust .await polls a Future and must keep wake/scheduling effects explicit", re.compile(r"\.\s*await\b")),
     Pattern("rust", "rust.async.function", "async fn/block", "scheduling-boundary", "future-async-block-scheduling-contract-missing", "future construction", "async fn/block creates a Future boundary", re.compile(r"\basync\s+(?:fn|move\b|async\b|\{)")),
     Pattern("rust", "rust.async.spawn", "tokio/std spawn", "scheduling-boundary", "rust-spawn-scheduling-contract-missing", "task/thread spawn", "spawn APIs introduce scheduler, cancellation, and join-handle boundaries", re.compile(r"\b(?:tokio|async_std|std::thread)\s*::\s*spawn(?:_blocking)?\s*\(")),
     Pattern("rust", "rust.async.aggregate", "join/select", "success-error-result-channel", "rust-future-aggregate-channel-contract-missing", "future aggregate", "join/select style macros need all/first completion and cancellation proof", re.compile(r"\b(?:join|try_join|select)!\s*\(")),
@@ -110,7 +110,7 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("java", "java.future.completable", "CompletableFuture", "success-error-result-channel", "java-completable-future-channel-contract-missing", "future channel", "CompletableFuture needs success/error channel and scheduling proof", re.compile(r"\bCompletableFuture\b")),
     Pattern("java", "java.future.executor", "Executor/Future", "scheduling-boundary", "java-executor-scheduling-contract-missing", "executor scheduling", "Executor/Future APIs introduce scheduler and lifecycle boundaries", re.compile(r"\b(?:ExecutorService|Executor|Future|ScheduledFuture)\b")),
     Pattern("java", "java.stream.lifecycle", "stream/parallelStream", "lifecycle-materialization-boundary", "java-stream-lifecycle-contract-missing", "stream lifecycle", "Java streams need lazy/eager lifecycle and terminal materialization proof", re.compile(r"\.\s*(?:stream|parallelStream)\s*\(")),
-    Pattern("swift", "swift.async.await", "await", "scheduling-boundary", "swift-await-scheduling-contract-missing", "await scheduling", "Swift await has task scheduling and actor/lifetime boundaries", re.compile(r"\bawait\b")),
+    Pattern("swift", "swift.async.await", "await", "scheduling-boundary", "async-await-scheduling-contract-missing", "await scheduling", "Swift await has task scheduling and actor/lifetime boundaries", re.compile(r"\bawait\b")),
     Pattern("swift", "swift.async.function", "async", "scheduling-boundary", "swift-async-function-scheduling-contract-missing", "async function scheduling", "Swift async surfaces create task/future-like protocol boundaries", re.compile(r"\basync\b")),
     Pattern("swift", "swift.error.throws", "throws/try", "exception-channel", "swift-throws-exception-channel-contract-missing", "throws channel", "Swift throws/try is an explicit error channel", re.compile(r"\b(?:throws|try)\b")),
     Pattern("swift", "swift.task.spawn", "Task", "scheduling-boundary", "swift-task-scheduling-contract-missing", "task scheduling", "Task APIs introduce scheduler and cancellation boundaries", re.compile(r"\bTask(?:\s*\.\s*detached)?\s*\{")),
@@ -310,16 +310,26 @@ def recommended_order(surfaces: list[dict[str, Any]]) -> list[dict[str, Any]]:
         "interval-async-iteration-lifecycle-contract-missing": 5,
         "goroutine-scheduling-contract-missing": 6,
         "java-completable-future-channel-contract-missing": 7,
-        "swift-await-scheduling-contract-missing": 8,
+    }
+    surface_priority = {
+        "swift.async.await": 8,
     }
     candidates = [
         item
         for item in surfaces
         if item["obligation_subreason"] in priority
+        or item["surface"] in surface_priority
     ]
+
+    def item_priority(item: dict[str, Any]) -> int:
+        subreason = item["obligation_subreason"]
+        if subreason in priority:
+            return priority[subreason]
+        return surface_priority[item["surface"]]
+
     candidates.sort(
         key=lambda item: (
-            priority[item["obligation_subreason"]],
+            item_priority(item),
             -item["occurrences"],
             item["language"],
         )

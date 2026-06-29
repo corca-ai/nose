@@ -14,6 +14,28 @@ fn lowered_js(src: &str) -> (nose_il::Il, Interner) {
     (il, interner)
 }
 
+fn lowered_source(path: &str, src: &str, lang: Lang) -> (nose_il::Il, Interner) {
+    let interner = Interner::new();
+    let il = nose_frontend::lower_source(FileId(0), path, src.as_bytes(), lang, &interner)
+        .unwrap_or_else(|err| panic!("lower {path}: {err}"));
+    (il, interner)
+}
+
+fn missing_evidence_for_protocol(
+    path: &str,
+    src: &str,
+    lang: Lang,
+    protocol: nose_il::SourceProtocolKind,
+) -> Vec<&'static str> {
+    let (il, interner) = lowered_source(path, src, lang);
+    let node = (0..il.nodes.len())
+        .map(|idx| NodeId(idx as u32))
+        .find(|&node| nose_semantics::source_protocol_at_node(&il, node) == Some(protocol))
+        .unwrap_or_else(|| panic!("expected {protocol:?} node in {path}"));
+    runtime_boundary_missing_evidence(&il, &interner, node)
+        .unwrap_or_else(|| panic!("expected runtime boundary evidence for {protocol:?} in {path}"))
+}
+
 fn missing_evidence_for_call(src: &str, callee_suffix: &str) -> Vec<&'static str> {
     let (il, interner) = lowered_js(src);
     let call = (0..il.nodes.len())
@@ -42,6 +64,48 @@ fn call_matches_callee_surface(
     callee_suffix
         .strip_prefix('.')
         .is_some_and(|method| callee_field_method(il, interner, callee) == Some(method))
+}
+
+#[test]
+fn await_protocol_missing_evidence_is_language_neutral() {
+    for (path, src, lang) in [
+        (
+            "await.js",
+            "async function read(x) { return await x; }\n",
+            Lang::JavaScript,
+        ),
+        (
+            "await.ts",
+            "async function read(x: Promise<number>) { return await x; }\n",
+            Lang::TypeScript,
+        ),
+        (
+            "await.py",
+            "async def read(x):\n    return await x\n",
+            Lang::Python,
+        ),
+        (
+            "await.rs",
+            "pub async fn read(x: i32) -> i32 { async move { x }.await }\n",
+            Lang::Rust,
+        ),
+        (
+            "await.swift",
+            "func read(_ work: () async -> Int) async -> Int {\n  return await work()\n}\n",
+            Lang::Swift,
+        ),
+    ] {
+        let labels =
+            missing_evidence_for_protocol(path, src, lang, nose_il::SourceProtocolKind::Await);
+        assert!(
+            labels.contains(&"async-await-scheduling-contract"),
+            "{path} should report the shared await scheduling contract: {labels:?}"
+        );
+        assert!(
+            !labels.contains(&"promise-await-scheduling-contract"),
+            "{path} should not report plain await as Promise-specific evidence: {labels:?}"
+        );
+    }
 }
 
 #[test]

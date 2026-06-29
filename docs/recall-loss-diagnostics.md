@@ -81,7 +81,7 @@ They do not change exact admission.
 | `rejection-channel` | `promise-reject-rejected-value-channel-contract-missing`, `promise-catch-rejection-continuation-contract-missing`, `promise-finally-settlement-continuation-contract-missing`, `promise-then-rejection-continuation-contract-missing`, legacy `promise-rejection-channel-contract-missing`/`promise-rejection-continuation-contract-missing`, or `exception-channel-contract-missing` | Rejection, catch/finally settlement, throw, rescue, or non-local error flow must remain distinct from ordinary return values. |
 | `success-error-result-channel` | `promise-factory-settled-value-contract-missing`, `promise-aggregate-all-fulfilled-contract-missing`, `promise-aggregate-all-settled-contract-missing`, `promise-aggregate-first-fulfilled-contract-missing`, `promise-aggregate-result-channel-contract-missing`, or `promise-then-fulfillment-continuation-contract-missing` | Success, empty/default, error/rejection, and aggregate result channels need explicit result-shape proof. |
 | `cancellation-liveness-boundary` | `promise-aggregate-first-settled-contract-missing`, `promise-aggregate-cancellation-liveness-contract-missing`, `abort-signal-cancellation-contract-missing`, `abort-signal-lifecycle-contract-missing`, `abort-controller-signal-lifecycle-contract-missing`, `scheduler-wait-cancellation-liveness-contract-missing`, `timer-cancellation-liveness-contract-missing`, or `interval-cancellation-liveness-contract-missing` | First-settled, cancellation, liveness, stop, and early-exit behavior must stay separate from all-value result channels. |
-| `scheduling-boundary` | `promise-await-scheduling-contract-missing`, `promise-async-function-scheduling-contract-missing`, `promise-non-construct-call-boundary-contract-missing`, `scheduler-wait-timing-contract-missing`, `scheduler-yield-microtask-order-contract-missing`, `timer-scheduling-contract-missing`, `goroutine-scheduling-contract-missing`, or `runtime-protocol-boundary-contract-missing` | A lowered runtime/protocol construct needs scheduling or protocol semantics before exact use. |
+| `scheduling-boundary` | `async-await-scheduling-contract-missing`, legacy `promise-await-scheduling-contract-missing`, `promise-async-function-scheduling-contract-missing`, `future-async-block-scheduling-contract-missing`, `promise-non-construct-call-boundary-contract-missing`, `scheduler-wait-timing-contract-missing`, `scheduler-yield-microtask-order-contract-missing`, `timer-scheduling-contract-missing`, `goroutine-scheduling-contract-missing`, or `runtime-protocol-boundary-contract-missing` | A lowered runtime/protocol construct needs scheduling or protocol semantics before exact use. |
 | `channel-boundary` | `channel-send-receive-protocol-contract-missing`, `channel-select-protocol-contract-missing`, or `channel-protocol-contract-missing` | Channel send/receive/select semantics need protocol evidence before exact use. |
 | `exception-channel` | `exception-channel-contract-missing` | Try/throw/error propagation is an explicit channel boundary, not a scheduling boundary. |
 | `lifecycle-materialization-boundary` | `interval-async-iteration-lifecycle-contract-missing`, `defer-lifecycle-ordering-contract-missing`, `generator-yield-lifecycle-contract-missing`, or `generator-yield-protocol-contract-missing` | Repeated emission, deferred execution, suspension, one-shot views, reusable collections, and materialization require explicit lifecycle proof. |
@@ -119,9 +119,12 @@ direct-function effect contracts (`3`), and imported-function effect contracts
 
 Promise protocol diagnostics keep exact admission closed while splitting
 runtime-boundary evidence by scheduling, executor callback, rejection channel,
-and aggregate-result obligations. The checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
+and aggregate-result obligations. Current reports use the language-neutral
+`async-await-scheduling-contract` label for `Source::Protocol(Await)` across
+JS/TS, Python, Rust, and Swift, while legacy checked artifacts may still contain
+the older Promise-specific await label. The checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
 connect the JS/TS source-prevalence group (`29,094` Promise/async occurrences)
-to report labels such as `promise-await-scheduling-contract`,
+to report labels such as legacy `promise-await-scheduling-contract`,
 `promise-async-function-scheduling-contract`,
 `promise-executor-callback-effect-contract`,
 `promise-aggregate-result-channel-contract`,

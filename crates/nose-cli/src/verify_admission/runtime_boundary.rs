@@ -28,7 +28,7 @@ fn push_runtime_node_missing_evidence(
         nose_il::NodeKind::Raw => {
             match nose_semantics::source_protocol_at_node(il, node) {
                 Some(nose_il::SourceProtocolKind::Await) => {
-                    push_unique(labels, "promise-await-scheduling-contract");
+                    push_unique(labels, "async-await-scheduling-contract");
                 }
                 Some(nose_il::SourceProtocolKind::AsyncFunction) => {
                     push_unique(labels, "promise-async-function-scheduling-contract");

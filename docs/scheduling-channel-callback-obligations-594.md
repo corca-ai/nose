@@ -357,6 +357,14 @@ under #602; executor, cancellation, scheduler, timer, interval, and
 cross-language lifecycle surfaces remain named closed obligations for future
 epics.
 
+The post-#602 [cross-language await obligation reporting](../bench/recall_loss/cross-language-await-obligation-reporting-2026-06-30.v1.json)
+artifact records that async/await reporting uses the language-neutral
+`async-await-scheduling-contract` label for `Source::Protocol(Await)` across
+JS/TS, Python, Rust, and Swift. Legacy checked Promise diagnostics may still
+mention `promise-await-scheduling-contract`, but new recall-loss reports should
+reserve Promise-specific labels for Promise API/producer semantics, not for the
+shared await protocol boundary.
+
 ## Non-API Statement
 
 This page does not add a public semantic-pack API. The vocabulary should narrow

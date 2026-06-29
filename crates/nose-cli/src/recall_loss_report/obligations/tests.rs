@@ -105,6 +105,20 @@ fn promise_then_continuation_and_callback_labels_have_standalone_obligations() {
 #[test]
 fn aggregate_executor_scheduler_and_lifecycle_labels_have_specific_obligations() {
     assert_eq!(
+        runtime_boundary_obligation(&["async-await-scheduling-contract"]),
+        (
+            "scheduling-boundary",
+            "async-await-scheduling-contract-missing",
+        )
+    );
+    assert_eq!(
+        runtime_boundary_obligation(&["promise-await-scheduling-contract"]),
+        (
+            "scheduling-boundary",
+            "promise-await-scheduling-contract-missing",
+        )
+    );
+    assert_eq!(
         runtime_boundary_obligation(&[
             "promise-executor-timing-contract",
             "promise-executor-callback-effect-contract",

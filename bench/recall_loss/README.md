@@ -308,6 +308,14 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   await scheduling, async function scheduling, Promise executor callbacks,
   Promise factories, aggregate result channels, rejection channels, and
   non-construct Promise calls without opening exact admission.
+  Current reports use the language-neutral `async-await-scheduling-contract`
+  label for the shared `Source::Protocol(Await)` boundary; this historical
+  artifact may still contain the older Promise-specific await label.
+- [cross-language-await-obligation-reporting-2026-06-30.v1.json](cross-language-await-obligation-reporting-2026-06-30.v1.json)
+  records the post-#602 reporting-only label migration: JS/TS, Python, Rust,
+  and Swift `await` protocol boundaries now share
+  `async-await-scheduling-contract`; exact admission remains closed with
+  `semantic_admission_delta = 0`.
 - [promise-protocol-hard-negatives-2026-06-28.v1.json](promise-protocol-hard-negatives-2026-06-28.v1.json)
   records the follow-up Promise hard-negative slice. It keeps exact admission
   closed while pinning async-function/sync, Promise executor/sync,

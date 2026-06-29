@@ -273,6 +273,25 @@ fn query_mode_semantic_rejects_unproven_rust_await_sync_convergence() {
     );
 }
 
+/// Swift `await` is a task/protocol boundary. It must not be erased into a
+/// synchronous expression until the kernel has scheduling and effect proof for
+/// the relevant Swift async protocol slice.
+#[test]
+fn query_mode_semantic_rejects_unproven_swift_await_sync_convergence() {
+    let project = TempProject::new("swift_await_boundary");
+    project.write("sync.swift", "func id(_ x: Int) -> Int { return x + 1 }\n");
+    project.write(
+        "async.swift",
+        "func idAsync(_ x: Int) async -> Int { return await x + 1 }\n",
+    );
+
+    let json = project.query_semantic_min_json();
+    assert!(
+        !family_contains_all(&json, &["sync.swift", "async.swift"]),
+        "Swift await must not be erased into a sync exact semantic family without async protocol evidence: {json}"
+    );
+}
+
 /// Go concurrency and channel operations have synchronization/scheduling
 /// semantics. They must not be erased into ordinary calls or value reads until
 /// a language protocol contract proves the required demand/effect obligations.

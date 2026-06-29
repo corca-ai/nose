@@ -68,6 +68,13 @@ macro_rules! runtime_rule {
 
 const RUNTIME_BOUNDARY_OBLIGATIONS: &[RuntimeBoundaryRule] = &[
     RuntimeBoundaryRule {
+        evidence: "async-await-scheduling-contract",
+        obligation: (
+            "scheduling-boundary",
+            "async-await-scheduling-contract-missing",
+        ),
+    },
+    RuntimeBoundaryRule {
         evidence: "promise-await-scheduling-contract",
         obligation: (
             "scheduling-boundary",
