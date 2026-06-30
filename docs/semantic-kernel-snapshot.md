@@ -210,6 +210,13 @@ keeps exact admission closed while preserving comma-ok receive status inside
 `channel-receive-status-contract` in addition to select readiness/case
 obligations; the pinned corpus has `107` lexical hits across `57` files and `7`
 repos.
+The follow-up [Ruby Thread/Fiber runtime artifact](../bench/recall_loss/ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
+keeps exact admission closed while mapping Ruby `Thread.new`, `Thread.start`,
+`Thread.fork`, `Fiber.new`, and `Fiber.schedule` onto shared task-spawn,
+task-handle, cancellation/liveness, and concurrency scheduling obligations.
+Same-file `Thread`/`Fiber` definitions keep attribution closed. The matching [pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json)
+marks `74` occurrences across `11` repos as reporting-supported closed
+boundaries.
 The follow-up [non-JS async runtime scope-shadowing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
 keeps the same capability boundary but makes Python/Rust async runtime
 attribution scope-aware. Unrelated local shadows in other functions no longer

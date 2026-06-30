@@ -10,6 +10,7 @@ use super::super::runtime_boundary_missing_evidence_with_context;
 mod imported_bindings;
 mod java;
 mod python;
+mod ruby;
 mod rust_block_on;
 mod rust_block_on_root_shadow;
 mod rust_block_on_self_field;

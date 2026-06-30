@@ -130,6 +130,12 @@ break.
   settlement-continuation, callback, and exception obligations. Exact admission
   remains closed; the 120-repo audit adds `107` non-JS source-prevalence
   occurrences over the prior async-runtime scope-shadowing audit.
+- Added Ruby Thread/Fiber runtime reporting. `Thread.new`, `Thread.start`,
+  `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse shared
+  task-spawn, task-handle, cancellation/liveness, and concurrency scheduling
+  obligations when the runtime root is not defined in the same file. Exact
+  admission remains closed; the 120-repo audit marks `74` Ruby Thread/Fiber
+  occurrences across `11` repos as reporting-supported closed boundaries.
 - Added non-JS async protocol near-channel mirror support. The dual-view async
   protocol capability now covers `await`, async-function boundaries, and Rust
   async blocks in near/witness builds, so Rust `async fn`/`.await` and Swift

@@ -352,6 +352,39 @@ fn recall_loss_report_attributes_go_channel_protocol_exclusions() {
     }
 }
 
+#[test]
+fn recall_loss_report_attributes_ruby_thread_fiber_runtime_exclusions() {
+    let project = TempProject::new("recall_loss_ruby_thread_fiber_runtime_exclusions");
+    project.write(
+        "runtime.rb",
+        "def thread_spawn\n  Thread.new { work }\nend\n\
+         def thread_start\n  Thread.start { work }\nend\n\
+         def fiber_spawn\n  Fiber.new { work }\nend\n",
+    );
+    let report_path = project.path().join("recall-loss.json");
+    let out = run_raw(&[
+        "verify",
+        project.path().to_str().unwrap(),
+        "--max-violations",
+        "0",
+        "--recall-loss-report",
+        report_path.to_str().unwrap(),
+    ]);
+    assert!(out.contains("GATE: 0"));
+
+    let report_text = fs::read_to_string(&report_path).expect("recall-loss report");
+    let report: serde_json::Value =
+        serde_json::from_str(&report_text).expect("recall-loss report JSON");
+    assert_exclusion_obligation(
+        &report,
+        "scheduling-boundary",
+        "task-spawn-scheduling-contract-missing",
+        1,
+    );
+    assert_excluded_runtime_unit(&report, "ruby", "task-spawn-scheduling-contract");
+    assert_excluded_runtime_unit(&report, "ruby", "task-handle-lifecycle-contract");
+}
+
 fn write_non_js_async_runtime_api_fixture(project: &TempProject) {
     project.write(
         "asyncio_api.py",

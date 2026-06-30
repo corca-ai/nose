@@ -170,6 +170,15 @@ keeps the same capability boundary and fills the status projection inside
 `channel-receive-status-contract` alongside select readiness/case obligations.
 The pinned corpus has `107` lexical select comma-ok receive hits across `57`
 files and `7` repos. Exact select/channel recovery remains closed.
+The follow-up [Ruby Thread/Fiber runtime artifact](../bench/recall_loss/ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
+keeps exact admission closed while mapping Ruby `Thread.new`, `Thread.start`,
+`Thread.fork`, `Fiber.new`, and `Fiber.schedule` onto the existing
+task-spawn, task-handle, cancellation/liveness, and concurrency scheduling
+vocabulary. Same-file `Thread`/`Fiber` definitions keep attribution closed. Its
+matching
+[120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json) marks the Ruby Thread/Fiber row
+reporting-supported, prices `74` occurrences across `11` repos, and raises
+total source prevalence from `146,987` to `146,988` by adding `Thread.start`.
 The follow-up [non-JS async runtime scope-shadowing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
 keeps the same reporting-only boundary while making Python/Rust runtime
 attribution scope-aware. Python `asyncio` aliases/imported bindings and Rust

@@ -158,6 +158,19 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --generated-on 2026-07-01
 ```
 
+Build the Ruby Thread/Fiber runtime obligation audit with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.crates.json
+
+python3 scripts/scheduling-lifecycle-boundary-audit.py \
+  --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.crates.json \
+  --output target/scheduling-lifecycle-boundary-audit.ruby-thread-fiber-runtime.json \
+  --generated-on 2026-07-01
+```
+
 Build the Java `CompletableFuture`/FutureLike obligation audit with:
 
 ```sh
@@ -534,6 +547,15 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   parents, `3,590` select cases, `546` select defaults, `1,949` goroutines,
   and `17,521` defers. Select parents and arms are counted separately because
   they are distinct source-backed protocol boundaries in lowering.
+- [ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json](ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
+  records the Ruby Thread/Fiber reporting-only expansion. `Thread.new`,
+  `Thread.start`, `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse
+  shared task-spawn, task-handle, cancellation/liveness, and concurrency
+  scheduling obligations when the runtime root is not defined in the same file.
+- [scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json](scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json)
+  records the matching 120-repo source-prevalence pricing. It raises total
+  source prevalence from `146,987` to `146,988`, marks the Ruby Thread/Fiber row
+  reporting-supported, and prices `74` occurrences across `11` repos.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

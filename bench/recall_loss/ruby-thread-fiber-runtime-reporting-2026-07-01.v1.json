@@ -1,0 +1,135 @@
+{
+  "report_kind": "ruby-thread-fiber-runtime-reporting",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-ruby-thread-fiber-runtime",
+    "summary": "Ruby Thread/Fiber runtime calls now reuse shared task scheduling and lifecycle obligations.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "map proof-backed Ruby concurrency runtime calls onto existing task-spawn scheduling and handle-lifecycle obligations",
+    "not_a_feature_list": [
+      "No new semantic kernel API was added.",
+      "No exact admission path was opened for Ruby Thread/Fiber calls.",
+      "Ruby support reuses shared task-spawn, task-handle, and concurrency scheduling labels instead of adding selector-specific obligations.",
+      "Same-file Thread/Fiber root definitions keep reporting closed."
+    ],
+    "reused_capabilities": [
+      "runtime-boundary missing-evidence vocabulary",
+      "same-file runtime root shadow detection",
+      "recall-loss oracle_exclusions.by_obligation and admission_rejections rollups"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "ruby",
+      "surface": "Thread.new, Thread.start, Thread.fork, Fiber.new, Fiber.schedule",
+      "guard": "The runtime root must be the unshadowed Ruby Thread or Fiber constant within the same file.",
+      "reported_obligations": [
+        "task-spawn-scheduling-contract",
+        "task-handle-lifecycle-contract",
+        "task-cancellation-liveness-contract",
+        "concurrency-scheduling-contract"
+      ]
+    }
+  ],
+  "focused_fixtures": [
+    {
+      "test": "ruby::ruby_thread_and_fiber_calls_report_shared_task_obligations",
+      "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::ruby -- --nocapture",
+      "assertions": [
+        "Thread.new/start/fork report shared task-spawn, task-handle, and cancellation/liveness obligations",
+        "Fiber.new/schedule report shared task-spawn, task-handle, and cancellation/liveness obligations"
+      ]
+    },
+    {
+      "test": "recall_loss_report_attributes_ruby_thread_fiber_runtime_exclusions",
+      "command": "cargo test -p nose-cli --test cli recall_loss_report_oracle_exclusions::recall_loss_report_attributes_ruby_thread_fiber_runtime_exclusions -- --nocapture",
+      "assertions": [
+        "Ruby Thread/Fiber rows appear under task-spawn scheduling in recall-loss reports"
+      ]
+    }
+  ],
+  "focused_hard_negative_fixtures": [
+    {
+      "test": "ruby::ruby_thread_and_fiber_calls_require_unshadowed_runtime_roots",
+      "assertions": [
+        "Thread constant assignment blocks Thread.new/start/fork attribution",
+        "class Thread blocks Thread.start attribution",
+        "Fiber constant assignment blocks Fiber.new/schedule attribution",
+        "class Fiber blocks Fiber.schedule attribution"
+      ]
+    },
+    {
+      "test": "ruby::ruby_thread_observer_calls_do_not_report_spawn_obligations",
+      "assertions": [
+        "Thread.current does not report spawn or lifecycle obligations"
+      ]
+    }
+  ],
+  "current_crates_gate": {
+    "report": "target/recall-loss.ruby-thread-fiber-runtime.crates.json",
+    "total_units": 6841,
+    "interpretable_units": 951,
+    "excluded_units": 5890,
+    "admission_rejections": 795,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 97,
+    "canon_preservation_violations": 0,
+    "gate_passed": true
+  },
+  "corpus_pricing_delta": {
+    "source": "bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json",
+    "previous_source": "bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json",
+    "total_source_prevalence_before": 146987,
+    "total_source_prevalence_after": 146988,
+    "newly_priced_occurrences": 1,
+    "ruby_thread_fiber_occurrences": 74,
+    "ruby_thread_fiber_repos": 11,
+    "reason": "The pricing script now treats Ruby Thread/Fiber calls as reporting-supported closed task-spawn boundaries and includes Thread.start."
+  },
+  "real_corpus_spot_checks": [
+    {
+      "command": "cargo run -q -p nose-cli -- verify bench/repos/puma/lib/puma/server.rb bench/repos/puma/lib/puma/thread_pool.rb bench/repos/rack/test/spec_multipart.rb bench/repos/asciidoctor/test/test_helper.rb --max-violations 0 --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.spot.json",
+      "summary": {
+        "total_units": 136,
+        "interpretable_units": 38,
+        "excluded_units": 98,
+        "admission_rejections": 1,
+        "oracle_excluded_task_spawn_units": 4,
+        "false_merges": 0,
+        "canon_preservation_violations": 0
+      }
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::ruby -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary -- --nocapture",
+    "cargo test -p nose-cli --lib recall_loss_report::obligations::tests -- --nocapture",
+    "cargo test -p nose-cli --test cli recall_loss_report_oracle_exclusions::recall_loss_report_attributes_ruby_thread_fiber_runtime_exclusions -- --nocapture",
+    "python3 -m py_compile scripts/scheduling-lifecycle-boundary-audit.py",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.crates.json",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json --generated-on 2026-07-01",
+    "cargo run -q -p nose-cli -- verify bench/repos/puma/lib/puma/server.rb bench/repos/puma/lib/puma/thread_pool.rb bench/repos/rack/test/spec_multipart.rb bench/repos/asciidoctor/test/test_helper.rb --max-violations 0 --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.spot.json",
+    "cargo clippy --all-targets --all-features -- -D warnings",
+    "cargo build --release",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.release.crates.json",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.release2.crates.json"
+  ],
+  "release_verify_timing": {
+    "baseline_reference": "Python/Swift async runtime breadth warm release verify real_seconds = 1.06",
+    "cold_or_first_real_seconds": 1.70,
+    "warm_real_seconds": 1.03,
+    "assessment": "No degradation observed; the warm run is slightly below the previous 1.06s reference and the implementation adds only a small Ruby-language runtime branch."
+  },
+  "next_exact_work_policy": {
+    "status": "closed_until_evidence",
+    "summary": "Ruby Thread/Fiber calls are now attributed precisely enough for recall-loss reporting, but exact recovery remains closed until scheduling, lifecycle, callback effect, exception propagation, and thread/fiber identity contracts are dependency-closed."
+  }
+}

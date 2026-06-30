@@ -269,6 +269,15 @@ plus Swift continuation bridge functions. New reports use existing
 labels; exact recovery remains closed. The matching [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json)
 adds `107` source-prevalence occurrences over the prior scope-shadowing audit
 with `0` false merges on the local `crates` gate.
+The follow-up [Ruby Thread/Fiber runtime artifact](../bench/recall_loss/ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
+keeps exact admission closed while moving Ruby `Thread.new`, `Thread.start`,
+`Thread.fork`, `Fiber.new`, and `Fiber.schedule` onto shared task-spawn and
+task-handle runtime obligations, plus cancellation/liveness, when the runtime
+root is unshadowed in the same file. Same-file `Thread`/`Fiber` definitions
+remain closed. The matching
+[120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json) marks the Ruby Thread/Fiber row
+reporting-supported, prices `74` occurrences across `11` repos, and raises
+total source prevalence from `146,987` to `146,988`.
 The
 checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
 connect the JS/TS source-prevalence group (`29,094` Promise/async occurrences)

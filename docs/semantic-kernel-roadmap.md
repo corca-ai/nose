@@ -2167,6 +2167,14 @@ different APIs.
   callback, and exception obligations. The [checked artifact](../bench/recall_loss/non-js-async-runtime-breadth-2026-07-01.v1.json)
   prices `107` new non-JS source-prevalence occurrences over the scope-shadowing
   audit and keeps exact admission closed.
+- The Ruby Thread/Fiber follow-up applies the same capability rule to Ruby
+  concurrency runtime calls. `Thread.new`, `Thread.start`, `Thread.fork`,
+  `Fiber.new`, and `Fiber.schedule` now reuse shared task-spawn, task-handle,
+  cancellation/liveness, and concurrency scheduling obligations when the
+  runtime root is not defined in the same file. The [checked artifact](../bench/recall_loss/ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
+  marks `74` Ruby Thread/Fiber occurrences across `11` repos as
+  reporting-supported closed boundaries without adding a Ruby-only kernel API
+  or opening exact admission.
 - The async protocol near-channel follow-up applies the same dual-view capability
   to supported async protocol boundaries instead of adding JS/TS-only features.
   Fingerprint builds can look through `await`, `async_function`, and

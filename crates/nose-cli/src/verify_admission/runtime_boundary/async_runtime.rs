@@ -6,6 +6,7 @@ use nose_il::{
 };
 
 mod java;
+mod ruby;
 mod rust;
 mod rust_imports;
 mod swift;
@@ -54,6 +55,12 @@ pub(super) fn push_async_runtime_call_missing_evidence(
             swift::push_swift_async_runtime_call_missing_evidence(
                 il, interner, callee, &path, context, labels,
             )
+        }
+        nose_il::Lang::Ruby => {
+            let Some(path) = path else {
+                return false;
+            };
+            ruby::push_ruby_thread_fiber_runtime_call_missing_evidence(il, interner, &path, labels)
         }
         _ => false,
     }
