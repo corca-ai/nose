@@ -16,10 +16,20 @@ pub(super) fn rust_imported_binding_evidence_only_symbol(
     let Some(local_name) = super::super::super::node_exact_name(il, interner, callee) else {
         return false;
     };
+    rust_imported_binding_evidence_only_symbol_for_local(il, local_name, callee, module, exported)
+}
+
+pub(super) fn rust_imported_binding_evidence_only_symbol_for_local(
+    il: &nose_il::Il,
+    local_name: &str,
+    occurrence: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
     let local_hash = stable_symbol_hash(local_name);
     let module_hash = stable_symbol_hash(module);
     let exported_hash = stable_symbol_hash(exported);
-    let occurrence_span = il.node(callee).span;
+    let occurrence_span = il.node(occurrence).span;
     let mut found_matching = false;
     for record in il.evidence_binding_anchored(local_hash) {
         let EvidenceAnchor::Binding {

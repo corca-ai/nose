@@ -86,6 +86,12 @@ break.
   obligations without opening exact admission; the 120-repo lexical audit prices
   `40` Java future reporting candidates while leaving `276` broad
   `CompletableFuture` mentions closed.
+- Added Rust `block_on` Future bridge reporting. Qualified/import-backed
+  `tokio_test::block_on` calls and proof-backed `Handle::current().block_on`
+  plus inline `Runtime`/`Builder` receiver chains now map to
+  `future-drive-scheduling-contract` plus
+  `future-settled-value-channel-contract` without opening exact admission;
+  selector-only `.block_on` and variable-typed runtime receivers remain closed.
 - Added Go channel/goroutine/defer obligation refinement. Go source-backed
   protocol boundaries now report channel send synchronization, receive value,
   comma-ok receive status, select readiness/case/default, goroutine scheduling

@@ -387,6 +387,7 @@ const RUNTIME_BOUNDARY_OBLIGATIONS: &[RuntimeBoundaryRule] = &[
     runtime_rule!("async-aggregate-completion-contract" => "success-error-result-channel", "async-aggregate-completion-contract-missing"),
     runtime_rule!("async-aggregate-result-channel-contract" => "success-error-result-channel", "async-aggregate-result-channel-contract-missing"),
     runtime_rule!("async-aggregate-cancellation-liveness-contract" => "cancellation-liveness-boundary", "async-aggregate-cancellation-liveness-contract-missing"),
+    runtime_rule!("future-drive-scheduling-contract" => "scheduling-boundary", "future-drive-scheduling-contract-missing"),
     runtime_rule!("future-settled-value-channel-contract" => "success-error-result-channel", "future-settled-value-channel-contract-missing"),
     runtime_rule!("future-fulfillment-continuation-contract" => "success-error-result-channel", "future-fulfillment-continuation-contract-missing"),
     runtime_rule!("future-settlement-continuation-contract" => "success-error-result-channel", "future-settlement-continuation-contract-missing"),

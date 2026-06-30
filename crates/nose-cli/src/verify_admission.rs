@@ -64,7 +64,13 @@ impl AdmissionContext {
     }
 
     fn collect_rust_runtime_root_definitions(&mut self, il: &nose_il::Il, interner: &Interner) {
-        const RUNTIME_ROOTS: &[&str] = &["tokio", "async_std", "futures", "futures_util"];
+        const RUNTIME_ROOTS: &[&str] = &[
+            "tokio",
+            "tokio_test",
+            "async_std",
+            "futures",
+            "futures_util",
+        ];
         for name in names_defined_in_il(il, interner) {
             if RUNTIME_ROOTS.contains(&name.as_str()) {
                 self.rust_local_runtime_roots_by_file

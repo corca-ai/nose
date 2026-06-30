@@ -1,0 +1,181 @@
+{
+  "report_kind": "rust-block-on-future-drive-obligation-reporting",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-rust-future-drive-expansion",
+    "summary": "Rust qualified/import-backed block_on calls and proof-backed runtime receiver chains now report shared future scheduling and result-channel obligations.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "future drive scheduling attribution for sync/async bridges",
+    "not_a_feature_list": [
+      "No exact admission path was opened for Rust block_on or async/sync equivalence.",
+      "No new public semantic-pack API was added.",
+      "Selector-only .block_on calls stay closed unless the receiver is rooted in proof-backed tokio runtime construction, Handle::current evidence, or an allowed root-preserving constructor chain.",
+      "self.rt.block_on and variable-typed runtime receivers remain closed until field/type identity evidence exists."
+    ],
+    "reused_capabilities": [
+      "runtime-boundary-model",
+      "Rust imported binding evidence",
+      "AdmissionContext Rust local-runtime-root guard",
+      "recall-loss by_obligation",
+      "recall-loss oracle_exclusions.by_obligation",
+      "shared future-settled value-channel obligation"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "rust",
+      "surface": "tokio_test::block_on(...) or use tokio_test::block_on; block_on(...)",
+      "guard": "The tokio_test root must not be project-local, and imported bindings must be unshadowed and scoped to the occurrence.",
+      "reported_obligations": [
+        "future-drive-scheduling-contract",
+        "future-settled-value-channel-contract"
+      ]
+    },
+    {
+      "language": "rust",
+      "surface": "tokio::runtime::Handle::current().block_on(...) or imported Handle::current().block_on(...)",
+      "guard": "The tokio root must not be project-local, and imported Handle evidence must be unshadowed and scoped to the occurrence.",
+      "reported_obligations": [
+        "future-drive-scheduling-contract",
+        "future-settled-value-channel-contract"
+      ]
+    },
+    {
+      "language": "rust",
+      "surface": "proof-backed inline Runtime::new()/Builder::new_*() receiver chains ending in .block_on(...)",
+      "guard": "The inline receiver chain must contain qualified or imported tokio::runtime Runtime/Builder construction proof.",
+      "reported_obligations": [
+        "future-drive-scheduling-contract",
+        "future-settled-value-channel-contract"
+      ]
+    }
+  ],
+  "focused_fixture": {
+    "tests": [
+      {
+        "test": "rust_block_on::reports_future_drive_obligations_when_runtime_identity_is_proven",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on::reports_future_drive_obligations_when_runtime_identity_is_proven -- --nocapture",
+        "assertions": [
+          "Imported tokio::runtime::Handle::current().block_on reports future-drive and future-settled obligations.",
+          "Qualified tokio::runtime::Handle::current().block_on reports future-drive and future-settled obligations.",
+          "Imported tokio::runtime::Runtime::new().unwrap().block_on reports future-drive and future-settled obligations.",
+          "Imported tokio_test::block_on reports future-drive and future-settled obligations."
+        ]
+      },
+      {
+        "test": "rust_block_on::requires_proven_runtime_identity",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on::requires_proven_runtime_identity -- --nocapture",
+        "assertions": [
+          "An arbitrary receiver.block_on call does not receive future-drive attribution.",
+          "A project-local tokio root blocks qualified tokio::runtime::Handle attribution.",
+          "A local Handle parameter blocks imported Handle attribution.",
+          "A local block_on function blocks imported tokio_test::block_on attribution."
+        ]
+      },
+      {
+        "test": "recall_loss_report_attributes_non_js_async_runtime_api_exclusions",
+        "command": "cargo test -p nose-cli --test cli recall_loss_report_oracle_exclusions::recall_loss_report_attributes_non_js_async_runtime_api_exclusions -- --nocapture",
+        "assertions": [
+          "The recall-loss report rolls Rust block_on under scheduling-boundary/future-drive-scheduling-contract-missing.",
+          "The report keeps task spawn and aggregate obligations unchanged."
+        ]
+      }
+    ]
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss.rust-block-on.crates.json",
+    "total_units": 6763,
+    "interpretable_units": 935,
+    "excluded_units": 5828,
+    "admission_rejections": 781,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 96,
+    "canon_preservation_violations": 0,
+    "gate_passed": true,
+    "future_drive_admission_rejections": 0,
+    "future_drive_oracle_exclusions": 0,
+    "note": "The local crates surface has no qualified/import-backed Rust block_on bridge rows; real-corpus Tokio spot checks exercise the new attribution."
+  },
+  "real_corpus_spot_checks": [
+    {
+      "repo": "tokio",
+      "path": "tokio-test/tests/block_on.rs",
+      "command": "target/release/nose verify bench/repos/tokio/tokio-test/tests/block_on.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-block-on.tokio-test.release.json",
+      "summary": {
+        "total_units": 4,
+        "interpretable_units": 0,
+        "excluded_units": 4,
+        "false_merges": 0,
+        "future_drive_evidence_units": 1,
+        "future_drive_primary_units": 0,
+        "primary_reason_note": "The block_on(async { sleep_until(...).await }) unit also carries async-await evidence, which remains the primary scheduling subreason by rule order."
+      }
+    },
+    {
+      "repo": "tokio",
+      "path": "tokio/tests/rt_handle_block_on.rs",
+      "command": "target/release/nose verify bench/repos/tokio/tokio/tests/rt_handle_block_on.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-block-on.rt-handle.release.json",
+      "summary": {
+        "total_units": 7,
+        "interpretable_units": 2,
+        "excluded_units": 5,
+        "admission_rejections": 2,
+        "false_merges": 0,
+        "future_drive_evidence_units": 4,
+        "future_drive_primary_units": 2
+      },
+      "future_drive_lines": [
+        {
+          "line": 98,
+          "primary_obligation_subreason": "async-block-scheduling-contract-missing"
+        },
+        {
+          "line": 106,
+          "primary_obligation_subreason": "future-drive-scheduling-contract-missing"
+        },
+        {
+          "line": 118,
+          "primary_obligation_subreason": "future-drive-scheduling-contract-missing"
+        },
+        {
+          "line": 130,
+          "primary_obligation_subreason": "async-block-scheduling-contract-missing"
+        }
+      ]
+    }
+  ],
+  "closed_surfaces": [
+    {
+      "surface": "self.rt.block_on(...) or rt.block_on(...)",
+      "reason": "The current reporter does not infer struct-field or local-variable tokio runtime types."
+    },
+    {
+      "surface": "arbitrary receiver.block_on(...)",
+      "reason": "Selector spelling alone is not runtime identity proof."
+    },
+    {
+      "surface": "Exact convergence between block_on, await, and synchronous payload values",
+      "reason": "Future drive scheduling, wake/poll behavior, cancellation/liveness, and result-channel semantics remain missing evidence."
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all --check",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime -- --nocapture",
+    "cargo test -p nose-cli --lib recall_loss_report::obligations::tests::future_channel_and_continuation_labels_have_specific_obligations -- --nocapture",
+    "cargo test -p nose-cli --test cli recall_loss_report_oracle_exclusions::recall_loss_report_attributes_non_js_async_runtime_api_exclusions -- --nocapture",
+    "target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.rust-block-on.crates.json",
+    "target/release/nose verify bench/repos/tokio/tokio-test/tests/block_on.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-block-on.tokio-test.release.json",
+    "target/release/nose verify bench/repos/tokio/tokio/tests/rt_handle_block_on.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-block-on.rt-handle.release.json"
+  ],
+  "next_exact_work_policy": {
+    "status": "closed_until_evidence",
+    "summary": "Rust future-drive bridges are now attributable, but exact async/sync recovery still needs poll/wake scheduling, cancellation/liveness, result-channel, and receiver/type identity contracts."
+  }
+}

@@ -185,29 +185,7 @@ fn recall_loss_report_attributes_async_function_and_block_oracle_exclusions() {
 #[test]
 fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
     let project = TempProject::new("recall_loss_non_js_async_runtime_api_exclusions");
-    project.write(
-        "asyncio_api.py",
-        "import asyncio\n\
-         def schedule():\n    return asyncio.create_task(work())\n\
-         def sleep_timer():\n    return asyncio.sleep(1)\n\
-         def gather_all(task):\n    return asyncio.gather(task)\n\
-         def wait_some(task):\n    return asyncio.wait([task])\n",
-    );
-    project.write(
-        "rust_runtime.rs",
-        "fn spawn_it() { tokio::spawn(work()); }\n\
-         fn join_it() { tokio::join!(work(), other()); }\n\
-         fn select_it() { futures::select!(a = work() => a); }\n",
-    );
-    project.write(
-        "swift_task.swift",
-        "func schedule() {\n  Task { work() }\n}\n\
-         func detached() {\n  Task.detached { work() }\n}\n\
-         func sleepTimer() {\n  Task.sleep(nanoseconds: 1)\n}\n\
-         func yieldNow() {\n  Task.yield()\n}\n\
-         func groupAll() {\n  withTaskGroup(of: Int.self) { group in\n    group.addTask { 1 }\n  }\n}\n\
-         func groupThrowing() {\n  withThrowingTaskGroup(of: Int.self) { group in\n    group.addTask { 1 }\n  }\n}\n",
-    );
+    write_non_js_async_runtime_api_fixture(&project);
     let report_path = project.path().join("recall-loss.json");
     let out = run_raw(&[
         "verify",
@@ -239,6 +217,12 @@ fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
         "scheduling-boundary",
         "timer-scheduling-contract-missing",
         1,
+    );
+    assert_admission_obligation(
+        &report,
+        "scheduling-boundary",
+        "future-drive-scheduling-contract-missing",
+        2,
     );
     for (family, subreason, minimum) in [
         (
@@ -272,6 +256,7 @@ fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
     for language in ["python", "rust"] {
         assert_admission_rejection(&report, language, "task-spawn-scheduling-contract");
     }
+    assert_admission_rejection(&report, "rust", "future-drive-scheduling-contract");
     for evidence in [
         "task-yield-scheduling-contract",
         "timer-scheduling-contract",
@@ -285,6 +270,36 @@ fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
     ] {
         assert_no_admission_obligation(&report, subreason);
     }
+}
+
+fn write_non_js_async_runtime_api_fixture(project: &TempProject) {
+    project.write(
+        "asyncio_api.py",
+        "import asyncio\n\
+         def schedule():\n    return asyncio.create_task(work())\n\
+         def sleep_timer():\n    return asyncio.sleep(1)\n\
+         def gather_all(task):\n    return asyncio.gather(task)\n\
+         def wait_some(task):\n    return asyncio.wait([task])\n",
+    );
+    project.write(
+        "rust_runtime.rs",
+        "use tokio::runtime::Handle;\n\
+         use tokio_test::block_on as test_block_on;\n\
+         fn spawn_it() { tokio::spawn(work()); }\n\
+         fn join_it() { tokio::join!(work(), other()); }\n\
+         fn select_it() { futures::select!(a = work() => a); }\n\
+         fn drive_handle() { Handle::current().block_on(work()); }\n\
+         fn drive_test() { test_block_on(work()); }\n",
+    );
+    project.write(
+        "swift_task.swift",
+        "func schedule() {\n  Task { work() }\n}\n\
+         func detached() {\n  Task.detached { work() }\n}\n\
+         func sleepTimer() {\n  Task.sleep(nanoseconds: 1)\n}\n\
+         func yieldNow() {\n  Task.yield()\n}\n\
+         func groupAll() {\n  withTaskGroup(of: Int.self) { group in\n    group.addTask { 1 }\n  }\n}\n\
+         func groupThrowing() {\n  withThrowingTaskGroup(of: Int.self) { group in\n    group.addTask { 1 }\n  }\n}\n",
+    );
 }
 
 #[test]

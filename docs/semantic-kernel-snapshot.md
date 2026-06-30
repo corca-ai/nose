@@ -157,6 +157,15 @@ matching [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-b
 prices `Task.sleep` at `161` occurrences / `10` repos, task groups at `153` /
 `9`, `Task.yield` at `12` / `3`, and corrects `5` already-supported
 `Task.detached(...)` spawn occurrences in the audit.
+The follow-up [Rust block_on future-drive artifact](../bench/recall_loss/rust-block-on-future-drive-obligation-reporting-2026-07-01.v1.json)
+keeps exact admission closed while mapping qualified/import-backed
+`tokio_test::block_on` plus proof-backed `Handle::current().block_on` and
+inline `Runtime`/`Builder` block-on receiver chains onto
+`future-drive-scheduling-contract` plus the existing
+`future-settled-value-channel-contract`. Tokio spot checks show `4` future-drive
+evidence units in `tokio/tests/rt_handle_block_on.rs`, `2` of them as the
+primary scheduling subreason; selector-only and variable-typed `.block_on`
+receivers remain closed.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while pricing `4,294` channel receives, `1,525`
 sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,
@@ -1419,17 +1428,21 @@ this worktree because the required evidence is not yet modeled:
   remains closed against plain `value` until generator demand and suspension
   semantics are modeled.
 - Python `asyncio.create_task`/`sleep`/`gather`/`wait`, Rust `tokio`/`async-std`
-  spawn and qualified `tokio`/`futures`/`futures_util` `join!`/`select!`, and
+  spawn, qualified/imported `tokio`/`futures`/`futures_util`
+  `join!`/`select!`, qualified/import-backed Rust `tokio_test::block_on`
+  calls plus proof-backed Rust runtime `.block_on` receiver chains, and
   Swift `Task` creation report scheduler, lifecycle, cancellation, and
   result-channel obligations but do not yet converge with synchronous calls,
-  direct payload values, or each other. These reports require import-backed
+  direct payload values, `await`, or each other. These reports require import-backed
   Python `asyncio` namespace or binding proof with no path-visible local module,
   qualified or imported Rust runtime proof whose root is not locally defined in
-  the same file, and unshadowed Swift `Task` roots with no corpus-visible Swift
-  `Task` definition. Python function-local `asyncio` imports remain closed
-  until scope proof exists, and the imported-occurrence producer keeps Rust
+  the same file, proof-backed `tokio::runtime` receiver construction for
+  Rust `.block_on`, and unshadowed Swift `Task` roots with no corpus-visible
+  Swift `Task` definition. Python function-local `asyncio` imports remain
+  closed until scope proof exists, the imported-occurrence producer keeps Rust
   block-scoped or other-module runtime imports from proving calls outside that
-  module scope.
+  module scope, and `self.rt.block_on(...)` stays closed until receiver/type
+  evidence exists.
 - Java `CompletableFuture.supplyAsync`/`runAsync`, settled factories,
   `allOf`/`anyOf`, and exact-import-backed CompletionStage-style receiver
   continuations now report future settled-value, continuation, callback

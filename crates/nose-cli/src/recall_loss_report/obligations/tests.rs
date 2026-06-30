@@ -309,6 +309,16 @@ fn task_and_async_aggregate_labels_have_specific_obligations() {
 #[test]
 fn future_channel_and_continuation_labels_have_specific_obligations() {
     assert_eq!(
+        runtime_boundary_obligation(&[
+            "future-drive-scheduling-contract",
+            "future-settled-value-channel-contract",
+        ]),
+        (
+            "scheduling-boundary",
+            "future-drive-scheduling-contract-missing",
+        )
+    );
+    assert_eq!(
         runtime_boundary_obligation(&["future-settled-value-channel-contract"]),
         (
             "success-error-result-channel",

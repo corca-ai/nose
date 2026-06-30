@@ -99,6 +99,13 @@ raises total source prevalence from `142,847` to `143,178`: `Task.sleep`
 contributes `161` occurrences / `10` repos, task groups `153` / `9`,
 `Task.yield` `12` / `3`, and the audit now counts `5` already-supported
 `Task.detached(...)` spawn occurrences. Exact admission remains closed.
+The follow-up [Rust block_on future-drive artifact](../bench/recall_loss/rust-block-on-future-drive-obligation-reporting-2026-07-01.v1.json)
+keeps exact admission closed and maps qualified/import-backed Rust
+`tokio_test::block_on` calls and proof-backed tokio runtime receiver chains
+onto `future-drive-scheduling-contract` plus
+`future-settled-value-channel-contract`. This is a reusable scheduling/result
+capability, not selector-name admission: arbitrary `.block_on` receivers remain
+closed without tokio runtime identity proof.
 The follow-up [Java CompletableFuture artifact](../bench/recall_loss/java-completablefuture-obligation-reporting-2026-06-30.v1.json)
 keeps exact admission closed and maps proof-backed Java
 `CompletableFuture.supplyAsync`/`runAsync`, settled factories, `allOf`/`anyOf`,

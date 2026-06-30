@@ -9,6 +9,7 @@ use super::super::runtime_boundary_missing_evidence_with_context;
 
 mod imported_bindings;
 mod java;
+mod rust_block_on;
 mod scope_shadowing;
 mod swift;
 

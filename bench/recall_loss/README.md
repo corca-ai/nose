@@ -443,6 +443,14 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   `Task.sleep`, `Task.yield`, and task-group calls now receive shared timer,
   task-yield, aggregate, cancellation/liveness, result-channel, and
   exception-channel obligations without opening exact admission.
+- [rust-block-on-future-drive-obligation-reporting-2026-07-01.v1.json](rust-block-on-future-drive-obligation-reporting-2026-07-01.v1.json)
+  records the Rust Future bridge reporting-only expansion.
+  Qualified/import-backed `tokio_test::block_on` calls and proof-backed
+  `Handle::current().block_on` plus inline `Runtime`/`Builder` receiver chains
+  now receive
+  `future-drive-scheduling-contract` and
+  `future-settled-value-channel-contract` without opening exact admission.
+  Selector-only `.block_on` and variable-typed runtime receivers remain closed.
 - [scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json)
   records the matching 120-repo source-prevalence pricing. It raises total
   source prevalence from `142,847` to `143,178`: `Task.sleep` contributes
