@@ -76,7 +76,18 @@ fn push_python_async_runtime_call_missing_evidence(
                 .is_some_and(|method| push_python_asyncio_api_missing_evidence(method, labels));
         }
     }
-    for exported in ["create_task", "ensure_future", "sleep", "gather", "wait"] {
+    for exported in [
+        "create_task",
+        "ensure_future",
+        "sleep",
+        "gather",
+        "wait",
+        "run",
+        "wait_for",
+        "shield",
+        "run_coroutine_threadsafe",
+        "to_thread",
+    ] {
         if python_asyncio_imported_binding_proven(il, interner, callee, exported) {
             return push_python_asyncio_api_missing_evidence(exported, labels);
         }
@@ -104,6 +115,37 @@ fn push_python_asyncio_api_missing_evidence(
         "wait" => {
             push_async_aggregate_completion_missing_evidence(labels);
             super::super::push_unique(labels, "async-aggregate-cancellation-liveness-contract");
+            true
+        }
+        "run" => {
+            super::super::push_unique(labels, "future-drive-scheduling-contract");
+            push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
+            true
+        }
+        "wait_for" => {
+            super::super::push_unique(labels, "timer-scheduling-contract");
+            super::super::push_unique(labels, "timer-cancellation-liveness-contract");
+            push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
+            true
+        }
+        "shield" => {
+            super::super::push_unique(labels, "task-cancellation-liveness-contract");
+            push_future_settled_value_missing_evidence(labels);
+            true
+        }
+        "run_coroutine_threadsafe" => {
+            push_task_spawn_missing_evidence(labels);
+            push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
+            true
+        }
+        "to_thread" => {
+            push_task_spawn_missing_evidence(labels);
+            push_future_settled_value_missing_evidence(labels);
+            push_future_callback_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
             true
         }
         _ => false,
@@ -339,4 +381,12 @@ pub(super) fn push_async_aggregate_first_missing_evidence(labels: &mut Vec<&'sta
 pub(super) fn push_async_aggregate_completion_missing_evidence(labels: &mut Vec<&'static str>) {
     super::super::push_unique(labels, "async-aggregate-completion-contract");
     super::super::push_unique(labels, "async-aggregate-result-channel-contract");
+}
+
+pub(super) fn push_future_settled_value_missing_evidence(labels: &mut Vec<&'static str>) {
+    super::super::push_unique(labels, "future-settled-value-channel-contract");
+}
+
+pub(super) fn push_future_callback_missing_evidence(labels: &mut Vec<&'static str>) {
+    super::super::push_unique(labels, "future-callback-demand-effect-contract");
 }

@@ -1,0 +1,4316 @@
+{
+  "current_recall_loss": {
+    "relevant_obligations": [
+      {
+        "count": 16,
+        "obligation_family": "exception-channel",
+        "obligation_subreason": "exception-channel-contract-missing",
+        "oracle_interpretable": 16
+      },
+      {
+        "count": 9,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "callback-member-call-effect-proof-missing",
+        "oracle_interpretable": 9
+      },
+      {
+        "count": 9,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "callback-rust-macro-call-effect-proof-missing",
+        "oracle_interpretable": 9
+      },
+      {
+        "count": 5,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "callback-assignment-effect-proof-missing",
+        "oracle_interpretable": 5
+      },
+      {
+        "count": 4,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "callback-direct-function-call-effect-contract-missing",
+        "oracle_interpretable": 4
+      },
+      {
+        "count": 2,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "callback-identity-or-shape-proof-missing",
+        "oracle_interpretable": 2
+      },
+      {
+        "count": 1,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "callback-imported-function-call-effect-contract-missing",
+        "oracle_interpretable": 1
+      },
+      {
+        "count": 1,
+        "obligation_family": "callback-demand-effect",
+        "obligation_subreason": "predicate-callback-demand-effect-profile-missing",
+        "oracle_interpretable": 1
+      }
+    ],
+    "relevant_oracle_exclusion_obligations": [
+      {
+        "attribution_reason": "unsupported-runtime-boundary",
+        "count": 567,
+        "exclusion_reason": "uninterpretable",
+        "obligation_family": "exception-channel",
+        "obligation_subreason": "exception-channel-contract-missing",
+        "oracle_excluded": 567
+      },
+      {
+        "attribution_reason": "unsupported-runtime-boundary",
+        "count": 3,
+        "exclusion_reason": "uninterpretable",
+        "obligation_family": "scheduling-boundary",
+        "obligation_subreason": "runtime-protocol-boundary-contract-missing",
+        "oracle_excluded": 3
+      }
+    ],
+    "report": "target/recall-loss.non-js-async-runtime-breadth.crates.json",
+    "soundness_gate": {
+      "advisory_disagreements": 4,
+      "canon_preservation_violations": 0,
+      "false_merges": 0,
+      "fingerprint_groups": 40,
+      "gate_passed": true,
+      "lossy_fingerprint_collisions": 0,
+      "max_violations": 0
+    },
+    "summary": {
+      "admission_rejections": 793,
+      "canon_checked": 96,
+      "canon_preservation_violations": 0,
+      "excluded_units": 5884,
+      "interpretable_units": 949,
+      "total_units": 6833
+    }
+  },
+  "generated_on": "2026-07-01",
+  "hard_negative_inventory": [
+    {
+      "class": "thenable assimilation and custom Promise-like receivers",
+      "evidence": "crates/nose-cli/tests/cli/semantic_boundaries.rs::query_mode_semantic_rejects_unproven_js_promise_protocol_convergence",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "first-settled versus all-settled aggregate semantics",
+      "evidence": "crates/nose-cli/tests/cli/semantic_boundaries.rs::query_mode_semantic_rejects_unproven_js_promise_protocol_convergence",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "executor callback timing and thrown executor errors",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary.rs::promise_constructor_missing_evidence_splits_executor_obligations",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "scheduler/microtask ordering versus synchronous evaluation",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary.rs::scheduler_and_interval_calls_report_timing_and_lifecycle_obligations",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "interval stream liveness/cardinality",
+      "evidence": "crates/nose-cli/tests/cli/commands/recall_loss_report.rs::recall_loss_report_splits_promise_protocol_boundaries",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "cross-language lifecycle one-shot/reusable/materialized distinctions",
+      "evidence": "docs/scheduling-channel-callback-obligations-594.md",
+      "status": "mapped-doc-policy"
+    },
+    {
+      "class": "Go direct call versus goroutine/defer scheduling and callback effects",
+      "evidence": "crates/nose-cli/tests/cli/semantic_boundaries.rs::query_mode_semantic_rejects_unproven_go_concurrency_protocol_convergence and crates/nose-cli/src/verify_admission/runtime_boundary/tests.rs::go_select_defer_and_goroutine_boundaries_report_specific_obligations",
+      "status": "expanded-this-slice"
+    },
+    {
+      "class": "Go channel receive value/status, channel send, and select/default readiness boundaries",
+      "evidence": "crates/nose-cli/tests/cli/semantic_boundaries.rs::query_mode_semantic_rejects_unproven_go_concurrency_protocol_convergence and crates/nose-cli/src/verify_admission/runtime_boundary/tests.rs::go_channel_protocol_boundaries_report_specific_obligations",
+      "status": "expanded-this-slice"
+    },
+    {
+      "class": "Python imported asyncio bindings shadowed by parameters, assignments, nested imports, or project-local asyncio modules",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/imported_bindings.rs::non_js_async_runtime_imported_bindings_reject_local_shadows and ::non_js_async_runtime_context_rejects_project_local_imported_bindings",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "Rust brace/direct-imported runtime bindings shadowed by parameters, lets, local macros, block scopes, other modules, or project-local runtime roots",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/imported_bindings.rs::non_js_async_runtime_imported_bindings_reject_rust_shadows_and_scopes and ::non_js_async_runtime_context_rejects_project_local_imported_bindings",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "Swift structured-concurrency runtime names shadowed by local Task bindings, Task extensions, same-file task-group functions, or project-visible task-group functions",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/swift.rs::swift_structured_concurrency_rejects_local_runtime_shadows",
+      "status": "mapped-existing"
+    },
+    {
+      "class": "Java CompletableFuture static calls without exact stdlib type identity, or with local/conflicting type names",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/java.rs::java_completable_future_static_attribution_requires_type_identity",
+      "status": "expanded-this-slice"
+    },
+    {
+      "class": "Java CompletionStage-style receiver continuations without import-backed java.util.concurrent type-domain evidence",
+      "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/java.rs::java_completion_stage_receiver_methods_require_import_backed_type_domain",
+      "status": "expanded-this-slice"
+    }
+  ],
+  "policy": {
+    "go_channel_operation_pricing": "Directional channel type arrows such as <-chan and chan<- are excluded from send/receive operation counts.",
+    "note": "Counts price boundary surfaces; they do not prove exact semantics.",
+    "raw_source_snippets_included": false,
+    "semantic_admission_delta": 0,
+    "source_prevalence_only": true
+  },
+  "recommended_order": [
+    {
+      "language": "javascript-typescript",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "promise-aggregate-all-fulfilled-contract-missing",
+      "occurrences": 397,
+      "operation": "Promise.all",
+      "rank": 1,
+      "repos": 17,
+      "why": "Promise aggregate semantics are already corpus-priced and have adjacent first/all-settled hard negatives."
+    },
+    {
+      "language": "javascript-typescript",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "cancellation-liveness-boundary",
+      "obligation_subreason": "promise-aggregate-first-settled-contract-missing",
+      "occurrences": 32,
+      "operation": "Promise.race",
+      "rank": 2,
+      "repos": 8,
+      "why": "Promise aggregate semantics are already corpus-priced and have adjacent first/all-settled hard negatives."
+    },
+    {
+      "language": "javascript-typescript",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "executor-callback",
+      "obligation_subreason": "promise-executor-timing-contract-missing",
+      "occurrences": 795,
+      "operation": "new Promise",
+      "rank": 3,
+      "repos": 18,
+      "why": "new Promise is high-risk because timing, resolve/reject callback, and throw-to-rejection behavior interact."
+    },
+    {
+      "language": "javascript-typescript",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "cancellation-liveness-boundary",
+      "obligation_subreason": "abort-signal-cancellation-contract-missing",
+      "occurrences": 260,
+      "operation": "AbortController/AbortSignal",
+      "rank": 4,
+      "repos": 7,
+      "why": "Cancellation appears across JS/TS scheduling APIs and must stay separate from fulfillment/rejection recovery."
+    },
+    {
+      "language": "javascript-typescript",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "lifecycle-materialization-boundary",
+      "obligation_subreason": "interval-async-iteration-lifecycle-contract-missing",
+      "occurrences": 73,
+      "operation": "setInterval",
+      "rank": 5,
+      "repos": 11,
+      "why": "Repeated emission/liveness needs lifecycle proof before interval streams can be compared exactly."
+    },
+    {
+      "language": "go",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "goroutine-scheduling-contract-missing",
+      "occurrences": 1949,
+      "operation": "go statement",
+      "rank": 6,
+      "repos": 14,
+      "why": "High-prevalence boundary surface with reusable obligation vocabulary."
+    },
+    {
+      "language": "go",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-receive-value-channel-contract-missing",
+      "occurrences": 4294,
+      "operation": "channel receive",
+      "rank": 7,
+      "repos": 13,
+      "why": "Go channel protocol boundaries now split blocking, synchronization, close-status, and select readiness obligations."
+    },
+    {
+      "language": "go",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-send-synchronization-contract-missing",
+      "occurrences": 1525,
+      "operation": "channel send",
+      "rank": 8,
+      "repos": 12,
+      "why": "Go channel protocol boundaries now split blocking, synchronization, close-status, and select readiness obligations."
+    },
+    {
+      "language": "go",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-select-readiness-contract-missing",
+      "occurrences": 1920,
+      "operation": "select",
+      "rank": 9,
+      "repos": 13,
+      "why": "Go channel protocol boundaries now split blocking, synchronization, close-status, and select readiness obligations."
+    },
+    {
+      "language": "go",
+      "next_action": "reporting-only split and hard-negative expansion before exact admission",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-select-case-selection-contract-missing",
+      "occurrences": 3590,
+      "operation": "select case",
+      "rank": 10,
+      "repos": 13,
+      "why": "Go channel protocol boundaries now split blocking, synchronization, close-status, and select readiness obligations."
+    }
+  ],
+  "regenerate": [
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json --generated-on 2026-07-01"
+  ],
+  "report_kind": "scheduling-lifecycle-boundary-audit",
+  "schema_version": 1,
+  "summary": {
+    "languages": {
+      "c": 81,
+      "go": 31500,
+      "java": 5609,
+      "javascript-typescript": 45382,
+      "python": 6439,
+      "ruby": 4884,
+      "rust": 13228,
+      "swift": 39864
+    },
+    "obligation_families": {
+      "callback-demand-effect": 801,
+      "cancellation-liveness-boundary": 302,
+      "channel-boundary": 12030,
+      "exception-channel": 30631,
+      "executor-callback": 795,
+      "lifecycle-materialization-boundary": 22469,
+      "scheduling-boundary": 78917,
+      "success-error-result-channel": 1042
+    },
+    "repos_in_manifest": 120,
+    "total_source_prevalence": 146987
+  },
+  "surfaces": [
+    {
+      "boundary": "await scheduling",
+      "language": "javascript-typescript",
+      "note": "await is scheduling and thenable assimilation, not sync value equivalence",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-await-scheduling-contract-missing",
+      "occurrences": 29305,
+      "operation": "await",
+      "repos": 21,
+      "status": "closed-boundary",
+      "surface": "js-ts.async.await",
+      "top_files": [
+        {
+          "occurrences": 1058,
+          "path": "esbuild/scripts/js-api-tests.js"
+        },
+        {
+          "occurrences": 689,
+          "path": "drizzle-orm/integration-tests/tests/pg/pg-common.ts"
+        },
+        {
+          "occurrences": 673,
+          "path": "drizzle-orm/integration-tests/tests/mysql/mysql-common.ts"
+        },
+        {
+          "occurrences": 635,
+          "path": "drizzle-orm/integration-tests/tests/bun/bun-sql.test.ts"
+        },
+        {
+          "occurrences": 615,
+          "path": "jest/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 615,
+          "path": "prettier/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 487,
+          "path": "drizzle-orm/integration-tests/tests/sqlite/sqlite-common.ts"
+        },
+        {
+          "occurrences": 484,
+          "path": "drizzle-orm/integration-tests/tests/gel/gel.test.ts"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 12136,
+          "repo": "drizzle-orm"
+        },
+        {
+          "occurrences": 3321,
+          "repo": "execa"
+        },
+        {
+          "occurrences": 2666,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 2413,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 1604,
+          "repo": "prettier"
+        },
+        {
+          "occurrences": 1592,
+          "repo": "esbuild"
+        },
+        {
+          "occurrences": 1171,
+          "repo": "axios"
+        },
+        {
+          "occurrences": 1164,
+          "repo": "swr"
+        }
+      ]
+    },
+    {
+      "boundary": "throws channel",
+      "language": "swift",
+      "note": "Swift throws/try is an explicit error channel",
+      "obligation_family": "exception-channel",
+      "obligation_subreason": "swift-throws-exception-channel-contract-missing",
+      "occurrences": 26608,
+      "operation": "throws/try",
+      "repos": 18,
+      "status": "closed-boundary",
+      "surface": "swift.error.throws",
+      "top_files": [
+        {
+          "occurrences": 664,
+          "path": "swift-nio/Tests/NIOFSIntegrationTests/FileSystemTests.swift"
+        },
+        {
+          "occurrences": 489,
+          "path": "swift-nio/Tests/NIOPosixTests/ChannelTests.swift"
+        },
+        {
+          "occurrences": 450,
+          "path": "swift-nio/Tests/NIOPosixTests/ChannelPipelineTest.swift"
+        },
+        {
+          "occurrences": 406,
+          "path": "swift-nio/Tests/NIOPosixTests/NonBlockingFileIOTest.swift"
+        },
+        {
+          "occurrences": 396,
+          "path": "swift-nio/Tests/NIOPosixTests/AsyncChannelBootstrapTests.swift"
+        },
+        {
+          "occurrences": 364,
+          "path": "swift-nio/Tests/NIOPosixTests/DatagramChannelTests.swift"
+        },
+        {
+          "occurrences": 344,
+          "path": "swift-nio/Tests/NIOFSIntegrationTests/FileHandleTests.swift"
+        },
+        {
+          "occurrences": 304,
+          "path": "swift-nio/Tests/NIOHTTP1Tests/HTTPServerUpgradeTests.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 14760,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 2508,
+          "repo": "vapor"
+        },
+        {
+          "occurrences": 1466,
+          "repo": "swift-collections"
+        },
+        {
+          "occurrences": 1356,
+          "repo": "rxswift"
+        },
+        {
+          "occurrences": 1193,
+          "repo": "swiftlint"
+        },
+        {
+          "occurrences": 1107,
+          "repo": "swift-argument-parser"
+        },
+        {
+          "occurrences": 914,
+          "repo": "antlr4"
+        },
+        {
+          "occurrences": 805,
+          "repo": "alamofire"
+        }
+      ]
+    },
+    {
+      "boundary": "defer lifecycle",
+      "language": "go",
+      "note": "defer has scope-exit ordering and panic interaction semantics",
+      "obligation_family": "lifecycle-materialization-boundary",
+      "obligation_subreason": "defer-lifecycle-ordering-contract-missing",
+      "occurrences": 17521,
+      "operation": "defer statement",
+      "repos": 16,
+      "status": "closed-boundary",
+      "surface": "go.concurrent.defer",
+      "top_files": [
+        {
+          "occurrences": 1001,
+          "path": "nats-server/server/jetstream_test.go"
+        },
+        {
+          "occurrences": 560,
+          "path": "nats-server/server/leafnode_test.go"
+        },
+        {
+          "occurrences": 494,
+          "path": "nats-server/server/jetstream_consumer_test.go"
+        },
+        {
+          "occurrences": 461,
+          "path": "nats-server/server/filestore_test.go"
+        },
+        {
+          "occurrences": 420,
+          "path": "nats-server/server/mqtt_test.go"
+        },
+        {
+          "occurrences": 396,
+          "path": "nats-server/server/jetstream_cluster_3_test.go"
+        },
+        {
+          "occurrences": 394,
+          "path": "nats-server/server/jetstream_cluster_1_test.go"
+        },
+        {
+          "occurrences": 379,
+          "path": "nats-server/server/gateway_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 10073,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 2461,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 1797,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 1151,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 581,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 449,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 422,
+          "repo": "hugo"
+        },
+        {
+          "occurrences": 161,
+          "repo": "esbuild"
+        }
+      ]
+    },
+    {
+      "boundary": "async function scheduling",
+      "language": "javascript-typescript",
+      "note": "async functions have scheduling and rejection boundaries even without explicit await",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-function-scheduling-contract-missing",
+      "occurrences": 14491,
+      "operation": "async function",
+      "repos": 22,
+      "status": "closed-boundary",
+      "surface": "js-ts.async.function",
+      "top_files": [
+        {
+          "occurrences": 352,
+          "path": "esbuild/scripts/js-api-tests.js"
+        },
+        {
+          "occurrences": 314,
+          "path": "ky/test/hooks.ts"
+        },
+        {
+          "occurrences": 278,
+          "path": "jest/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 278,
+          "path": "prettier/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 210,
+          "path": "drizzle-orm/integration-tests/tests/mysql/mysql-common.ts"
+        },
+        {
+          "occurrences": 207,
+          "path": "drizzle-orm/integration-tests/tests/pg/pg-common.ts"
+        },
+        {
+          "occurrences": 198,
+          "path": "drizzle-orm/integration-tests/tests/bun/bun-sql.test.ts"
+        },
+        {
+          "occurrences": 192,
+          "path": "drizzle-orm/integration-tests/tests/gel/gel.test.ts"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 4595,
+          "repo": "drizzle-orm"
+        },
+        {
+          "occurrences": 1621,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 1607,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 1193,
+          "repo": "pixijs"
+        },
+        {
+          "occurrences": 1079,
+          "repo": "execa"
+        },
+        {
+          "occurrences": 883,
+          "repo": "prettier"
+        },
+        {
+          "occurrences": 814,
+          "repo": "ky"
+        },
+        {
+          "occurrences": 688,
+          "repo": "axios"
+        }
+      ]
+    },
+    {
+      "boundary": "await scheduling",
+      "language": "swift",
+      "note": "Swift await has task scheduling and actor/lifetime boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-await-scheduling-contract-missing",
+      "occurrences": 8689,
+      "operation": "await",
+      "repos": 15,
+      "status": "closed-boundary",
+      "surface": "swift.async.await",
+      "top_files": [
+        {
+          "occurrences": 612,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/ServiceGroupTests.swift"
+        },
+        {
+          "occurrences": 556,
+          "path": "swift-nio/Tests/NIOFSIntegrationTests/FileSystemTests.swift"
+        },
+        {
+          "occurrences": 263,
+          "path": "swift-nio/Tests/NIOFSIntegrationTests/FileHandleTests.swift"
+        },
+        {
+          "occurrences": 257,
+          "path": "swift-nio/Tests/NIOPosixTests/AsyncChannelBootstrapTests.swift"
+        },
+        {
+          "occurrences": 251,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/Reducers/PresentationReducerTests.swift"
+        },
+        {
+          "occurrences": 221,
+          "path": "swift-nio/Tests/NIOEmbeddedTests/AsyncTestingChannelTests.swift"
+        },
+        {
+          "occurrences": 153,
+          "path": "swift-nio/Tests/NIOFSTests/Internal/Concurrency Primitives/BufferedStreamTests.swift"
+        },
+        {
+          "occurrences": 150,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/ServiceGroupAddServiceTests.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 3169,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 2261,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 969,
+          "repo": "swift-service-lifecycle"
+        },
+        {
+          "occurrences": 944,
+          "repo": "vapor"
+        },
+        {
+          "occurrences": 724,
+          "repo": "nimble"
+        },
+        {
+          "occurrences": 155,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 139,
+          "repo": "alamofire"
+        },
+        {
+          "occurrences": 96,
+          "repo": "swiftlint"
+        }
+      ]
+    },
+    {
+      "boundary": "future await",
+      "language": "rust",
+      "note": "Rust .await polls a Future and must keep wake/scheduling effects explicit",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-await-scheduling-contract-missing",
+      "occurrences": 8647,
+      "operation": ".await",
+      "repos": 4,
+      "status": "closed-boundary",
+      "surface": "rust.async.await",
+      "top_files": [
+        {
+          "occurrences": 545,
+          "path": "meilisearch/crates/meilisearch/tests/search/multi/proxy.rs"
+        },
+        {
+          "occurrences": 255,
+          "path": "meilisearch/crates/meilisearch/tests/search/multi/mod.rs"
+        },
+        {
+          "occurrences": 227,
+          "path": "meilisearch/crates/meilisearch/tests/documents/add_documents.rs"
+        },
+        {
+          "occurrences": 221,
+          "path": "meilisearch/crates/meilisearch/tests/dumps/mod.rs"
+        },
+        {
+          "occurrences": 193,
+          "path": "meilisearch/crates/meilisearch/tests/search/mod.rs"
+        },
+        {
+          "occurrences": 147,
+          "path": "meilisearch/crates/meilisearch/tests/tasks/mod.rs"
+        },
+        {
+          "occurrences": 141,
+          "path": "meilisearch/crates/meilisearch/tests/batches/mod.rs"
+        },
+        {
+          "occurrences": 138,
+          "path": "meilisearch/crates/meilisearch/tests/documents/get_documents.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 5632,
+          "repo": "meilisearch"
+        },
+        {
+          "occurrences": 2942,
+          "repo": "tokio"
+        },
+        {
+          "occurrences": 39,
+          "repo": "rustls"
+        },
+        {
+          "occurrences": 34,
+          "repo": "nushell"
+        }
+      ]
+    },
+    {
+      "boundary": "channel receive value",
+      "language": "go",
+      "note": "Go channel receives have blocking, synchronization, and close/zero-value channel semantics",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-receive-value-channel-contract-missing",
+      "occurrences": 4294,
+      "operation": "channel receive",
+      "repos": 13,
+      "status": "closed-boundary",
+      "surface": "go.channel.receive",
+      "top_files": [
+        {
+          "occurrences": 126,
+          "path": "nats-server/server/norace_1_test.go"
+        },
+        {
+          "occurrences": 102,
+          "path": "nats-server/server/jetstream_test.go"
+        },
+        {
+          "occurrences": 98,
+          "path": "nats-server/server/leafnode_test.go"
+        },
+        {
+          "occurrences": 86,
+          "path": "delve/service/test/integration2_test.go"
+        },
+        {
+          "occurrences": 82,
+          "path": "etcd/tests/integration/clientv3/watch/watch_test.go"
+        },
+        {
+          "occurrences": 73,
+          "path": "nats-server/server/jetstream_cluster_2_test.go"
+        },
+        {
+          "occurrences": 68,
+          "path": "nats-server/server/jetstream_cluster.go"
+        },
+        {
+          "occurrences": 65,
+          "path": "nats-server/server/norace_2_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1476,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 1354,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 541,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 537,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 175,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 85,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 53,
+          "repo": "hugo"
+        },
+        {
+          "occurrences": 17,
+          "repo": "chi"
+        }
+      ]
+    },
+    {
+      "boundary": "exception channel",
+      "language": "ruby",
+      "note": "raise/rescue changes error channels and non-local control",
+      "obligation_family": "exception-channel",
+      "obligation_subreason": "ruby-exception-channel-contract-missing",
+      "occurrences": 4010,
+      "operation": "raise/rescue",
+      "repos": 18,
+      "status": "closed-boundary",
+      "surface": "ruby.exception",
+      "top_files": [
+        {
+          "occurrences": 92,
+          "path": "rack/lib/rack/lint.rb"
+        },
+        {
+          "occurrences": 91,
+          "path": "rubocop/spec/rubocop/cop/layout/rescue_ensure_alignment_spec.rb"
+        },
+        {
+          "occurrences": 71,
+          "path": "rubocop/spec/rubocop/cop/naming/rescued_exceptions_variable_name_spec.rb"
+        },
+        {
+          "occurrences": 67,
+          "path": "rubocop/spec/rubocop/cop/style/signal_exception_spec.rb"
+        },
+        {
+          "occurrences": 65,
+          "path": "rubocop/spec/rubocop/cop/lint/shadowed_exception_spec.rb"
+        },
+        {
+          "occurrences": 55,
+          "path": "rubocop/spec/rubocop/cop/style/rescue_standard_error_spec.rb"
+        },
+        {
+          "occurrences": 53,
+          "path": "fastlane/spaceship/lib/spaceship/tunes/tunes_client.rb"
+        },
+        {
+          "occurrences": 50,
+          "path": "fastlane/spaceship/lib/spaceship/client.rb"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1334,
+          "repo": "rubocop"
+        },
+        {
+          "occurrences": 699,
+          "repo": "fastlane"
+        },
+        {
+          "occurrences": 343,
+          "repo": "puma"
+        },
+        {
+          "occurrences": 264,
+          "repo": "sidekiq"
+        },
+        {
+          "occurrences": 226,
+          "repo": "pry"
+        },
+        {
+          "occurrences": 203,
+          "repo": "rack"
+        },
+        {
+          "occurrences": 203,
+          "repo": "rspec-core"
+        },
+        {
+          "occurrences": 155,
+          "repo": "sinatra"
+        }
+      ]
+    },
+    {
+      "boundary": "async function scheduling",
+      "language": "swift",
+      "note": "Swift async surfaces create task/future-like protocol boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-function-scheduling-contract-missing",
+      "occurrences": 3953,
+      "operation": "async",
+      "repos": 17,
+      "status": "closed-boundary",
+      "surface": "swift.async.function",
+      "top_files": [
+        {
+          "occurrences": 134,
+          "path": "swift-nio/Tests/NIOFSIntegrationTests/FileSystemTests.swift"
+        },
+        {
+          "occurrences": 71,
+          "path": "swift-nio/Tests/NIOFSIntegrationTests/FileHandleTests.swift"
+        },
+        {
+          "occurrences": 69,
+          "path": "swiftlint/Source/SwiftLintBuiltInRules/Rules/Lint/AsyncWithoutAwaitRuleExamples.swift"
+        },
+        {
+          "occurrences": 62,
+          "path": "alamofire/Tests/ConcurrencyTests.swift"
+        },
+        {
+          "occurrences": 54,
+          "path": "vapor/Tests/VaporMacroTests/HTTPMethodMacroTests.swift"
+        },
+        {
+          "occurrences": 53,
+          "path": "vapor/Tests/VaporMacroTests/ControllerMacroTests.swift"
+        },
+        {
+          "occurrences": 50,
+          "path": "vapor/Tests/VaporTests/FileTests.swift"
+        },
+        {
+          "occurrences": 47,
+          "path": "swift-nio/Tests/NIOEmbeddedTests/AsyncTestingChannelTests.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1379,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 680,
+          "repo": "vapor"
+        },
+        {
+          "occurrences": 670,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 334,
+          "repo": "nimble"
+        },
+        {
+          "occurrences": 226,
+          "repo": "alamofire"
+        },
+        {
+          "occurrences": 179,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 131,
+          "repo": "rxswift"
+        },
+        {
+          "occurrences": 115,
+          "repo": "swift-service-lifecycle"
+        }
+      ]
+    },
+    {
+      "boundary": "select case selection",
+      "language": "go",
+      "note": "Go select cases require readiness, case-selection, and send/receive side-effect proof",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-select-case-selection-contract-missing",
+      "occurrences": 3590,
+      "operation": "select case",
+      "repos": 13,
+      "status": "closed-boundary",
+      "surface": "go.channel.select.case",
+      "top_files": [
+        {
+          "occurrences": 110,
+          "path": "nats-server/server/norace_1_test.go"
+        },
+        {
+          "occurrences": 106,
+          "path": "nats-server/server/leafnode_test.go"
+        },
+        {
+          "occurrences": 86,
+          "path": "nats-server/server/jetstream_test.go"
+        },
+        {
+          "occurrences": 71,
+          "path": "nats-server/server/jetstream_cluster.go"
+        },
+        {
+          "occurrences": 67,
+          "path": "nats-server/server/jetstream_cluster_2_test.go"
+        },
+        {
+          "occurrences": 63,
+          "path": "nats-server/server/norace_2_test.go"
+        },
+        {
+          "occurrences": 62,
+          "path": "prometheus/scrape/scrape_test.go"
+        },
+        {
+          "occurrences": 61,
+          "path": "etcd/tests/integration/clientv3/watch/watch_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1342,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 1086,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 533,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 430,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 82,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 53,
+          "repo": "hugo"
+        },
+        {
+          "occurrences": 29,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 15,
+          "repo": "chi"
+        }
+      ]
+    },
+    {
+      "boundary": "executor scheduling",
+      "language": "java",
+      "note": "Executor/Future APIs introduce scheduler and lifecycle boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "java-executor-scheduling-contract-missing",
+      "occurrences": 3297,
+      "operation": "Executor/Future",
+      "repos": 16,
+      "status": "closed-boundary",
+      "surface": "java.future.executor",
+      "top_files": [
+        {
+          "occurrences": 59,
+          "path": "netty/codec-native-quic/src/test/java/io/netty/handler/codec/quic/QuicChannelConnectTest.java"
+        },
+        {
+          "occurrences": 39,
+          "path": "guava/android/guava-tests/test/com/google/common/util/concurrent/MoreExecutorsTest.java"
+        },
+        {
+          "occurrences": 39,
+          "path": "guava/guava-tests/test/com/google/common/util/concurrent/MoreExecutorsTest.java"
+        },
+        {
+          "occurrences": 38,
+          "path": "guava/android/guava/src/com/google/common/util/concurrent/MoreExecutors.java"
+        },
+        {
+          "occurrences": 38,
+          "path": "guava/guava/src/com/google/common/util/concurrent/MoreExecutors.java"
+        },
+        {
+          "occurrences": 38,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/subscribers/SerializedSubscriberTest.java"
+        },
+        {
+          "occurrences": 38,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/observers/SerializedObserverTest.java"
+        },
+        {
+          "occurrences": 33,
+          "path": "guava/android/guava-tests/test/com/google/common/util/concurrent/FuturesTest.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1338,
+          "repo": "guava"
+        },
+        {
+          "occurrences": 1173,
+          "repo": "netty"
+        },
+        {
+          "occurrences": 343,
+          "repo": "rxjava"
+        },
+        {
+          "occurrences": 107,
+          "repo": "commons-lang"
+        },
+        {
+          "occurrences": 86,
+          "repo": "jedis"
+        },
+        {
+          "occurrences": 84,
+          "repo": "retrofit"
+        },
+        {
+          "occurrences": 57,
+          "repo": "junit5"
+        },
+        {
+          "occurrences": 44,
+          "repo": "h2database"
+        }
+      ]
+    },
+    {
+      "boundary": "async function scheduling",
+      "language": "rust",
+      "note": "async fn creates a suspended async function boundary",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-function-scheduling-contract-missing",
+      "occurrences": 2806,
+      "operation": "async fn",
+      "repos": 4,
+      "status": "closed-boundary",
+      "surface": "rust.async.function",
+      "top_files": [
+        {
+          "occurrences": 80,
+          "path": "tokio/tokio/tests/sync_mpsc.rs"
+        },
+        {
+          "occurrences": 67,
+          "path": "meilisearch/crates/meilisearch/tests/common/index.rs"
+        },
+        {
+          "occurrences": 60,
+          "path": "meilisearch/crates/meilisearch/tests/search/multi/mod.rs"
+        },
+        {
+          "occurrences": 56,
+          "path": "meilisearch/crates/meilisearch/tests/common/server.rs"
+        },
+        {
+          "occurrences": 49,
+          "path": "meilisearch/crates/meilisearch/tests/search/errors.rs"
+        },
+        {
+          "occurrences": 39,
+          "path": "meilisearch/crates/meilisearch/tests/documents/add_documents.rs"
+        },
+        {
+          "occurrences": 39,
+          "path": "tokio/tokio/tests/macros_select.rs"
+        },
+        {
+          "occurrences": 37,
+          "path": "meilisearch/crates/meilisearch/tests/auth/api_keys.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1405,
+          "repo": "meilisearch"
+        },
+        {
+          "occurrences": 1352,
+          "repo": "tokio"
+        },
+        {
+          "occurrences": 28,
+          "repo": "rustls"
+        },
+        {
+          "occurrences": 21,
+          "repo": "nushell"
+        }
+      ]
+    },
+    {
+      "boundary": "generator lifecycle",
+      "language": "python",
+      "note": "yield has suspension and iterator lifecycle semantics",
+      "obligation_family": "lifecycle-materialization-boundary",
+      "obligation_subreason": "generator-yield-lifecycle-contract-missing",
+      "occurrences": 2404,
+      "operation": "yield",
+      "repos": 21,
+      "status": "closed-boundary",
+      "surface": "python.generator.yield",
+      "top_files": [
+        {
+          "occurrences": 86,
+          "path": "sympy/sympy/utilities/iterables.py"
+        },
+        {
+          "occurrences": 83,
+          "path": "black/src/black/linegen.py"
+        },
+        {
+          "occurrences": 47,
+          "path": "scrapy/tests/test_crawl.py"
+        },
+        {
+          "occurrences": 43,
+          "path": "sympy/sympy/core/facts.py"
+        },
+        {
+          "occurrences": 39,
+          "path": "scrapy/tests/spiders.py"
+        },
+        {
+          "occurrences": 37,
+          "path": "scrapy/tests/test_crawler.py"
+        },
+        {
+          "occurrences": 31,
+          "path": "packaging/src/packaging/tags.py"
+        },
+        {
+          "occurrences": 29,
+          "path": "rich/rich/segment.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 540,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 446,
+          "repo": "sympy"
+        },
+        {
+          "occurrences": 367,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 339,
+          "repo": "rich"
+        },
+        {
+          "occurrences": 172,
+          "repo": "black"
+        },
+        {
+          "occurrences": 139,
+          "repo": "httpx"
+        },
+        {
+          "occurrences": 76,
+          "repo": "poetry"
+        },
+        {
+          "occurrences": 64,
+          "repo": "packaging"
+        }
+      ]
+    },
+    {
+      "boundary": "stream lifecycle",
+      "language": "java",
+      "note": "Java streams need lazy/eager lifecycle and terminal materialization proof",
+      "obligation_family": "lifecycle-materialization-boundary",
+      "obligation_subreason": "java-stream-lifecycle-contract-missing",
+      "occurrences": 1996,
+      "operation": "stream/parallelStream",
+      "repos": 15,
+      "status": "closed-boundary",
+      "surface": "java.stream.lifecycle",
+      "top_files": [
+        {
+          "occurrences": 137,
+          "path": "jedis/src/test/java/redis/clients/jedis/commands/unified/pipeline/GeoPipelineCommandsTest.java"
+        },
+        {
+          "occurrences": 124,
+          "path": "netty/codec-http2/src/test/java/io/netty/handler/codec/http2/Http2MultiplexTest.java"
+        },
+        {
+          "occurrences": 80,
+          "path": "jedis/src/test/java/redis/clients/jedis/commands/commandobjects/CommandObjectsGeospatialCommandsTest.java"
+        },
+        {
+          "occurrences": 75,
+          "path": "jedis/src/test/java/redis/clients/jedis/commands/unified/pipeline/StreamsPipelineCommandsTest.java"
+        },
+        {
+          "occurrences": 60,
+          "path": "netty/codec-http2/src/test/java/io/netty/handler/codec/http2/Http2FrameCodecTest.java"
+        },
+        {
+          "occurrences": 26,
+          "path": "junit5/junit-platform-commons/src/main/java/org/junit/platform/commons/util/ReflectionUtils.java"
+        },
+        {
+          "occurrences": 26,
+          "path": "netty/codec-http2/src/main/java/io/netty/handler/codec/http2/Http2FrameCodec.java"
+        },
+        {
+          "occurrences": 24,
+          "path": "graphhopper/reader-gtfs/src/main/java/com/graphhopper/gtfs/RealtimeFeed.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 535,
+          "repo": "junit5"
+        },
+        {
+          "occurrences": 508,
+          "repo": "jedis"
+        },
+        {
+          "occurrences": 385,
+          "repo": "netty"
+        },
+        {
+          "occurrences": 280,
+          "repo": "graphhopper"
+        },
+        {
+          "occurrences": 102,
+          "repo": "guava"
+        },
+        {
+          "occurrences": 88,
+          "repo": "commons-lang"
+        },
+        {
+          "occurrences": 29,
+          "repo": "jsoup"
+        },
+        {
+          "occurrences": 24,
+          "repo": "mockito"
+        }
+      ]
+    },
+    {
+      "boundary": "goroutine scheduling",
+      "language": "go",
+      "note": "go statements spawn concurrent execution",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "goroutine-scheduling-contract-missing",
+      "occurrences": 1949,
+      "operation": "go statement",
+      "repos": 14,
+      "status": "closed-boundary",
+      "surface": "go.concurrent.goroutine",
+      "top_files": [
+        {
+          "occurrences": 52,
+          "path": "nats-server/server/norace_1_test.go"
+        },
+        {
+          "occurrences": 27,
+          "path": "nats-server/server/jetstream_cluster_4_test.go"
+        },
+        {
+          "occurrences": 25,
+          "path": "nats-server/server/jetstream_test.go"
+        },
+        {
+          "occurrences": 25,
+          "path": "prometheus/discovery/kubernetes/kubernetes.go"
+        },
+        {
+          "occurrences": 23,
+          "path": "prometheus/scrape/scrape_test.go"
+        },
+        {
+          "occurrences": 22,
+          "path": "nats-server/server/norace_2_test.go"
+        },
+        {
+          "occurrences": 21,
+          "path": "minio/cmd/bucket-replication.go"
+        },
+        {
+          "occurrences": 20,
+          "path": "nats-server/server/jwt_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 501,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 439,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 364,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 253,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 126,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 91,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 60,
+          "repo": "esbuild"
+        },
+        {
+          "occurrences": 36,
+          "repo": "hugo"
+        }
+      ]
+    },
+    {
+      "boundary": "channel select",
+      "language": "go",
+      "note": "select has readiness, default, and scheduling semantics",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-select-readiness-contract-missing",
+      "occurrences": 1920,
+      "operation": "select",
+      "repos": 13,
+      "status": "closed-boundary",
+      "surface": "go.channel.select",
+      "top_files": [
+        {
+          "occurrences": 62,
+          "path": "nats-server/server/norace_1_test.go"
+        },
+        {
+          "occurrences": 58,
+          "path": "nats-server/server/leafnode_test.go"
+        },
+        {
+          "occurrences": 45,
+          "path": "nats-server/server/jetstream_test.go"
+        },
+        {
+          "occurrences": 35,
+          "path": "nats-server/server/jetstream_cluster_2_test.go"
+        },
+        {
+          "occurrences": 33,
+          "path": "nats-server/server/norace_2_test.go"
+        },
+        {
+          "occurrences": 31,
+          "path": "etcd/tests/integration/clientv3/watch/watch_test.go"
+        },
+        {
+          "occurrences": 30,
+          "path": "nats-server/server/routes_test.go"
+        },
+        {
+          "occurrences": 30,
+          "path": "prometheus/scrape/scrape_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 706,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 574,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 279,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 250,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 47,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 25,
+          "repo": "hugo"
+        },
+        {
+          "occurrences": 21,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 7,
+          "repo": "chi"
+        }
+      ]
+    },
+    {
+      "boundary": "await scheduling",
+      "language": "python",
+      "note": "Python await has coroutine scheduling and exception channel semantics",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-await-scheduling-contract-missing",
+      "occurrences": 1789,
+      "operation": "await",
+      "repos": 8,
+      "status": "closed-boundary",
+      "surface": "python.async.await",
+      "top_files": [
+        {
+          "occurrences": 145,
+          "path": "sqlalchemy/test/ext/asyncio/test_engine.py"
+        },
+        {
+          "occurrences": 122,
+          "path": "sqlalchemy/test/ext/asyncio/test_session.py"
+        },
+        {
+          "occurrences": 78,
+          "path": "scrapy/tests/test_downloader_handlers_http_base.py"
+        },
+        {
+          "occurrences": 72,
+          "path": "black/tests/test_blackd.py"
+        },
+        {
+          "occurrences": 62,
+          "path": "black/tests/data/cases/remove_await_parens.py"
+        },
+        {
+          "occurrences": 54,
+          "path": "scrapy/tests/test_feedexport.py"
+        },
+        {
+          "occurrences": 50,
+          "path": "sqlalchemy/test/dialect/postgresql/test_async_pg.py"
+        },
+        {
+          "occurrences": 43,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/session.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 716,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 661,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 200,
+          "repo": "black"
+        },
+        {
+          "occurrences": 196,
+          "repo": "httpx"
+        },
+        {
+          "occurrences": 5,
+          "repo": "boltons"
+        },
+        {
+          "occurrences": 5,
+          "repo": "flask"
+        },
+        {
+          "occurrences": 4,
+          "repo": "packaging"
+        },
+        {
+          "occurrences": 2,
+          "repo": "curl"
+        }
+      ]
+    },
+    {
+      "boundary": "async function scheduling",
+      "language": "python",
+      "note": "async def creates coroutine protocol boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-function-scheduling-contract-missing",
+      "occurrences": 1596,
+      "operation": "async def",
+      "repos": 9,
+      "status": "closed-boundary",
+      "surface": "python.async.function",
+      "top_files": [
+        {
+          "occurrences": 80,
+          "path": "sqlalchemy/test/ext/asyncio/test_engine.py"
+        },
+        {
+          "occurrences": 75,
+          "path": "scrapy/tests/test_downloader_handlers_http_base.py"
+        },
+        {
+          "occurrences": 57,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/result.py"
+        },
+        {
+          "occurrences": 53,
+          "path": "scrapy/tests/test_feedexport.py"
+        },
+        {
+          "occurrences": 47,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/session.py"
+        },
+        {
+          "occurrences": 47,
+          "path": "sqlalchemy/test/ext/asyncio/test_session.py"
+        },
+        {
+          "occurrences": 43,
+          "path": "scrapy/tests/test_spidermiddleware.py"
+        },
+        {
+          "occurrences": 40,
+          "path": "black/tests/test_blackd.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 790,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 424,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 209,
+          "repo": "httpx"
+        },
+        {
+          "occurrences": 144,
+          "repo": "black"
+        },
+        {
+          "occurrences": 19,
+          "repo": "flask"
+        },
+        {
+          "occurrences": 4,
+          "repo": "boltons"
+        },
+        {
+          "occurrences": 3,
+          "repo": "packaging"
+        },
+        {
+          "occurrences": 2,
+          "repo": "curl"
+        }
+      ]
+    },
+    {
+      "boundary": "channel send synchronization",
+      "language": "go",
+      "note": "Go channel sends have blocking and synchronization semantics",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-send-synchronization-contract-missing",
+      "occurrences": 1525,
+      "operation": "channel send",
+      "repos": 12,
+      "status": "closed-boundary",
+      "surface": "go.channel.send",
+      "top_files": [
+        {
+          "occurrences": 43,
+          "path": "nats-server/server/filestore.go"
+        },
+        {
+          "occurrences": 35,
+          "path": "nats-server/server/jwt_test.go"
+        },
+        {
+          "occurrences": 30,
+          "path": "minio/cmd/metrics.go"
+        },
+        {
+          "occurrences": 29,
+          "path": "nats-server/server/norace_1_test.go"
+        },
+        {
+          "occurrences": 29,
+          "path": "prometheus/tsdb/head_wal.go"
+        },
+        {
+          "occurrences": 27,
+          "path": "nats-server/server/reload_test.go"
+        },
+        {
+          "occurrences": 25,
+          "path": "etcd/server/etcdserver/server_test.go"
+        },
+        {
+          "occurrences": 21,
+          "path": "nats-server/server/leafnode_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 474,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 436,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 275,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 189,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 39,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 33,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 28,
+          "repo": "hugo"
+        },
+        {
+          "occurrences": 18,
+          "repo": "esbuild"
+        }
+      ]
+    },
+    {
+      "boundary": "async block construction",
+      "language": "rust",
+      "note": "async blocks create suspended async boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "async-block-scheduling-contract-missing",
+      "occurrences": 1342,
+      "operation": "async block",
+      "repos": 4,
+      "status": "closed-boundary",
+      "surface": "rust.async.block",
+      "top_files": [
+        {
+          "occurrences": 109,
+          "path": "tokio/tokio/tests/macros_select.rs"
+        },
+        {
+          "occurrences": 86,
+          "path": "tokio/tokio/tests/rt_common.rs"
+        },
+        {
+          "occurrences": 57,
+          "path": "tokio/tokio/tests/task_local_set.rs"
+        },
+        {
+          "occurrences": 43,
+          "path": "tokio/tokio/tests/rt_threaded.rs"
+        },
+        {
+          "occurrences": 42,
+          "path": "tokio/tokio/tests/rt_unstable_metrics.rs"
+        },
+        {
+          "occurrences": 39,
+          "path": "tokio/tokio-util/tests/task_join_map.rs"
+        },
+        {
+          "occurrences": 33,
+          "path": "tokio/tokio/tests/rt_basic.rs"
+        },
+        {
+          "occurrences": 31,
+          "path": "tokio/tokio/tests/task_join_set.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1273,
+          "repo": "tokio"
+        },
+        {
+          "occurrences": 61,
+          "repo": "meilisearch"
+        },
+        {
+          "occurrences": 5,
+          "repo": "rustls"
+        },
+        {
+          "occurrences": 3,
+          "repo": "nushell"
+        }
+      ]
+    },
+    {
+      "boundary": "block callback",
+      "language": "ruby",
+      "note": "Ruby yield invokes a block with demand/effect obligations",
+      "obligation_family": "callback-demand-effect",
+      "obligation_subreason": "ruby-yield-callback-demand-effect-contract-missing",
+      "occurrences": 801,
+      "operation": "yield",
+      "repos": 17,
+      "status": "closed-boundary",
+      "surface": "ruby.generator.yield",
+      "top_files": [
+        {
+          "occurrences": 26,
+          "path": "rubocop/spec/rubocop/cop/style/explicit_block_argument_spec.rb"
+        },
+        {
+          "occurrences": 22,
+          "path": "rspec-core/benchmarks/capture_block_vs_yield.rb"
+        },
+        {
+          "occurrences": 18,
+          "path": "rack/test/spec_deflater.rb"
+        },
+        {
+          "occurrences": 16,
+          "path": "sinatra/lib/sinatra/base.rb"
+        },
+        {
+          "occurrences": 12,
+          "path": "rubocop/spec/rubocop/cop/layout/hash_alignment_spec.rb"
+        },
+        {
+          "occurrences": 9,
+          "path": "faraday/lib/faraday/connection.rb"
+        },
+        {
+          "occurrences": 9,
+          "path": "rack/test/spec_lint.rb"
+        },
+        {
+          "occurrences": 8,
+          "path": "rspec-core/lib/rspec/core/configuration.rb"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 228,
+          "repo": "rubocop"
+        },
+        {
+          "occurrences": 98,
+          "repo": "rspec-core"
+        },
+        {
+          "occurrences": 81,
+          "repo": "sidekiq"
+        },
+        {
+          "occurrences": 65,
+          "repo": "rack"
+        },
+        {
+          "occurrences": 55,
+          "repo": "fastlane"
+        },
+        {
+          "occurrences": 38,
+          "repo": "sinatra"
+        },
+        {
+          "occurrences": 36,
+          "repo": "devise"
+        },
+        {
+          "occurrences": 34,
+          "repo": "liquid"
+        }
+      ]
+    },
+    {
+      "boundary": "executor timing",
+      "language": "javascript-typescript",
+      "note": "new Promise needs executor timing, resolve/reject callback, and throw-to-rejection contracts",
+      "obligation_family": "executor-callback",
+      "obligation_subreason": "promise-executor-timing-contract-missing",
+      "occurrences": 795,
+      "operation": "new Promise",
+      "repos": 18,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.executor",
+      "top_files": [
+        {
+          "occurrences": 46,
+          "path": "axios/tests/unit/adapters/http.test.js"
+        },
+        {
+          "occurrences": 28,
+          "path": "esbuild/scripts/js-api-tests.js"
+        },
+        {
+          "occurrences": 21,
+          "path": "jest/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 21,
+          "path": "prettier/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 20,
+          "path": "axios/tests/unit/prototypePollution.test.js"
+        },
+        {
+          "occurrences": 20,
+          "path": "trpc/packages/tests/server/websockets.test.ts"
+        },
+        {
+          "occurrences": 12,
+          "path": "esbuild/scripts/plugin-tests.js"
+        },
+        {
+          "occurrences": 12,
+          "path": "prettier/tests/format/flow/flow-repo/promises/promise.js"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 151,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 135,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 96,
+          "repo": "axios"
+        },
+        {
+          "occurrences": 89,
+          "repo": "esbuild"
+        },
+        {
+          "occurrences": 80,
+          "repo": "drizzle-orm"
+        },
+        {
+          "occurrences": 61,
+          "repo": "pixijs"
+        },
+        {
+          "occurrences": 55,
+          "repo": "rxjs"
+        },
+        {
+          "occurrences": 50,
+          "repo": "prettier"
+        }
+      ]
+    },
+    {
+      "boundary": "select default liveness",
+      "language": "go",
+      "note": "Go select defaults change blocking and liveness behavior",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-select-default-liveness-contract-missing",
+      "occurrences": 546,
+      "operation": "select default",
+      "repos": 10,
+      "status": "closed-boundary",
+      "surface": "go.channel.select.default",
+      "top_files": [
+        {
+          "occurrences": 14,
+          "path": "nats-server/server/norace_1_test.go"
+        },
+        {
+          "occurrences": 13,
+          "path": "nats-server/server/gateway_test.go"
+        },
+        {
+          "occurrences": 13,
+          "path": "nats-server/server/leafnode_test.go"
+        },
+        {
+          "occurrences": 11,
+          "path": "prometheus/storage/remote/queue_manager.go"
+        },
+        {
+          "occurrences": 10,
+          "path": "etcd/pkg/proxy/server.go"
+        },
+        {
+          "occurrences": 10,
+          "path": "nats-server/server/jetstream_cluster_4_test.go"
+        },
+        {
+          "occurrences": 10,
+          "path": "prometheus/tsdb/db.go"
+        },
+        {
+          "occurrences": 9,
+          "path": "nats-server/server/jetstream_cluster_long_test.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 195,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 144,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 94,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 71,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 17,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 13,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 7,
+          "repo": "hugo"
+        },
+        {
+          "occurrences": 2,
+          "repo": "chi"
+        }
+      ]
+    },
+    {
+      "boundary": "async iterator lifecycle",
+      "language": "python",
+      "note": "async for/with needs awaitable lifecycle and cleanup proof",
+      "obligation_family": "lifecycle-materialization-boundary",
+      "obligation_subreason": "python-async-iterator-lifecycle-contract-missing",
+      "occurrences": 475,
+      "operation": "async for/with",
+      "repos": 5,
+      "status": "closed-boundary",
+      "surface": "python.async.iteration",
+      "top_files": [
+        {
+          "occurrences": 71,
+          "path": "sqlalchemy/test/ext/asyncio/test_engine.py"
+        },
+        {
+          "occurrences": 59,
+          "path": "scrapy/tests/test_downloader_handlers_http_base.py"
+        },
+        {
+          "occurrences": 34,
+          "path": "sqlalchemy/test/ext/asyncio/test_session.py"
+        },
+        {
+          "occurrences": 28,
+          "path": "httpx/tests/client/test_auth.py"
+        },
+        {
+          "occurrences": 26,
+          "path": "httpx/tests/client/test_async_client.py"
+        },
+        {
+          "occurrences": 20,
+          "path": "httpx/tests/test_content.py"
+        },
+        {
+          "occurrences": 16,
+          "path": "httpx/tests/models/test_responses.py"
+        },
+        {
+          "occurrences": 15,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/engine.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 184,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 125,
+          "repo": "httpx"
+        },
+        {
+          "occurrences": 125,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 39,
+          "repo": "black"
+        },
+        {
+          "occurrences": 2,
+          "repo": "curl"
+        }
+      ]
+    },
+    {
+      "boundary": "all-fulfilled aggregate",
+      "language": "javascript-typescript",
+      "note": "Promise.all needs ordered all-fulfilled value and first rejection semantics",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "promise-aggregate-all-fulfilled-contract-missing",
+      "occurrences": 397,
+      "operation": "Promise.all",
+      "repos": 17,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.aggregate",
+      "top_files": [
+        {
+          "occurrences": 22,
+          "path": "execa/test/convert/concurrent.js"
+        },
+        {
+          "occurrences": 21,
+          "path": "jest/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 21,
+          "path": "prettier/.yarn/releases/yarn-4.15.0.cjs"
+        },
+        {
+          "occurrences": 12,
+          "path": "axios/tests/unit/adapters/http.test.js"
+        },
+        {
+          "occurrences": 11,
+          "path": "zod/packages/zod/src/v4/core/schemas.ts"
+        },
+        {
+          "occurrences": 9,
+          "path": "esbuild/scripts/js-api-tests.js"
+        },
+        {
+          "occurrences": 7,
+          "path": "date-fns/pkgs/docs/src/bin.ts"
+        },
+        {
+          "occurrences": 6,
+          "path": "execa/test/pipe/streaming.js"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 79,
+          "repo": "execa"
+        },
+        {
+          "occurrences": 62,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 60,
+          "repo": "prettier"
+        },
+        {
+          "occurrences": 56,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 29,
+          "repo": "drizzle-orm"
+        },
+        {
+          "occurrences": 17,
+          "repo": "esbuild"
+        },
+        {
+          "occurrences": 17,
+          "repo": "zod"
+        },
+        {
+          "occurrences": 16,
+          "repo": "date-fns"
+        }
+      ]
+    },
+    {
+      "boundary": "task spawn",
+      "language": "rust",
+      "note": "async spawn APIs introduce scheduler, cancellation, and join-handle boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 349,
+      "operation": "tokio/async-std spawn",
+      "repos": 3,
+      "status": "closed-boundary",
+      "surface": "rust.async.spawn",
+      "top_files": [
+        {
+          "occurrences": 32,
+          "path": "tokio/tokio/tests/rt_common.rs"
+        },
+        {
+          "occurrences": 18,
+          "path": "tokio/tokio/tests/rt_unstable_metrics.rs"
+        },
+        {
+          "occurrences": 16,
+          "path": "tokio/tokio/tests/rt_threaded.rs"
+        },
+        {
+          "occurrences": 12,
+          "path": "tokio/tokio/tests/task_abort.rs"
+        },
+        {
+          "occurrences": 11,
+          "path": "tokio/tokio/tests/task_id.rs"
+        },
+        {
+          "occurrences": 9,
+          "path": "meilisearch/crates/meilisearch/src/routes/indexes/documents.rs"
+        },
+        {
+          "occurrences": 9,
+          "path": "tokio/tokio/tests/sync_mpsc.rs"
+        },
+        {
+          "occurrences": 9,
+          "path": "tokio/tokio/tests/net_named_pipe.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 284,
+          "repo": "tokio"
+        },
+        {
+          "occurrences": 62,
+          "repo": "meilisearch"
+        },
+        {
+          "occurrences": 3,
+          "repo": "nushell"
+        }
+      ]
+    },
+    {
+      "boundary": "future channel",
+      "language": "java",
+      "note": "CompletableFuture needs success/error channel and scheduling proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "future-settled-value-channel-contract-missing",
+      "occurrences": 276,
+      "operation": "CompletableFuture",
+      "repos": 7,
+      "status": "closed-boundary",
+      "surface": "java.future.completable",
+      "top_files": [
+        {
+          "occurrences": 21,
+          "path": "netty/buffer/src/test/java/io/netty/buffer/JfrEventsTest.java"
+        },
+        {
+          "occurrences": 13,
+          "path": "retrofit/retrofit/src/main/java/retrofit2/CompletableFutureCallAdapterFactory.java"
+        },
+        {
+          "occurrences": 13,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/ObservableStageSubscriberOrDefaultTest.java"
+        },
+        {
+          "occurrences": 13,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/ObservableStageSubscriberOrErrorTest.java"
+        },
+        {
+          "occurrences": 12,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/FlowableStageSubscriberOrDefaultTest.java"
+        },
+        {
+          "occurrences": 12,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/FlowableStageSubscriberOrErrorTest.java"
+        },
+        {
+          "occurrences": 10,
+          "path": "retrofit/retrofit-adapters/java8/src/main/java/retrofit2/adapter/java8/Java8CallAdapterFactory.java"
+        },
+        {
+          "occurrences": 10,
+          "path": "retrofit/retrofit-adapters/java8/src/test/java/retrofit2/adapter/java8/Java8CallAdapterFactoryTest.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 112,
+          "repo": "rxjava"
+        },
+        {
+          "occurrences": 64,
+          "repo": "retrofit"
+        },
+        {
+          "occurrences": 55,
+          "repo": "netty"
+        },
+        {
+          "occurrences": 29,
+          "repo": "junit5"
+        },
+        {
+          "occurrences": 7,
+          "repo": "mockito"
+        },
+        {
+          "occurrences": 6,
+          "repo": "h2database"
+        },
+        {
+          "occurrences": 3,
+          "repo": "jedis"
+        }
+      ]
+    },
+    {
+      "boundary": "cancellation signal",
+      "language": "javascript-typescript",
+      "note": "AbortSignal/AbortController can change scheduling and rejection outcomes",
+      "obligation_family": "cancellation-liveness-boundary",
+      "obligation_subreason": "abort-signal-cancellation-contract-missing",
+      "occurrences": 260,
+      "operation": "AbortController/AbortSignal",
+      "repos": 7,
+      "status": "closed-boundary",
+      "surface": "js-ts.cancellation.abort",
+      "top_files": [
+        {
+          "occurrences": 18,
+          "path": "execa/test/terminate/cancel.js"
+        },
+        {
+          "occurrences": 18,
+          "path": "execa/test/ipc/graceful.js"
+        },
+        {
+          "occurrences": 14,
+          "path": "execa/test/terminate/graceful.js"
+        },
+        {
+          "occurrences": 13,
+          "path": "trpc/packages/server/src/unstable-core-do-not-import/stream/jsonl.test.ts"
+        },
+        {
+          "occurrences": 8,
+          "path": "execa/test-d/arguments/options.test-d.ts"
+        },
+        {
+          "occurrences": 8,
+          "path": "execa/test/pipe/abort.js"
+        },
+        {
+          "occurrences": 7,
+          "path": "axios/tests/unit/adapters/http.test.js"
+        },
+        {
+          "occurrences": 7,
+          "path": "trpc/packages/client/src/internals/signals.ts"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 108,
+          "repo": "execa"
+        },
+        {
+          "occurrences": 87,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 30,
+          "repo": "axios"
+        },
+        {
+          "occurrences": 17,
+          "repo": "ky"
+        },
+        {
+          "occurrences": 8,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 6,
+          "repo": "rxjs"
+        },
+        {
+          "occurrences": 4,
+          "repo": "pixijs"
+        }
+      ]
+    },
+    {
+      "boundary": "task scheduling",
+      "language": "swift",
+      "note": "Task APIs introduce scheduler, cancellation, and handle lifecycle boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 215,
+      "operation": "Task/Task.detached",
+      "repos": 12,
+      "status": "closed-boundary",
+      "surface": "swift.task.spawn",
+      "top_files": [
+        {
+          "occurrences": 21,
+          "path": "swift-nio/Tests/NIOCoreTests/AsyncSequences/NIOAsyncWriterTests.swift"
+        },
+        {
+          "occurrences": 21,
+          "path": "swiftlint/Source/SwiftLintBuiltInRules/Rules/Lint/UnhandledThrowingTaskRule.swift"
+        },
+        {
+          "occurrences": 12,
+          "path": "swift-nio/Tests/NIOEmbeddedTests/AsyncTestingChannelTests.swift"
+        },
+        {
+          "occurrences": 12,
+          "path": "alamofire/Tests/ConcurrencyTests.swift"
+        },
+        {
+          "occurrences": 12,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/EffectCancellationTests.swift"
+        },
+        {
+          "occurrences": 10,
+          "path": "swift-nio/Tests/NIOCoreTests/AsyncSequences/NIOThrowingAsyncSequenceTests.swift"
+        },
+        {
+          "occurrences": 10,
+          "path": "swift-nio/Tests/NIOCoreTests/AsyncSequences/NIOAsyncSequenceTests.swift"
+        },
+        {
+          "occurrences": 10,
+          "path": "rxswift/Sources/AllTestz/PrimitiveSequence+ConcurrencyTests.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 63,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 35,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 31,
+          "repo": "rxswift"
+        },
+        {
+          "occurrences": 23,
+          "repo": "swiftlint"
+        },
+        {
+          "occurrences": 23,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 16,
+          "repo": "alamofire"
+        },
+        {
+          "occurrences": 8,
+          "repo": "swift-service-lifecycle"
+        },
+        {
+          "occurrences": 6,
+          "repo": "nimble"
+        }
+      ]
+    },
+    {
+      "boundary": "task sleep timer",
+      "language": "swift",
+      "note": "Swift Task.sleep creates a timer-backed scheduling boundary and cancellation/liveness boundary",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "timer-scheduling-contract-missing",
+      "occurrences": 161,
+      "operation": "Task.sleep",
+      "repos": 10,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "swift.task.sleep",
+      "top_files": [
+        {
+          "occurrences": 15,
+          "path": "swift-nio/Tests/NIOFSTests/Internal/Concurrency Primitives/BufferedStreamTests.swift"
+        },
+        {
+          "occurrences": 11,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/TestStoreNonExhaustiveTests.swift"
+        },
+        {
+          "occurrences": 7,
+          "path": "swift-nio/Tests/NIOPosixTests/EventLoopTest.swift"
+        },
+        {
+          "occurrences": 7,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/GracefulShutdownTests.swift"
+        },
+        {
+          "occurrences": 5,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/StoreTests.swift"
+        },
+        {
+          "occurrences": 5,
+          "path": "kingfisher/Tests/KingfisherTests/KingfisherManagerTests.swift"
+        },
+        {
+          "occurrences": 4,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/ServiceGroupTests.swift"
+        },
+        {
+          "occurrences": 4,
+          "path": "nimble/Tests/NimbleTests/AsyncAwaitTest.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 71,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 32,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 17,
+          "repo": "swift-service-lifecycle"
+        },
+        {
+          "occurrences": 10,
+          "repo": "nimble"
+        },
+        {
+          "occurrences": 8,
+          "repo": "vapor"
+        },
+        {
+          "occurrences": 8,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 6,
+          "repo": "fastlane"
+        },
+        {
+          "occurrences": 6,
+          "repo": "rxswift"
+        }
+      ]
+    },
+    {
+      "boundary": "channel receive status",
+      "language": "go",
+      "note": "Go comma-ok receives expose the channel close status as an additional protocol result",
+      "obligation_family": "channel-boundary",
+      "obligation_subreason": "channel-receive-status-contract-missing",
+      "occurrences": 155,
+      "operation": "comma-ok channel receive",
+      "repos": 9,
+      "status": "closed-boundary",
+      "surface": "go.channel.receive_status",
+      "top_files": [
+        {
+          "occurrences": 22,
+          "path": "etcd/tests/integration/clientv3/watch/watch_test.go"
+        },
+        {
+          "occurrences": 12,
+          "path": "etcd/tests/integration/clientv3/lease/lease_test.go"
+        },
+        {
+          "occurrences": 6,
+          "path": "etcd/tests/integration/cache_test.go"
+        },
+        {
+          "occurrences": 5,
+          "path": "etcd/tests/integration/v3_election_test.go"
+        },
+        {
+          "occurrences": 4,
+          "path": "etcd/cache/cache_test.go"
+        },
+        {
+          "occurrences": 4,
+          "path": "minio/cmd/admin-handlers.go"
+        },
+        {
+          "occurrences": 4,
+          "path": "minio/cmd/bucket-replication.go"
+        },
+        {
+          "occurrences": 4,
+          "path": "minio/internal/grid/muxclient.go"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 84,
+          "repo": "etcd"
+        },
+        {
+          "occurrences": 48,
+          "repo": "minio"
+        },
+        {
+          "occurrences": 11,
+          "repo": "prometheus"
+        },
+        {
+          "occurrences": 5,
+          "repo": "badger"
+        },
+        {
+          "occurrences": 2,
+          "repo": "fzf"
+        },
+        {
+          "occurrences": 2,
+          "repo": "nats-server"
+        },
+        {
+          "occurrences": 1,
+          "repo": "delve"
+        },
+        {
+          "occurrences": 1,
+          "repo": "esbuild"
+        }
+      ]
+    },
+    {
+      "boundary": "task-group aggregate",
+      "language": "swift",
+      "note": "Swift task groups need all-completion, result-channel, cancellation/liveness, and throwing error-channel proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "async-aggregate-all-completion-contract-missing",
+      "occurrences": 153,
+      "operation": "withTaskGroup/withThrowingTaskGroup/withDiscardingTaskGroup/withThrowingDiscardingTaskGroup",
+      "repos": 9,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "swift.task.group",
+      "top_files": [
+        {
+          "occurrences": 31,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/ServiceGroupTests.swift"
+        },
+        {
+          "occurrences": 18,
+          "path": "swift-nio/Tests/NIOFSTests/Internal/Concurrency Primitives/BufferedStreamTests.swift"
+        },
+        {
+          "occurrences": 15,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/GracefulShutdownTests.swift"
+        },
+        {
+          "occurrences": 14,
+          "path": "swift-nio/Tests/NIOPosixTests/AsyncChannelBootstrapTests.swift"
+        },
+        {
+          "occurrences": 13,
+          "path": "swift-nio/Tests/NIOCoreTests/AsyncSequences/NIOThrowingAsyncSequenceTests.swift"
+        },
+        {
+          "occurrences": 9,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/ServiceGroupAddServiceTests.swift"
+        },
+        {
+          "occurrences": 4,
+          "path": "alamofire/Tests/ConcurrencyTests.swift"
+        },
+        {
+          "occurrences": 3,
+          "path": "swift-nio/Tests/NIOFSTests/Internal/CancellationTests.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 68,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 61,
+          "repo": "swift-service-lifecycle"
+        },
+        {
+          "occurrences": 8,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 5,
+          "repo": "vapor"
+        },
+        {
+          "occurrences": 4,
+          "repo": "alamofire"
+        },
+        {
+          "occurrences": 3,
+          "repo": "quick"
+        },
+        {
+          "occurrences": 2,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 1,
+          "repo": "fastlane"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio timer",
+      "language": "python",
+      "note": "asyncio sleep creates a timer-backed scheduling boundary",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "timer-scheduling-contract-missing",
+      "occurrences": 104,
+      "operation": "asyncio.sleep",
+      "repos": 6,
+      "status": "closed-boundary",
+      "surface": "python.asyncio.sleep",
+      "top_files": [
+        {
+          "occurrences": 48,
+          "path": "black/tests/data/cases/remove_await_parens.py"
+        },
+        {
+          "occurrences": 9,
+          "path": "scrapy/tests/spiders.py"
+        },
+        {
+          "occurrences": 5,
+          "path": "flask/tests/test_async.py"
+        },
+        {
+          "occurrences": 5,
+          "path": "scrapy/tests/test_command_parse.py"
+        },
+        {
+          "occurrences": 4,
+          "path": "scrapy/tests/test_utils_defer.py"
+        },
+        {
+          "occurrences": 4,
+          "path": "sqlalchemy/test/base/test_concurrency.py"
+        },
+        {
+          "occurrences": 3,
+          "path": "boltons/tests/test_funcutils_fb_py3.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "black/tests/test_blackd.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 59,
+          "repo": "black"
+        },
+        {
+          "occurrences": 32,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 5,
+          "repo": "flask"
+        },
+        {
+          "occurrences": 4,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 3,
+          "repo": "boltons"
+        },
+        {
+          "occurrences": 1,
+          "repo": "httpx"
+        }
+      ]
+    },
+    {
+      "boundary": "interval lifecycle",
+      "language": "javascript-typescript",
+      "note": "setInterval and timers interval streams have repeated emission, cancellation, and liveness semantics",
+      "obligation_family": "lifecycle-materialization-boundary",
+      "obligation_subreason": "interval-async-iteration-lifecycle-contract-missing",
+      "occurrences": 73,
+      "operation": "setInterval",
+      "repos": 11,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.interval",
+      "top_files": [
+        {
+          "occurrences": 9,
+          "path": "jest/packages/jest-fake-timers/src/__tests__/legacyFakeTimers.test.ts"
+        },
+        {
+          "occurrences": 6,
+          "path": "jest/packages/jest-fake-timers/src/__tests__/modernFakeTimers.test.ts"
+        },
+        {
+          "occurrences": 6,
+          "path": "rxjs/packages/rxjs/spec/Observable-spec.ts"
+        },
+        {
+          "occurrences": 4,
+          "path": "swr/test/use-swr-subscription.test.tsx"
+        },
+        {
+          "occurrences": 3,
+          "path": "drizzle-orm/drizzle-kit/src/cli/views.ts"
+        },
+        {
+          "occurrences": 3,
+          "path": "netty/example/src/main/resources/io/netty/example/stomp/websocket/stomp.js"
+        },
+        {
+          "occurrences": 3,
+          "path": "rxjs/packages/rxjs/src/internal/scheduler/intervalProvider.ts"
+        },
+        {
+          "occurrences": 3,
+          "path": "rxjs/packages/rxjs/spec/schedulers/TestScheduler-spec.ts"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 24,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 16,
+          "repo": "rxjs"
+        },
+        {
+          "occurrences": 7,
+          "repo": "prettier"
+        },
+        {
+          "occurrences": 7,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 6,
+          "repo": "swr"
+        },
+        {
+          "occurrences": 3,
+          "repo": "drizzle-orm"
+        },
+        {
+          "occurrences": 3,
+          "repo": "netty"
+        },
+        {
+          "occurrences": 2,
+          "repo": "execa"
+        }
+      ]
+    },
+    {
+      "boundary": "thread/fiber scheduling",
+      "language": "ruby",
+      "note": "Thread/Fiber APIs create scheduler and lifecycle boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "ruby-thread-fiber-scheduling-contract-missing",
+      "occurrences": 73,
+      "operation": "Thread/Fiber",
+      "repos": 11,
+      "status": "closed-boundary",
+      "surface": "ruby.thread.fiber",
+      "top_files": [
+        {
+          "occurrences": 6,
+          "path": "puma/test/test_cli.rb"
+        },
+        {
+          "occurrences": 6,
+          "path": "rack/test/spec_multipart.rb"
+        },
+        {
+          "occurrences": 4,
+          "path": "puma/test/test_pumactl.rb"
+        },
+        {
+          "occurrences": 3,
+          "path": "puma/test/test_thread_pool.rb"
+        },
+        {
+          "occurrences": 3,
+          "path": "puma/lib/puma/cluster/worker.rb"
+        },
+        {
+          "occurrences": 3,
+          "path": "puma/benchmarks/local/response_time_wrk.rb"
+        },
+        {
+          "occurrences": 2,
+          "path": "fastlane/fastlane/lib/fastlane/swift_lane_manager.rb"
+        },
+        {
+          "occurrences": 2,
+          "path": "puma/test/test_puma_server_ssl.rb"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 36,
+          "repo": "puma"
+        },
+        {
+          "occurrences": 10,
+          "repo": "fastlane"
+        },
+        {
+          "occurrences": 10,
+          "repo": "sidekiq"
+        },
+        {
+          "occurrences": 6,
+          "repo": "rack"
+        },
+        {
+          "occurrences": 3,
+          "repo": "jekyll"
+        },
+        {
+          "occurrences": 2,
+          "repo": "fzf"
+        },
+        {
+          "occurrences": 2,
+          "repo": "rspec-core"
+        },
+        {
+          "occurrences": 1,
+          "repo": "asciidoctor"
+        }
+      ]
+    },
+    {
+      "boundary": "thread scheduling",
+      "language": "c",
+      "note": "pthread_create introduces thread scheduling and lifetime boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "c-pthread-scheduling-contract-missing",
+      "occurrences": 68,
+      "operation": "pthread_create",
+      "repos": 10,
+      "status": "closed-boundary",
+      "surface": "c.thread.pthread",
+      "top_files": [
+        {
+          "occurrences": 4,
+          "path": "redis/tests/modules/blockedclient.c"
+        },
+        {
+          "occurrences": 3,
+          "path": "redis/tests/modules/blockonbackground.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/name-hash.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/transport-helper.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/read-cache.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/builtin/fsmonitor--daemon.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/builtin/pack-objects.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/t/helper/test-trace2.c"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 24,
+          "repo": "redis"
+        },
+        {
+          "occurrences": 23,
+          "repo": "git"
+        },
+        {
+          "occurrences": 7,
+          "repo": "sqlite"
+        },
+        {
+          "occurrences": 5,
+          "repo": "curl"
+        },
+        {
+          "occurrences": 3,
+          "repo": "libuv"
+        },
+        {
+          "occurrences": 2,
+          "repo": "raylib"
+        },
+        {
+          "occurrences": 1,
+          "repo": "jq"
+        },
+        {
+          "occurrences": 1,
+          "repo": "nginx"
+        }
+      ]
+    },
+    {
+      "boundary": "future all-completion aggregate",
+      "language": "rust",
+      "note": "qualified runtime join style macros need all-completion result-channel proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "async-aggregate-all-completion-contract-missing",
+      "occurrences": 68,
+      "operation": "tokio/futures/futures_util join/try_join",
+      "repos": 2,
+      "status": "closed-boundary",
+      "surface": "rust.async.join",
+      "top_files": [
+        {
+          "occurrences": 20,
+          "path": "tokio/tokio/tests/macros_try_join.rs"
+        },
+        {
+          "occurrences": 20,
+          "path": "tokio/tokio/tests/macros_join.rs"
+        },
+        {
+          "occurrences": 6,
+          "path": "tokio/tests-build/tests/fail/macros_try_join.rs"
+        },
+        {
+          "occurrences": 6,
+          "path": "tokio/tests-build/tests/fail/macros_join.rs"
+        },
+        {
+          "occurrences": 3,
+          "path": "tokio/tokio/tests/rt_common.rs"
+        },
+        {
+          "occurrences": 2,
+          "path": "tokio/tokio/tests/task_id.rs"
+        },
+        {
+          "occurrences": 2,
+          "path": "tokio/tokio/tests/dump.rs"
+        },
+        {
+          "occurrences": 1,
+          "path": "meilisearch/crates/index-scheduler/src/scheduler/enterprise_edition/s3.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 67,
+          "repo": "tokio"
+        },
+        {
+          "occurrences": 1,
+          "repo": "meilisearch"
+        }
+      ]
+    },
+    {
+      "boundary": "Swift throwing continuation bridge",
+      "language": "swift",
+      "note": "Swift throwing continuation bridges add exception-channel behavior to callback-settled future-like result channels",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "future-settled-value-channel-contract-missing",
+      "occurrences": 43,
+      "operation": "withCheckedThrowingContinuation/withUnsafeThrowingContinuation",
+      "repos": 7,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "swift.continuation.throwing",
+      "top_files": [
+        {
+          "occurrences": 8,
+          "path": "kingfisher/Sources/Cache/ImageCache.swift"
+        },
+        {
+          "occurrences": 6,
+          "path": "swift-nio/Sources/NIOCore/AsyncAwaitSupport.swift"
+        },
+        {
+          "occurrences": 3,
+          "path": "rxswift/Sources/RxSwift/PrimitiveSequence+Concurrency.swift"
+        },
+        {
+          "occurrences": 3,
+          "path": "rxswift/RxSwift/Traits/PrimitiveSequence/PrimitiveSequence+Concurrency.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-nio/Sources/NIOPosix/NIOThreadPool.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-nio/Sources/NIOEmbedded/AsyncTestingChannel.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-nio/Sources/_NIOFileSystem/Internal/BufferedStream.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-nio/Sources/NIOFS/Internal/BufferedStream.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 18,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 13,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 6,
+          "repo": "rxswift"
+        },
+        {
+          "occurrences": 2,
+          "repo": "vapor"
+        },
+        {
+          "occurrences": 2,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 1,
+          "repo": "swift-service-lifecycle"
+        },
+        {
+          "occurrences": 1,
+          "repo": "alamofire"
+        }
+      ]
+    },
+    {
+      "boundary": "first-settled aggregate",
+      "language": "javascript-typescript",
+      "note": "Promise.race needs first-settled ordering and liveness proof",
+      "obligation_family": "cancellation-liveness-boundary",
+      "obligation_subreason": "promise-aggregate-first-settled-contract-missing",
+      "occurrences": 32,
+      "operation": "Promise.race",
+      "repos": 8,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.aggregate",
+      "top_files": [
+        {
+          "occurrences": 3,
+          "path": "execa/test/convert/iterable.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "axios/tests/setup/server.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "axios/tests/unit/adapters/http.test.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "execa/test/convert/readable.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "ky/source/core/Ky.ts"
+        },
+        {
+          "occurrences": 2,
+          "path": "trpc/packages/client/src/links/localLink.ts"
+        },
+        {
+          "occurrences": 1,
+          "path": "drizzle-orm/drizzle-orm/src/mysql2/session.ts"
+        },
+        {
+          "occurrences": 1,
+          "path": "drizzle-orm/drizzle-orm/src/singlestore/session.ts"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 15,
+          "repo": "execa"
+        },
+        {
+          "occurrences": 4,
+          "repo": "axios"
+        },
+        {
+          "occurrences": 3,
+          "repo": "esbuild"
+        },
+        {
+          "occurrences": 3,
+          "repo": "ky"
+        },
+        {
+          "occurrences": 2,
+          "repo": "drizzle-orm"
+        },
+        {
+          "occurrences": 2,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 2,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 1,
+          "repo": "prettier"
+        }
+      ]
+    },
+    {
+      "boundary": "Swift continuation bridge",
+      "language": "swift",
+      "note": "Swift continuation bridges suspend and resume through a callback-settled future-like result channel",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "future-settled-value-channel-contract-missing",
+      "occurrences": 30,
+      "operation": "withCheckedContinuation/withUnsafeContinuation",
+      "repos": 6,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "swift.continuation.checked",
+      "top_files": [
+        {
+          "occurrences": 5,
+          "path": "alamofire/Tests/RequestInterceptorTests.swift"
+        },
+        {
+          "occurrences": 5,
+          "path": "kingfisher/Sources/Cache/ImageCache.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-nio/Sources/NIOEmbedded/AsyncTestingEventLoop.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-nio/Tests/NIOPosixTests/NIOThreadPoolTest.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/GracefulShutdownTests.swift"
+        },
+        {
+          "occurrences": 2,
+          "path": "alamofire/Source/Features/Concurrency.swift"
+        },
+        {
+          "occurrences": 1,
+          "path": "swift-nio/Sources/_NIOFileSystem/Internal/Concurrency Primitives/TokenBucket.swift"
+        },
+        {
+          "occurrences": 1,
+          "path": "swift-nio/Sources/NIOFS/Internal/Concurrency Primitives/TokenBucket.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 8,
+          "repo": "alamofire"
+        },
+        {
+          "occurrences": 8,
+          "repo": "kingfisher"
+        },
+        {
+          "occurrences": 7,
+          "repo": "swift-nio"
+        },
+        {
+          "occurrences": 4,
+          "repo": "swift-service-lifecycle"
+        },
+        {
+          "occurrences": 2,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 1,
+          "repo": "nimble"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio future drive",
+      "language": "python",
+      "note": "asyncio.run drives a coroutine to completion with scheduling, result-channel, and exception boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "future-drive-scheduling-contract-missing",
+      "occurrences": 23,
+      "operation": "asyncio.run",
+      "repos": 6,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "python.asyncio.run",
+      "top_files": [
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/test/base/_concurrency_fixtures.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/test/base/test_concurrency.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/test/ext/asyncio/test_engine.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "black/tests/test_concurrency_manager_shutdown.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "boltons/tests/test_funcutils_fb_py3.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "curl/tests/http/testenv/ws_echo_server.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "packaging/tasks/check_frozen_revs.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/tests/AsyncCrawlerRunner/reactorless_simple.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 14,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 5,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 1,
+          "repo": "black"
+        },
+        {
+          "occurrences": 1,
+          "repo": "boltons"
+        },
+        {
+          "occurrences": 1,
+          "repo": "curl"
+        },
+        {
+          "occurrences": 1,
+          "repo": "packaging"
+        }
+      ]
+    },
+    {
+      "boundary": "all-settled aggregate",
+      "language": "javascript-typescript",
+      "note": "Promise.allSettled needs settled-record channel and shape proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "promise-aggregate-all-settled-contract-missing",
+      "occurrences": 17,
+      "operation": "Promise.allSettled",
+      "repos": 5,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.aggregate",
+      "top_files": [
+        {
+          "occurrences": 2,
+          "path": "execa/lib/resolve/wait-subprocess.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "jest/packages/jest-haste-map/src/watchers/index.ts"
+        },
+        {
+          "occurrences": 2,
+          "path": "trpc/packages/tests/server/streaming.test.ts"
+        },
+        {
+          "occurrences": 2,
+          "path": "trpc/packages/tests/server/adapters/standalone.test.ts"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/lib/pipe/setup.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/lib/resolve/exit-async.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/lib/ipc/buffer-messages.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/lib/convert/concurrent.js"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 6,
+          "repo": "execa"
+        },
+        {
+          "occurrences": 5,
+          "repo": "trpc"
+        },
+        {
+          "occurrences": 2,
+          "repo": "jest"
+        },
+        {
+          "occurrences": 2,
+          "repo": "pixijs"
+        },
+        {
+          "occurrences": 2,
+          "repo": "prettier"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio all-completion aggregate",
+      "language": "python",
+      "note": "asyncio gather needs all-completion, result-channel, cancellation, and exception semantics",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "async-aggregate-all-completion-contract-missing",
+      "occurrences": 17,
+      "operation": "asyncio.gather",
+      "repos": 4,
+      "status": "closed-boundary",
+      "surface": "python.asyncio.gather",
+      "top_files": [
+        {
+          "occurrences": 4,
+          "path": "black/tests/data/cases/remove_await_parens.py"
+        },
+        {
+          "occurrences": 4,
+          "path": "sqlalchemy/test/ext/asyncio/test_engine.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "black/src/black/concurrency.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/examples/asyncio/gather_orm_statements.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "packaging/tasks/check_frozen_revs.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/tests/test_engine.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/tests/test_downloadermiddleware_robotstxt.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/pipelines/media.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 6,
+          "repo": "black"
+        },
+        {
+          "occurrences": 6,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 4,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 1,
+          "repo": "packaging"
+        }
+      ]
+    },
+    {
+      "boundary": "future settled value",
+      "language": "java",
+      "note": "CompletableFuture settled factories create fulfilled or exceptional future channels",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "future-settled-value-channel-contract-missing",
+      "occurrences": 14,
+      "operation": "CompletableFuture.completedFuture/failedFuture",
+      "repos": 2,
+      "status": "reporting-candidate-closed-boundary",
+      "surface": "java.future.completable.factory",
+      "top_files": [
+        {
+          "occurrences": 3,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/operators/streamable/StreamableJust.java"
+        },
+        {
+          "occurrences": 2,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/operators/streamable/StreamableEmpty.java"
+        },
+        {
+          "occurrences": 2,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/CompletableFromCompletionStageTest.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/defaultanswers/ReturnsEmptyValues.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/validators/ParamValidationCheckerTest.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/FlowableFromCompletionStageTest.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/ObservableFromCompletionStageTest.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/test/java/io/reactivex/rxjava4/internal/jdk8/MaybeFromCompletionStageTest.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 13,
+          "repo": "rxjava"
+        },
+        {
+          "occurrences": 1,
+          "repo": "mockito"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio task spawn",
+      "language": "python",
+      "note": "asyncio task APIs create scheduler, cancellation, and handle lifecycle boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 14,
+      "operation": "asyncio.create_task/ensure_future",
+      "repos": 3,
+      "status": "closed-boundary",
+      "surface": "python.asyncio.task",
+      "top_files": [
+        {
+          "occurrences": 2,
+          "path": "black/tests/test_blackd.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "scrapy/tests/test_crawler.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "scrapy/scrapy/utils/asyncio.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/session.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/engine.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "black/src/black/concurrency.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/core/engine.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/utils/defer.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 7,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 4,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 3,
+          "repo": "black"
+        }
+      ]
+    },
+    {
+      "boundary": "non-local jump",
+      "language": "c",
+      "note": "setjmp/longjmp is non-local control flow, not ordinary return",
+      "obligation_family": "exception-channel",
+      "obligation_subreason": "c-nonlocal-jump-contract-missing",
+      "occurrences": 13,
+      "operation": "setjmp/longjmp",
+      "repos": 5,
+      "status": "closed-boundary",
+      "surface": "c.nonlocal_jump",
+      "top_files": [
+        {
+          "occurrences": 5,
+          "path": "sqlite/autosetup/jimsh0.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "git/t/unit-tests/clar/clar.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "lua/ltests.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "redis/modules/vector-sets/fastjson_test.c"
+        },
+        {
+          "occurrences": 2,
+          "path": "vim/src/if_python3.c"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 5,
+          "repo": "sqlite"
+        },
+        {
+          "occurrences": 2,
+          "repo": "git"
+        },
+        {
+          "occurrences": 2,
+          "repo": "lua"
+        },
+        {
+          "occurrences": 2,
+          "repo": "redis"
+        },
+        {
+          "occurrences": 2,
+          "repo": "vim"
+        }
+      ]
+    },
+    {
+      "boundary": "future task spawn",
+      "language": "java",
+      "note": "CompletableFuture async factories schedule executor callbacks and return future handles",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 12,
+      "operation": "CompletableFuture.supplyAsync/runAsync",
+      "repos": 4,
+      "status": "reporting-candidate-closed-boundary",
+      "surface": "java.future.completable.spawn",
+      "top_files": [
+        {
+          "occurrences": 3,
+          "path": "h2database/h2/src/main/org/h2/tools/DirectRecover.java"
+        },
+        {
+          "occurrences": 3,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/schedulers/SchedulerToExecutorService.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "h2database/h2/src/main/org/h2/mvstore/MVStore.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "junit5/junit-platform-commons/src/testFixtures/java/org/junit/platform/commons/test/ConcurrencyTestingUtils.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "junit5/junit-vintage-engine/src/main/java/org/junit/vintage/engine/execution/VintageExecutor.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "mockito/mockito-core/src/test/java/org/mockito/internal/creation/bytebuddy/TypeCachingMockBytecodeGeneratorTest.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/util/AwaitCoordinatorStatic.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/operators/streamable/StreamableHelper.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 5,
+          "repo": "rxjava"
+        },
+        {
+          "occurrences": 4,
+          "repo": "h2database"
+        },
+        {
+          "occurrences": 2,
+          "repo": "junit5"
+        },
+        {
+          "occurrences": 1,
+          "repo": "mockito"
+        }
+      ]
+    },
+    {
+      "boundary": "task yield",
+      "language": "swift",
+      "note": "Swift Task.yield yields to the task scheduler and must not collapse into sync value equivalence",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-yield-scheduling-contract-missing",
+      "occurrences": 12,
+      "operation": "Task.yield",
+      "repos": 3,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "swift.task.yield",
+      "top_files": [
+        {
+          "occurrences": 4,
+          "path": "swift-metrics/Tests/MetricsTests/TaskLocalMetricsFactoryTests.swift"
+        },
+        {
+          "occurrences": 4,
+          "path": "swift-composable-architecture/Sources/ComposableArchitecture/TestStore.swift"
+        },
+        {
+          "occurrences": 1,
+          "path": "swift-service-lifecycle/Tests/ServiceLifecycleTests/GracefulShutdownTests.swift"
+        },
+        {
+          "occurrences": 1,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/DebugTests.swift"
+        },
+        {
+          "occurrences": 1,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/EffectCancellationTests.swift"
+        },
+        {
+          "occurrences": 1,
+          "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/StoreTests.swift"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 7,
+          "repo": "swift-composable-architecture"
+        },
+        {
+          "occurrences": 4,
+          "repo": "swift-metrics"
+        },
+        {
+          "occurrences": 1,
+          "repo": "swift-service-lifecycle"
+        }
+      ]
+    },
+    {
+      "boundary": "scheduler yield",
+      "language": "javascript-typescript",
+      "note": "scheduler.yield needs microtask/order proof",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "scheduler-yield-microtask-order-contract-missing",
+      "occurrences": 11,
+      "operation": "scheduler.yield",
+      "repos": 1,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.scheduler",
+      "top_files": [
+        {
+          "occurrences": 2,
+          "path": "execa/test/helpers/generator.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "execa/test/helpers/web-transform.js"
+        },
+        {
+          "occurrences": 2,
+          "path": "execa/test/helpers/duplex.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/lib/ipc/graceful.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/lib/ipc/incoming.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/test/ipc/get-each.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/test/transform/generator-main.js"
+        },
+        {
+          "occurrences": 1,
+          "path": "execa/test/convert/writable.js"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 11,
+          "repo": "execa"
+        }
+      ]
+    },
+    {
+      "boundary": "future settlement continuation",
+      "language": "java",
+      "note": "Future-like receivers need settlement continuation and callback demand/effect proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "future-settlement-continuation-contract-missing",
+      "occurrences": 10,
+      "operation": "FutureLike.handle/whenComplete",
+      "repos": 2,
+      "status": "reporting-candidate-closed-boundary",
+      "surface": "java.future.completion_stage.settlement",
+      "top_files": [
+        {
+          "occurrences": 4,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/util/AwaitCoordinatorStatic.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "junit5/junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/WorkerThreadPoolHierarchicalTestExecutorService.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/jdk8/SingleFromCompletionStage.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/jdk8/CompletableFromCompletionStage.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/jdk8/MaybeFromCompletionStage.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/jdk8/ObservableFromCompletionStage.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "rxjava/src/main/java/io/reactivex/rxjava4/internal/jdk8/FlowableFromCompletionStage.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 9,
+          "repo": "rxjava"
+        },
+        {
+          "occurrences": 1,
+          "repo": "junit5"
+        }
+      ]
+    },
+    {
+      "boundary": "imported future all-completion aggregate",
+      "language": "rust",
+      "note": "import-backed tokio/futures/futures_util join-style macros need all-completion result-channel proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "async-aggregate-all-completion-contract-missing",
+      "occurrences": 8,
+      "operation": "use runtime::join; join!",
+      "repos": 1,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "rust.async.join.imported",
+      "top_files": [
+        {
+          "occurrences": 6,
+          "path": "tokio/tokio/tests/tcp_connect.rs"
+        },
+        {
+          "occurrences": 1,
+          "path": "tokio/tests-integration/tests/process_stdio.rs"
+        },
+        {
+          "occurrences": 1,
+          "path": "tokio/tokio/tests/tcp_stream.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 8,
+          "repo": "tokio"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio cancellation shield",
+      "language": "python",
+      "note": "asyncio.shield changes cancellation propagation while preserving an awaitable result channel",
+      "obligation_family": "cancellation-liveness-boundary",
+      "obligation_subreason": "task-cancellation-liveness-contract-missing",
+      "occurrences": 5,
+      "operation": "asyncio.shield",
+      "repos": 1,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "python.asyncio.shield",
+      "top_files": [
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/session.py"
+        },
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/lib/sqlalchemy/ext/asyncio/engine.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "sqlalchemy/lib/sqlalchemy/connectors/asyncio.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 5,
+          "repo": "sqlalchemy"
+        }
+      ]
+    },
+    {
+      "boundary": "future first-completion aggregate",
+      "language": "rust",
+      "note": "qualified runtime select style macros need first-completion, cancellation, and result-channel proof",
+      "obligation_family": "cancellation-liveness-boundary",
+      "obligation_subreason": "async-aggregate-first-completion-contract-missing",
+      "occurrences": 5,
+      "operation": "tokio/futures/futures_util select",
+      "repos": 1,
+      "status": "closed-boundary",
+      "surface": "rust.async.select",
+      "top_files": [
+        {
+          "occurrences": 3,
+          "path": "tokio/tokio/tests/dump.rs"
+        },
+        {
+          "occurrences": 1,
+          "path": "tokio/examples/dump.rs"
+        },
+        {
+          "occurrences": 1,
+          "path": "tokio/tokio/tests/macros_select.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 5,
+          "repo": "tokio"
+        }
+      ]
+    },
+    {
+      "boundary": "future all-completion aggregate",
+      "language": "java",
+      "note": "CompletableFuture.allOf needs all-completion and exceptional completion proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "async-aggregate-all-completion-contract-missing",
+      "occurrences": 4,
+      "operation": "CompletableFuture.allOf",
+      "repos": 2,
+      "status": "reporting-candidate-closed-boundary",
+      "surface": "java.future.completable.all",
+      "top_files": [
+        {
+          "occurrences": 1,
+          "path": "h2database/h2/src/main/org/h2/tools/DirectRecover.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "h2database/h2/src/main/org/h2/mvstore/MVStore.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "junit5/junit-vintage-engine/src/main/java/org/junit/vintage/engine/execution/VintageExecutor.java"
+        },
+        {
+          "occurrences": 1,
+          "path": "junit5/junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/WorkerThreadPoolHierarchicalTestExecutorService.java"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 2,
+          "repo": "h2database"
+        },
+        {
+          "occurrences": 2,
+          "repo": "junit5"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio completion aggregate",
+      "language": "python",
+      "note": "asyncio wait needs completion-selection, result-channel, cancellation, and exception semantics",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "async-aggregate-completion-contract-missing",
+      "occurrences": 4,
+      "operation": "asyncio.wait",
+      "repos": 3,
+      "status": "closed-boundary",
+      "surface": "python.asyncio.wait",
+      "top_files": [
+        {
+          "occurrences": 1,
+          "path": "black/src/black/concurrency.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "httpx/tests/conftest.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/utils/asyncio.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/extensions/feedexport.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 2,
+          "repo": "scrapy"
+        },
+        {
+          "occurrences": 1,
+          "repo": "black"
+        },
+        {
+          "occurrences": 1,
+          "repo": "httpx"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio timeout wait",
+      "language": "python",
+      "note": "asyncio.wait_for adds timer and cancellation/liveness boundaries around an awaitable result channel",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "timer-scheduling-contract-missing",
+      "occurrences": 3,
+      "operation": "asyncio.wait_for",
+      "repos": 2,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "python.asyncio.wait_for",
+      "top_files": [
+        {
+          "occurrences": 2,
+          "path": "sqlalchemy/lib/sqlalchemy/util/queue.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "httpx/tests/conftest.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 2,
+          "repo": "sqlalchemy"
+        },
+        {
+          "occurrences": 1,
+          "repo": "httpx"
+        }
+      ]
+    },
+    {
+      "boundary": "imported task spawn",
+      "language": "rust",
+      "note": "import-backed tokio/async-std spawn bindings introduce scheduler, cancellation, and join-handle boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 3,
+      "operation": "use runtime::spawn; spawn",
+      "repos": 1,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "rust.async.spawn.imported",
+      "top_files": [
+        {
+          "occurrences": 3,
+          "path": "tokio/tokio/tests/rt_handle_block_on.rs"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 3,
+          "repo": "tokio"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio thread-safe task submission",
+      "language": "python",
+      "note": "asyncio.run_coroutine_threadsafe schedules a coroutine onto another loop and returns a future handle",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 2,
+      "operation": "asyncio.run_coroutine_threadsafe",
+      "repos": 1,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "python.asyncio.run_coroutine_threadsafe",
+      "top_files": [
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/shell.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/commands/shell.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 2,
+          "repo": "scrapy"
+        }
+      ]
+    },
+    {
+      "boundary": "imported asyncio timer",
+      "language": "python",
+      "note": "import-backed asyncio sleep bindings create timer-backed scheduling boundaries",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "timer-scheduling-contract-missing",
+      "occurrences": 2,
+      "operation": "from asyncio import sleep; binding",
+      "repos": 1,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "python.asyncio.imported.sleep",
+      "top_files": [
+        {
+          "occurrences": 1,
+          "path": "scrapy/tests/test_spidermiddleware_process_start.py"
+        },
+        {
+          "occurrences": 1,
+          "path": "scrapy/tests/test_spider_start.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 2,
+          "repo": "scrapy"
+        }
+      ]
+    },
+    {
+      "boundary": "first-fulfilled aggregate",
+      "language": "javascript-typescript",
+      "note": "Promise.any needs first-fulfilled and AggregateError rejection proof",
+      "obligation_family": "success-error-result-channel",
+      "obligation_subreason": "promise-aggregate-first-fulfilled-contract-missing",
+      "occurrences": 1,
+      "operation": "Promise.any",
+      "repos": 1,
+      "status": "closed-boundary",
+      "surface": "js-ts.promise.aggregate",
+      "top_files": [
+        {
+          "occurrences": 1,
+          "path": "jest/packages/expect/src/__tests__/toThrowMatchers.test.ts"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1,
+          "repo": "jest"
+        }
+      ]
+    },
+    {
+      "boundary": "asyncio thread offload",
+      "language": "python",
+      "note": "asyncio.to_thread schedules a callback on a worker thread and returns an awaitable result channel",
+      "obligation_family": "scheduling-boundary",
+      "obligation_subreason": "task-spawn-scheduling-contract-missing",
+      "occurrences": 1,
+      "operation": "asyncio.to_thread",
+      "repos": 1,
+      "status": "reporting-supported-closed-boundary",
+      "surface": "python.asyncio.to_thread",
+      "top_files": [
+        {
+          "occurrences": 1,
+          "path": "scrapy/scrapy/utils/asyncio.py"
+        }
+      ],
+      "top_repos": [
+        {
+          "occurrences": 1,
+          "repo": "scrapy"
+        }
+      ]
+    }
+  ],
+  "tracking_issue": {
+    "number": 602,
+    "url": "https://github.com/corca-ai/nose/issues/602"
+  }
+}

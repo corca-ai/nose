@@ -121,6 +121,15 @@ break.
   merges. Python/Rust async-runtime recall-loss diagnostics now prefer
   source-preserving unit roots before falling back to normalized roots, so
   alpha-renamed diagnostics do not reopen Python `asyncio` alias shadows.
+- Added Python/Swift async runtime breadth reporting. Python `asyncio.run`,
+  `wait_for`, `shield`, `run_coroutine_threadsafe`, and `to_thread` now reuse
+  the existing asyncio import/shadow guards and shared future-drive, timer,
+  task, cancellation/liveness, future-settled, callback, and exception
+  obligations; Swift checked/unsafe continuation bridges now reuse the
+  unshadowed free-runtime-function guard and shared future-settled,
+  settlement-continuation, callback, and exception obligations. Exact admission
+  remains closed; the 120-repo audit adds `107` non-JS source-prevalence
+  occurrences over the prior async-runtime scope-shadowing audit.
 - Added non-JS async protocol near-channel mirror support. The dual-view async
   protocol capability now covers `await`, async-function boundaries, and Rust
   async blocks in near/witness builds, so Rust `async fn`/`.await` and Swift

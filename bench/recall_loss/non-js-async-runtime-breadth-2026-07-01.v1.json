@@ -1,0 +1,216 @@
+{
+  "report_kind": "non-js-async-runtime-breadth",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-python-swift-async-runtime-breadth",
+    "summary": "Non-JS async runtime obligation attribution now covers Python event-loop drive, timeout, cancellation shield, thread-safe submission, thread offload helpers, and Swift continuation bridge functions.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "map proof-backed non-JS async runtime bridge calls onto existing scheduling, cancellation, future-channel, callback, and exception obligations",
+    "not_a_feature_list": [
+      "No new semantic kernel API was added.",
+      "No exact admission path was opened for Python asyncio helpers or Swift continuation bridges.",
+      "Python support reuses import-backed asyncio namespace and binding proof plus local module and same-file shadow guards.",
+      "Swift continuation support reuses the existing unshadowed Swift free-runtime-function guard used by task-group reporting.",
+      "The slice reuses future-drive, timer, task, future-settled, future-settlement, future-callback, cancellation/liveness, and exception-channel labels instead of adding selector-specific obligations."
+    ],
+    "reused_capabilities": [
+      "Python ImportedNamespace and ImportedBinding symbol evidence",
+      "AdmissionContext local Python module guard",
+      "scope-aware Python alias and imported-binding shadow detection",
+      "Swift project-visible and same-file visible-name guards",
+      "shared runtime-boundary missing-evidence vocabulary",
+      "recall-loss oracle_exclusions.by_obligation and admission_rejections rollups"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "python",
+      "surface": "asyncio.run(...)",
+      "guard": "The receiver must resolve to an import-backed asyncio namespace or from-import binding with no path-visible local asyncio module and no shadowing definition.",
+      "reported_obligations": [
+        "future-drive-scheduling-contract",
+        "future-settled-value-channel-contract",
+        "exception-channel-contract"
+      ]
+    },
+    {
+      "language": "python",
+      "surface": "asyncio.wait_for(...)",
+      "guard": "The receiver or binding must prove stdlib asyncio identity under the same alias/import and shadow guards.",
+      "reported_obligations": [
+        "timer-scheduling-contract",
+        "timer-cancellation-liveness-contract",
+        "future-settled-value-channel-contract",
+        "exception-channel-contract"
+      ]
+    },
+    {
+      "language": "python",
+      "surface": "asyncio.shield(...)",
+      "guard": "The receiver or binding must prove stdlib asyncio identity under the same alias/import and shadow guards.",
+      "reported_obligations": [
+        "task-cancellation-liveness-contract",
+        "future-settled-value-channel-contract"
+      ]
+    },
+    {
+      "language": "python",
+      "surface": "asyncio.run_coroutine_threadsafe(...) and asyncio.to_thread(...)",
+      "guard": "The receiver or binding must prove stdlib asyncio identity under the same alias/import and shadow guards.",
+      "reported_obligations": [
+        "task-spawn-scheduling-contract",
+        "task-handle-lifecycle-contract",
+        "task-cancellation-liveness-contract",
+        "future-settled-value-channel-contract",
+        "future-callback-demand-effect-contract for to_thread",
+        "exception-channel-contract"
+      ]
+    },
+    {
+      "language": "swift",
+      "surface": "withCheckedContinuation/withUnsafeContinuation and throwing variants",
+      "guard": "The callee must be an unshadowed Swift free runtime function with no same-file or corpus-visible definition for the continuation symbol.",
+      "reported_obligations": [
+        "future-settled-value-channel-contract",
+        "future-settlement-continuation-contract",
+        "future-callback-demand-effect-contract",
+        "exception-channel-contract for throwing variants"
+      ]
+    }
+  ],
+  "focused_fixtures": [
+    {
+      "test": "python::python_asyncio_event_loop_helpers_report_shared_obligations",
+      "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime -- --nocapture",
+      "assertions": [
+        "asyncio.run reports future-drive, future-settled, and exception obligations",
+        "asyncio.wait_for reports timer, cancellation/liveness, future-settled, and exception obligations",
+        "asyncio.shield reports cancellation/liveness and future-settled obligations",
+        "asyncio.run_coroutine_threadsafe and asyncio.to_thread report task and future-settled obligations",
+        "asyncio.to_thread also reports future callback demand/effect obligations"
+      ]
+    },
+    {
+      "test": "python::python_asyncio_event_loop_helpers_accept_alias_and_imported_binding_proof",
+      "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime -- --nocapture",
+      "assertions": [
+        "import asyncio as alias supports alias.run",
+        "from asyncio import wait_for as local supports local(...)",
+        "from asyncio import to_thread supports imported callback-offload attribution"
+      ]
+    },
+    {
+      "test": "swift::swift_continuation_bridges_report_future_and_callback_obligations",
+      "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime -- --nocapture",
+      "assertions": [
+        "Checked and unsafe continuation bridges report future-settled, settlement-continuation, and callback-demand/effect obligations",
+        "Throwing continuation variants also report exception-channel obligations",
+        "Non-throwing continuation variants do not report exception-channel obligations"
+      ]
+    }
+  ],
+  "focused_hard_negative_fixtures": [
+    {
+      "test": "python::python_asyncio_event_loop_helpers_require_runtime_identity",
+      "assertions": [
+        "Unimported asyncio.run does not report future-drive obligations",
+        "A shadowed asyncio alias does not report future-drive obligations",
+        "A shadowed from-import wait_for binding does not report timer obligations",
+        "A path-visible local asyncio.py blocks namespace and from-import helper attribution"
+      ]
+    },
+    {
+      "test": "swift::swift_continuation_bridges_reject_local_runtime_shadows",
+      "assertions": [
+        "A same-file continuation helper function blocks stdlib continuation attribution",
+        "A same-file continuation value binding blocks stdlib continuation attribution",
+        "A project-visible continuation helper function blocks stdlib continuation attribution"
+      ]
+    }
+  ],
+  "current_crates_gate": {
+    "report": "target/recall-loss.non-js-async-runtime-breadth.crates.json",
+    "total_units": 6833,
+    "interpretable_units": 949,
+    "excluded_units": 5884,
+    "admission_rejections": 793,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 96,
+    "canon_preservation_violations": 0,
+    "gate_passed": true
+  },
+  "corpus_pricing_delta": {
+    "source": "bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json",
+    "previous_source": "bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json",
+    "total_source_prevalence_before": 146880,
+    "total_source_prevalence_after": 146987,
+    "newly_priced_occurrences": 107,
+    "python_asyncio_run_occurrences": 23,
+    "python_asyncio_run_repos": 6,
+    "python_asyncio_wait_for_occurrences": 3,
+    "python_asyncio_wait_for_repos": 2,
+    "python_asyncio_shield_occurrences": 5,
+    "python_asyncio_shield_repos": 1,
+    "python_asyncio_run_coroutine_threadsafe_occurrences": 2,
+    "python_asyncio_to_thread_occurrences": 1,
+    "swift_checked_or_unsafe_continuation_occurrences": 30,
+    "swift_checked_or_unsafe_continuation_repos": 6,
+    "swift_throwing_continuation_occurrences": 43,
+    "swift_throwing_continuation_repos": 7,
+    "reason": "The pricing script now counts proof-backed Python event-loop/cancellation/thread helper surfaces and Swift continuation bridge functions as reporting-supported closed boundaries."
+  },
+  "real_corpus_spot_checks": [
+    {
+      "command": "cargo run -q -p nose-cli -- verify bench/repos/sqlalchemy/examples/asyncio/basic.py bench/repos/sqlalchemy/lib/sqlalchemy/ext/asyncio/engine.py bench/repos/sqlalchemy/lib/sqlalchemy/util/queue.py bench/repos/scrapy/scrapy/utils/asyncio.py bench/repos/kingfisher/Sources/Cache/ImageCache.swift bench/repos/swift-service-lifecycle/Sources/ServiceLifecycle/CancellationWaiter.swift --max-violations 0 --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.spot.json",
+      "summary": {
+        "total_units": 197,
+        "interpretable_units": 76,
+        "excluded_units": 121,
+        "admission_rejections": 58,
+        "false_merges": 0,
+        "canon_preservation_violations": 0,
+        "python_wait_for_timer_admission_rejections": 2,
+        "python_cancellation_or_thread_oracle_exclusions": 5,
+        "swift_continuation_oracle_exclusions_with_future_callback_label": 13
+      }
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary -- --nocapture",
+    "cargo test -p nose-cli --lib recall_loss_report::obligations::tests -- --nocapture",
+    "cargo test -p nose-cli --test cli recall_loss_report_oracle_exclusions::recall_loss_report_attributes_non_js_async_runtime_api_exclusions -- --nocapture",
+    "python3 -m py_compile scripts/scheduling-lifecycle-boundary-audit.py",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "jq empty bench/recall_loss/non-js-async-runtime-breadth-2026-07-01.v1.json bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json",
+    "awiki format",
+    "./scripts/check-docs.sh",
+    "git diff --check",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.crates.json",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json --generated-on 2026-07-01",
+    "cargo run -q -p nose-cli -- verify bench/repos/sqlalchemy/examples/asyncio/basic.py bench/repos/sqlalchemy/lib/sqlalchemy/ext/asyncio/engine.py bench/repos/sqlalchemy/lib/sqlalchemy/util/queue.py bench/repos/scrapy/scrapy/utils/asyncio.py bench/repos/kingfisher/Sources/Cache/ImageCache.swift bench/repos/swift-service-lifecycle/Sources/ServiceLifecycle/CancellationWaiter.swift --max-violations 0 --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.spot.json",
+    "cargo clippy --all-targets --all-features -- -D warnings",
+    "cargo build --release",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.release1.crates.json",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.release2.crates.json",
+    "./scripts/check-ci-local.sh --fast"
+  ],
+  "release_verify_timing": {
+    "baseline_reference": "Rust local self-field runtime provenance warm release verify real_seconds = 0.98",
+    "cold_or_first_real_seconds": 1.75,
+    "warm_real_seconds": 1.06,
+    "assessment": "No large degradation observed; the warm run is close to the previous 0.98s reference and the implementation only adds small proof-gated string-label branches."
+  },
+  "next_exact_work_policy": {
+    "status": "closed_until_evidence",
+    "summary": "These Python and Swift runtime bridge surfaces are now attributed precisely enough for recall-loss reporting, but exact recovery remains closed until scheduling, cancellation, result-channel, continuation resume, callback demand/effect, exception, and lifecycle contracts are dependency-closed."
+  }
+}

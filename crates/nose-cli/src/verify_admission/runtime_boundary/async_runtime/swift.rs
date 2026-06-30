@@ -72,6 +72,30 @@ pub(super) fn push_swift_async_runtime_call_missing_evidence(
             push_swift_task_group_missing_evidence(labels, true, true);
             true
         }
+        "withCheckedContinuation" | "withUnsafeContinuation"
+            if swift_free_runtime_function_unshadowed(
+                il,
+                interner,
+                callee,
+                callee_path,
+                context,
+            ) =>
+        {
+            push_swift_continuation_missing_evidence(labels, false);
+            true
+        }
+        "withCheckedThrowingContinuation" | "withUnsafeThrowingContinuation"
+            if swift_free_runtime_function_unshadowed(
+                il,
+                interner,
+                callee,
+                callee_path,
+                context,
+            ) =>
+        {
+            push_swift_continuation_missing_evidence(labels, true);
+            true
+        }
         _ => false,
     }
 }
@@ -128,6 +152,15 @@ fn push_swift_task_group_missing_evidence(
     if !discarding {
         super::super::push_unique(labels, "async-aggregate-result-channel-contract");
     }
+    if throwing {
+        super::super::push_unique(labels, "exception-channel-contract");
+    }
+}
+
+fn push_swift_continuation_missing_evidence(labels: &mut Vec<&'static str>, throwing: bool) {
+    super::push_future_settled_value_missing_evidence(labels);
+    super::super::push_unique(labels, "future-settlement-continuation-contract");
+    super::push_future_callback_missing_evidence(labels);
     if throwing {
         super::super::push_unique(labels, "exception-channel-contract");
     }

@@ -2158,6 +2158,15 @@ different APIs.
   diagnostics now prefer source-preserving unit roots before normalized
   fallback, so alpha renaming does not make Python `asyncio` alias shadows look
   unshadowed.
+- The Python/Swift async runtime breadth follow-up then broadens the same
+  reporting-only capability without new kernel API. Python `asyncio.run`,
+  `wait_for`, `shield`, `run_coroutine_threadsafe`, and `to_thread` reuse the
+  existing asyncio import/shadow proof and future/timer/task/cancellation
+  obligations; Swift checked/unsafe continuation bridges reuse the unshadowed
+  free-runtime-function guard and future-settled, settlement-continuation,
+  callback, and exception obligations. The [checked artifact](../bench/recall_loss/non-js-async-runtime-breadth-2026-07-01.v1.json)
+  prices `107` new non-JS source-prevalence occurrences over the scope-shadowing
+  audit and keeps exact admission closed.
 - The async protocol near-channel follow-up applies the same dual-view capability
   to supported async protocol boundaries instead of adding JS/TS-only features.
   Fingerprint builds can look through `await`, `async_function`, and

@@ -100,6 +100,11 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("python", "python.asyncio.sleep", "asyncio.sleep", "scheduling-boundary", "timer-scheduling-contract-missing", "asyncio timer", "asyncio sleep creates a timer-backed scheduling boundary", re.compile(r"\basyncio\s*\.\s*sleep\s*\(")),
     Pattern("python", "python.asyncio.gather", "asyncio.gather", "success-error-result-channel", "async-aggregate-all-completion-contract-missing", "asyncio all-completion aggregate", "asyncio gather needs all-completion, result-channel, cancellation, and exception semantics", re.compile(r"\basyncio\s*\.\s*gather\s*\(")),
     Pattern("python", "python.asyncio.wait", "asyncio.wait", "success-error-result-channel", "async-aggregate-completion-contract-missing", "asyncio completion aggregate", "asyncio wait needs completion-selection, result-channel, cancellation, and exception semantics", re.compile(r"\basyncio\s*\.\s*wait\s*\(")),
+    Pattern("python", "python.asyncio.run", "asyncio.run", "scheduling-boundary", "future-drive-scheduling-contract-missing", "asyncio future drive", "asyncio.run drives a coroutine to completion with scheduling, result-channel, and exception boundaries", re.compile(r"\basyncio\s*\.\s*run\s*\("), "reporting-supported-closed-boundary"),
+    Pattern("python", "python.asyncio.wait_for", "asyncio.wait_for", "scheduling-boundary", "timer-scheduling-contract-missing", "asyncio timeout wait", "asyncio.wait_for adds timer and cancellation/liveness boundaries around an awaitable result channel", re.compile(r"\basyncio\s*\.\s*wait_for\s*\("), "reporting-supported-closed-boundary"),
+    Pattern("python", "python.asyncio.shield", "asyncio.shield", "cancellation-liveness-boundary", "task-cancellation-liveness-contract-missing", "asyncio cancellation shield", "asyncio.shield changes cancellation propagation while preserving an awaitable result channel", re.compile(r"\basyncio\s*\.\s*shield\s*\("), "reporting-supported-closed-boundary"),
+    Pattern("python", "python.asyncio.run_coroutine_threadsafe", "asyncio.run_coroutine_threadsafe", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "asyncio thread-safe task submission", "asyncio.run_coroutine_threadsafe schedules a coroutine onto another loop and returns a future handle", re.compile(r"\basyncio\s*\.\s*run_coroutine_threadsafe\s*\("), "reporting-supported-closed-boundary"),
+    Pattern("python", "python.asyncio.to_thread", "asyncio.to_thread", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "asyncio thread offload", "asyncio.to_thread schedules a callback on a worker thread and returns an awaitable result channel", re.compile(r"\basyncio\s*\.\s*to_thread\s*\("), "reporting-supported-closed-boundary"),
     Pattern("python", "python.generator.yield", "yield", "lifecycle-materialization-boundary", "generator-yield-lifecycle-contract-missing", "generator lifecycle", "yield has suspension and iterator lifecycle semantics", re.compile(r"\byield(?:\s+from)?\b")),
     Pattern("rust", "rust.async.await", ".await", "scheduling-boundary", "async-await-scheduling-contract-missing", "future await", "Rust .await polls a Future and must keep wake/scheduling effects explicit", re.compile(r"\.\s*await\b")),
     Pattern("rust", "rust.async.function", "async fn", "scheduling-boundary", "async-function-scheduling-contract-missing", "async function scheduling", "async fn creates a suspended async function boundary", re.compile(r"\basync\s+fn\b")),
@@ -125,6 +130,8 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("swift", "swift.task.sleep", "Task.sleep", "scheduling-boundary", "timer-scheduling-contract-missing", "task sleep timer", "Swift Task.sleep creates a timer-backed scheduling boundary and cancellation/liveness boundary", re.compile(r"\bTask\s*\.\s*sleep\s*\("), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.task.yield", "Task.yield", "scheduling-boundary", "task-yield-scheduling-contract-missing", "task yield", "Swift Task.yield yields to the task scheduler and must not collapse into sync value equivalence", re.compile(r"\bTask\s*\.\s*yield\s*\("), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.task.group", "withTaskGroup/withThrowingTaskGroup/withDiscardingTaskGroup/withThrowingDiscardingTaskGroup", "success-error-result-channel", "async-aggregate-all-completion-contract-missing", "task-group aggregate", "Swift task groups need all-completion, result-channel, cancellation/liveness, and throwing error-channel proof", re.compile(r"\bwith(?:Throwing)?(?:Discarding)?TaskGroup\s*\("), "reporting-supported-closed-boundary"),
+    Pattern("swift", "swift.continuation.checked", "withCheckedContinuation/withUnsafeContinuation", "success-error-result-channel", "future-settled-value-channel-contract-missing", "Swift continuation bridge", "Swift continuation bridges suspend and resume through a callback-settled future-like result channel", re.compile(r"\bwith(?:Checked|Unsafe)Continuation\s*(?:\(|\{)"), "reporting-supported-closed-boundary"),
+    Pattern("swift", "swift.continuation.throwing", "withCheckedThrowingContinuation/withUnsafeThrowingContinuation", "success-error-result-channel", "future-settled-value-channel-contract-missing", "Swift throwing continuation bridge", "Swift throwing continuation bridges add exception-channel behavior to callback-settled future-like result channels", re.compile(r"\bwith(?:Checked|Unsafe)ThrowingContinuation\s*(?:\(|\{)"), "reporting-supported-closed-boundary"),
     Pattern("ruby", "ruby.thread.fiber", "Thread/Fiber", "scheduling-boundary", "ruby-thread-fiber-scheduling-contract-missing", "thread/fiber scheduling", "Thread/Fiber APIs create scheduler and lifecycle boundaries", re.compile(r"\b(?:Thread|Fiber)\s*\.\s*(?:new|schedule)\b")),
     Pattern("ruby", "ruby.exception", "raise/rescue", "exception-channel", "ruby-exception-channel-contract-missing", "exception channel", "raise/rescue changes error channels and non-local control", re.compile(r"\b(?:raise|rescue)\b")),
     Pattern("ruby", "ruby.generator.yield", "yield", "callback-demand-effect", "ruby-yield-callback-demand-effect-contract-missing", "block callback", "Ruby yield invokes a block with demand/effect obligations", re.compile(r"\byield\b")),
@@ -177,6 +184,61 @@ PYTHON_ASYNCIO_ALIAS_WAIT = Pattern(
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
+PYTHON_ASYNCIO_ALIAS_RUN = Pattern(
+    "python",
+    "python.asyncio.alias.run",
+    "import asyncio as alias; alias.run",
+    "scheduling-boundary",
+    "future-drive-scheduling-contract-missing",
+    "asyncio alias future drive",
+    "import-backed asyncio aliases drive coroutine completion through the same scheduling and result-channel boundaries as asyncio.run",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_ALIAS_WAIT_FOR = Pattern(
+    "python",
+    "python.asyncio.alias.wait_for",
+    "import asyncio as alias; alias.wait_for",
+    "scheduling-boundary",
+    "timer-scheduling-contract-missing",
+    "asyncio alias timeout wait",
+    "import-backed asyncio aliases add timer and cancellation/liveness boundaries around wait_for result channels",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_ALIAS_SHIELD = Pattern(
+    "python",
+    "python.asyncio.alias.shield",
+    "import asyncio as alias; alias.shield",
+    "cancellation-liveness-boundary",
+    "task-cancellation-liveness-contract-missing",
+    "asyncio alias cancellation shield",
+    "import-backed asyncio aliases preserve shield cancellation/liveness boundaries",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_ALIAS_THREADSAFE = Pattern(
+    "python",
+    "python.asyncio.alias.run_coroutine_threadsafe",
+    "import asyncio as alias; alias.run_coroutine_threadsafe",
+    "scheduling-boundary",
+    "task-spawn-scheduling-contract-missing",
+    "asyncio alias thread-safe task submission",
+    "import-backed asyncio aliases schedule coroutine submission onto another loop and return a future handle",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_ALIAS_TO_THREAD = Pattern(
+    "python",
+    "python.asyncio.alias.to_thread",
+    "import asyncio as alias; alias.to_thread",
+    "scheduling-boundary",
+    "task-spawn-scheduling-contract-missing",
+    "asyncio alias thread offload",
+    "import-backed asyncio aliases schedule callback execution on a worker thread and return an awaitable result channel",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
 PYTHON_ASYNCIO_IMPORTED_TASK = Pattern(
     "python",
     "python.asyncio.imported.task",
@@ -218,6 +280,61 @@ PYTHON_ASYNCIO_IMPORTED_WAIT = Pattern(
     "async-aggregate-completion-contract-missing",
     "imported asyncio completion aggregate",
     "import-backed asyncio wait bindings need completion-selection, result-channel, cancellation, and exception semantics",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_IMPORTED_RUN = Pattern(
+    "python",
+    "python.asyncio.imported.run",
+    "from asyncio import run; binding",
+    "scheduling-boundary",
+    "future-drive-scheduling-contract-missing",
+    "imported asyncio future drive",
+    "import-backed asyncio run bindings drive coroutine completion through scheduling and result-channel boundaries",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_IMPORTED_WAIT_FOR = Pattern(
+    "python",
+    "python.asyncio.imported.wait_for",
+    "from asyncio import wait_for; binding",
+    "scheduling-boundary",
+    "timer-scheduling-contract-missing",
+    "imported asyncio timeout wait",
+    "import-backed asyncio wait_for bindings add timer and cancellation/liveness boundaries around an awaitable result channel",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_IMPORTED_SHIELD = Pattern(
+    "python",
+    "python.asyncio.imported.shield",
+    "from asyncio import shield; binding",
+    "cancellation-liveness-boundary",
+    "task-cancellation-liveness-contract-missing",
+    "imported asyncio cancellation shield",
+    "import-backed asyncio shield bindings preserve cancellation/liveness boundaries",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_IMPORTED_THREADSAFE = Pattern(
+    "python",
+    "python.asyncio.imported.run_coroutine_threadsafe",
+    "from asyncio import run_coroutine_threadsafe; binding",
+    "scheduling-boundary",
+    "task-spawn-scheduling-contract-missing",
+    "imported asyncio thread-safe task submission",
+    "import-backed asyncio run_coroutine_threadsafe bindings schedule onto another loop and return a future handle",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+PYTHON_ASYNCIO_IMPORTED_TO_THREAD = Pattern(
+    "python",
+    "python.asyncio.imported.to_thread",
+    "from asyncio import to_thread; binding",
+    "scheduling-boundary",
+    "task-spawn-scheduling-contract-missing",
+    "imported asyncio thread offload",
+    "import-backed asyncio to_thread bindings schedule callback execution on a worker thread and return an awaitable result channel",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -603,6 +720,22 @@ def python_asyncio_alias_counts(text: str) -> dict[Pattern, int]:
     count_by_methods(counts, PYTHON_ASYNCIO_ALIAS_SLEEP, text, aliases, ("sleep",), ".")
     count_by_methods(counts, PYTHON_ASYNCIO_ALIAS_GATHER, text, aliases, ("gather",), ".")
     count_by_methods(counts, PYTHON_ASYNCIO_ALIAS_WAIT, text, aliases, ("wait",), ".")
+    count_by_methods(counts, PYTHON_ASYNCIO_ALIAS_RUN, text, aliases, ("run",), ".")
+    count_by_methods(
+        counts, PYTHON_ASYNCIO_ALIAS_WAIT_FOR, text, aliases, ("wait_for",), "."
+    )
+    count_by_methods(counts, PYTHON_ASYNCIO_ALIAS_SHIELD, text, aliases, ("shield",), ".")
+    count_by_methods(
+        counts,
+        PYTHON_ASYNCIO_ALIAS_THREADSAFE,
+        text,
+        aliases,
+        ("run_coroutine_threadsafe",),
+        ".",
+    )
+    count_by_methods(
+        counts, PYTHON_ASYNCIO_ALIAS_TO_THREAD, text, aliases, ("to_thread",), "."
+    )
     return counts
 
 
@@ -651,6 +784,41 @@ def python_asyncio_imported_counts(text: str) -> dict[Pattern, int]:
         bindings_for_python(bindings, ("wait",)),
         "(",
     )
+    count_bindings(
+        counts,
+        PYTHON_ASYNCIO_IMPORTED_RUN,
+        text,
+        bindings_for_python(bindings, ("run",)),
+        "(",
+    )
+    count_bindings(
+        counts,
+        PYTHON_ASYNCIO_IMPORTED_WAIT_FOR,
+        text,
+        bindings_for_python(bindings, ("wait_for",)),
+        "(",
+    )
+    count_bindings(
+        counts,
+        PYTHON_ASYNCIO_IMPORTED_SHIELD,
+        text,
+        bindings_for_python(bindings, ("shield",)),
+        "(",
+    )
+    count_bindings(
+        counts,
+        PYTHON_ASYNCIO_IMPORTED_THREADSAFE,
+        text,
+        bindings_for_python(bindings, ("run_coroutine_threadsafe",)),
+        "(",
+    )
+    count_bindings(
+        counts,
+        PYTHON_ASYNCIO_IMPORTED_TO_THREAD,
+        text,
+        bindings_for_python(bindings, ("to_thread",)),
+        "(",
+    )
     return counts
 
 
@@ -662,7 +830,18 @@ def python_asyncio_imported_bindings(text: str) -> dict[str, set[str]]:
             if not parsed:
                 continue
             exported, local = parsed
-            if exported in {"create_task", "ensure_future", "sleep", "gather", "wait"}:
+            if exported in {
+                "create_task",
+                "ensure_future",
+                "sleep",
+                "gather",
+                "wait",
+                "run",
+                "wait_for",
+                "shield",
+                "run_coroutine_threadsafe",
+                "to_thread",
+            }:
                 bindings[exported].add(local)
     return bindings
 

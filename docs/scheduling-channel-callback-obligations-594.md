@@ -124,8 +124,7 @@ proves `tokio::runtime::Runtime` or `Handle`; Tokio `sync_bridge.rs` moves from
 `0` to `13` future-drive oracle exclusions with `0` false merges. Non-self
 fields, local struct fields, project-local `tokio` roots or aliases including
 raw-identifier spellings, wildcard/relative imports, type aliases, wrappers,
-and constructor-assigned fields remain closed in that slice. The follow-up
-[Rust local self-field runtime provenance artifact](../bench/recall_loss/rust-local-self-field-runtime-provenance-2026-07-01.v1.json)
+and constructor-assigned fields remain closed in that slice. The follow-up [Rust local self-field runtime provenance artifact](../bench/recall_loss/rust-local-self-field-runtime-provenance-2026-07-01.v1.json)
 reuses the same capability for function/block-local `struct` plus local `impl`
 declarations. Tokio `task_local_set.rs` moves the local
 `self.rt.block_on(...)` row from
@@ -181,6 +180,17 @@ provenance without adding a new API-specific kernel feature or opening exact
 admission. Python/Rust async-runtime diagnostics now prefer source-preserving
 unit roots before normalized fallback, keeping Python `asyncio` alias shadow
 decisions tied to lexical source evidence.
+The follow-up [non-JS async runtime breadth artifact](../bench/recall_loss/non-js-async-runtime-breadth-2026-07-01.v1.json)
+keeps exact admission closed while adding Python `asyncio.run`,
+`wait_for`, `shield`, `run_coroutine_threadsafe`, and `to_thread`, plus Swift
+checked/unsafe continuation bridges, to the same shared obligation vocabulary.
+The matching [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json)
+raises total source prevalence from `146,880` to `146,987`: Python contributes
+`34` newly priced helper occurrences across `6` repos, and Swift continuation
+bridges contribute `73` occurrences across `7` repos. The slice reuses
+future-drive, timer, task, future-settled, future-settlement, future-callback,
+cancellation/liveness, and exception-channel obligations; no new kernel API or
+exact admission path is opened.
 The follow-up [promise-protocol-hard-negatives-2026-06-28.v1.json](../bench/recall_loss/promise-protocol-hard-negatives-2026-06-28.v1.json)
 pins the Promise-specific hard negatives before any recovery slice opens:
 async-function/sync, Promise executor/sync, Promise.resolve/sync,

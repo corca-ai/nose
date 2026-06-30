@@ -257,6 +257,18 @@ attribution rather than a new source-prevalence slice. Python/Rust
 async-runtime diagnostics are computed from the source-preserving unit root
 before falling back to the normalized root, so normalized alpha names cannot
 reopen Python `asyncio` alias shadows in the report.
+The follow-up [non-JS async runtime breadth artifact](../bench/recall_loss/non-js-async-runtime-breadth-2026-07-01.v1.json)
+keeps the same reporting-only policy while adding Python event-loop drive,
+timeout, cancellation-shield, thread-safe submission, and thread-offload helpers
+plus Swift continuation bridge functions. New reports use existing
+`future-drive-scheduling-contract`, `timer-scheduling-contract`,
+`timer-cancellation-liveness-contract`, `task-cancellation-liveness-contract`,
+`task-spawn-scheduling-contract`, `future-settled-value-channel-contract`,
+`future-settlement-continuation-contract`,
+`future-callback-demand-effect-contract`, and `exception-channel-contract`
+labels; exact recovery remains closed. The matching [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json)
+adds `107` source-prevalence occurrences over the prior scope-shadowing audit
+with `0` false merges on the local `crates` gate.
 The
 checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
 connect the JS/TS source-prevalence group (`29,094` Promise/async occurrences)

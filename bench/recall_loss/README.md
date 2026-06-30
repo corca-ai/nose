@@ -145,6 +145,19 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --generated-on 2026-06-30
 ```
 
+Build the non-JS async runtime breadth audit with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.crates.json
+
+python3 scripts/scheduling-lifecycle-boundary-audit.py \
+  --recall-loss-report target/recall-loss.non-js-async-runtime-breadth.crates.json \
+  --output target/scheduling-lifecycle-boundary-audit.non-js-async-runtime-breadth.json \
+  --generated-on 2026-07-01
+```
+
 Build the Java `CompletableFuture`/FutureLike obligation audit with:
 
 ```sh

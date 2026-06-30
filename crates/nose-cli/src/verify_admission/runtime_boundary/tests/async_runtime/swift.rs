@@ -145,3 +145,104 @@ fn swift_structured_concurrency_rejects_local_runtime_shadows() {
         "Swift Task.sleep extension member",
     );
 }
+
+#[test]
+fn swift_continuation_bridges_report_future_and_callback_obligations() {
+    let checked = missing_evidence_for_lang_call(
+        "runtime.swift",
+        "func run() async {\n  await withCheckedContinuation { continuation in\n    continuation.resume(returning: 1)\n  }\n}\n",
+        Lang::Swift,
+        "withCheckedContinuation",
+    );
+    let checked_throwing = missing_evidence_for_lang_call(
+        "runtime.swift",
+        "func run() async throws {\n  try await withCheckedThrowingContinuation { continuation in\n    continuation.resume(throwing: error)\n  }\n}\n",
+        Lang::Swift,
+        "withCheckedThrowingContinuation",
+    );
+    let unsafe_continuation = missing_evidence_for_lang_call(
+        "runtime.swift",
+        "func run() async {\n  await withUnsafeContinuation { continuation in\n    continuation.resume(returning: 1)\n  }\n}\n",
+        Lang::Swift,
+        "withUnsafeContinuation",
+    );
+    let unsafe_throwing = missing_evidence_for_lang_call(
+        "runtime.swift",
+        "func run() async throws {\n  try await withUnsafeThrowingContinuation { continuation in\n    continuation.resume(throwing: error)\n  }\n}\n",
+        Lang::Swift,
+        "withUnsafeThrowingContinuation",
+    );
+
+    for labels in [
+        &checked,
+        &checked_throwing,
+        &unsafe_continuation,
+        &unsafe_throwing,
+    ] {
+        assert!(labels.contains(&"future-settled-value-channel-contract"));
+        assert!(labels.contains(&"future-settlement-continuation-contract"));
+        assert!(labels.contains(&"future-callback-demand-effect-contract"));
+    }
+    assert!(!checked.contains(&"exception-channel-contract"));
+    assert!(!unsafe_continuation.contains(&"exception-channel-contract"));
+    assert!(checked_throwing.contains(&"exception-channel-contract"));
+    assert!(unsafe_throwing.contains(&"exception-channel-contract"));
+}
+
+#[test]
+fn swift_continuation_bridges_reject_local_runtime_shadows() {
+    let local_function_shadow = runtime_boundary_evidence_for_lang_call(
+        "runtime.swift",
+        "func withCheckedContinuation(_ body: () -> Void) { body() }\nfunc run() async {\n  await withCheckedContinuation { work() }\n}\n",
+        Lang::Swift,
+        "withCheckedContinuation",
+    );
+    let local_value_shadow = runtime_boundary_evidence_for_lang_call(
+        "runtime.swift",
+        "let withCheckedThrowingContinuation = localBridge\nfunc run() async throws {\n  try await withCheckedThrowingContinuation { work() }\n}\n",
+        Lang::Swift,
+        "withCheckedThrowingContinuation",
+    );
+    let project_visible_shadow = runtime_boundary_evidence_for_corpus_call(
+        &[
+            (
+                "ContinuationShim.swift",
+                "func withUnsafeContinuation(_ body: () -> Void) { body() }\n",
+                Lang::Swift,
+            ),
+            (
+                "run.swift",
+                "func run() async {\n  await withUnsafeContinuation { work() }\n}\n",
+                Lang::Swift,
+            ),
+        ],
+        "run.swift",
+        "withUnsafeContinuation",
+    );
+
+    for (labels, surface) in [
+        (
+            local_function_shadow,
+            "Swift local withCheckedContinuation function",
+        ),
+        (
+            local_value_shadow,
+            "Swift local withCheckedThrowingContinuation value",
+        ),
+        (
+            project_visible_shadow,
+            "Swift project-visible withUnsafeContinuation function",
+        ),
+    ] {
+        assert_missing_evidence_not_contains(
+            labels.clone(),
+            "future-settled-value-channel-contract",
+            surface,
+        );
+        assert_missing_evidence_not_contains(
+            labels,
+            "future-callback-demand-effect-contract",
+            surface,
+        );
+    }
+}
