@@ -72,28 +72,35 @@ fn rust_tokio_runtime_param_nominal_domain(
     param: TsNode,
     type_text: &str,
 ) -> Option<(DomainEvidence, Vec<nose_il::EvidenceId>)> {
+    rust_tokio_runtime_nominal_type_domain(lo, param, type_text)
+}
+pub(super) fn rust_tokio_runtime_nominal_type_domain(
+    lo: &Lowering,
+    node: TsNode,
+    type_text: &str,
+) -> Option<(DomainEvidence, Vec<nose_il::EvidenceId>)> {
     let head = rust_type_head_preserving_case(type_text)?;
     match head.as_str() {
         "tokio::runtime::Runtime" => {
-            if rust_module_scope_defines_type_name(lo, param, "tokio") {
+            if rust_module_scope_shadows_qualified_root(lo, node, "tokio") {
                 return None;
             }
             Some((rust_tokio_runtime_nominal_domain("Runtime"), Vec::new()))
         }
         "tokio::runtime::Handle" => {
-            if rust_module_scope_defines_type_name(lo, param, "tokio") {
+            if rust_module_scope_shadows_qualified_root(lo, node, "tokio") {
                 return None;
             }
             Some((rust_tokio_runtime_nominal_domain("Handle"), Vec::new()))
         }
         _ if !head.contains("::") => {
-            if rust_module_scope_defines_type_name(lo, param, &head) {
+            if rust_module_scope_defines_type_name(lo, node, &head) {
                 return None;
             }
             let mut matches = Vec::new();
             for exported in ["Runtime", "Handle"] {
                 if let Some(dependencies) =
-                    rust_imported_runtime_type_dependencies(lo, param, &head, exported)
+                    rust_imported_runtime_type_dependencies(lo, node, &head, exported)
                 {
                     matches.push((rust_tokio_runtime_nominal_domain(exported), dependencies));
                 }
@@ -117,6 +124,9 @@ fn rust_imported_runtime_type_dependencies(
     local: &str,
     exported: &str,
 ) -> Option<Vec<nose_il::EvidenceId>> {
+    if rust_module_scope_shadows_qualified_root(lo, param, "tokio") {
+        return None;
+    }
     let scope = rust_enclosing_module_scope(param)?;
     let local_hash = nose_il::stable_symbol_hash(local);
     let module_hash = nose_il::stable_symbol_hash("tokio::runtime");
@@ -196,7 +206,7 @@ fn rust_compact_type_path(type_text: &str) -> Option<String> {
     let head = ty.split(['<', '[', '(']).next().unwrap_or(ty);
     (!head.is_empty()).then(|| head.to_string())
 }
-fn rust_type_head_preserving_case(type_text: &str) -> Option<String> {
+pub(super) fn rust_type_head_preserving_case(type_text: &str) -> Option<String> {
     let compact: String = type_text.chars().filter(|c| !c.is_whitespace()).collect();
     let mut ty = compact
         .split('=')
@@ -216,7 +226,102 @@ fn rust_module_scope_defines_type_name(lo: &Lowering, node: TsNode, name: &str) 
             .any(|child| rust_type_namespace_item_defines(lo, child, name))
     })
 }
-fn rust_enclosing_module_scope(mut node: TsNode) -> Option<TsNode> {
+fn rust_module_scope_shadows_qualified_root(lo: &Lowering, node: TsNode, root: &str) -> bool {
+    let Some(scope) = rust_enclosing_module_scope(node) else {
+        return false;
+    };
+    Lowering::named_children(scope).into_iter().any(|child| {
+        rust_type_namespace_item_defines(lo, child, root)
+            || rust_import_item_shadows_qualified_root(lo, child, root)
+    }) || rust_import_evidence_shadows_qualified_root(lo, scope, root)
+}
+fn rust_import_evidence_shadows_qualified_root(lo: &Lowering, scope: TsNode, root: &str) -> bool {
+    let local_hash = nose_il::stable_symbol_hash(root);
+    let raw_local_hash = nose_il::stable_symbol_hash(&format!("r#{root}"));
+    let root_hash = nose_il::stable_symbol_hash(root);
+    lo.evidence.iter().any(|record| {
+        let nose_il::EvidenceAnchor::Binding {
+            local_hash: anchor_hash,
+            span,
+            ..
+        } = record.anchor
+        else {
+            return false;
+        };
+        if record.status != nose_il::EvidenceStatus::Asserted
+            || (anchor_hash != local_hash && anchor_hash != raw_local_hash)
+            || !rust_import_span_is_direct_child_of_scope(lo, scope, span)
+        {
+            return false;
+        }
+        match record.kind {
+            nose_il::EvidenceKind::Symbol(nose_il::SymbolEvidenceKind::ImportedNamespace {
+                module_hash,
+            }) => module_hash != root_hash,
+            nose_il::EvidenceKind::Symbol(nose_il::SymbolEvidenceKind::ImportedBinding {
+                ..
+            }) => true,
+            _ => false,
+        }
+    })
+}
+fn rust_import_item_shadows_qualified_root(lo: &Lowering, node: TsNode, root: &str) -> bool {
+    match node.kind() {
+        "use_declaration" => rust_use_alias_shadows_qualified_root(lo.text(node), root),
+        "extern_crate_declaration" => rust_extern_crate_shadows_qualified_root(lo.text(node), root),
+        _ => false,
+    }
+}
+fn rust_use_alias_shadows_qualified_root(text: &str, root: &str) -> bool {
+    if text.contains('{') || text.contains('}') || text.contains('*') {
+        return false;
+    }
+    let words = text.split_whitespace().collect::<Vec<_>>();
+    let Some(use_index) = words.iter().position(|word| *word == "use") else {
+        return false;
+    };
+    rust_alias_words_shadow_qualified_root(&words[use_index + 1..], root)
+}
+fn rust_extern_crate_shadows_qualified_root(text: &str, root: &str) -> bool {
+    let words = text.split_whitespace().collect::<Vec<_>>();
+    let Some(crate_index) = words
+        .windows(2)
+        .position(|window| window[0] == "extern" && window[1] == "crate")
+    else {
+        return false;
+    };
+    rust_alias_words_shadow_qualified_root(&words[crate_index + 2..], root)
+}
+fn rust_alias_words_shadow_qualified_root(words: &[&str], root: &str) -> bool {
+    let Some(as_index) = words.iter().position(|word| *word == "as") else {
+        return false;
+    };
+    let Some(local) = words.get(as_index + 1) else {
+        return false;
+    };
+    let local = rust_normalize_import_identifier(rust_trim_import_token(local));
+    let aliased_path = rust_normalize_import_path(&rust_import_path_words(&words[..as_index]));
+    local == root && aliased_path.trim_start_matches("::") != root
+}
+fn rust_import_path_words(words: &[&str]) -> String {
+    words
+        .iter()
+        .map(|word| rust_trim_import_token(word))
+        .collect::<String>()
+}
+fn rust_trim_import_token(token: &str) -> &str {
+    token.trim_matches(';')
+}
+fn rust_normalize_import_identifier(identifier: &str) -> &str {
+    identifier.strip_prefix("r#").unwrap_or(identifier)
+}
+fn rust_normalize_import_path(path: &str) -> String {
+    path.split("::")
+        .map(rust_normalize_import_identifier)
+        .collect::<Vec<_>>()
+        .join("::")
+}
+pub(super) fn rust_enclosing_module_scope(mut node: TsNode) -> Option<TsNode> {
     while let Some(parent) = node.parent() {
         if parent.kind() == "source_file"
             || (parent.kind() == "declaration_list"
@@ -241,7 +346,7 @@ fn rust_type_namespace_item_defines(lo: &Lowering, node: TsNode, name: &str) -> 
                 .into_iter()
                 .find(|child| matches!(child.kind(), "identifier" | "type_identifier"))
         })
-        .is_some_and(|name_node| lo.text(name_node) == name)
+        .is_some_and(|name_node| rust_normalize_import_identifier(lo.text(name_node)) == name)
 }
 pub(super) fn push_pattern_params(lo: &mut Lowering, pat: TsNode, out: &mut Vec<NodeId>) {
     match pat.kind() {

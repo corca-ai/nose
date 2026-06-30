@@ -210,8 +210,14 @@ aliases, wrappers, and `map_err(...)?` construction remained closed in that
 slice. The [Rust nested brace runtime provenance artifact](../bench/recall_loss/rust-nested-brace-runtime-provenance-2026-07-01.v1.json)
 then adds per-item evidence for nested static brace imports, allowing those
 `Runtime` parameter receivers to reuse the same `block_on` reporting. Struct
-fields, wildcard/relative imports, type aliases, wrappers, and `map_err(...)?`
-construction remain closed. The
+fields remained closed in that slice. The [Rust self-field runtime provenance artifact](../bench/recall_loss/rust-self-field-runtime-provenance-2026-07-01.v1.json)
+then adds exact `self.<field>.block_on(...)` receivers when a same-scope struct
+field declaration proves `tokio::runtime::Runtime` or `Handle` through fully
+qualified or exact imported-binding type evidence. In the Tokio `sync_bridge.rs`
+spot check, future-drive oracle exclusions move from `0` to `13` with `0` false
+merges. Non-self fields, local struct fields, project-local `tokio` roots or
+aliases, wildcard/relative imports, type aliases, wrappers,
+constructor-assigned fields, and `map_err(...)?` construction remain closed. The
 follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while refining Go protocol-boundary reporting into
 channel send synchronization, receive value, comma-ok receive status, select

@@ -11,7 +11,7 @@ impl<'a> Lowering<'a> {
             span,
             domain,
             dependencies,
-            self.language_core_param_domain_provenance(),
+            self.language_core_type_domain_provenance(),
         );
     }
 
@@ -39,6 +39,22 @@ impl<'a> Lowering<'a> {
             EvidenceKind::Domain(domain.domain),
             domain.provenance.evidence_provenance,
             domain.dependencies,
+        );
+    }
+
+    pub(crate) fn record_node_domain_with_dependencies(
+        &mut self,
+        span: Span,
+        kind: NodeKind,
+        domain: DomainEvidence,
+        dependencies: Vec<EvidenceId>,
+    ) {
+        self.record_evidence_with_provenance_dependencies(
+            EvidenceAnchor::node(span, kind),
+            EvidenceKind::Domain(domain),
+            self.language_core_type_domain_provenance()
+                .evidence_provenance,
+            dependencies,
         );
     }
 
@@ -147,7 +163,7 @@ impl<'a> Lowering<'a> {
             local,
             domain,
             evidence,
-            self.language_core_param_domain_provenance(),
+            self.language_core_type_domain_provenance(),
         );
     }
 
@@ -186,12 +202,12 @@ impl<'a> Lowering<'a> {
             type_domain_from_source_text(self.lang, text).map(|domain| ResolvedTypeDomain {
                 domain,
                 dependencies: Vec::new(),
-                provenance: self.language_core_param_domain_provenance(),
+                provenance: self.language_core_type_domain_provenance(),
             })
         })
     }
 
-    fn language_core_param_domain_provenance(&self) -> TypeDomainEvidenceProvenance {
+    fn language_core_type_domain_provenance(&self) -> TypeDomainEvidenceProvenance {
         TypeDomainEvidenceProvenance {
             evidence_provenance: self.language_core_provenance,
         }

@@ -116,9 +116,15 @@ parameter receivers backed by fully qualified type text or exact
 scope-visible imported-binding evidence. The follow-up [Rust nested brace
 runtime provenance artifact](../bench/recall_loss/rust-nested-brace-runtime-provenance-2026-07-01.v1.json)
 extends the import-evidence side of that capability to nested static brace
-imports such as `use tokio::{runtime::{Runtime}}`. Fields, wildcard/relative
-imports, type aliases, wrappers, and `map_err(...)?` construction remain
-closed.
+imports such as `use tokio::{runtime::{Runtime}}`. The follow-up [Rust
+self-field runtime provenance artifact](../bench/recall_loss/rust-self-field-runtime-provenance-2026-07-01.v1.json)
+reuses the same receiver type-provenance capability for exact
+`self.<field>.block_on(...)` receivers whose same-scope struct field declaration
+proves `tokio::runtime::Runtime` or `Handle`; Tokio `sync_bridge.rs` moves from
+`0` to `13` future-drive oracle exclusions with `0` false merges. Non-self
+fields, local struct fields, project-local `tokio` roots or aliases including
+raw-identifier spellings, wildcard/relative imports, type aliases, wrappers,
+constructor-assigned fields, and `map_err(...)?` construction remain closed.
 The follow-up [Java CompletableFuture artifact](../bench/recall_loss/java-completablefuture-obligation-reporting-2026-06-30.v1.json)
 keeps exact admission closed and maps proof-backed Java
 `CompletableFuture.supplyAsync`/`runAsync`, settled factories, `allOf`/`anyOf`,

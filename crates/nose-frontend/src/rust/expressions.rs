@@ -313,12 +313,124 @@ pub(super) fn lower_field(lo: &mut Lowering, node: TsNode) -> NodeId {
     let field = node
         .child_by_field_name("field")
         .map(|f| lo.sym(lo.text(f)));
-    lo.add(
+    let field_id = lo.add(
         NodeKind::Field,
         field.map(Payload::Name).unwrap_or(Payload::None),
         span,
         &[base],
-    )
+    );
+    record_rust_self_field_runtime_domain(lo, node, field_id);
+    field_id
+}
+fn record_rust_self_field_runtime_domain(lo: &mut Lowering, node: TsNode, field_id: NodeId) {
+    if lo.b.kind(field_id) != NodeKind::Field || !rust_field_expression_base_is_self(node) {
+        return;
+    }
+    if !rust_enclosing_function_has_self_parameter(node) {
+        return;
+    }
+    let Some(field_name) = node
+        .child_by_field_name("field")
+        .map(|field| lo.text(field))
+    else {
+        return;
+    };
+    let Some(impl_type) = rust_enclosing_impl_type_name(lo, node) else {
+        return;
+    };
+    let Some(type_node) = rust_struct_field_type_in_same_scope(lo, node, &impl_type, field_name)
+    else {
+        return;
+    };
+    let Some((domain, dependencies)) =
+        rust_tokio_runtime_nominal_type_domain(lo, type_node, lo.text(type_node))
+    else {
+        return;
+    };
+    lo.record_node_domain_with_dependencies(
+        lo.b.node(field_id).span,
+        NodeKind::Field,
+        domain,
+        dependencies,
+    );
+}
+fn rust_field_expression_base_is_self(node: TsNode) -> bool {
+    node.child_by_field_name("value")
+        .is_some_and(|base| base.kind() == "self")
+}
+fn rust_enclosing_function_has_self_parameter(mut node: TsNode) -> bool {
+    while let Some(parent) = node.parent() {
+        if parent.kind() == "function_item" {
+            return parent
+                .child_by_field_name("parameters")
+                .is_some_and(rust_params_include_self);
+        }
+        node = parent;
+    }
+    false
+}
+fn rust_params_include_self(params: TsNode) -> bool {
+    Lowering::named_children(params)
+        .into_iter()
+        .any(|child| child.kind() == "self_parameter")
+}
+fn rust_enclosing_impl_type_name(lo: &Lowering, mut node: TsNode) -> Option<String> {
+    while let Some(parent) = node.parent() {
+        if parent.kind() == "impl_item" {
+            let type_node = parent.child_by_field_name("type")?;
+            let head = rust_type_head_preserving_case(lo.text(type_node))?;
+            return (!head.contains("::")).then_some(head);
+        }
+        node = parent;
+    }
+    None
+}
+fn rust_struct_field_type_in_same_scope<'tree>(
+    lo: &Lowering,
+    node: TsNode<'tree>,
+    struct_name: &str,
+    field_name: &str,
+) -> Option<TsNode<'tree>> {
+    let scope = rust_enclosing_module_scope(node)?;
+    let mut matches = Vec::new();
+    for item in Lowering::named_children(scope) {
+        if item.kind() != "struct_item" || rust_named_item_text(lo, item) != Some(struct_name) {
+            continue;
+        }
+        if let Some(field_type) = rust_struct_field_type(lo, item, field_name) {
+            matches.push(field_type);
+        }
+    }
+    let [field_type] = matches.as_slice() else {
+        return None;
+    };
+    Some(*field_type)
+}
+fn rust_named_item_text<'a>(lo: &'a Lowering, node: TsNode) -> Option<&'a str> {
+    node.child_by_field_name("name").map(|name| lo.text(name))
+}
+fn rust_struct_field_type<'tree>(
+    lo: &Lowering,
+    struct_item: TsNode<'tree>,
+    field_name: &str,
+) -> Option<TsNode<'tree>> {
+    let body = struct_item.child_by_field_name("body")?;
+    let mut matches = Vec::new();
+    for field in Lowering::named_children(body) {
+        if field.kind() != "field_declaration" {
+            continue;
+        }
+        let Some(name) = field.child_by_field_name("name") else {
+            continue;
+        };
+        if lo.text(name) == field_name {
+            matches.push(field.child_by_field_name("type")?);
+        }
+    }
+    let [field_type] = matches.as_slice() else {
+        return None;
+    };
+    Some(*field_type)
 }
 pub(super) fn lower_index(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);

@@ -121,6 +121,7 @@ fn rust_tokio_runtime_block_on_receiver(
     rust_tokio_runtime_driver_receiver_expr(il, interner, receiver, context)
         || rust_tokio_runtime_local_binding_receiver_expr(il, interner, receiver, context)
         || rust_tokio_runtime_parameter_receiver_expr(il, interner, receiver)
+        || rust_tokio_runtime_field_receiver_expr(il, receiver)
 }
 
 fn rust_tokio_runtime_driver_receiver_expr(
@@ -234,6 +235,18 @@ fn rust_tokio_runtime_parameter_receiver_expr(
     }
     matches!(
         nose_semantics::domain_evidence_for_receiver(il, interner, receiver),
+        Some(DomainEvidence::Nominal { type_hash })
+            if type_hash == stable_symbol_hash("tokio::runtime::Runtime")
+                || type_hash == stable_symbol_hash("tokio::runtime::Handle")
+    )
+}
+
+fn rust_tokio_runtime_field_receiver_expr(il: &nose_il::Il, receiver: NodeId) -> bool {
+    if il.kind(receiver) != NodeKind::Field {
+        return false;
+    }
+    matches!(
+        nose_semantics::domain_evidence_for_node(il, receiver),
         Some(DomainEvidence::Nominal { type_hash })
             if type_hash == stable_symbol_hash("tokio::runtime::Runtime")
                 || type_hash == stable_symbol_hash("tokio::runtime::Handle")

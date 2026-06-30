@@ -72,11 +72,12 @@ impl AdmissionContext {
             "futures_util",
         ];
         for name in names_defined_in_il(il, interner) {
-            if RUNTIME_ROOTS.contains(&name.as_str()) {
+            let normalized_name = normalize_rust_raw_identifier_name(&name);
+            if RUNTIME_ROOTS.contains(&normalized_name.as_str()) {
                 self.rust_local_runtime_roots_by_file
                     .entry(il.meta.path.clone())
                     .or_default()
-                    .insert(name);
+                    .insert(normalized_name);
             }
         }
     }
@@ -153,6 +154,10 @@ fn names_defined_in_il(il: &nose_il::Il, interner: &Interner) -> HashSet<String>
         }
     }
     names
+}
+
+fn normalize_rust_raw_identifier_name(name: &str) -> String {
+    name.strip_prefix("r#").unwrap_or(name).to_string()
 }
 
 fn node_exact_name<'a>(il: &nose_il::Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {

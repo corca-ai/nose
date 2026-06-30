@@ -475,6 +475,16 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   future-settled obligations. Exact admission stays closed; struct fields,
   wildcard/relative imports, type aliases, wrapper calls, and `map_err(...)?`
   construction remain closed.
+- [rust-self-field-runtime-provenance-2026-07-01.v1.json](rust-self-field-runtime-provenance-2026-07-01.v1.json)
+  records the follow-up Rust self-field receiver-provenance expansion. Exact
+  `self.<field>.block_on(...)` receivers now receive future-drive and
+  future-settled obligations when the enclosing impl method has a self
+  parameter and a same-scope struct field declaration proves
+  `tokio::runtime::Runtime` or `Handle` through fully qualified or exact
+  imported-binding type evidence. Exact admission stays closed; non-self
+  fields, local struct fields, project-local `tokio` roots or aliases,
+  wildcard/relative imports, type aliases, wrapper calls, constructor-assigned
+  fields, and `map_err(...)?` construction remain closed.
 - [scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json)
   records the matching 120-repo source-prevalence pricing. It raises total
   source prevalence from `142,847` to `143,178`: `Task.sleep` contributes

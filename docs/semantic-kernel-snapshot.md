@@ -183,9 +183,15 @@ brace runtime provenance artifact](../bench/recall_loss/rust-nested-brace-runtim
 adds per-item evidence for nested static brace imports such as
 `use tokio::{runtime::{Runtime}}`; Tokio `fs_uring.rs` then shows `2`
 future-drive evidence units for nested-brace `Runtime` parameter receivers.
-Field receivers, wildcard/relative imports, child-module parameters with only
-parent-module imports, type aliases, wrappers, and `map_err(...)?` construction
-remain closed.
+The follow-up [Rust self-field runtime provenance artifact](../bench/recall_loss/rust-self-field-runtime-provenance-2026-07-01.v1.json)
+adds exact `self.<field>.block_on(...)` receivers whose same-scope struct field
+declaration proves `tokio::runtime::Runtime` or `Handle`; Tokio
+`sync_bridge.rs` moves from `0` to `13` future-drive oracle exclusions with
+`0` false merges. Non-self fields, local struct fields, wildcard/relative
+imports, child-module parameters with only parent-module imports, project-local
+`tokio` roots or aliases including raw-identifier spellings, type aliases,
+wrappers, constructor-assigned fields, and `map_err(...)?` construction remain
+closed.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while pricing `4,294` channel receives, `1,525`
 sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,

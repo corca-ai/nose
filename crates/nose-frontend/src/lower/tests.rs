@@ -9,6 +9,7 @@ mod post_lower_free_names;
 mod post_lower_properties;
 mod post_lower_python_iterator_builtins;
 mod post_lower_results;
+mod rust_runtime_domains;
 
 fn sp() -> Span {
     Span::new(FileId(0), 0, 1, 1, 1)
