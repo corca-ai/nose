@@ -186,8 +186,8 @@ keeps exact admission closed while adding Python `asyncio.run`,
 checked/unsafe continuation bridges, to the same shared obligation vocabulary.
 The matching [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-breadth-2026-07-01.v1.json)
 raises total source prevalence from `146,880` to `146,987`: Python contributes
-`34` newly priced helper occurrences across `6` repos, and Swift continuation
-bridges contribute `73` occurrences across `7` repos. The slice reuses
+`34` newly priced helper occurrences across `7` repos, and Swift continuation
+bridges contribute `73` occurrences across `8` repos. The slice reuses
 future-drive, timer, task, future-settled, future-settlement, future-callback,
 cancellation/liveness, and exception-channel obligations; no new kernel API or
 exact admission path is opened.
