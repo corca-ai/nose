@@ -272,6 +272,80 @@ fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
     }
 }
 
+#[test]
+fn recall_loss_report_attributes_go_channel_protocol_exclusions() {
+    let project = TempProject::new("recall_loss_go_channel_protocol_exclusions");
+    project.write(
+        "go_protocol.go",
+        "package p\n\
+         func goroutine(x int) { go record(x) }\n\
+         func deferred(x int) { defer record(x) }\n\
+         func receive(ch chan int) int { return <-ch }\n\
+         func status(ch chan int) bool { _, ok := <-ch; return ok }\n\
+         func send(ch chan int, x int) { ch <- x }\n\
+         func selectStatus(ch chan int) bool { select { case _, ok := <-ch: return ok; default: return false } }\n",
+    );
+    let report_path = project.path().join("recall-loss.json");
+    let out = run_raw(&[
+        "verify",
+        project.path().to_str().unwrap(),
+        "--max-violations",
+        "0",
+        "--recall-loss-report",
+        report_path.to_str().unwrap(),
+    ]);
+    assert!(out.contains("GATE: 0"));
+
+    let report_text = fs::read_to_string(&report_path).expect("recall-loss report");
+    let report: serde_json::Value =
+        serde_json::from_str(&report_text).expect("recall-loss report JSON");
+    for (family, subreason, minimum) in [
+        (
+            "scheduling-boundary",
+            "goroutine-scheduling-contract-missing",
+            1,
+        ),
+        (
+            "lifecycle-materialization-boundary",
+            "defer-lifecycle-ordering-contract-missing",
+            1,
+        ),
+        (
+            "channel-boundary",
+            "channel-receive-value-channel-contract-missing",
+            1,
+        ),
+        (
+            "channel-boundary",
+            "channel-receive-status-contract-missing",
+            1,
+        ),
+        (
+            "channel-boundary",
+            "channel-send-synchronization-contract-missing",
+            1,
+        ),
+        (
+            "channel-boundary",
+            "channel-select-readiness-contract-missing",
+            1,
+        ),
+    ] {
+        assert_exclusion_obligation(&report, family, subreason, minimum);
+    }
+    for evidence in [
+        "goroutine-scheduling-contract",
+        "defer-lifecycle-ordering-contract",
+        "channel-receive-value-channel-contract",
+        "channel-receive-status-contract",
+        "channel-send-synchronization-contract",
+        "channel-select-readiness-contract",
+        "channel-select-case-selection-contract",
+    ] {
+        assert_excluded_runtime_unit(&report, "go", evidence);
+    }
+}
+
 fn write_non_js_async_runtime_api_fixture(project: &TempProject) {
     project.write(
         "asyncio_api.py",

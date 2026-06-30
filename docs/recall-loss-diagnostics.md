@@ -227,6 +227,11 @@ records `4,294` channel receives, `1,525` sends, `155` comma-ok receives,
 `1,920` select parents, `3,590` select cases, `546` select defaults, `1,949`
 goroutines, and `17,521` defers; select parents and arms are counted separately
 because lowering preserves them as distinct source-backed protocol boundaries.
+The [Go select receive-status artifact](../bench/recall_loss/go-select-receive-status-protocol-2026-07-01.v1.json)
+fills the select communication-case gap: `case _, ok := <-ch` keeps select
+readiness as the primary rollup but now also carries
+`channel-receive-status-contract` in `missing_evidence`. Exact channel/select
+recovery remains closed.
 The follow-up [non-JS async runtime scope-shadowing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
 keeps exact admission closed while making Python/Rust async runtime attribution
 scope-aware: unrelated local shadows in other functions no longer suppress

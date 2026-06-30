@@ -190,6 +190,18 @@ fn go_select_defer_and_goroutine_boundaries_report_specific_obligations() {
     assert!(select_default.contains(&"channel-select-default-liveness-contract"));
     assert!(select_default.contains(&"channel-select-protocol-contract"));
 
+    let select_status = missing_evidence_for_raw_tag(
+        "select_status.go",
+        "package p\nfunc f(ch chan int) bool { select { case _, ok := <-ch: return ok; default: return false } }\n",
+        Lang::Go,
+        "select",
+    );
+    assert!(select_status.contains(&"channel-select-readiness-contract"));
+    assert!(select_status.contains(&"channel-select-case-selection-contract"));
+    assert!(select_status.contains(&"channel-receive-status-contract"));
+    assert!(select_status.contains(&"channel-receive-value-channel-contract"));
+    assert!(select_status.contains(&"channel-select-protocol-contract"));
+
     let deferred = missing_evidence_for_protocol(
         "defer.go",
         "package p\nfunc f(x int) { defer record(x) }\n",

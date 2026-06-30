@@ -145,14 +145,20 @@ pub(super) fn lower_receive_statement(lo: &mut Lowering, node: TsNode) -> NodeId
     let receive_node = Lowering::named_children(node)
         .into_iter()
         .find(|child| is_channel_receive_expr(lo, *child));
-    let receive = receive_node
-        .map(|receive| lower_channel_receive_expr(lo, receive))
-        .unwrap_or_else(|| lo.empty_block(span));
     let lefts = Lowering::named_children(node)
         .into_iter()
         .find(|child| child.kind() == "expression_list")
         .map(expr_list_items)
         .unwrap_or_default();
+    if let Some(receive_node) = receive_node {
+        if lefts.len() == 2 {
+            return lower_two_value_channel_receive(lo, span, &lefts, &[receive_node])
+                .unwrap_or_else(|| lo.empty_block(span));
+        }
+    }
+    let receive = receive_node
+        .map(|receive| lower_channel_receive_expr(lo, receive))
+        .unwrap_or_else(|| lo.empty_block(span));
     if let Some(lhs_node) = lefts.into_iter().find(|lhs| lo.text(*lhs) != "_") {
         let lhs = lower_expr(lo, lhs_node);
         lo.add(

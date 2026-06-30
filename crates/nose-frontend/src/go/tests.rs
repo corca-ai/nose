@@ -441,6 +441,37 @@ fn select_statement_preserves_source_backed_protocol_boundary() {
 }
 
 #[test]
+fn select_comma_ok_receive_preserves_status_protocol_boundary() {
+    let interner = Interner::new();
+    let il = lower(
+        FileId(0),
+        "t.go",
+        b"package main\nfunc f(ch chan int) bool { select { case _, ok := <-ch: return ok; default: return false } }\n",
+        &interner,
+    )
+    .expect("lower");
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "select",
+        SourceProtocolKind::ChannelSelect,
+    );
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "select_case",
+        SourceProtocolKind::ChannelSelectCase,
+    );
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "channel_receive_status",
+        SourceProtocolKind::ChannelReceive,
+    );
+}
+
+#[test]
 fn comma_ok_receive_preserves_value_and_status_protocol_boundaries() {
     let interner = Interner::new();
     let il = lower(

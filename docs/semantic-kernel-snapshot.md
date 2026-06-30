@@ -198,6 +198,12 @@ sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,
 `546` select defaults, `1,949` goroutines, and `17,521` defers in the pinned
 120-repo corpus. Select parents and arms are counted separately because Go
 lowering preserves them as distinct source-backed protocol boundaries.
+The follow-up [Go select receive-status artifact](../bench/recall_loss/go-select-receive-status-protocol-2026-07-01.v1.json)
+keeps exact admission closed while preserving comma-ok receive status inside
+`select` communication cases. `case _, ok := <-ch` now contributes the existing
+`channel-receive-status-contract` in addition to select readiness/case
+obligations; the pinned corpus has `107` lexical hits across `57` files and `7`
+repos.
 The follow-up [non-JS async runtime scope-shadowing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
 keeps the same capability boundary but makes Python/Rust async runtime
 attribution scope-aware. Unrelated local shadows in other functions no longer

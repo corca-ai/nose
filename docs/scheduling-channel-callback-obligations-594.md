@@ -152,6 +152,12 @@ defaults, `1,949` goroutines, and `17,521` defers. Exact recovery remains
 closed until channel blocking, close/zero-value behavior, select readiness,
 callback effects, panic/defer ordering, and goroutine scheduling are
 dependency-closed.
+The follow-up [Go select receive-status artifact](../bench/recall_loss/go-select-receive-status-protocol-2026-07-01.v1.json)
+keeps the same capability boundary and fills the status projection inside
+`select` communication cases: `case _, ok := <-ch` now carries the existing
+`channel-receive-status-contract` alongside select readiness/case obligations.
+The pinned corpus has `107` lexical select comma-ok receive hits across `57`
+files and `7` repos. Exact select/channel recovery remains closed.
 The follow-up [non-JS async runtime scope-shadowing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
 keeps the same reporting-only boundary while making Python/Rust runtime
 attribution scope-aware. Python `asyncio` aliases/imported bindings and Rust

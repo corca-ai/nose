@@ -113,8 +113,8 @@ fall back to a side-table mirror when source evidence is missing.
 - Go lowering emits source facts for goroutine spawn, deferred calls, channel
   send/receive, select, and select case/default protocol boundaries. These
   surfaces remain raw protocol anchors; `v, ok := <-ch` preserves both the
-  receive value and the status projection without modeling them as ordinary
-  values.
+  receive value and the status projection, including inside `select`
+  communication cases, without modeling them as ordinary values.
 - C lowering emits source facts for explicit unsigned 32-bit byte-lane casts.
   Direct casts such as `(unsigned int)a[0]` are dependency-free source facts;
   alias casts such as `(u32)a[0]` or `(word)a[0]` depend on the corresponding

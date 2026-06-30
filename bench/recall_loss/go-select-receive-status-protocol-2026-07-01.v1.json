@@ -1,0 +1,153 @@
+{
+  "report_kind": "go-select-receive-status-protocol",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-go-select-comma-ok-receive-status",
+    "summary": "Go select receive statements now preserve comma-ok channel status as the existing channel-receive-status protocol obligation.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "channel receive value/status provenance inside select communication cases",
+    "not_a_feature_list": [
+      "No new public semantic-pack API was added.",
+      "No new kernel enum or Go selector-specific admission path was added.",
+      "The change reuses SourceProtocolKind::ChannelReceive and channel-receive-status-contract.",
+      "Exact channel/select recovery remains closed."
+    ],
+    "reused_capabilities": [
+      "Go source protocol facts",
+      "channel-boundary obligation vocabulary",
+      "runtime-boundary-model",
+      "recall-loss oracle_exclusions.by_obligation"
+    ]
+  },
+  "corpus_signal": {
+    "pinned_corpus_query": "rg -n --glob '*.go' 'case\\s+[^:;\\n,]+\\s*,\\s*[^:;\\n]+(:=|=)\\s*<-' bench/repos",
+    "select_comma_ok_receive_hits": 107,
+    "files": 57,
+    "repos": 7,
+    "note": "This lexical count prices select communication cases with comma-ok receives; it is source-prevalence evidence, not exact semantic proof."
+  },
+  "fixture_delta": {
+    "fixture": "go_protocol.go",
+    "source_surfaces": [
+      "func status(ch chan int) bool { _, ok := <-ch; return ok }",
+      "func selectStatus(ch chan int) bool { select { case _, ok := <-ch: return ok; default: return false } }"
+    ],
+    "baseline_command": "/tmp/nose-origin-main-go-select-target/release/nose verify /tmp/nose-go-select-status-artifact.*/ --max-violations 0 --recall-loss-report main-report.json",
+    "current_command": "target/release/nose verify /tmp/nose-go-select-status-artifact.*/ --max-violations 0 --recall-loss-report current-report.json",
+    "summary_before": {
+      "total_units": 6,
+      "interpretable_units": 0,
+      "excluded_units": 6,
+      "admission_rejections": 0,
+      "false_merges": 0
+    },
+    "summary_after": {
+      "total_units": 6,
+      "interpretable_units": 0,
+      "excluded_units": 6,
+      "admission_rejections": 0,
+      "false_merges": 0
+    },
+    "select_status_missing_evidence_before": [
+      "lowered-runtime-boundary-contract",
+      "channel-select-readiness-contract",
+      "channel-select-protocol-contract",
+      "channel-protocol-contract",
+      "channel-select-default-liveness-contract",
+      "channel-select-case-selection-contract",
+      "channel-receive-value-channel-contract",
+      "channel-send-receive-protocol-contract"
+    ],
+    "select_status_missing_evidence_after": [
+      "lowered-runtime-boundary-contract",
+      "channel-select-readiness-contract",
+      "channel-select-protocol-contract",
+      "channel-protocol-contract",
+      "channel-select-default-liveness-contract",
+      "channel-select-case-selection-contract",
+      "channel-receive-status-contract",
+      "channel-receive-value-channel-contract",
+      "channel-send-receive-protocol-contract"
+    ],
+    "status_contract_added_to_select_comma_ok_unit": true,
+    "origin_main_elapsed_real_seconds": 0.73,
+    "current_elapsed_real_seconds": 0.6
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss.go-select-receive-status.crates.json",
+    "origin_main_total_units": 6815,
+    "origin_main_elapsed_real_seconds": 1.04,
+    "total_units": 6817,
+    "interpretable_units": 947,
+    "excluded_units": 5870,
+    "admission_rejections": 791,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 96,
+    "canon_preservation_violations": 0,
+    "gate_passed": true,
+    "current_elapsed_real_seconds": 1.03,
+    "note": "The unit delta comes from the added Rust test fixtures; the Go select status recovery does not open exact admission."
+  },
+  "focused_fixture": {
+    "tests": [
+      {
+        "test": "go::tests::select_comma_ok_receive_preserves_status_protocol_boundary",
+        "command": "cargo test -p nose-frontend go::tests::select_comma_ok_receive_preserves_status_protocol_boundary -- --nocapture",
+        "assertions": [
+          "A Go select communication case with _, ok := <-ch preserves a ChannelReceive status protocol boundary.",
+          "The select parent and select case protocol boundaries remain present."
+        ]
+      },
+      {
+        "test": "verify_admission::runtime_boundary::tests::go_select_defer_and_goroutine_boundaries_report_specific_obligations",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::go_select_defer_and_goroutine_boundaries_report_specific_obligations -- --nocapture",
+        "assertions": [
+          "The select subtree reports select readiness/case obligations and nested channel-receive-status/value obligations."
+        ]
+      },
+      {
+        "test": "commands::recall_loss_report_oracle_exclusions::recall_loss_report_attributes_go_channel_protocol_exclusions",
+        "command": "cargo test -p nose-cli --test cli recall_loss_report_attributes_go_channel_protocol_exclusions -- --nocapture",
+        "assertions": [
+          "Go goroutine, defer, send, receive, comma-ok receive, and select receive protocol exclusions are attributed under structured obligations.",
+          "The select comma-ok unit includes channel-receive-status-contract in missing_evidence while select readiness remains the primary rollup."
+        ]
+      }
+    ]
+  },
+  "closed_surfaces": [
+    {
+      "surface": "Exact convergence between select receive status and synchronous boolean values",
+      "reason": "Close/zero-value behavior, select readiness, and case-selection contracts remain missing."
+    },
+    {
+      "surface": "Exact convergence between channel receive value and ordinary value reads",
+      "reason": "Blocking, synchronization, and close semantics remain protocol obligations."
+    },
+    {
+      "surface": "Exact convergence between goroutine/defer calls and direct calls",
+      "reason": "Scheduling, callback effect, and defer ordering contracts remain missing."
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all --check",
+    "cargo test -p nose-frontend go::tests -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests -- --nocapture",
+    "cargo test -p nose-cli --test cli commands::recall_loss_report_oracle_exclusions -- --nocapture",
+    "cargo build --release -p nose-cli",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.go-select-receive-status.crates.json",
+    "/usr/bin/time -p /tmp/nose-origin-main-go-select-target/release/nose verify /tmp/nose-origin-main-go-select/crates --max-violations 0 --recall-loss-report /tmp/nose-origin-main-go-select/target/recall-loss.go-select-baseline.crates.json"
+  ],
+  "next_followups": [
+    "Price and report channel close/zero-value behavior separately before considering exact channel-status recovery.",
+    "Keep select readiness and case-selection primary over nested send/receive operations until complete select semantics are proven.",
+    "Consider Go goroutine/defer callback identity/effect proof as a separate slice."
+  ]
+}
