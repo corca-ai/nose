@@ -75,11 +75,11 @@ The current implemented kinds are:
 Rust `use` producers use the same `Import`/`Symbol` vocabulary as other static
 imports. Simple static imports such as `use m::f;` keep their existing
 assignment-shaped import proof. Static brace imports such as `use m::{f, T};`
-emit per-item evidence-only binding proofs so the import syntax remains a
-low-signal token sequence while call-target and library-api consumers can still
-depend on a precise local binding. Wildcard imports, nested brace imports, and
-`self`/`super`-relative brace prefixes stay closed until a producer can prove a
-non-ambiguous coordinate.
+and nested static brace imports such as `use m::{n::{f, T}};` emit per-item
+evidence-only binding proofs so the import syntax remains a low-signal token
+sequence while call-target and library-api consumers can still depend on a
+precise local binding. Wildcard imports and `self`/`super`-relative brace
+prefixes stay closed until a producer can prove a non-ambiguous coordinate.
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
 the contract id, callee coordinate, arity, and dependencies for a specific
@@ -274,12 +274,14 @@ stays closed instead of falling back to the raw sequence shape. Value-graph
 import identity likewise consumes only sequence `Import` evidence and
 materializes dedicated internal import values, never raw `ValOp::Seq` proof
 objects.
-Rust public re-export proof follows the same rule. A direct `pub use` may emit
-`Import(ReExportBinding)` evidence for the alias and its target coordinate, but
-that evidence is only a module/export alias proof. Imported immutable snapshots
-may follow one same-corpus re-export hop only when the target binding is already
-literal-safe under the normal provider checks. Private `use`, wildcard/nested
-brace re-exports, ambiguous aliases, and non-value targets remain closed.
+Rust re-export proof follows the same rule. Unrestricted `pub use` and
+crate-visible `pub(crate) use` may emit `Import(ReExportBinding)` evidence for
+direct or nested static brace aliases and their target coordinates, but that
+evidence is only a module/export alias proof. Imported immutable snapshots may
+follow one same-corpus re-export hop only when the target binding is already
+literal-safe under the normal provider checks. Private or restricted
+`pub(self)`/`pub(in ...)` use, wildcard re-exports, ambiguous aliases, and
+non-value targets remain closed.
 
 Imported immutable provider snapshots follow the same rule. A provider binding
 whose RHS is a collection or map factory call is exportable only when the call

@@ -1,0 +1,174 @@
+{
+  "report_kind": "rust-nested-brace-runtime-provenance",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-rust-nested-brace-import-runtime-provenance",
+    "summary": "Rust nested static brace imports now emit per-item import evidence, allowing nested-brace tokio Runtime parameters to feed block_on future-drive reporting.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "static import binding provenance for receiver type evidence",
+    "not_a_feature_list": [
+      "No exact admission path was opened for Rust block_on or async/sync equivalence.",
+      "No new public semantic-pack API was added.",
+      "The slice strengthens existing Import/Symbol evidence production instead of adding a block_on-specific parser.",
+      "Wildcard imports and self/super-relative brace prefixes stay closed.",
+      "Struct-field receivers, type aliases, and unknown local receivers remain closed."
+    ],
+    "reused_capabilities": [
+      "Rust imported binding evidence",
+      "Rust parameter domain evidence",
+      "runtime-boundary-model",
+      "AdmissionContext Rust local-runtime-root guard",
+      "recall-loss oracle_exclusions.by_obligation",
+      "shared future-drive scheduling and future-settled value-channel obligations"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "rust",
+      "surface": "use tokio::{runtime::{Builder, Runtime}}; fn run(rt: Runtime) { rt.block_on(...) }",
+      "guard": "The nested brace item must resolve to a static imported binding in the same module scope as the parameter."
+    },
+    {
+      "language": "rust",
+      "surface": "use std::{io::{self, Read}, path::Path as StdPath}",
+      "guard": "Nested static brace imports emit the same per-item Import/Symbol evidence as direct and one-level brace imports; self imports become namespace evidence."
+    },
+    {
+      "language": "rust",
+      "surface": "pub use crate::{constants::{LIMIT}}",
+      "guard": "Nested public static brace imports emit re-export binding evidence for exact module/export coordinates."
+    }
+  ],
+  "focused_fixture": {
+    "tests": [
+      {
+        "test": "rust::tests::imports::nested_brace_use_emits_imported_symbol_evidence_for_static_items",
+        "command": "cargo test -p nose-frontend rust::tests::imports -- --nocapture",
+        "assertions": [
+          "Nested std::{io::{self, Read}} emits namespace evidence for std::io and imported binding evidence for std::io::Read.",
+          "Nested tokio::{runtime::{Builder, Runtime}} emits imported binding evidence for tokio::runtime::Builder and Runtime.",
+          "Wildcard brace imports still emit no static import symbol evidence."
+        ]
+      },
+      {
+        "test": "param_domains::parameter_type_domains_are_dependency_backed_and_not_substring_guesses",
+        "command": "cargo test -p nose-frontend lower::tests::param_domains::parameter_type_domains_are_dependency_backed_and_not_substring_guesses -- --nocapture",
+        "assertions": [
+          "Nested-brace tokio Runtime parameter domain evidence depends on nested brace imported-binding symbol evidence.",
+          "Parent-module nested brace imports do not prove child-module Runtime parameter evidence."
+        ]
+      },
+      {
+        "test": "rust_block_on::reports_future_drive_obligations_when_parameter_runtime_identity_is_proven",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "Nested-brace tokio Runtime parameter receivers report future-drive and future-settled obligations.",
+          "Parent-module nested brace imports remain closed for child-module Runtime parameter receivers."
+        ]
+      }
+    ]
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss.rust-nested-brace-block-on.crates.json",
+    "total_units": 6785,
+    "interpretable_units": 940,
+    "excluded_units": 5845,
+    "admission_rejections": 785,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 96,
+    "canon_preservation_violations": 0,
+    "gate_passed": true,
+    "future_drive_admission_rejections": 0,
+    "future_drive_oracle_exclusions": 0,
+    "elapsed_real_seconds": 1.7
+  },
+  "real_corpus_spot_checks": [
+    {
+      "repo": "tokio",
+      "path": "tokio/tests/fs_uring.rs",
+      "command": "target/release/nose verify bench/repos/tokio/tokio/tests/fs_uring.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-nested-brace-block-on.fs-uring.json",
+      "elapsed_real_seconds": 0.61,
+      "summary": {
+        "total_units": 9,
+        "interpretable_units": 0,
+        "excluded_units": 9,
+        "false_merges": 0,
+        "future_drive_evidence_units": 2,
+        "future_drive_primary_units": 0,
+        "primary_reason_note": "The matching block_on units also carry async-await evidence, which remains the primary scheduling subreason by rule order."
+      },
+      "future_drive_lines": [
+        {
+          "line": 88,
+          "primary_obligation_subreason": "async-await-scheduling-contract-missing"
+        },
+        {
+          "line": 89,
+          "primary_obligation_subreason": "async-await-scheduling-contract-missing"
+        }
+      ]
+    },
+    {
+      "repo": "tokio",
+      "path": "tokio/tests/fs_uring_read.rs",
+      "command": "target/release/nose verify bench/repos/tokio/tokio/tests/fs_uring_read.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-nested-brace-block-on.fs-uring-read.json",
+      "elapsed_real_seconds": 0.6,
+      "summary": {
+        "total_units": 13,
+        "interpretable_units": 3,
+        "excluded_units": 10,
+        "admission_rejections": 3,
+        "false_merges": 0,
+        "future_drive_evidence_units": 2,
+        "future_drive_primary_units": 0,
+        "primary_reason_note": "This direct one-level brace import case remains covered after the nested-brace parser change."
+      }
+    }
+  ],
+  "closed_surfaces": [
+    {
+      "surface": "self.rt.block_on(...) or other field-backed runtime receivers",
+      "reason": "The reporter still does not infer struct-field tokio runtime types."
+    },
+    {
+      "surface": "use tokio::{runtime::*} or other wildcard imports",
+      "reason": "Wildcard imports do not provide a unique static exported symbol coordinate."
+    },
+    {
+      "surface": "self/super-relative brace prefixes",
+      "reason": "Relative module resolution is still not modeled by this import-evidence producer."
+    },
+    {
+      "surface": "type Rt = tokio::runtime::Runtime; fn run(rt: Rt) { rt.block_on(...) }",
+      "reason": "Rust type aliases are not converted into nominal receiver domain evidence in this slice."
+    },
+    {
+      "surface": "Exact convergence between block_on, await, and synchronous payload values",
+      "reason": "Future drive scheduling, wake/poll behavior, cancellation/liveness, result-channel, and receiver/type identity contracts remain missing evidence."
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all --check",
+    "cargo test -p nose-frontend rust::tests::imports -- --nocapture",
+    "cargo test -p nose-frontend lower::tests::param_domains::parameter_type_domains_are_dependency_backed_and_not_substring_guesses -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime -- --nocapture",
+    "cargo test -p nose-cli --test cli recall_loss_report_oracle_exclusions::recall_loss_report_attributes_non_js_async_runtime_api_exclusions -- --nocapture",
+    "cargo clippy -p nose-cli -p nose-frontend --all-targets -- -D warnings",
+    "cargo build --release -p nose-cli",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.rust-nested-brace-block-on.crates.json",
+    "/usr/bin/time -p target/release/nose verify bench/repos/tokio/tokio/tests/fs_uring.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-nested-brace-block-on.fs-uring.json",
+    "/usr/bin/time -p target/release/nose verify bench/repos/tokio/tokio/tests/fs_uring_read.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-nested-brace-block-on.fs-uring-read.json"
+  ],
+  "next_followups": [
+    "Add struct-field type provenance for self.rt.block_on only after field declarations, constructor assignment, and receiver aliasing can be proven fail-closed.",
+    "Consider self/super-relative brace import proof as a separate import-resolution slice."
+  ]
+}

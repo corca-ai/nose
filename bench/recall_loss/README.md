@@ -465,9 +465,16 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   `tokio::runtime::Runtime` and `tokio::runtime::Handle` parameters now receive
   the same future-drive and future-settled obligations when the type is fully
   qualified or backed by scope-visible exact imported-binding evidence. Exact
-  admission stays closed; struct fields, nested brace-import parameter types,
-  child-module parameters with only parent-module imports, type aliases, wrapper
-  calls, and `map_err(...)?` construction remain closed.
+  admission stays closed. In that slice, struct fields, nested brace-import
+  parameter types, child-module parameters with only parent-module imports, type
+  aliases, wrapper calls, and `map_err(...)?` construction remained closed.
+- [rust-nested-brace-runtime-provenance-2026-07-01.v1.json](rust-nested-brace-runtime-provenance-2026-07-01.v1.json)
+  records the follow-up Rust nested static brace-import expansion. Nested items
+  such as `use tokio::{runtime::{Runtime}}` now emit per-item import evidence,
+  allowing those `Runtime` parameters to receive the same future-drive and
+  future-settled obligations. Exact admission stays closed; struct fields,
+  wildcard/relative imports, type aliases, wrapper calls, and `map_err(...)?`
+  construction remain closed.
 - [scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json)
   records the matching 120-repo source-prevalence pricing. It raises total
   source prevalence from `142,847` to `143,178`: `Task.sleep` contributes
@@ -735,7 +742,7 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
 - [issue-576-cycle.v1.json](issue-576-cycle.v1.json) records the first recovery
   slice after the census: Rust brace `use` imports now feed dependency-backed
   imported call-target evidence while wildcard/nested/relative brace imports
-  stay closed.
+  stayed closed in that slice.
 - [issue-578-cycle.v1.json](issue-578-cycle.v1.json) records the next Rust
   scoped-path recovery slice: imported roots such as `Span::new` now feed
   dependency-backed imported member call-target evidence while raw `crate`,

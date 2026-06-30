@@ -206,7 +206,12 @@ provenance artifact](../bench/recall_loss/rust-block-on-parameter-runtime-proven
 then adds nominal `tokio::runtime::Runtime`/`Handle` parameter receivers backed
 by fully qualified type text or scope-visible exact imported-binding evidence;
 struct fields, nested brace imports such as `use tokio::{ runtime::{Runtime}, ... }`, type
-aliases, wrappers, and `map_err(...)?` construction remain closed. The
+aliases, wrappers, and `map_err(...)?` construction remained closed in that
+slice. The [Rust nested brace runtime provenance artifact](../bench/recall_loss/rust-nested-brace-runtime-provenance-2026-07-01.v1.json)
+then adds per-item evidence for nested static brace imports, allowing those
+`Runtime` parameter receivers to reuse the same `block_on` reporting. Struct
+fields, wildcard/relative imports, type aliases, wrappers, and `map_err(...)?`
+construction remain closed. The
 follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while refining Go protocol-boundary reporting into
 channel send synchronization, receive value, comma-ok receive status, select
@@ -344,13 +349,13 @@ include:
 | `provider-export-missing` | A provider module exists, but no matching exported binding was found. |
 | `provider-export-ambiguous` | More than one provider binding could own the same module/export coordinate. |
 | `provider-external-crate-boundary` | The import targets a known external crate dependency, which is outside same-corpus provider lookup. |
-| `provider-reexport-ambiguous` | More than one direct public re-export could own the requested module/export coordinate. |
-| `provider-reexport-callable-boundary` | A direct public re-export resolves to a callable item, not an immutable literal provider value. |
-| `provider-reexport-type-boundary` | A direct public re-export resolves to a type item, not an immutable literal provider value. |
-| `provider-reexport-module-namespace-boundary` | A direct public re-export resolves to a module namespace, not an immutable literal provider value. |
-| `provider-reexport-external-crate-boundary` | A direct public re-export target resolves to a known external crate boundary. |
-| `provider-reexport-target-export-missing` | A direct public re-export exists, but its target module has no matching export in the analyzed corpus. |
-| `provider-reexport-target-module-missing` | A direct public re-export exists, but its target module is not resolved in the analyzed corpus. |
+| `provider-reexport-ambiguous` | More than one public or crate-visible static re-export could own the requested module/export coordinate. |
+| `provider-reexport-callable-boundary` | A public or crate-visible static re-export resolves to a callable item, not an immutable literal provider value. |
+| `provider-reexport-type-boundary` | A public or crate-visible static re-export resolves to a type item, not an immutable literal provider value. |
+| `provider-reexport-module-namespace-boundary` | A public or crate-visible static re-export resolves to a module namespace, not an immutable literal provider value. |
+| `provider-reexport-external-crate-boundary` | A public or crate-visible static re-export target resolves to a known external crate boundary. |
+| `provider-reexport-target-export-missing` | A public or crate-visible static re-export exists, but its target module has no matching export in the analyzed corpus. |
+| `provider-reexport-target-module-missing` | A public or crate-visible static re-export exists, but its target module is not resolved in the analyzed corpus. |
 | `cross-language-boundary` | A same-coordinate provider exists only in a different lowered language. |
 | `self-import-boundary` | The only matching provider is the importer file itself. |
 | `importer-binding-mutated` | The importer mutates the imported binding before it could be snapshotted. |

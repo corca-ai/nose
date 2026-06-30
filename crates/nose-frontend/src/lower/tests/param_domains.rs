@@ -350,6 +350,26 @@ fn assert_rust_tokio_runtime_param_domains(interner: &Interner) {
         "Rust tokio Runtime parameter domain evidence should be import-backed"
     );
 
+    let nested_brace_imported_runtime = lower_fixture(
+        "tokio_nested_brace_runtime_param.rs",
+        b"use tokio::{runtime::{Builder, Runtime}};\npub fn run(rt: Runtime) { rt.block_on(work()); }\n",
+        Lang::Rust,
+        interner,
+    );
+    let nested_runtime_import_ids = imported_binding_symbol_ids(
+        &nested_brace_imported_runtime.evidence,
+        "tokio::runtime",
+        "Runtime",
+    );
+    assert_eq!(nested_runtime_import_ids.len(), 1);
+    let nested_runtime_domains =
+        param_domain_records(&nested_brace_imported_runtime.evidence, runtime_domain);
+    assert_eq!(nested_runtime_domains.len(), 1);
+    assert_eq!(
+        nested_runtime_domains[0].dependencies, nested_runtime_import_ids,
+        "Rust tokio Runtime parameter evidence should use nested brace import evidence"
+    );
+
     let scoped_imported_runtime = lower_fixture(
         "tokio_scoped_runtime_param.rs",
         b"mod local { use tokio::runtime::Runtime; pub fn run(rt: Runtime) { rt.block_on(work()); } }\n",
@@ -433,6 +453,21 @@ fn assert_rust_tokio_runtime_param_domains(interner: &Interner) {
         param_domain_record_count(&parent_module_import_not_visible.evidence, runtime_domain),
         0,
         "parent-module imports must not prove child-module Runtime parameter evidence"
+    );
+
+    let parent_nested_brace_import_not_visible = lower_fixture(
+        "tokio_parent_nested_brace_import_param.rs",
+        b"use tokio::{runtime::{Runtime}};\nmod local { pub fn run(rt: Runtime) { rt.block_on(work()); } }\n",
+        Lang::Rust,
+        interner,
+    );
+    assert_eq!(
+        param_domain_record_count(
+            &parent_nested_brace_import_not_visible.evidence,
+            runtime_domain
+        ),
+        0,
+        "parent-module nested brace imports must not prove child-module Runtime parameter evidence"
     );
 
     let wrong_runtime = lower_fixture(

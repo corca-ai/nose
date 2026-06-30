@@ -105,7 +105,8 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
 - [Java CompletableFuture obligation reporting](../bench/recall_loss/java-completablefuture-obligation-reporting-2026-06-30.v1.json) records the Java Future follow-up: proof-backed `CompletableFuture` static calls and exact-import-backed CompletionStage-style receiver continuations now report reusable future, task, aggregate, callback, and exception obligations. Exact admission remains closed, while the 120-repo lexical audit splits `40` Java future reporting candidates out of the broad `CompletableFuture` bucket and leaves `276` broad mentions closed.
 - [Rust block_on future-drive obligation reporting](../bench/recall_loss/rust-block-on-future-drive-obligation-reporting-2026-07-01.v1.json) records the Rust Future bridge follow-up: qualified/import-backed `tokio_test::block_on` plus proof-backed `Handle::current().block_on` and inline `Runtime`/`Builder` receiver chains now report `future-drive-scheduling-contract` plus `future-settled-value-channel-contract`. Exact admission remains closed.
 - [Rust local runtime provenance](../bench/recall_loss/rust-block-on-local-runtime-provenance-2026-07-01.v1.json) extends that reporting to local variables whose last visible assignment is proof-backed `Handle::current()`, `Runtime::new().unwrap()/expect/?`, or `Builder::new_*().build().unwrap()/expect/?`, while selector-only receivers, parameters, fields, wrappers, and `map_err(...)?` construction remain closed.
-- [Rust parameter runtime provenance](../bench/recall_loss/rust-block-on-parameter-runtime-provenance-2026-07-01.v1.json) extends the same reporting to nominal `tokio::runtime::Runtime` and `tokio::runtime::Handle` parameter receivers when the type is fully qualified or backed by scope-visible exact imported-binding evidence. Exact admission remains closed; struct fields, nested brace-import parameter types, child-module parameters with only parent-module imports, type aliases, wrappers, and `map_err(...)?` construction remain closed.
+- [Rust parameter runtime provenance](../bench/recall_loss/rust-block-on-parameter-runtime-provenance-2026-07-01.v1.json) extends the same reporting to nominal `tokio::runtime::Runtime` and `tokio::runtime::Handle` parameter receivers when the type is fully qualified or backed by scope-visible exact imported-binding evidence. Exact admission remains closed; in that slice, struct fields, nested brace-import parameter types, child-module parameters with only parent-module imports, type aliases, wrappers, and `map_err(...)?` construction remained closed.
+- [Rust nested brace runtime provenance](../bench/recall_loss/rust-nested-brace-runtime-provenance-2026-07-01.v1.json) extends Rust static import evidence to nested brace groups such as `use tokio::{runtime::{Runtime}}`, allowing those parameter receivers to report the same future-drive and future-settled obligations. Exact admission remains closed; struct fields, wildcard/relative imports, type aliases, wrappers, and `map_err(...)?` construction remain closed.
 
 Regenerate the full local reports with:
 
@@ -191,7 +192,9 @@ without changing the hard gate (`false_merges == 0`,
 `canon_preservation_violations == 0`). It does this by proving Rust brace import
 bindings such as `use crate::m::{f, T};` as per-item `Import`/`Symbol` evidence
 while leaving wildcard imports, nested brace imports, and `self`/`super`-relative
-brace prefixes closed. This shrinks the local-or-parameter primary surface from
+brace prefixes closed at that time. A later nested-brace runtime-provenance
+follow-up opens static nested brace groups while keeping wildcard and relative
+forms closed. This shrinks the local-or-parameter primary surface from
 `115` to `71`; the next dominant targets are scoped paths and member calls.
 
 The #578 recovery slice reduces the callee-identity bucket from `251` to `235`

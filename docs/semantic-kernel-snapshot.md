@@ -178,9 +178,14 @@ keeps exact admission closed while following nominal
 qualified type text or scope-visible exact imported-binding evidence. Tokio
 spot checks show `2` future-drive evidence units in
 `tokio/tests/fs_uring_read.rs` and `1` in
-`tokio/tests/rt_unstable_eager_driver_handoff.rs`; field receivers, nested brace
-imports, child-module parameters with only parent-module imports, type aliases,
-wrappers, and `map_err(...)?` construction remain closed.
+`tokio/tests/rt_unstable_eager_driver_handoff.rs`. The follow-up [Rust nested
+brace runtime provenance artifact](../bench/recall_loss/rust-nested-brace-runtime-provenance-2026-07-01.v1.json)
+adds per-item evidence for nested static brace imports such as
+`use tokio::{runtime::{Runtime}}`; Tokio `fs_uring.rs` then shows `2`
+future-drive evidence units for nested-brace `Runtime` parameter receivers.
+Field receivers, wildcard/relative imports, child-module parameters with only
+parent-module imports, type aliases, wrappers, and `map_err(...)?` construction
+remain closed.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while pricing `4,294` channel receives, `1,525`
 sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,
@@ -1274,7 +1279,8 @@ migrated.
   import coordinate sequences can no longer become proof-bearing value nodes by
   tag shape. Imported literal replacement also consumes evidence-only import
   facts; missing or ambiguous `Import` evidence no longer proves a cross-file
-  replacement. Rust direct public re-exports now emit
+  replacement. Rust unrestricted `pub use` and crate-visible `pub(crate) use`
+  re-exports, including nested static brace aliases, now emit
   `Import(ReExportBinding)` as alias proof, not value proof; imported literal
   replacement may follow one such same-corpus hop only to an already
   literal-safe provider export.
@@ -1458,8 +1464,8 @@ this worktree because the required evidence is not yet modeled:
   corpus-visible Swift `Task` definition. Python function-local `asyncio`
   imports remain closed until scope proof exists, the imported-occurrence
   producer keeps Rust block-scoped or other-module runtime imports from proving
-  calls outside that module scope, and `self.rt.block_on(...)`, nested brace
-  import parameter types, and type aliases stay closed until stronger
+  calls outside that module scope, and `self.rt.block_on(...)`,
+  wildcard/relative imports, and type aliases stay closed until stronger
   receiver/type evidence exists.
 - Java `CompletableFuture.supplyAsync`/`runAsync`, settled factories,
   `allOf`/`anyOf`, and exact-import-backed CompletionStage-style receiver

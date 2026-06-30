@@ -129,6 +129,12 @@ fn reports_future_drive_obligations_when_parameter_runtime_identity_is_proven() 
         Lang::Rust,
         ".block_on",
     );
+    let nested_brace_imported_runtime_param = missing_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::{runtime::{Builder, Runtime}};\nfn run(rt: Runtime) { rt.block_on(work()); }\n",
+        Lang::Rust,
+        ".block_on",
+    );
     let aliased_handle_param = missing_evidence_for_lang_call(
         "runtime.rs",
         "use tokio::runtime::Handle as TokioHandle;\nfn run(handle: TokioHandle) { handle.block_on(work()); }\n",
@@ -151,6 +157,7 @@ fn reports_future_drive_obligations_when_parameter_runtime_identity_is_proven() 
     for labels in [
         imported_runtime_param,
         imported_runtime_ref_param,
+        nested_brace_imported_runtime_param,
         aliased_handle_param,
         qualified_runtime_param,
         scoped_imported_runtime_param,
@@ -280,6 +287,12 @@ fn requires_proven_parameter_runtime_identity() {
         Lang::Rust,
         ".block_on",
     );
+    let parent_nested_brace_import_not_visible = runtime_boundary_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::{runtime::{Runtime}};\nmod local { fn run(rt: Runtime) { rt.block_on(work()); } }\n",
+        Lang::Rust,
+        ".block_on",
+    );
     let parameter_reassigned_to_local = runtime_boundary_evidence_for_lang_call(
         "runtime.rs",
         "use tokio::runtime::Runtime;\nfn run(rt: Runtime) { let rt = make_local(rt); rt.block_on(work()); }\n",
@@ -304,6 +317,10 @@ fn requires_proven_parameter_runtime_identity() {
         (
             parent_module_import_not_visible,
             "parent-module import for child-module Runtime parameter type",
+        ),
+        (
+            parent_nested_brace_import_not_visible,
+            "parent-module nested brace import for child-module Runtime parameter type",
         ),
         (
             parameter_reassigned_to_local,

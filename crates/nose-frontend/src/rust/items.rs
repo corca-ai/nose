@@ -142,8 +142,10 @@ fn rust_public_use(text: &str) -> bool {
     let Some(rest) = trimmed.strip_prefix("pub(") else {
         return false;
     };
-    rest.split_once(')')
-        .is_some_and(|(_, after)| after.trim_start().starts_with("use "))
+    let Some((visibility, after)) = rest.split_once(')') else {
+        return false;
+    };
+    visibility.trim() == "crate" && after.trim_start().starts_with("use ")
 }
 
 fn rust_single_static_import(
@@ -175,12 +177,8 @@ fn rust_brace_static_imports(
     body_offset: usize,
 ) -> Option<Vec<RustStaticImport>> {
     let open = body.find('{')?;
-    let close = body.rfind('}')?;
-    if open >= close
-        || body[open + 1..close].contains('{')
-        || body[open + 1..close].contains('}')
-        || !body[close + 1..].trim().is_empty()
-    {
+    let close = matching_brace(body, open)?;
+    if open >= close || !body[close + 1..].trim().is_empty() {
         return None;
     }
     let prefix = body[..open].trim().trim_end_matches("::").trim();
@@ -190,7 +188,46 @@ fn rust_brace_static_imports(
     let items = &body[open + 1..close];
     let items_offset = body_offset + open + 1;
     let mut imports = Vec::new();
-    for (item, item_offset) in comma_separated_use_items(items, items_offset) {
+    collect_rust_brace_static_imports(
+        full_text,
+        declaration_span,
+        prefix,
+        items,
+        items_offset,
+        &mut imports,
+    )?;
+    (!imports.is_empty()).then_some(imports)
+}
+
+fn collect_rust_brace_static_imports(
+    full_text: &str,
+    declaration_span: Span,
+    prefix: &str,
+    items: &str,
+    items_offset: usize,
+    imports: &mut Vec<RustStaticImport>,
+) -> Option<()> {
+    for (item, item_offset) in comma_separated_use_items(items, items_offset)? {
+        if let Some(open) = item.find('{') {
+            let close = matching_brace(item, open)?;
+            if !item[close + 1..].trim().is_empty() {
+                return None;
+            }
+            let nested_prefix = item[..open].trim().trim_end_matches("::").trim();
+            if nested_prefix.is_empty() || relative_rust_use_prefix(nested_prefix) {
+                return None;
+            }
+            let nested = format!("{prefix}::{nested_prefix}");
+            collect_rust_brace_static_imports(
+                full_text,
+                declaration_span,
+                &nested,
+                &item[open + 1..close],
+                item_offset + open + 1,
+                imports,
+            )?;
+            continue;
+        }
         let parsed = parse_rust_use_item(item)?;
         let item_span = span_for_text_range(
             declaration_span,
@@ -222,7 +259,7 @@ fn rust_brace_static_imports(
             kind: RustStaticImportKind::Binding { exported },
         });
     }
-    (!imports.is_empty()).then_some(imports)
+    Some(())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -276,17 +313,59 @@ fn relative_rust_use_prefix(prefix: &str) -> bool {
         || prefix.starts_with("super::")
 }
 
-fn comma_separated_use_items<'a>(
+fn comma_separated_use_items(items: &str, items_offset: usize) -> Option<Vec<(&str, usize)>> {
+    let mut parts = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (index, byte) in items.bytes().enumerate() {
+        match byte {
+            b'{' => depth += 1,
+            b'}' => depth = depth.checked_sub(1)?,
+            b',' if depth == 0 => {
+                push_trimmed_use_item(items, items_offset, start, index, &mut parts);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    push_trimmed_use_item(items, items_offset, start, items.len(), &mut parts);
+    Some(parts)
+}
+
+fn push_trimmed_use_item<'a>(
     items: &'a str,
     items_offset: usize,
-) -> impl Iterator<Item = (&'a str, usize)> + 'a {
-    items.split(',').scan(0usize, move |cursor, part| {
-        let raw_start = *cursor;
-        *cursor += part.len() + 1;
+    start: usize,
+    end: usize,
+    parts: &mut Vec<(&'a str, usize)>,
+) {
+    if let Some(part) = items.get(start..end) {
         let (trimmed, leading) = trim_with_offset(part);
         let (trimmed, _) = trim_end_with_len(trimmed);
-        (!trimmed.is_empty()).then_some((trimmed, items_offset + raw_start + leading))
-    })
+        if !trimmed.is_empty() {
+            parts.push((trimmed, items_offset + start + leading));
+        }
+    }
+}
+
+fn matching_brace(text: &str, open: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (index, byte) in text.bytes().enumerate().skip(open) {
+        match byte {
+            b'{' => depth += 1,
+            b'}' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(index);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn trim_with_offset(value: &str) -> (&str, usize) {

@@ -95,9 +95,10 @@ break.
   `Runtime::new().unwrap()/expect`, `Runtime::new()?`, or
   `Builder::new_*().build().unwrap()/expect/?` now receive the same reporting;
   nominal parameter receivers proven as scope-visible `tokio::runtime::Runtime`
-  or `tokio::runtime::Handle` now do too. Selector-only `.block_on`, struct
-  fields, nested brace-import parameter types, type aliases, wrapped
-  constructors, and `map_err(...)?` runtime construction remain closed.
+  or `tokio::runtime::Handle` now do too, including nested static brace imports
+  such as `use tokio::{runtime::{Runtime}}`. Selector-only `.block_on`, struct
+  fields, wildcard or relative imports, type aliases, wrapped constructors, and
+  `map_err(...)?` runtime construction remain closed.
 - Added Go channel/goroutine/defer obligation refinement. Go source-backed
   protocol boundaries now report channel send synchronization, receive value,
   comma-ok receive status, select readiness/case/default, goroutine scheduling
