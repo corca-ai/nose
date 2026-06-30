@@ -124,7 +124,16 @@ proves `tokio::runtime::Runtime` or `Handle`; Tokio `sync_bridge.rs` moves from
 `0` to `13` future-drive oracle exclusions with `0` false merges. Non-self
 fields, local struct fields, project-local `tokio` roots or aliases including
 raw-identifier spellings, wildcard/relative imports, type aliases, wrappers,
-and constructor-assigned fields remain closed. The follow-up [Rust map_err
+and constructor-assigned fields remain closed in that slice. The follow-up
+[Rust local self-field runtime provenance artifact](../bench/recall_loss/rust-local-self-field-runtime-provenance-2026-07-01.v1.json)
+reuses the same capability for function/block-local `struct` plus local `impl`
+declarations. Tokio `task_local_set.rs` moves the local
+`self.rt.block_on(...)` row from
+`receiver-mutation/effect-preserving-contract-missing` to
+`scheduling-boundary/future-drive-scheduling-contract-missing` with `0` false
+merges; duplicate local structs, wrong local `Runtime` imports, same-scope
+`Runtime` types, namespace aliases named `tokio`, non-self fields, type aliases,
+wrappers, and constructor-assigned fields remain closed. The follow-up [Rust map_err
 runtime provenance artifact](../bench/recall_loss/rust-block-on-map-err-runtime-provenance-2026-07-01.v1.json)
 opens only success-channel-preserving `Result::map_err` adapters over already
 proven `Runtime::new()` or `Builder::build()` results; wrapper-returned Results

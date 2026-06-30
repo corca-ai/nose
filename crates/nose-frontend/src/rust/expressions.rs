@@ -391,7 +391,7 @@ fn rust_struct_field_type_in_same_scope<'tree>(
     struct_name: &str,
     field_name: &str,
 ) -> Option<TsNode<'tree>> {
-    let scope = rust_enclosing_module_scope(node)?;
+    let scope = rust_enclosing_impl_item(node)?.parent()?;
     let mut matches = Vec::new();
     for item in Lowering::named_children(scope) {
         if item.kind() != "struct_item" || rust_named_item_text(lo, item) != Some(struct_name) {
@@ -405,6 +405,15 @@ fn rust_struct_field_type_in_same_scope<'tree>(
         return None;
     };
     Some(*field_type)
+}
+fn rust_enclosing_impl_item(mut node: TsNode) -> Option<TsNode> {
+    while let Some(parent) = node.parent() {
+        if parent.kind() == "impl_item" {
+            return Some(parent);
+        }
+        node = parent;
+    }
+    None
 }
 fn rust_named_item_text<'a>(lo: &'a Lowering, node: TsNode) -> Option<&'a str> {
     node.child_by_field_name("name").map(|name| lo.text(name))

@@ -11,6 +11,7 @@ mod imported_bindings;
 mod java;
 mod rust_block_on;
 mod rust_block_on_root_shadow;
+mod rust_block_on_self_field;
 mod scope_shadowing;
 mod swift;
 

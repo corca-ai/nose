@@ -1,0 +1,154 @@
+{
+  "report_kind": "rust-local-self-field-runtime-provenance",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-rust-future-drive-local-self-field-receiver-provenance",
+    "summary": "Rust block_on reporting now consumes nominal tokio runtime evidence for self-field receivers declared in local function/block scopes.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "scope-aware receiver type provenance for field-backed future-drive scheduling attribution",
+    "not_a_feature_list": [
+      "No exact admission path was opened for Rust block_on or async/sync equivalence.",
+      "No new semantic kernel API was added.",
+      "The slice reuses node-anchored DomainEvidence::Nominal, Import/Symbol evidence, and shared future-drive obligations.",
+      "Only exact self.field receiver nodes inside impl methods with a self parameter receive field-domain proof.",
+      "Duplicate local structs, same-scope non-tokio Runtime imports, same-scope local Runtime types, namespace aliases named tokio, non-self receivers, type aliases, wrapper fields, and constructor-assigned fields remain closed."
+    ],
+    "reused_capabilities": [
+      "runtime-boundary-model",
+      "Rust imported binding evidence",
+      "Rust nominal type-domain evidence",
+      "node-anchored receiver Domain evidence",
+      "declaration-scope import visibility",
+      "AdmissionContext Rust local-runtime-root guard",
+      "shared future-drive scheduling and future-settled value-channel obligations"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "rust",
+      "surface": "fn outer() { use tokio::runtime::Runtime; struct Runner { rt: Runtime } impl Runner { fn run(&self) { self.rt.block_on(...) } } }",
+      "guard": "The self.field receiver must be inside a local impl method with a self parameter, and the impl's declaration scope must contain exactly one matching struct field whose type is backed by exact tokio::runtime::Runtime import evidence from the local declaration scope or an enclosing module scope."
+    },
+    {
+      "language": "rust",
+      "surface": "fn outer() { struct Runner { handle: tokio::runtime::Handle } impl Runner { fn run(&self) { self.handle.block_on(...) } } }",
+      "guard": "Fully qualified local tokio runtime field types are accepted only when visible scopes do not define or alias a local tokio root."
+    }
+  ],
+  "focused_fixture": {
+    "tests": [
+      {
+        "test": "rust_runtime_domains::rust_tokio_runtime_self_field_domains_are_dependency_backed",
+        "command": "cargo test -p nose-frontend lower::tests::rust_runtime_domains -- --nocapture",
+        "assertions": [
+          "Local function-scope Runtime self-field domain evidence depends on the local imported binding symbol evidence.",
+          "Module-scope Runtime imports remain visible to local function/block struct field types.",
+          "Existing module-scope Runtime and fully qualified Handle self-field evidence remain admitted."
+        ]
+      },
+      {
+        "test": "rust_runtime_domains::rust_tokio_runtime_self_field_domains_require_exact_receiver_and_type_proof",
+        "command": "cargo test -p nose-frontend lower::tests::rust_runtime_domains -- --nocapture",
+        "assertions": [
+          "A local-scope Runtime type closes unqualified local Runtime field evidence.",
+          "A local-scope same-name Runtime import from another module stays closed.",
+          "A local-scope namespace alias named tokio closes qualified tokio runtime field evidence.",
+          "Duplicate local struct declarations keep the field-domain proof closed."
+        ]
+      },
+      {
+        "test": "rust_block_on_self_field::reports_future_drive_obligations_when_self_field_runtime_identity_is_proven",
+        "command": "cargo test -p nose-cli verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "Local function-scope Runtime self-field receivers report future-drive and future-settled obligations."
+        ]
+      },
+      {
+        "test": "rust_block_on_self_field::requires_proven_local_self_field_runtime_identity",
+        "command": "cargo test -p nose-cli verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "Local wrong imports, local Runtime shadow types, namespace aliases named tokio, and duplicate local struct declarations do not report future-drive obligations."
+        ]
+      }
+    ]
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss-rust-local-self-field.crates.after.json",
+    "total_units": 6825,
+    "interpretable_units": 947,
+    "excluded_units": 5878,
+    "admission_rejections": 791,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 96,
+    "canon_preservation_violations": 0,
+    "gate_passed": true,
+    "origin_main_elapsed_real_seconds": 2.47,
+    "current_elapsed_real_seconds": 0.98,
+    "note": "The local crates surface has no proof-backed local Rust self-field block_on bridge rows; the gate is used for hard soundness and runtime comparison."
+  },
+  "real_corpus_spot_checks": [
+    {
+      "repo": "tokio",
+      "path": "tokio/tests/task_local_set.rs",
+      "origin_main_command": "/tmp/nose-origin-main-local-scope-target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/task_local_set.rs --max-violations 0 --recall-loss-report /tmp/recall-loss-rust-local-self-field.task-local.origin-main.json",
+      "current_command": "target/release/nose verify bench/repos/tokio/tokio/tests/task_local_set.rs --max-violations 0 --recall-loss-report target/recall-loss-rust-local-self-field.task-local.after.json",
+      "origin_main_elapsed_real_seconds": 0.03,
+      "current_elapsed_real_seconds": 0.02,
+      "summary": {
+        "total_units": 38,
+        "interpretable_units": 3,
+        "excluded_units": 35,
+        "admission_rejections": 3,
+        "false_merges": 0,
+        "obligation_before": "receiver-mutation/effect-preserving-contract-missing",
+        "obligation_after": "scheduling-boundary/future-drive-scheduling-contract-missing",
+        "line_range": "720-722"
+      }
+    }
+  ],
+  "closed_surfaces": [
+    {
+      "surface": "runner.rt.block_on(...) or other non-self field receivers",
+      "reason": "The receiver identity is not tied to the current impl self receiver."
+    },
+    {
+      "surface": "type Rt = tokio::runtime::Runtime; struct Runner { rt: Rt }",
+      "reason": "Rust type aliases are not converted into nominal receiver domain evidence in this slice."
+    },
+    {
+      "surface": "fields assigned from runtime constructors rather than declared with a tokio runtime type",
+      "reason": "Constructor assignment and field lifecycle proof are separate capabilities."
+    },
+    {
+      "surface": "Runtime fields from project-local tokio roots, raw local r#tokio roots, namespace aliases, extern crate aliases, or non-tokio modules",
+      "reason": "Same-named local or third-party type and namespace roots do not prove tokio runtime receiver semantics."
+    },
+    {
+      "surface": "Exact convergence between block_on, await, and synchronous payload values",
+      "reason": "Future drive scheduling, wake/poll behavior, cancellation/liveness, result-channel, and complete receiver/type identity contracts remain missing evidence."
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all",
+    "cargo test -p nose-frontend lower::tests::param_domains::parameter_type_domains_are_dependency_backed_and_not_substring_guesses -- --nocapture",
+    "cargo test -p nose-frontend lower::tests::rust_runtime_domains -- --nocapture",
+    "cargo test -p nose-cli verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+    "cargo build --release",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss-rust-local-self-field.crates.after.json",
+    "/usr/bin/time -p /tmp/nose-origin-main-local-scope-target/release/nose verify /Users/ak/prjs/cc/nose/crates --max-violations 0 --recall-loss-report /tmp/recall-loss-rust-local-self-field.crates.origin-main.json",
+    "/usr/bin/time -p /tmp/nose-origin-main-local-scope-target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/task_local_set.rs --max-violations 0 --recall-loss-report /tmp/recall-loss-rust-local-self-field.task-local.origin-main.json",
+    "/usr/bin/time -p target/release/nose verify bench/repos/tokio/tokio/tests/task_local_set.rs --max-violations 0 --recall-loss-report target/recall-loss-rust-local-self-field.task-local.after.json"
+  ],
+  "next_followups": [
+    "Consider type-alias to nominal-domain evidence as a separate producer slice.",
+    "Consider constructor-assigned runtime fields only after field lifecycle and mutation proof exist.",
+    "Continue balancing Rust block_on improvements with Python, Swift, Java, and Go async surfaces so shared kernel obligations remain cross-language rather than JS/TS-only."
+  ]
+}

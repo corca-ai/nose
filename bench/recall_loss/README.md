@@ -484,7 +484,20 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   imported-binding type evidence. Exact admission stays closed; non-self
   fields, local struct fields, project-local `tokio` roots or aliases,
   wildcard/relative imports, type aliases, wrapper calls, constructor-assigned
-  fields, and `map_err(...)?` construction remain closed.
+  fields, and `map_err(...)?` construction remained closed in that slice.
+- [rust-local-self-field-runtime-provenance-2026-07-01.v1.json](rust-local-self-field-runtime-provenance-2026-07-01.v1.json)
+  records the follow-up Rust local self-field receiver-provenance expansion.
+  Function/block-local `struct Runner { rt: Runtime }` plus local
+  `impl Runner { fn run(&self) { self.rt.block_on(...) } }` now receive the
+  same future-drive and future-settled obligations when the local declaration
+  scope or enclosing module scope has exact tokio runtime import/type proof. The Tokio
+  `task_local_set.rs` spot check moves the `self.rt.block_on(...)` row from
+  `receiver-mutation/effect-preserving-contract-missing` to
+  `scheduling-boundary/future-drive-scheduling-contract-missing` with `0` false
+  merges. Exact admission stays closed; duplicate local structs, wrong local
+  `Runtime` imports, same-scope `Runtime` types, namespace aliases named
+  `tokio`, non-self fields, type aliases, wrapper calls, and
+  constructor-assigned fields remain closed.
 - [scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json)
   records the matching 120-repo source-prevalence pricing. It raises total
   source prevalence from `142,847` to `143,178`: `Task.sleep` contributes

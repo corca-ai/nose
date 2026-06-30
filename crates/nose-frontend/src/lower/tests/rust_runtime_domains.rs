@@ -41,6 +41,44 @@ fn rust_tokio_runtime_self_field_domains_are_dependency_backed() {
         handle_fields[0].dependencies.is_empty(),
         "fully qualified tokio Handle field evidence does not need import dependencies"
     );
+
+    let local_runtime_field = lower_fixture(
+        "tokio_local_runtime_self_field.rs",
+        b"fn outer() { use tokio::runtime::Runtime; struct Runner { rt: Runtime } impl Runner { fn run(&self) { self.rt.block_on(work()); } } }\n",
+        Lang::Rust,
+        &interner,
+    );
+    let local_runtime_import_ids =
+        imported_binding_symbol_ids(&local_runtime_field.evidence, "tokio::runtime", "Runtime");
+    assert_eq!(local_runtime_import_ids.len(), 1);
+    let local_runtime_fields = field_domain_records(&local_runtime_field.evidence, runtime_domain);
+    assert_eq!(local_runtime_fields.len(), 1);
+    assert_eq!(
+        local_runtime_fields[0].dependencies, local_runtime_import_ids,
+        "local Rust self field runtime domain evidence should use the local declaration-scope import"
+    );
+
+    let local_runtime_field_with_module_import = lower_fixture(
+        "tokio_local_runtime_self_field_module_import.rs",
+        b"use tokio::runtime::Runtime;\nfn outer() { struct Runner { rt: Runtime } impl Runner { fn run(&self) { self.rt.block_on(work()); } } }\n",
+        Lang::Rust,
+        &interner,
+    );
+    let module_runtime_import_ids = imported_binding_symbol_ids(
+        &local_runtime_field_with_module_import.evidence,
+        "tokio::runtime",
+        "Runtime",
+    );
+    assert_eq!(module_runtime_import_ids.len(), 1);
+    let module_import_fields = field_domain_records(
+        &local_runtime_field_with_module_import.evidence,
+        runtime_domain,
+    );
+    assert_eq!(module_import_fields.len(), 1);
+    assert_eq!(
+        module_import_fields[0].dependencies, module_runtime_import_ids,
+        "module-scope Rust runtime imports should remain visible to local function/block struct field types"
+    );
 }
 
 #[test]
@@ -96,6 +134,54 @@ fn rust_tokio_runtime_self_field_domains_require_exact_receiver_and_type_proof()
         field_domain_records(&raw_local_runtime_type.evidence, runtime_domain).len(),
         0,
         "a raw local Runtime type must close unqualified Rust runtime field evidence"
+    );
+
+    let local_scope_runtime_type = lower_fixture(
+        "tokio_runtime_local_scope_type_self_field.rs",
+        b"fn outer() { use tokio::runtime::Runtime; struct Runtime; struct Runner { rt: Runtime } impl Runner { fn run(&self) { self.rt.block_on(work()); } } }\n",
+        Lang::Rust,
+        &interner,
+    );
+    assert_eq!(
+        field_domain_records(&local_scope_runtime_type.evidence, runtime_domain).len(),
+        0,
+        "a local-scope Runtime type must close unqualified local Rust runtime field evidence"
+    );
+
+    let local_scope_wrong_runtime_import = lower_fixture(
+        "tokio_runtime_local_scope_wrong_import_self_field.rs",
+        b"fn outer() { use project::runtime::Runtime; struct Runner { rt: Runtime } impl Runner { fn run(&self) { self.rt.block_on(work()); } } }\n",
+        Lang::Rust,
+        &interner,
+    );
+    assert_eq!(
+        field_domain_records(&local_scope_wrong_runtime_import.evidence, runtime_domain).len(),
+        0,
+        "a local-scope same-name Runtime import from another module must not prove tokio runtime field identity"
+    );
+
+    let local_scope_namespace_alias_shadow = lower_fixture(
+        "tokio_runtime_local_scope_namespace_alias_shadow_self_field.rs",
+        b"fn outer() { mod project { pub mod runtime { pub struct Runtime; } } use project as tokio; struct Runner { rt: tokio::runtime::Runtime } impl Runner { fn run(&self) { self.rt.block_on(work()); } } }\n",
+        Lang::Rust,
+        &interner,
+    );
+    assert_eq!(
+        field_domain_records(&local_scope_namespace_alias_shadow.evidence, runtime_domain).len(),
+        0,
+        "a local-scope namespace alias named tokio must close qualified tokio runtime field evidence"
+    );
+
+    let local_scope_duplicate_struct = lower_fixture(
+        "tokio_runtime_local_scope_duplicate_struct_self_field.rs",
+        b"fn outer() { use tokio::runtime::Runtime; struct Runner { rt: Runtime } struct Runner { rt: Runtime } impl Runner { fn run(&self) { self.rt.block_on(work()); } } }\n",
+        Lang::Rust,
+        &interner,
+    );
+    assert_eq!(
+        field_domain_records(&local_scope_duplicate_struct.evidence, runtime_domain).len(),
+        0,
+        "duplicate local struct definitions must keep Rust self field runtime evidence closed"
     );
 
     let parent_import_not_visible = lower_fixture(

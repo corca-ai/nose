@@ -82,19 +82,19 @@ pub(super) fn rust_tokio_runtime_nominal_type_domain(
     let head = rust_type_head_preserving_case(type_text)?;
     match head.as_str() {
         "tokio::runtime::Runtime" => {
-            if rust_module_scope_shadows_qualified_root(lo, node, "tokio") {
+            if rust_type_reference_scope_shadows_qualified_root(lo, node, "tokio") {
                 return None;
             }
             Some((rust_tokio_runtime_nominal_domain("Runtime"), Vec::new()))
         }
         "tokio::runtime::Handle" => {
-            if rust_module_scope_shadows_qualified_root(lo, node, "tokio") {
+            if rust_type_reference_scope_shadows_qualified_root(lo, node, "tokio") {
                 return None;
             }
             Some((rust_tokio_runtime_nominal_domain("Handle"), Vec::new()))
         }
         _ if !head.contains("::") => {
-            if rust_module_scope_defines_type_name(lo, node, &head) {
+            if rust_type_reference_scope_defines_type_name(lo, node, &head) {
                 return None;
             }
             let mut matches = Vec::new();
@@ -124,45 +124,52 @@ fn rust_imported_runtime_type_dependencies(
     local: &str,
     exported: &str,
 ) -> Option<Vec<nose_il::EvidenceId>> {
-    if rust_module_scope_shadows_qualified_root(lo, param, "tokio") {
+    if rust_type_reference_scope_shadows_qualified_root(lo, param, "tokio") {
         return None;
     }
-    let scope = rust_enclosing_module_scope(param)?;
     let local_hash = nose_il::stable_symbol_hash(local);
     let module_hash = nose_il::stable_symbol_hash("tokio::runtime");
     let exported_hash = nose_il::stable_symbol_hash(exported);
-    let mut dependencies = Vec::new();
-    for record in &lo.evidence {
-        let nose_il::EvidenceAnchor::Binding {
-            local_hash: anchor_hash,
-            span,
-            ..
-        } = record.anchor
-        else {
-            continue;
-        };
-        if anchor_hash != local_hash {
-            continue;
+
+    for scope in rust_type_reference_visible_scopes(param) {
+        let mut dependencies = Vec::new();
+        let mut saw_local_import = false;
+        for record in &lo.evidence {
+            let nose_il::EvidenceAnchor::Binding {
+                local_hash: anchor_hash,
+                span,
+                ..
+            } = record.anchor
+            else {
+                continue;
+            };
+            if anchor_hash != local_hash {
+                continue;
+            }
+            if !rust_import_span_is_direct_child_of_scope(lo, scope, span) {
+                continue;
+            }
+            saw_local_import = true;
+            let nose_il::EvidenceKind::Symbol(nose_il::SymbolEvidenceKind::ImportedBinding {
+                module_hash: actual_module,
+                exported_hash: actual_exported,
+            }) = record.kind
+            else {
+                continue;
+            };
+            if record.status != nose_il::EvidenceStatus::Asserted
+                || actual_module != module_hash
+                || actual_exported != exported_hash
+            {
+                return None;
+            }
+            dependencies.push(record.id);
         }
-        if !rust_import_span_is_direct_child_of_scope(lo, scope, span) {
-            continue;
+        if saw_local_import {
+            return (!dependencies.is_empty()).then_some(dependencies);
         }
-        let nose_il::EvidenceKind::Symbol(nose_il::SymbolEvidenceKind::ImportedBinding {
-            module_hash: actual_module,
-            exported_hash: actual_exported,
-        }) = record.kind
-        else {
-            continue;
-        };
-        if record.status != nose_il::EvidenceStatus::Asserted
-            || actual_module != module_hash
-            || actual_exported != exported_hash
-        {
-            return None;
-        }
-        dependencies.push(record.id);
     }
-    (!dependencies.is_empty()).then_some(dependencies)
+    None
 }
 fn rust_import_span_is_direct_child_of_scope(lo: &Lowering, scope: TsNode, span: Span) -> bool {
     Lowering::named_children(scope).into_iter().any(|child| {
@@ -220,16 +227,29 @@ pub(super) fn rust_type_head_preserving_case(type_text: &str) -> Option<String> 
     (!head.is_empty()).then(|| head.to_string())
 }
 fn rust_module_scope_defines_type_name(lo: &Lowering, node: TsNode, name: &str) -> bool {
-    rust_enclosing_module_scope(node).is_some_and(|scope| {
-        Lowering::named_children(scope)
-            .into_iter()
-            .any(|child| rust_type_namespace_item_defines(lo, child, name))
-    })
+    rust_enclosing_module_scope(node)
+        .is_some_and(|scope| rust_scope_defines_type_name(lo, scope, name))
 }
-fn rust_module_scope_shadows_qualified_root(lo: &Lowering, node: TsNode, root: &str) -> bool {
-    let Some(scope) = rust_enclosing_module_scope(node) else {
-        return false;
-    };
+fn rust_type_reference_scope_defines_type_name(lo: &Lowering, node: TsNode, name: &str) -> bool {
+    rust_type_reference_visible_scopes(node)
+        .into_iter()
+        .any(|scope| rust_scope_defines_type_name(lo, scope, name))
+}
+fn rust_scope_defines_type_name(lo: &Lowering, scope: TsNode, name: &str) -> bool {
+    Lowering::named_children(scope)
+        .into_iter()
+        .any(|child| rust_type_namespace_item_defines(lo, child, name))
+}
+fn rust_type_reference_scope_shadows_qualified_root(
+    lo: &Lowering,
+    node: TsNode,
+    root: &str,
+) -> bool {
+    rust_type_reference_visible_scopes(node)
+        .into_iter()
+        .any(|scope| rust_scope_shadows_qualified_root(lo, scope, root))
+}
+fn rust_scope_shadows_qualified_root(lo: &Lowering, scope: TsNode, root: &str) -> bool {
     Lowering::named_children(scope).into_iter().any(|child| {
         rust_type_namespace_item_defines(lo, child, root)
             || rust_import_item_shadows_qualified_root(lo, child, root)
@@ -332,6 +352,31 @@ pub(super) fn rust_enclosing_module_scope(mut node: TsNode) -> Option<TsNode> {
         node = parent;
     }
     None
+}
+fn rust_type_reference_visible_scopes(mut node: TsNode) -> Vec<TsNode> {
+    let mut scopes = Vec::new();
+    while let Some(parent) = node.parent() {
+        match parent.kind() {
+            "block" | "source_file" => {
+                push_unique_ts_node(&mut scopes, parent);
+                if parent.kind() == "source_file" {
+                    break;
+                }
+            }
+            "declaration_list" if parent.parent().is_some_and(|p| p.kind() == "mod_item") => {
+                push_unique_ts_node(&mut scopes, parent);
+                break;
+            }
+            _ => {}
+        }
+        node = parent;
+    }
+    scopes
+}
+fn push_unique_ts_node<'tree>(nodes: &mut Vec<TsNode<'tree>>, node: TsNode<'tree>) {
+    if nodes.iter().all(|existing| existing.id() != node.id()) {
+        nodes.push(node);
+    }
 }
 fn rust_type_namespace_item_defines(lo: &Lowering, node: TsNode, name: &str) -> bool {
     if !matches!(
