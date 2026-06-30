@@ -177,6 +177,11 @@ fn rust_tokio_runtime_driver_result_expr(
     {
         return true;
     }
+    if rust_tokio_runtime_result_adapter_method(il, interner, callee) {
+        return method_receiver(il, callee).is_some_and(|inner| {
+            rust_tokio_runtime_driver_result_expr(il, interner, inner, context)
+        });
+    }
     if callee_field_method(il, interner, callee) != Some("build") {
         return false;
     }
@@ -323,6 +328,14 @@ fn rust_tokio_runtime_unwrap_method(il: &nose_il::Il, interner: &Interner, calle
         callee_field_method(il, interner, callee),
         Some("unwrap" | "expect")
     )
+}
+
+fn rust_tokio_runtime_result_adapter_method(
+    il: &nose_il::Il,
+    interner: &Interner,
+    callee: NodeId,
+) -> bool {
+    matches!(callee_field_method(il, interner, callee), Some("map_err"))
 }
 
 fn rust_tokio_runtime_builder_chain_method(

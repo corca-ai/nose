@@ -124,7 +124,11 @@ proves `tokio::runtime::Runtime` or `Handle`; Tokio `sync_bridge.rs` moves from
 `0` to `13` future-drive oracle exclusions with `0` false merges. Non-self
 fields, local struct fields, project-local `tokio` roots or aliases including
 raw-identifier spellings, wildcard/relative imports, type aliases, wrappers,
-constructor-assigned fields, and `map_err(...)?` construction remain closed.
+and constructor-assigned fields remain closed. The follow-up [Rust map_err
+runtime provenance artifact](../bench/recall_loss/rust-block-on-map-err-runtime-provenance-2026-07-01.v1.json)
+opens only success-channel-preserving `Result::map_err` adapters over already
+proven `Runtime::new()` or `Builder::build()` results; wrapper-returned Results
+and non-Result `map_err` calls stay closed.
 The follow-up [Java CompletableFuture artifact](../bench/recall_loss/java-completablefuture-obligation-reporting-2026-06-30.v1.json)
 keeps exact admission closed and maps proof-backed Java
 `CompletableFuture.supplyAsync`/`runAsync`, settled factories, `allOf`/`anyOf`,

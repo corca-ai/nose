@@ -190,8 +190,14 @@ declaration proves `tokio::runtime::Runtime` or `Handle`; Tokio
 `0` false merges. Non-self fields, local struct fields, wildcard/relative
 imports, child-module parameters with only parent-module imports, project-local
 `tokio` roots or aliases including raw-identifier spellings, type aliases,
-wrappers, constructor-assigned fields, and `map_err(...)?` construction remain
-closed.
+wrappers, and constructor-assigned fields remain closed. The follow-up [Rust
+map_err runtime provenance artifact](../bench/recall_loss/rust-block-on-map-err-runtime-provenance-2026-07-01.v1.json)
+extends the same future-drive reporting to `Result::map_err` adapters that wrap
+an already proven `Runtime::new()` or `Builder::build()` success channel before
+`?`, `unwrap`, or `expect` exposes the runtime receiver. Nushell spot checks
+move two direct local `Runtime::new().map_err(...)?` block_on paths from `0` to
+`1` future-drive evidence unit each; wrapper-returned Results, non-Result
+`map_err` calls, and constructor-assigned fields remain closed.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while pricing `4,294` channel receives, `1,525`
 sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,

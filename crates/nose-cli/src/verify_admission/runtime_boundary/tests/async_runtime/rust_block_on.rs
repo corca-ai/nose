@@ -100,6 +100,18 @@ fn reports_future_drive_obligations_when_local_runtime_binding_is_proven() {
         Lang::Rust,
         ".block_on",
     );
+    let local_runtime_new_map_err_try = missing_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::runtime::Runtime;\nfn run() -> Result<(), E> { let rt = Runtime::new().map_err(convert)?; rt.block_on(work()); Ok(()) }\n",
+        Lang::Rust,
+        ".block_on",
+    );
+    let local_builder_map_err_try = missing_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::runtime::Builder;\nfn run() -> Result<(), E> { let rt = Builder::new_current_thread().enable_all().build().map_err(convert)?; rt.block_on(work()); Ok(()) }\n",
+        Lang::Rust,
+        ".block_on",
+    );
 
     for labels in [
         local_handle_current,
@@ -109,6 +121,8 @@ fn reports_future_drive_obligations_when_local_runtime_binding_is_proven() {
         local_runtime_new_try,
         local_builder_try,
         local_try_current,
+        local_runtime_new_map_err_try,
+        local_builder_map_err_try,
     ] {
         assert!(labels.contains(&"future-drive-scheduling-contract"));
         assert!(labels.contains(&"future-settled-value-channel-contract"));
@@ -477,9 +491,15 @@ fn requires_proven_local_runtime_binding_identity() {
         "runtime.rs",
         ".block_on",
     );
-    let local_binding_map_err_try = runtime_boundary_evidence_for_lang_call(
+    let wrapped_runtime_result_map_err_try = runtime_boundary_evidence_for_lang_call(
         "runtime.rs",
-        "use tokio::runtime::Runtime;\nfn run() -> Result<(), E> { let rt = Runtime::new().map_err(convert)?; rt.block_on(work()); Ok(()) }\n",
+        "use tokio::runtime::Runtime;\nfn run() -> Result<(), E> { let rt = make_wrapper(Runtime::new()).map_err(convert)?; rt.block_on(work()); Ok(()) }\n",
+        Lang::Rust,
+        ".block_on",
+    );
+    let runtime_value_map_err_try = runtime_boundary_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::runtime::Runtime;\ntrait IntoLocal { fn map_err(self, convert: fn(E) -> E) -> Result<LocalRuntime, E>; }\nimpl IntoLocal for Runtime { fn map_err(self, _convert: fn(E) -> E) -> Result<LocalRuntime, E> { todo!() } }\nfn run() -> Result<(), E> { let rt = Runtime::new().unwrap().map_err(convert)?; rt.block_on(work()); Ok(()) }\n",
         Lang::Rust,
         ".block_on",
     );
@@ -514,8 +534,12 @@ fn requires_proven_local_runtime_binding_identity() {
             "project-local Rust tokio root for local runtime binding",
         ),
         (
-            local_binding_map_err_try,
-            "Rust runtime local binding through map_err callback",
+            wrapped_runtime_result_map_err_try,
+            "wrapped Rust runtime Result through map_err callback",
+        ),
+        (
+            runtime_value_map_err_try,
+            "Rust runtime value changed by extension map_err callback",
         ),
     ] {
         assert_missing_evidence_not_contains(labels, "future-drive-scheduling-contract", surface);

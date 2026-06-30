@@ -1,0 +1,178 @@
+{
+  "report_kind": "rust-block-on-map-err-runtime-provenance",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-rust-future-drive-result-adapter-provenance",
+    "summary": "Rust block_on reporting now follows tokio Runtime/Builder result expressions through Result::map_err before unwrap/expect/? exposes the runtime receiver.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "success-channel-preserving Result adapter provenance for future-drive scheduling attribution",
+    "not_a_feature_list": [
+      "No exact admission path was opened for Rust block_on or async/sync equivalence.",
+      "No new public semantic-pack API was added.",
+      "The verifier reuses the existing runtime-boundary-model and future-drive obligations.",
+      "Only map_err applied to an already proven tokio runtime Result is accepted; selector-only map_err or wrapper-returned Results stay closed.",
+      "The error-conversion callback remains an exception/effect boundary when the surrounding unit is oracle-excluded."
+    ],
+    "reused_capabilities": [
+      "runtime-boundary-model",
+      "Rust imported binding evidence",
+      "AdmissionContext Rust local-runtime-root guard",
+      "source-backed TryPropagation protocol evidence",
+      "recall-loss oracle_exclusions.by_obligation",
+      "shared future-drive scheduling and future-settled value-channel obligations"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "rust",
+      "surface": "let rt = Runtime::new().map_err(convert)?; rt.block_on(...)",
+      "guard": "Runtime::new must be qualified or imported from tokio::runtime, unshadowed, and map_err must adapt that proven runtime Result before source-backed ? exposes the success value."
+    },
+    {
+      "language": "rust",
+      "surface": "let rt = Builder::new_current_thread().enable_all().build().map_err(convert)?; rt.block_on(...)",
+      "guard": "Builder construction must already be accepted by the existing builder-chain guard; map_err may only wrap the proven build Result."
+    },
+    {
+      "language": "rust",
+      "surface": "Runtime::new().map_err(convert).unwrap().block_on(...)",
+      "guard": "unwrap/expect consume the map_err-adapted Result only when the adapter's receiver is a proven runtime Result."
+    }
+  ],
+  "corpus_pricing": {
+    "source": "pinned bench/repos corpus",
+    "lexical_query": "rg -n --glob '*.rs' 'Runtime::new\\\\(\\\\)\\\\.map_err' bench/repos",
+    "runtime_new_map_err_hits": 3,
+    "runtime_new_map_err_files": 3,
+    "runtime_new_map_err_repos": 1,
+    "repos": [
+      "nushell"
+    ],
+    "direct_local_block_on_spot_checks": 2,
+    "still_closed_constructor_assigned_field_spot_checks": 1,
+    "note": "The third corpus occurrence initializes a struct field; non-self field lifecycle proof remains closed."
+  },
+  "focused_fixture": {
+    "tests": [
+      {
+        "test": "rust_block_on::reports_future_drive_obligations_when_local_runtime_binding_is_proven",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "Runtime::new().map_err(convert)? local bindings report future-drive and future-settled obligations.",
+          "Builder::new_current_thread().enable_all().build().map_err(convert)? local bindings report the same obligations."
+        ]
+      },
+      {
+        "test": "rust_block_on::requires_proven_local_runtime_binding_identity",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "make_wrapper(Runtime::new()).map_err(convert)? stays closed.",
+          "Runtime::new().unwrap().map_err(convert)? stays closed because map_err is no longer attached to a proven runtime Result success channel."
+        ]
+      },
+      {
+        "test": "recall_loss_report_attributes_non_js_async_runtime_api_exclusions",
+        "command": "cargo test -p nose-cli --test cli recall_loss_report_attributes_non_js_async_runtime_api_exclusions -- --nocapture",
+        "assertions": [
+          "A Rust Runtime::new().map_err(convert)? fixture appears under oracle_exclusions.by_obligation for future-drive scheduling.",
+          "The same unit keeps exact admission closed and remains reporting-only."
+        ]
+      }
+    ]
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss.rust-map-err-block-on.crates.json",
+    "total_units": 6818,
+    "interpretable_units": 947,
+    "excluded_units": 5871,
+    "admission_rejections": 791,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 96,
+    "canon_preservation_violations": 0,
+    "gate_passed": true,
+    "future_drive_admission_rejections": 0,
+    "future_drive_oracle_exclusions": 0,
+    "origin_main_elapsed_real_seconds": 1.93,
+    "current_elapsed_real_seconds": 1.89,
+    "note": "The local crates surface has no proof-backed Rust map_err block_on bridge rows; the gate is used for hard soundness and runtime comparison."
+  },
+  "real_corpus_spot_checks": [
+    {
+      "repo": "nushell",
+      "path": "crates/nu-mcp/src/lib.rs",
+      "baseline_command": "/tmp/nose-origin-main-map-err/target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/nushell/crates/nu-mcp/src/lib.rs --max-violations 0 --recall-loss-report /tmp/recall-loss.main.rust-map-err-block-on.nushell-lib.json",
+      "current_command": "target/release/nose verify bench/repos/nushell/crates/nu-mcp/src/lib.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-map-err-block-on.nushell-lib.json",
+      "summary": {
+        "total_units": 3,
+        "interpretable_units": 0,
+        "excluded_units": 3,
+        "admission_rejections": 0,
+        "false_merges": 0,
+        "future_drive_evidence_units_before": 0,
+        "future_drive_evidence_units_after": 1,
+        "future_drive_line_after": 41,
+        "primary_reason_note": "The unit also carries async-await and async-block obligations, which remain the primary scheduling subreason by rule order."
+      }
+    },
+    {
+      "repo": "nushell",
+      "path": "crates/nu-mcp/src/evaluation.rs",
+      "baseline_command": "/tmp/nose-origin-main-map-err/target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/nushell/crates/nu-mcp/src/evaluation.rs --max-violations 0 --recall-loss-report /tmp/recall-loss.main.rust-map-err-block-on.nushell-evaluation.json",
+      "current_command": "target/release/nose verify bench/repos/nushell/crates/nu-mcp/src/evaluation.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-map-err-block-on.nushell-evaluation.json",
+      "summary": {
+        "total_units": 43,
+        "interpretable_units": 4,
+        "excluded_units": 39,
+        "admission_rejections": 4,
+        "false_merges": 0,
+        "future_drive_evidence_units_before": 0,
+        "future_drive_evidence_units_after": 1,
+        "future_drive_line_after": 347,
+        "primary_reason_after": "future-drive-scheduling-contract-missing"
+      }
+    }
+  ],
+  "closed_surfaces": [
+    {
+      "surface": "make_wrapper(Runtime::new()).map_err(...)?",
+      "reason": "Wrapper calls can change the success value before map_err observes the Result."
+    },
+    {
+      "surface": "Runtime::new().unwrap().map_err(...)?",
+      "reason": "At that point map_err is an arbitrary method on a runtime value, not a Result success-channel adapter."
+    },
+    {
+      "surface": "struct field initialization such as runtime: Runtime::new().map_err(...)? followed by plugin.runtime.block_on(...)",
+      "reason": "Constructor-assigned field lifecycle and non-self field identity proof remain separate capabilities."
+    },
+    {
+      "surface": "Exact convergence between block_on, await, and synchronous payload values",
+      "reason": "Future drive scheduling, wake/poll behavior, cancellation/liveness, result-channel, and complete receiver/type identity contracts remain missing evidence."
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --all",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+    "cargo test -p nose-cli --test cli recall_loss_report_attributes_non_js_async_runtime_api_exclusions -- --nocapture",
+    "cargo build --release -p nose-cli",
+    "cargo build --release -p nose-cli (in /tmp/nose-origin-main-map-err at origin/main)",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.rust-map-err-block-on.crates.json",
+    "/usr/bin/time -p /tmp/nose-origin-main-map-err/target/release/nose verify /Users/ak/prjs/cc/nose/crates --max-violations 0 --recall-loss-report /tmp/recall-loss.main.rust-map-err-block-on.crates.json",
+    "target/release/nose verify bench/repos/nushell/crates/nu-mcp/src/lib.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-map-err-block-on.nushell-lib.json",
+    "target/release/nose verify bench/repos/nushell/crates/nu-mcp/src/evaluation.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-map-err-block-on.nushell-evaluation.json",
+    "/tmp/nose-origin-main-map-err/target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/nushell/crates/nu-mcp/src/lib.rs --max-violations 0 --recall-loss-report /tmp/recall-loss.main.rust-map-err-block-on.nushell-lib.json",
+    "/tmp/nose-origin-main-map-err/target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/nushell/crates/nu-mcp/src/evaluation.rs --max-violations 0 --recall-loss-report /tmp/recall-loss.main.rust-map-err-block-on.nushell-evaluation.json"
+  ],
+  "next_followups": [
+    "Price and model constructor-assigned runtime fields only after field lifecycle, mutation, and non-self receiver identity proof exist.",
+    "Consider additional success-channel-preserving Result adapters only one at a time with hard negatives.",
+    "Keep exact block_on/await convergence closed until scheduling and result-channel contracts become proof-backed."
+  ]
+}

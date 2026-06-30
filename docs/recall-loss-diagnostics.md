@@ -217,7 +217,13 @@ qualified or exact imported-binding type evidence. In the Tokio `sync_bridge.rs`
 spot check, future-drive oracle exclusions move from `0` to `13` with `0` false
 merges. Non-self fields, local struct fields, project-local `tokio` roots or
 aliases, wildcard/relative imports, type aliases, wrappers,
-constructor-assigned fields, and `map_err(...)?` construction remain closed. The
+and constructor-assigned fields remain closed. The [Rust map_err runtime
+provenance artifact](../bench/recall_loss/rust-block-on-map-err-runtime-provenance-2026-07-01.v1.json)
+then opens only success-channel-preserving `Result::map_err` adapters over
+already proven `Runtime::new()` or `Builder::build()` results, moving two
+Nushell direct local block_on spot checks from `0` to `1` future-drive evidence
+unit each while wrapper-returned Results, non-Result `map_err` calls, and
+constructor-assigned fields stay closed. The
 follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while refining Go protocol-boundary reporting into
 channel send synchronization, receive value, comma-ok receive status, select

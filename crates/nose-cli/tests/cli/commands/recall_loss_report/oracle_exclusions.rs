@@ -240,6 +240,11 @@ fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
             "async-aggregate-first-completion-contract-missing",
             1,
         ),
+        (
+            "scheduling-boundary",
+            "future-drive-scheduling-contract-missing",
+            1,
+        ),
     ] {
         assert_exclusion_obligation(&report, family, subreason, minimum);
     }
@@ -250,6 +255,7 @@ fn recall_loss_report_attributes_non_js_async_runtime_api_exclusions() {
         ("swift", "exception-channel-contract"),
         ("rust", "async-aggregate-all-completion-contract"),
         ("rust", "async-aggregate-first-completion-contract"),
+        ("rust", "future-drive-scheduling-contract"),
     ] {
         assert_excluded_runtime_unit(&report, language, evidence);
     }
@@ -357,12 +363,13 @@ fn write_non_js_async_runtime_api_fixture(project: &TempProject) {
     );
     project.write(
         "rust_runtime.rs",
-        "use tokio::runtime::Handle;\n\
+        "use tokio::runtime::{Handle, Runtime};\n\
          use tokio_test::block_on as test_block_on;\n\
          fn spawn_it() { tokio::spawn(work()); }\n\
          fn join_it() { tokio::join!(work(), other()); }\n\
          fn select_it() { futures::select!(a = work() => a); }\n\
          fn drive_handle() { Handle::current().block_on(work()); }\n\
+         fn drive_map_err() -> Result<(), E> { let rt = Runtime::new().map_err(convert)?; rt.block_on(work()); Ok(()) }\n\
          fn drive_test() { test_block_on(work()); }\n",
     );
     project.write(
