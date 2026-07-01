@@ -46,13 +46,15 @@ fn ruby_runtime_root_shadowed(il: &nose_il::Il, interner: &Interner, root: &str)
             NodeKind::Module | NodeKind::Block | NodeKind::Param => {
                 node_name_shadows_runtime_root(il, interner, node, root)
             }
-            NodeKind::Call => ruby_const_set_shadows_runtime_root(il, interner, node, root),
+            NodeKind::Call => {
+                ruby_dynamic_constant_definition_shadows_runtime_root(il, interner, node, root)
+            }
             _ => false,
         }
     })
 }
 
-fn ruby_const_set_shadows_runtime_root(
+fn ruby_dynamic_constant_definition_shadows_runtime_root(
     il: &nose_il::Il,
     interner: &Interner,
     call: NodeId,
@@ -62,7 +64,7 @@ fn ruby_const_set_shadows_runtime_root(
     let Some((&callee, args)) = children.split_first() else {
         return false;
     };
-    if !ruby_const_set_callee(il, interner, callee) {
+    if !ruby_dynamic_constant_definition_callee(il, interner, callee) {
         return false;
     }
     args.first()
@@ -70,9 +72,13 @@ fn ruby_const_set_shadows_runtime_root(
         .is_some_and(|arg| node_is_static_literal_name(il, arg, root))
 }
 
-fn ruby_const_set_callee(il: &nose_il::Il, interner: &Interner, callee: NodeId) -> bool {
+fn ruby_dynamic_constant_definition_callee(
+    il: &nose_il::Il,
+    interner: &Interner,
+    callee: NodeId,
+) -> bool {
     match il.node(callee).payload {
-        Payload::Name(symbol) => interner.resolve(symbol) == "const_set",
+        Payload::Name(symbol) => matches!(interner.resolve(symbol), "const_set" | "autoload"),
         _ => false,
     }
 }

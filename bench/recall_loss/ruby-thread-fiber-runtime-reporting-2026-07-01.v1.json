@@ -127,8 +127,8 @@
     "baseline_reference": "origin/main release verify crates warm real_seconds = 1.59",
     "baseline_first_real_seconds": 1.88,
     "baseline_warm_real_seconds": 1.59,
-    "current_first_real_seconds": 1.73,
-    "current_warm_real_seconds": 1.04,
+    "current_first_real_seconds": 1.89,
+    "current_warm_real_seconds": 1.11,
     "assessment": "Paired local release timing did not show a large regression; current warm timing was below the origin/main warm timing in this run."
   },
   "next_exact_work_policy": {
