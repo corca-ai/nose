@@ -198,6 +198,15 @@ existing `Try` boundary, and no Ruby-specific kernel API is added. The audit
 prices `2,065` `raise` and `1,933` `rescue` occurrences as
 reporting-supported closed-boundaries while retaining the broad `4,010`
 `raise/rescue` row as superseded overlap; exact admission remains closed.
+The follow-up [Java stream lifecycle split artifact](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)
+does not add a new kernel API. It accounts for the already existing iterator
+identity/static collection adapter capability in the scheduling lifecycle audit:
+typed `receiver.stream()` covers `372` occurrences and exact-import or fully
+qualified `Arrays.stream(xs)` covers `128`. The remaining
+`stream/parallelStream` lifecycle residual is now `1,496` occurrences, keeping
+untyped receiver, factory-result, arity/range overload, shadowed binding,
+terminal materialization, and parallel stream scheduling semantics closed for
+later proof.
 The follow-up [Swift structured-concurrency artifact](../bench/recall_loss/swift-structured-concurrency-obligation-reporting-2026-06-30.v1.json)
 keeps exact admission closed while mapping `Task.sleep`, `Task.yield`, and
 task-group calls onto the existing timer, task-yield, aggregate,
@@ -1215,7 +1224,10 @@ migrated.
 - Java stream source adapters are split by proof through library API contracts:
   `receiver.stream()` requires an exact iterable receiver, while
   `Arrays.stream(xs)` requires the `java.util.Arrays` import binding and no local
-  `Arrays` type shadow.
+  `Arrays` type shadow. The 2026-07-02 audit split records `372`
+  receiver-backed and `128` `Arrays.stream` source-prevalence occurrences as
+  exact-supported rows, leaving `1,496` broad `stream/parallelStream`
+  lifecycle occurrences closed.
 - Cross-file immutable import replacement now copies the provider's closed
   evidence subgraph for the exported literal expression, so a Java static import
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into

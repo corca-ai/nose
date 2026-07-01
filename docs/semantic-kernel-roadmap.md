@@ -1129,7 +1129,10 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   `.contains(...)`, which had no first-party JS membership contract.
 - Java stream source adapters are now proof-gated: receiver `.stream()` requires
   exact iterable evidence, and static `Arrays.stream(xs)` requires the
-  `java.util.Arrays` import binding with no local `Arrays` type shadow.
+  `java.util.Arrays` import binding with no local `Arrays` type shadow. The
+  2026-07-02 audit split records `372` receiver-backed and `128`
+  `Arrays.stream` occurrences as existing exact-supported capability, leaving
+  `1,496` broad `stream/parallelStream` lifecycle occurrences closed.
 - Cross-file immutable import replacement now copies the provider's closed
   evidence subgraph required by the exported literal expression, preserving
   provider-side stdlib proofs such as `java.util.Map` for Java static imports
@@ -2449,10 +2452,21 @@ without adding a Ruby-only kernel API. The 120-repo audit prices `2,065`
 `raise` and `1,933` `rescue` occurrences as reporting-supported, reclassifies
 the `4,010` broad `raise/rescue` bucket as superseded overlap, and leaves the
 12 receiver-qualified broad-only `.raise` overlaps outside the concrete rows.
-Java Stream lifecycle remains the largest non-JS actionable closed boundary.
 Exact admission remains closed until Ruby exception
 propagation, rescue matching, ensure ordering, and non-local control semantics
 are proven.
+
+2026-07-02 Java stream lifecycle audit split note:
+The [java-stream-lifecycle-split-2026-07-02.v1.json](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)
+artifact accounts for existing proof-backed stream adapter capability instead
+of treating every Java stream mention as one missing boundary. Typed
+`receiver.stream()` contributes `372` exact-supported occurrences and
+exact-import or fully qualified `Arrays.stream(xs)` contributes `128`; the
+residual `stream/parallelStream` closed-boundary row falls from `1,996` to
+`1,496`. This is an audit/accounting split only: no product admission code
+changed, and untyped receivers, factory-result cases not conservatively priced
+by the audit, arity/range overloads, shadowed bindings, terminal materialization,
+and `parallelStream` scheduling remain closed until proof exists.
 
 2026-07-01 Go protocol reporting-support note:
 The [scheduling-lifecycle-boundary-audit-go-protocol-reporting-support-2026-07-01.v1.json](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-protocol-reporting-support-2026-07-01.v1.json)

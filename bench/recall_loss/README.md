@@ -6,6 +6,18 @@ the checked-in files record the command, selected surface, hard gate, reason
 rollups, and representative fixtures needed to reproduce or review a semantic
 kernel PR.
 
+Scheduling lifecycle audit artifacts use a separate source-prevalence status
+vocabulary:
+
+- `closed-boundary` marks residual source surfaces that remain exact-closed.
+- `reporting-supported-closed-boundary` marks exact-closed surfaces whose
+  diagnostics can already name the missing obligation.
+- `exact-supported-boundary` marks source surfaces already covered by existing
+  proof-backed exact capability; they are accounted for but not implementation
+  candidates.
+- `superseded-overlap-boundary` marks broad historical buckets retained for
+  continuity after concrete operation rows replace them as actionable work.
+
 ## Regenerate
 
 ```sh
@@ -1093,6 +1105,18 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   `value_nodes`/`mean_sem` metadata on one Ruby helper family, and `rspec-core`
   changes one stable-count HTML hidden family's representative from `code` to
   `pre` with `static-attrs-only` origin evidence.
+- [scheduling-lifecycle-boundary-audit-java-stream-lifecycle-split-2026-07-02.v1.json](scheduling-lifecycle-boundary-audit-java-stream-lifecycle-split-2026-07-02.v1.json)
+  records the Java stream lifecycle audit split. It separates existing
+  proof-backed `receiver.stream()` adapter occurrences (`372` across `10`
+  repos) and `Arrays.stream(xs)` adapter occurrences (`128` across `12` repos)
+  from the broad stream lifecycle bucket. The residual
+  `stream/parallelStream` closed-boundary row falls from `1,996` to `1,496`
+  occurrences across `14` repos.
+- [java-stream-lifecycle-split-2026-07-02.v1.json](java-stream-lifecycle-split-2026-07-02.v1.json)
+  records the compact closeout for the same accounting split. No product
+  admission code changed; the artifact documents existing exact-supported
+  iterator identity/static collection adapter capability and keeps untyped
+  stream plus `parallelStream` lifecycle semantics closed for later proof.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

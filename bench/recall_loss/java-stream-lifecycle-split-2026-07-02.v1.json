@@ -1,0 +1,99 @@
+{
+  "artifact_kind": "recall-loss-follow-up",
+  "branch": "java-stream-lifecycle-audit-split",
+  "generated_on": "2026-07-02",
+  "goal": "Split Java stream lifecycle audit accounting into proof-backed receiver.stream/Arrays.stream rows and residual untyped or parallel stream lifecycle boundaries.",
+  "source_baseline": {
+    "ref": "origin/main",
+    "sha": "0eb91c0ab7d5930ddc767902e54d80036b4c6ae0"
+  },
+  "proof_backed_exact_supported_rows": [
+    {
+      "language": "java",
+      "surface": "java.stream.receiver_adapter",
+      "operation": "receiver.stream",
+      "occurrences": 372,
+      "repos": 10,
+      "before_status": "covered_by_broad_closed_boundary",
+      "after_status": "exact-supported-boundary"
+    },
+    {
+      "language": "java",
+      "surface": "java.stream.arrays_adapter",
+      "operation": "Arrays.stream",
+      "occurrences": 128,
+      "repos": 12,
+      "before_status": "covered_by_broad_closed_boundary",
+      "after_status": "exact-supported-boundary"
+    }
+  ],
+  "proof_backed_exact_supported_occurrences": 500,
+  "residual_closed_boundary_rows": [
+    {
+      "language": "java",
+      "surface": "java.stream.lifecycle",
+      "operation": "stream/parallelStream",
+      "before_occurrences": 1996,
+      "after_occurrences": 1496,
+      "after_repos": 14,
+      "status": "closed-boundary",
+      "reason": "The residual bucket keeps untyped receiver.stream, factory-result cases not conservatively priced by the audit, arity/range overloads, shadowed Arrays bindings, and parallelStream lifecycle/scheduling semantics closed for later proof."
+    }
+  ],
+  "tracking_delta": {
+    "exact_supported_total": {
+      "after": {
+        "artifact": "bench/recall_loss/scheduling-lifecycle-boundary-audit-java-stream-lifecycle-split-2026-07-02.v1.json",
+        "occurrences": 500,
+        "rows": 2
+      }
+    },
+    "largest_actionable_java_closed_boundary_after": {
+      "surface": "java.stream.lifecycle",
+      "operation": "stream/parallelStream",
+      "occurrences": 1496,
+      "repos": 14
+    },
+    "summary": "The audit no longer treats all 1,996 Java stream lifecycle occurrences as one closed bucket. It separates 500 source-prevalence occurrences that correspond to existing proof-backed stream adapter capability and leaves 1,496 occurrences closed as the precise residual target."
+  },
+  "exact_admission_policy": {
+    "semantic_admission_delta": 0,
+    "new_exact_admissions": 0,
+    "status": "existing_proof_accounted",
+    "summary": "No product admission code changed in this slice. The exact-supported rows account for existing iterator identity/static collection adapter proof paths; parallelStream and untyped stream lifecycle semantics remain closed."
+  },
+  "current_recall_loss": {
+    "report": "target/recall-loss.java-stream-lifecycle-split.crates.json",
+    "total_units": 6993,
+    "interpretable_units": 970,
+    "excluded_units": 6023,
+    "admission_rejections": 812,
+    "fingerprint_groups": 38,
+    "false_merges": 0,
+    "canon_checked": 99,
+    "canon_preservation_violations": 0,
+    "advisory_disagreements": 4,
+    "gate_passed": true
+  },
+  "performance_assessment": {
+    "product_implementation_changed": false,
+    "query_regression_required": false,
+    "summary": "Only the audit script, generated artifacts, and documentation change. There is no crates/* implementation delta, so query runtime degradation is not applicable."
+  },
+  "related_artifacts": [
+    "bench/recall_loss/scheduling-lifecycle-boundary-audit-java-stream-lifecycle-split-2026-07-02.v1.json",
+    "bench/recall_loss/scheduling-lifecycle-boundary-audit-java-future-residual-accounting-2026-07-02.v1.json",
+    "bench/recall_loss/java-future-residual-accounting-2026-07-02.v1.json"
+  ],
+  "validation": [
+    "python3 -m py_compile scripts/scheduling-lifecycle-boundary-audit.py",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --self-test",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.java-stream-lifecycle-split.crates.json",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.java-stream-lifecycle-split.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-java-stream-lifecycle-split-2026-07-02.v1.json --generated-on 2026-07-02",
+    "scripts/check-docs.sh",
+    "cargo fmt --check",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "git diff --check",
+    "./scripts/check-duplication.sh"
+  ]
+}

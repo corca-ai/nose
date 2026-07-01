@@ -135,11 +135,17 @@ break.
   `raise` and `1,933` `rescue` occurrences as reporting-supported
   closed-boundaries, reclassifies the old `4,010`-occurrence broad
   `raise/rescue` bucket as a superseded overlap row, and leaves the 12
-  receiver-qualified broad-only overlaps outside the concrete rows. Java Stream
-  lifecycle (`1,996`) becomes the largest non-JS actionable closed boundary.
+  receiver-qualified broad-only overlaps outside the concrete rows.
   The Ruby-heavy query regression measured `3295.78ms -> 3330.24ms` (`+1.05%`);
   family counts stayed stable across all 6 repos, with metadata/hash drift only
   in `rubocop` and `rspec-core`.
+- Split Java stream lifecycle audit accounting into existing proof-backed
+  `receiver.stream()` and `Arrays.stream(xs)` rows versus residual untyped or
+  parallel stream lifecycle boundaries. The 120-repo audit now accounts for
+  `372` receiver stream adapters and `128` `Arrays.stream` adapters as
+  exact-supported existing capability, reducing the actionable broad
+  `stream/parallelStream` residual from `1,996` to `1,496` without changing
+  product admission or query runtime.
 - Added Java `Executor`/`Future` receiver-method reporting for
   exact- or wildcard-import-backed `CompletableFuture`, `Future`,
   `ScheduledFuture`, `Executor`, `ExecutorService`, and

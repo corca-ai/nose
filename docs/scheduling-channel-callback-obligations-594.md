@@ -212,6 +212,15 @@ settlement-continuation occurrences across `2` repos. The broad
 is now a superseded overlap row rather than an actionable implementation target;
 concrete static call, constructor, and receiver-method rows drive the Java
 Future/Executor residual queue.
+The follow-up [Java stream lifecycle split artifact](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)
+applies the same accounting discipline to stream-shaped domains. Existing
+iterator identity/static collection adapter proof already supports `372`
+typed `receiver.stream()` occurrences and `128` exact-import or fully qualified
+`Arrays.stream(xs)` occurrences in the pinned corpus. Those are now tracked as
+exact-supported audit rows, while the broad `stream/parallelStream` lifecycle
+residual falls from `1,996` to `1,496` occurrences and remains closed until
+untyped receiver, factory-result, arity/range overload, shadowed binding,
+terminal materialization, and parallel stream scheduling semantics are proven.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while making Go's source-backed protocol
 boundaries reportable at the same capability level. Channel sends now report

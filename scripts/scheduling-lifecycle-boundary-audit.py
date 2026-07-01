@@ -501,6 +501,28 @@ JAVA_FUTURE_HANDLE_STATUS = Pattern(
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
+JAVA_STREAM_RECEIVER_ADAPTER = Pattern(
+    "java",
+    "java.stream.receiver_adapter",
+    "receiver.stream",
+    "lifecycle-materialization-boundary",
+    "java-stream-lifecycle-contract-missing",
+    "stream lifecycle",
+    "Typed collection/set receiver.stream() calls are already admitted through iterator identity adapter occurrence proof",
+    re.compile(r"(?!x)x"),
+    "exact-supported-boundary",
+)
+JAVA_STREAM_STATIC_ARRAYS_ADAPTER = Pattern(
+    "java",
+    "java.stream.arrays_adapter",
+    "Arrays.stream",
+    "lifecycle-materialization-boundary",
+    "java-stream-lifecycle-contract-missing",
+    "stream lifecycle",
+    "Exact-import or fully qualified Arrays.stream(xs) calls are already admitted through static collection adapter occurrence proof",
+    re.compile(r"(?!x)x"),
+    "exact-supported-boundary",
+)
 JAVA_EXECUTOR_EXECUTE = Pattern(
     "java",
     "java.executor.execute",
@@ -689,6 +711,8 @@ def all_known_patterns() -> tuple[Pattern, ...]:
         JAVA_FUTURE_HANDLE_GET,
         JAVA_FUTURE_HANDLE_CANCEL,
         JAVA_FUTURE_HANDLE_STATUS,
+        JAVA_STREAM_RECEIVER_ADAPTER,
+        JAVA_STREAM_STATIC_ARRAYS_ADAPTER,
         JAVA_EXECUTOR_EXECUTE,
         JAVA_EXECUTOR_SUBMIT,
         JAVA_EXECUTOR_INVOKE_ALL,
@@ -817,6 +841,91 @@ def self_test() -> None:
     )
     assert JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR not in unimported_completable_constructor
     assert unimported_completable_constructor.get(java_completable_broad) == 1
+
+    java_stream_broad = next(
+        item for item in PATTERNS if item.surface == "java.stream.lifecycle"
+    )
+    typed_stream = count_file(
+        "class T { Object run(java.util.List<String> values) { return values.stream(); } }\n",
+        "java",
+    )
+    assert typed_stream.get(JAVA_STREAM_RECEIVER_ADAPTER) == 1
+    assert java_stream_broad not in typed_stream
+
+    parallel_stream = count_file(
+        "class T { Object run(java.util.List<String> values) { return values.parallelStream(); } }\n",
+        "java",
+    )
+    assert JAVA_STREAM_RECEIVER_ADAPTER not in parallel_stream
+    assert parallel_stream.get(java_stream_broad) == 1
+
+    untyped_stream = count_file(
+        "class T { Object run(Object values) { return values.stream(); } }\n",
+        "java",
+    )
+    assert JAVA_STREAM_RECEIVER_ADAPTER not in untyped_stream
+    assert untyped_stream.get(java_stream_broad) == 1
+
+    same_name_other_scope_stream = count_file(
+        "class T {\n"
+        "  Object first(java.util.List<String> values) { return values; }\n"
+        "  Object second(Object values) { return values.stream(); }\n"
+        "}\n",
+        "java",
+    )
+    assert JAVA_STREAM_RECEIVER_ADAPTER not in same_name_other_scope_stream
+    assert same_name_other_scope_stream.get(java_stream_broad) == 1
+
+    imported_arrays_stream = count_file(
+        "import java.util.Arrays;\n"
+        "class T { Object run(String[] values) { return Arrays.stream(values); } }\n",
+        "java",
+    )
+    assert imported_arrays_stream.get(JAVA_STREAM_STATIC_ARRAYS_ADAPTER) == 1
+    assert java_stream_broad not in imported_arrays_stream
+
+    qualified_arrays_stream = count_file(
+        "class T { Object run(String[] values) { return java.util.Arrays.stream(values); } }\n",
+        "java",
+    )
+    assert qualified_arrays_stream.get(JAVA_STREAM_STATIC_ARRAYS_ADAPTER) == 1
+    assert java_stream_broad not in qualified_arrays_stream
+
+    shadowed_arrays_stream = count_file(
+        "import java.util.Arrays;\n"
+        "class Arrays { static Object stream(Object value) { return value; } }\n"
+        "class T { Object run(String[] values) { return Arrays.stream(values); } }\n",
+        "java",
+    )
+    assert JAVA_STREAM_STATIC_ARRAYS_ADAPTER not in shadowed_arrays_stream
+    assert shadowed_arrays_stream.get(java_stream_broad) == 1
+
+    value_shadowed_arrays_stream = count_file(
+        "import java.util.Arrays;\n"
+        "class FakeArrays { Object stream(Object value) { return value; } }\n"
+        "class T { Object run(FakeArrays Arrays, String[] values) { return Arrays.stream(values); } }\n",
+        "java",
+    )
+    assert JAVA_STREAM_STATIC_ARRAYS_ADAPTER not in value_shadowed_arrays_stream
+    assert value_shadowed_arrays_stream.get(java_stream_broad) == 1
+
+    lambda_shadowed_arrays_stream = count_file(
+        "import java.util.Arrays;\n"
+        "import java.util.function.Function;\n"
+        "class FakeArrays { Object stream(Object value) { return value; } }\n"
+        "class T { Object run(String[] values) { Function<FakeArrays, Object> f = Arrays -> Arrays.stream(values); return f; } }\n",
+        "java",
+    )
+    assert JAVA_STREAM_STATIC_ARRAYS_ADAPTER not in lambda_shadowed_arrays_stream
+    assert lambda_shadowed_arrays_stream.get(java_stream_broad) == 1
+
+    ranged_arrays_stream = count_file(
+        "import java.util.Arrays;\n"
+        "class T { Object run(String[] values) { return Arrays.stream(values, 0, 1); } }\n",
+        "java",
+    )
+    assert JAVA_STREAM_STATIC_ARRAYS_ADAPTER not in ranged_arrays_stream
+    assert ranged_arrays_stream.get(java_stream_broad) == 1
 
     conflict_completable_constructor = count_file(
         "import java.util.concurrent.*;\n"
@@ -1112,13 +1221,22 @@ def count_file(
         java_completable_pattern = next(
             item for item in PATTERNS if item.surface == "java.future.completable"
         )
+        java_stream_pattern = next(
+            item for item in PATTERNS if item.surface == "java.stream.lifecycle"
+        )
         counts.pop(java_completable_pattern, None)
+        counts.pop(java_stream_pattern, None)
         counts.update(
             java_completable_future_counts(
                 masked, java_completable_pattern, java_package_local_types
             )
         )
         counts.update(java_future_receiver_counts(masked, java_package_local_types))
+        counts.update(
+            java_stream_lifecycle_counts(
+                masked, java_stream_pattern, java_package_local_types
+            )
+        )
     elif language == "swift":
         counts.update(swift_async_function_counts(masked))
         counts.update(swift_async_closure_counts(masked))
@@ -1171,6 +1289,291 @@ def java_completable_future_constructor_name_starts(
     simple = re.compile(r"\bnew\s+(CompletableFuture)\b(?:\s*<[^;(){}]*>)?\s*\(")
     starts.update(match.start(1) for match in simple.finditer(text))
     return starts
+
+
+def java_stream_lifecycle_counts(
+    text: str,
+    broad_pattern: Pattern,
+    package_local_types: set[str] | None = None,
+) -> dict[Pattern, int]:
+    broad_dot_starts = {
+        match.start()
+        for match in re.finditer(r"\.\s*(?:stream|parallelStream)\s*\(", text)
+    }
+    receiver_dot_starts = java_stream_receiver_adapter_dot_starts(text)
+    static_dot_starts = java_static_arrays_stream_adapter_dot_starts(
+        text, package_local_types
+    )
+    proof_backed_dot_starts = receiver_dot_starts | static_dot_starts
+    residual_count = sum(1 for start in broad_dot_starts if start not in proof_backed_dot_starts)
+
+    counts: dict[Pattern, int] = {}
+    if residual_count:
+        counts[broad_pattern] = residual_count
+    if receiver_dot_starts:
+        counts[JAVA_STREAM_RECEIVER_ADAPTER] = len(receiver_dot_starts)
+    if static_dot_starts:
+        counts[JAVA_STREAM_STATIC_ARRAYS_ADAPTER] = len(static_dot_starts)
+    return counts
+
+
+JAVA_IDENTIFIER_RE = r"[A-Za-z_$][A-Za-z0-9_$]*"
+JAVA_COLLECTION_OR_SET_TYPES = {
+    "Collection",
+    "List",
+    "ArrayList",
+    "LinkedList",
+    "Deque",
+    "Queue",
+    "Set",
+    "HashSet",
+    "LinkedHashSet",
+    "TreeSet",
+}
+JAVA_VALUE_BINDING_TYPE_KEYWORDS = {
+    "assert",
+    "case",
+    "default",
+    "else",
+    "for",
+    "if",
+    "new",
+    "return",
+    "switch",
+    "throw",
+    "try",
+    "while",
+}
+JAVA_VALUE_BINDING_PATTERN = re.compile(
+    rf"(?:@[A-Za-z_$][A-Za-z0-9_$]*(?:\s*\([^)]*\))?\s+)*"
+    rf"(?:(?:final|volatile|transient)\s+)*"
+    rf"(?P<type>(?:{JAVA_IDENTIFIER_RE}\s*\.\s*)*{JAVA_IDENTIFIER_RE})"
+    rf"(?:\s*<[^;()={{}}]*>)?(?:\s*\[\s*\])?\s+"
+    rf"(?P<name>{JAVA_IDENTIFIER_RE})\b"
+)
+
+
+def java_stream_receiver_adapter_dot_starts(text: str) -> set[int]:
+    starts: set[int] = set()
+    pattern = re.compile(
+        rf"\b(?P<receiver>{JAVA_IDENTIFIER_RE})\s*(?P<dot>\.)\s*stream\s*\("
+    )
+    for match in pattern.finditer(text):
+        if java_call_arity(text, match.end() - 1) != 0:
+            continue
+        receiver = match.group("receiver")
+        binding = java_latest_value_binding_supported_collection(
+            text, match.start("dot"), receiver
+        )
+        if binding is True:
+            starts.add(match.start("dot"))
+    return starts
+
+
+def java_latest_value_binding_supported_collection(
+    text: str,
+    before: int,
+    name: str,
+) -> bool | None:
+    region = java_enclosing_method_like_region(text, before)
+    if region is None:
+        return None
+    latest: tuple[int, bool] | None = None
+    for match in JAVA_VALUE_BINDING_PATTERN.finditer(text, region[0], before):
+        if match.group("name") != name:
+            continue
+        if match.group("name") in {"class", "interface", "enum", "record"}:
+            continue
+        if java_binding_type_is_keyword(match.group("type")):
+            continue
+        if java_binding_is_callable_declaration(text, match.end("name")):
+            continue
+        supported = java_collection_or_set_type_name(match.group("type")) is not None
+        latest = (match.start("name"), supported)
+    return latest[1] if latest is not None else None
+
+
+def java_static_arrays_stream_adapter_dot_starts(
+    text: str,
+    package_local_types: set[str] | None = None,
+) -> set[int]:
+    starts: set[int] = set()
+    for match in re.finditer(
+        r"\bjava\s*\.\s*util\s*\.\s*Arrays\s*(?P<dot>\.)\s*stream\s*\(",
+        text,
+    ):
+        if java_call_arity(text, match.end() - 1) == 1:
+            starts.add(match.start("dot"))
+
+    if java_exact_arrays_import_available(text, package_local_types):
+        for match in re.finditer(r"\bArrays\s*(?P<dot>\.)\s*stream\s*\(", text):
+            dot_start = match.start("dot")
+            if java_call_arity(text, match.end() - 1) != 1:
+                continue
+            if java_value_binding_visible_before(text, dot_start, "Arrays"):
+                continue
+            if java_lambda_parameter_visible_before(text, dot_start, "Arrays"):
+                continue
+            starts.add(dot_start)
+    return starts
+
+
+def java_exact_arrays_import_available(
+    text: str,
+    package_local_types: set[str] | None = None,
+) -> bool:
+    if "Arrays" in java_local_type_names(text) or "Arrays" in (package_local_types or set()):
+        return False
+    if re.search(
+        r"\bimport\s+(?!static\b)(?!java\s*\.\s*util\s*\.\s*Arrays\s*;)"
+        r"[A-Za-z_$][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)*"
+        r"\s*\.\s*Arrays\s*;",
+        text,
+    ):
+        return False
+    return re.search(r"\bimport\s+java\s*\.\s*util\s*\.\s*Arrays\s*;", text) is not None
+
+
+def java_call_arity(text: str, open_paren: int) -> int | None:
+    if open_paren >= len(text) or text[open_paren] != "(":
+        return None
+    paren_depth = 0
+    bracket_depth = 0
+    brace_depth = 0
+    saw_argument = False
+    comma_count = 0
+    idx = open_paren + 1
+    while idx < len(text):
+        current = text[idx]
+        if current == "(":
+            paren_depth += 1
+        elif current == ")":
+            if paren_depth == 0:
+                return comma_count + 1 if saw_argument else 0
+            paren_depth -= 1
+        elif current == "[":
+            bracket_depth += 1
+        elif current == "]":
+            bracket_depth = max(0, bracket_depth - 1)
+        elif current == "{":
+            brace_depth += 1
+        elif current == "}":
+            brace_depth = max(0, brace_depth - 1)
+        elif (
+            current == ","
+            and paren_depth == 0
+            and bracket_depth == 0
+            and brace_depth == 0
+        ):
+            comma_count += 1
+        elif not current.isspace():
+            saw_argument = True
+        idx += 1
+    return None
+
+
+def java_value_binding_visible_before(text: str, before: int, name: str) -> bool:
+    region = java_enclosing_method_like_region(text, before)
+    if region is None:
+        return False
+    for match in JAVA_VALUE_BINDING_PATTERN.finditer(text, region[0], before):
+        if match.group("name") != name:
+            continue
+        if java_binding_type_is_keyword(match.group("type")):
+            continue
+        if java_binding_is_callable_declaration(text, match.end("name")):
+            continue
+        return True
+    return False
+
+
+def java_lambda_parameter_visible_before(text: str, before: int, name: str) -> bool:
+    region = java_enclosing_method_like_region(text, before)
+    if region is None:
+        return False
+    segment = text[region[0] : before]
+    if re.search(rf"\b{re.escape(name)}\s*->", segment):
+        return True
+    for match in re.finditer(r"\(([^()]*)\)\s*->", segment):
+        if java_lambda_parameter_header_contains(match.group(1), name):
+            return True
+    return False
+
+
+def java_lambda_parameter_header_contains(header: str, name: str) -> bool:
+    for parameter in header.split(","):
+        names = re.findall(JAVA_IDENTIFIER_RE, parameter)
+        if names and names[-1] == name:
+            return True
+    return False
+
+
+def java_binding_is_callable_declaration(text: str, name_end: int) -> bool:
+    idx = name_end
+    while idx < len(text) and text[idx].isspace():
+        idx += 1
+    return idx < len(text) and text[idx] == "("
+
+
+def java_binding_type_is_keyword(type_text: str) -> bool:
+    return re.sub(r"\s+", "", type_text) in JAVA_VALUE_BINDING_TYPE_KEYWORDS
+
+
+def java_collection_or_set_type_name(type_text: str) -> str | None:
+    normalized = re.sub(r"\s+", "", type_text)
+    if normalized.startswith("java.util."):
+        normalized = normalized[len("java.util.") :]
+    return normalized if normalized in JAVA_COLLECTION_OR_SET_TYPES else None
+
+
+def java_enclosing_method_like_region(text: str, index: int) -> tuple[int, int] | None:
+    stack: list[int] = []
+    for match in re.finditer(r"[{}]", text[:index]):
+        if match.group(0) == "{":
+            stack.append(match.start())
+        elif stack:
+            stack.pop()
+    for open_brace in reversed(stack):
+        header_start = java_header_start_before_brace(text, open_brace)
+        header = text[header_start:open_brace].strip()
+        if java_header_looks_like_method_body(header):
+            return (header_start, open_brace + 1)
+    return None
+
+
+def java_header_start_before_brace(text: str, open_brace: int) -> int:
+    idx = open_brace - 1
+    while idx >= 0 and text[idx] not in ";{}":
+        idx -= 1
+    return idx + 1
+
+
+def java_header_looks_like_method_body(header: str) -> bool:
+    if not header or "(" not in header or ")" not in header or "->" in header:
+        return False
+    stripped = header.strip()
+    first = re.match(
+        r"(?:@\w+(?:\([^)]*\))?\s+)*"
+        r"(?:public|private|protected|static|final|native|"
+        r"synchronized|abstract|default|strictfp|\s)*"
+        r"([A-Za-z_$][A-Za-z0-9_$]*)",
+        stripped,
+    )
+    if first and first.group(1) in {
+        "if",
+        "for",
+        "while",
+        "switch",
+        "catch",
+        "synchronized",
+        "try",
+        "else",
+        "do",
+        "finally",
+        "new",
+    }:
+        return False
+    return True
 
 
 def swift_async_closure_counts(text: str) -> dict[Pattern, int]:
@@ -2446,7 +2849,7 @@ def recommended_order(surfaces: list[dict[str, Any]]) -> list[dict[str, Any]]:
     candidates = [
         item
         for item in surfaces
-        if not item["status"].startswith(("reporting-", "superseded-"))
+        if not item["status"].startswith(("reporting-", "superseded-", "exact-"))
         and (
             item["obligation_subreason"] in priority
             or item["surface"] in surface_priority
@@ -2592,6 +2995,11 @@ def hard_negative_inventory() -> list[dict[str, Any]]:
         {
             "class": "Java Future field receivers that are implicit, non-this, member-shadowed, duplicate, or conflicting, plus conflicting Executor field receivers",
             "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/java.rs::java_local_and_this_field_receivers_require_exact_type_identity",
+            "status": "expanded-this-slice",
+        },
+        {
+            "class": "Java stream source adapters split into proof-backed receiver.stream/Arrays.stream rows versus residual untyped stream and parallelStream lifecycle boundaries",
+            "evidence": "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/iterator_adapter.rs::admitted_java_stream_identity_adapter_uses_same_protocol_pack and crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/pack_resolvers_5.rs::admitted_static_collection_adapter_resolver_requires_import_backed_api_occurrence_evidence",
             "status": "expanded-this-slice",
         },
     ]

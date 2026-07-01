@@ -95,7 +95,7 @@ They do not change exact admission.
 | `scheduling-boundary` | `async-await-scheduling-contract-missing`, `async-function-scheduling-contract-missing`, `async-block-scheduling-contract-missing`, legacy `promise-await-scheduling-contract-missing`, `promise-async-function-scheduling-contract-missing`, `future-async-block-scheduling-contract-missing`, `promise-non-construct-call-boundary-contract-missing`, `scheduler-wait-timing-contract-missing`, `scheduler-yield-microtask-order-contract-missing`, `timer-scheduling-contract-missing`, `task-spawn-scheduling-contract-missing`, `task-yield-scheduling-contract-missing`, `future-drive-scheduling-contract-missing`, `goroutine-scheduling-contract-missing`, or `runtime-protocol-boundary-contract-missing` | A lowered runtime/protocol construct needs scheduling or protocol semantics before exact use. |
 | `channel-boundary` | `channel-send-synchronization-contract-missing`, `channel-receive-value-channel-contract-missing`, `channel-receive-status-contract-missing`, `channel-select-readiness-contract-missing`, `channel-select-case-selection-contract-missing`, `channel-select-default-liveness-contract-missing`, legacy `channel-send-receive-protocol-contract-missing`, `channel-select-protocol-contract-missing`, or `channel-protocol-contract-missing` | Channel send/receive/select semantics need blocking, synchronization, close/status, readiness, and liveness evidence before exact use. |
 | `exception-channel` | `exception-channel-contract-missing` or `future-exception-continuation-contract-missing` | Try/throw/error propagation and exceptional future continuations are explicit channel boundaries, not scheduling boundaries. |
-| `lifecycle-materialization-boundary` | `async-iteration-lifecycle-contract-missing`, `async-context-lifecycle-contract-missing`, `async-context-cleanup-contract-missing`, `interval-async-iteration-lifecycle-contract-missing`, `task-handle-lifecycle-contract-missing`, `defer-lifecycle-ordering-contract-missing`, `generator-yield-lifecycle-contract-missing`, or `generator-yield-protocol-contract-missing` | Async iteration/context setup and cleanup, repeated emission, deferred execution, suspension, task handles, one-shot views, reusable collections, and materialization require explicit lifecycle proof. |
+| `lifecycle-materialization-boundary` | `async-iteration-lifecycle-contract-missing`, `async-context-lifecycle-contract-missing`, `async-context-cleanup-contract-missing`, `interval-async-iteration-lifecycle-contract-missing`, `task-handle-lifecycle-contract-missing`, `defer-lifecycle-ordering-contract-missing`, `generator-yield-lifecycle-contract-missing`, `generator-yield-protocol-contract-missing`, or `java-stream-lifecycle-contract-missing` | Async iteration/context setup and cleanup, repeated emission, deferred execution, suspension, task handles, one-shot views, reusable collections, stream adapters, and materialization require explicit lifecycle proof. |
 | `ambiguous-selector-boundary` | `receiver-domain-proof-missing`, `promise-then-promise-like-receiver-proof-missing`, `library-api-occurrence-evidence-missing`, or a call-target proof label | Selector, receiver, library API, or callee identity proof is missing. |
 | `source-protocol-boundary` | `source-surface-contract-missing`, `rust-macro-expansion-contract-missing` | A source/protocol syntax distinction is required but not proven. |
 | `non-degenerate-fingerprint-floor` | `non-degenerate-value-fingerprint` | The unit is otherwise exact-safe but too small for a non-degenerate exact claim. |
@@ -103,6 +103,12 @@ They do not change exact admission.
 
 The checked-in baseline summaries and the five-cycle recovery log are described
 in [recall-loss-recovery-loop](recall-loss-recovery-loop.md).
+The scheduling lifecycle audit uses source-prevalence statuses outside the
+recall-loss report schema: `closed-boundary` is residual exact-closed work,
+`reporting-supported-closed-boundary` is exact-closed but already attributed to a
+specific obligation, `exact-supported-boundary` is existing proof-backed exact
+capability accounted separately, and `superseded-overlap-boundary` is a broad
+historical bucket replaced by concrete operation rows.
 The #572 cycle also records a diagnostics-only refinement: expression-statement
 calls that need an effect contract stay in the effect boundary bucket, and
 unmodeled Rust macros such as `format!` stay in the source-surface bucket until
@@ -210,6 +216,13 @@ aligns existing receiver-domain reporting with the audit by marking
 `Executor/Future` type-name bucket as a superseded overlap row at `3,297`
 occurrences, so Java residual work is ranked from concrete operation rows
 rather than broad type mentions. The
+follow-up [Java stream lifecycle split artifact](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)
+accounts for existing proof-backed stream adapter capability in the same audit:
+typed `receiver.stream()` contributes `372` exact-supported occurrences and
+exact-import or fully qualified `Arrays.stream(xs)` contributes `128`. The
+broad `stream/parallelStream` lifecycle residual falls from `1,996` to `1,496`
+occurrences; untyped stream receivers and `parallelStream` remain closed for
+later lifecycle/scheduling proof. The
 follow-up [non-JS source-protocol reporting alignment artifact](../bench/recall_loss/non-js-source-protocol-reporting-alignment-2026-07-02.v1.json)
 brings the scheduling lifecycle audit in line with the existing
 `Source::Protocol(Await)`, `Source::Protocol(AsyncFunction)`, and
