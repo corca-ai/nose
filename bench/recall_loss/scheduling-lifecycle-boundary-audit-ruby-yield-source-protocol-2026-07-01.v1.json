@@ -1976,7 +1976,7 @@
       "operation": "yield",
       "repos": 17,
       "status": "reporting-supported-closed-boundary",
-      "surface": "ruby.generator.yield",
+      "surface": "ruby.block.yield",
       "top_files": [
         {
           "occurrences": 26,

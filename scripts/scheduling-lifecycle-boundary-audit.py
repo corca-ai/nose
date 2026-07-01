@@ -139,7 +139,7 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("swift", "swift.continuation.throwing", "withCheckedThrowingContinuation/withUnsafeThrowingContinuation", "success-error-result-channel", "future-settled-value-channel-contract-missing", "Swift throwing continuation bridge", "Swift throwing continuation bridges add exception-channel behavior to callback-settled future-like result channels", re.compile(r"\bwith(?:Checked|Unsafe)ThrowingContinuation\s*(?:\(|\{)"), "reporting-supported-closed-boundary"),
     Pattern("ruby", "ruby.thread.fiber", "Thread/Fiber", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "thread/fiber scheduling", "Thread/Fiber APIs create scheduler and lifecycle boundaries", re.compile(r"\b(?:Thread\s*\.\s*(?:new|start|fork)|Fiber\s*\.\s*(?:new|schedule))\b"), "reporting-supported-closed-boundary"),
     Pattern("ruby", "ruby.exception", "raise/rescue", "exception-channel", "ruby-exception-channel-contract-missing", "exception channel", "raise/rescue changes error channels and non-local control", re.compile(r"\b(?:raise|rescue)\b")),
-    Pattern("ruby", "ruby.generator.yield", "yield", "callback-demand-effect", "ruby-yield-callback-demand-effect-contract-missing", "block callback", "Ruby yield invokes a block with demand/effect obligations", re.compile(r"\byield\b"), "reporting-supported-closed-boundary"),
+    Pattern("ruby", "ruby.block.yield", "yield", "callback-demand-effect", "ruby-yield-callback-demand-effect-contract-missing", "block callback", "Ruby yield invokes a block with demand/effect obligations", re.compile(r"\byield\b"), "reporting-supported-closed-boundary"),
     Pattern("c", "c.thread.pthread", "pthread_create", "scheduling-boundary", "c-pthread-scheduling-contract-missing", "thread scheduling", "pthread_create introduces thread scheduling and lifetime boundaries", re.compile(r"\bpthread_create\s*\(")),
     Pattern("c", "c.nonlocal_jump", "setjmp/longjmp", "exception-channel", "c-nonlocal-jump-contract-missing", "non-local jump", "setjmp/longjmp is non-local control flow, not ordinary return", re.compile(r"\b(?:setjmp|longjmp)\s*\(")),
 )
@@ -742,7 +742,7 @@ def self_test() -> None:
         "text = 'yield ignored in strings'\n",
         "ruby",
     )
-    ruby_yield_pattern = next(item for item in PATTERNS if item.surface == "ruby.generator.yield")
+    ruby_yield_pattern = next(item for item in PATTERNS if item.surface == "ruby.block.yield")
     assert ruby_yield.get(ruby_yield_pattern) == 1
     assert ruby_yield_pattern.status == "reporting-supported-closed-boundary"
 

@@ -6,11 +6,17 @@ use super::*;
 #[test]
 fn query_mode_semantic_rejects_unproven_ruby_yield_callback_convergence() {
     let project = TempProject::new("ruby_yield_protocol_boundary");
-    project.write("return_pair.rb", "def produce(a, b)\n  return a, b\nend\n");
-    project.write("yield_pair.rb", "def produce(a, b)\n  yield a, b\nend\n");
+    project.write(
+        "return_pair.rb",
+        "def produce(a, b, &block)\n  return a, b\nend\n",
+    );
+    project.write(
+        "yield_pair.rb",
+        "def produce(a, b, &block)\n  yield a, b\nend\n",
+    );
     project.write(
         "block_call_pair.rb",
-        "def produce(block, a, b)\n  block.call(a, b)\nend\n",
+        "def produce(a, b, &block)\n  block.call(a, b)\nend\n",
     );
 
     let json = project.query_json("semantic", &["--min-size", "1", "--min-lines", "1"]);
