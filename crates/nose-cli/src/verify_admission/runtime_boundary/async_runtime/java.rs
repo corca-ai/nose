@@ -404,8 +404,10 @@ fn push_completable_future_receiver_method_missing_evidence(
             true
         }
         "isCompletedExceptionally" => {
+            super::push_future_settled_value_missing_evidence(labels);
             super::super::push_unique(labels, "exception-channel-contract");
             super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            super::super::push_unique(labels, "task-cancellation-liveness-contract");
             true
         }
         "orTimeout" => {

@@ -58,8 +58,10 @@ fn java_completable_future_receiver_methods_report_settlement_and_timeout_obliga
     assert!(join.contains(&"task-cancellation-liveness-contract"));
     assert!(get_now.contains(&"future-settled-value-channel-contract"));
     assert!(get_now.contains(&"exception-channel-contract"));
+    assert!(status.contains(&"future-settled-value-channel-contract"));
     assert!(status.contains(&"exception-channel-contract"));
     assert!(status.contains(&"task-handle-lifecycle-contract"));
+    assert!(status.contains(&"task-cancellation-liveness-contract"));
     assert!(or_timeout.contains(&"timer-scheduling-contract"));
     assert!(or_timeout.contains(&"future-settled-value-channel-contract"));
     assert!(or_timeout.contains(&"exception-channel-contract"));
