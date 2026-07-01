@@ -2473,7 +2473,7 @@ adds `45` settlement and `45` observation reporting-supported occurrences after
 rejecting same-name receiver bleed-through across scopes, while the old
 `230`-occurrence broad `CompletableFuture` type/reference row becomes superseded
 overlap. The Java-heavy query regression kept all six product output hashes
-identical and measured `8307.21ms -> 8331.21ms` (`+0.29%`).
+identical and measured `8118.22ms -> 8151.13ms` (`+0.41%`).
 
 2026-07-02 Java stream lifecycle audit split note:
 The [java-stream-lifecycle-split-2026-07-02.v1.json](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)

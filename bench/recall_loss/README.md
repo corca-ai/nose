@@ -1131,7 +1131,7 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   [java-completablefuture-receiver-split-query-regression-2026-07-02.v1.json](java-completablefuture-receiver-split-query-regression-2026-07-02.v1.json)
   records the Java-heavy r9 product query regression. All six measured repos
   kept identical output hashes and family counts; aggregate median runtime was
-  `8307.21ms -> 8331.21ms` (`+0.29%`).
+  `8118.22ms -> 8151.13ms` (`+0.41%`).
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

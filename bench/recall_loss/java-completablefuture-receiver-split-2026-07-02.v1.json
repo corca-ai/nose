@@ -93,9 +93,9 @@
       "h2database"
     ],
     "iterations": 9,
-    "aggregate_baseline_median_ms": 8307.208122918382,
-    "aggregate_current_median_ms": 8331.209500785917,
-    "aggregate_delta_pct": 0.2889223131573944,
+    "aggregate_baseline_median_ms": 8118.224832927808,
+    "aggregate_current_median_ms": 8151.13470912911,
+    "aggregate_delta_pct": 0.40538266528192457,
     "hashes_identical_all_repos": true,
     "families_identical_all_repos": true
   },
@@ -113,7 +113,8 @@
     "python3 scripts/scheduling-lifecycle-boundary-audit.py --self-test",
     "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.java-completablefuture-receiver-split.crates.json",
     "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.java-completablefuture-receiver-split.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-java-completablefuture-receiver-split-2026-07-02.v1.json --generated-on 2026-07-02",
-    "python3 scripts/query-regression-harness.py --baseline-binary /tmp/nose-java-cf-receiver-main/target/release/nose --current-binary target/release/nose --baseline-source-ref origin/main --current-source-ref java-completablefuture-receiver-split --current-source-sha 234852d28ed109ba7b296137c26c553668932e66-dirty --iterations 9 --repo netty --repo rxjava --repo retrofit --repo junit5 --repo jedis --repo h2database --output bench/recall_loss/java-completablefuture-receiver-split-query-regression-2026-07-02.v1.json",
+    "cargo build --release -p nose-cli",
+    "python3 scripts/query-regression-harness.py --baseline-binary /tmp/nose-java-cf-receiver-main/target/release/nose --current-binary target/release/nose --baseline-source-ref origin/main --current-source-ref java-completablefuture-residual-split --current-source-sha b9ec9151277a99ee634b8652e4518c74b3a92e4a --iterations 9 --repo netty --repo rxjava --repo retrofit --repo junit5 --repo jedis --repo h2database --output bench/recall_loss/java-completablefuture-receiver-split-query-regression-2026-07-02.v1.json",
     "scripts/check-docs.sh",
     "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
     "git diff --check",

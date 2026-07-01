@@ -126,7 +126,7 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   reporting-supported rows, keeps same-name receivers outside the proven scope
   closed, reclassifies the remaining `230` broad `CompletableFuture`
   type/reference mentions as superseded overlap, and the Java-heavy query
-  regression measured `8307.21ms -> 8331.21ms` (`+0.29%`) with identical product
+  regression measured `8118.22ms -> 8151.13ms` (`+0.41%`) with identical product
   hashes on all six measured repos.
 - [Non-JS source-protocol reporting alignment](../bench/recall_loss/non-js-source-protocol-reporting-alignment-2026-07-02.v1.json) records the audit closeout for already-backed async source-protocol rows.
   Python `await`/`async def`, Rust `.await`/`async fn`/`async block`, and Swift

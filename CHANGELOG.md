@@ -103,8 +103,8 @@ break.
   bleed-through across scopes, reclassifies the remaining `230` broad
   `CompletableFuture` type mentions as a superseded overlap row, and keeps
   exact admission closed. The Java-heavy query regression kept product output
-  hashes identical on all six measured repos and measured `8307.21ms ->
-  8331.21ms` (`+0.29%`).
+  hashes identical on all six measured repos and measured `8118.22ms ->
+  8151.13ms` (`+0.41%`).
 - Aligned already source-protocol-backed Python `await`/`async def`, Rust
   `.await`/`async fn`/`async block`, and Swift `async` function audit rows with
   runtime-boundary reporting. This moves `19,144` non-JS async source-protocol
