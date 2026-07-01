@@ -113,17 +113,17 @@ fn ruby_method_object_defines_constant(
     let Some((&method_callee, method_args)) = method_children.split_first() else {
         return false;
     };
-    method_named(il, interner, method_callee, "method")
+    ruby_method_lookup_callee(il, interner, method_callee)
         && method_args.first().copied().is_some_and(|method| {
             node_is_static_literal_name(il, method, "const_set")
                 || node_is_static_literal_name(il, method, "autoload")
         })
 }
 
-fn method_named(il: &nose_il::Il, interner: &Interner, callee: NodeId, expected: &str) -> bool {
+fn ruby_method_lookup_callee(il: &nose_il::Il, interner: &Interner, callee: NodeId) -> bool {
     matches!(
         il.node(callee).payload,
-        Payload::Name(symbol) if interner.resolve(symbol) == expected
+        Payload::Name(symbol) if matches!(interner.resolve(symbol), "method" | "public_method")
     )
 }
 
