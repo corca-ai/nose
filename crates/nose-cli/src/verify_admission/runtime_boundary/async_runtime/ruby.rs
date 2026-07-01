@@ -93,8 +93,38 @@ fn ruby_dynamic_constant_definition_args<'a>(
         {
             Some(&args[1..])
         }
+        "call" if ruby_method_object_defines_constant(il, interner, callee) => Some(args),
         _ => None,
     }
+}
+
+fn ruby_method_object_defines_constant(
+    il: &nose_il::Il,
+    interner: &Interner,
+    call_field: NodeId,
+) -> bool {
+    let Some(method_call) = il.children(call_field).first().copied() else {
+        return false;
+    };
+    if il.kind(method_call) != NodeKind::Call {
+        return false;
+    }
+    let method_children = il.children(method_call);
+    let Some((&method_callee, method_args)) = method_children.split_first() else {
+        return false;
+    };
+    method_named(il, interner, method_callee, "method")
+        && method_args.first().copied().is_some_and(|method| {
+            node_is_static_literal_name(il, method, "const_set")
+                || node_is_static_literal_name(il, method, "autoload")
+        })
+}
+
+fn method_named(il: &nose_il::Il, interner: &Interner, callee: NodeId, expected: &str) -> bool {
+    matches!(
+        il.node(callee).payload,
+        Payload::Name(symbol) if interner.resolve(symbol) == expected
+    )
 }
 
 fn node_is_static_literal_name(il: &nose_il::Il, node: NodeId, expected: &str) -> bool {
