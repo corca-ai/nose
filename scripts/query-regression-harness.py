@@ -198,6 +198,7 @@ def main() -> int:
     if missing:
         raise SystemExit(f"missing repo paths: {', '.join(path.as_posix() for path in missing)}")
     query_args = parse_query_args(args.query_args)
+    working_tree_status_before_measurement = git_output(["status", "--short"])
 
     warmup(binary=baseline_binary, label="baseline", repos=repos, warmups=args.warmups, query_args=query_args)
     warmup(binary=current_binary, label="current", repos=repos, warmups=args.warmups, query_args=query_args)
@@ -233,7 +234,7 @@ def main() -> int:
             "current_source_sha": args.current_source_sha or git_output(["rev-parse", args.current_source_ref]),
             "harness": "scripts/query-regression-harness.py",
             "harness_command": " ".join(sys.argv),
-            "working_tree_status": git_output(["status", "--short"]),
+            "working_tree_status_before_measurement": working_tree_status_before_measurement,
         },
         "repos": repo_names,
         "runs": runs,
