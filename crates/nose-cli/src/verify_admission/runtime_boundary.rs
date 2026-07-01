@@ -90,12 +90,11 @@ fn push_source_protocol_missing_evidence(
             push_unique(labels, "async-await-scheduling-contract");
         }
         nose_il::SourceProtocolKind::Yield => {
-            if il.meta.lang == Lang::Ruby {
-                push_unique(labels, "ruby-yield-callback-demand-effect-contract");
-            } else {
-                push_unique(labels, "generator-yield-lifecycle-contract");
-                push_unique(labels, "generator-yield-protocol-contract");
-            }
+            push_unique(labels, "generator-yield-lifecycle-contract");
+            push_unique(labels, "generator-yield-protocol-contract");
+        }
+        nose_il::SourceProtocolKind::BlockYield => {
+            push_unique(labels, "ruby-yield-callback-demand-effect-contract");
         }
         nose_il::SourceProtocolKind::ChannelReceive | nose_il::SourceProtocolKind::ChannelSend => {
             push_go_channel_send_receive_missing_evidence(il, interner, node, labels);

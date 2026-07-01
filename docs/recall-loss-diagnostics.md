@@ -293,7 +293,8 @@ reporting-supported, prices `74` occurrences across `11` repos, and raises
 total source prevalence from `146,987` to `146,988`.
 The follow-up [Ruby yield source-protocol artifact](../bench/recall_loss/ruby-yield-source-protocol-reporting-2026-07-01.v1.json)
 keeps exact admission closed while preserving Ruby block `yield` as a
-source-backed callback demand/effect protocol boundary. The matching [120-repo
+source-backed `BlockYield` callback demand/effect protocol boundary. The
+matching [120-repo
 pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json)
 marks `ruby.generator.yield` reporting-supported, prices `801` occurrences
 across `17` repos, and the checked `crates` gate reports `0` false merges.

@@ -4,11 +4,11 @@
     "not_a_feature_list": [
       "No Ruby-specific exact admission was opened.",
       "No public semantic-pack API was added.",
-      "Yield demand/effect profiling was generalized to a conservative protocol boundary instead of overloading generator suspension for Ruby block yield."
+      "Generator yield keeps SourceProtocolKind::Yield; Ruby block yield uses SourceProtocolKind::BlockYield with a callback invocation profile."
     ],
     "principle": "Capabilities over features",
     "reused_capabilities": [
-      "SourceProtocolKind::Yield",
+      "SourceProtocolKind::BlockYield",
       "runtime-boundary-model",
       "callback-demand-effect obligation vocabulary",
       "recall-loss oracle_exclusions/by_obligation rollups"
@@ -61,7 +61,7 @@
     "advisory_disagreements": 4,
     "canon_checked": 99,
     "canon_preservation_violations": 0,
-    "excluded_units": 5990,
+    "excluded_units": 5991,
     "false_merges": 0,
     "fingerprint_groups": 38,
     "gate_passed": true,
@@ -69,7 +69,7 @@
     "lossy_fingerprint_collisions": 0,
     "max_violations": 0,
     "report": "target/recall-loss.ruby-yield-source-protocol.crates.json",
-    "total_units": 6959
+    "total_units": 6960
   },
   "generated_on": "2026-07-01",
   "next_exact_work_policy": {
@@ -106,7 +106,7 @@
     "exact_admission_opened": false,
     "kind": "reporting-and-lowering-only",
     "semantic_admission_delta": 0,
-    "summary": "Ruby yield now preserves a source-backed protocol boundary and reports block callback demand/effect obligations instead of being erased into an ordinary Seq value."
+    "summary": "Ruby yield now preserves a source-backed BlockYield protocol boundary and reports block callback demand/effect obligations instead of being erased into an ordinary Seq value."
   },
   "validation_commands": [
     "cargo test -p nose-frontend ruby::tests::yield_preserves_source_backed_protocol_boundary -- --nocapture",
@@ -115,6 +115,7 @@
     "cargo test -p nose-cli --test cli query_mode_semantic_rejects_unproven_ruby_yield_callback_convergence -- --nocapture",
     "python3 scripts/scheduling-lifecycle-boundary-audit.py --self-test",
     "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.ruby-yield-source-protocol.crates.json",
-    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.ruby-yield-source-protocol.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json --generated-on 2026-07-01"
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.ruby-yield-source-protocol.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json --generated-on 2026-07-01",
+    "rerun the alternating Ruby-heavy query harness recorded in bench/recall_loss/ruby-yield-source-protocol-query-regression-2026-07-01.v1.json"
   ]
 }

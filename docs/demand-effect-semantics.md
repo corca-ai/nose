@@ -12,23 +12,24 @@ axes:
 
 - operation class: eager, fold reduction, short-circuit quantifier, append
   mutation, nullish default, per-element HOF, pull-lazy HOF, call-by-need thunk,
-  async continuation, generator suspension, channel operation, or protocol
-  boundary;
+  async continuation, generator suspension, source-order callback invocation,
+  channel operation, or protocol boundary;
 - evaluation order: source order, short-circuit, per-element source order,
   deferred until observation, runtime scheduled, or protocol-defined;
 - child demand: always, never, conditional, short-circuit-until-known,
   per-element-pull, maybe repeated, call-by-need memoized, suspended until
   observed, async continuation, channel boundary, or protocol boundary;
-- callback demand, when present: per-element callback, fold step, or async
-  continuation, with argument/result roles;
+- callback demand, when present: per-element callback, fold step, async
+  continuation, or source callback invocation, with argument/result roles;
 - effect visibility: immediate, only-if-demanded, delayed-until-pull,
   memoized-first-demand, async boundary, yield boundary, channel boundary, or
   protocol boundary.
 
 This is a contract model for admitted operations, not an evidence record family.
-Source protocol facts such as `Source::Protocol(Await)` and
-`Source::Protocol(Yield)` are proof anchors. The demand/effect profile says what
-a contract would need to prove before exact consumers may use that anchor.
+Source protocol facts such as `Source::Protocol(Await)`,
+`Source::Protocol(Yield)`, and `Source::Protocol(BlockYield)` are proof
+anchors. The demand/effect profile says what a contract would need to prove
+before exact consumers may use that anchor.
 
 ## Implemented profiles
 
@@ -102,7 +103,8 @@ Source protocol boundaries have internal profiles for future contracts:
   boundaries even when their body has no `await`; JS/TS Promise producer proof
   remains a separate Promise-specific recovery obligation;
 - `async {}` is suspended until observation;
-- `yield` is a generator suspension boundary;
+- JS/TS and Python generator `yield` is a generator suspension boundary;
+- Ruby block `yield` is a source-order callback invocation boundary;
 - Go channel/select surfaces are channel boundaries;
 - Go goroutine/defer surfaces are protocol boundaries, not channel operations;
 - Rust `?` is a conditional short-circuit boundary.

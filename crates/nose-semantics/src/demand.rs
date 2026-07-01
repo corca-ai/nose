@@ -17,6 +17,7 @@ pub enum DemandOperation {
     PullLazyHof,
     CallByNeedThunk,
     AsyncContinuation,
+    CallbackInvocation,
     GeneratorSuspension,
     ChannelOperation,
     ProtocolBoundary,
@@ -253,6 +254,7 @@ pub enum CallbackInvocationDemand {
     PerElementPull,
     LeftFoldStep,
     AsyncContinuation,
+    SourceOrderCallback,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -260,6 +262,7 @@ pub enum CallbackArgumentDemand {
     Element,
     AccumulatorAndElement,
     SettledValue,
+    PassedArguments,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -270,6 +273,7 @@ pub enum CallbackResultDemand {
     Predicate,
     Accumulator,
     ContinuationValue,
+    CallbackReturnValue,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -301,6 +305,14 @@ impl CallbackDemandProfile {
             invocation: CallbackInvocationDemand::AsyncContinuation,
             arguments: CallbackArgumentDemand::SettledValue,
             result: CallbackResultDemand::ContinuationValue,
+        }
+    }
+
+    pub const fn source_callback() -> Self {
+        Self {
+            invocation: CallbackInvocationDemand::SourceOrderCallback,
+            arguments: CallbackArgumentDemand::PassedArguments,
+            result: CallbackResultDemand::CallbackReturnValue,
         }
     }
 }
@@ -489,11 +501,18 @@ pub fn source_protocol_demand_effect_profile(protocol: SourceProtocolKind) -> De
             }
         }
         SourceProtocolKind::Yield => DemandEffectProfile {
-            operation: DemandOperation::ProtocolBoundary,
-            order: EvaluationOrder::ProtocolDefined,
-            child_demand: ChildDemand::ProtocolBoundary,
+            operation: DemandOperation::GeneratorSuspension,
+            order: EvaluationOrder::DeferredUntilObserved,
+            child_demand: ChildDemand::SuspendedUntilObserved,
             callback: None,
-            effect_visibility: EffectVisibility::ProtocolBoundary,
+            effect_visibility: EffectVisibility::YieldBoundary,
+        },
+        SourceProtocolKind::BlockYield => DemandEffectProfile {
+            operation: DemandOperation::CallbackInvocation,
+            order: EvaluationOrder::SourceOrder,
+            child_demand: ChildDemand::Always,
+            callback: Some(CallbackDemandProfile::source_callback()),
+            effect_visibility: EffectVisibility::Immediate,
         },
         SourceProtocolKind::ChannelReceive
         | SourceProtocolKind::ChannelSelect

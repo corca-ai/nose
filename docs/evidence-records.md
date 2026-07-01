@@ -590,7 +590,8 @@ First-party frontends now emit these facts as `EvidenceRecord`:
 - source-origin facts become `Source` evidence. JS/TS, Python, and Rust `await`
   expressions preserve a raw async boundary and emit
   `Source::Protocol(Await)` at that source span. JS/TS and Python `yield`
-  expressions emit `Source::Protocol(Yield)`. Rust `async {}` and `?` emit
+  expressions emit `Source::Protocol(Yield)`, while Ruby block `yield` emits
+  `Source::Protocol(BlockYield)`. Rust `async {}` and `?` emit
   `Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. Rust
   and Swift async closures reuse `Source::Protocol(AsyncFunction)`, Swift plain
   and typed throwing functions/closures reuse

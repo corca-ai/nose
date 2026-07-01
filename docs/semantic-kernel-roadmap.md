@@ -1259,8 +1259,9 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   nullish defaulting, per-element callback demand for
   map/flat-map/filter-map/filter/reduce, pull-lazy Python generator expressions,
   eager JS-like/Ruby library HOFs, pull-lazy Rust iterator/Java Stream HOFs,
-  async continuation boundaries, generator suspension, channel boundaries, and
-  non-channel protocol boundaries. The oracle consumes those profiles for
+  async continuation boundaries, generator suspension, source-order callback
+  invocation, channel boundaries, and non-channel protocol boundaries. The
+  oracle consumes those profiles for
   admitted builtins instead of matching local demand enums; value-graph HOF
   callback exception timing, HOF materialization gates, strict-exact HOF gates,
   and Promise `.then` beta-reduction also read shared profiles. API admission
@@ -1628,9 +1629,10 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   until an explicit async/sync protocol evidence path exists.
 - JS/TS, Python, Rust, and Swift `await` expressions now preserve a raw async protocol
   boundary and emit `Source::Protocol(Await)` evidence instead of lowering
-  directly to the operand. JS/TS and Python generator `yield` expressions and
-  Ruby block `yield` expressions preserve raw protocol boundaries with
-  `Source::Protocol(Yield)`. Rust `async {}`
+  directly to the operand. JS/TS and Python generator `yield` expressions
+  preserve raw protocol boundaries with `Source::Protocol(Yield)`, while Ruby
+  block `yield` expressions preserve callback protocol boundaries with
+  `Source::Protocol(BlockYield)`. Rust `async {}`
   and `?` also preserve raw protocol boundaries with
   `Source::Protocol(AsyncBlock)` and
   `Source::Protocol(TryPropagation)`, and Rust async closures reuse
@@ -2406,6 +2408,16 @@ Rust async closure occurrences, so this is a parity and hard-negative slice;
 the same audit now prices `1,342` Rust async blocks across `4` repos without
 letting closure syntax inflate the block row. The checked `crates` gate remains
 at `0` false merges and `0` canon preservation violations.
+
+2026-07-01 Ruby block-yield source-protocol note:
+The [ruby-yield-source-protocol-reporting-2026-07-01.v1.json](../bench/recall_loss/ruby-yield-source-protocol-reporting-2026-07-01.v1.json)
+artifact extends source protocol reporting without widening generator-yield
+semantics. Ruby block `yield` now uses the separate `BlockYield` source
+protocol and maps to a source-order callback invocation demand/effect profile.
+Exact admission remains closed until block identity, callback argument/result
+roles, effect visibility, non-local control, and exception behavior are proven.
+The 120-repo audit prices `801` Ruby yield occurrences across `17` repos, and
+the checked `crates` gate remains at `0` false merges.
 
 ## See also
 

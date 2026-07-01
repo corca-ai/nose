@@ -144,7 +144,7 @@ fn yield_preserves_source_backed_protocol_boundary() {
         &il,
         &interner,
         "yield",
-        SourceProtocolKind::Yield,
+        SourceProtocolKind::BlockYield,
     );
 }
 

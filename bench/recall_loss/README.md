@@ -744,14 +744,17 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   reporting-supported, and prices `74` occurrences across `11` repos.
 - [ruby-yield-source-protocol-reporting-2026-07-01.v1.json](ruby-yield-source-protocol-reporting-2026-07-01.v1.json)
   records the Ruby block-yield reporting-only expansion. Ruby `yield` now
-  preserves a source-backed protocol boundary and reports callback
-  demand/effect obligations without opening exact admission.
+  preserves a source-backed `BlockYield` protocol boundary and reports callback
+  demand/effect obligations without opening exact admission or widening
+  generator-yield semantics.
 - [scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json](scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json)
   records the matching 120-repo pricing: `801` Ruby yield occurrences across
   `17` repos are reporting-supported closed boundaries.
 - [ruby-yield-source-protocol-query-regression-2026-07-01.v1.json](ruby-yield-source-protocol-query-regression-2026-07-01.v1.json)
   records the Ruby-heavy product query regression. The 6-repo alternating r9
-  aggregate median was `2697.80ms -> 2677.42ms` (`-0.76%`).
+  aggregate median was `2697.80ms -> 2677.42ms` (`-0.76%`). `rspec-core`
+  changed one same-location 3-member HTML family's representative label from
+  `pre` to `code` while keeping the family count stable.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

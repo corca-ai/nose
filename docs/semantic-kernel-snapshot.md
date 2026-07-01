@@ -28,9 +28,10 @@ boundaries while the graded-witness build keeps an explicit protocol wrapper, so
 async/sync twins can surface as `async-mirror` transformation leads without
 opening exact admission.
 JS/TS and Python `yield` expressions are preserved as generator protocol
-boundaries with `Source::Protocol(Yield)`. Rust `async {}` and `?` are likewise
-preserved as protocol boundaries with `Source::Protocol(AsyncBlock)` and
-`Source::Protocol(TryPropagation)`. Go
+boundaries with `Source::Protocol(Yield)`, while Ruby block `yield` uses the
+separate callback protocol boundary `Source::Protocol(BlockYield)`. Rust
+`async {}` and `?` are likewise preserved as protocol boundaries with
+`Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. Go
 goroutine spawn, deferred calls, channel send/receive, receive-status
 projections, and `select` boundaries are also preserved as raw source-backed
 protocol anchors rather than ordinary calls, values, or sequence tags. Their
@@ -53,7 +54,8 @@ applying materialization or demand-sensitive laws. Admitted builtin and HOF
 operations now also have internal `DemandEffectProfile` contracts for the
 currently supported eager, short-circuit, append, nullish-default, reduction,
 per-element callback, pull-lazy generator, async-continuation, generator
-suspension, channel-boundary, and protocol-boundary shapes; these profiles
+suspension, source-order callback invocation, channel-boundary, and
+protocol-boundary shapes; these profiles
 describe how an already-admitted operation is consumed, not which source API is
 admitted. HOF callback timing comes from an explicit source or API demand source,
 not from the raw HOF kind alone. The node-level HOF resolver distinguishes

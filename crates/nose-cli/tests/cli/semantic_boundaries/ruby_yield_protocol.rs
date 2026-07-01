@@ -8,10 +8,19 @@ fn query_mode_semantic_rejects_unproven_ruby_yield_callback_convergence() {
     let project = TempProject::new("ruby_yield_protocol_boundary");
     project.write("return_pair.rb", "def produce(a, b)\n  return a, b\nend\n");
     project.write("yield_pair.rb", "def produce(a, b)\n  yield a, b\nend\n");
+    project.write(
+        "block_call_pair.rb",
+        "def produce(block, a, b)\n  block.call(a, b)\nend\n",
+    );
 
     let json = project.query_json("semantic", &["--min-size", "1", "--min-lines", "1"]);
-    assert!(
-        !family_contains_all(&json, &["return_pair.rb", "yield_pair.rb"]),
-        "Ruby yield must not be erased into ordinary multiple-value return without callback demand/effect proof: {json}"
-    );
+    for pair in [
+        ["return_pair.rb", "yield_pair.rb"],
+        ["block_call_pair.rb", "yield_pair.rb"],
+    ] {
+        assert!(
+            !family_contains_all(&json, &pair),
+            "Ruby yield must not be erased into ordinary return or direct block call without callback demand/effect proof for {pair:?}: {json}"
+        );
+    }
 }

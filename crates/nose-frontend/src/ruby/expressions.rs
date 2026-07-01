@@ -158,7 +158,7 @@ pub(super) fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
                 .collect();
-            lo.protocol_boundary(span, SourceProtocolKind::Yield, "yield", &kids)
+            lo.protocol_boundary(span, SourceProtocolKind::BlockYield, "yield", &kids)
         }
         "super" | "forward_argument" => lo.var(lo.text(node), span),
         _ => raw_kids(lo, node),

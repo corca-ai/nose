@@ -134,7 +134,7 @@ fn yield_protocol_missing_evidence_is_language_specific() {
         "yield.rb",
         "def render(value)\n  yield value\nend\n",
         Lang::Ruby,
-        nose_il::SourceProtocolKind::Yield,
+        nose_il::SourceProtocolKind::BlockYield,
     );
     assert!(ruby.contains(&"ruby-yield-callback-demand-effect-contract"));
     assert!(!ruby.contains(&"generator-yield-lifecycle-contract"));

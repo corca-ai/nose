@@ -143,8 +143,9 @@ fall back to a side-table mirror when source evidence is missing.
   and async context-manager lifecycle obligations. Swift `async let` preserves
   `Raw("task_spawn", assign)`, and Swift throwing callables preserve
   `Raw("throwing_function" | "throwing_closure", body)`. JS/TS and Python
-  generator `yield` and Ruby block `yield` preserve
-  `Raw("yield", value...)`. Rust
+  generator `yield` preserve `Raw("yield", value...)` with
+  `Source::Protocol(Yield)`, while Ruby block `yield` preserves the same raw
+  tag with `Source::Protocol(BlockYield)`. Rust
   `async {}` and `?` are preserved as
   `Raw("async_block", body)` and `Raw("try", value)`. Exact async/sync,
   generator, and error-propagation convergence stays closed until a future
