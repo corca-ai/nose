@@ -258,6 +258,10 @@ fn promise_and_protocol_demand_profiles_keep_async_boundaries() {
         DemandOperation::ProtocolBoundary
     );
     assert_eq!(
+        source_protocol_demand_effect_profile(SourceProtocolKind::TaskSpawn).effect_visibility,
+        EffectVisibility::ProtocolBoundary
+    );
+    assert_eq!(
         source_protocol_demand_effect_profile(SourceProtocolKind::AsyncIteration).effect_visibility,
         EffectVisibility::AsyncBoundary
     );

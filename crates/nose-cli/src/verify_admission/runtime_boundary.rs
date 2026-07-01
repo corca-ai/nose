@@ -115,6 +115,11 @@ fn push_source_protocol_missing_evidence(
             push_unique(labels, "goroutine-callback-effect-contract");
             push_unique(labels, "concurrency-scheduling-contract");
         }
+        nose_il::SourceProtocolKind::TaskSpawn => {
+            push_unique(labels, "task-spawn-scheduling-contract");
+            push_unique(labels, "task-handle-lifecycle-contract");
+            push_unique(labels, "task-cancellation-liveness-contract");
+        }
         nose_il::SourceProtocolKind::TryPropagation => {
             push_unique(labels, "exception-channel-contract");
         }

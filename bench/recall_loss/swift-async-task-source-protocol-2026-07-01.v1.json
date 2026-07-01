@@ -1,0 +1,252 @@
+{
+  "report_kind": "swift-async-task-source-protocol",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "change": "Swift async task source surfaces now preserve protocol boundaries for async closures and async let bindings.",
+    "languages": [
+      "swift"
+    ],
+    "exact_admission_delta": 0,
+    "new_public_semantic_pack_api": false,
+    "new_kernel_enum_or_capability": true,
+    "reporting_only": true
+  },
+  "capability_alignment": {
+    "new_internal_capability": "SourceProtocolKind::TaskSpawn",
+    "reused_capabilities": [
+      "SourceProtocolKind::AsyncFunction",
+      "runtime-boundary-model",
+      "async-function-scheduling-contract",
+      "task-spawn-scheduling-contract",
+      "task-handle-lifecycle-contract",
+      "task-cancellation-liveness-contract",
+      "async-await-scheduling-contract",
+      "exception-channel-contract"
+    ],
+    "principle": "The slice adds a task-spawn source protocol capability rather than a Swift-only feature. Swift async let is a language source boundary for child-task scheduling, handle lifecycle, and cancellation/liveness; async closures reuse the existing async-function protocol capability.",
+    "fail_closed_boundary": "Exact async task, async closure, and async-let convergence remains closed until scheduling, callback effects, result channels, cancellation/liveness, and task lifetime contracts are dependency-closed."
+  },
+  "new_reporting_surfaces": [
+    {
+      "surface": "swift.async-closure",
+      "syntax": "{ request async throws -> Response in ... }",
+      "missing_evidence": [
+        "async-function-scheduling-contract"
+      ],
+      "notes": [
+        "The closure body is wrapped in the same async-function protocol boundary used by async declarations.",
+        "The fallback closure-header parser no longer treats the contextual async keyword as a lambda parameter."
+      ]
+    },
+    {
+      "surface": "swift.async-let",
+      "syntax": "async let value = work()",
+      "missing_evidence": [
+        "task-spawn-scheduling-contract",
+        "task-handle-lifecycle-contract",
+        "task-cancellation-liveness-contract"
+      ],
+      "notes": [
+        "The binding assignment remains inside the task-spawn source boundary.",
+        "Nested try/await expressions keep their existing exception and await scheduling protocol facts."
+      ]
+    }
+  ],
+  "focused_hard_negative_fixtures": [
+    {
+      "surface": "swift.asynclet-identifier",
+      "syntax": "let asynclet = compute()",
+      "expected": "No task-spawn protocol fact; async must be a distinct keyword before let."
+    },
+    {
+      "surface": "swift.no-argument-async-closure",
+      "syntax": "{ () async in 1 }",
+      "expected": "One async-function protocol fact and no invented lambda parameter named async."
+    },
+    {
+      "surface": "swift.async-closure-parameter-header",
+      "syntax": "{ req async throws -> String in ... }",
+      "expected": "The parameter is req; async is preserved as an async-function protocol boundary, not as a parameter."
+    },
+    {
+      "surface": "swift.async-identifier-closure-parameter",
+      "syntax": "{ async in async + 1 }",
+      "expected": "Bare contextual async before in stays a closure parameter, not an async-function protocol boundary."
+    }
+  ],
+  "corpus_pricing": {
+    "source": "target/scheduling-lifecycle-boundary-audit.swift-async-task.json",
+    "manifest": "bench/goldens/corpus.json",
+    "repos_root": "bench/repos",
+    "rows": [
+      {
+        "surface": "swift.async.closure",
+        "operation": "async closure",
+        "status": "reporting-supported-closed-boundary",
+        "occurrences": 100,
+        "repos": 4,
+        "top_repos": [
+          {
+            "repo": "vapor",
+            "occurrences": 86
+          },
+          {
+            "repo": "swift-composable-architecture",
+            "occurrences": 8
+          },
+          {
+            "repo": "nimble",
+            "occurrences": 5
+          },
+          {
+            "repo": "swift-nio",
+            "occurrences": 1
+          }
+        ],
+        "top_files": [
+          {
+            "path": "vapor/Tests/VaporTests/FileTests.swift",
+            "occurrences": 29
+          },
+          {
+            "path": "vapor/Tests/VaporTests/AuthenticationTests.swift",
+            "occurrences": 13
+          },
+          {
+            "path": "vapor/Tests/VaporMacroTests/ControllerMacroTests.swift",
+            "occurrences": 12
+          }
+        ]
+      },
+      {
+        "surface": "swift.async.let",
+        "operation": "async let",
+        "status": "reporting-supported-closed-boundary",
+        "occurrences": 51,
+        "repos": 7,
+        "top_repos": [
+          {
+            "repo": "alamofire",
+            "occurrences": 33
+          },
+          {
+            "repo": "swift-nio",
+            "occurrences": 5
+          },
+          {
+            "repo": "swift-composable-architecture",
+            "occurrences": 4
+          },
+          {
+            "repo": "swiftlint",
+            "occurrences": 4
+          }
+        ],
+        "top_files": [
+          {
+            "path": "alamofire/Tests/ConcurrencyTests.swift",
+            "occurrences": 17
+          },
+          {
+            "path": "alamofire/Tests/OfflineRetrierTests.swift",
+            "occurrences": 16
+          },
+          {
+            "path": "swiftlint/Source/SwiftLintBuiltInRules/Rules/Lint/AsyncWithoutAwaitRuleExamples.swift",
+            "occurrences": 4
+          }
+        ]
+      }
+    ],
+    "broad_swift_async_bucket": {
+      "surface": "swift.async.function",
+      "operation": "async",
+      "status": "closed-boundary",
+      "occurrences": 3953,
+      "repos": 17
+    }
+  },
+  "representative_spot_check": {
+    "files": [
+      "bench/repos/alamofire/Tests/ConcurrencyTests.swift",
+      "bench/repos/alamofire/Tests/OfflineRetrierTests.swift",
+      "bench/repos/swift-nio/Tests/NIOCoreTests/AsyncSequences/NIOAsyncSequenceTests.swift",
+      "bench/repos/vapor/Tests/VaporTests/FileTests.swift"
+    ],
+    "method": "Count source-protocol raw tags in `nose il` output with branch and origin/main release code.",
+    "origin_main": {
+      "task_spawn_raw_tags": 0,
+      "async_function_raw_tags": 110,
+      "await_raw_tags": 244,
+      "try_raw_tags": 120,
+      "async_for_raw_tags": 14,
+      "false_merges": 0
+    },
+    "branch": {
+      "task_spawn_raw_tags": 36,
+      "async_function_raw_tags": 139,
+      "await_raw_tags": 244,
+      "try_raw_tags": 120,
+      "async_for_raw_tags": 14,
+      "false_merges": 0
+    },
+    "interpretation": "The branch preserves async-let task-spawn boundaries that main erased, and adds async-function boundaries for real async closures without changing existing await, try, or async-for counts."
+  },
+  "current_crates_gate": {
+    "branch": {
+      "total_units": 6930,
+      "interpretable_units": 968,
+      "excluded_units": 5962,
+      "admission_rejections": 810,
+      "false_merges": 0,
+      "canon_preservation_violations": 0,
+      "release_verify_real_seconds": [
+        1.78,
+        1.08,
+        1.13
+      ]
+    },
+    "origin_main": {
+      "total_units": 6906,
+      "interpretable_units": 957,
+      "excluded_units": 5949,
+      "admission_rejections": 800,
+      "false_merges": 0,
+      "canon_preservation_violations": 0,
+      "release_verify_real_seconds": [
+        1.72,
+        1.22,
+        1.28
+      ]
+    },
+    "delta": {
+      "total_units": 24,
+      "interpretable_units": 11,
+      "excluded_units": 13,
+      "admission_rejections": 10,
+      "false_merges": 0,
+      "canon_preservation_violations": 0,
+      "median_release_verify_real_seconds": -0.15
+    }
+  },
+  "validation_commands": [
+    "cargo fmt --check",
+    "cargo test -p nose-frontend swift::tests:: -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::swift -- --nocapture",
+    "cargo test -p nose-semantics library_api_contracts::demand_effect::promise_and_protocol_demand_profiles_keep_async_boundaries -- --nocapture",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.swift-async-task.crates.json --output target/scheduling-lifecycle-boundary-audit.swift-async-task.json --generated-on 2026-07-01",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.swift-async-task.crates.json",
+    "cargo build --release -p nose-cli",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.swift-async-task.release.crates.json",
+    "origin/main worktree: cargo build --release -p nose-cli && /usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.swift-async-task.release.main.crates.json",
+    "branch/main `nose il` spot-checks over Alamofire ConcurrencyTests, Alamofire OfflineRetrierTests, Swift NIO NIOAsyncSequenceTests, and Vapor FileTests",
+    "target/release/nose verify bench/repos/alamofire/Tests/ConcurrencyTests.swift bench/repos/alamofire/Tests/OfflineRetrierTests.swift bench/repos/swift-nio/Tests/NIOCoreTests/AsyncSequences/NIOAsyncSequenceTests.swift bench/repos/vapor/Tests/VaporTests/FileTests.swift --max-violations 0 --recall-loss-report target/recall-loss.swift-async-task.spot.json",
+    "Quick AsyncExample.swift spot-check: function-typed async closure parameters no longer emit async_function raw protocol tags"
+  ],
+  "next_exact_work_policy": [
+    "Do not collapse async-let values with synchronous assignments from the task-spawn label alone.",
+    "Do not treat async closures as ordinary synchronous lambdas until scheduling, callback demand/effect, and exception-channel obligations are modeled.",
+    "Keep Swift `Task { ... }`, task groups, continuations, async iteration, async closure, and async let as separate source/runtime evidence anchors that map onto shared task and async-function capabilities."
+  ]
+}

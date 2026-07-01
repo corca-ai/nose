@@ -69,6 +69,7 @@ pub enum SourceProtocolKind {
     ChannelSend,
     Defer,
     GoRoutine,
+    TaskSpawn,
     TryPropagation,
     Yield,
 }

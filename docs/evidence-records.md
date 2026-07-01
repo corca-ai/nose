@@ -588,12 +588,15 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   expressions preserve a raw async boundary and emit
   `Source::Protocol(Await)` at that source span. JS/TS and Python `yield`
   expressions emit `Source::Protocol(Yield)`. Rust `async {}` and `?` emit
-  `Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. These
-  are future protocol/demand proof anchors, not evidence that the source
-  operation is equivalent to its operand or body. Go `go`, `defer`, channel
-  send/receive, receive-status projection, `select`, and select cases/defaults
-  likewise preserve source-backed protocol anchors instead of ordinary calls,
-  values, or generic sequences. Python list/set/dict comprehensions and generator
+  `Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. Swift
+  async closures reuse `Source::Protocol(AsyncFunction)`, and Swift `async let`
+  bindings emit `Source::Protocol(TaskSpawn)` so child-task scheduling, handle
+  lifecycle, and cancellation/liveness remain fail-closed. These are future
+  protocol/demand proof anchors, not evidence that the source operation is
+  equivalent to its operand or body. Go `go`, `defer`, channel send/receive,
+  receive-status projection, `select`, and select cases/defaults likewise
+  preserve source-backed protocol anchors instead of ordinary calls, values, or
+  generic sequences. Python list/set/dict comprehensions and generator
   expressions emit source-comprehension facts so exact consumers can distinguish
   eager materialized lists, lazy generators, set deduplication, and dict
   materialization even when the lowered HOF body shape is similar. Rust range

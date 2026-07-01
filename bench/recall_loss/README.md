@@ -184,6 +184,19 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --generated-on 2026-07-01
 ```
 
+Build the Swift async task source-protocol audit with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.swift-async-task.crates.json
+
+python3 scripts/scheduling-lifecycle-boundary-audit.py \
+  --recall-loss-report target/recall-loss.swift-async-task.crates.json \
+  --output target/scheduling-lifecycle-boundary-audit.swift-async-task.json \
+  --generated-on 2026-07-01
+```
+
 Build the Ruby Thread/Fiber runtime obligation audit with:
 
 ```sh
@@ -625,6 +638,14 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   occurrences across `11` repos, and representative Swift NIO, Composable
   Architecture, and Alamofire spot checks move async-iteration lifecycle
   evidence units from `0` to `31` with `0` false merges.
+- [swift-async-task-source-protocol-2026-07-01.v1.json](swift-async-task-source-protocol-2026-07-01.v1.json)
+  records the Swift async task source-protocol slice. It adds the internal
+  `TaskSpawn` source protocol capability for `async let` and reuses
+  `AsyncFunction` for Swift async closures. The 120-repo audit prices `100`
+  async closures across `4` repos and `51` async-let bindings across `7` repos;
+  Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
+  from `0` to `36` and async-function tags from `110` to `139` with `0` false
+  merges.
 - [ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json](ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
   records the Ruby Thread/Fiber reporting-only expansion. `Thread.new`,
   `Thread.start`, `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse

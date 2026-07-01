@@ -3,6 +3,7 @@ use super::*;
 pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let mut assigns = Vec::new();
+    let is_async_let = swift_property_is_async_let(lo.text(node));
     let mut cursor = node.walk();
     let names: Vec<TsNode> = node.children_by_field_name("name", &mut cursor).collect();
     let values = field_children(node, "value");
@@ -20,7 +21,12 @@ pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
             .map(|value| lower_expr(lo, *value))
             .or_else(|| lower_computed_property(lo, node))
             .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]));
-        assigns.push(lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]));
+        let assign = lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+        assigns.push(if is_async_let {
+            lo.protocol_boundary(span, SourceProtocolKind::TaskSpawn, "task_spawn", &[assign])
+        } else {
+            assign
+        });
     }
     if assigns.is_empty() {
         lower_computed_property(lo, node).unwrap_or_else(|| lo.empty_block(span))
@@ -29,6 +35,14 @@ pub(super) fn lower_property(lo: &mut Lowering, node: TsNode) -> NodeId {
     } else {
         lo.add(NodeKind::Block, Payload::None, span, &assigns)
     }
+}
+
+fn swift_property_is_async_let(text: &str) -> bool {
+    let text = text.trim_start();
+    let Some(after_async) = consume_swift_keyword(text, "async") else {
+        return false;
+    };
+    consume_swift_keyword(after_async.trim_start(), "let").is_some()
 }
 pub(super) fn record_property_binding_domain(
     lo: &mut Lowering,

@@ -248,6 +248,16 @@ occurrences across `11` repos, and representative Swift NIO, Composable
 Architecture, and Alamofire spot checks move async-iteration lifecycle evidence
 units from `0` to `31` with `0` false merges. Exact async-sequence recovery
 remains closed.
+The follow-up [Swift async task source-protocol artifact](../bench/recall_loss/swift-async-task-source-protocol-2026-07-01.v1.json)
+keeps exact admission closed while extending source syntax reporting to Swift
+async closures and `async let`. Async closures reuse the existing
+`AsyncFunction` protocol boundary; `async let` adds the reusable
+`TaskSpawn` source protocol capability and maps it onto task-spawn scheduling,
+task-handle lifecycle, and cancellation/liveness obligations rather than a
+Swift-only feature row. The 120-repo audit prices `100` async closures across
+`4` repos and `51` async-let bindings across `7` repos. Alamofire/Swift
+NIO/Vapor spot checks move `task_spawn` raw protocol tags from `0` to `36` and
+async-function tags from `110` to `139` with `0` false merges.
 The follow-up [promise-protocol-hard-negatives-2026-06-28.v1.json](../bench/recall_loss/promise-protocol-hard-negatives-2026-06-28.v1.json)
 pins the Promise-specific hard negatives before any recovery slice opens:
 async-function/sync, Promise executor/sync, Promise.resolve/sync,

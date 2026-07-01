@@ -113,7 +113,7 @@ fn consume_swift_try_token(text: &str) -> Option<&str> {
         .or_else(|| consume_swift_keyword(text, "try"))
 }
 
-fn consume_swift_keyword<'a>(text: &'a str, keyword: &str) -> Option<&'a str> {
+pub(super) fn consume_swift_keyword<'a>(text: &'a str, keyword: &str) -> Option<&'a str> {
     let rest = text.strip_prefix(keyword)?;
     if rest
         .chars()
@@ -125,7 +125,7 @@ fn consume_swift_keyword<'a>(text: &'a str, keyword: &str) -> Option<&'a str> {
     Some(rest)
 }
 
-fn is_swift_identifier_continue(ch: char) -> bool {
+pub(super) fn is_swift_identifier_continue(ch: char) -> bool {
     ch == '_' || ch.is_alphanumeric()
 }
 

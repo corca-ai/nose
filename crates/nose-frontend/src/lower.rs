@@ -23,6 +23,7 @@ pub(crate) const PROTOCOL_BOUNDARY_TAGS: &[&str] = &[
     "select",
     "select_case",
     "select_default",
+    "task_spawn",
     "try",
     "yield",
 ];

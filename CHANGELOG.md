@@ -159,6 +159,15 @@ break.
   representative Swift NIO, Composable Architecture, and Alamofire spot checks
   move async-iteration lifecycle evidence units from `0` to `31` with `0`
   false merges.
+- Added Swift async task source-protocol reporting. Async closures now reuse
+  the existing async-function protocol boundary, while `async let` emits the
+  reusable `TaskSpawn` source protocol capability for child-task scheduling,
+  handle lifecycle, and cancellation/liveness obligations. Exact admission
+  remains closed; the 120-repo audit prices `100` async closures across `4`
+  repos and `51` async-let bindings across `7` repos, and representative
+  Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
+  from `0` to `36` and async-function tags from `110` to `139` with `0` false
+  merges.
 - Added Ruby Thread/Fiber runtime reporting. `Thread.new`, `Thread.start`,
   `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse shared
   task-spawn, task-handle, cancellation/liveness, and concurrency scheduling

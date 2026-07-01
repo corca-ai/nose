@@ -249,6 +249,22 @@ fn swift_continuation_bridges_reject_local_runtime_shadows() {
 }
 
 #[test]
+fn swift_async_let_reports_task_spawn_protocol_obligations() {
+    let labels = missing_evidence_for_protocol(
+        "async-let.swift",
+        "func run() async throws -> Int {\n  async let value: Int = try await work()\n  return try await value\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::TaskSpawn,
+    );
+
+    assert!(labels.contains(&"task-spawn-scheduling-contract"));
+    assert!(labels.contains(&"task-handle-lifecycle-contract"));
+    assert!(labels.contains(&"task-cancellation-liveness-contract"));
+    assert!(labels.contains(&"async-await-scheduling-contract"));
+    assert!(labels.contains(&"exception-channel-contract"));
+}
+
+#[test]
 fn swift_async_iteration_reports_shared_protocol_obligations() {
     let labels = missing_evidence_for_protocol(
         "stream.swift",

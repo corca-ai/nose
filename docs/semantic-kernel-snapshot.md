@@ -260,6 +260,15 @@ keyword span. The 120-repo audit prices `193` Swift async iteration
 occurrences across `11` repos, and representative Swift NIO, Composable
 Architecture, and Alamofire spot checks move async-iteration lifecycle evidence
 units from `0` to `31` with `0` false merges.
+The follow-up [Swift async task source-protocol artifact](../bench/recall_loss/swift-async-task-source-protocol-2026-07-01.v1.json)
+keeps the same reporting-only boundary for Swift task source syntax. Async
+closures reuse `Source::Protocol(AsyncFunction)`, while `async let` emits the
+reusable `Source::Protocol(TaskSpawn)` capability for child-task scheduling,
+handle lifecycle, and cancellation/liveness obligations. The 120-repo audit
+prices `100` async closures across `4` repos and `51` async-let bindings
+across `7` repos; Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw
+protocol tags from `0` to `36` and async-function tags from `110` to `139`
+with `0` false merges.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected

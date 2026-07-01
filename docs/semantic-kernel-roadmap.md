@@ -2363,6 +2363,18 @@ Swift NIO, Composable Architecture, and Alamofire spot checks move
 async-iteration lifecycle evidence units from `0` to `31` with `0` false
 merges.
 
+2026-07-01 Swift async task source-protocol note:
+The [swift-async-task-source-protocol-2026-07-01.v1.json](../bench/recall_loss/swift-async-task-source-protocol-2026-07-01.v1.json)
+artifact extends Swift source syntax reporting without adding a Swift-only
+feature row. Async closures reuse the existing `AsyncFunction` source protocol;
+`async let` adds the reusable `TaskSpawn` source protocol capability and maps
+it to task-spawn scheduling, task-handle lifecycle, and cancellation/liveness
+obligations. Exact admission remains closed. The 120-repo audit prices `100`
+async closures across `4` repos and `51` async-let bindings across `7` repos,
+and Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
+from `0` to `36` plus async-function tags from `110` to `139` with `0` false
+merges.
+
 ## See also
 
 - Back to [semantic-kernel](semantic-kernel.md).

@@ -126,12 +126,14 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("java", "java.stream.lifecycle", "stream/parallelStream", "lifecycle-materialization-boundary", "java-stream-lifecycle-contract-missing", "stream lifecycle", "Java streams need lazy/eager lifecycle and terminal materialization proof", re.compile(r"\.\s*(?:stream|parallelStream)\s*\(")),
     Pattern("swift", "swift.async.await", "await", "scheduling-boundary", "async-await-scheduling-contract-missing", "await scheduling", "Swift await has task scheduling and actor/lifetime boundaries", re.compile(r"\bawait\b")),
     Pattern("swift", "swift.async.function", "async", "scheduling-boundary", "async-function-scheduling-contract-missing", "async function scheduling", "Swift async surfaces create task/future-like protocol boundaries", re.compile(r"\basync\b")),
+    Pattern("swift", "swift.async.closure", "async closure", "scheduling-boundary", "async-function-scheduling-contract-missing", "async closure scheduling", "Swift async closures create async callable protocol boundaries even when the surrounding function is synchronous", re.compile(r"(?!x)x"), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.async.iteration", "for await/for try await", "lifecycle-materialization-boundary", "async-iteration-lifecycle-contract-missing", "async iteration lifecycle", "Swift async sequence loops need async iterator lifecycle, value-channel, scheduling, and throwing-channel proof", re.compile(r"\bfor\s+(?:try[!?]?\s+)?await\b"), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.error.throws", "throws/try", "exception-channel", "swift-throws-exception-channel-contract-missing", "throws channel", "Swift throws/try is an explicit error channel", re.compile(r"\b(?:throws|try)\b")),
     Pattern("swift", "swift.task.spawn", "Task/Task.detached", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "task scheduling", "Task APIs introduce scheduler, cancellation, and handle lifecycle boundaries", re.compile(r"\bTask(?:\s*\.\s*detached\s*(?:\{|\()|\s*\{)")),
     Pattern("swift", "swift.task.sleep", "Task.sleep", "scheduling-boundary", "timer-scheduling-contract-missing", "task sleep timer", "Swift Task.sleep creates a timer-backed scheduling boundary and cancellation/liveness boundary", re.compile(r"\bTask\s*\.\s*sleep\s*\("), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.task.yield", "Task.yield", "scheduling-boundary", "task-yield-scheduling-contract-missing", "task yield", "Swift Task.yield yields to the task scheduler and must not collapse into sync value equivalence", re.compile(r"\bTask\s*\.\s*yield\s*\("), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.task.group", "withTaskGroup/withThrowingTaskGroup/withDiscardingTaskGroup/withThrowingDiscardingTaskGroup", "success-error-result-channel", "async-aggregate-all-completion-contract-missing", "task-group aggregate", "Swift task groups need all-completion, result-channel, cancellation/liveness, and throwing error-channel proof", re.compile(r"\bwith(?:Throwing)?(?:Discarding)?TaskGroup\s*\("), "reporting-supported-closed-boundary"),
+    Pattern("swift", "swift.async.let", "async let", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "structured task binding", "Swift async let creates a child task with scheduling, handle lifecycle, cancellation/liveness, and awaited result boundaries", re.compile(r"\basync\s+let\b"), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.continuation.checked", "withCheckedContinuation/withUnsafeContinuation", "success-error-result-channel", "future-settled-value-channel-contract-missing", "Swift continuation bridge", "Swift continuation bridges suspend and resume through a callback-settled future-like result channel", re.compile(r"\bwith(?:Checked|Unsafe)Continuation\s*(?:\(|\{)"), "reporting-supported-closed-boundary"),
     Pattern("swift", "swift.continuation.throwing", "withCheckedThrowingContinuation/withUnsafeThrowingContinuation", "success-error-result-channel", "future-settled-value-channel-contract-missing", "Swift throwing continuation bridge", "Swift throwing continuation bridges add exception-channel behavior to callback-settled future-like result channels", re.compile(r"\bwith(?:Checked|Unsafe)ThrowingContinuation\s*(?:\(|\{)"), "reporting-supported-closed-boundary"),
     Pattern("ruby", "ruby.thread.fiber", "Thread/Fiber", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "thread/fiber scheduling", "Thread/Fiber APIs create scheduler and lifecycle boundaries", re.compile(r"\b(?:Thread\s*\.\s*(?:new|start|fork)|Fiber\s*\.\s*(?:new|schedule))\b"), "reporting-supported-closed-boundary"),
@@ -666,6 +668,8 @@ def count_file(text: str, language: str) -> dict[Pattern, int]:
     for pattern in PATTERNS:
         if pattern.language != language:
             continue
+        if pattern.surface == "swift.async.closure":
+            continue
         count = sum(1 for _ in pattern.regex.finditer(masked))
         if count:
             counts[pattern] = count
@@ -683,7 +687,158 @@ def count_file(text: str, language: str) -> dict[Pattern, int]:
         counts.update(go_channel_protocol_counts(masked))
     elif language == "java":
         counts.update(java_future_receiver_counts(masked))
+    elif language == "swift":
+        counts.update(swift_async_closure_counts(masked))
     return counts
+
+
+def swift_async_closure_counts(text: str) -> dict[Pattern, int]:
+    pattern = next(item for item in PATTERNS if item.surface == "swift.async.closure")
+    count = 0
+    for header in iter_swift_closure_headers(text):
+        if swift_closure_header_has_top_level_async_modifier(header):
+            count += 1
+    return {pattern: count} if count else {}
+
+
+def iter_swift_closure_headers(text: str):
+    for start, ch in enumerate(text):
+        if ch != "{":
+            continue
+        paren_depth = 0
+        bracket_depth = 0
+        brace_depth = 0
+        idx = start + 1
+        while idx < len(text):
+            current = text[idx]
+            if current == "\n":
+                break
+            if (
+                paren_depth == 0
+                and bracket_depth == 0
+                and brace_depth == 0
+                and is_word_at(text, idx, "in")
+            ):
+                yield text[start + 1 : idx].strip()
+                break
+            if current == "(":
+                paren_depth += 1
+            elif current == ")":
+                paren_depth = max(0, paren_depth - 1)
+            elif current == "[":
+                bracket_depth += 1
+            elif current == "]":
+                bracket_depth = max(0, bracket_depth - 1)
+            elif current == "{":
+                brace_depth += 1
+            elif current == "}":
+                if brace_depth == 0:
+                    break
+                brace_depth -= 1
+            idx += 1
+
+
+def swift_closure_header_has_top_level_async_modifier(header: str) -> bool:
+    header = swift_closure_header_without_capture_list(header)
+    for idx, _ in iter_top_level_word_offsets(header, "async"):
+        before = header[:idx].rstrip()
+        after = header[idx + len("async") :].lstrip()
+        if swift_closure_modifier_prefix_is_valid(before) and swift_closure_async_tail_is_valid(after):
+            return True
+    return False
+
+
+def swift_closure_header_without_capture_list(header: str) -> str:
+    trimmed = header.lstrip()
+    if not trimmed.startswith("["):
+        return trimmed
+    depth = 0
+    for idx, ch in enumerate(trimmed):
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth = max(0, depth - 1)
+            if depth == 0:
+                return trimmed[idx + 1 :].lstrip()
+    return trimmed
+
+
+def iter_top_level_word_offsets(text: str, word: str):
+    paren_depth = 0
+    bracket_depth = 0
+    brace_depth = 0
+    for idx, ch in enumerate(text):
+        if paren_depth == 0 and bracket_depth == 0 and brace_depth == 0 and is_word_at(text, idx, word):
+            yield idx, word
+        if ch == "(":
+            paren_depth += 1
+        elif ch == ")":
+            paren_depth = max(0, paren_depth - 1)
+        elif ch == "[":
+            bracket_depth += 1
+        elif ch == "]":
+            bracket_depth = max(0, bracket_depth - 1)
+        elif ch == "{":
+            brace_depth += 1
+        elif ch == "}":
+            brace_depth = max(0, brace_depth - 1)
+
+
+def swift_closure_modifier_prefix_is_valid(before: str) -> bool:
+    if swift_has_top_level_colon(before):
+        return False
+    if before.endswith(")"):
+        return True
+    return any(
+        token not in {"async", "throws", "rethrows"} and not token.startswith("@")
+        for token in re.split(r"[\s(),:\-\>\[\]{}]+", before)
+        if token
+    )
+
+
+def swift_closure_async_tail_is_valid(after: str) -> bool:
+    if not after or after.startswith("->"):
+        return True
+    for keyword in ("throws", "rethrows"):
+        if is_word_at(after, 0, keyword):
+            rest = after[len(keyword) :].lstrip()
+            return not rest or rest.startswith("->")
+    return False
+
+
+def swift_has_top_level_colon(text: str) -> bool:
+    paren_depth = 0
+    bracket_depth = 0
+    brace_depth = 0
+    for ch in text:
+        if paren_depth == 0 and bracket_depth == 0 and brace_depth == 0 and ch == ":":
+            return True
+        if ch == "(":
+            paren_depth += 1
+        elif ch == ")":
+            paren_depth = max(0, paren_depth - 1)
+        elif ch == "[":
+            bracket_depth += 1
+        elif ch == "]":
+            bracket_depth = max(0, bracket_depth - 1)
+        elif ch == "{":
+            brace_depth += 1
+        elif ch == "}":
+            brace_depth = max(0, brace_depth - 1)
+    return False
+
+
+def is_word_at(text: str, idx: int, word: str) -> bool:
+    if not text.startswith(word, idx):
+        return False
+    before = text[idx - 1] if idx > 0 else ""
+    after_idx = idx + len(word)
+    after = text[after_idx] if after_idx < len(text) else ""
+    return not is_identifier_continue(before) and not is_identifier_continue(after)
+
+
+def is_identifier_continue(ch: str) -> bool:
+    return ch == "_" or ch.isalnum()
 
 
 def go_channel_protocol_counts(text: str) -> dict[Pattern, int]:

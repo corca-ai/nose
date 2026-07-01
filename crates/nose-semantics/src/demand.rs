@@ -506,7 +506,9 @@ pub fn source_protocol_demand_effect_profile(protocol: SourceProtocolKind) -> De
             callback: None,
             effect_visibility: EffectVisibility::ChannelBoundary,
         },
-        SourceProtocolKind::Defer | SourceProtocolKind::GoRoutine => DemandEffectProfile {
+        SourceProtocolKind::Defer
+        | SourceProtocolKind::GoRoutine
+        | SourceProtocolKind::TaskSpawn => DemandEffectProfile {
             operation: DemandOperation::ProtocolBoundary,
             order: EvaluationOrder::ProtocolDefined,
             child_demand: ChildDemand::ProtocolBoundary,
