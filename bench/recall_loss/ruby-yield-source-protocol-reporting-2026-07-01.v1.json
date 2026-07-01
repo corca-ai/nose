@@ -77,9 +77,9 @@
     "summary": "Ruby block yield reporting is now source-backed. Exact convergence still needs block identity, callback argument/result role, effect visibility, non-local control, and exception behavior proof."
   },
   "product_query_regression": {
-    "aggregate_baseline_median_ms": 2697.803165996447,
-    "aggregate_current_median_ms": 2677.417998900637,
-    "aggregate_delta_pct": -0.7556209938793222,
+    "aggregate_baseline_median_ms": 2504.552209051326,
+    "aggregate_current_median_ms": 2574.786585289985,
+    "aggregate_delta_pct": 2.8042688024164764,
     "hashes_identical_by_repo": {
       "fastlane": true,
       "rack": true,
@@ -88,7 +88,7 @@
       "sidekiq": true,
       "sinatra": true
     },
-    "method": "1 warmup per binary/repo, then 9 alternating measured runs over Ruby yield-heavy repos",
+    "method": "1 warmup per binary/repo, then 15 alternating measured runs over Ruby yield-heavy repos",
     "non_identical_hash_explanation": "rspec-core kept the same family count; one 3-location HTML family changed representative name from pre to code at the same lines.",
     "source": "bench/recall_loss/ruby-yield-source-protocol-query-regression-2026-07-01.v1.json",
     "subset": [
@@ -116,6 +116,6 @@
     "python3 scripts/scheduling-lifecycle-boundary-audit.py --self-test",
     "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.ruby-yield-source-protocol.crates.json",
     "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.ruby-yield-source-protocol.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json --generated-on 2026-07-01",
-    "rerun the alternating Ruby-heavy query harness recorded in bench/recall_loss/ruby-yield-source-protocol-query-regression-2026-07-01.v1.json"
+    "python3 scripts/query-regression-harness.py --baseline-binary /tmp/nose-ruby-yield-main-target/release/nose --current-binary target/release/nose --baseline-source-ref origin/main --current-source-ref ruby-yield-source-protocol --iterations 15 --repo rubocop --repo rspec-core --repo sidekiq --repo rack --repo fastlane --repo sinatra --output bench/recall_loss/ruby-yield-source-protocol-query-regression-2026-07-01.v1.json"
   ]
 }

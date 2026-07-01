@@ -256,6 +256,7 @@ python3 scripts/query-regression-harness.py \
   --current-binary target/release/nose \
   --baseline-source-ref origin/main \
   --current-source-ref ruby-yield-source-protocol \
+  --iterations 15 \
   --repo rubocop --repo rspec-core --repo sidekiq \
   --repo rack --repo fastlane --repo sinatra \
   --output target/ruby-yield-source-protocol-query-regression.json
@@ -760,8 +761,8 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   records the matching 120-repo pricing: `801` Ruby yield occurrences across
   `17` repos are reporting-supported closed boundaries.
 - [ruby-yield-source-protocol-query-regression-2026-07-01.v1.json](ruby-yield-source-protocol-query-regression-2026-07-01.v1.json)
-  records the Ruby-heavy product query regression. The 6-repo alternating r9
-  aggregate median was `2697.80ms -> 2677.42ms` (`-0.76%`). `rspec-core`
+  records the Ruby-heavy product query regression. The 6-repo alternating r15
+  aggregate median was `2504.55ms -> 2574.79ms` (`+2.80%`). `rspec-core`
   changed one same-location 3-member HTML family's representative label from
   `pre` to `code` while keeping the family count stable.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)

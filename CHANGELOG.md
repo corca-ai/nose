@@ -192,8 +192,8 @@ break.
   stays distinct from `return a, b` and direct `block.call(a, b)` without
   opening exact admission. The 120-repo audit prices `801` occurrences across
   `17` repos, the checked `crates` recall-loss gate stays at `0` false merges,
-  and the Ruby-heavy query regression measured `2697.80ms -> 2677.42ms`
-  (`-0.76%`) with one stable-count `rspec-core` representative-label drift.
+  and the Ruby-heavy query regression measured `2504.55ms -> 2574.79ms`
+  (`+2.80%`) with one stable-count `rspec-core` representative-label drift.
 - Added non-JS async protocol near-channel mirror support. The dual-view async
   protocol capability now covers `await`, async-function boundaries, and Rust
   async blocks in near/witness builds, so Rust `async fn`/`.await` and Swift
