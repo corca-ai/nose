@@ -173,6 +173,13 @@ break.
   Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
   from `0` to `36` and async-function tags from `110` to `139` with `0` false
   merges.
+- Added Swift throwing callable source-protocol reporting. Body-bearing plain
+  and typed `throws`/`rethrows` functions and throwing closures now reuse the
+  existing `TryPropagation` protocol boundary, and async throwing callables
+  report both scheduling and exception-channel obligations without opening exact
+  admission. The 120-repo audit prices `7,008` throwing functions across `17`
+  repos and `169` throwing closures across `6` repos, while the broad Swift
+  `throws`/`try` bucket remains closed at `26,608` occurrences.
 - Added Ruby Thread/Fiber runtime reporting. `Thread.new`, `Thread.start`,
   `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse shared
   task-spawn, task-handle, cancellation/liveness, and concurrency scheduling

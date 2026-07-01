@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let is_async = swift_lambda_is_async(lo.text(node));
+    let protocol_modifiers = swift_lambda_protocol_modifiers(lo.text(node));
     let mut kids = Vec::new();
     if let Some(lambda_type) = node.child_by_field_name("type") {
         lower_lambda_type_params(lo, lambda_type, &mut kids);
@@ -18,20 +18,21 @@ pub(super) fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
             kids.push(lo.add(NodeKind::Param, Payload::Name(lo.sym(&name)), span, &[]));
         }
     }
-    let body = first_statements_child(node)
+    let body_node = first_statements_child(node);
+    let throwing_span = body_node.map_or(span, |body| lo.span(body));
+    let body = body_node
         .map(|body| lower_function_body(lo, body))
         .unwrap_or_else(|| lo.empty_block(span));
     dedupe_lambda_params(lo, &mut kids);
-    kids.push(if is_async {
-        lo.protocol_boundary(
-            span,
-            SourceProtocolKind::AsyncFunction,
-            "async_function",
-            &[body],
-        )
-    } else {
-        body
-    });
+    kids.push(wrap_swift_callable_protocols(
+        lo,
+        span,
+        throwing_span,
+        body,
+        protocol_modifiers.is_async,
+        protocol_modifiers.is_throwing,
+        "throwing_closure",
+    ));
     lo.add(NodeKind::Lambda, Payload::None, span, &kids)
 }
 pub(super) fn dedupe_lambda_params(lo: &Lowering, kids: &mut Vec<NodeId>) {
@@ -87,8 +88,28 @@ pub(super) fn lambda_parameter_names_from_text(text: &str) -> Vec<String> {
     Vec::new()
 }
 
+#[cfg(test)]
 pub(super) fn swift_lambda_is_async(text: &str) -> bool {
-    swift_lambda_header(text).is_some_and(swift_lambda_header_has_async)
+    swift_lambda_protocol_modifiers(text).is_async
+}
+
+struct SwiftLambdaProtocolModifiers {
+    is_async: bool,
+    is_throwing: bool,
+}
+
+fn swift_lambda_protocol_modifiers(text: &str) -> SwiftLambdaProtocolModifiers {
+    let Some(header) = swift_lambda_header(text) else {
+        return SwiftLambdaProtocolModifiers {
+            is_async: false,
+            is_throwing: false,
+        };
+    };
+    let header = swift_lambda_header_without_capture_list(header.trim());
+    SwiftLambdaProtocolModifiers {
+        is_async: swift_lambda_header_has_async(header),
+        is_throwing: swift_lambda_header_has_throwing(header),
+    }
 }
 
 fn swift_lambda_header(text: &str) -> Option<&str> {
@@ -101,8 +122,12 @@ fn swift_lambda_header(text: &str) -> Option<&str> {
 }
 
 fn swift_lambda_header_has_async(header: &str) -> bool {
-    let header = swift_lambda_header_without_capture_list(header.trim());
     swift_lambda_async_modifier_offset(header).is_some()
+}
+
+fn swift_lambda_header_has_throwing(header: &str) -> bool {
+    swift_lambda_modifier_offset(header, "throws").is_some()
+        || swift_lambda_modifier_offset(header, "rethrows").is_some()
 }
 
 fn swift_lambda_parameter_header(header: &str) -> &str {
@@ -259,18 +284,45 @@ fn swift_lambda_modifier_prefix_is_valid(before: &str) -> bool {
 }
 
 fn swift_lambda_modifier_tail_is_valid(keyword: &str, after: &str) -> bool {
-    if after.is_empty() || after.starts_with("->") {
+    if swift_lambda_throwing_modifier_tail_is_valid(after) {
         return true;
     }
     if keyword == "async" {
         return consume_swift_keyword(after, "throws")
             .or_else(|| consume_swift_keyword(after, "rethrows"))
-            .is_some_and(|rest| {
-                let rest = rest.trim_start();
-                rest.is_empty() || rest.starts_with("->")
-            });
+            .is_some_and(swift_lambda_throwing_modifier_tail_is_valid);
     }
     false
+}
+
+fn swift_lambda_throwing_modifier_tail_is_valid(after: &str) -> bool {
+    let after = after.trim_start();
+    if after.is_empty() || after.starts_with("->") {
+        return true;
+    }
+    let Some(rest) = consume_swift_parenthesized_prefix(after) else {
+        return false;
+    };
+    let rest = rest.trim_start();
+    rest.is_empty() || rest.starts_with("->")
+}
+
+fn consume_swift_parenthesized_prefix(text: &str) -> Option<&str> {
+    let mut depth = 0usize;
+    for (idx, ch) in text.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(&text[idx + ch.len_utf8()..]);
+                }
+            }
+            _ if depth == 0 => return None,
+            _ => {}
+        }
+    }
+    None
 }
 
 fn swift_lambda_has_top_level_colon(text: &str) -> bool {

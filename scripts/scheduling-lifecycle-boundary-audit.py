@@ -580,6 +580,28 @@ GO_CHANNEL_SELECT_DEFAULT = Pattern(
     "Go select defaults change blocking and liveness behavior",
     re.compile(r"(?!x)x"),
 )
+SWIFT_THROWING_FUNCTION = Pattern(
+    "swift",
+    "swift.error.throwing_function",
+    "func/init/subscript throws/rethrows",
+    "exception-channel",
+    "exception-channel-contract-missing",
+    "throwing callable error channel",
+    "Swift body-bearing throwing functions expose an error channel even when the body has no explicit try expression",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+SWIFT_THROWING_CLOSURE = Pattern(
+    "swift",
+    "swift.error.throwing_closure",
+    "closure throws/rethrows",
+    "exception-channel",
+    "exception-channel-contract-missing",
+    "throwing closure error channel",
+    "Swift throwing closures expose the same error-channel obligation as throwing functions and async throwing closures",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
 
 
 def all_known_patterns() -> tuple[Pattern, ...]:
@@ -624,6 +646,8 @@ def all_known_patterns() -> tuple[Pattern, ...]:
         GO_CHANNEL_RECEIVE_STATUS,
         GO_CHANNEL_SELECT_CASE,
         GO_CHANNEL_SELECT_DEFAULT,
+        SWIFT_THROWING_FUNCTION,
+        SWIFT_THROWING_CLOSURE,
     )
 
 
@@ -690,6 +714,26 @@ def self_test() -> None:
         "java",
     )
     assert JAVA_FUTURE_HANDLE_GET not in wildcard_shadow
+
+    swift_throwing = count_file(
+        "func f() throws -> Int { 1 }\n"
+        "init(value: Int) rethrows { try setup(value) }\n"
+        "func typed() throws(Failure) -> Int { 1 }\n"
+        "let handler = { request async throws -> Response in try await request.load() }\n"
+        "let typedHandler = { () throws(Failure) in try load() }\n",
+        "swift",
+    )
+    assert swift_throwing.get(SWIFT_THROWING_FUNCTION) == 3
+    assert swift_throwing.get(SWIFT_THROWING_CLOSURE) == 2
+
+    swift_type_only = count_file(
+        "let factory: (@escaping () async throws -> Void) -> Void = { closure in closure }\n"
+        "func accepts(_ body: () throws(Failure) -> Int) -> Int { 1 }\n"
+        "func returns() -> () throws(Failure) -> Int { { 1 } }\n",
+        "swift",
+    )
+    assert SWIFT_THROWING_FUNCTION not in swift_type_only
+    assert SWIFT_THROWING_CLOSURE not in swift_type_only
 
 
 def load_repos(manifest: Path) -> list[dict[str, Any]]:
@@ -769,7 +813,11 @@ def count_file(text: str, language: str) -> dict[Pattern, int]:
     for pattern in PATTERNS:
         if pattern.language != language:
             continue
-        if pattern.surface == "swift.async.closure":
+        if pattern.surface in {
+            "swift.async.closure",
+            "swift.error.throwing_function",
+            "swift.error.throwing_closure",
+        }:
             continue
         count = sum(1 for _ in pattern.regex.finditer(masked))
         if count:
@@ -790,6 +838,7 @@ def count_file(text: str, language: str) -> dict[Pattern, int]:
         counts.update(java_future_receiver_counts(masked))
     elif language == "swift":
         counts.update(swift_async_closure_counts(masked))
+        counts.update(swift_throwing_callable_counts(masked))
     return counts
 
 
@@ -800,6 +849,75 @@ def swift_async_closure_counts(text: str) -> dict[Pattern, int]:
         if swift_closure_header_has_top_level_async_modifier(header):
             count += 1
     return {pattern: count} if count else {}
+
+
+def swift_throwing_callable_counts(text: str) -> dict[Pattern, int]:
+    counts: dict[Pattern, int] = {}
+    function_count = sum(
+        1
+        for signature in iter_swift_body_bearing_callable_signatures(text)
+        if swift_callable_signature_has_top_level_throwing_modifier(signature)
+    )
+    closure_count = sum(
+        1
+        for header in iter_swift_closure_headers(text)
+        if swift_closure_header_has_top_level_throwing_modifier(header)
+    )
+    if function_count:
+        counts[SWIFT_THROWING_FUNCTION] = function_count
+    if closure_count:
+        counts[SWIFT_THROWING_CLOSURE] = closure_count
+    return counts
+
+
+def iter_swift_body_bearing_callable_signatures(text: str):
+    for match in re.finditer(r"\b(?:func|init|subscript)\b", text):
+        paren_depth = 0
+        bracket_depth = 0
+        brace_depth = 0
+        idx = match.end()
+        while idx < len(text):
+            current = text[idx]
+            if paren_depth == 0 and bracket_depth == 0 and brace_depth == 0:
+                if current == "{":
+                    yield text[match.start() : idx].strip()
+                    break
+                if current in {";", "}"}:
+                    break
+            if current == "(":
+                paren_depth += 1
+            elif current == ")":
+                paren_depth = max(0, paren_depth - 1)
+            elif current == "[":
+                bracket_depth += 1
+            elif current == "]":
+                bracket_depth = max(0, bracket_depth - 1)
+            elif current == "{":
+                brace_depth += 1
+            elif current == "}":
+                if brace_depth == 0:
+                    break
+                brace_depth -= 1
+            idx += 1
+
+
+def swift_callable_signature_has_top_level_throwing_modifier(signature: str) -> bool:
+    for keyword in ("throws", "rethrows"):
+        for idx, _ in iter_top_level_word_offsets(signature, keyword):
+            before = signature[:idx].rstrip()
+            after = signature[idx + len(keyword) :].lstrip()
+            if swift_callable_throwing_prefix_is_valid(before) and swift_callable_throwing_tail_is_valid(after):
+                return True
+    return False
+
+
+def swift_callable_throwing_prefix_is_valid(before: str) -> bool:
+    return not swift_has_top_level_return_arrow(before)
+
+
+def swift_callable_throwing_tail_is_valid(after: str) -> bool:
+    rest = swift_consume_typed_throws_tail(after).lstrip()
+    return not rest or rest.startswith("->") or is_word_at(rest, 0, "where")
 
 
 def iter_swift_closure_headers(text: str):
@@ -846,6 +964,17 @@ def swift_closure_header_has_top_level_async_modifier(header: str) -> bool:
         after = header[idx + len("async") :].lstrip()
         if swift_closure_modifier_prefix_is_valid(before) and swift_closure_async_tail_is_valid(after):
             return True
+    return False
+
+
+def swift_closure_header_has_top_level_throwing_modifier(header: str) -> bool:
+    header = swift_closure_header_without_capture_list(header)
+    for keyword in ("throws", "rethrows"):
+        for idx, _ in iter_top_level_word_offsets(header, keyword):
+            before = header[:idx].rstrip()
+            after = header[idx + len(keyword) :].lstrip()
+            if swift_closure_modifier_prefix_is_valid(before) and swift_closure_throwing_tail_is_valid(after):
+                return True
     return False
 
 
@@ -902,8 +1031,50 @@ def swift_closure_async_tail_is_valid(after: str) -> bool:
         return True
     for keyword in ("throws", "rethrows"):
         if is_word_at(after, 0, keyword):
-            rest = after[len(keyword) :].lstrip()
+            rest = swift_consume_typed_throws_tail(after[len(keyword) :]).lstrip()
             return not rest or rest.startswith("->")
+    return False
+
+
+def swift_closure_throwing_tail_is_valid(after: str) -> bool:
+    rest = swift_consume_typed_throws_tail(after).lstrip()
+    return not rest or rest.startswith("->")
+
+
+def swift_consume_typed_throws_tail(text: str) -> str:
+    text = text.lstrip()
+    if not text.startswith("("):
+        return text
+    depth = 0
+    for idx, ch in enumerate(text):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+            if depth == 0:
+                return text[idx + 1 :]
+    return text
+
+
+def swift_has_top_level_return_arrow(text: str) -> bool:
+    paren_depth = 0
+    bracket_depth = 0
+    brace_depth = 0
+    for idx, ch in enumerate(text):
+        if paren_depth == 0 and bracket_depth == 0 and brace_depth == 0 and text.startswith("->", idx):
+            return True
+        if ch == "(":
+            paren_depth += 1
+        elif ch == ")":
+            paren_depth = max(0, paren_depth - 1)
+        elif ch == "[":
+            bracket_depth += 1
+        elif ch == "]":
+            bracket_depth = max(0, bracket_depth - 1)
+        elif ch == "{":
+            brace_depth += 1
+        elif ch == "}":
+            brace_depth = max(0, brace_depth - 1)
     return False
 
 
@@ -1943,6 +2114,11 @@ def hard_negative_inventory() -> list[dict[str, Any]]:
             "class": "Swift structured-concurrency runtime names shadowed by local Task bindings, Task extensions, same-file task-group functions, or project-visible task-group functions",
             "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/swift.rs::swift_structured_concurrency_rejects_local_runtime_shadows",
             "status": "mapped-existing",
+        },
+        {
+            "class": "Swift throwing functions and closures versus non-throwing callables, plus async throwing callables that must retain both scheduling and exception-channel obligations",
+            "evidence": "crates/nose-frontend/src/swift/tests/async_protocols.rs::async_throwing_function_preserves_scheduling_and_exception_boundaries, ::async_throwing_closure_keeps_exception_boundary_inside_async_boundary, and crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/swift.rs::swift_throwing_callables_report_exception_obligations",
+            "status": "expanded-this-slice",
         },
         {
             "class": "Java CompletableFuture static calls without exact stdlib type identity, or with local/conflicting type names",

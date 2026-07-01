@@ -197,6 +197,21 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --generated-on 2026-07-01
 ```
 
+Build the Swift throwing callable source-protocol audit with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.swift-throwing-callable.crates.json
+
+python3 scripts/scheduling-lifecycle-boundary-audit.py \
+  --recall-loss-report target/recall-loss.swift-throwing-callable.crates.json \
+  --output target/scheduling-lifecycle-boundary-audit.swift-throwing-callable.json \
+  --generated-on 2026-07-01 \
+  --include-zero-surface swift.error.throwing_function \
+  --include-zero-surface swift.error.throwing_closure
+```
+
 Build the Rust async closure source-protocol audit with:
 
 ```sh
@@ -680,6 +695,23 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
   from `0` to `36` and async-function tags from `110` to `139` with `0` false
   merges.
+- [swift-throwing-callable-protocol-reporting-2026-07-01.v1.json](swift-throwing-callable-protocol-reporting-2026-07-01.v1.json)
+  records the Swift throwing callable source-protocol slice. It reuses the
+  existing `TryPropagation` source protocol for body-bearing plain and typed
+  `throws`/`rethrows` functions and throwing closures, including async throwing
+  callables, without opening exact admission. The 120-repo audit prices `7,008`
+  throwing functions across `17` repos and `169` throwing closures across `6`
+  repos; the broad `throws`/`try` bucket remains closed at `26,608`
+  occurrences. The checked `crates` gate remains at `0` false merges and `0`
+  canon preservation violations.
+- [swift-throwing-callable-query-regression-2026-07-01.v1.json](swift-throwing-callable-query-regression-2026-07-01.v1.json)
+  records the product query-regression evidence for the same Swift slice. It
+  compares `origin/main@01ed07fc` with `swift-throwing-callable-protocol@0b105f87`
+  on six Swift repos using `nose query <repo> all top=0 --mode semantic
+  --format json`. The official sequential r15 compare had small-repo runtime
+  investigation triggers but no output drift; the paired alternating r15 run
+  measured `898.66ms -> 890.29ms` aggregate wall-clock medians (`-0.93%`) with
+  identical product JSON hashes for every repo.
 - [rust-async-closure-source-protocol-2026-07-01.v1.json](rust-async-closure-source-protocol-2026-07-01.v1.json)
   records the Rust async closure source-protocol parity slice. It reuses
   `AsyncFunction` for `async |...|` and `async move |...|` closures without

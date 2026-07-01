@@ -68,6 +68,41 @@ fn swift_structured_concurrency_reports_shared_obligations() {
 }
 
 #[test]
+fn swift_throwing_callables_report_exception_obligations() {
+    let throwing_function = missing_evidence_for_protocol(
+        "throwing.swift",
+        "func risky() throws -> Int {\n  return 1\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::TryPropagation,
+    );
+    let async_throwing_function = missing_evidence_for_protocol(
+        "throwing.swift",
+        "func risky() async throws -> Int {\n  return 1\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::AsyncFunction,
+    );
+    let throwing_closure = missing_evidence_for_protocol(
+        "throwing.swift",
+        "func install(route: Route) {\n  route.get(\"x\") { req throws -> String in\n    return req.value\n  }\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::TryPropagation,
+    );
+    let async_throwing_closure = missing_evidence_for_protocol(
+        "throwing.swift",
+        "func install(route: Route) {\n  route.get(\"x\") { req async throws -> String in\n    return req.value\n  }\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::AsyncFunction,
+    );
+
+    assert!(throwing_function.contains(&"exception-channel-contract"));
+    assert!(throwing_closure.contains(&"exception-channel-contract"));
+    for labels in [&async_throwing_function, &async_throwing_closure] {
+        assert!(labels.contains(&"async-function-scheduling-contract"));
+        assert!(labels.contains(&"exception-channel-contract"));
+    }
+}
+
+#[test]
 fn swift_structured_concurrency_rejects_local_runtime_shadows() {
     let swift_shadowed_sleep = runtime_boundary_evidence_for_lang_call(
         "runtime.swift",

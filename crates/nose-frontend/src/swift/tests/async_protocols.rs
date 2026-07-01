@@ -51,6 +51,31 @@ func install() {
     );
 }
 
+fn expect_async_boundary_contains_throwing_boundary(
+    il: &Il,
+    interner: &Interner,
+    throwing_tag: &str,
+    message: &str,
+) {
+    let async_node = crate::test_helpers::expect_raw_protocol_boundary(
+        il,
+        interner,
+        "async_function",
+        SourceProtocolKind::AsyncFunction,
+    );
+    let throwing_node = crate::test_helpers::expect_raw_protocol_boundary(
+        il,
+        interner,
+        throwing_tag,
+        SourceProtocolKind::TryPropagation,
+    );
+
+    assert!(
+        il.children(async_node).contains(&throwing_node),
+        "{message}"
+    );
+}
+
 #[test]
 fn async_function_preserves_source_backed_async_boundary() {
     let (il, interner) = il_with_interner(
@@ -66,6 +91,113 @@ func fetch(_ key: String) async -> Int {
         &interner,
         "async_function",
         SourceProtocolKind::AsyncFunction,
+    );
+}
+
+#[test]
+fn throwing_function_preserves_source_backed_exception_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func risky(_ key: String) throws -> Int {
+  return key.count
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "throwing_function",
+        SourceProtocolKind::TryPropagation,
+    );
+}
+
+#[test]
+fn typed_throwing_function_preserves_source_backed_exception_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func risky(_ key: String) throws(Failure) -> Int {
+  return key.count
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "throwing_function",
+        SourceProtocolKind::TryPropagation,
+    );
+}
+
+#[test]
+fn function_typed_throwing_parameter_does_not_create_throwing_function_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func install(_ body: () throws(Failure) -> Int) -> Int {
+  return 1
+}
+"#,
+    );
+    let raw = raw_names(&il, &interner);
+
+    assert!(
+        !raw.iter().any(|name| name == "throwing_function"),
+        "throwing function-typed parameters should not make the function itself throwing: {raw:?}"
+    );
+}
+
+#[test]
+fn rethrowing_function_preserves_source_backed_exception_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func call(_ body: () throws -> Int) rethrows -> Int {
+  return try body()
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "throwing_function",
+        SourceProtocolKind::TryPropagation,
+    );
+}
+
+#[test]
+fn async_typed_throwing_function_preserves_scheduling_and_exception_boundaries() {
+    let (il, interner) = il_with_interner(
+        r#"
+func fetch(_ key: String) async throws(Failure) -> Int {
+  return key.count
+}
+"#,
+    );
+
+    expect_async_boundary_contains_throwing_boundary(
+        &il,
+        &interner,
+        "throwing_function",
+        "async typed-throwing function should keep the exception channel inside the async function boundary",
+    );
+}
+
+#[test]
+fn async_throwing_function_preserves_scheduling_and_exception_boundaries() {
+    let (il, interner) = il_with_interner(
+        r#"
+func fetch(_ key: String) async throws -> Int {
+  return key.count
+}
+"#,
+    );
+
+    expect_async_boundary_contains_throwing_boundary(
+        &il,
+        &interner,
+        "throwing_function",
+        "async throwing function should keep the exception channel inside the async function boundary",
     );
 }
 
@@ -93,6 +225,99 @@ func install(_ route: Route) {
             node.kind == NodeKind::Param && node.payload == Payload::Name(async_sym)
         }),
         "async closure keyword should not lower as a lambda parameter"
+    );
+}
+
+#[test]
+fn throwing_closure_preserves_source_backed_exception_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func install(_ route: Route) {
+  route.get("x") { req throws -> String in
+    return req.value
+  }
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "throwing_closure",
+        SourceProtocolKind::TryPropagation,
+    );
+}
+
+#[test]
+fn typed_throwing_closure_preserves_exception_boundary_without_bogus_param() {
+    let (il, interner) = il_with_interner(
+        r#"
+func install(_ body: () throws(Failure) -> Int) {
+  let value = Result(catching: { () throws(Failure) in
+    return try body()
+  })
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "throwing_closure",
+        SourceProtocolKind::TryPropagation,
+    );
+
+    let params: Vec<_> = il
+        .nodes
+        .iter()
+        .filter_map(|node| match (node.kind, node.payload) {
+            (NodeKind::Param, Payload::Name(name)) => Some(interner.resolve(name).to_string()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        !params.iter().any(|name| name.starts_with("throws(")),
+        "typed throws closure modifier should not leak into parameter names: {params:?}"
+    );
+}
+
+#[test]
+fn async_typed_throwing_closure_keeps_exception_boundary_inside_async_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func install(_ route: Route) {
+  route.get("x") { req async throws(Failure) -> String in
+    return req.value
+  }
+}
+"#,
+    );
+
+    expect_async_boundary_contains_throwing_boundary(
+        &il,
+        &interner,
+        "throwing_closure",
+        "async typed-throwing closure should keep the exception channel inside the async function boundary",
+    );
+}
+
+#[test]
+fn async_throwing_closure_keeps_exception_boundary_inside_async_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func install(_ route: Route) {
+  route.get("x") { req async throws -> String in
+    return req.value
+  }
+}
+"#,
+    );
+
+    expect_async_boundary_contains_throwing_boundary(
+        &il,
+        &interner,
+        "throwing_closure",
+        "async throwing closure should keep the exception channel inside the async function boundary",
     );
 }
 

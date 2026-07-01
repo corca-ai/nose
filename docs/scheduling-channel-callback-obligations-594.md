@@ -271,6 +271,15 @@ Swift-only feature row. The 120-repo audit prices `100` async closures across
 `4` repos and `51` async-let bindings across `7` repos. Alamofire/Swift
 NIO/Vapor spot checks move `task_spawn` raw protocol tags from `0` to `36` and
 async-function tags from `110` to `139` with `0` false merges.
+The follow-up [Swift throwing callable artifact](../bench/recall_loss/swift-throwing-callable-protocol-reporting-2026-07-01.v1.json)
+keeps exact admission closed while extending the existing `TryPropagation`
+source protocol to body-bearing plain and typed `throws`/`rethrows` functions
+and throwing closures. Async throwing callables now report scheduling and
+exception-channel obligations together instead of losing the declaration-level
+error channel when the body has no explicit `try`. The 120-repo audit prices
+`7,008` throwing functions across `17` repos and `169` throwing closures across
+`6` repos; the broad `throws`/`try` bucket remains closed at `26,608`
+occurrences.
 The follow-up [Rust async closure source-protocol artifact](../bench/recall_loss/rust-async-closure-source-protocol-2026-07-01.v1.json)
 applies the same async callable boundary to Rust `async |...|` and
 `async move |...|` closures without adding a Rust-only feature. Rust async

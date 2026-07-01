@@ -2379,6 +2379,21 @@ and Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
 from `0` to `36` plus async-function tags from `110` to `139` with `0` false
 merges.
 
+2026-07-01 Swift throwing callable source-protocol note:
+The [swift-throwing-callable-protocol-reporting-2026-07-01.v1.json](../bench/recall_loss/swift-throwing-callable-protocol-reporting-2026-07-01.v1.json)
+artifact extends Swift error-channel reporting by reusing the existing
+`TryPropagation` source protocol for body-bearing plain and typed
+`throws`/`rethrows` functions and throwing closures. Async throwing callables
+keep the `AsyncFunction` boundary outside the error-channel boundary, so
+scheduling and exception obligations are both visible from the async boundary.
+Exact admission remains closed. The 120-repo audit prices `7,008` throwing
+functions across `17` repos and `169` throwing closures across `6` repos, while
+broad `throws`/`try` remains closed at `26,608` occurrences.
+The paired [Swift throwing callable query-regression artifact](../bench/recall_loss/swift-throwing-callable-query-regression-2026-07-01.v1.json)
+records no product output drift and `-0.93%` aggregate wall-clock movement on a
+six-repo Swift subset, after the official sequential r15 compare's small-repo
+runtime triggers were checked with alternating baseline/current runs.
+
 2026-07-01 Rust async closure source-protocol note:
 The [rust-async-closure-source-protocol-2026-07-01.v1.json](../bench/recall_loss/rust-async-closure-source-protocol-2026-07-01.v1.json)
 artifact extends Rust async callable source reporting without adding a Rust-only

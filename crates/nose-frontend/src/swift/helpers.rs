@@ -71,6 +71,37 @@ pub(super) fn swift_for_async_iteration_kind(text: &str) -> SwiftForAsyncIterati
     SwiftForAsyncIterationKind::Sync
 }
 
+pub(super) fn wrap_swift_callable_protocols(
+    lo: &mut Lowering,
+    span: Span,
+    throwing_span: Span,
+    body: NodeId,
+    is_async: bool,
+    is_throwing: bool,
+    throwing_tag: &str,
+) -> NodeId {
+    let body = if is_throwing {
+        lo.protocol_boundary(
+            throwing_span,
+            SourceProtocolKind::TryPropagation,
+            throwing_tag,
+            &[body],
+        )
+    } else {
+        body
+    };
+    if is_async {
+        lo.protocol_boundary(
+            span,
+            SourceProtocolKind::AsyncFunction,
+            "async_function",
+            &[body],
+        )
+    } else {
+        body
+    }
+}
+
 pub(super) fn swift_for_try_keyword_span(text: &str, span: Span) -> Span {
     let Some(start) = swift_for_try_keyword_offset(text) else {
         return span;

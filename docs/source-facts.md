@@ -126,16 +126,21 @@ fall back to a side-table mirror when source evidence is missing.
   syntax provenance only: recall-loss diagnostics attribute unmodeled Rust
   macros such as `format!` to `source-surface-proof-missing` until a library or
   macro-expansion contract proves their behavior.
-- Swift lowering emits source facts for async function, async `await`, and
-  `try` propagation boundaries.
+- Swift lowering emits source facts for async function, async `await`,
+  `async let`, async iteration, and `try` propagation boundaries. Body-bearing
+  plain and typed `throws`/`rethrows` functions and throwing closures reuse the
+  same `TryPropagation` protocol boundary so declaration-level error channels
+  stay visible even when the body has no explicit `try`.
 - JS/TS, Python, Rust, and Swift async functions preserve
   `Raw("async_function", body)`, so an async producer without an `await`
   expression is still fail-closed. JS/TS, Python, Rust, and Swift `await`
   lowering preserves `Raw("await", value)` instead of erasing the source
   operation. Python `async for` statements, async comprehensions, and
   `async with` preserve source-backed protocol boundaries for async iterator
-  and async context-manager lifecycle obligations. JS/TS and Python `yield`
-  preserves `Raw("yield", value)`. Rust
+  and async context-manager lifecycle obligations. Swift `async let` preserves
+  `Raw("task_spawn", assign)`, and Swift throwing callables preserve
+  `Raw("throwing_function" | "throwing_closure", body)`. JS/TS and Python
+  `yield` preserves `Raw("yield", value)`. Rust
   `async {}` and `?` are preserved as
   `Raw("async_block", body)` and `Raw("try", value)`. Exact async/sync,
   generator, and error-propagation convergence stays closed until a future

@@ -592,8 +592,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `Source::Protocol(Await)` at that source span. JS/TS and Python `yield`
   expressions emit `Source::Protocol(Yield)`. Rust `async {}` and `?` emit
   `Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. Rust
-  and Swift async closures reuse `Source::Protocol(AsyncFunction)`, and Swift
-  `async let` bindings emit `Source::Protocol(TaskSpawn)` so child-task
+  and Swift async closures reuse `Source::Protocol(AsyncFunction)`, Swift plain
+  and typed throwing functions/closures reuse
+  `Source::Protocol(TryPropagation)`, and Swift `async let` bindings emit
+  `Source::Protocol(TaskSpawn)` so child-task
   scheduling, handle lifecycle, and cancellation/liveness remain fail-closed.
   These are future protocol/demand proof anchors, not evidence that the source
   operation is equivalent to its operand or body. Go `go`, `defer`, channel

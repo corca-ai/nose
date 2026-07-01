@@ -1,0 +1,113 @@
+{
+  "artifact": "swift-throwing-callable-query-regression-2026-07-01.v1",
+  "baseline_binary": {
+    "binary_path": "/private/tmp/nose-perf-main-target/release/nose",
+    "build_ref": "origin/main@01ed07fc",
+    "sha256": "1a417d53f376fc6618fcef714085b166f5407c8047c6d4ffded650d1a7d78291",
+    "size_bytes": 21028976,
+    "source_dirty": false,
+    "source_git_describe": "v0.16.0-127-g01ed07fc",
+    "source_git_sha": "01ed07fc99ede72e8663c3f4d1dfbae236e58a81",
+    "version": "nose 0.16.0"
+  },
+  "command_shape": "nose query <repo> all top=0 --mode semantic --format json",
+  "conclusion": "No product output drift and no large performance degradation observed. The official sequential compare produced small-repo runtime triggers, but paired alternating r15 on the same product command measured -0.9% aggregate wall-clock delta with identical product JSON hashes.",
+  "current_binary": {
+    "binary_path": "/Users/ak/prjs/cc/nose/target/release/nose",
+    "build_ref": "swift-throwing-callable-protocol@0b105f87",
+    "sha256": "04fe5cf2025a8fa24c6f73937d6abd336a281588a38335100c059ba4e34cc5c5",
+    "size_bytes": 21028976,
+    "source_dirty": false,
+    "source_git_describe": "v0.16.0-128-g0b105f87",
+    "source_git_sha": "0b105f87fff075f170f82f89f82267266768b036",
+    "version": "nose 0.16.0"
+  },
+  "generated_on": "2026-07-01",
+  "harness_compare": {
+    "output_drift_observed": false,
+    "repos_compared": 6,
+    "repos_with_investigation_triggers": 3,
+    "summary_copied_from": "target/issue635/query-compare-swift-throwing-r15.md (scratch input; relevant trigger text copied into this artifact)",
+    "trigger_summary": [
+      "runtime: lower 26.0ms -> 33.3ms (+28%); normalize+extract 17.7ms -> 23.5ms (+33%); parse+lower 22.2ms -> 29.7ms (+34%); wall 55.5ms -> 72.3ms (+30%)",
+      "runtime: lower 42.9ms -> 56.6ms (+32%); parse+lower 37.2ms -> 51.0ms (+37%); query_render 23.4ms -> 31.9ms (+36%)",
+      "runtime: lower 14.4ms -> 21.3ms (+48%); parse+lower 11.5ms -> 17.9ms (+56%); wall 27.5ms -> 39.6ms (+44%)"
+    ]
+  },
+  "paired_alternating_medians": {
+    "all_json_byte_sets_equal": true,
+    "all_product_json_hashes_equal": true,
+    "baseline_wall_ms_sum": 898.66,
+    "current_wall_ms_sum": 890.29,
+    "delta_pct": -0.93,
+    "order": "per-repo alternating baseline/current pairs",
+    "per_repo": [
+      {
+        "baseline_wall_ms_median": 71.65,
+        "current_wall_ms_median": 70.0,
+        "delta_pct": -2.31,
+        "json_bytes_equal": true,
+        "product_json_hash_equal": true,
+        "repo": "nimble"
+      },
+      {
+        "baseline_wall_ms_median": 192.61,
+        "current_wall_ms_median": 186.71,
+        "delta_pct": -3.06,
+        "json_bytes_equal": true,
+        "product_json_hash_equal": true,
+        "repo": "quick"
+      },
+      {
+        "baseline_wall_ms_median": 349.32,
+        "current_wall_ms_median": 345.92,
+        "delta_pct": -0.97,
+        "json_bytes_equal": true,
+        "product_json_hash_equal": true,
+        "repo": "swift-collections"
+      },
+      {
+        "baseline_wall_ms_median": 30.13,
+        "current_wall_ms_median": 30.75,
+        "delta_pct": 2.08,
+        "json_bytes_equal": true,
+        "product_json_hash_equal": true,
+        "repo": "swift-metrics"
+      },
+      {
+        "baseline_wall_ms_median": 29.5,
+        "current_wall_ms_median": 29.46,
+        "delta_pct": -0.12,
+        "json_bytes_equal": true,
+        "product_json_hash_equal": true,
+        "repo": "swift-service-lifecycle"
+      },
+      {
+        "baseline_wall_ms_median": 225.46,
+        "current_wall_ms_median": 227.45,
+        "delta_pct": 0.88,
+        "json_bytes_equal": true,
+        "product_json_hash_equal": true,
+        "repo": "swiftlint"
+      }
+    ]
+  },
+  "purpose": "Durable product query-regression and performance evidence for Swift throwing callable source-protocol reporting.",
+  "repeats": 15,
+  "repos_root": "bench/repos",
+  "schema_version": 1,
+  "sequential_baseline_format_medians": {
+    "baseline_wall_ms_sum": 894.28,
+    "current_wall_ms_sum": 952.45,
+    "delta_pct": 6.5,
+    "note": "Sequential baseline/current runs are retained because they use the official query_regression baseline format, but wall-clock noise can overstate small-repo movement."
+  },
+  "subset": [
+    "nimble",
+    "quick",
+    "swift-collections",
+    "swift-metrics",
+    "swift-service-lifecycle",
+    "swiftlint"
+  ]
+}

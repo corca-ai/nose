@@ -128,7 +128,7 @@ pub(super) fn record_typealias_shadow(lo: &mut Lowering, node: TsNode) {
 pub(super) fn lower_function(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     let span = lo.span(node);
     let name = swift_decl_name(lo, node);
-    let is_async = crate::lower::node_has_child_kind(node, "async");
+    let protocol_modifiers = swift_function_protocol_modifiers(node);
     let mut kids = Vec::new();
     for param in Lowering::named_children(node)
         .into_iter()
@@ -139,17 +139,17 @@ pub(super) fn lower_function(lo: &mut Lowering, node: TsNode, method: bool) -> N
     let body_node = node.child_by_field_name("body");
     let body = body_node
         .map(|body| {
+            let body_span = lo.span(body);
             let body = lower_function_body(lo, body);
-            if is_async {
-                lo.protocol_boundary(
-                    span,
-                    SourceProtocolKind::AsyncFunction,
-                    "async_function",
-                    &[body],
-                )
-            } else {
-                body
-            }
+            wrap_swift_callable_protocols(
+                lo,
+                span,
+                body_span,
+                body,
+                protocol_modifiers.is_async,
+                protocol_modifiers.is_throwing,
+                "throwing_function",
+            )
         })
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
@@ -163,6 +163,33 @@ pub(super) fn lower_function(lo: &mut Lowering, node: TsNode, method: bool) -> N
     lo.push_unit_with_origin(func, kind, name, origin);
     func
 }
+
+struct SwiftFunctionProtocolModifiers {
+    is_async: bool,
+    is_throwing: bool,
+}
+
+fn swift_function_protocol_modifiers(node: TsNode) -> SwiftFunctionProtocolModifiers {
+    let mut modifiers = SwiftFunctionProtocolModifiers {
+        is_async: false,
+        is_throwing: false,
+    };
+    for index in 0..node.child_count() {
+        let Some(child) = node.child(index) else {
+            continue;
+        };
+        match child.kind() {
+            "async" => modifiers.is_async = true,
+            "throws" | "rethrows" | "throws_clause" => modifiers.is_throwing = true,
+            _ => {}
+        }
+        if modifiers.is_async && modifiers.is_throwing {
+            break;
+        }
+    }
+    modifiers
+}
+
 pub(super) fn swift_callable_origin(node: TsNode, method: bool, has_body: bool) -> UnitOrigin {
     if node.kind().starts_with("protocol_") && !has_body {
         return UnitOrigin::new(
