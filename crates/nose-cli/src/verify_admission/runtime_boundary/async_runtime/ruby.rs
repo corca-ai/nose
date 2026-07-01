@@ -1,5 +1,5 @@
 use super::push_task_spawn_missing_evidence;
-use nose_il::{Interner, NodeId, NodeKind};
+use nose_il::{Interner, NodeId, NodeKind, Payload};
 
 pub(super) fn push_ruby_thread_fiber_runtime_call_missing_evidence(
     il: &nose_il::Il,
@@ -34,7 +34,7 @@ fn ruby_runtime_root_unshadowed(il: &nose_il::Il, interner: &Interner, root: &st
 fn ruby_runtime_root_shadowed(il: &nose_il::Il, interner: &Interner, root: &str) -> bool {
     il.units.iter().any(|unit| {
         unit.name
-            .is_some_and(|symbol| interner.resolve(symbol) == root)
+            .is_some_and(|symbol| name_shadows_runtime_root(interner.resolve(symbol), root))
     }) || (0..il.nodes.len()).any(|idx| {
         let node = NodeId(idx as u32);
         match il.kind(node) {
@@ -42,11 +42,31 @@ fn ruby_runtime_root_shadowed(il: &nose_il::Il, interner: &Interner, root: &str)
                 .children(node)
                 .first()
                 .copied()
-                .is_some_and(|lhs| super::super::node_defines_name(il, interner, lhs, root)),
+                .is_some_and(|lhs| node_name_shadows_runtime_root(il, interner, lhs, root)),
             NodeKind::Module | NodeKind::Block | NodeKind::Param => {
-                super::super::node_defines_name(il, interner, node, root)
+                node_name_shadows_runtime_root(il, interner, node, root)
             }
             _ => false,
         }
     })
+}
+
+fn node_name_shadows_runtime_root(
+    il: &nose_il::Il,
+    interner: &Interner,
+    node: NodeId,
+    root: &str,
+) -> bool {
+    match il.node(node).payload {
+        Payload::Name(symbol) => name_shadows_runtime_root(interner.resolve(symbol), root),
+        Payload::Cid(cid) => il
+            .cid_names
+            .get(cid as usize)
+            .is_some_and(|symbol| name_shadows_runtime_root(interner.resolve(*symbol), root)),
+        _ => false,
+    }
+}
+
+fn name_shadows_runtime_root(name: &str, root: &str) -> bool {
+    name == root || name.rsplit("::").next() == Some(root)
 }

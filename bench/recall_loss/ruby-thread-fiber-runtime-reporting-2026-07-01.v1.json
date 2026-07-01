@@ -72,10 +72,10 @@
   ],
   "current_crates_gate": {
     "report": "target/recall-loss.ruby-thread-fiber-runtime.crates.json",
-    "total_units": 6841,
-    "interpretable_units": 951,
-    "excluded_units": 5890,
-    "admission_rejections": 795,
+    "total_units": 6843,
+    "interpretable_units": 952,
+    "excluded_units": 5891,
+    "admission_rejections": 796,
     "false_merges": 0,
     "lossy_fingerprint_collisions": 0,
     "advisory_disagreements": 4,
@@ -100,7 +100,8 @@
         "total_units": 136,
         "interpretable_units": 38,
         "excluded_units": 98,
-        "admission_rejections": 1,
+        "admission_rejections": 37,
+        "ruby_task_spawn_admission_rejections": 1,
         "oracle_excluded_task_spawn_units": 4,
         "false_merges": 0,
         "canon_preservation_violations": 0
@@ -123,10 +124,12 @@
     "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.ruby-thread-fiber-runtime.release2.crates.json"
   ],
   "release_verify_timing": {
-    "baseline_reference": "Python/Swift async runtime breadth warm release verify real_seconds = 1.06",
-    "cold_or_first_real_seconds": 1.70,
-    "warm_real_seconds": 1.03,
-    "assessment": "No degradation observed; the warm run is slightly below the previous 1.06s reference and the implementation adds only a small Ruby-language runtime branch."
+    "baseline_reference": "origin/main release verify crates warm real_seconds = 1.59",
+    "baseline_first_real_seconds": 1.88,
+    "baseline_warm_real_seconds": 1.59,
+    "current_first_real_seconds": 1.78,
+    "current_warm_real_seconds": 1.46,
+    "assessment": "Paired local release timing did not show a large regression; current warm timing was below the origin/main warm timing in this run."
   },
   "next_exact_work_policy": {
     "status": "closed_until_evidence",

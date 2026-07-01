@@ -33,11 +33,19 @@ fn ruby_thread_and_fiber_calls_require_unshadowed_runtime_roots() {
             "Thread.start",
         ),
         (
+            "module M\n  def self.run\n    Thread.new { work }\n  end\nend\nclass M::Thread\nend\n",
+            "Thread.new",
+        ),
+        (
             "Fiber = Struct.new(:value)\ndef run\n  Fiber.new { work }\nend\n",
             "Fiber.new",
         ),
         (
             "class Fiber\nend\ndef run\n  Fiber.schedule { work }\nend\n",
+            "Fiber.schedule",
+        ),
+        (
+            "module M\n  def self.run\n    Fiber.schedule { work }\n  end\nend\nclass M::Fiber\nend\n",
             "Fiber.schedule",
         ),
     ] {

@@ -79,12 +79,12 @@
       "max_violations": 0
     },
     "summary": {
-      "admission_rejections": 795,
+      "admission_rejections": 796,
       "canon_checked": 97,
       "canon_preservation_violations": 0,
-      "excluded_units": 5890,
-      "interpretable_units": 951,
-      "total_units": 6841
+      "excluded_units": 5891,
+      "interpretable_units": 952,
+      "total_units": 6843
     }
   },
   "generated_on": "2026-07-01",
