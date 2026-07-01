@@ -264,6 +264,19 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --generated-on 2026-07-01
 ```
 
+Build the Java `Executor`/`Future` wildcard-import receiver audit with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.java-wildcard-executor-future.crates.json
+
+python3 scripts/scheduling-lifecycle-boundary-audit.py \
+  --recall-loss-report target/recall-loss.java-wildcard-executor-future.crates.json \
+  --output target/scheduling-lifecycle-boundary-audit.java-wildcard-executor-future.json \
+  --generated-on 2026-07-01
+```
+
 Build the Go channel/goroutine/defer obligation audit with:
 
 ```sh
@@ -631,6 +644,13 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   source prevalence from `143,178` to `143,188` while splitting `40` lexical
   Java future reporting candidates out of the broad
   `CompletableFuture` bucket and leaving `276` broad mentions closed.
+- [scheduling-lifecycle-boundary-audit-java-wildcard-executor-future-2026-07-01.v1.json](scheduling-lifecycle-boundary-audit-java-wildcard-executor-future-2026-07-01.v1.json)
+  records the Java `java.util.concurrent.*` receiver-domain follow-up. It keeps
+  exact admission closed while allowing wildcard-derived import evidence to
+  prove `Future`/`CompletableFuture` and executor receiver declarations when no
+  local type or explicit same-name import conflicts. On the current
+  `origin/main` baseline, Java reporting-supported receiver-method candidates
+  rise from `858` to `1,093` (`+235`) across the pinned 120-repo corpus.
 - [scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
   records the Go channel/goroutine/defer reporting-only refinement. It keeps
   exact admission closed while splitting Go protocol-node pricing into `4,294`

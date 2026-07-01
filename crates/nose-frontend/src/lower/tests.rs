@@ -5,6 +5,7 @@ use super::*;
 mod core_factories;
 mod core_misc;
 mod param_domains;
+mod param_domains_java;
 mod post_lower_free_names;
 mod post_lower_properties;
 mod post_lower_python_iterator_builtins;

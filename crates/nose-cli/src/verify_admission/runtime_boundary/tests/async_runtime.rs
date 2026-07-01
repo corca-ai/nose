@@ -9,6 +9,7 @@ use super::super::runtime_boundary_missing_evidence_with_context;
 
 mod imported_bindings;
 mod java;
+mod java_static_wildcard;
 mod python;
 mod ruby;
 mod rust_block_on;

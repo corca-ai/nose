@@ -116,13 +116,16 @@ pub(super) fn lower_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let path = text.strip_prefix("import ")?.trim();
     if path.ends_with(".*") {
         let module = path.trim_end_matches(".*").trim();
-        lo.record_evidence(
+        let wildcard_evidence = lo.record_evidence(
             EvidenceAnchor::source_span(span),
             EvidenceKind::Import(ImportEvidenceKind::Wildcard {
                 module_hash: stable_symbol_hash(module),
             }),
             "java_wildcard_import",
         );
+        if module == "java.util.concurrent" {
+            record_java_concurrent_wildcard_type_domain_aliases(lo, span, wildcard_evidence);
+        }
         return None;
     }
     let (module, exported) = path.rsplit_once('.')?;
@@ -162,6 +165,33 @@ fn record_java_type_domain_alias(
     }
     lo.clear_type_domain_alias(exported);
 }
+
+fn record_java_concurrent_wildcard_type_domain_aliases(
+    lo: &mut Lowering,
+    span: Span,
+    wildcard_evidence: nose_il::EvidenceId,
+) {
+    for exported in [
+        "CompletableFuture",
+        "CompletionStage",
+        "Future",
+        "ScheduledFuture",
+        "Executor",
+        "ExecutorService",
+        "ScheduledExecutorService",
+    ] {
+        let import_evidence = crate::lower::import_binding_evidence_only_with_dependencies(
+            lo,
+            span,
+            exported,
+            "java.util.concurrent",
+            exported,
+            vec![wildcard_evidence],
+        );
+        record_java_type_domain_alias(lo, "java.util.concurrent", exported, import_evidence);
+    }
+}
+
 /// `class`/`interface`/`enum` → a `Class` unit; its methods become units too.
 pub(super) fn lower_type(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);

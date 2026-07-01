@@ -438,7 +438,7 @@ JAVA_FUTURE_HANDLE_GET = Pattern(
     "success-error-result-channel",
     "future-settled-value-channel-contract-missing",
     "future handle get",
-    "Exact-import-backed Java Future receivers expose blocking settled-value and exception channels",
+    "Import-backed Java Future receivers expose blocking settled-value and exception channels",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -449,7 +449,7 @@ JAVA_FUTURE_HANDLE_CANCEL = Pattern(
     "cancellation-liveness-boundary",
     "task-cancellation-liveness-contract-missing",
     "future handle cancellation",
-    "Exact-import-backed Java Future receivers expose cancellation and task-handle liveness boundaries",
+    "Import-backed Java Future receivers expose cancellation and task-handle liveness boundaries",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -460,7 +460,7 @@ JAVA_FUTURE_HANDLE_STATUS = Pattern(
     "lifecycle-materialization-boundary",
     "task-handle-lifecycle-contract-missing",
     "future handle lifecycle",
-    "Exact-import-backed Java Future receivers expose task-handle lifecycle status",
+    "Import-backed Java Future receivers expose task-handle lifecycle status",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -471,7 +471,7 @@ JAVA_EXECUTOR_EXECUTE = Pattern(
     "scheduling-boundary",
     "task-spawn-scheduling-contract-missing",
     "executor runnable scheduling",
-    "Exact-import-backed Java Executor receivers schedule callback execution without returning a task handle",
+    "Import-backed Java Executor receivers schedule callback execution without returning a task handle",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -482,7 +482,7 @@ JAVA_EXECUTOR_SUBMIT = Pattern(
     "scheduling-boundary",
     "task-spawn-scheduling-contract-missing",
     "executor service future scheduling",
-    "Exact-import-backed Java ExecutorService receivers schedule callbacks and return Future handles",
+    "Import-backed Java ExecutorService receivers schedule callbacks and return Future handles",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -493,7 +493,7 @@ JAVA_EXECUTOR_INVOKE_ALL = Pattern(
     "success-error-result-channel",
     "async-aggregate-all-completion-contract-missing",
     "executor service all-completion aggregate",
-    "Exact-import-backed Java ExecutorService invokeAll waits for all submitted tasks and returns Future result channels",
+    "Import-backed Java ExecutorService invokeAll waits for all submitted tasks and returns Future result channels",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -504,7 +504,7 @@ JAVA_EXECUTOR_INVOKE_ANY = Pattern(
     "cancellation-liveness-boundary",
     "async-aggregate-first-completion-contract-missing",
     "executor service first-completion aggregate",
-    "Exact-import-backed Java ExecutorService invokeAny exposes first-success completion, cancellation, and exception boundaries",
+    "Import-backed Java ExecutorService invokeAny exposes first-success completion, cancellation, and exception boundaries",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -515,7 +515,7 @@ JAVA_SCHEDULED_EXECUTOR_SCHEDULE = Pattern(
     "scheduling-boundary",
     "timer-scheduling-contract-missing",
     "scheduled executor timer",
-    "Exact-import-backed Java ScheduledExecutorService schedule calls add timer-backed task scheduling and Future result channels",
+    "Import-backed Java ScheduledExecutorService schedule calls add timer-backed task scheduling and Future result channels",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -526,7 +526,7 @@ JAVA_SCHEDULED_EXECUTOR_INTERVAL = Pattern(
     "lifecycle-materialization-boundary",
     "interval-async-iteration-lifecycle-contract-missing",
     "scheduled executor interval lifecycle",
-    "Exact-import-backed Java ScheduledExecutorService repeating schedules expose interval lifecycle and cancellation boundaries",
+    "Import-backed Java ScheduledExecutorService repeating schedules expose interval lifecycle and cancellation boundaries",
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
@@ -629,6 +629,7 @@ def all_known_patterns() -> tuple[Pattern, ...]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--repos-root", default=DEFAULT_REPOS_ROOT)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
@@ -641,6 +642,54 @@ def parse_args() -> argparse.Namespace:
         help="Emit an explicitly searched surface even when the occurrence count is zero.",
     )
     return parser.parse_args()
+
+
+def self_test() -> None:
+    exact_future = count_file(
+        "import java.util.concurrent.Future;\n"
+        "class T { Object run(Future<String> future) throws Exception { return future.get(); } }\n",
+        "java",
+    )
+    assert exact_future.get(JAVA_FUTURE_HANDLE_GET) == 1
+
+    wildcard_submit = count_file(
+        "import java.util.concurrent.*;\n"
+        "class T { Object run(ExecutorService executor) { return executor.submit(() -> work()); } }\n",
+        "java",
+    )
+    assert wildcard_submit.get(JAVA_EXECUTOR_SUBMIT) == 1
+
+    exact_conflict = count_file(
+        "import java.util.concurrent.Future;\n"
+        "import example.Future;\n"
+        "class T { Object run(Future<String> future) throws Exception { return future.get(); } }\n",
+        "java",
+    )
+    assert JAVA_FUTURE_HANDLE_GET not in exact_conflict
+
+    exact_shadow = count_file(
+        "import java.util.concurrent.ExecutorService;\n"
+        "class ExecutorService { Object submit(Object task) { return null; } }\n"
+        "class T { Object run(ExecutorService executor) { return executor.submit(() -> work()); } }\n",
+        "java",
+    )
+    assert JAVA_EXECUTOR_SUBMIT not in exact_shadow
+
+    wildcard_conflict = count_file(
+        "import java.util.concurrent.*;\n"
+        "import example.Future;\n"
+        "class T { Object run(Future<String> future) throws Exception { return future.get(); } }\n",
+        "java",
+    )
+    assert JAVA_FUTURE_HANDLE_GET not in wildcard_conflict
+
+    wildcard_shadow = count_file(
+        "import java.util.concurrent.*;\n"
+        "class Future<T> { Object get() { return null; } }\n"
+        "class T { Object run(Future<String> future) throws Exception { return future.get(); } }\n",
+        "java",
+    )
+    assert JAVA_FUTURE_HANDLE_GET not in wildcard_shadow
 
 
 def load_repos(manifest: Path) -> list[dict[str, Any]]:
@@ -1470,7 +1519,7 @@ def java_future_like_receiver_names(text: str) -> set[str]:
 
 
 def java_future_handle_counts(counts: dict[Pattern, int], text: str) -> None:
-    future_receivers = java_exact_import_backed_receiver_names(
+    future_receivers = java_import_backed_receiver_names(
         text,
         {"CompletableFuture", "Future", "ScheduledFuture"},
     )
@@ -1496,12 +1545,12 @@ def java_future_handle_counts(counts: dict[Pattern, int], text: str) -> None:
 
 
 def java_executor_receiver_counts(counts: dict[Pattern, int], text: str) -> None:
-    executor_receivers = java_exact_import_backed_receiver_names(text, {"Executor"})
-    executor_service_receivers = java_exact_import_backed_receiver_names(
+    executor_receivers = java_import_backed_receiver_names(text, {"Executor"})
+    executor_service_receivers = java_import_backed_receiver_names(
         text,
         {"ExecutorService", "ScheduledExecutorService"},
     )
-    scheduled_receivers = java_exact_import_backed_receiver_names(
+    scheduled_receivers = java_import_backed_receiver_names(
         text,
         {"ScheduledExecutorService"},
     )
@@ -1558,8 +1607,19 @@ def java_executor_receiver_counts(counts: dict[Pattern, int], text: str) -> None
         )
 
 
-def java_exact_import_backed_receiver_names(text: str, type_names: set[str]) -> set[str]:
-    imported = java_exact_imported_concurrent_types(text) & type_names
+JAVA_CONCURRENT_RECEIVER_TYPE_NAMES = {
+    "CompletableFuture",
+    "CompletionStage",
+    "Future",
+    "ScheduledFuture",
+    "Executor",
+    "ExecutorService",
+    "ScheduledExecutorService",
+}
+
+
+def java_import_backed_receiver_names(text: str, type_names: set[str]) -> set[str]:
+    imported = java_imported_concurrent_types(text, type_names)
     if not imported:
         return set()
     type_pattern = "|".join(re.escape(type_name) for type_name in sorted(imported))
@@ -1574,6 +1634,14 @@ def java_exact_import_backed_receiver_names(text: str, type_names: set[str]) -> 
     }
 
 
+def java_imported_concurrent_types(text: str, type_names: set[str]) -> set[str]:
+    blocked = java_local_type_names(text) | java_conflicting_exact_imported_type_names(text)
+    imported = (java_exact_imported_concurrent_types(text) & type_names) - blocked
+    if java_has_concurrent_wildcard_import(text):
+        imported |= type_names - blocked
+    return imported
+
+
 def java_exact_imported_concurrent_types(text: str) -> set[str]:
     return {
         match.group(1)
@@ -1581,6 +1649,36 @@ def java_exact_imported_concurrent_types(text: str) -> set[str]:
             r"\bimport\s+java\s*\.\s*util\s*\.\s*concurrent\s*\.\s*"
             r"(CompletableFuture|Future|ScheduledFuture|Executor|ExecutorService|ScheduledExecutorService)"
             r"\s*;",
+            text,
+        )
+    }
+
+
+def java_has_concurrent_wildcard_import(text: str) -> bool:
+    return (
+        re.search(r"\bimport\s+java\s*\.\s*util\s*\.\s*concurrent\s*\.\s*\*\s*;", text)
+        is not None
+    )
+
+
+def java_conflicting_exact_imported_type_names(text: str) -> set[str]:
+    conflicts: set[str] = set()
+    for match in re.finditer(
+        r"\bimport\s+(?!static\b)([A-Za-z_$][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)+)\s*;",
+        text,
+    ):
+        path = re.sub(r"\s+", "", match.group(1))
+        module, _, exported = path.rpartition(".")
+        if exported in JAVA_CONCURRENT_RECEIVER_TYPE_NAMES and module != "java.util.concurrent":
+            conflicts.add(exported)
+    return conflicts
+
+
+def java_local_type_names(text: str) -> set[str]:
+    return {
+        match.group(1)
+        for match in re.finditer(
+            r"\b(?:class|interface|enum|record)\s+([A-Za-z_$][A-Za-z0-9_$]*)\b",
             text,
         )
     }
@@ -1857,7 +1955,7 @@ def hard_negative_inventory() -> list[dict[str, Any]]:
             "status": "expanded-this-slice",
         },
         {
-            "class": "Java Future local receivers with wildcard-only imports, reassignment, local shadows, or conflicting imports, plus wildcard-only Executor local receivers",
+            "class": "Java Future local receivers with reassignment, local shadows, or conflicting imports, plus conflicting Executor local receivers",
             "evidence": "crates/nose-cli/src/verify_admission/runtime_boundary/tests/async_runtime/java.rs::java_local_and_this_field_receivers_require_exact_type_identity",
             "status": "expanded-this-slice",
         },
@@ -1911,6 +2009,10 @@ def relevant_recall_loss_obligations(items: list[dict[str, Any]]) -> list[dict[s
 
 def main() -> None:
     args = parse_args()
+    if args.self_test:
+        self_test()
+        print("scheduling lifecycle audit self-test passed")
+        return
     report = summarize(args)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

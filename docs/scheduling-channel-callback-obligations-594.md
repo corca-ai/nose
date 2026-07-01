@@ -180,6 +180,19 @@ repeating schedules, `19` `invokeAll`, and `4` `invokeAny`. The broad
 `Executor/Future` lexical bucket remains closed at `3,297` occurrences until
 wrapper aliases, project-specific executors, callback identity/effects, result
 channels, cancellation, and lifecycle contracts are dependency-closed.
+The follow-up [Java wildcard Executor/Future artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-java-wildcard-executor-future-2026-07-01.v1.json)
+keeps the same exact-admission boundary and extends receiver-domain provenance
+from exact imports to `import java.util.concurrent.*`. The frontend emits
+wildcard-derived import-symbol evidence for the supported concurrent types, and
+the verifier still rejects local type declarations or explicit same-name imports
+from other packages before reporting obligations. On the current `origin/main`
+baseline, the pinned corpus moves Java reporting-supported receiver-method
+candidates from `858` to `1,093` (`+235`): `Future.get` `192 -> 249`,
+cancel/status-cancellation `184 -> 239`, `ExecutorService.submit` `146 -> 222`,
+`Executor.execute` `166 -> 180`, `Future.isDone` `106 -> 127`, scheduled timers
+`21 -> 27`, repeating schedules `20 -> 22`, `invokeAll` `19 -> 21`, and
+`invokeAny` `4 -> 6`. The broad `Executor/Future` lexical bucket remains closed
+at `3,297` occurrences.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while making Go's source-backed protocol
 boundaries reportable at the same capability level. Channel sends now report

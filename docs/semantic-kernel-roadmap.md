@@ -2131,13 +2131,16 @@ different APIs.
   report proof-backed static Future calls and exact-import-backed
   CompletionStage-style continuations without opening exact admission. The Java
   Executor/Future follow-up keeps using the same capability vocabulary for
-  exact-import-backed `CompletableFuture`, `Future`, `ScheduledFuture`,
-  `Executor`, `ExecutorService`, and `ScheduledExecutorService` parameter,
-  local variable, and explicit `this.<field>` receivers. The latest pricing
-  artifact remains at source prevalence `147,846`, with `858`
-  reporting-supported Java receiver-method candidates while
-  leaving the broad `3,297`-occurrence `Executor/Future` lexical bucket closed
-  until wrapper aliases, project-specific executors, scheduling, cancellation,
+  exact- or wildcard-import-backed `CompletableFuture`, `Future`,
+  `ScheduledFuture`, `Executor`, `ExecutorService`, and
+  `ScheduledExecutorService` parameter, local variable, and explicit
+  `this.<field>` receivers. The wildcard-import slice reuses dependency-backed
+  import-symbol and receiver-domain evidence instead of adding a Java-only
+  kernel feature; local type declarations and explicit same-name imports still
+  close reporting. The latest pricing artifact moves Java reporting-supported
+  receiver-method candidates from `858` to `1,093` (`+235`) while leaving the
+  broad `3,297`-occurrence `Executor/Future` lexical bucket closed until
+  wrapper aliases, project-specific executors, scheduling, cancellation,
   lifecycle, result-channel, exception, and callback/effect contracts are
   dependency-closed.
 - The Go channel/goroutine/defer follow-up applies the same capability
