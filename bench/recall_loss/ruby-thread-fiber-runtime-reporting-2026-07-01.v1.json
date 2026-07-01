@@ -72,9 +72,9 @@
   ],
   "current_crates_gate": {
     "report": "target/recall-loss.ruby-thread-fiber-runtime.crates.json",
-    "total_units": 6846,
+    "total_units": 6847,
     "interpretable_units": 952,
-    "excluded_units": 5894,
+    "excluded_units": 5895,
     "admission_rejections": 796,
     "false_merges": 0,
     "lossy_fingerprint_collisions": 0,
@@ -127,8 +127,8 @@
     "baseline_reference": "origin/main release verify crates warm real_seconds = 1.59",
     "baseline_first_real_seconds": 1.88,
     "baseline_warm_real_seconds": 1.59,
-    "current_first_real_seconds": 1.89,
-    "current_warm_real_seconds": 1.11,
+    "current_first_real_seconds": 1.78,
+    "current_warm_real_seconds": 1.13,
     "assessment": "Paired local release timing did not show a large regression; current warm timing was below the origin/main warm timing in this run."
   },
   "next_exact_work_policy": {

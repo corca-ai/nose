@@ -42,7 +42,7 @@ fn ruby_runtime_root_shadowed(il: &nose_il::Il, interner: &Interner, root: &str)
                 .children(node)
                 .first()
                 .copied()
-                .is_some_and(|lhs| node_name_shadows_runtime_root(il, interner, lhs, root)),
+                .is_some_and(|lhs| node_subtree_shadows_runtime_root(il, interner, lhs, root)),
             NodeKind::Module | NodeKind::Block | NodeKind::Param => {
                 node_name_shadows_runtime_root(il, interner, node, root)
             }
@@ -64,22 +64,36 @@ fn ruby_dynamic_constant_definition_shadows_runtime_root(
     let Some((&callee, args)) = children.split_first() else {
         return false;
     };
-    if !ruby_dynamic_constant_definition_callee(il, interner, callee) {
+    let Some(constant_args) = ruby_dynamic_constant_definition_args(il, interner, callee, args)
+    else {
         return false;
-    }
-    args.first()
+    };
+    constant_args
+        .first()
         .copied()
         .is_some_and(|arg| node_is_static_literal_name(il, arg, root))
 }
 
-fn ruby_dynamic_constant_definition_callee(
+fn ruby_dynamic_constant_definition_args<'a>(
     il: &nose_il::Il,
     interner: &Interner,
     callee: NodeId,
-) -> bool {
-    match il.node(callee).payload {
-        Payload::Name(symbol) => matches!(interner.resolve(symbol), "const_set" | "autoload"),
-        _ => false,
+    args: &'a [NodeId],
+) -> Option<&'a [NodeId]> {
+    let Payload::Name(symbol) = il.node(callee).payload else {
+        return None;
+    };
+    match interner.resolve(symbol) {
+        "const_set" | "autoload" => Some(args),
+        "send" | "public_send" | "__send__"
+            if args.first().copied().is_some_and(|method| {
+                node_is_static_literal_name(il, method, "const_set")
+                    || node_is_static_literal_name(il, method, "autoload")
+            }) =>
+        {
+            Some(&args[1..])
+        }
+        _ => None,
     }
 }
 
@@ -105,6 +119,20 @@ fn node_name_shadows_runtime_root(
             .is_some_and(|symbol| name_shadows_runtime_root(interner.resolve(*symbol), root)),
         _ => false,
     }
+}
+
+fn node_subtree_shadows_runtime_root(
+    il: &nose_il::Il,
+    interner: &Interner,
+    node: NodeId,
+    root: &str,
+) -> bool {
+    node_name_shadows_runtime_root(il, interner, node, root)
+        || il
+            .children(node)
+            .iter()
+            .copied()
+            .any(|child| node_subtree_shadows_runtime_root(il, interner, child, root))
 }
 
 fn name_shadows_runtime_root(name: &str, root: &str) -> bool {

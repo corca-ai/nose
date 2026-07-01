@@ -45,7 +45,15 @@ fn ruby_thread_and_fiber_calls_require_unshadowed_runtime_roots() {
             "Thread.new",
         ),
         (
+            "module M\n  send(:const_set, :Thread, Struct.new(:value))\n  def self.run\n    Thread.new { work }\n  end\nend\n",
+            "Thread.new",
+        ),
+        (
             "Fiber = Struct.new(:value)\ndef run\n  Fiber.new { work }\nend\n",
+            "Fiber.new",
+        ),
+        (
+            "module M\n  Fiber, Other = [Struct.new(:value), 1]\n  def self.run\n    Fiber.new { work }\n  end\nend\n",
             "Fiber.new",
         ),
         (
@@ -63,6 +71,14 @@ fn ruby_thread_and_fiber_calls_require_unshadowed_runtime_roots() {
         (
             "module M\n  M.autoload(\"Fiber\", \"runtime_shadow\")\n  def self.run\n    Fiber.schedule { work }\n  end\nend\n",
             "Fiber.schedule",
+        ),
+        (
+            "module M\n  M.__send__(\"autoload\", \"Fiber\", \"runtime_shadow\")\n  def self.run\n    Fiber.schedule { work }\n  end\nend\n",
+            "Fiber.schedule",
+        ),
+        (
+            "module M\n  Thread, Other = [Struct.new(:value), 1]\n  def self.run\n    Thread.new { work }\n  end\nend\n",
+            "Thread.new",
         ),
     ] {
         let labels = runtime_boundary_evidence_for_lang_call("runtime.rb", src, Lang::Ruby, callee);
