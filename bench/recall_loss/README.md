@@ -250,6 +250,15 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --recall-loss-report target/recall-loss.ruby-yield-source-protocol.crates.json \
   --output target/scheduling-lifecycle-boundary-audit.ruby-yield-source-protocol.json \
   --generated-on 2026-07-01
+
+python3 scripts/query-regression-harness.py \
+  --baseline-binary /tmp/nose-ruby-yield-main-target/release/nose \
+  --current-binary target/release/nose \
+  --baseline-source-ref origin/main \
+  --current-source-ref ruby-yield-source-protocol \
+  --repo rubocop --repo rspec-core --repo sidekiq \
+  --repo rack --repo fastlane --repo sinatra \
+  --output target/ruby-yield-source-protocol-query-regression.json
 ```
 
 Build the Java `CompletableFuture`/FutureLike obligation audit with:
