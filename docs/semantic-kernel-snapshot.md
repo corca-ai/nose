@@ -197,7 +197,13 @@ an already proven `Runtime::new()` or `Builder::build()` success channel before
 `?`, `unwrap`, or `expect` exposes the runtime receiver. Nushell spot checks
 move two direct local `Runtime::new().map_err(...)?` block_on paths from `0` to
 `1` future-drive evidence unit each; wrapper-returned Results, non-Result
-`map_err` calls, and constructor-assigned fields remain closed.
+`map_err` calls, and constructor-assigned fields remain closed. The follow-up [Rust
+Builder config runtime provenance artifact](../bench/recall_loss/rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json)
+keeps exact admission closed while following receiver-preserving Tokio Builder
+configuration methods through `build`; representative Tokio spot checks move
+future-drive evidence units from `6` to `8` with `0` false merges. Builder
+callback hooks, `thread_name_fn`, constructor-assigned fields, and block_on/await
+convergence remain closed.
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while pricing `4,294` channel receives, `1,525`
 sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,

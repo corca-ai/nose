@@ -2171,6 +2171,16 @@ different APIs.
   callback, and exception obligations. The [checked artifact](../bench/recall_loss/non-js-async-runtime-breadth-2026-07-01.v1.json)
   prices `107` new non-JS source-prevalence occurrences over the scope-shadowing
   audit and keeps exact admission closed.
+- The Rust Builder configuration follow-up keeps `block_on` receiver
+  attribution on the same future-drive capability instead of adding builder
+  feature rows. Receiver-preserving Tokio Builder methods `start_paused`,
+  `unhandled_panic`, `thread_keep_alive`, `global_queue_interval`,
+  `event_interval`, and `disable_lifo_slot` now preserve proof-backed Builder
+  identity through `build`, while Builder callback hooks and exact
+  block_on/await convergence remain closed. The [checked artifact](../bench/recall_loss/rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json)
+  prices `34` config-method occurrences across `15` files in `tokio`, and
+  representative Tokio spot checks move future-drive evidence units from `6` to
+  `8` with `0` false merges.
 - The Ruby Thread/Fiber follow-up applies the same capability rule to Ruby
   concurrency runtime calls. `Thread.new`, `Thread.start`, `Thread.fork`,
   `Fiber.new`, and `Fiber.schedule` now reuse shared task-spawn, task-handle,

@@ -110,10 +110,13 @@ break.
   `tokio::runtime::Runtime` or `Handle` now receive the same reporting, and
   success-channel-preserving `Result::map_err` adapters over proven
   `Runtime::new()`/`Builder::build()` results are followed before `unwrap`,
-  `expect`, or `?`. Selector-only `.block_on`, non-self fields, duplicate or
-  shadowed local structs, project-local `tokio` roots or aliases, wildcard or
-  relative imports, type aliases, wrapped constructors, and constructor-assigned
-  fields remain closed.
+  `expect`, or `?`; receiver-preserving Builder configuration methods
+  `start_paused`, `unhandled_panic`, `thread_keep_alive`,
+  `global_queue_interval`, `event_interval`, and `disable_lifo_slot` are now
+  followed before `build`. Selector-only `.block_on`, Builder callback hooks,
+  non-self fields, duplicate or shadowed local structs, project-local `tokio`
+  roots or aliases, wildcard or relative imports, type aliases, wrapped
+  constructors, and constructor-assigned fields remain closed.
 - Added Go channel/goroutine/defer obligation refinement. Go source-backed
   protocol boundaries now report channel send synchronization, receive value,
   comma-ok receive status, select readiness/case/default, goroutine scheduling

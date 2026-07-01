@@ -564,6 +564,17 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   `Runtime` imports, same-scope `Runtime` types, namespace aliases named
   `tokio`, non-self fields, type aliases, wrapper calls, and
   constructor-assigned fields remain closed.
+- [rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json](rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json)
+  records the follow-up Rust Builder configuration receiver-provenance
+  expansion. Receiver-preserving Tokio Builder methods `start_paused`,
+  `unhandled_panic`, `thread_keep_alive`, `global_queue_interval`,
+  `event_interval`, and `disable_lifo_slot` now preserve proof-backed Builder
+  identity before `build().unwrap()/expect/?` exposes the runtime receiver. The
+  pinned corpus has `34` such config-method occurrences across `15` files in
+  `tokio`; representative Tokio spot checks move future-drive evidence units
+  from `6` to `8` with `0` false merges. Exact admission stays closed; Builder
+  callback hooks, `thread_name_fn`, constructor-assigned fields, and
+  block_on/await convergence remain closed.
 - [scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-swift-structured-concurrency-2026-06-30.v1.json)
   records the matching 120-repo source-prevalence pricing. It raises total
   source prevalence from `142,847` to `143,178`: `Task.sleep` contributes

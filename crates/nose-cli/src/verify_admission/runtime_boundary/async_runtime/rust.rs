@@ -346,13 +346,19 @@ fn rust_tokio_runtime_builder_chain_method(
     matches!(
         callee_field_method(il, interner, callee),
         Some(
-            "enable_all"
+            "disable_lifo_slot"
+                | "enable_all"
                 | "enable_io"
                 | "enable_time"
+                | "event_interval"
+                | "global_queue_interval"
                 | "worker_threads"
                 | "max_blocking_threads"
+                | "start_paused"
+                | "thread_keep_alive"
                 | "thread_name"
                 | "thread_stack_size"
+                | "unhandled_panic"
         )
     )
 }

@@ -1,0 +1,173 @@
+{
+  "report_kind": "rust-block-on-builder-config-runtime-provenance",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "kind": "reporting-only-rust-future-drive-builder-config-provenance",
+    "summary": "Rust block_on reporting now follows tokio Runtime builder chains through receiver-preserving configuration methods before build/unwrap exposes the runtime receiver.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "receiver-preserving builder configuration provenance for future-drive scheduling attribution",
+    "not_a_feature_list": [
+      "No exact admission path was opened for Rust block_on or async/sync equivalence.",
+      "No new public semantic-pack API was added.",
+      "The verifier reuses the existing runtime-boundary-model and future-drive obligations.",
+      "Only builder methods that preserve the tokio runtime Builder receiver are accepted in this slice.",
+      "Builder callback hooks remain closed until callback demand/effect obligations are modeled for that surface."
+    ],
+    "reused_capabilities": [
+      "runtime-boundary-model",
+      "Rust imported binding evidence",
+      "AdmissionContext Rust local-runtime-root guard",
+      "recall-loss oracle_exclusions.by_obligation",
+      "shared future-drive scheduling and future-settled value-channel obligations"
+    ]
+  },
+  "new_reporting_surfaces": [
+    {
+      "language": "rust",
+      "surface": "Builder::new_current_thread().enable_all().start_paused(true).unhandled_panic(...).build().unwrap().block_on(...)",
+      "guard": "Builder must be qualified or imported from tokio::runtime, unshadowed, and every intermediate method must preserve the Builder receiver."
+    },
+    {
+      "language": "rust",
+      "surface": "Builder::new_multi_thread().thread_keep_alive(...).global_queue_interval(...).event_interval(...).disable_lifo_slot().build().unwrap().block_on(...)",
+      "guard": "The chain may only pass through receiver-preserving configuration methods before build produces the runtime Result."
+    },
+    {
+      "language": "rust",
+      "surface": "let rt = Builder::new_*().<allowed config methods>.build().unwrap(); rt.block_on(...)",
+      "guard": "The existing last-visible-local-assignment receiver proof must still connect the local binding to the proven runtime constructor."
+    }
+  ],
+  "corpus_pricing": {
+    "source": "pinned bench/repos corpus",
+    "lexical_query": "rg -o '\\\\.(thread_keep_alive|global_queue_interval|event_interval|start_paused|unhandled_panic|disable_lifo_slot)\\\\(' bench/repos -g '*.rs'",
+    "new_receiver_preserving_config_occurrences": 34,
+    "files": 15,
+    "repos": [
+      "tokio"
+    ],
+    "by_method": {
+      "unhandled_panic": 13,
+      "start_paused": 9,
+      "thread_keep_alive": 3,
+      "global_queue_interval": 3,
+      "event_interval": 3,
+      "disable_lifo_slot": 3
+    },
+    "note": "This source-prevalence count includes builder configuration uses outside block_on receiver chains; verifier spot checks below measure the behavior-changing reporting delta."
+  },
+  "focused_fixture": {
+    "tests": [
+      {
+        "test": "rust_block_on::reports_future_drive_obligations_through_builder_configuration_chain",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "start_paused and unhandled_panic chains report future-drive and future-settled obligations when the builder root is proven.",
+          "thread_keep_alive, global_queue_interval, event_interval, and disable_lifo_slot preserve the builder receiver through build/unwrap."
+        ]
+      },
+      {
+        "test": "rust_block_on::keeps_builder_callback_hooks_closed_without_callback_effect_proof",
+        "command": "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+        "assertions": [
+          "on_thread_start, on_thread_stop, on_thread_park, and on_thread_unpark stay closed.",
+          "thread_name_fn stays closed because the callback-producing form still needs callback demand/effect proof."
+        ]
+      }
+    ]
+  },
+  "current_crates_gate": {
+    "report": "target/recall-loss.rust-builder-config.crates.json",
+    "total_units": 6894,
+    "interpretable_units": 956,
+    "excluded_units": 5938,
+    "admission_rejections": 800,
+    "false_merges": 0,
+    "lossy_fingerprint_collisions": 0,
+    "advisory_disagreements": 4,
+    "canon_checked": 99,
+    "canon_preservation_violations": 0,
+    "gate_passed": true,
+    "origin_main_elapsed_real_seconds": 1.83,
+    "current_elapsed_real_seconds": 1.68,
+    "note": "The local crates surface has no proof-backed Rust builder-config block_on bridge rows; the gate is used for hard soundness and runtime comparison."
+  },
+  "real_corpus_spot_checks": [
+    {
+      "repo": "tokio",
+      "paths": [
+        "tokio/tests/time_rt.rs",
+        "tokio/tests/sync_once_cell.rs",
+        "tokio/tests/rt_threaded.rs",
+        "tokio/tests/rt_basic.rs"
+      ],
+      "baseline_command": "/tmp/nose-main-builder-config/target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/time_rt.rs /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/sync_once_cell.rs /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/rt_threaded.rs /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/rt_basic.rs --max-violations 0 --recall-loss-report /Users/ak/prjs/cc/nose/target/recall-loss.rust-builder-config.main-tokio.json",
+      "current_command": "target/release/nose verify bench/repos/tokio/tokio/tests/time_rt.rs bench/repos/tokio/tokio/tests/sync_once_cell.rs bench/repos/tokio/tokio/tests/rt_threaded.rs bench/repos/tokio/tokio/tests/rt_basic.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-builder-config.tokio.json",
+      "summary": {
+        "total_units": 92,
+        "interpretable_units": 6,
+        "excluded_units": 86,
+        "admission_rejections": 5,
+        "false_merges": 0,
+        "future_drive_evidence_units_before": 6,
+        "future_drive_evidence_units_after": 8,
+        "new_future_drive_units": [
+          {
+            "file": "tokio/tests/rt_basic.rs",
+            "start_line": 333,
+            "end_line": 346,
+            "surface": "Builder::new_current_thread().unhandled_panic(...).build().unwrap()"
+          },
+          {
+            "file": "tokio/tests/rt_threaded.rs",
+            "start_line": 498,
+            "end_line": 518,
+            "surface": "Builder::new_multi_thread().global_queue_interval(1).build().unwrap()"
+          }
+        ],
+        "primary_reason_note": "The moved units also carry async-block/await or task obligations, so the primary scheduling subreason may remain async-await by rule order."
+      }
+    }
+  ],
+  "closed_surfaces": [
+    {
+      "surface": "Builder callback hooks such as on_thread_start(|| ...).build().unwrap().block_on(...)",
+      "reason": "Callback timing and effect obligations are not yet modeled for builder hook closures."
+    },
+    {
+      "surface": "thread_name_fn(|| ...)",
+      "reason": "The function-valued naming hook remains a callback surface, not a simple receiver-preserving scalar configuration method."
+    },
+    {
+      "surface": "struct field initialization such as rt: Builder::new_*().start_paused(...).build().unwrap() followed by self.rt.block_on(...)",
+      "reason": "Constructor-assigned field lifecycle and non-self field identity proof remain separate capabilities."
+    },
+    {
+      "surface": "Exact convergence between block_on, await, and synchronous payload values",
+      "reason": "Future drive scheduling, wake/poll behavior, cancellation/liveness, result-channel, and complete receiver/type identity contracts remain missing evidence."
+    }
+  ],
+  "validation_commands": [
+    "cargo fmt --check",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::rust_block_on -- --nocapture",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "python3 -m json.tool bench/recall_loss/rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json >/dev/null",
+    "./scripts/check-docs.sh",
+    "cargo build --release -p nose-cli",
+    "cargo build --release -p nose-cli (in /tmp/nose-main-builder-config at origin/main)",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.rust-builder-config.crates.json",
+    "/usr/bin/time -p /tmp/nose-main-builder-config/target/release/nose verify /Users/ak/prjs/cc/nose/crates --max-violations 0 --recall-loss-report /Users/ak/prjs/cc/nose/target/recall-loss.rust-builder-config.main-crates.json",
+    "/usr/bin/time -p target/release/nose verify bench/repos/tokio/tokio/tests/time_rt.rs bench/repos/tokio/tokio/tests/sync_once_cell.rs bench/repos/tokio/tokio/tests/rt_threaded.rs bench/repos/tokio/tokio/tests/rt_basic.rs --max-violations 0 --recall-loss-report target/recall-loss.rust-builder-config.tokio.json",
+    "/usr/bin/time -p /tmp/nose-main-builder-config/target/release/nose verify /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/time_rt.rs /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/sync_once_cell.rs /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/rt_threaded.rs /Users/ak/prjs/cc/nose/bench/repos/tokio/tokio/tests/rt_basic.rs --max-violations 0 --recall-loss-report /Users/ak/prjs/cc/nose/target/recall-loss.rust-builder-config.main-tokio.json"
+  ],
+  "next_followups": [
+    "Price constructor-assigned runtime fields only after field lifecycle, mutation, and non-self receiver identity proof exist.",
+    "Model builder callback hooks as callback demand/effect surfaces before allowing them to preserve future-drive receiver identity.",
+    "Keep exact block_on/await convergence closed until scheduling and result-channel contracts become proof-backed."
+  ]
+}

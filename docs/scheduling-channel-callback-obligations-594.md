@@ -136,7 +136,14 @@ wrappers, and constructor-assigned fields remain closed. The follow-up [Rust map
 runtime provenance artifact](../bench/recall_loss/rust-block-on-map-err-runtime-provenance-2026-07-01.v1.json)
 opens only success-channel-preserving `Result::map_err` adapters over already
 proven `Runtime::new()` or `Builder::build()` results; wrapper-returned Results
-and non-Result `map_err` calls stay closed.
+and non-Result `map_err` calls stay closed. The follow-up [Rust Builder config
+runtime provenance artifact](../bench/recall_loss/rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json)
+reuses the same receiver-provenance capability for receiver-preserving Tokio
+Builder configuration methods such as `start_paused`, `unhandled_panic`,
+`thread_keep_alive`, `global_queue_interval`, `event_interval`, and
+`disable_lifo_slot`. The pinned corpus has `34` such occurrences across `15`
+files in `tokio`; callback hooks and exact block_on/await convergence stay
+closed.
 The follow-up [Java CompletableFuture artifact](../bench/recall_loss/java-completablefuture-obligation-reporting-2026-06-30.v1.json)
 keeps exact admission closed and maps proof-backed Java
 `CompletableFuture.supplyAsync`/`runAsync`, settled factories, `allOf`/`anyOf`,

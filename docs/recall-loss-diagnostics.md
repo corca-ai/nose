@@ -232,7 +232,14 @@ then opens only success-channel-preserving `Result::map_err` adapters over
 already proven `Runtime::new()` or `Builder::build()` results, moving two
 Nushell direct local block_on spot checks from `0` to `1` future-drive evidence
 unit each while wrapper-returned Results, non-Result `map_err` calls, and
-constructor-assigned fields stay closed. The
+constructor-assigned fields stay closed. The [Rust Builder config runtime
+provenance artifact](../bench/recall_loss/rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json)
+then keeps the same future-drive capability but follows receiver-preserving
+Tokio Builder configuration methods through `build`. The pinned corpus has
+`34` such config-method occurrences across `15` files in `tokio`, and
+representative Tokio spot checks move future-drive evidence units from `6` to
+`8` with `0` false merges; Builder callback hooks, `thread_name_fn`,
+constructor-assigned fields, and block_on/await convergence remain closed. The
 follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while refining Go protocol-boundary reporting into
 channel send synchronization, receive value, comma-ok receive status, select

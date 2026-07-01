@@ -130,6 +130,27 @@ fn reports_future_drive_obligations_when_local_runtime_binding_is_proven() {
 }
 
 #[test]
+fn reports_future_drive_obligations_through_builder_configuration_chain() {
+    let paused_current_thread_runtime = missing_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::runtime::{Builder, UnhandledPanic};\nfn run() { let rt = Builder::new_current_thread().enable_all().start_paused(true).unhandled_panic(UnhandledPanic::ShutdownRuntime).build().unwrap(); rt.block_on(work()); }\n",
+        Lang::Rust,
+        ".block_on",
+    );
+    let tuned_multi_thread_runtime = missing_evidence_for_lang_call(
+        "runtime.rs",
+        "use tokio::runtime::Builder;\nfn run(duration: D) { let rt = Builder::new_multi_thread().worker_threads(2).thread_keep_alive(duration).global_queue_interval(31).event_interval(31).disable_lifo_slot().build().unwrap(); rt.block_on(work()); }\n",
+        Lang::Rust,
+        ".block_on",
+    );
+
+    for labels in [paused_current_thread_runtime, tuned_multi_thread_runtime] {
+        assert!(labels.contains(&"future-drive-scheduling-contract"));
+        assert!(labels.contains(&"future-settled-value-channel-contract"));
+    }
+}
+
+#[test]
 fn reports_future_drive_obligations_when_parameter_runtime_identity_is_proven() {
     let imported_runtime_param = missing_evidence_for_lang_call(
         "runtime.rs",
@@ -443,6 +464,40 @@ fn requires_proven_local_runtime_binding_identity() {
             "Rust runtime value changed by extension map_err callback",
         ),
     ] {
+        assert_missing_evidence_not_contains(labels, "future-drive-scheduling-contract", surface);
+    }
+}
+
+#[test]
+fn keeps_builder_callback_hooks_closed_without_callback_effect_proof() {
+    for (src, surface) in [
+        (
+            "use tokio::runtime::Builder;\nfn run() { let rt = Builder::new_multi_thread().on_thread_start(|| observe()).build().unwrap(); rt.block_on(work()); }\n",
+            "Rust runtime builder on_thread_start callback hook",
+        ),
+        (
+            "use tokio::runtime::Builder;\nfn run() { let rt = Builder::new_multi_thread().on_thread_stop(|| observe()).build().unwrap(); rt.block_on(work()); }\n",
+            "Rust runtime builder on_thread_stop callback hook",
+        ),
+        (
+            "use tokio::runtime::Builder;\nfn run() { let rt = Builder::new_current_thread().on_thread_park(|| observe()).build().unwrap(); rt.block_on(work()); }\n",
+            "Rust runtime builder on_thread_park callback hook",
+        ),
+        (
+            "use tokio::runtime::Builder;\nfn run() { let rt = Builder::new_current_thread().on_thread_unpark(|| observe()).build().unwrap(); rt.block_on(work()); }\n",
+            "Rust runtime builder on_thread_unpark callback hook",
+        ),
+        (
+            "use tokio::runtime::Builder;\nfn run() { let rt = Builder::new_multi_thread().thread_name_fn(|| name()).build().unwrap(); rt.block_on(work()); }\n",
+            "Rust runtime builder thread_name_fn callback hook",
+        ),
+    ] {
+        let labels = runtime_boundary_evidence_for_lang_call(
+            "runtime.rs",
+            src,
+            Lang::Rust,
+            ".block_on",
+        );
         assert_missing_evidence_not_contains(labels, "future-drive-scheduling-contract", surface);
     }
 }
