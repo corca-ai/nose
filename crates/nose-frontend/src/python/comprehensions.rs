@@ -85,12 +85,17 @@ pub(super) fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
         .map(|b| lower_expr(lo, b))
         .unwrap_or_else(|| lo.empty_block(span));
     let map_lam = comp_lambda(lo, pattern, body, span);
-    lo.add(
+    let mapped = lo.add(
         NodeKind::HoF,
         Payload::HoF(HoFKind::Map),
         span,
         &[collection, map_lam],
-    )
+    );
+    if let Some(clause) = clause {
+        wrap_async_comprehension_clause(lo, clause, mapped)
+    } else {
+        mapped
+    }
 }
 pub(super) fn python_comprehension_kind(kind: &str) -> Option<SourceComprehensionKind> {
     Some(match kind {
@@ -161,15 +166,29 @@ pub(super) fn lower_multi_clause_comprehension(
         } else {
             HoFKind::FlatMap
         };
-        inner = lo.add(
+        let layer = lo.add(
             NodeKind::HoF,
             Payload::HoF(hof_kind),
             span,
             &[collection, lam],
         );
+        inner = wrap_async_comprehension_clause(lo, *forc, layer);
     }
 
     inner
+}
+
+fn wrap_async_comprehension_clause(lo: &mut Lowering, clause: TsNode, node: NodeId) -> NodeId {
+    if crate::lower::node_has_child_kind(clause, "async") {
+        lo.protocol_boundary(
+            lo.span(clause),
+            nose_il::SourceProtocolKind::AsyncIteration,
+            "async_for",
+            &[node],
+        )
+    } else {
+        node
+    }
 }
 /// Emit `Param` nodes for a comprehension/loop target (identifier or tuple).
 pub(super) fn push_pattern_params(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {

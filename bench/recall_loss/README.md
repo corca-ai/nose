@@ -589,11 +589,11 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   they are distinct source-backed protocol boundaries in lowering.
 - [scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json](scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json)
   records the Python async protocol lifecycle reporting slice. It keeps exact
-  admission closed while splitting `async for` and `async with` into
-  source-backed async iteration/context protocol boundaries. The 120-repo audit
-  prices `114` `async for` and `361` `async with` occurrences across `5` repos,
-  with `0` false merges and `0` canon preservation violations on the checked
-  `crates` gate.
+  admission closed while splitting `async for` statements/comprehensions and
+  `async with` into source-backed async iteration/context protocol boundaries.
+  The 120-repo audit prices `114` `async for` and `361` `async with`
+  occurrences across `5` repos, with `0` false merges and `0` canon
+  preservation violations on the checked `crates` gate.
 - [ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json](ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
   records the Ruby Thread/Fiber reporting-only expansion. `Thread.new`,
   `Thread.start`, `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse

@@ -227,6 +227,24 @@ fn async_for_preserves_source_backed_iteration_boundary() {
 }
 
 #[test]
+fn async_comprehension_preserves_source_backed_iteration_boundary() {
+    expect_python_protocol_boundary(
+        b"async def f(xs):\n    return [x async for x in xs]\n",
+        "async_for",
+        SourceProtocolKind::AsyncIteration,
+    );
+}
+
+#[test]
+fn multi_clause_async_comprehension_preserves_source_backed_iteration_boundary() {
+    expect_python_protocol_boundary(
+        b"async def f(xs, ys):\n    return [(x, y) async for x in xs for y in ys]\n",
+        "async_for",
+        SourceProtocolKind::AsyncIteration,
+    );
+}
+
+#[test]
 fn async_with_preserves_source_backed_context_boundary() {
     expect_python_protocol_boundary(
         b"async def f(cm):\n    async with cm:\n        return 1\n",

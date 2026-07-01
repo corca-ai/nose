@@ -68,7 +68,7 @@
         "oracle_excluded": 3
       }
     ],
-    "report": "target/recall-loss.python-async-lifecycle.crates.json",
+    "report": "target/recall-loss.python-async-comprehension.crates.json",
     "soundness_gate": {
       "advisory_disagreements": 4,
       "canon_preservation_violations": 0,
@@ -82,9 +82,9 @@
       "admission_rejections": 800,
       "canon_checked": 99,
       "canon_preservation_violations": 0,
-      "excluded_units": 5931,
+      "excluded_units": 5936,
       "interpretable_units": 956,
-      "total_units": 6887
+      "total_units": 6892
     }
   },
   "generated_on": "2026-07-01",
@@ -135,8 +135,8 @@
       "status": "mapped-existing"
     },
     {
-      "class": "Python async iterator and async context-manager protocol boundaries versus synchronous loops/with-blocks",
-      "evidence": "crates/nose-cli/tests/cli/semantic_boundaries/python_async_protocol.rs::query_mode_semantic_rejects_unproven_python_async_protocol_lifecycle_convergence, crates/nose-frontend/src/python/tests.rs::async_for_preserves_source_backed_iteration_boundary, ::async_with_preserves_source_backed_context_boundary, and crates/nose-cli/src/verify_admission/runtime_boundary/tests.rs::python_async_lifecycle_protocols_report_specific_obligations",
+      "class": "Python async iterator and async context-manager protocol boundaries versus synchronous loops, comprehensions, and with-blocks",
+      "evidence": "crates/nose-cli/tests/cli/semantic_boundaries/python_async_protocol.rs::query_mode_semantic_rejects_unproven_python_async_protocol_lifecycle_convergence, ::query_mode_semantic_rejects_unproven_python_async_comprehension_convergence, crates/nose-frontend/src/python/tests.rs::async_for_preserves_source_backed_iteration_boundary, ::async_comprehension_preserves_source_backed_iteration_boundary, ::multi_clause_async_comprehension_preserves_source_backed_iteration_boundary, ::async_with_preserves_source_backed_context_boundary, and crates/nose-cli/src/verify_admission/runtime_boundary/tests.rs::python_async_lifecycle_protocols_report_specific_obligations",
       "status": "expanded-this-slice"
     },
     {
@@ -290,7 +290,7 @@
     }
   ],
   "regenerate": [
-    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.python-async-lifecycle.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json --generated-on 2026-07-01"
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.python-async-comprehension.crates.json --output bench/recall_loss/scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json --generated-on 2026-07-01"
   ],
   "report_kind": "scheduling-lifecycle-boundary-audit",
   "schema_version": 1,
@@ -3114,7 +3114,7 @@
     {
       "boundary": "async iteration lifecycle",
       "language": "python",
-      "note": "async for needs async iterator lifecycle, value-channel, and scheduling proof",
+      "note": "async for statements and comprehensions need async iterator lifecycle, value-channel, and scheduling proof",
       "obligation_family": "lifecycle-materialization-boundary",
       "obligation_subreason": "async-iteration-lifecycle-contract-missing",
       "occurrences": 114,

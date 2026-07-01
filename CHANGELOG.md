@@ -140,12 +140,13 @@ break.
   remains closed; the 120-repo audit adds `107` non-JS source-prevalence
   occurrences over the prior async-runtime scope-shadowing audit.
 - Added Python async protocol lifecycle reporting. Source-backed `async for`
-  and `async with` boundaries now reuse generic async iteration/context
-  lifecycle, value-channel, cleanup, exception-channel, and scheduling
-  obligations instead of being erased into ordinary loop/body structure. Exact
-  admission remains closed; the 120-repo audit prices `114` `async for`
-  occurrences and `361` `async with` occurrences across `5` repos with `0`
-  false merges on the checked `crates` gate.
+  statements, async comprehensions, and `async with` boundaries now reuse
+  generic async iteration/context lifecycle, value-channel, cleanup,
+  exception-channel, and scheduling obligations instead of being erased into
+  ordinary loop/body structure. Exact admission remains closed; the 120-repo
+  audit prices `114` `async for` occurrences and `361` `async with`
+  occurrences across `5` repos with `0` false merges on the checked `crates`
+  gate.
 - Added Ruby Thread/Fiber runtime reporting. `Thread.new`, `Thread.start`,
   `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse shared
   task-spawn, task-handle, cancellation/liveness, and concurrency scheduling

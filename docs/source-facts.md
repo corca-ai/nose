@@ -107,9 +107,9 @@ fall back to a side-table mirror when source evidence is missing.
   literals, strict equality, strict inequality, loose equality, loose
   inequality, unary `typeof`, and `instanceof`.
 - Python lowering emits source facts for async function, async `await`,
-  `async for`, and `async with` boundaries, generator `yield` boundaries,
-  list/set/dict/generator comprehension surfaces, value equality/inequality,
-  and identity equality/inequality.
+  `async for` statements, async comprehensions, and `async with` boundaries,
+  generator `yield` boundaries, list/set/dict/generator comprehension surfaces,
+  value equality/inequality, and identity equality/inequality.
 - Go lowering emits source facts for goroutine spawn, deferred calls, channel
   send/receive, select, and select case/default protocol boundaries. These
   surfaces remain raw protocol anchors; `v, ok := <-ch` preserves both the
@@ -132,9 +132,10 @@ fall back to a side-table mirror when source evidence is missing.
   `Raw("async_function", body)`, so an async producer without an `await`
   expression is still fail-closed. JS/TS, Python, Rust, and Swift `await`
   lowering preserves `Raw("await", value)` instead of erasing the source
-  operation. Python `async for` and `async with` preserve source-backed
-  protocol boundaries for async iterator and async context-manager lifecycle
-  obligations. JS/TS and Python `yield` preserves `Raw("yield", value)`. Rust
+  operation. Python `async for` statements, async comprehensions, and
+  `async with` preserve source-backed protocol boundaries for async iterator
+  and async context-manager lifecycle obligations. JS/TS and Python `yield`
+  preserves `Raw("yield", value)`. Rust
   `async {}` and `?` are preserved as
   `Raw("async_block", body)` and `Raw("try", value)`. Exact async/sync,
   generator, and error-propagation convergence stays closed until a future

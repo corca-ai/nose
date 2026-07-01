@@ -225,12 +225,12 @@ cancellation/liveness, and exception-channel obligations; no new kernel API or
 exact admission path is opened.
 The follow-up [Python async protocol lifecycle artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json)
 keeps the same capability-first policy for source syntax rather than library
-selectors. Python `async for` now reports async iteration lifecycle,
-value-channel, and scheduling obligations, while `async with` reports async
-context lifecycle, cleanup, exception-channel, and scheduling obligations.
-Exact admission remains closed; the 120-repo audit prices `114` `async for`
-and `361` `async with` occurrences across `5` repos with `0` false merges on
-the checked `crates` gate.
+selectors. Python `async for` statements and comprehensions now report async
+iteration lifecycle, value-channel, and scheduling obligations, while
+`async with` reports async context lifecycle, cleanup, exception-channel, and
+scheduling obligations. Exact admission remains closed; the 120-repo audit
+prices `114` `async for` and `361` `async with` occurrences across `5` repos
+with `0` false merges on the checked `crates` gate.
 The follow-up [promise-protocol-hard-negatives-2026-06-28.v1.json](../bench/recall_loss/promise-protocol-hard-negatives-2026-06-28.v1.json)
 pins the Promise-specific hard negatives before any recovery slice opens:
 async-function/sync, Promise executor/sync, Promise.resolve/sync,

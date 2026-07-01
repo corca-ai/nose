@@ -2334,12 +2334,12 @@ goroutines, and `17,521` defers with `semantic_admission_delta = 0`.
 The [scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json](../bench/recall_loss/scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json)
 artifact extends source protocol evidence to Python `async for` and
 `async with` without adding selector-specific kernel features. `async for`
-emits an async iteration boundary with lifecycle, value-channel, and scheduling
-obligations; `async with` emits an async context boundary with lifecycle,
-cleanup, exception-channel, and scheduling obligations. Exact admission remains
-closed with `false_merges = 0` and `canon_preservation_violations = 0`; the
-120-repo audit prices `114` `async for` and `361` `async with` occurrences
-across `5` repos.
+statements and comprehensions emit an async iteration boundary with lifecycle,
+value-channel, and scheduling obligations; `async with` emits an async context
+boundary with lifecycle, cleanup, exception-channel, and scheduling
+obligations. Exact admission remains closed with `false_merges = 0` and
+`canon_preservation_violations = 0`; the 120-repo audit prices `114`
+`async for` and `361` `async with` occurrences across `5` repos.
 
 ## See also
 

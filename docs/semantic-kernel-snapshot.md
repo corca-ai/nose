@@ -239,12 +239,12 @@ unshadowed free-runtime-function guard. The matching 120-repo pricing adds
 local `crates` gate at `0` false merges.
 The follow-up [Python async protocol lifecycle artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json)
 keeps exact admission closed while preserving `async for` and `async with` as
-source-backed protocol boundaries. `async for` now carries async iteration
-lifecycle, value-channel, and scheduling obligations; `async with` carries
-async context lifecycle, cleanup, exception-channel, and scheduling obligations.
-The 120-repo pricing records `114` `async for` and `361` `async with`
-occurrences across `5` repos, with the checked `crates` gate at `0` false
-merges and `0` canon preservation violations.
+source-backed protocol boundaries. `async for` statements and comprehensions
+now carry async iteration lifecycle, value-channel, and scheduling obligations;
+`async with` carries async context lifecycle, cleanup, exception-channel, and
+scheduling obligations. The 120-repo pricing records `114` `async for` and
+`361` `async with` occurrences across `5` repos, with the checked `crates` gate
+at `0` false merges and `0` canon preservation violations.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected

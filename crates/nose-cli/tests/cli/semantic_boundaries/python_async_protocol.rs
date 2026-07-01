@@ -35,3 +35,22 @@ fn query_mode_semantic_rejects_unproven_python_async_protocol_lifecycle_converge
         );
     }
 }
+
+#[test]
+fn query_mode_semantic_rejects_unproven_python_async_comprehension_convergence() {
+    let project = TempProject::new("py_async_comprehension_boundary");
+    project.write(
+        "async_comp.py",
+        "async def collect(xs):\n    return [x async for x in xs]\n",
+    );
+    project.write(
+        "sync_comp.py",
+        "async def collect(xs):\n    return [x for x in xs]\n",
+    );
+
+    let json = project.query_semantic_min_json();
+    assert!(
+        !family_contains_all(&json, &["async_comp.py", "sync_comp.py"]),
+        "Python async comprehension protocol boundary must not merge with sync comprehension: {json}"
+    );
+}
