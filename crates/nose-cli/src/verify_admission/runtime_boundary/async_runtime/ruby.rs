@@ -1,5 +1,5 @@
 use super::push_task_spawn_missing_evidence;
-use nose_il::{Interner, NodeId, NodeKind, Payload};
+use nose_il::{stable_symbol_hash, Interner, NodeId, NodeKind, Payload};
 
 pub(super) fn push_ruby_thread_fiber_runtime_call_missing_evidence(
     il: &nose_il::Il,
@@ -46,9 +46,43 @@ fn ruby_runtime_root_shadowed(il: &nose_il::Il, interner: &Interner, root: &str)
             NodeKind::Module | NodeKind::Block | NodeKind::Param => {
                 node_name_shadows_runtime_root(il, interner, node, root)
             }
+            NodeKind::Call => ruby_const_set_shadows_runtime_root(il, interner, node, root),
             _ => false,
         }
     })
+}
+
+fn ruby_const_set_shadows_runtime_root(
+    il: &nose_il::Il,
+    interner: &Interner,
+    call: NodeId,
+    root: &str,
+) -> bool {
+    let children = il.children(call);
+    let Some((&callee, args)) = children.split_first() else {
+        return false;
+    };
+    if !ruby_const_set_callee(il, interner, callee) {
+        return false;
+    }
+    args.first()
+        .copied()
+        .is_some_and(|arg| node_is_static_literal_name(il, arg, root))
+}
+
+fn ruby_const_set_callee(il: &nose_il::Il, interner: &Interner, callee: NodeId) -> bool {
+    match il.node(callee).payload {
+        Payload::Name(symbol) => interner.resolve(symbol) == "const_set",
+        _ => false,
+    }
+}
+
+fn node_is_static_literal_name(il: &nose_il::Il, node: NodeId, expected: &str) -> bool {
+    il.kind(node) == NodeKind::Lit
+        && matches!(
+            il.node(node).payload,
+            Payload::LitStr(hash) if hash == stable_symbol_hash(expected)
+        )
 }
 
 fn node_name_shadows_runtime_root(
