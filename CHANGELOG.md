@@ -95,6 +95,16 @@ break.
   `276` to `230`; the Java-heavy query regression kept product output hashes
   identical on all six measured repos and measured `7023.49ms -> 6991.92ms`
   (`-0.45%`).
+- Added Java `CompletableFuture` receiver settlement and observation reporting
+  for import-backed `complete`/`completeExceptionally`,
+  `join`/`getNow`/`isCompletedExceptionally`, and timeout methods. The 120-repo
+  audit adds `45` settlement and `45` observation occurrences as
+  reporting-supported closed-boundaries after rejecting same-name receiver
+  bleed-through across scopes, reclassifies the remaining `230` broad
+  `CompletableFuture` type mentions as a superseded overlap row, and keeps
+  exact admission closed. The Java-heavy query regression kept product output
+  hashes identical on all six measured repos and measured `8307.21ms ->
+  8331.21ms` (`+0.29%`).
 - Aligned already source-protocol-backed Python `await`/`async def`, Rust
   `.await`/`async fn`/`async block`, and Swift `async` function audit rows with
   runtime-boundary reporting. This moves `19,144` non-JS async source-protocol

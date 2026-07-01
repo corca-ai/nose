@@ -1117,6 +1117,21 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   admission code changed; the artifact documents existing exact-supported
   iterator identity/static collection adapter capability and keeps untyped
   stream plus `parallelStream` lifecycle semantics closed for later proof.
+- [scheduling-lifecycle-boundary-audit-java-completablefuture-receiver-split-2026-07-02.v1.json](scheduling-lifecycle-boundary-audit-java-completablefuture-receiver-split-2026-07-02.v1.json)
+  records the Java `CompletableFuture` receiver split. It moves
+  scope-proven `complete`/`completeExceptionally` receiver settlement methods
+  (`45` across `2` repos) and `join`/`getNow`/`isCompletedExceptionally`
+  observation methods (`45` across `1` repo) to reporting-supported
+  closed-boundary rows, while the remaining `230` broad type/reference mentions
+  become a superseded overlap row instead of an actionable residual. Same-name
+  receivers in other scopes, custom imports, lambda parameters, and unsupported
+  arities remain closed.
+- [java-completablefuture-receiver-split-2026-07-02.v1.json](java-completablefuture-receiver-split-2026-07-02.v1.json)
+  records the compact closeout for the same slice, and
+  [java-completablefuture-receiver-split-query-regression-2026-07-02.v1.json](java-completablefuture-receiver-split-query-regression-2026-07-02.v1.json)
+  records the Java-heavy r9 product query regression. All six measured repos
+  kept identical output hashes and family counts; aggregate median runtime was
+  `8307.21ms -> 8331.21ms` (`+0.29%`).
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

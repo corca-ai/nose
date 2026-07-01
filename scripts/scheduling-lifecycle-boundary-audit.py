@@ -468,6 +468,60 @@ JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR = Pattern(
     re.compile(r"(?!x)x"),
     "reporting-supported-closed-boundary",
 )
+JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN = Pattern(
+    "java",
+    "java.future.completable.constructor_unproven",
+    "new CompletableFuture without stdlib proof",
+    "success-error-result-channel",
+    "future-settled-value-channel-contract-missing",
+    "future constructor channel",
+    "Unqualified or shadowed CompletableFuture constructors remain closed until stdlib type identity is proven",
+    re.compile(r"(?!x)x"),
+)
+JAVA_COMPLETABLE_FUTURE_TYPE_REFERENCE = Pattern(
+    "java",
+    "java.future.completable.type_reference",
+    "CompletableFuture type reference",
+    "lifecycle-materialization-boundary",
+    "task-handle-lifecycle-contract-missing",
+    "future type/reference shape",
+    "CompletableFuture type references are evidence or wrapper/type-shape mentions; concrete constructor/static/receiver operation rows drive actionable future work",
+    re.compile(r"(?!x)x"),
+    "superseded-overlap-boundary",
+)
+JAVA_COMPLETABLE_FUTURE_RECEIVER_SETTLEMENT = Pattern(
+    "java",
+    "java.future.completable.receiver.settlement",
+    "CompletableFuture.complete/completeExceptionally",
+    "success-error-result-channel",
+    "future-settled-value-channel-contract-missing",
+    "future receiver settlement",
+    "Import-backed CompletableFuture receivers expose manual fulfilled or exceptional settlement channels",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE = Pattern(
+    "java",
+    "java.future.completable.receiver.observe",
+    "CompletableFuture.join/getNow/isCompletedExceptionally",
+    "success-error-result-channel",
+    "future-settled-value-channel-contract-missing",
+    "future receiver observation",
+    "Import-backed CompletableFuture receivers expose settled-value, exceptional, lifecycle, and cancellation observation boundaries",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
+JAVA_COMPLETABLE_FUTURE_RECEIVER_TIMEOUT = Pattern(
+    "java",
+    "java.future.completable.receiver.timeout",
+    "CompletableFuture.orTimeout/completeOnTimeout",
+    "scheduling-boundary",
+    "timer-scheduling-contract-missing",
+    "future timeout settlement",
+    "Import-backed CompletableFuture timeout receivers add timer-backed settlement and liveness boundaries",
+    re.compile(r"(?!x)x"),
+    "reporting-supported-closed-boundary",
+)
 JAVA_FUTURE_HANDLE_GET = Pattern(
     "java",
     "java.future.handle.get",
@@ -708,6 +762,11 @@ def all_known_patterns() -> tuple[Pattern, ...]:
         JAVA_FUTURE_ALL_COMPLETION_CONTINUATION,
         JAVA_FUTURE_FIRST_COMPLETION_CONTINUATION,
         JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR,
+        JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN,
+        JAVA_COMPLETABLE_FUTURE_TYPE_REFERENCE,
+        JAVA_COMPLETABLE_FUTURE_RECEIVER_SETTLEMENT,
+        JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE,
+        JAVA_COMPLETABLE_FUTURE_RECEIVER_TIMEOUT,
         JAVA_FUTURE_HANDLE_GET,
         JAVA_FUTURE_HANDLE_CANCEL,
         JAVA_FUTURE_HANDLE_STATUS,
@@ -808,7 +867,8 @@ def self_test() -> None:
         "java",
     )
     assert exact_completable_constructor.get(JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR) == 1
-    assert exact_completable_constructor.get(java_completable_broad) == 1
+    assert exact_completable_constructor.get(JAVA_COMPLETABLE_FUTURE_TYPE_REFERENCE) == 1
+    assert java_completable_broad not in exact_completable_constructor
 
     wildcard_completable_constructor = count_file(
         "import java.util.concurrent.*;\n"
@@ -827,7 +887,13 @@ def self_test() -> None:
         JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR
         not in wildcard_package_shadow_completable_constructor
     )
-    assert wildcard_package_shadow_completable_constructor.get(java_completable_broad) == 1
+    assert (
+        wildcard_package_shadow_completable_constructor.get(
+            JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN
+        )
+        == 1
+    )
+    assert java_completable_broad not in wildcard_package_shadow_completable_constructor
 
     qualified_completable_constructor = count_file(
         "class T { Object run() { return new java.util.concurrent.CompletableFuture<String>(); } }\n",
@@ -840,7 +906,76 @@ def self_test() -> None:
         "java",
     )
     assert JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR not in unimported_completable_constructor
-    assert unimported_completable_constructor.get(java_completable_broad) == 1
+    assert (
+        unimported_completable_constructor.get(JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN) == 1
+    )
+    assert java_completable_broad not in unimported_completable_constructor
+
+    imported_completable_type_reference = count_file(
+        "import java.util.concurrent.CompletableFuture;\n"
+        "class T { Object run(CompletableFuture<String> future) { return CompletableFuture.class; } }\n",
+        "java",
+    )
+    assert imported_completable_type_reference.get(JAVA_COMPLETABLE_FUTURE_TYPE_REFERENCE) == 3
+    assert java_completable_broad not in imported_completable_type_reference
+
+    completable_receiver_methods = count_file(
+        "import java.util.concurrent.CompletableFuture;\n"
+        "import java.util.concurrent.TimeUnit;\n"
+        "class T { Object run(CompletableFuture<String> future, Throwable error) {\n"
+        "  future.complete(\"ok\");\n"
+        "  future.completeExceptionally(error);\n"
+        "  future.join();\n"
+        "  future.getNow(\"fallback\");\n"
+        "  future.isCompletedExceptionally();\n"
+        "  future.orTimeout(1, TimeUnit.SECONDS);\n"
+        "  return future.completeOnTimeout(\"fallback\", 1, TimeUnit.SECONDS);\n"
+        "} }\n",
+        "java",
+    )
+    assert completable_receiver_methods.get(JAVA_COMPLETABLE_FUTURE_RECEIVER_SETTLEMENT) == 2
+    assert completable_receiver_methods.get(JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE) == 3
+    assert completable_receiver_methods.get(JAVA_COMPLETABLE_FUTURE_RECEIVER_TIMEOUT) == 2
+
+    custom_completable_receiver_method = count_file(
+        "import example.CompletableFuture;\n"
+        "class T { Object run(CompletableFuture<String> future) { return future.join(); } }\n",
+        "java",
+    )
+    assert JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE not in custom_completable_receiver_method
+
+    same_name_other_scope_completable_receiver = count_file(
+        "import java.util.concurrent.CompletableFuture;\n"
+        "class CustomFuture { Object join() { return null; } }\n"
+        "class T {\n"
+        "  Object first(CompletableFuture<String> future) { return future; }\n"
+        "  Object second(CustomFuture future) { return future.join(); }\n"
+        "}\n",
+        "java",
+    )
+    assert (
+        JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE
+        not in same_name_other_scope_completable_receiver
+    )
+
+    wrong_arity_completable_receiver_method = count_file(
+        "import java.util.concurrent.CompletableFuture;\n"
+        "class T { Object run(CompletableFuture<String> future) { return future.join(\"bad\"); } }\n",
+        "java",
+    )
+    assert (
+        JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE
+        not in wrong_arity_completable_receiver_method
+    )
+
+    lambda_shadowed_completable_receiver = count_file(
+        "import java.util.concurrent.CompletableFuture;\n"
+        "class T { Object run(CompletableFuture<String> future, java.util.List<Object> values) {\n"
+        "  return values.stream().map(future -> future.join());\n"
+        "} }\n",
+        "java",
+    )
+    assert JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE not in lambda_shadowed_completable_receiver
 
     java_stream_broad = next(
         item for item in PATTERNS if item.surface == "java.stream.lifecycle"
@@ -934,6 +1069,7 @@ def self_test() -> None:
         "java",
     )
     assert JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR not in conflict_completable_constructor
+    assert conflict_completable_constructor.get(JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN) == 1
 
     shadow_completable_constructor = count_file(
         "import java.util.concurrent.CompletableFuture;\n"
@@ -942,6 +1078,7 @@ def self_test() -> None:
         "java",
     )
     assert JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR not in shadow_completable_constructor
+    assert shadow_completable_constructor.get(JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN) == 1
 
     wildcard_package_shadow_future_receiver = count_file(
         "import java.util.concurrent.*;\n"
@@ -1247,13 +1384,15 @@ def count_file(
 
 def java_completable_future_counts(
     text: str,
-    broad_pattern: Pattern,
+    _broad_pattern: Pattern,
     package_local_types: set[str] | None = None,
 ) -> dict[Pattern, int]:
+    constructor_candidate_starts = java_completable_future_constructor_candidate_name_starts(text)
     accepted_constructor_starts = java_completable_future_constructor_name_starts(
         text, package_local_types
     )
-    broad_count = 0
+    unproven_constructor_starts = constructor_candidate_starts - accepted_constructor_starts
+    type_reference_count = 0
     for match in re.finditer(
         r"\bCompletableFuture\b"
         r"(?!\s*\.\s*(?:supplyAsync|runAsync|completedFuture|completedStage|failedFuture|failedStage|allOf|anyOf)\s*\()",
@@ -1261,14 +1400,32 @@ def java_completable_future_counts(
     ):
         if match.start() in accepted_constructor_starts:
             continue
-        broad_count += 1
+        if match.start() in unproven_constructor_starts:
+            continue
+        type_reference_count += 1
 
     counts: dict[Pattern, int] = {}
-    if broad_count:
-        counts[broad_pattern] = broad_count
     if accepted_constructor_starts:
         counts[JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR] = len(accepted_constructor_starts)
+    if unproven_constructor_starts:
+        counts[JAVA_COMPLETABLE_FUTURE_CONSTRUCTOR_UNPROVEN] = len(
+            unproven_constructor_starts
+        )
+    if type_reference_count:
+        counts[JAVA_COMPLETABLE_FUTURE_TYPE_REFERENCE] = type_reference_count
     return counts
+
+
+def java_completable_future_constructor_candidate_name_starts(text: str) -> set[int]:
+    starts: set[int] = set()
+    qualified = re.compile(
+        r"\bnew\s+java\s*\.\s*util\s*\.\s*concurrent\s*\.\s*"
+        r"(CompletableFuture)\b(?:\s*<[^;(){}]*>)?\s*\("
+    )
+    starts.update(match.start(1) for match in qualified.finditer(text))
+    simple = re.compile(r"\bnew\s+(CompletableFuture)\b(?:\s*<[^;(){}]*>)?\s*\(")
+    starts.update(match.start(1) for match in simple.finditer(text))
+    return starts
 
 
 def java_completable_future_constructor_name_starts(
@@ -2443,9 +2600,147 @@ def java_future_receiver_counts(
             ),
             ".",
         )
+    java_completable_future_receiver_method_counts(counts, text, package_local_types)
     java_future_handle_counts(counts, text, package_local_types)
     java_executor_receiver_counts(counts, text, package_local_types)
     return counts
+
+
+JAVA_COMPLETABLE_FUTURE_RECEIVER_METHODS = {
+    "complete": (JAVA_COMPLETABLE_FUTURE_RECEIVER_SETTLEMENT, {1}),
+    "completeExceptionally": (JAVA_COMPLETABLE_FUTURE_RECEIVER_SETTLEMENT, {1}),
+    "join": (JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE, {0}),
+    "getNow": (JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE, {1}),
+    "isCompletedExceptionally": (JAVA_COMPLETABLE_FUTURE_RECEIVER_OBSERVE, {0}),
+    "orTimeout": (JAVA_COMPLETABLE_FUTURE_RECEIVER_TIMEOUT, {2}),
+    "completeOnTimeout": (JAVA_COMPLETABLE_FUTURE_RECEIVER_TIMEOUT, {3}),
+}
+
+
+def java_completable_future_receiver_method_counts(
+    counts: dict[Pattern, int],
+    text: str,
+    package_local_types: set[str] | None = None,
+) -> None:
+    methods = "|".join(
+        re.escape(method)
+        for method in sorted(JAVA_COMPLETABLE_FUTURE_RECEIVER_METHODS, key=len, reverse=True)
+    )
+    pattern = re.compile(
+        rf"\b(?P<receiver>{JAVA_IDENTIFIER_RE})\s*(?P<dot>\.)\s*"
+        rf"(?P<method>{methods})\s*\("
+    )
+    for match in pattern.finditer(text):
+        row, arities = JAVA_COMPLETABLE_FUTURE_RECEIVER_METHODS[match.group("method")]
+        if not java_call_arity_matches_masked_literals(text, match.end() - 1, arities):
+            continue
+        receiver = match.group("receiver")
+        if (
+            java_latest_value_binding_import_backed_concurrent_type(
+                text,
+                match.start("dot"),
+                receiver,
+                {"CompletableFuture"},
+                package_local_types,
+            )
+            is True
+        ):
+            counts[row] = counts.get(row, 0) + 1
+
+
+def java_call_arity_matches_masked_literals(
+    text: str,
+    open_paren: int,
+    allowed: set[int],
+) -> bool:
+    arity = java_call_arity(text, open_paren)
+    if arity is None:
+        return False
+    width = java_call_argument_span_width(text, open_paren)
+    if arity == 0 and width is not None and width > 0:
+        return 1 in allowed
+    return arity in allowed
+
+
+def java_call_argument_span_width(text: str, open_paren: int) -> int | None:
+    if open_paren >= len(text) or text[open_paren] != "(":
+        return None
+    paren_depth = 0
+    bracket_depth = 0
+    brace_depth = 0
+    idx = open_paren + 1
+    while idx < len(text):
+        current = text[idx]
+        if current == "(":
+            paren_depth += 1
+        elif current == ")":
+            if paren_depth == 0 and bracket_depth == 0 and brace_depth == 0:
+                return idx - open_paren - 1
+            if paren_depth > 0:
+                paren_depth -= 1
+        elif current == "[":
+            bracket_depth += 1
+        elif current == "]":
+            bracket_depth = max(0, bracket_depth - 1)
+        elif current == "{":
+            brace_depth += 1
+        elif current == "}":
+            brace_depth = max(0, brace_depth - 1)
+        idx += 1
+    return None
+
+
+def java_latest_value_binding_import_backed_concurrent_type(
+    text: str,
+    before: int,
+    name: str,
+    type_names: set[str],
+    package_local_types: set[str] | None = None,
+) -> bool | None:
+    region = java_enclosing_method_like_region(text, before)
+    if region is None:
+        return None
+    if java_lambda_parameter_visible_before(text, before, name):
+        return False
+    latest: tuple[int, bool] | None = None
+    for match in JAVA_VALUE_BINDING_PATTERN.finditer(text, region[0], before):
+        if match.group("name") != name:
+            continue
+        if match.group("name") in {"class", "interface", "enum", "record"}:
+            continue
+        if java_binding_type_is_keyword(match.group("type")):
+            continue
+        if java_binding_is_callable_declaration(text, match.end("name")):
+            continue
+        latest = (
+            match.start("name"),
+            java_concurrent_type_binding_supported(
+                text,
+                match.group("type"),
+                type_names,
+                package_local_types,
+            ),
+        )
+    return latest[1] if latest is not None else None
+
+
+def java_concurrent_type_binding_supported(
+    text: str,
+    type_text: str,
+    type_names: set[str],
+    package_local_types: set[str] | None = None,
+) -> bool:
+    normalized = re.sub(r"\s+", "", type_text)
+    concurrent_prefix = "java.util.concurrent."
+    if normalized.startswith(concurrent_prefix):
+        return normalized[len(concurrent_prefix) :] in type_names
+    if "." in normalized:
+        return False
+    return normalized in java_imported_concurrent_types(
+        text,
+        type_names,
+        package_local_types,
+    )
 
 
 def java_future_like_receiver_names(text: str) -> set[str]:

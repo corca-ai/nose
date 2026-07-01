@@ -51,6 +51,11 @@ pub(super) fn push_java_future_runtime_call_missing_evidence(
     {
         return true;
     }
+    if receiver_provenance::completable_future_receiver_proven(il, interner, callee, context)
+        && push_completable_future_receiver_method_missing_evidence(method, labels)
+    {
+        return true;
+    }
     if receiver_provenance::future_handle_receiver_proven(il, interner, callee, context)
         && push_future_handle_method_missing_evidence(method, labels)
     {
@@ -369,6 +374,53 @@ fn push_completion_stage_continuation_missing_evidence(
         "handle" | "handleAsync" | "whenComplete" | "whenCompleteAsync" => {
             super::super::push_unique(labels, "future-settlement-continuation-contract");
             push_future_result_callback_exception_missing_evidence(labels);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn push_completable_future_receiver_method_missing_evidence(
+    method: &str,
+    labels: &mut Vec<&'static str>,
+) -> bool {
+    match method {
+        "complete" => {
+            super::push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            true
+        }
+        "completeExceptionally" => {
+            super::push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
+            super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            true
+        }
+        "join" | "getNow" => {
+            super::push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
+            super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            super::super::push_unique(labels, "task-cancellation-liveness-contract");
+            true
+        }
+        "isCompletedExceptionally" => {
+            super::super::push_unique(labels, "exception-channel-contract");
+            super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            true
+        }
+        "orTimeout" => {
+            super::super::push_unique(labels, "timer-scheduling-contract");
+            super::push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "exception-channel-contract");
+            super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            super::super::push_unique(labels, "task-cancellation-liveness-contract");
+            true
+        }
+        "completeOnTimeout" => {
+            super::super::push_unique(labels, "timer-scheduling-contract");
+            super::push_future_settled_value_missing_evidence(labels);
+            super::super::push_unique(labels, "task-handle-lifecycle-contract");
+            super::super::push_unique(labels, "task-cancellation-liveness-contract");
             true
         }
         _ => false,

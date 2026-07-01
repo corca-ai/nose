@@ -63,8 +63,13 @@ Java `new CompletableFuture<...>()` constructors now preserve a construct-call
 callee only when the stdlib type identity is fully qualified or exact-/
 wildcard-import-backed and unshadowed. Those constructors report future-settled,
 exception-channel, task-handle lifecycle, and cancellation/liveness obligations
-without opening exact admission; residual broad `CompletableFuture` mentions
-remain closed until split into product-backed surfaces.
+without opening exact admission. Scope-proven import-backed
+`CompletableFuture` receivers now also report manual settlement
+(`complete`/`completeExceptionally`), observation
+(`join`/`getNow`/`isCompletedExceptionally`), and timeout obligations through
+the same FutureLike evidence path. The old broad `CompletableFuture` type-name
+bucket is now a superseded overlap row, so actionable Java Future tracking uses
+concrete constructor, static, and receiver-operation rows.
 Java Future/Executor audit accounting now treats proof-backed
 `CompletionStage.handle`/`whenComplete` settlement continuations as
 reporting-supported receiver-domain surfaces. The older broad `Executor/Future`
@@ -1619,9 +1624,12 @@ this worktree because the required evidence is not yet modeled:
   and explicit `this.<field>` receivers now reuse the same capability
   vocabulary for handle lifecycle, cancellation/liveness, executor scheduling,
   timer/interval lifecycle, aggregate, callback/effect, settled-value, and
-  exception obligations. Exact Future/CompletionStage/Executor recovery remains
-  closed: implicit fields, non-`this` fields, wrapper aliases,
-  project-specific executors, callback
+  exception obligations. Import-backed `CompletableFuture` receivers additionally
+  report manual settlement, observation, and timeout-specific obligations; the
+  broad `CompletableFuture` type-reference row is superseded by concrete
+  constructor/static/receiver operation rows. Exact Future/CompletionStage/
+  Executor recovery remains closed: implicit fields, non-`this` fields, wrapper
+  aliases, project-specific executors, callback
   identity/effects, cancellation/liveness, exceptional completion, result
   channels, and constructor semantics still need dependency-closed contracts
   before Java future calls can converge with synchronous values or each other.

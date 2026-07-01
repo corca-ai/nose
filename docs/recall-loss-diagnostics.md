@@ -216,6 +216,15 @@ aligns existing receiver-domain reporting with the audit by marking
 `Executor/Future` type-name bucket as a superseded overlap row at `3,297`
 occurrences, so Java residual work is ranked from concrete operation rows
 rather than broad type mentions. The
+follow-up [Java CompletableFuture receiver split artifact](../bench/recall_loss/java-completablefuture-receiver-split-2026-07-02.v1.json)
+extends the same FutureLike receiver-domain reporting to
+`complete`/`completeExceptionally`, `join`/`getNow`/`isCompletedExceptionally`,
+and timeout methods. The 120-repo audit moves `45` scope-proven receiver
+settlement and `45` receiver observation occurrences to reporting-supported
+rows, reclassifies the remaining `230` broad `CompletableFuture` type/reference
+mentions as a superseded overlap bucket, and keeps exact admission closed.
+Same-name receivers outside the proven scope, custom imports, lambda parameters,
+and unsupported arities remain closed. The
 follow-up [Java stream lifecycle split artifact](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)
 accounts for existing proof-backed stream adapter capability in the same audit:
 typed `receiver.stream()` contributes `372` exact-supported occurrences and

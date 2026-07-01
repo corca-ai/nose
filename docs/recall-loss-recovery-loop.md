@@ -109,7 +109,7 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
 - [Java stream lifecycle split](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json) records the follow-up audit alignment for existing stream adapter capability. The audit now separates `372` typed `receiver.stream()` and `128` exact-import/qualified `Arrays.stream(xs)` occurrences as exact-supported rows, reducing the broad `stream/parallelStream` residual from `1,996` to `1,496` while leaving untyped, shadowed, arity/range overload, and parallel stream lifecycle semantics closed.
 - [Non-JS task-spawn reporting alignment](../bench/recall_loss/non-js-task-spawn-reporting-alignment-2026-07-01.v1.json) records the cross-language closeout for already-backed task-spawn rows. Rust `tokio`/`async-std` spawn, Swift `Task`/`Task.detached`, Python `asyncio.create_task`/`ensure_future`, and Java `CompletableFuture.supplyAsync`/`runAsync` move from closed/candidate audit rows to reporting-supported closed-boundaries, newly aligning `590` occurrences while keeping exact admission closed and the checked `crates` gate at `0` false merges.
 - [Non-JS async aggregate reporting alignment](../bench/recall_loss/non-js-async-aggregate-reporting-alignment-2026-07-01.v1.json) records the companion closeout for already-backed aggregate rows. Rust `tokio`/`futures`/`futures_util` `join!`/`try_join!`/`select!`, Python `asyncio.gather`/`wait`, and Java `CompletableFuture.allOf`/`anyOf` move to reporting-supported closed-boundaries, newly aligning `98` occurrences while keeping exact admission closed and the checked `crates` gate at `0` false merges.
-- [Swift await and Java settled-factory reporting alignment](../bench/recall_loss/swift-await-java-factory-reporting-alignment-2026-07-02.v1.json) records the next closeout for already-backed protocol/static-runtime rows. Swift `await` and Java `CompletableFuture.completedFuture`/`failedFuture` move to reporting-supported closed-boundaries, newly aligning `8,703` occurrences while keeping exact admission closed and the checked `crates` gate at `0` false merges. Broad Java `CompletableFuture` mentions and looser FutureLike settlement receiver counts remain closed/deferred.
+- [Swift await and Java settled-factory reporting alignment](../bench/recall_loss/swift-await-java-factory-reporting-alignment-2026-07-02.v1.json) records the next closeout for already-backed protocol/static-runtime rows. Swift `await` and Java `CompletableFuture.completedFuture`/`failedFuture` move to reporting-supported closed-boundaries, newly aligning `8,703` occurrences while keeping exact admission closed and the checked `crates` gate at `0` false merges. At that checkpoint, broad Java `CompletableFuture` mentions and looser FutureLike settlement receiver counts remained closed/deferred.
 - The [Java CompletableFuture constructor reporting](../bench/recall_loss/java-completablefuture-constructor-reporting-2026-07-02.v1.json)
   artifact records the proof-backed constructor split from the broad Java Future
   bucket. Fully qualified or exact-/wildcard-import-backed constructor calls now
@@ -118,6 +118,16 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   admission remains closed. The residual broad Java `CompletableFuture` bucket
   falls from `276` to `230`; the Java-heavy query regression kept all product
   output hashes identical and measured `7023.49ms -> 6991.92ms` (`-0.45%`).
+- The [Java CompletableFuture receiver split](../bench/recall_loss/java-completablefuture-receiver-split-2026-07-02.v1.json)
+  records the receiver-method follow-up. Import-backed `CompletableFuture`
+  receivers now report settlement, observation, timeout, exception, lifecycle,
+  and cancellation/liveness obligations without opening exact admission. The
+  scope-aware audit moves `45` settlement and `45` observation occurrences to
+  reporting-supported rows, keeps same-name receivers outside the proven scope
+  closed, reclassifies the remaining `230` broad `CompletableFuture`
+  type/reference mentions as superseded overlap, and the Java-heavy query
+  regression measured `8307.21ms -> 8331.21ms` (`+0.29%`) with identical product
+  hashes on all six measured repos.
 - [Non-JS source-protocol reporting alignment](../bench/recall_loss/non-js-source-protocol-reporting-alignment-2026-07-02.v1.json) records the audit closeout for already-backed async source-protocol rows.
   Python `await`/`async def`, Rust `.await`/`async fn`/`async block`, and Swift
   `async` function rows now move to reporting-supported closed-boundaries,

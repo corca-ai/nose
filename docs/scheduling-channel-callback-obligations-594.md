@@ -212,6 +212,16 @@ settlement-continuation occurrences across `2` repos. The broad
 is now a superseded overlap row rather than an actionable implementation target;
 concrete static call, constructor, and receiver-method rows drive the Java
 Future/Executor residual queue.
+The follow-up [Java CompletableFuture receiver split artifact](../bench/recall_loss/java-completablefuture-receiver-split-2026-07-02.v1.json)
+keeps using those shared FutureLike obligations for receiver-specific
+`CompletableFuture` methods. `complete`/`completeExceptionally` now report
+manual settlement and exception/lifecycle obligations; `join`, `getNow`, and
+`isCompletedExceptionally` report settled-value, exception, lifecycle, and
+cancellation/liveness observation; timeout methods add timer-backed settlement
+obligations. The scope-aware audit prices `45` settlement and `45` observation
+occurrences, keeps same-name receivers outside the proven scope closed, and
+moves the old `230` broad type/reference mentions out of the actionable
+closed-boundary queue as a superseded overlap row.
 The follow-up [Java stream lifecycle split artifact](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)
 applies the same accounting discipline to stream-shaped domains. Existing
 iterator identity/static collection adapter proof already supports `372`

@@ -2150,7 +2150,13 @@ different APIs.
   product-backed `FutureLike.handle/whenComplete` settlement continuations
   reporting-supported at `10` occurrences, so concrete static call,
   constructor, and receiver-method rows drive Java Future/Executor residual
-  planning.
+  planning. The `CompletableFuture` receiver-method follow-up extends the same
+  FutureLike evidence path to `complete`/`completeExceptionally`,
+  `join`/`getNow`/`isCompletedExceptionally`, and timeout methods without adding
+  a Java-only kernel API. The scope-aware 120-repo audit moves `45` settlement
+  and `45` observation occurrences to reporting-supported rows, keeps same-name
+  receivers outside the proven scope closed, and reclassifies the remaining
+  `230` broad `CompletableFuture` type/reference mentions as superseded overlap.
 - The Go channel/goroutine/defer follow-up applies the same capability
   vocabulary to source-backed Go protocol boundaries. It does not add a Go-only
   admission feature: sends, receives, comma-ok receives, select
@@ -2455,6 +2461,19 @@ the `4,010` broad `raise/rescue` bucket as superseded overlap, and leaves the
 Exact admission remains closed until Ruby exception
 propagation, rescue matching, ensure ordering, and non-local control semantics
 are proven.
+
+2026-07-02 Java CompletableFuture receiver split note:
+The [java-completablefuture-receiver-split-2026-07-02.v1.json](../bench/recall_loss/java-completablefuture-receiver-split-2026-07-02.v1.json)
+artifact records the next Java Future accounting and reporting slice. Existing
+import-backed FutureLike receiver proof now reports
+`complete`/`completeExceptionally`, `join`/`getNow`/`isCompletedExceptionally`,
+and timeout receiver methods under the shared settled-value, exception,
+lifecycle, cancellation/liveness, and timer obligations. The 120-repo audit
+adds `45` settlement and `45` observation reporting-supported occurrences after
+rejecting same-name receiver bleed-through across scopes, while the old
+`230`-occurrence broad `CompletableFuture` type/reference row becomes superseded
+overlap. The Java-heavy query regression kept all six product output hashes
+identical and measured `8307.21ms -> 8331.21ms` (`+0.29%`).
 
 2026-07-02 Java stream lifecycle audit split note:
 The [java-stream-lifecycle-split-2026-07-02.v1.json](../bench/recall_loss/java-stream-lifecycle-split-2026-07-02.v1.json)

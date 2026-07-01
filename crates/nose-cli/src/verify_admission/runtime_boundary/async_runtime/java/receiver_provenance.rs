@@ -41,6 +41,22 @@ pub(super) fn future_handle_receiver_proven(
     )
 }
 
+pub(super) fn completable_future_receiver_proven(
+    il: &nose_il::Il,
+    interner: &Interner,
+    callee: NodeId,
+    context: &crate::verify_admission::AdmissionContext,
+) -> bool {
+    receiver_type_proven(
+        il,
+        interner,
+        callee,
+        context,
+        |domain| domain == DomainEvidence::FutureLike,
+        java_completable_future_type_import_dependency,
+    )
+}
+
 pub(super) fn executor_receiver_kind_proven(
     il: &nose_il::Il,
     interner: &Interner,
@@ -300,6 +316,13 @@ fn java_future_handle_type_import_dependency(
         dependency,
         &[COMPLETABLE_FUTURE_TYPE, FUTURE_TYPE, SCHEDULED_FUTURE_TYPE],
     )
+}
+
+fn java_completable_future_type_import_dependency(
+    il: &nose_il::Il,
+    dependency: EvidenceId,
+) -> Option<&'static str> {
+    java_concurrent_type_import_dependency(il, dependency, &[COMPLETABLE_FUTURE_TYPE])
 }
 
 fn java_executor_type_import_dependency(

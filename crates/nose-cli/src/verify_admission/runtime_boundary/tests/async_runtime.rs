@@ -9,6 +9,7 @@ use super::super::runtime_boundary_missing_evidence_with_context;
 
 mod imported_bindings;
 mod java;
+mod java_completable_future_receiver;
 mod java_constructor;
 mod java_static_wildcard;
 mod python;
