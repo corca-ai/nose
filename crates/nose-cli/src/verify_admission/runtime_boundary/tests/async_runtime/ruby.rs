@@ -57,6 +57,10 @@ fn ruby_thread_and_fiber_calls_require_unshadowed_runtime_roots() {
             "Thread.new",
         ),
         (
+            "module M\n  Module.instance_method(:const_set).bind(self).call(:Thread, Struct.new(:value))\n  def self.run\n    Thread.new { work }\n  end\nend\n",
+            "Thread.new",
+        ),
+        (
             "Fiber = Struct.new(:value)\ndef run\n  Fiber.new { work }\nend\n",
             "Fiber.new",
         ),
@@ -86,6 +90,10 @@ fn ruby_thread_and_fiber_calls_require_unshadowed_runtime_roots() {
         ),
         (
             "module M\n  method(:autoload).call(\"Fiber\", \"runtime_shadow\")\n  def self.run\n    Fiber.schedule { work }\n  end\nend\n",
+            "Fiber.schedule",
+        ),
+        (
+            "module M\n  Module.public_instance_method(:autoload).bind(self).call(\"Fiber\", \"runtime_shadow\")\n  def self.run\n    Fiber.schedule { work }\n  end\nend\n",
             "Fiber.schedule",
         ),
         (
