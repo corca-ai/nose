@@ -129,6 +129,25 @@ fn raw_names_without_errors(src: &str) -> Vec<String> {
         .collect()
 }
 
+#[test]
+fn yield_preserves_source_backed_protocol_boundary() {
+    let interner = Interner::new();
+    let il = lower(
+        FileId(0),
+        "t.rb",
+        b"def render(value)\n  yield value, value + 1\nend\n",
+        &interner,
+    )
+    .expect("lower");
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "yield",
+        SourceProtocolKind::Yield,
+    );
+}
+
 fn expr_stmt_ints(src: &str) -> Vec<i64> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.rb", src.as_bytes(), &interner).expect("lower");

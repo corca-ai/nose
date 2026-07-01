@@ -8,8 +8,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span, Symbol,
-    UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    SourceProtocolKind, Span, Symbol, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 

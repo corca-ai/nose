@@ -186,6 +186,13 @@ break.
   obligations when the runtime root is not defined in the same file. Exact
   admission remains closed; the 120-repo audit marks `74` Ruby Thread/Fiber
   occurrences across `11` repos as reporting-supported closed boundaries.
+- Added Ruby yield source-protocol reporting. Block `yield` now preserves a
+  source-backed callback demand/effect boundary instead of erasing into an
+  ordinary `Seq`, so `yield a, b` stays distinct from `return a, b` without
+  opening exact admission. The 120-repo audit prices `801` occurrences across
+  `17` repos, the checked `crates` recall-loss gate stays at `0` false merges,
+  and the Ruby-heavy query regression measured `2697.80ms -> 2677.42ms`
+  (`-0.76%`).
 - Added non-JS async protocol near-channel mirror support. The dual-view async
   protocol capability now covers `await`, async-function boundaries, and Rust
   async blocks in near/witness builds, so Rust `async fn`/`.await` and Swift

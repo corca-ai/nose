@@ -1,0 +1,1158 @@
+{
+  "command": "nose query <repo> all top=0 --mode semantic --format json",
+  "repos": [
+    "rubocop",
+    "rspec-core",
+    "sidekiq",
+    "rack",
+    "fastlane",
+    "sinatra"
+  ],
+  "runs": [
+    {
+      "bytes": 138919,
+      "elapsed_ms": 549.1985420230776,
+      "families": 104,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 569.4828329142183,
+      "families": 104,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 146.36029093526304,
+      "families": 8,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 157.61399990879,
+      "families": 8,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 107.91158303618431,
+      "families": 6,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 97.1237919293344,
+      "families": 6,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 75.88983280584216,
+      "families": 3,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 97.87125000730157,
+      "families": 3,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1749.8702921438962,
+      "families": 28,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1674.0881248842925,
+      "families": 28,
+      "iteration": 1,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 77.52099982462823,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 73.14004190266132,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 461.795249953866,
+      "families": 104,
+      "iteration": 2,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 597.0500831026584,
+      "families": 104,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 156.57191700302064,
+      "families": 8,
+      "iteration": 2,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 121.39245797879994,
+      "families": 8,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 127.58358404971659,
+      "families": 6,
+      "iteration": 2,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 94.930041115731,
+      "families": 6,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 82.88637502118945,
+      "families": 3,
+      "iteration": 2,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 83.05349992588162,
+      "families": 3,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1769.0328329335898,
+      "families": 28,
+      "iteration": 2,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1662.3484590090811,
+      "families": 28,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 67.44433310814202,
+      "families": 1,
+      "iteration": 2,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 67.4748329911381,
+      "families": 1,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 540.2127089910209,
+      "families": 104,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 545.1207500882447,
+      "families": 104,
+      "iteration": 3,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 194.85916709527373,
+      "families": 8,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 156.5452921204269,
+      "families": 8,
+      "iteration": 3,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 99.35066592879593,
+      "families": 6,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 99.597540916875,
+      "families": 6,
+      "iteration": 3,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 92.4877910874784,
+      "families": 3,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 88.54670799337327,
+      "families": 3,
+      "iteration": 3,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1754.3712500482798,
+      "families": 28,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1608.69075008668,
+      "families": 28,
+      "iteration": 3,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 78.66062503308058,
+      "families": 1,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 98.74337492510676,
+      "families": 1,
+      "iteration": 3,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 562.0399999897927,
+      "families": 104,
+      "iteration": 4,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 573.3572500757873,
+      "families": 104,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 152.72420807741582,
+      "families": 8,
+      "iteration": 4,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 161.1307500861585,
+      "families": 8,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 87.27737492881715,
+      "families": 6,
+      "iteration": 4,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 93.67274981923401,
+      "families": 6,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 126.92599999718368,
+      "families": 3,
+      "iteration": 4,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 87.58441614918411,
+      "families": 3,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1701.713833026588,
+      "families": 28,
+      "iteration": 4,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1663.6942918412387,
+      "families": 28,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 69.3510421551764,
+      "families": 1,
+      "iteration": 4,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 71.1216249037534,
+      "families": 1,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 508.16470803692937,
+      "families": 104,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 619.6036671753973,
+      "families": 104,
+      "iteration": 5,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 172.12162516079843,
+      "families": 8,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 144.0079160965979,
+      "families": 8,
+      "iteration": 5,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 103.47945801913738,
+      "families": 6,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 115.46616698615253,
+      "families": 6,
+      "iteration": 5,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 89.44141701795161,
+      "families": 3,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 86.23179187998176,
+      "families": 3,
+      "iteration": 5,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1792.1437921468168,
+      "families": 28,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1618.4515000786632,
+      "families": 28,
+      "iteration": 5,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 63.619582913815975,
+      "families": 1,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 72.62741588056087,
+      "families": 1,
+      "iteration": 5,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 555.2691251505166,
+      "families": 104,
+      "iteration": 6,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 517.8433749824762,
+      "families": 104,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 159.1279578860849,
+      "families": 8,
+      "iteration": 6,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 147.63983408920467,
+      "families": 8,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 102.68899984657764,
+      "families": 6,
+      "iteration": 6,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 120.6290831323713,
+      "families": 6,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 94.58249993622303,
+      "families": 3,
+      "iteration": 6,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 85.11599991470575,
+      "families": 3,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1791.3691659923643,
+      "families": 28,
+      "iteration": 6,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1606.152958003804,
+      "families": 28,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 84.68062500469387,
+      "families": 1,
+      "iteration": 6,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 85.71333414874971,
+      "families": 1,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 483.73166704550385,
+      "families": 104,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 563.997833058238,
+      "families": 104,
+      "iteration": 7,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 149.35541711747646,
+      "families": 8,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 176.23529210686684,
+      "families": 8,
+      "iteration": 7,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 91.78237500600517,
+      "families": 6,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 87.654999922961,
+      "families": 6,
+      "iteration": 7,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 89.68212502077222,
+      "families": 3,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 104.770417092368,
+      "families": 3,
+      "iteration": 7,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1722.1172919962555,
+      "families": 28,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1700.4225000273436,
+      "families": 28,
+      "iteration": 7,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 69.97837498784065,
+      "families": 1,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 68.67741700261831,
+      "families": 1,
+      "iteration": 7,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 485.62608379870653,
+      "families": 104,
+      "iteration": 8,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 600.6100829690695,
+      "families": 104,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 135.6005840934813,
+      "families": 8,
+      "iteration": 8,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 188.01633408293128,
+      "families": 8,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 103.76258287578821,
+      "families": 6,
+      "iteration": 8,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 105.47741688787937,
+      "families": 6,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 83.41304119676352,
+      "families": 3,
+      "iteration": 8,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 91.74404200166464,
+      "families": 3,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1768.5510420706123,
+      "families": 28,
+      "iteration": 8,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1629.346165806055,
+      "families": 28,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 61.750165885314345,
+      "families": 1,
+      "iteration": 8,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 82.78820803388953,
+      "families": 1,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 561.3130000419915,
+      "families": 104,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 138919,
+      "elapsed_ms": 531.6411671228707,
+      "families": 104,
+      "iteration": 9,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+    },
+    {
+      "bytes": 35497,
+      "elapsed_ms": 157.90245798416436,
+      "families": 8,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+    },
+    {
+      "bytes": 35383,
+      "elapsed_ms": 179.4082501437515,
+      "families": 8,
+      "iteration": 9,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 109.15912501513958,
+      "families": 6,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 32168,
+      "elapsed_ms": 109.299625037238,
+      "families": 6,
+      "iteration": 9,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 84.11812502890825,
+      "families": 3,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 28163,
+      "elapsed_ms": 79.70024994574487,
+      "families": 3,
+      "iteration": 9,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1819.118709070608,
+      "families": 28,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 71572,
+      "elapsed_ms": 1720.0639580842108,
+      "families": 28,
+      "iteration": 9,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 91.54841699637473,
+      "families": 1,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    },
+    {
+      "bytes": 27108,
+      "elapsed_ms": 74.11645795218647,
+      "families": 1,
+      "iteration": 9,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+    }
+  ],
+  "summary": {
+    "aggregate_delta_pct": -0.7556209938793222,
+    "aggregate_median_ms": {
+      "baseline": 2697.803165996447,
+      "current": 2677.417998900637
+    },
+    "by_repo": {
+      "fastlane": {
+        "baseline": {
+          "bytes": [
+            71572
+          ],
+          "families": [
+            28
+          ],
+          "hashes": [
+            "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+          ],
+          "median_ms": 1722.1172919962555
+        },
+        "current": {
+          "bytes": [
+            71572
+          ],
+          "families": [
+            28
+          ],
+          "hashes": [
+            "d528eef5da285b097e272d3469643465d61bf79e9ac2416d9d9f95a2d4a6ef5b"
+          ],
+          "median_ms": 1701.713833026588
+        }
+      },
+      "rack": {
+        "baseline": {
+          "bytes": [
+            28163
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+          ],
+          "median_ms": 87.58441614918411
+        },
+        "current": {
+          "bytes": [
+            28163
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "c81ea23d5c374029b4aae121d9424b9a1dd12a0886835a9f2818f005c76db2c0"
+          ],
+          "median_ms": 88.54670799337327
+        }
+      },
+      "rspec-core": {
+        "baseline": {
+          "bytes": [
+            35497
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "f6cc3391c17d0e2a16d35163c41c77225e9034989689e121dfe5e51d244bbbae"
+          ],
+          "median_ms": 157.90245798416436
+        },
+        "current": {
+          "bytes": [
+            35383
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "bc070a5b93cddbbd22093da00bdd3519adc29b6c727a1bedd54e5091ef70a6a5"
+          ],
+          "median_ms": 156.57191700302064
+        }
+      },
+      "rubocop": {
+        "baseline": {
+          "bytes": [
+            138919
+          ],
+          "families": [
+            104
+          ],
+          "hashes": [
+            "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+          ],
+          "median_ms": 549.1985420230776
+        },
+        "current": {
+          "bytes": [
+            138919
+          ],
+          "families": [
+            104
+          ],
+          "hashes": [
+            "85107b6e2d15ec41c0be448eda573bd11e99ecca5eb3611a9920333b8ebe56e8"
+          ],
+          "median_ms": 555.2691251505166
+        }
+      },
+      "sidekiq": {
+        "baseline": {
+          "bytes": [
+            32168
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+          ],
+          "median_ms": 103.47945801913738
+        },
+        "current": {
+          "bytes": [
+            32168
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "42b4deb2bb91924071ec76a0c45a70253d8ddd4d52156eb615b8660be10e43bb"
+          ],
+          "median_ms": 102.68899984657764
+        }
+      },
+      "sinatra": {
+        "baseline": {
+          "bytes": [
+            27108
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+          ],
+          "median_ms": 77.52099982462823
+        },
+        "current": {
+          "bytes": [
+            27108
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "a1e93eedc1395322b14d1fcf83d3404a096183fb1f5937fa1f702d6c50ed6d6b"
+          ],
+          "median_ms": 72.62741588056087
+        }
+      }
+    },
+    "hashes_identical_by_repo": {
+      "fastlane": true,
+      "rack": true,
+      "rspec-core": false,
+      "rubocop": true,
+      "sidekiq": true,
+      "sinatra": true
+    }
+  }
+}

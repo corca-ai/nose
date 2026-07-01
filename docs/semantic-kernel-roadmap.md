@@ -1628,13 +1628,14 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   until an explicit async/sync protocol evidence path exists.
 - JS/TS, Python, Rust, and Swift `await` expressions now preserve a raw async protocol
   boundary and emit `Source::Protocol(Await)` evidence instead of lowering
-  directly to the operand. JS/TS and Python `yield` expressions preserve raw
-  generator protocol boundaries with `Source::Protocol(Yield)`. Rust `async {}`
+  directly to the operand. JS/TS and Python generator `yield` expressions and
+  Ruby block `yield` expressions preserve raw protocol boundaries with
+  `Source::Protocol(Yield)`. Rust `async {}`
   and `?` also preserve raw protocol boundaries with
   `Source::Protocol(AsyncBlock)` and
   `Source::Protocol(TryPropagation)`, and Rust async closures reuse
   `Source::Protocol(AsyncFunction)`. This closes the old exact async/sync and
-  error-propagation convergence paths, plus generator/body erasure, until
+  error-propagation convergence paths, plus generator/body and block-callback erasure, until
   language/runtime-specific protocol contracts can prove receiver, demand,
   scheduling, suspension, exception, and effect obligations.
 - Go concurrency/channel surfaces now preserve source-backed protocol

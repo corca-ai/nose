@@ -440,6 +440,13 @@ const RUNTIME_BOUNDARY_OBLIGATIONS: &[RuntimeBoundaryRule] = &[
         ),
     },
     RuntimeBoundaryRule {
+        evidence: "ruby-yield-callback-demand-effect-contract",
+        obligation: (
+            "callback-demand-effect",
+            "ruby-yield-callback-demand-effect-contract-missing",
+        ),
+    },
+    RuntimeBoundaryRule {
         evidence: "goroutine-scheduling-contract",
         obligation: (
             "scheduling-boundary",

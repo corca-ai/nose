@@ -2,7 +2,7 @@ use super::{
     callee_identity::callee_identity_call_evidence, push_unique, visit_subtree, AdmissionContext,
 };
 use async_runtime::push_async_runtime_call_missing_evidence;
-use nose_il::{Interner, NodeId, NodeKind, Payload};
+use nose_il::{Interner, Lang, NodeId, NodeKind, Payload};
 
 mod async_runtime;
 
@@ -90,8 +90,12 @@ fn push_source_protocol_missing_evidence(
             push_unique(labels, "async-await-scheduling-contract");
         }
         nose_il::SourceProtocolKind::Yield => {
-            push_unique(labels, "generator-yield-lifecycle-contract");
-            push_unique(labels, "generator-yield-protocol-contract");
+            if il.meta.lang == Lang::Ruby {
+                push_unique(labels, "ruby-yield-callback-demand-effect-contract");
+            } else {
+                push_unique(labels, "generator-yield-lifecycle-contract");
+                push_unique(labels, "generator-yield-protocol-contract");
+            }
         }
         nose_il::SourceProtocolKind::ChannelReceive | nose_il::SourceProtocolKind::ChannelSend => {
             push_go_channel_send_receive_missing_evidence(il, interner, node, labels);
@@ -492,14 +496,10 @@ fn promise_then_has_callback_slot(il: &nose_il::Il, call: NodeId) -> bool {
     il.children(call).len() > 1
 }
 
-fn js_like_runtime_lang(lang: nose_il::Lang) -> bool {
+fn js_like_runtime_lang(lang: Lang) -> bool {
     matches!(
         lang,
-        nose_il::Lang::JavaScript
-            | nose_il::Lang::TypeScript
-            | nose_il::Lang::Vue
-            | nose_il::Lang::Svelte
-            | nose_il::Lang::Html
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
     )
 }
 

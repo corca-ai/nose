@@ -222,6 +222,13 @@ matching
 [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json) marks the Ruby Thread/Fiber row
 reporting-supported, prices `74` occurrences across `11` repos, and raises
 total source prevalence from `146,987` to `146,988` by adding `Thread.start`.
+The follow-up [Ruby yield source-protocol artifact](../bench/recall_loss/ruby-yield-source-protocol-reporting-2026-07-01.v1.json)
+reuses the source-protocol boundary capability for Ruby block `yield` without
+adding a Ruby-specific exact admission path. `yield a, b` now stays distinct
+from ordinary multiple-value `return a, b` until block identity, callback
+argument/result role, effect visibility, non-local control, and exception
+behavior are proven. The 120-repo audit prices `801` Ruby yield occurrences
+across `17` repos and marks the row reporting-supported closed-boundary.
 The follow-up [non-JS async runtime scope-shadowing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
 keeps the same reporting-only boundary while making Python/Rust runtime
 attribution scope-aware. Python `asyncio` aliases/imported bindings and Rust

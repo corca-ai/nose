@@ -129,6 +129,29 @@ fn await_protocol_missing_evidence_is_language_neutral() {
 }
 
 #[test]
+fn yield_protocol_missing_evidence_is_language_specific() {
+    let ruby = missing_evidence_for_protocol(
+        "yield.rb",
+        "def render(value)\n  yield value\nend\n",
+        Lang::Ruby,
+        nose_il::SourceProtocolKind::Yield,
+    );
+    assert!(ruby.contains(&"ruby-yield-callback-demand-effect-contract"));
+    assert!(!ruby.contains(&"generator-yield-lifecycle-contract"));
+    assert!(!ruby.contains(&"generator-yield-protocol-contract"));
+
+    let python = missing_evidence_for_protocol(
+        "yield.py",
+        "def values(x):\n    yield x\n",
+        Lang::Python,
+        nose_il::SourceProtocolKind::Yield,
+    );
+    assert!(python.contains(&"generator-yield-lifecycle-contract"));
+    assert!(python.contains(&"generator-yield-protocol-contract"));
+    assert!(!python.contains(&"ruby-yield-callback-demand-effect-contract"));
+}
+
+#[test]
 fn go_channel_protocol_boundaries_report_specific_obligations() {
     let send = missing_evidence_for_raw_tag(
         "channel.go",

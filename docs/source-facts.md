@@ -110,6 +110,9 @@ fall back to a side-table mirror when source evidence is missing.
   `async for` statements, async comprehensions, and `async with` boundaries,
   generator `yield` boundaries, list/set/dict/generator comprehension surfaces,
   value equality/inequality, and identity equality/inequality.
+- Ruby lowering emits source facts for block `yield` callback boundaries, so a
+  method that invokes its caller-provided block does not erase into an ordinary
+  multiple-value return before callback demand/effect proof exists.
 - Go lowering emits source facts for goroutine spawn, deferred calls, channel
   send/receive, select, and select case/default protocol boundaries. These
   surfaces remain raw protocol anchors; `v, ok := <-ch` preserves both the
@@ -140,7 +143,8 @@ fall back to a side-table mirror when source evidence is missing.
   and async context-manager lifecycle obligations. Swift `async let` preserves
   `Raw("task_spawn", assign)`, and Swift throwing callables preserve
   `Raw("throwing_function" | "throwing_closure", body)`. JS/TS and Python
-  `yield` preserves `Raw("yield", value)`. Rust
+  generator `yield` and Ruby block `yield` preserve
+  `Raw("yield", value...)`. Rust
   `async {}` and `?` are preserved as
   `Raw("async_block", body)` and `Raw("try", value)`. Exact async/sync,
   generator, and error-propagation convergence stays closed until a future

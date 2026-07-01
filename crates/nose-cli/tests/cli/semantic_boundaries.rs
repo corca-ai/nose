@@ -2,6 +2,8 @@ use super::*;
 
 #[path = "semantic_boundaries/python_async_protocol.rs"]
 mod python_async_protocol;
+#[path = "semantic_boundaries/ruby_yield_protocol.rs"]
+mod ruby_yield_protocol;
 
 #[test]
 fn query_mode_semantic_rejects_cross_receiver_field_state() {

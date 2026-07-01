@@ -147,6 +147,13 @@ fn async_protocol_labels_have_specific_obligations() {
         )
     );
     assert_eq!(
+        runtime_boundary_obligation(&["ruby-yield-callback-demand-effect-contract"]),
+        (
+            "callback-demand-effect",
+            "ruby-yield-callback-demand-effect-contract-missing",
+        )
+    );
+    assert_eq!(
         runtime_boundary_obligation(&[
             "async-iteration-lifecycle-contract",
             "async-iteration-value-channel-contract",

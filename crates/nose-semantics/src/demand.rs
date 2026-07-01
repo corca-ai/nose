@@ -489,11 +489,11 @@ pub fn source_protocol_demand_effect_profile(protocol: SourceProtocolKind) -> De
             }
         }
         SourceProtocolKind::Yield => DemandEffectProfile {
-            operation: DemandOperation::GeneratorSuspension,
-            order: EvaluationOrder::DeferredUntilObserved,
-            child_demand: ChildDemand::SuspendedUntilObserved,
+            operation: DemandOperation::ProtocolBoundary,
+            order: EvaluationOrder::ProtocolDefined,
+            child_demand: ChildDemand::ProtocolBoundary,
             callback: None,
-            effect_visibility: EffectVisibility::YieldBoundary,
+            effect_visibility: EffectVisibility::ProtocolBoundary,
         },
         SourceProtocolKind::ChannelReceive
         | SourceProtocolKind::ChannelSelect

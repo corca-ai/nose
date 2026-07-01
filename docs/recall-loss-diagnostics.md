@@ -86,7 +86,7 @@ They do not change exact admission.
 
 | obligation family | typical subreason | meaning |
 |---|---|---|
-| `callback-demand-effect` | `callback-member-call-effect-proof-missing`, `callback-rust-macro-call-effect-proof-missing`, `callback-direct-function-call-effect-contract-missing`, `callback-imported-function-call-effect-contract-missing`, `callback-assignment-effect-proof-missing`, `callback-runtime-boundary-proof-missing`, `callback-identity-or-shape-proof-missing`, `promise-then-callback-demand-effect-contract-missing`, `future-callback-demand-effect-contract-missing`, `goroutine-callback-effect-contract-missing`, `defer-callback-effect-contract-missing`, `mapping-callback-demand-effect-profile-missing`, `predicate-callback-demand-effect-profile-missing`, `flattening-callback-demand-effect-profile-missing`, `optional-callback-demand-effect-profile-missing`, or `reduction-callback-demand-effect-profile-missing` | A HOF/callback surface lacks timing, callback identity, effect visibility, result role, call-shape proof, or materialization proof. |
+| `callback-demand-effect` | `callback-member-call-effect-proof-missing`, `callback-rust-macro-call-effect-proof-missing`, `callback-direct-function-call-effect-contract-missing`, `callback-imported-function-call-effect-contract-missing`, `callback-assignment-effect-proof-missing`, `callback-runtime-boundary-proof-missing`, `callback-identity-or-shape-proof-missing`, `promise-then-callback-demand-effect-contract-missing`, `future-callback-demand-effect-contract-missing`, `ruby-yield-callback-demand-effect-contract-missing`, `goroutine-callback-effect-contract-missing`, `defer-callback-effect-contract-missing`, `mapping-callback-demand-effect-profile-missing`, `predicate-callback-demand-effect-profile-missing`, `flattening-callback-demand-effect-profile-missing`, `optional-callback-demand-effect-profile-missing`, or `reduction-callback-demand-effect-profile-missing` | A HOF/callback surface lacks timing, callback identity, effect visibility, result role, call-shape proof, or materialization proof. |
 | `executor-callback` | `promise-executor-timing-contract-missing`, `promise-executor-resolve-reject-callback-contract-missing`, `promise-executor-throw-to-rejection-contract-missing`, or `promise-executor-callback-effect-contract-missing` | A Promise/Future-like constructor callback needs executor timing, resolve/reject callback identity, thrown-to-rejected outcome, and callback-effect proof before exact use. |
 | `receiver-mutation` | `effect-preserving-contract-missing` | A mutation/place/effect boundary blocks exact admission. |
 | `rejection-channel` | `promise-reject-rejected-value-channel-contract-missing`, `promise-catch-rejection-continuation-contract-missing`, `promise-finally-settlement-continuation-contract-missing`, `promise-then-rejection-continuation-contract-missing`, legacy `promise-rejection-channel-contract-missing`/`promise-rejection-continuation-contract-missing`, or `exception-channel-contract-missing` | Rejection, catch/finally settlement, throw, rescue, or non-local error flow must remain distinct from ordinary return values. |
@@ -291,6 +291,12 @@ remain closed. The matching
 [120-repo pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-thread-fiber-runtime-2026-07-01.v1.json) marks the Ruby Thread/Fiber row
 reporting-supported, prices `74` occurrences across `11` repos, and raises
 total source prevalence from `146,987` to `146,988`.
+The follow-up [Ruby yield source-protocol artifact](../bench/recall_loss/ruby-yield-source-protocol-reporting-2026-07-01.v1.json)
+keeps exact admission closed while preserving Ruby block `yield` as a
+source-backed callback demand/effect protocol boundary. The matching [120-repo
+pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-ruby-yield-source-protocol-2026-07-01.v1.json)
+marks `ruby.generator.yield` reporting-supported, prices `801` occurrences
+across `17` repos, and the checked `crates` gate reports `0` false merges.
 The
 checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
 connect the JS/TS source-prevalence group (`29,094` Promise/async occurrences)

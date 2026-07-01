@@ -139,7 +139,7 @@ PATTERNS: tuple[Pattern, ...] = (
     Pattern("swift", "swift.continuation.throwing", "withCheckedThrowingContinuation/withUnsafeThrowingContinuation", "success-error-result-channel", "future-settled-value-channel-contract-missing", "Swift throwing continuation bridge", "Swift throwing continuation bridges add exception-channel behavior to callback-settled future-like result channels", re.compile(r"\bwith(?:Checked|Unsafe)ThrowingContinuation\s*(?:\(|\{)"), "reporting-supported-closed-boundary"),
     Pattern("ruby", "ruby.thread.fiber", "Thread/Fiber", "scheduling-boundary", "task-spawn-scheduling-contract-missing", "thread/fiber scheduling", "Thread/Fiber APIs create scheduler and lifecycle boundaries", re.compile(r"\b(?:Thread\s*\.\s*(?:new|start|fork)|Fiber\s*\.\s*(?:new|schedule))\b"), "reporting-supported-closed-boundary"),
     Pattern("ruby", "ruby.exception", "raise/rescue", "exception-channel", "ruby-exception-channel-contract-missing", "exception channel", "raise/rescue changes error channels and non-local control", re.compile(r"\b(?:raise|rescue)\b")),
-    Pattern("ruby", "ruby.generator.yield", "yield", "callback-demand-effect", "ruby-yield-callback-demand-effect-contract-missing", "block callback", "Ruby yield invokes a block with demand/effect obligations", re.compile(r"\byield\b")),
+    Pattern("ruby", "ruby.generator.yield", "yield", "callback-demand-effect", "ruby-yield-callback-demand-effect-contract-missing", "block callback", "Ruby yield invokes a block with demand/effect obligations", re.compile(r"\byield\b"), "reporting-supported-closed-boundary"),
     Pattern("c", "c.thread.pthread", "pthread_create", "scheduling-boundary", "c-pthread-scheduling-contract-missing", "thread scheduling", "pthread_create introduces thread scheduling and lifetime boundaries", re.compile(r"\bpthread_create\s*\(")),
     Pattern("c", "c.nonlocal_jump", "setjmp/longjmp", "exception-channel", "c-nonlocal-jump-contract-missing", "non-local jump", "setjmp/longjmp is non-local control flow, not ordinary return", re.compile(r"\b(?:setjmp|longjmp)\s*\(")),
 )
@@ -734,6 +734,17 @@ def self_test() -> None:
     )
     assert SWIFT_THROWING_FUNCTION not in swift_type_only
     assert SWIFT_THROWING_CLOSURE not in swift_type_only
+
+    ruby_yield = count_file(
+        "def render(value)\n"
+        "  yield value\n"
+        "end\n"
+        "text = 'yield ignored in strings'\n",
+        "ruby",
+    )
+    ruby_yield_pattern = next(item for item in PATTERNS if item.surface == "ruby.generator.yield")
+    assert ruby_yield.get(ruby_yield_pattern) == 1
+    assert ruby_yield_pattern.status == "reporting-supported-closed-boundary"
 
 
 def load_repos(manifest: Path) -> list[dict[str, Any]]:
@@ -2098,6 +2109,11 @@ def hard_negative_inventory() -> list[dict[str, Any]]:
         {
             "class": "Python async iterator and async context-manager protocol boundaries versus synchronous loops, comprehensions, and with-blocks",
             "evidence": "crates/nose-cli/tests/cli/semantic_boundaries/python_async_protocol.rs::query_mode_semantic_rejects_unproven_python_async_protocol_lifecycle_convergence, ::query_mode_semantic_rejects_unproven_python_async_comprehension_convergence, crates/nose-frontend/src/python/tests.rs::async_for_preserves_source_backed_iteration_boundary, ::async_comprehension_preserves_source_backed_iteration_boundary, ::multi_clause_async_comprehension_preserves_source_backed_iteration_boundary, ::async_with_preserves_source_backed_context_boundary, and crates/nose-cli/src/verify_admission/runtime_boundary/tests.rs::python_async_lifecycle_protocols_report_specific_obligations",
+            "status": "expanded-this-slice",
+        },
+        {
+            "class": "Ruby block yield callback demand/effect versus ordinary value return or direct call",
+            "evidence": "crates/nose-frontend/src/ruby/tests.rs::yield_preserves_source_backed_protocol_boundary, crates/nose-cli/src/verify_admission/runtime_boundary/tests.rs::yield_protocol_missing_evidence_is_language_specific, and crates/nose-cli/tests/cli/semantic_boundaries/ruby_yield_protocol.rs::query_mode_semantic_rejects_unproven_ruby_yield_callback_convergence",
             "status": "expanded-this-slice",
         },
         {
