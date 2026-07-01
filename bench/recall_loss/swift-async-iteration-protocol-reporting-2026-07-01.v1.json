@@ -1,0 +1,200 @@
+{
+  "report_kind": "swift-async-iteration-protocol-reporting",
+  "schema_version": 1,
+  "generated_on": "2026-07-01",
+  "scope": {
+    "change": "Swift `for await` and `for try await` loops now preserve source-backed async iteration protocol boundaries.",
+    "languages": [
+      "swift"
+    ],
+    "exact_admission_delta": 0,
+    "new_public_semantic_pack_api": false,
+    "new_kernel_enum_or_capability": false,
+    "reporting_only": true
+  },
+  "capability_alignment": {
+    "reused_capabilities": [
+      "SourceProtocolKind::AsyncIteration",
+      "SourceProtocolKind::TryPropagation",
+      "runtime-boundary-model",
+      "async-iteration-lifecycle-contract",
+      "async-iteration-value-channel-contract",
+      "async-await-scheduling-contract",
+      "exception-channel-contract"
+    ],
+    "principle": "The slice reuses the language-neutral async iteration and exception-channel capability already used by Python instead of adding a Swift-selector-specific kernel feature.",
+    "fail_closed_boundary": "Exact async-sequence convergence remains closed until iterator lifecycle, value-channel, scheduling, throwing, cancellation, and callback effects are dependency-closed."
+  },
+  "new_reporting_surfaces": [
+    {
+      "surface": "swift.for-await",
+      "syntax": "for await value in stream { ... }",
+      "missing_evidence": [
+        "async-iteration-lifecycle-contract",
+        "async-iteration-value-channel-contract",
+        "async-await-scheduling-contract"
+      ]
+    },
+    {
+      "surface": "swift.for-try-await",
+      "syntax": "for try await value in stream { ... }",
+      "missing_evidence": [
+        "async-iteration-lifecycle-contract",
+        "async-iteration-value-channel-contract",
+        "async-await-scheduling-contract",
+        "exception-channel-contract"
+      ],
+      "span_policy": "The `try` protocol fact is anchored to the `try` keyword span so the loop-span async iteration fact remains unambiguous."
+    }
+  ],
+  "focused_hard_negative_fixtures": [
+    {
+      "surface": "swift.identifier-prefix-await",
+      "syntax": "for awaiter in awaiters { ... }",
+      "expected": "No async iteration protocol fact; `await` must be a keyword token, not an identifier prefix."
+    },
+    {
+      "surface": "swift.identifier-prefix-try-await",
+      "syntax": "for tryawait in values { ... }",
+      "expected": "No async iteration or try-propagation protocol fact; `try` and `await` must be distinct keyword tokens."
+    },
+    {
+      "surface": "swift.multiline-for-try-await",
+      "syntax": "for\\n  try await value in stream { ... }",
+      "expected": "The async iteration fact is anchored to the loop span and the try-propagation fact is anchored to the actual `try` keyword line."
+    }
+  ],
+  "corpus_pricing": {
+    "source": "target/scheduling-lifecycle-boundary-audit.swift-async-iteration.json",
+    "manifest": "bench/goldens/corpus.json",
+    "repos_root": "bench/repos",
+    "row": {
+      "surface": "swift.async.iteration",
+      "operation": "for await/for try await",
+      "status": "reporting-supported-closed-boundary",
+      "occurrences": 193,
+      "repos": 11
+    },
+    "top_repos": [
+      {
+        "repo": "swift-nio",
+        "occurrences": 72
+      },
+      {
+        "repo": "swift-composable-architecture",
+        "occurrences": 67
+      },
+      {
+        "repo": "rxswift",
+        "occurrences": 14
+      },
+      {
+        "repo": "alamofire",
+        "occurrences": 13
+      },
+      {
+        "repo": "swift-service-lifecycle",
+        "occurrences": 10
+      },
+      {
+        "repo": "vapor",
+        "occurrences": 8
+      }
+    ],
+    "top_files": [
+      {
+        "path": "swift-nio/Tests/NIOPosixTests/AsyncChannelBootstrapTests.swift",
+        "occurrences": 15
+      },
+      {
+        "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/EffectCancellationTests.swift",
+        "occurrences": 15
+      },
+      {
+        "path": "alamofire/Tests/ConcurrencyTests.swift",
+        "occurrences": 13
+      },
+      {
+        "path": "swift-nio/Tests/NIOFSIntegrationTests/FileHandleTests.swift",
+        "occurrences": 11
+      },
+      {
+        "path": "swift-composable-architecture/Tests/ComposableArchitectureTests/Reducers/PresentationReducerTests.swift",
+        "occurrences": 7
+      }
+    ]
+  },
+  "representative_spot_check": {
+    "files": [
+      "bench/repos/swift-nio/Tests/NIOPosixTests/AsyncChannelBootstrapTests.swift",
+      "bench/repos/swift-composable-architecture/Tests/ComposableArchitectureTests/EffectCancellationTests.swift",
+      "bench/repos/alamofire/Tests/ConcurrencyTests.swift"
+    ],
+    "main": {
+      "async_iteration_lifecycle_units": 0,
+      "async_await_scheduling_units": 80,
+      "exception_channel_units": 4,
+      "false_merges": 0
+    },
+    "branch": {
+      "async_iteration_lifecycle_units": 31,
+      "async_await_scheduling_units": 57,
+      "exception_channel_units": 4,
+      "false_merges": 0
+    },
+    "interpretation": "The branch reattributes Swift async-sequence loops from generic await scheduling into explicit async-iteration lifecycle/value-channel obligations while keeping exact admission closed."
+  },
+  "current_crates_gate": {
+    "branch": {
+      "total_units": 6906,
+      "interpretable_units": 957,
+      "excluded_units": 5949,
+      "admission_rejections": 800,
+      "false_merges": 0,
+      "canon_preservation_violations": 0,
+      "release_verify_real_seconds": [
+        2.31,
+        1.77
+      ]
+    },
+    "origin_main": {
+      "total_units": 6894,
+      "interpretable_units": 956,
+      "excluded_units": 5938,
+      "admission_rejections": 800,
+      "false_merges": 0,
+      "canon_preservation_violations": 0,
+      "release_verify_real_seconds": [
+        1.27,
+        1.85
+      ]
+    },
+    "delta": {
+      "total_units": 12,
+      "interpretable_units": 1,
+      "excluded_units": 11,
+      "admission_rejections": 0,
+      "false_merges": 0,
+      "canon_preservation_violations": 0
+    }
+  },
+  "validation_commands": [
+    "cargo fmt --check",
+    "cargo test -p nose-frontend swift::tests:: -- --nocapture",
+    "cargo test -p nose-cli --lib verify_admission::runtime_boundary::tests::async_runtime::swift -- --nocapture",
+    "python3 -m json.tool bench/recall_loss/swift-async-iteration-protocol-reporting-2026-07-01.v1.json >/dev/null",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "./scripts/check-docs.sh",
+    "./scripts/check-duplication.sh",
+    "./scripts/check-ci-local.sh --fast",
+    "cargo build --release -p nose-cli",
+    "/usr/bin/time -p target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.swift-async-iteration.crates.json",
+    "python3 scripts/scheduling-lifecycle-boundary-audit.py --recall-loss-report target/recall-loss.swift-async-iteration.crates.json --output target/scheduling-lifecycle-boundary-audit.swift-async-iteration.json --generated-on 2026-07-01",
+    "/usr/bin/time -p target/release/nose verify bench/repos/swift-nio/Tests/NIOPosixTests/AsyncChannelBootstrapTests.swift bench/repos/swift-composable-architecture/Tests/ComposableArchitectureTests/EffectCancellationTests.swift bench/repos/alamofire/Tests/ConcurrencyTests.swift --max-violations 0 --recall-loss-report target/recall-loss.swift-async-iteration.spot.json"
+  ],
+  "next_exact_work_policy": [
+    "Do not collapse Swift async-sequence loops with synchronous loops from the async-iteration label alone.",
+    "Price `withTaskCancellationHandler` and `async let` separately before adding any new kernel vocabulary.",
+    "Require dependency-closed iterator lifecycle, value-channel, exception-channel, cancellation, and callback effect evidence before exact admission."
+  ]
+}

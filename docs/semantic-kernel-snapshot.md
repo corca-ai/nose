@@ -251,6 +251,15 @@ now carry async iteration lifecycle, value-channel, and scheduling obligations;
 scheduling obligations. The 120-repo pricing records `114` `async for` and
 `361` `async with` occurrences across `5` repos, with the checked `crates` gate
 at `0` false merges and `0` canon preservation violations.
+The follow-up [Swift async iteration artifact](../bench/recall_loss/swift-async-iteration-protocol-reporting-2026-07-01.v1.json)
+reuses the same source protocol capability for Swift `for await` and
+`for try await` loops. These loops now carry async iteration lifecycle,
+value-channel, and scheduling obligations; throwing loops preserve the
+exception channel through a separate `try` source-protocol fact anchored to the
+keyword span. The 120-repo audit prices `193` Swift async iteration
+occurrences across `11` repos, and representative Swift NIO, Composable
+Architecture, and Alamofire spot checks move async-iteration lifecycle evidence
+units from `0` to `31` with `0` false merges.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected

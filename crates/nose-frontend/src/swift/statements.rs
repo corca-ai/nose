@@ -360,13 +360,37 @@ pub(super) fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
     let body = first_statements_child(node)
         .map(|body| lower_block(lo, body))
         .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(
+    let loop_node = lo.add(
         NodeKind::Loop,
         Payload::Loop(LoopKind::ForEach),
         span,
         &[pattern, iterable, body],
-    )
+    );
+    match swift_for_async_iteration_kind(lo.text(node)) {
+        SwiftForAsyncIterationKind::Plain => lo.protocol_boundary(
+            span,
+            SourceProtocolKind::AsyncIteration,
+            "async_for",
+            &[loop_node],
+        ),
+        SwiftForAsyncIterationKind::Throwing => {
+            let iteration = lo.protocol_boundary(
+                span,
+                SourceProtocolKind::AsyncIteration,
+                "async_for",
+                &[loop_node],
+            );
+            lo.protocol_boundary(
+                swift_for_try_keyword_span(lo.text(node), span),
+                SourceProtocolKind::TryPropagation,
+                "try",
+                &[iteration],
+            )
+        }
+        SwiftForAsyncIterationKind::Sync => loop_node,
+    }
 }
+
 pub(super) fn lower_do(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let body = first_statements_child(node)

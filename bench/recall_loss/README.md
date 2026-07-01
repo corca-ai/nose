@@ -171,6 +171,19 @@ python3 scripts/scheduling-lifecycle-boundary-audit.py \
   --generated-on 2026-07-01
 ```
 
+Build the Swift async iteration protocol audit with:
+
+```sh
+cargo run -q -p nose-cli -- verify crates \
+  --max-violations 0 \
+  --recall-loss-report target/recall-loss.swift-async-iteration.crates.json
+
+python3 scripts/scheduling-lifecycle-boundary-audit.py \
+  --recall-loss-report target/recall-loss.swift-async-iteration.crates.json \
+  --output target/scheduling-lifecycle-boundary-audit.swift-async-iteration.json \
+  --generated-on 2026-07-01
+```
+
 Build the Ruby Thread/Fiber runtime obligation audit with:
 
 ```sh
@@ -605,6 +618,13 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   The 120-repo audit prices `114` `async for` and `361` `async with`
   occurrences across `5` repos, with `0` false merges and `0` canon
   preservation violations on the checked `crates` gate.
+- [swift-async-iteration-protocol-reporting-2026-07-01.v1.json](swift-async-iteration-protocol-reporting-2026-07-01.v1.json)
+  records the Swift async iteration reporting slice. It keeps exact admission
+  closed while preserving `for await` and `for try await` as source-backed
+  async iteration protocol boundaries. The 120-repo audit prices `193`
+  occurrences across `11` repos, and representative Swift NIO, Composable
+  Architecture, and Alamofire spot checks move async-iteration lifecycle
+  evidence units from `0` to `31` with `0` false merges.
 - [ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json](ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)
   records the Ruby Thread/Fiber reporting-only expansion. `Thread.new`,
   `Thread.start`, `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse

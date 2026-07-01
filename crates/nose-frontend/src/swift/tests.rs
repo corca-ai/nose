@@ -469,6 +469,104 @@ func fetch(_ key: String) async -> Int {
 }
 
 #[test]
+fn async_for_preserves_source_backed_async_iteration_boundary() {
+    let (il, interner) = il_with_interner(
+        r#"
+func read(_ stream: AsyncStream<Int>) async {
+  for await value in stream {
+    print(value)
+  }
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "async_for",
+        SourceProtocolKind::AsyncIteration,
+    );
+    assert!(
+        !raw_names(&il, &interner).iter().any(|name| name == "try"),
+        "plain for-await should not introduce a try-propagation boundary"
+    );
+}
+
+#[test]
+fn throwing_async_for_preserves_iteration_and_try_boundaries() {
+    let (il, interner) = il_with_interner(
+        r#"
+func read(_ stream: AsyncThrowingStream<Int, Error>) async throws {
+  for try await value in stream {
+    print(value)
+  }
+}
+"#,
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "async_for",
+        SourceProtocolKind::AsyncIteration,
+    );
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "try",
+        SourceProtocolKind::TryPropagation,
+    );
+}
+
+#[test]
+fn async_for_keywords_do_not_match_identifier_prefixes() {
+    let (il, interner) = il_with_interner(
+        r#"
+func read(_ awaiters: [Int], _ values: [Int]) {
+  for awaiter in awaiters {
+    print(awaiter)
+  }
+  for tryawait in values {
+    print(tryawait)
+  }
+}
+"#,
+    );
+    let raw = raw_names(&il, &interner);
+
+    assert!(
+        !raw.iter().any(|name| name == "async_for"),
+        "ordinary identifiers prefixed with await/try-await should not create async iteration boundaries: {raw:?}"
+    );
+    assert!(
+        !raw.iter().any(|name| name == "try"),
+        "ordinary identifiers prefixed with try should not create try-propagation boundaries: {raw:?}"
+    );
+}
+
+#[test]
+fn multiline_throwing_async_for_anchors_try_to_keyword_line() {
+    let (il, interner) = il_with_interner(
+        "func read(_ stream: AsyncThrowingStream<Int, Error>) async throws {\n  for\n    try await value in stream {\n      print(value)\n    }\n}\n",
+    );
+
+    crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "async_for",
+        SourceProtocolKind::AsyncIteration,
+    );
+    let try_node = crate::test_helpers::expect_raw_protocol_boundary(
+        &il,
+        &interner,
+        "try",
+        SourceProtocolKind::TryPropagation,
+    );
+    assert_eq!(il.node(try_node).span.start_line, 3);
+    assert_eq!(il.node(try_node).span.end_line, 3);
+}
+
+#[test]
 fn extension_declaration_preserves_extended_type_name() {
     let (il, interner) = il_with_interner(
         r#"

@@ -238,6 +238,16 @@ iteration lifecycle, value-channel, and scheduling obligations, while
 scheduling obligations. Exact admission remains closed; the 120-repo audit
 prices `114` `async for` and `361` `async with` occurrences across `5` repos
 with `0` false merges on the checked `crates` gate.
+The follow-up [Swift async iteration artifact](../bench/recall_loss/swift-async-iteration-protocol-reporting-2026-07-01.v1.json)
+reuses that same source-protocol capability for Swift `for await` and
+`for try await` loops. Swift async sequence loops now report async iteration
+lifecycle, value-channel, and scheduling obligations; throwing async loops also
+preserve the existing exception-channel obligation through a separate `try`
+source-protocol fact. The 120-repo audit prices `193` Swift async iteration
+occurrences across `11` repos, and representative Swift NIO, Composable
+Architecture, and Alamofire spot checks move async-iteration lifecycle evidence
+units from `0` to `31` with `0` false merges. Exact async-sequence recovery
+remains closed.
 The follow-up [promise-protocol-hard-negatives-2026-06-28.v1.json](../bench/recall_loss/promise-protocol-hard-negatives-2026-06-28.v1.json)
 pins the Promise-specific hard negatives before any recovery slice opens:
 async-function/sync, Promise executor/sync, Promise.resolve/sync,

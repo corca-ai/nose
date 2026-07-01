@@ -2351,6 +2351,18 @@ obligations. Exact admission remains closed with `false_merges = 0` and
 `canon_preservation_violations = 0`; the 120-repo audit prices `114`
 `async for` and `361` `async with` occurrences across `5` repos.
 
+2026-07-01 Swift async iteration protocol note:
+The [swift-async-iteration-protocol-reporting-2026-07-01.v1.json](../bench/recall_loss/swift-async-iteration-protocol-reporting-2026-07-01.v1.json)
+artifact extends the same source protocol capability to Swift `for await` and
+`for try await` loops. Swift async sequence loops now report async iteration
+lifecycle, value-channel, and scheduling obligations; throwing async loops also
+preserve the existing exception-channel obligation through a separate `try`
+source-protocol fact. Exact admission remains closed. The 120-repo audit prices
+`193` Swift async iteration occurrences across `11` repos, and representative
+Swift NIO, Composable Architecture, and Alamofire spot checks move
+async-iteration lifecycle evidence units from `0` to `31` with `0` false
+merges.
+
 ## See also
 
 - Back to [semantic-kernel](semantic-kernel.md).

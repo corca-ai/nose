@@ -1,3 +1,4 @@
+use super::super::{missing_evidence_for_protocol, missing_evidence_for_raw_tag};
 use super::{
     assert_missing_evidence_not_contains, missing_evidence_for_lang_call,
     runtime_boundary_evidence_for_corpus_call, runtime_boundary_evidence_for_lang_call,
@@ -245,4 +246,40 @@ fn swift_continuation_bridges_reject_local_runtime_shadows() {
             surface,
         );
     }
+}
+
+#[test]
+fn swift_async_iteration_reports_shared_protocol_obligations() {
+    let labels = missing_evidence_for_protocol(
+        "stream.swift",
+        "func read(_ stream: AsyncStream<Int>) async {\n  for await value in stream {\n    print(value)\n  }\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::AsyncIteration,
+    );
+
+    assert!(labels.contains(&"async-iteration-lifecycle-contract"));
+    assert!(labels.contains(&"async-iteration-value-channel-contract"));
+    assert!(labels.contains(&"async-await-scheduling-contract"));
+}
+
+#[test]
+fn swift_throwing_async_iteration_preserves_exception_boundary() {
+    let iteration = missing_evidence_for_protocol(
+        "stream.swift",
+        "func read(_ stream: AsyncThrowingStream<Int, Error>) async throws {\n  for try await value in stream {\n    print(value)\n  }\n}\n",
+        Lang::Swift,
+        nose_il::SourceProtocolKind::AsyncIteration,
+    );
+    let throwing = missing_evidence_for_raw_tag(
+        "stream.swift",
+        "func read(_ stream: AsyncThrowingStream<Int, Error>) async throws {\n  for try await value in stream {\n    print(value)\n  }\n}\n",
+        Lang::Swift,
+        "try",
+    );
+
+    assert!(iteration.contains(&"async-iteration-lifecycle-contract"));
+    assert!(iteration.contains(&"async-iteration-value-channel-contract"));
+    assert!(iteration.contains(&"async-await-scheduling-contract"));
+    assert!(throwing.contains(&"exception-channel-contract"));
+    assert!(throwing.contains(&"async-iteration-lifecycle-contract"));
 }

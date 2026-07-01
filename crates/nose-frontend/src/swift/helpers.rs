@@ -45,6 +45,90 @@ pub(super) fn first_statements_child<'a>(node: TsNode<'a>) -> Option<TsNode<'a>>
         .into_iter()
         .find(|child| child.kind() == "statements" || child.kind() == "function_body")
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum SwiftForAsyncIterationKind {
+    Sync,
+    Plain,
+    Throwing,
+}
+
+pub(super) fn swift_for_async_iteration_kind(text: &str) -> SwiftForAsyncIterationKind {
+    let Some(rest) = consume_swift_keyword(text.trim_start(), "for") else {
+        return SwiftForAsyncIterationKind::Sync;
+    };
+    let rest = rest.trim_start();
+    if consume_swift_keyword(rest, "await").is_some() {
+        return SwiftForAsyncIterationKind::Plain;
+    }
+    if let Some(after_try) = consume_swift_try_token(rest) {
+        if after_try.chars().next().is_some_and(char::is_whitespace)
+            && consume_swift_keyword(after_try.trim_start(), "await").is_some()
+        {
+            return SwiftForAsyncIterationKind::Throwing;
+        }
+    }
+    SwiftForAsyncIterationKind::Sync
+}
+
+pub(super) fn swift_for_try_keyword_span(text: &str, span: Span) -> Span {
+    let Some(start) = swift_for_try_keyword_offset(text) else {
+        return span;
+    };
+    let end = start
+        + if text[start..].starts_with("try?") || text[start..].starts_with("try!") {
+            4
+        } else {
+            3
+        };
+    let start_line =
+        span.start_line + text[..start].bytes().filter(|byte| *byte == b'\n').count() as u32;
+    let end_line = start_line
+        + text[start..end]
+            .bytes()
+            .filter(|byte| *byte == b'\n')
+            .count() as u32;
+    Span::new(
+        span.file,
+        span.start_byte + start as u32,
+        span.start_byte + end as u32,
+        start_line,
+        end_line,
+    )
+}
+
+fn swift_for_try_keyword_offset(text: &str) -> Option<usize> {
+    let for_offset = text.find("for")?;
+    let rest = consume_swift_keyword(&text[for_offset..], "for")?;
+    let rest_offset = text.len() - rest.len();
+    let trimmed = rest.trim_start();
+    let trim_offset = rest.len() - trimmed.len();
+    let try_offset = rest_offset + trim_offset;
+    consume_swift_try_token(trimmed).map(|_| try_offset)
+}
+
+fn consume_swift_try_token(text: &str) -> Option<&str> {
+    text.strip_prefix("try?")
+        .or_else(|| text.strip_prefix("try!"))
+        .or_else(|| consume_swift_keyword(text, "try"))
+}
+
+fn consume_swift_keyword<'a>(text: &'a str, keyword: &str) -> Option<&'a str> {
+    let rest = text.strip_prefix(keyword)?;
+    if rest
+        .chars()
+        .next()
+        .is_some_and(is_swift_identifier_continue)
+    {
+        return None;
+    }
+    Some(rest)
+}
+
+fn is_swift_identifier_continue(ch: char) -> bool {
+    ch == '_' || ch.is_alphanumeric()
+}
+
 pub(super) fn field_children<'a>(node: TsNode<'a>, field: &str) -> Vec<TsNode<'a>> {
     let mut cursor = node.walk();
     node.children_by_field_name(field, &mut cursor).collect()
