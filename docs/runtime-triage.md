@@ -91,3 +91,8 @@ links both the broad query-regression artifact and the focused runtime-triage ar
 
 The [0.17.0 post-release runtime triage](runtime-triage-0.17.0.md) is the first
 documented use of this process.
+
+The [20-optimization runtime pass](runtime-performance-20-optimizations-2026-07-02.md)
+records the first longer optimization sequence using this process, including the
+same-binary noise control, all-120-repo before/after artifact, and focused recheck of
+the largest apparent regressions.

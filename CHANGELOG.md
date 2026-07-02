@@ -12,6 +12,16 @@ break.
   or mixed hot paths before optimizing. The runtime-triage and query-regression harnesses
   can now select every checked-out corpus repo with `--all-repos`.
 
+### Performance
+- Completed a 20-commit profile-guided runtime pass after the runtime-triage setup.
+  The final all-120-repo run compared `ca48518d` with `a0bfc252` and measured
+  `66,498.30ms -> 70,626.21ms` (`+6.21%`) with 120/120 identical product hashes
+  and unchanged family counts. A same-binary all-corpus control measured `+7.38%`,
+  and a focused 7-iteration recheck of the largest apparent regressions measured
+  `14,874.05ms -> 14,551.12ms` (`-2.17%`) with identical hashes, so this pass records
+  targeted hot-path wins without a confirmed product-output drift or reproduced broad
+  runtime degradation. See the [20-optimization runtime pass](docs/runtime-performance-20-optimizations-2026-07-02.md).
+
 ## [0.17.0] - 2026-07-02
 
 ### Added

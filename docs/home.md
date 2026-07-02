@@ -124,6 +124,7 @@ fundamentals; the rest is grouped by area.
 - [runtime triage](runtime-triage.md) — reproducible query-runtime regression triage: harness, classification policy, timing knobs, and when not to optimize.
 - [0.17.0 release evidence](release-evidence-0.17.0.md) — the hazard refresh, all-corpus query-regression, recall-loss gate, and profiling notes for the 0.17.0 release candidate.
 - [0.17.0 post-release runtime triage](runtime-triage-0.17.0.md) — focused follow-up on the largest release-candidate query-runtime regressions, including the `arrow` hot-path fix and remaining no-family-growth follow-ups.
+- [20-optimization runtime pass](runtime-performance-20-optimizations-2026-07-02.md) — the post-0.17.0 profile-guided optimization sequence, all-120-repo before/after run, focused recheck, and noise-aware interpretation.
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 
 ### Field evidence & audits
