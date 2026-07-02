@@ -154,10 +154,10 @@ fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<Value
 }
 
 fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
-    let mut buckets: FxHashMap<Vec<u64>, Vec<usize>> = FxHashMap::default();
+    let mut buckets: FxHashMap<&[u64], Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         if unit.exact_safe && unit.value.len() >= EXACT_VALUE_MIN {
-            buckets.entry(unit.value.clone()).or_default().push(idx);
+            buckets.entry(unit.value.as_slice()).or_default().push(idx);
         }
     }
     let mut out = Vec::new();
