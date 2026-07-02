@@ -133,6 +133,19 @@ fn classify_param_hints_value_class() {
 }
 
 #[test]
+fn line_diff_preserves_lcs_output_order() {
+    assert_eq!(
+        line_diff(&["a", "b", "c"], &["a", "x", "c"]),
+        vec![
+            (' ', "a".to_string()),
+            ('-', "b".to_string()),
+            ('+', "x".to_string()),
+            (' ', "c".to_string()),
+        ]
+    );
+}
+
+#[test]
 fn query_family_json_carries_proof_depth() {
     let ov = SurfaceOverrides {
         generated_sources: std::collections::HashSet::new(),

@@ -469,13 +469,15 @@ pub(crate) fn line_diff(a: &[&str], b: &[&str]) -> Vec<(char, String)> {
     let a = &a[..a.len().min(CAP)];
     let b = &b[..b.len().min(CAP)];
     let (n, m) = (a.len(), b.len());
-    let mut dp = vec![vec![0u16; m + 1]; n + 1];
+    let width = m + 1;
+    let mut dp = vec![0u16; (n + 1) * width];
     for i in (0..n).rev() {
         for j in (0..m).rev() {
-            dp[i][j] = if a[i] == b[j] {
-                dp[i + 1][j + 1] + 1
+            let here = i * width + j;
+            dp[here] = if a[i] == b[j] {
+                dp[(i + 1) * width + j + 1] + 1
             } else {
-                dp[i + 1][j].max(dp[i][j + 1])
+                dp[(i + 1) * width + j].max(dp[here + 1])
             };
         }
     }
@@ -486,7 +488,7 @@ pub(crate) fn line_diff(a: &[&str], b: &[&str]) -> Vec<(char, String)> {
             out.push((' ', a[i].to_string()));
             i += 1;
             j += 1;
-        } else if dp[i + 1][j] >= dp[i][j + 1] {
+        } else if dp[(i + 1) * width + j] >= dp[i * width + j + 1] {
             out.push(('-', a[i].to_string()));
             i += 1;
         } else {
