@@ -122,6 +122,7 @@ fundamentals; the rest is grouped by area.
 - [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset hazard is measured against (repo selection, graded labels, quantitative sufficiency).
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for the hazard ranking on every new nose release (one-page runbook: refresh the dataset, re-tune, re-validate).
 - [0.17.0 release evidence](release-evidence-0.17.0.md) — the hazard refresh, all-corpus query-regression, recall-loss gate, and profiling notes for the 0.17.0 release candidate.
+- [0.17.0 post-release runtime triage](runtime-triage-0.17.0.md) — focused follow-up on the largest release-candidate query-runtime regressions, including the `arrow` hot-path fix and remaining no-family-growth follow-ups.
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 
 ### Field evidence & audits

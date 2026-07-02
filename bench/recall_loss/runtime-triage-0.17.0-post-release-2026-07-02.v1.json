@@ -1,0 +1,175 @@
+{
+  "schema": "nose.runtime_triage.v1",
+  "generated_on": "2026-07-02",
+  "objective": "Triage the largest 0.17.0 release-candidate query-runtime regressions and separate real hot paths from expected capability cost.",
+  "release_evidence": {
+    "artifact": "target/release-0.17.0/query-regression-all-120-r3-release-candidate.json",
+    "all_120_aggregate_baseline_median_ms": 59666.48,
+    "all_120_aggregate_current_median_ms": 63410.42,
+    "all_120_delta_pct": 6.27,
+    "top_13_aggregate_baseline_median_ms": 3543.4,
+    "top_13_aggregate_current_median_ms": 5145.5,
+    "top_13_delta_pct": 45.2
+  },
+  "fix": {
+    "file": "crates/nose-normalize/src/value_graph/control/containers.rs",
+    "summary": "Check binding-domain evidence before scanning for module binding mutation in container assignments.",
+    "semantic_policy_change": "none",
+    "reasoning": "A container binding value is only admissible when binding-domain evidence exists. If no such evidence exists, the prior mutation scan cannot affect the result and only adds repeated file-level work for data-like class units."
+  },
+  "focused_hot_path": {
+    "repo": "arrow",
+    "query": "nose query bench/repos/arrow all top=0 --mode semantic --format json",
+    "output_sha256_before_fix": "7ce920beb6bfa9161cd347d959feab2b83a689330f7e6a6f7cddd7e79c563e11",
+    "output_sha256_after_fix": "7ce920beb6bfa9161cd347d959feab2b83a689330f7e6a6f7cddd7e79c563e11",
+    "before_current_ms": {
+      "normalize_extract": 91.5,
+      "top_unit_kind": "Class",
+      "top_unit_file": "bench/repos/arrow/arrow/locales.py",
+      "top_unit_total": 82.1,
+      "top_unit_value": 80.7,
+      "top_unit_tokens": 12723,
+      "top_unit_value_atoms": 8200
+    },
+    "after_current_ms": {
+      "normalize_extract": 54.0,
+      "top_unit_kind": "Class",
+      "top_unit_file": "bench/repos/arrow/arrow/locales.py",
+      "top_unit_total": 44.4,
+      "top_unit_value": 43.0,
+      "top_unit_tokens": 12723,
+      "top_unit_value_atoms": 8200
+    },
+    "reduction_pct": {
+      "normalize_extract": 41.0,
+      "top_unit_total": 45.9,
+      "top_unit_value": 46.7
+    },
+    "status": "partially fixed; remaining cost is class attribute value-graph construction, not repeated mutation scanning"
+  },
+  "top_13_post_fix_harness": {
+    "artifact": "target/release-0.17.0/query-regression-top13-post-container-binding-fix-final-r5.json",
+    "baseline_binary": "/tmp/nose-v0.16.0-target/release/nose",
+    "current_binary": "target/release/nose",
+    "iterations": 5,
+    "warmups": 1,
+    "aggregate_baseline_median_ms": 2764.9,
+    "aggregate_current_median_ms": 3715.5,
+    "aggregate_delta_pct": 34.4,
+    "repos": [
+      {
+        "repo": "arrow",
+        "baseline_median_ms": 65.3,
+        "current_median_ms": 125.8,
+        "delta_pct": 92.6,
+        "families": "2->2",
+        "classification": "real hot path, partially fixed"
+      },
+      {
+        "repo": "ripgrep",
+        "baseline_median_ms": 422.3,
+        "current_median_ms": 525.4,
+        "delta_pct": 24.4,
+        "families": "6->8",
+        "classification": "capability growth"
+      },
+      {
+        "repo": "rustls",
+        "baseline_median_ms": 167.4,
+        "current_median_ms": 261.6,
+        "delta_pct": 56.2,
+        "families": "2->20",
+        "classification": "capability growth"
+      },
+      {
+        "repo": "alacritty",
+        "baseline_median_ms": 102.2,
+        "current_median_ms": 199.0,
+        "delta_pct": 94.7,
+        "families": "1->2",
+        "classification": "capability growth plus lowering cost"
+      },
+      {
+        "repo": "regex",
+        "baseline_median_ms": 236.2,
+        "current_median_ms": 361.7,
+        "delta_pct": 53.1,
+        "families": "22->34",
+        "classification": "capability growth"
+      },
+      {
+        "repo": "thor",
+        "baseline_median_ms": 43.8,
+        "current_median_ms": 62.4,
+        "delta_pct": 42.5,
+        "families": "3->3",
+        "classification": "small absolute regression"
+      },
+      {
+        "repo": "pry",
+        "baseline_median_ms": 100.6,
+        "current_median_ms": 94.1,
+        "delta_pct": -6.5,
+        "families": "7->7",
+        "classification": "not reproduced"
+      },
+      {
+        "repo": "tokio",
+        "baseline_median_ms": 291.5,
+        "current_median_ms": 378.4,
+        "delta_pct": 29.8,
+        "families": "18->37",
+        "classification": "capability growth"
+      },
+      {
+        "repo": "meilisearch",
+        "baseline_median_ms": 534.7,
+        "current_median_ms": 695.0,
+        "delta_pct": 30.0,
+        "families": "7->15",
+        "classification": "capability growth"
+      },
+      {
+        "repo": "minio",
+        "baseline_median_ms": 549.6,
+        "current_median_ms": 679.5,
+        "delta_pct": 23.6,
+        "families": "54->54",
+        "classification": "follow-up hot path"
+      },
+      {
+        "repo": "fd",
+        "baseline_median_ms": 38.6,
+        "current_median_ms": 31.0,
+        "delta_pct": -19.9,
+        "families": "0->0",
+        "classification": "not reproduced"
+      },
+      {
+        "repo": "image",
+        "baseline_median_ms": 135.1,
+        "current_median_ms": 188.1,
+        "delta_pct": 39.3,
+        "families": "3->7",
+        "classification": "capability growth"
+      },
+      {
+        "repo": "serde_json",
+        "baseline_median_ms": 77.5,
+        "current_median_ms": 113.6,
+        "delta_pct": 46.5,
+        "families": "10->12",
+        "classification": "capability growth"
+      }
+    ]
+  },
+  "rejected_change": {
+    "summary": "A shared binding-domain proof cache was prototyped and removed.",
+    "reason": "It did not materially improve the focused top-13 median timings, so the added state was not justified."
+  },
+  "next_work": [
+    "Investigate remaining arrow data-like class value-graph cost without weakening class-data sensitivity.",
+    "Investigate minio no-family-growth Go hot path.",
+    "For capability-growth repos, prefer measuring cost per new family before optimizing."
+  ]
+}

@@ -35,3 +35,9 @@ acceptable release-candidate runtime delta:
 The remaining repo-level runtime triggers are investigation prompts rather than release
 blockers. They are dominated by small absolute timings, expected family-count increases,
 or already-profiled surfaces.
+
+Post-release follow-up is tracked in
+[0.17.0 post-release runtime triage](runtime-triage-0.17.0.md). That triage partially
+fixed the clearest no-family-growth hot path (`arrow` class value fingerprinting) without
+changing query JSON output, and leaves `arrow` residual class-data cost plus `minio` as
+the next no-family-growth performance investigations.

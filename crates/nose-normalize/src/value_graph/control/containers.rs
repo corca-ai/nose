@@ -92,11 +92,11 @@ impl<'a> Builder<'a> {
         name: Symbol,
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
+        let binding_domain =
+            nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, lhs)?;
         if self.module_binding_mutated(name) {
             return None;
         }
-        let binding_domain =
-            nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, lhs)?;
         let value = self.eval(rhs, env);
         if self.immutable_binding_safe(rhs, env) {
             return Some(value);
