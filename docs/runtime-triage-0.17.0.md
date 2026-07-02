@@ -2,6 +2,7 @@
 
 Generated on 2026-07-02 after the `nose 0.17.0` release evidence review.
 
+For the reusable process and current harness, see [runtime triage](runtime-triage.md).
 See the machine-readable [runtime-triage-0.17.0-post-release-2026-07-02.v1.json](../bench/recall_loss/runtime-triage-0.17.0-post-release-2026-07-02.v1.json) artifact for the focused measurements and repo classifications.
 This page links back to the [0.17.0 release evidence](release-evidence-0.17.0.md),
 which contains the all-120 release-candidate query regression run.
