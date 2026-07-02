@@ -44,6 +44,7 @@ mod rules;
 mod sinks;
 mod state;
 mod stdlib;
+mod timing;
 mod value_dag;
 
 pub use api::{
@@ -131,6 +132,7 @@ use ops::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
 use std::sync::OnceLock;
+use timing::ValueGraphBuildTimer;
 
 #[cfg(test)]
 mod tests;

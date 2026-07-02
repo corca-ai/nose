@@ -92,6 +92,9 @@ impl<'a> Builder<'a> {
         name: Symbol,
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
+        // Domain proof is a cheap syntactic filter for the class/table assignment
+        // shape. Most assignments fail it, so only proven candidates pay the broader
+        // same-file mutation scan.
         let binding_domain =
             nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, lhs)?;
         if self.module_binding_mutated(name) {

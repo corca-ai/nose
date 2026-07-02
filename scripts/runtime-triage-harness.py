@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import hashlib
 import json
 import os
 import re
+import shlex
 import statistics
 import subprocess
 import sys
@@ -17,6 +19,7 @@ from typing import Any
 
 
 DEFAULT_QUERY_ARGS = ("query", "{repo}", "all", "top=0", "--mode", "semantic", "--format", "json")
+SCHEMA = "nose.runtime_triage_harness.v1"
 TIME_RE = re.compile(r"\[time\]\s+([a-zA-Z0-9_+\-]+)\s+([0-9.]+)ms")
 UNIT_SUMMARY_RE = re.compile(
     r"\[unit-summary\]\s+(\S+)\s+(.*?)\s+"
@@ -24,6 +27,20 @@ UNIT_SUMMARY_RE = re.compile(
     r"value_atoms=(\d+)\s+total=([0-9.]+)ms\s+pre=([0-9.]+)ms\s+"
     r"safe=([0-9.]+)ms\s+value=([0-9.]+)ms\s+features=([0-9.]+)ms"
 )
+
+
+@dataclass(frozen=True)
+class ClassificationPolicy:
+    regression_pct: float
+    small_absolute_ms: float
+    hot_unit_ms: float
+
+    def as_json(self) -> dict[str, float]:
+        return {
+            "regression_pct": self.regression_pct,
+            "small_absolute_ms": self.small_absolute_ms,
+            "hot_unit_ms": self.hot_unit_ms,
+        }
 
 
 def sha256_file(path: Path) -> str:
@@ -50,10 +67,30 @@ def git_output(args: list[str]) -> str:
 def parse_query_args(raw: str) -> tuple[str, ...]:
     if not raw:
         return DEFAULT_QUERY_ARGS
-    args = tuple(part for part in raw.split(" ") if part)
+    args = tuple(shlex.split(raw))
     if "{repo}" not in args:
         raise SystemExit("--query-args must contain {repo}")
     return args
+
+
+def all_repo_names(repos_root: Path) -> list[str]:
+    if not repos_root.exists():
+        raise SystemExit(f"missing repos root: {repos_root}")
+    return sorted(path.name for path in repos_root.iterdir() if path.is_dir())
+
+
+def selected_repos(args: argparse.Namespace) -> list[tuple[str, Path]]:
+    repo_names = list(args.repos)
+    if args.all_repos:
+        repo_names.extend(all_repo_names(args.repos_root))
+    repo_names = sorted(dict.fromkeys(repo_names))
+    if not repo_names:
+        raise SystemExit("--repo or --all-repos is required")
+    repos = [(repo, (args.repos_root / repo).resolve()) for repo in repo_names]
+    missing = [path for _, path in repos if not path.exists()]
+    if missing:
+        raise SystemExit(f"missing repo paths: {', '.join(path.as_posix() for path in missing)}")
+    return repos
 
 
 def command_for(binary: Path, repo: Path, query_args: tuple[str, ...]) -> list[str]:
@@ -189,9 +226,7 @@ def classify_repo(
     baseline: dict[str, Any],
     current: dict[str, Any],
     *,
-    regression_pct: float,
-    small_absolute_ms: float,
-    hot_unit_ms: float,
+    policy: ClassificationPolicy,
 ) -> dict[str, Any]:
     baseline_ms = baseline["median_ms"]
     current_ms = current["median_ms"]
@@ -213,13 +248,16 @@ def classify_repo(
     if delta_ms <= 0:
         kind = "not-reproduced"
         reason = "current median is not slower than baseline"
-    elif abs(delta_ms) < small_absolute_ms or delta_pct < regression_pct:
+    elif abs(delta_ms) < policy.small_absolute_ms or delta_pct < policy.regression_pct:
         kind = "small-or-noisy"
         reason = "runtime delta is below configured regression thresholds"
     elif family_delta is not None and family_delta > 0:
         kind = "capability-growth"
         reason = "family count increased; measure cost per newly surfaced family before optimizing"
-    elif current_top.get("value_ms", 0.0) >= hot_unit_ms and stage_delta.get("normalize+extract", 0.0) >= stage_delta.get("lower", 0.0):
+    elif (
+        current_top.get("value_ms", 0.0) >= policy.hot_unit_ms
+        and stage_delta.get("normalize+extract", 0.0) >= stage_delta.get("lower", 0.0)
+    ):
         kind = "no-family-growth-value-hot-path"
         reason = "family count did not grow and representative unit value time is high"
     elif stage_delta.get("lower", 0.0) > stage_delta.get("normalize+extract", 0.0):
@@ -243,9 +281,7 @@ def summarize(
     runs: list[dict[str, Any]],
     repos: list[str],
     *,
-    regression_pct: float,
-    small_absolute_ms: float,
-    hot_unit_ms: float,
+    policy: ClassificationPolicy,
 ) -> dict[str, Any]:
     by_repo: dict[str, dict[str, Any]] = {}
     for repo in repos:
@@ -257,9 +293,7 @@ def summarize(
             "classification": classify_repo(
                 baseline,
                 current,
-                regression_pct=regression_pct,
-                small_absolute_ms=small_absolute_ms,
-                hot_unit_ms=hot_unit_ms,
+                policy=policy,
             ),
             "hashes_identical": baseline["hashes"] == current["hashes"],
         }
@@ -332,15 +366,19 @@ def run_self_test() -> None:
             },
         },
     ]
-    summary = summarize(
-        rows,
-        ["a", "b"],
+    policy = ClassificationPolicy(
         regression_pct=20.0,
         small_absolute_ms=10.0,
         hot_unit_ms=20.0,
     )
+    summary = summarize(
+        rows,
+        ["a", "b"],
+        policy=policy,
+    )
     assert summary["by_repo"]["a"]["classification"]["kind"] == "capability-growth"
     assert summary["by_repo"]["b"]["classification"]["kind"] == "no-family-growth-value-hot-path"
+    assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
     print("runtime triage harness self-test passed")
 
 
@@ -354,6 +392,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--current-source-sha")
     parser.add_argument("--repos-root", type=Path, default=Path("bench/repos"))
     parser.add_argument("--repo", action="append", dest="repos", default=[])
+    parser.add_argument("--all-repos", action="store_true")
     parser.add_argument("--iterations", type=int, default=5)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
@@ -371,18 +410,20 @@ def main() -> int:
     if args.self_test:
         run_self_test()
         return 0
-    if not args.baseline_binary or not args.current_binary or not args.output or not args.repos:
-        raise SystemExit("--baseline-binary, --current-binary, --repo, and --output are required")
+    if not args.baseline_binary or not args.current_binary or not args.output:
+        raise SystemExit("--baseline-binary, --current-binary, and --output are required")
     if args.iterations <= 0 or args.warmups < 0:
         raise SystemExit("--iterations must be positive and --warmups must be non-negative")
 
     baseline_binary = args.baseline_binary.resolve()
     current_binary = args.current_binary.resolve()
-    repos = [(repo, (args.repos_root / repo).resolve()) for repo in args.repos]
-    missing = [path for _, path in repos if not path.exists()]
-    if missing:
-        raise SystemExit(f"missing repo paths: {', '.join(path.as_posix() for path in missing)}")
+    repos = selected_repos(args)
     query_args = parse_query_args(args.query_args)
+    policy = ClassificationPolicy(
+        regression_pct=args.regression_pct,
+        small_absolute_ms=args.small_absolute_ms,
+        hot_unit_ms=args.hot_unit_ms,
+    )
     working_tree_status_before_measurement = git_output(["status", "--short"])
 
     warmup(binary=baseline_binary, label="baseline", repos=repos, warmups=args.warmups, query_args=query_args)
@@ -408,13 +449,9 @@ def main() -> int:
 
     repo_names = [repo for repo, _ in repos]
     output = {
-        "schema": "nose.runtime_triage_harness.v1",
+        "schema": SCHEMA,
         "command": "nose " + " ".join(query_args).replace("{repo}", "<repo>"),
-        "classification_policy": {
-            "regression_pct": args.regression_pct,
-            "small_absolute_ms": args.small_absolute_ms,
-            "hot_unit_ms": args.hot_unit_ms,
-        },
+        "classification_policy": policy.as_json(),
         "provenance": {
             "baseline_binary": baseline_binary.as_posix(),
             "baseline_binary_sha256": sha256_file(baseline_binary),
@@ -433,9 +470,7 @@ def main() -> int:
         "summary": summarize(
             runs,
             repo_names,
-            regression_pct=args.regression_pct,
-            small_absolute_ms=args.small_absolute_ms,
-            hot_unit_ms=args.hot_unit_ms,
+            policy=policy,
         ),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

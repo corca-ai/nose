@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shlex
 import statistics
 import subprocess
 import sys
@@ -41,10 +42,30 @@ def git_output(args: list[str]) -> str:
 def parse_query_args(raw: str) -> tuple[str, ...]:
     if not raw:
         return DEFAULT_QUERY_ARGS
-    args = tuple(part for part in raw.split(" ") if part)
+    args = tuple(shlex.split(raw))
     if "{repo}" not in args:
         raise SystemExit("--query-args must contain {repo}")
     return args
+
+
+def all_repo_names(repos_root: Path) -> list[str]:
+    if not repos_root.exists():
+        raise SystemExit(f"missing repos root: {repos_root}")
+    return sorted(path.name for path in repos_root.iterdir() if path.is_dir())
+
+
+def selected_repos(args: argparse.Namespace) -> list[tuple[str, Path]]:
+    repo_names = list(args.repos)
+    if args.all_repos:
+        repo_names.extend(all_repo_names(args.repos_root))
+    repo_names = sorted(dict.fromkeys(repo_names))
+    if not repo_names:
+        raise SystemExit("--repo or --all-repos is required")
+    repos = [(repo, (args.repos_root / repo).resolve()) for repo in repo_names]
+    missing = [path for _, path in repos if not path.exists()]
+    if missing:
+        raise SystemExit(f"missing repo paths: {', '.join(path.as_posix() for path in missing)}")
+    return repos
 
 
 def command_for(binary: Path, repo: Path, query_args: tuple[str, ...]) -> list[str]:
@@ -160,6 +181,7 @@ def run_self_test() -> None:
     assert summary["aggregate_baseline_median_ms"] == 30.0
     assert summary["aggregate_current_median_ms"] == 30.0
     assert summary["hashes_identical_by_repo"] == {"a": True, "b": True}
+    assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
     print("query regression harness self-test passed")
 
 
@@ -173,6 +195,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--current-source-sha")
     parser.add_argument("--repos-root", type=Path, default=Path("bench/repos"))
     parser.add_argument("--repo", action="append", dest="repos", default=[])
+    parser.add_argument("--all-repos", action="store_true")
     parser.add_argument("--iterations", type=int, default=9)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
@@ -186,17 +209,14 @@ def main() -> int:
     if args.self_test:
         run_self_test()
         return 0
-    if not args.baseline_binary or not args.current_binary or not args.output or not args.repos:
-        raise SystemExit("--baseline-binary, --current-binary, --repo, and --output are required")
+    if not args.baseline_binary or not args.current_binary or not args.output:
+        raise SystemExit("--baseline-binary, --current-binary, and --output are required")
     if args.iterations <= 0 or args.warmups < 0:
         raise SystemExit("--iterations must be positive and --warmups must be non-negative")
 
     baseline_binary = args.baseline_binary.resolve()
     current_binary = args.current_binary.resolve()
-    repos = [(repo, (args.repos_root / repo).resolve()) for repo in args.repos]
-    missing = [path for _, path in repos if not path.exists()]
-    if missing:
-        raise SystemExit(f"missing repo paths: {', '.join(path.as_posix() for path in missing)}")
+    repos = selected_repos(args)
     query_args = parse_query_args(args.query_args)
     working_tree_status_before_measurement = git_output(["status", "--short"])
 

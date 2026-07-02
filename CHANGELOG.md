@@ -9,7 +9,8 @@ break.
 ### Added
 - Added a runtime-triage harness and maintainer runbook for classifying query-runtime
   regressions as noise, capability-growth cost, lower/front-end cost, value-graph cost,
-  or mixed hot paths before optimizing.
+  or mixed hot paths before optimizing. The runtime-triage and query-regression harnesses
+  can now select every checked-out corpus repo with `--all-repos`.
 
 ## [0.17.0] - 2026-07-02
 

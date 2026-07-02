@@ -30,11 +30,10 @@ python3 scripts/runtime-triage-harness.py \
   --current-binary target/release/nose \
   --baseline-source-ref v0.16.0 \
   --current-source-ref HEAD \
-  --repo arrow \
-  --repo minio \
+  --all-repos \
   --iterations 5 \
   --warmups 1 \
-  --output target/runtime-triage-arrow-minio.json
+  --output target/runtime-triage-all-repos.json
 ```
 
 Run the built-in parser/classifier self-test after changing the script:
