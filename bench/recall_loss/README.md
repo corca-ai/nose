@@ -1172,6 +1172,13 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   `8` feature-shaped Promise diagnostics under their reusable capability
   blockers, documents `6` duplicate/grouping decisions, and keeps
   historical artifacts untouched with `semantic_admission_delta = 0`.
+- [issue-658-oracle-exclusion-classification-2026-07-02.v1.json](issue-658-oracle-exclusion-classification-2026-07-02.v1.json)
+  records the #658 report-shape refinement. `oracle_exclusions` now includes
+  `by_classification`, splitting the local `crates` excluded surface into
+  `5447` `missing-oracle-support`, `583`
+  `semantic-boundary-attributed`, `5` `path-exploration-budget`, `1`
+  `oracle-cost-budget`, and `1` `empty-value-fingerprint` unit while preserving
+  the legacy reason counts and exact admission behavior.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

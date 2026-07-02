@@ -32,6 +32,12 @@ def custom_call(v):\n    return helper(v)\n",
     assert_eq!(report["soundness_gate"]["false_merges"], 0);
     assert_eq!(report["soundness_gate"]["canon_preservation_violations"], 0);
     assert_eq!(report["soundness_gate"]["gate_passed"], true);
+    assert!(
+        report["oracle_exclusions"]["by_classification"]
+            .as_array()
+            .is_some(),
+        "oracle exclusions should expose classification rollups: {report}"
+    );
 
     let reasons = report["by_reason"]
         .as_array()

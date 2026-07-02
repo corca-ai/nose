@@ -347,6 +347,7 @@ fn top_opportunities(under_merges: &[UnderMerge]) -> Vec<TopOpportunity> {
 
 fn oracle_exclusions(exclusions: &VerifyExclusions) -> OracleExclusions {
     let by_obligation = oracle_exclusion_obligation_rollups(&exclusions.units);
+    let by_classification = oracle_exclusion_classification_rollups(exclusions, &by_obligation);
     let mut units: Vec<_> = exclusions
         .units
         .iter()
@@ -392,6 +393,7 @@ fn oracle_exclusions(exclusions: &VerifyExclusions) -> OracleExclusions {
                 count: exclusions.path_bail,
             },
         ],
+        by_classification,
         by_obligation,
         units,
     }
@@ -412,6 +414,107 @@ fn oracle_exclusion_attribution(
         obligation_subreason,
         oracle_status: "excluded",
     }
+}
+
+fn oracle_exclusion_classification_rollups(
+    exclusions: &VerifyExclusions,
+    by_obligation: &[OracleExclusionObligationRollup],
+) -> Vec<OracleExclusionClassificationRollup> {
+    let semantic_boundary_attributed = by_obligation
+        .iter()
+        .filter(|row| row.exclusion_reason == "uninterpretable")
+        .map(|row| row.oracle_excluded)
+        .sum::<usize>();
+    let missing_oracle_support = exclusions
+        .uninterpretable
+        .saturating_sub(semantic_boundary_attributed);
+
+    let mut rollups = Vec::new();
+    for (reason, classification, counter) in [
+        (
+            "core-missing",
+            "core-span-missing",
+            ClassificationCounter::unattributed(exclusions.core_missing),
+        ),
+        (
+            "battery-bail",
+            "oracle-cost-budget",
+            ClassificationCounter::unattributed(exclusions.battery_bail),
+        ),
+        (
+            "empty-fingerprint",
+            "empty-value-fingerprint",
+            ClassificationCounter::unattributed(exclusions.empty_fingerprint),
+        ),
+        (
+            "path-bail",
+            "path-exploration-budget",
+            ClassificationCounter::unattributed(exclusions.path_bail),
+        ),
+        (
+            "uninterpretable",
+            "semantic-boundary-attributed",
+            ClassificationCounter::attributed(semantic_boundary_attributed),
+        ),
+        (
+            "uninterpretable",
+            "missing-oracle-support",
+            ClassificationCounter::unattributed(missing_oracle_support),
+        ),
+    ] {
+        push_classification_rollup(&mut rollups, reason, classification, counter);
+    }
+
+    rollups.sort_by(|a, b| {
+        b.count
+            .cmp(&a.count)
+            .then(a.exclusion_reason.cmp(b.exclusion_reason))
+            .then(a.classification.cmp(b.classification))
+    });
+    rollups
+}
+
+struct ClassificationCounter {
+    count: usize,
+    attributed_units: usize,
+    unattributed_units: usize,
+}
+
+impl ClassificationCounter {
+    fn attributed(count: usize) -> Self {
+        Self {
+            count,
+            attributed_units: count,
+            unattributed_units: 0,
+        }
+    }
+
+    fn unattributed(count: usize) -> Self {
+        Self {
+            count,
+            attributed_units: 0,
+            unattributed_units: count,
+        }
+    }
+}
+
+fn push_classification_rollup(
+    rollups: &mut Vec<OracleExclusionClassificationRollup>,
+    exclusion_reason: &'static str,
+    classification: &'static str,
+    counter: ClassificationCounter,
+) {
+    if counter.count == 0 {
+        return;
+    }
+    rollups.push(OracleExclusionClassificationRollup {
+        exclusion_reason,
+        classification,
+        count: counter.count,
+        oracle_excluded: counter.count,
+        attributed_units: counter.attributed_units,
+        unattributed_units: counter.unattributed_units,
+    });
 }
 
 fn oracle_exclusion_obligation_rollups(

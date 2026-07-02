@@ -2359,6 +2359,9 @@ The [#654 capability audit artifact](../bench/recall_loss/issue-654-semantic-ker
 2026-07-02 #656 obligation-label cleanup note:
 The [#656 cleanup artifact](../bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json) applies the #654 decisions as documentation, not behavior. It makes `async-await-scheduling-contract`, `async-function-scheduling-contract`, and `async-block-scheduling-contract` the canonical wording for shared protocol boundaries in new docs, preserves old Promise/Future labels for historical artifact readability, and groups Promise producer/receiver/continuation labels under their capability blockers. It records `semantic_admission_delta = 0`, `public_api_expansion = 0`, and `historical_artifacts_rewritten = 0`.
 
+2026-07-02 #658 oracle-exclusion classification note:
+The [#658 classification artifact](../bench/recall_loss/issue-658-oracle-exclusion-classification-2026-07-02.v1.json) adds an action-oriented report layer for fail-closed oracle exclusions. `oracle_exclusions.by_classification` splits coarse reason counts into reusable semantic-boundary attribution versus residual missing oracle support, path budget, oracle cost budget, empty fingerprint, and core-span failures. The current local `crates` report classifies all `6037` excluded units, with `583` semantic-boundary-attributed exclusions already tied to existing obligation vocabulary and `5447` residual missing-oracle-support units kept visible as the next oracle backlog. This is reporting-only: exact admission, public APIs, and the soundness gate remain unchanged.
+
 2026-06-30 Go channel protocol obligation note:
 The [scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 artifact keeps exact admission closed while refining Go protocol-boundary

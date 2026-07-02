@@ -1,0 +1,270 @@
+{
+  "report_kind": "recall-loss-follow-up",
+  "schema_version": 1,
+  "generated_on": "2026-07-02",
+  "title": "Oracle exclusion classification for recall-loss reports",
+  "issues": {
+    "issue": 658,
+    "execution_tracker": 663,
+    "broader_epic": 653
+  },
+  "scope": {
+    "kind": "reporting-only",
+    "summary": "Add an action-oriented oracle_exclusions.by_classification rollup so excluded units can be split into semantic-boundary attribution, missing oracle support, path budget, oracle cost budget, empty fingerprint, and core-span failures without changing exact admission.",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false,
+    "public_api_expansion": 0,
+    "legacy_reason_counts_preserved": true
+  },
+  "capability_alignment": {
+    "principle": "Capabilities over features",
+    "capability": "oracle-exclusion observability for strict semantic admission",
+    "added_report_fields": [
+      "oracle_exclusions.by_classification"
+    ],
+    "not_a_feature_list": [
+      "No language, API, or selector-specific exact admission path was opened.",
+      "No new semantic-pack API was added.",
+      "Top-level oracle_exclusions.counts and oracle_exclusions.by_obligation remain compatible."
+    ],
+    "reasoning": "The rollup separates missing oracle support from already-attributed semantic boundaries, so future stricter admission work can lower recall loss without hiding misses behind a broad uninterpretable bucket."
+  },
+  "baseline_report": {
+    "command": "/tmp/nose-target-origin-main-issue658/release/nose verify crates --max-violations 0 --recall-loss-report /tmp/recall-loss.issue658.origin.final3.json",
+    "report": "/tmp/recall-loss.issue658.origin.final3.json",
+    "has_by_classification": false,
+    "summary": {
+      "total_units": 7011,
+      "interpretable_units": 974,
+      "excluded_units": 6037,
+      "canon_checked": 102,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 813
+    },
+    "oracle_exclusions": {
+      "core-missing": 0,
+      "battery-bail": 1,
+      "empty-fingerprint": 1,
+      "uninterpretable": 6030,
+      "path-bail": 5
+    },
+    "oracle_exclusions_by_obligation": [
+      {
+        "exclusion_reason": "uninterpretable",
+        "attribution_reason": "unsupported-runtime-boundary",
+        "obligation_family": "exception-channel",
+        "obligation_subreason": "exception-channel-contract-missing",
+        "count": 580,
+        "oracle_excluded": 580
+      },
+      {
+        "exclusion_reason": "uninterpretable",
+        "attribution_reason": "unsupported-runtime-boundary",
+        "obligation_family": "scheduling-boundary",
+        "obligation_subreason": "runtime-protocol-boundary-contract-missing",
+        "count": 3,
+        "oracle_excluded": 3
+      }
+    ]
+  },
+  "current_report": {
+    "command": "/tmp/nose-target-current-issue658/release/nose verify crates --max-violations 0 --recall-loss-report /tmp/recall-loss.issue658.current.final3.json",
+    "report": "/tmp/recall-loss.issue658.current.final3.json",
+    "has_by_classification": true,
+    "summary": {
+      "total_units": 7011,
+      "interpretable_units": 974,
+      "excluded_units": 6037,
+      "canon_checked": 102,
+      "canon_preservation_violations": 0,
+      "admission_rejections": 813
+    },
+    "oracle_exclusions": {
+      "core-missing": 0,
+      "battery-bail": 1,
+      "empty-fingerprint": 1,
+      "uninterpretable": 6030,
+      "path-bail": 5
+    },
+    "oracle_exclusions_by_classification": [
+      {
+        "exclusion_reason": "uninterpretable",
+        "classification": "missing-oracle-support",
+        "count": 5447,
+        "oracle_excluded": 5447,
+        "attributed_units": 0,
+        "unattributed_units": 5447
+      },
+      {
+        "exclusion_reason": "uninterpretable",
+        "classification": "semantic-boundary-attributed",
+        "count": 583,
+        "oracle_excluded": 583,
+        "attributed_units": 583,
+        "unattributed_units": 0
+      },
+      {
+        "exclusion_reason": "path-bail",
+        "classification": "path-exploration-budget",
+        "count": 5,
+        "oracle_excluded": 5,
+        "attributed_units": 0,
+        "unattributed_units": 5
+      },
+      {
+        "exclusion_reason": "battery-bail",
+        "classification": "oracle-cost-budget",
+        "count": 1,
+        "oracle_excluded": 1,
+        "attributed_units": 0,
+        "unattributed_units": 1
+      },
+      {
+        "exclusion_reason": "empty-fingerprint",
+        "classification": "empty-value-fingerprint",
+        "count": 1,
+        "oracle_excluded": 1,
+        "attributed_units": 0,
+        "unattributed_units": 1
+      }
+    ],
+    "oracle_exclusions_by_obligation": [
+      {
+        "exclusion_reason": "uninterpretable",
+        "attribution_reason": "unsupported-runtime-boundary",
+        "obligation_family": "exception-channel",
+        "obligation_subreason": "exception-channel-contract-missing",
+        "count": 580,
+        "oracle_excluded": 580
+      },
+      {
+        "exclusion_reason": "uninterpretable",
+        "attribution_reason": "unsupported-runtime-boundary",
+        "obligation_family": "scheduling-boundary",
+        "obligation_subreason": "runtime-protocol-boundary-contract-missing",
+        "count": 3,
+        "oracle_excluded": 3
+      }
+    ]
+  },
+  "quantification": {
+    "newly_classified_exclusions": 6037,
+    "classification_coverage_percent": 100.0,
+    "new_classification_rows": 5,
+    "top_level_exclusion_count_delta": 0,
+    "broad_uninterpretable_reason_count_delta": 0,
+    "broad_uninterpretable_actionable_split": {
+      "coarse_reason_count": 6030,
+      "semantic_boundary_attributed": 583,
+      "missing_oracle_support": 5447,
+      "semantic_boundary_attributed_percent_of_uninterpretable": 9.67,
+      "residual_missing_oracle_support_percent_of_uninterpretable": 90.33
+    },
+    "hard_gate": {
+      "false_merges": 0,
+      "canon_preservation_violations": 0,
+      "gate_passed": true
+    },
+    "behavioral_deltas": {
+      "interpretable_units": 0,
+      "excluded_units": 0,
+      "admission_rejections": 0,
+      "under_merged_behavior_groups": 0,
+      "completeness_percent": 0.0,
+      "oracle_exclusion_obligation_rows": 0
+    }
+  },
+  "performance": {
+    "surface": "release verify crates with --recall-loss-report",
+    "baseline_binary": "/tmp/nose-target-origin-main-issue658/release/nose",
+    "current_binary": "/tmp/nose-target-current-issue658/release/nose",
+    "runs": 16,
+    "raw_real_seconds": {
+      "baseline": [
+        1.05,
+        1.27,
+        1.38,
+        1.39,
+        1.50,
+        1.46,
+        1.45,
+        1.45,
+        1.08,
+        1.46,
+        1.51,
+        1.43,
+        1.52,
+        1.49,
+        1.48,
+        1.59
+      ],
+      "current": [
+        1.17,
+        1.36,
+        1.63,
+        1.47,
+        1.50,
+        1.45,
+        1.42,
+        1.47,
+        1.03,
+        1.31,
+        1.51,
+        1.47,
+        1.43,
+        1.47,
+        1.52,
+        1.44
+      ]
+    },
+    "median_seconds": {
+      "baseline": 1.455,
+      "current": 1.46,
+      "delta_percent": 0.34
+    },
+    "mean_seconds": {
+      "baseline": 1.40687,
+      "current": 1.41563,
+      "delta_percent": 0.62
+    },
+    "file_size_bytes": {
+      "baseline": 2623808,
+      "current": 2624998,
+      "delta": 1190,
+      "delta_percent": 0.05
+    },
+    "optimization_note": "An earlier local draft repeated classification on every excluded unit, adding about 318 KB to the report and showing noisy mean regressions. The final shape keeps the classification as a compact rollup only, preserving actionability while avoiding repeated per-unit strings.",
+    "conclusion": "No material report-path degradation: the combined 16-run median delta is 0.34% and the mean delta is 0.62%. The final implementation avoids an extra exclusion-unit pass by deriving classification counts from existing exclusion counters and by_obligation rows."
+  },
+  "validation_commands": [
+    "cargo fmt --check",
+    "python3 scripts/recall-loss-diff.py --self-test",
+    "cargo test -q -p nose-cli recall_loss_report_classifies_oracle_exclusions_by_actionable_bucket --test cli",
+    "cargo test -q -p nose-cli verify_writes_local_recall_loss_report_without_source_snippets --test cli",
+    "cargo test -q -p nose-cli recall_loss_report_attributes_await_oracle_exclusions_to_shared_scheduling_obligation --test cli",
+    "cargo test -q -p nose-cli recall_loss_report_attributes_async_function_and_block_oracle_exclusions --test cli",
+    "cargo test -q -p nose-cli recall_loss_report_attributes_non_js_async_runtime_api_exclusions --test cli",
+    "cargo run -q -p nose-cli -- verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-658.after.crates.json",
+    "CARGO_TARGET_DIR=/tmp/nose-target-origin-main-issue658 cargo build --release -p nose-cli",
+    "CARGO_TARGET_DIR=/tmp/nose-target-current-issue658 cargo build --release -p nose-cli",
+    "/usr/bin/time -p /tmp/nose-target-origin-main-issue658/release/nose verify crates --max-violations 0 --recall-loss-report /tmp/recall-loss.issue658.origin.final3.N.json",
+    "/usr/bin/time -p /tmp/nose-target-current-issue658/release/nose verify crates --max-violations 0 --recall-loss-report /tmp/recall-loss.issue658.current.final3.N.json"
+  ],
+  "next_work": [
+    {
+      "classification": "missing-oracle-support",
+      "count": 5447,
+      "recommendation": "Prioritize oracle interpreter coverage or finer source tags for the residual broad uninterpretable backlog."
+    },
+    {
+      "classification": "semantic-boundary-attributed",
+      "count": 583,
+      "recommendation": "Use oracle_exclusions.by_obligation first; these are already semantic-kernel capability gaps, not generic oracle-support misses."
+    },
+    {
+      "classification": "path-exploration-budget",
+      "count": 5,
+      "recommendation": "Keep separate from uninterpretable; future work can price symbolic branch exploration without weakening exact admission."
+    }
+  ]
+}

@@ -85,6 +85,7 @@ pub(super) struct UnderMerge {
 #[derive(Serialize)]
 pub(super) struct OracleExclusions {
     pub(super) counts: Vec<ReasonCount>,
+    pub(super) by_classification: Vec<OracleExclusionClassificationRollup>,
     pub(super) by_obligation: Vec<OracleExclusionObligationRollup>,
     pub(super) units: Vec<ExcludedUnit>,
 }
@@ -107,6 +108,16 @@ pub(super) struct OracleExclusionAttribution {
     pub(super) obligation_family: &'static str,
     pub(super) obligation_subreason: &'static str,
     pub(super) oracle_status: &'static str,
+}
+
+#[derive(Serialize)]
+pub(super) struct OracleExclusionClassificationRollup {
+    pub(super) exclusion_reason: &'static str,
+    pub(super) classification: &'static str,
+    pub(super) count: usize,
+    pub(super) oracle_excluded: usize,
+    pub(super) attributed_units: usize,
+    pub(super) unattributed_units: usize,
 }
 
 #[derive(Serialize)]

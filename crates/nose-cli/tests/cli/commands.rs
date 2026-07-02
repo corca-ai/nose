@@ -16,6 +16,8 @@ mod query_reinvented;
 mod recall_loss_report;
 #[path = "commands/recall_loss_report/java_completable_future.rs"]
 mod recall_loss_report_java_completable_future;
+#[path = "commands/recall_loss_report/oracle_exclusions/classification.rs"]
+mod recall_loss_report_oracle_exclusion_classification;
 #[path = "commands/recall_loss_report/oracle_exclusions.rs"]
 mod recall_loss_report_oracle_exclusions;
 #[path = "commands/recall_loss_report/promise_continuations.rs"]

@@ -44,7 +44,7 @@ The current schema is `recall_loss_report.v1.json`:
 | `soundness_gate` | Fingerprint groups, false merges, advisory disagreements, canon-preservation violations, `--max-violations`, and gate result. |
 | `completeness` | Behavior groups, behavior-equal pairs, fingerprint-equal pairs, completeness percentage, and under-merged groups. |
 | `oracle_under_merges` | Behavior-equal but fingerprint-split pairs, sorted by value-Jaccard nearness. This is the structured form of the `--leads` signal. |
-| `oracle_exclusions` | Fail-closed oracle exclusions by reason, optional obligation attribution, and unit location. |
+| `oracle_exclusions` | Fail-closed oracle exclusions by reason, classification, optional obligation attribution, and unit location. |
 | `import_snapshot_census` | Corpus-level imported immutable snapshot diagnostics: successful snapshot record counts, unresolved binding-import miss counts by reason/language, and stable hash/location rows for follow-up fixtures. |
 | `admission_rejections` | Interpretable units whose exact semantic claim is closed, with structured reason, gate, capability, missing evidence, #594 obligation family/subreason, oracle status, and stable location. |
 | `by_reason` | Rollups for admission rejections by reason/gate/capability. |
@@ -63,6 +63,24 @@ boundary. Excluded-unit attribution reuses the same `reason`,
 `missing_evidence`, `obligation_family`, and `obligation_subreason` vocabulary
 as admission rejections, but carries `oracle_status: "excluded"` and does not
 open exact admission.
+
+`oracle_exclusions.by_classification` is the #658 reportability layer for all
+excluded units. It keeps the older coarse `counts` rows stable, but splits each
+unit into an action-oriented class:
+
+| classification | meaning |
+|---|---|
+| `semantic-boundary-attributed` | The oracle could not interpret the unit, but diagnostics found a reusable semantic boundary or missing-proof obligation. Work should start from `by_obligation`, not from broad oracle support. |
+| `missing-oracle-support` | The unit is `uninterpretable` and lacks a semantic-boundary attribution. This is the residual broad oracle-support backlog. |
+| `path-exploration-budget` | The unit exceeded the symbolic branch exploration cap and remains fail-closed. |
+| `oracle-cost-budget` | The unit exceeded the oracle battery cost budget and remains fail-closed. |
+| `empty-value-fingerprint` | The unit has no value fingerprint to compare on the exact semantic channel. |
+| `core-span-missing` | The normalized unit could not be span-matched back to core IL for oracle interpretation. |
+
+Use `by_classification` for aggregate planning, and use `units[].attribution`
+when a specific excluded location needs its missing-proof details. Per-unit
+rows deliberately avoid repeating the classification string to keep large local
+reports cheap to write.
 
 | reason | meaning |
 |---|---|

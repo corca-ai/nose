@@ -162,6 +162,17 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   Promise/Future labels remain readable. Promise-shaped producer, receiver, and
   continuation diagnostics are documented as missing-proof blockers, not
   selector-only feature support. Exact admission remains unchanged.
+- The [#658 oracle-exclusion classification artifact](../bench/recall_loss/issue-658-oracle-exclusion-classification-2026-07-02.v1.json)
+  closes the selected #663 guardrail track by making excluded units actionable
+  without opening exact admission. Local `crates` recall-loss reports now split
+  `6037` oracle-excluded units into `5447` `missing-oracle-support`, `583`
+  `semantic-boundary-attributed`, `5` `path-exploration-budget`, `1`
+  `oracle-cost-budget`, and `1` `empty-value-fingerprint` row. The top-level
+  coarse exclusion counts remain stable for compatibility, while
+  `oracle_exclusions.by_classification` distinguishes fail-closed semantic
+  boundaries from residual oracle-support backlog without repeating that label
+  on every unit row. The hard gate stays at `false_merges = 0` and
+  `canon_preservation_violations = 0`.
 - [Non-JS source-protocol reporting alignment](../bench/recall_loss/non-js-source-protocol-reporting-alignment-2026-07-02.v1.json) records the audit closeout for already-backed async source-protocol rows.
   Python `await`/`async def`, Rust `.await`/`async fn`/`async block`, and Swift
   `async` function rows now move to reporting-supported closed-boundaries,

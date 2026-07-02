@@ -11,6 +11,7 @@ from typing import Any
 
 
 Metric = tuple[str, str, str]
+OracleExclusionClassificationKey = tuple[str, str]
 OracleExclusionObligationKey = tuple[str, str, str, str]
 
 METRICS: list[Metric] = [
@@ -77,6 +78,20 @@ def oracle_exclusion_obligation_counts(
     return counts
 
 
+def oracle_exclusion_classification_counts(
+    report: dict[str, Any],
+) -> dict[OracleExclusionClassificationKey, int]:
+    counts: dict[OracleExclusionClassificationKey, int] = {}
+    for row in report.get("oracle_exclusions", {}).get("by_classification", []):
+        key = (
+            str(row.get("exclusion_reason", "unknown")),
+            str(row.get("classification", "unknown")),
+        )
+        count = row.get("count", row.get("oracle_excluded", 0))
+        counts[key] = counts.get(key, 0) + int(count)
+    return counts
+
+
 def delta_rows(before: dict[str, int], after: dict[str, int]) -> list[dict[str, Any]]:
     rows = [
         {
@@ -88,6 +103,30 @@ def delta_rows(before: dict[str, int], after: dict[str, int]) -> list[dict[str, 
         for key in sorted(set(before) | set(after))
     ]
     rows.sort(key=lambda row: (-abs(row["delta"]), row["key"]))
+    return rows
+
+
+def oracle_exclusion_classification_delta_rows(
+    before: dict[OracleExclusionClassificationKey, int],
+    after: dict[OracleExclusionClassificationKey, int],
+) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "exclusion_reason": key[0],
+            "classification": key[1],
+            "before": before.get(key, 0),
+            "after": after.get(key, 0),
+            "delta": after.get(key, 0) - before.get(key, 0),
+        }
+        for key in sorted(set(before) | set(after))
+    ]
+    rows.sort(
+        key=lambda row: (
+            -abs(row["delta"]),
+            row["exclusion_reason"],
+            row["classification"],
+        )
+    )
     return rows
 
 
@@ -187,6 +226,10 @@ def build_diff(
         "oracle_exclusion_deltas": delta_rows(
             exclusion_counts(before), exclusion_counts(after)
         ),
+        "oracle_exclusion_classification_deltas": oracle_exclusion_classification_delta_rows(
+            oracle_exclusion_classification_counts(before),
+            oracle_exclusion_classification_counts(after),
+        ),
         "oracle_exclusion_obligation_deltas": oracle_exclusion_obligation_delta_rows(
             oracle_exclusion_obligation_counts(before),
             oracle_exclusion_obligation_counts(after),
@@ -228,6 +271,17 @@ def render_markdown(diff: dict[str, Any]) -> str:
     exclusion_rows = [
         [row["key"], str(row["before"]), str(row["after"]), str(row["delta"])]
         for row in diff["oracle_exclusion_deltas"]
+        if row["before"] or row["after"]
+    ]
+    exclusion_classification_rows = [
+        [
+            row["exclusion_reason"],
+            row["classification"],
+            str(row["before"]),
+            str(row["after"]),
+            str(row["delta"]),
+        ]
+        for row in diff["oracle_exclusion_classification_deltas"]
         if row["before"] or row["after"]
     ]
     exclusion_obligation_rows = [
@@ -272,6 +326,12 @@ def render_markdown(diff: dict[str, Any]) -> str:
         "",
         "### Oracle exclusions by reason",
         markdown_table(["reason", "before", "after", "delta"], exclusion_rows),
+        "",
+        "### Oracle exclusions by classification",
+        markdown_table(
+            ["exclusion_reason", "classification", "before", "after", "delta"],
+            exclusion_classification_rows,
+        ),
         "",
         "### Oracle exclusions by obligation",
         markdown_table(
@@ -318,6 +378,14 @@ def sample_report() -> dict[str, Any]:
                 {"reason": "uninterpretable", "count": 2},
                 {"reason": "path-bail", "count": 0},
             ],
+            "by_classification": [
+                {
+                    "exclusion_reason": "uninterpretable",
+                    "classification": "missing-oracle-support",
+                    "count": 2,
+                    "oracle_excluded": 2,
+                }
+            ],
             "by_obligation": [],
         },
         "by_reason": [
@@ -358,6 +426,20 @@ def self_test() -> None:
             "oracle_excluded": 1,
         }
     ]
+    after["oracle_exclusions"]["by_classification"] = [
+        {
+            "exclusion_reason": "uninterpretable",
+            "classification": "missing-oracle-support",
+            "count": 1,
+            "oracle_excluded": 1,
+        },
+        {
+            "exclusion_reason": "path-bail",
+            "classification": "path-exploration-budget",
+            "count": 1,
+            "oracle_excluded": 1,
+        },
+    ]
     after["top_opportunities"] = [
         {
             "reason": "b:receiver-domain-proof-missing",
@@ -376,6 +458,11 @@ def self_test() -> None:
     assert by_reason["receiver-domain-proof-missing"]["delta"] == 2
     by_exclusion = {row["key"]: row for row in diff["oracle_exclusion_deltas"]}
     assert by_exclusion["path-bail"]["delta"] == 1
+    by_exclusion_classification = {
+        row["classification"]: row
+        for row in diff["oracle_exclusion_classification_deltas"]
+    }
+    assert by_exclusion_classification["path-exploration-budget"]["delta"] == 1
     by_exclusion_obligation = {
         row["obligation_subreason"]: row
         for row in diff["oracle_exclusion_obligation_deltas"]
@@ -387,6 +474,7 @@ def self_test() -> None:
     assert diff["top_opportunity_changes"]["added"][0]["a"] == "c.py:5:6"
     markdown = render_markdown(diff)
     assert "strict-exact-unsafe" in markdown
+    assert "path-exploration-budget" in markdown
     assert "async-await-scheduling-contract-missing" in markdown
     assert "| completeness_percent | 50.00 | 75.00 | 25.00 |" in markdown
 

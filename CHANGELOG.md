@@ -100,6 +100,14 @@ break.
   producer/continuation labels as missing-proof diagnostics rather than feature
   admissions; historical artifacts remain untouched and exact admission is
   unchanged.
+- Added the #658 oracle-exclusion classification layer to recall-loss reports.
+  `oracle_exclusions` now includes `by_classification`, so broad excluded units
+  are split into semantic-boundary attribution, missing oracle support, path
+  exploration budget, oracle cost budget, empty fingerprint, and core-span
+  failures. The current local `crates` report classifies all `6037` excluded
+  units, including `583`
+  semantic-boundary-attributed and `5447` residual missing-oracle-support rows,
+  while keeping exact admission unchanged and the hard gate at `0` false merges.
 - Added Swift structured-concurrency reporting for `Task.sleep`, `Task.yield`,
   and task-group calls. These now map to shared timer, task-yield, aggregate,
   cancellation/liveness, result-channel, and exception-channel obligations
