@@ -26,7 +26,7 @@ use nose_semantics::{
     admitted_static_index_membership_at_call, admitted_swift_collection_factory_at_call,
     admitted_swift_map_factory_at_call, admitted_terminal_count_reduction_at_call,
     asserted_unshadowed_global_symbol, call_target_evidence_status_at_call, construct_syntax_proof,
-    direct_function_call_target_at_call, direct_method_call_target_at_call,
+    direct_function_call_target_span_at_call, direct_method_call_target_span_at_call,
     domain_evidence_for_receiver, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract,

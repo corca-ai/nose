@@ -3,6 +3,7 @@ use super::*;
 pub(crate) struct StrictFacts<'a> {
     immutable_names: FxHashSet<Symbol>,
     function_roots: FxHashSet<NodeId>,
+    function_spans: FxHashSet<Span>,
     decorated_definition_spans: FxHashSet<Span>,
     receiver_domains: ReceiverDomainEvidenceIndex<'a>,
 }
@@ -12,6 +13,7 @@ impl<'a> StrictFacts<'a> {
         let mut facts = StrictFacts {
             immutable_names: FxHashSet::default(),
             function_roots: FxHashSet::default(),
+            function_spans: FxHashSet::default(),
             decorated_definition_spans: FxHashSet::default(),
             receiver_domains: ReceiverDomainEvidenceIndex::new(il, interner),
         };
@@ -31,9 +33,8 @@ impl<'a> StrictFacts<'a> {
         interner: &Interner,
         call: NodeId,
     ) -> bool {
-        self.function_roots
-            .iter()
-            .any(|&root| direct_function_call_target_at_call(il, interner, call, root))
+        direct_function_call_target_span_at_call(il, interner, call)
+            .is_some_and(|span| self.function_spans.contains(&span))
     }
 
     pub(super) fn direct_method_target_at_call(
@@ -42,9 +43,8 @@ impl<'a> StrictFacts<'a> {
         interner: &Interner,
         call: NodeId,
     ) -> bool {
-        self.function_roots
-            .iter()
-            .any(|&root| direct_method_call_target_at_call(il, interner, call, root))
+        direct_method_call_target_span_at_call(il, interner, call)
+            .is_some_and(|span| self.function_spans.contains(&span))
     }
 
     pub(super) fn receiver_satisfies_domain(
@@ -131,6 +131,7 @@ impl<'a> StrictFacts<'a> {
             }
             if function_binding_safe(il, interner, self, unit.root, unit.root) {
                 self.function_roots.insert(unit.root);
+                self.function_spans.insert(il.node(unit.root).span);
             }
         }
     }
