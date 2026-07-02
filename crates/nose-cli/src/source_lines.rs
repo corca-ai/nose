@@ -189,8 +189,9 @@ pub(crate) fn shared_lines_of(
             params = p;
         }
         n_others += 1;
-        let uniq: std::collections::HashSet<String> = shared.into_iter().collect();
-        for l in uniq {
+        shared.sort_unstable();
+        shared.dedup();
+        for l in shared {
             *counts.entry(l).or_insert(0) += 1;
         }
     }
