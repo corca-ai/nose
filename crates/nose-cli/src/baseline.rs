@@ -115,27 +115,42 @@ fn mix_opt_bool(mix: &mut impl FnMut(&[u8]), value: Option<bool>) {
     }
 }
 
-fn serialized_name<T>(value: T) -> String
-where
-    T: serde::Serialize + std::fmt::Debug,
-{
-    serde_json::to_value(&value)
-        .ok()
-        .and_then(|value| value.as_str().map(ToOwned::to_owned))
-        .unwrap_or_else(|| format!("{value:?}"))
-}
-
 fn member_key_from_location(loc: &Loc) -> MemberKey {
     MemberKey {
         file: loc.file.clone(),
         lang: Some(loc.lang.clone()),
         start_line: Some(loc.start_line),
         end_line: Some(loc.end_line),
-        kind: Some(serialized_name(loc.kind)),
+        kind: Some(unit_kind_name(loc.kind).to_string()),
         name: loc.name.clone().unwrap_or_default(),
         is_fragment: Some(loc.is_fragment),
-        fragment_kind: loc.fragment_kind.map(serialized_name),
+        fragment_kind: loc
+            .fragment_kind
+            .map(fragment_kind_name)
+            .map(str::to_string),
         reason_code: loc.reason_code.map(ToOwned::to_owned),
+    }
+}
+
+fn unit_kind_name(kind: nose_il::UnitKind) -> &'static str {
+    match kind {
+        nose_il::UnitKind::Function => "Function",
+        nose_il::UnitKind::Method => "Method",
+        nose_il::UnitKind::Class => "Class",
+        nose_il::UnitKind::Block => "Block",
+    }
+}
+
+fn fragment_kind_name(kind: nose_detect::FragmentKind) -> &'static str {
+    match kind {
+        nose_detect::FragmentKind::DirectReturn => "direct-return",
+        nose_detect::FragmentKind::DirectThrow => "direct-throw",
+        nose_detect::FragmentKind::IndexAssignEffect => "index-assign-effect",
+        nose_detect::FragmentKind::SelfFieldAssign => "self-field-assign",
+        nose_detect::FragmentKind::ExprEffect => "expr-effect",
+        nose_detect::FragmentKind::ConditionalGuard => "conditional-guard",
+        nose_detect::FragmentKind::LoopEffect => "loop-effect",
+        nose_detect::FragmentKind::SelfFieldBody => "self-field-body",
     }
 }
 
@@ -450,5 +465,35 @@ mod tests {
             family_id(&second),
             "families with the same file/name members but different reported spans need unique ids"
         );
+    }
+
+    #[test]
+    fn baseline_member_kind_names_match_wire_serialization() {
+        for kind in [
+            UnitKind::Function,
+            UnitKind::Method,
+            UnitKind::Class,
+            UnitKind::Block,
+        ] {
+            assert_eq!(
+                unit_kind_name(kind),
+                serde_json::to_value(kind).unwrap().as_str().unwrap()
+            );
+        }
+        for kind in [
+            FragmentKind::DirectReturn,
+            FragmentKind::DirectThrow,
+            FragmentKind::IndexAssignEffect,
+            FragmentKind::SelfFieldAssign,
+            FragmentKind::ExprEffect,
+            FragmentKind::ConditionalGuard,
+            FragmentKind::LoopEffect,
+            FragmentKind::SelfFieldBody,
+        ] {
+            assert_eq!(
+                fragment_kind_name(kind),
+                serde_json::to_value(kind).unwrap().as_str().unwrap()
+            );
+        }
     }
 }
