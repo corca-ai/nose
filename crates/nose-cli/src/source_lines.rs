@@ -415,11 +415,11 @@ pub(crate) fn corpus_line_idf(
 }
 
 /// Deterministic ranking tie-break: a family's first site `(file, start line)`.
-pub(crate) fn family_anchor(f: &nose_detect::RefactorFamily) -> (String, u32) {
+pub(crate) fn family_anchor(f: &nose_detect::RefactorFamily) -> (&str, u32) {
     f.locations
         .first()
-        .map(|l| (l.file.clone(), l.start_line))
-        .unwrap_or_default()
+        .map(|l| (l.file.as_str(), l.start_line))
+        .unwrap_or(("", 0))
 }
 
 /// Memoizes file contents (split into lines) so ranking many families that touch the
