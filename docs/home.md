@@ -121,6 +121,7 @@ fundamentals; the rest is grouped by area.
 - [hazard-ranking](hazard-ranking.md) — the evidence base for the experimental `--sort hazard` (a divergence-*propensity* signal; **not** a validated harm ranker — it ranks actual harm near chance) and the honest evaluation trail.
 - [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset hazard is measured against (repo selection, graded labels, quantitative sufficiency).
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for the hazard ranking on every new nose release (one-page runbook: refresh the dataset, re-tune, re-validate).
+- [0.17.0 release evidence](release-evidence-0.17.0.md) — the hazard refresh, all-corpus query-regression, recall-loss gate, and profiling notes for the 0.17.0 release candidate.
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 
 ### Field evidence & audits

@@ -186,9 +186,6 @@ pub(super) fn collect_literal_exports(
             let Some(top_level) = context.top_level.as_deref() else {
                 continue;
             };
-            let Some(binding_uses) = context.binding_uses.as_ref() else {
-                continue;
-            };
             collect_statement_exports(
                 il,
                 interner,
@@ -197,7 +194,6 @@ pub(super) fn collect_literal_exports(
                     statements: top_level,
                     top_level,
                     module_hashes: &context.module_hashes,
-                    binding_uses,
                 },
                 ExportCollections {
                     exports: &mut exports,
@@ -227,9 +223,6 @@ pub(super) fn collect_literal_exports(
             let Some(top_level) = context.top_level.as_deref() else {
                 continue;
             };
-            let Some(binding_uses) = context.binding_uses.as_ref() else {
-                continue;
-            };
             let statements = collect_statements_for_root(il, unit.root);
             collect_statement_exports(
                 il,
@@ -239,7 +232,6 @@ pub(super) fn collect_literal_exports(
                     statements: &statements,
                     top_level,
                     module_hashes: &class_module_hashes,
-                    binding_uses,
                 },
                 ExportCollections {
                     exports: &mut exports,
@@ -301,7 +293,6 @@ struct StatementExportScope<'a> {
     statements: &'a [NodeId],
     top_level: &'a [NodeId],
     module_hashes: &'a [u64],
-    binding_uses: &'a BindingUseIndex,
 }
 
 struct ExportCollections<'a> {
@@ -317,6 +308,7 @@ fn collect_statement_exports(
     out: ExportCollections<'_>,
 ) {
     let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
+    let mut binding_uses = None;
     for &stmt in scope.statements {
         if let Some(name) = assignment_name(il, stmt) {
             *counts.entry(name).or_insert(0) += 1;
@@ -329,13 +321,14 @@ fn collect_statement_exports(
         if counts.get(&name).copied().unwrap_or(0) != 1 {
             continue;
         }
-        if scope.binding_uses.exported_binding_unsafe(il, name, stmt) {
-            continue;
-        }
         let Some(rhs) = assignment_rhs(il, stmt) else {
             continue;
         };
         if !imported_literal_export_safe(il, interner, rhs) {
+            continue;
+        }
+        let binding_uses = binding_uses.get_or_insert_with(|| BindingUseIndex::new(il, interner));
+        if binding_uses.exported_binding_unsafe(il, name, stmt) {
             continue;
         }
         let exported = stable_symbol_hash(interner.resolve(name));

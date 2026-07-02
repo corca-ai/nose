@@ -7,6 +7,17 @@ pub(super) fn file_module_hashes(il: &Il) -> Vec<u64> {
     let Some(spec) = semantics(il.meta.lang).modules().path_spec() else {
         return Vec::new();
     };
+    if spec.rust_crate_self_aliases {
+        let Some(identity) = rust_module_identity(&il.meta.path) else {
+            return Vec::new();
+        };
+        let mut hashes = rust_absolute_module_hashes(&identity);
+        if !identity.parts.is_empty() {
+            let module = identity.parts.join("::");
+            hashes.push(stable_symbol_hash(&format!("self::{module}")));
+        }
+        return dedupe_hashes(hashes);
+    }
     let mut hashes = module_hashes_from_path(
         &il.meta.path,
         spec.extensions,
@@ -14,20 +25,6 @@ pub(super) fn file_module_hashes(il: &Il) -> Vec<u64> {
         spec.include_relative_dot,
         spec.drop_init_file,
     );
-    if spec.rust_crate_self_aliases {
-        if let Some(identity) = rust_module_identity(&il.meta.path) {
-            hashes.extend(rust_absolute_module_hashes(&identity));
-        }
-        for module in module_names_from_path(
-            &il.meta.path,
-            spec.extensions,
-            spec.separator,
-            spec.drop_init_file,
-        ) {
-            hashes.push(stable_symbol_hash(&format!("crate::{module}")));
-            hashes.push(stable_symbol_hash(&format!("self::{module}")));
-        }
-    }
     if il.meta.lang == Lang::Go {
         hashes.extend(go_directory_module_hashes(&il.meta.path));
     }

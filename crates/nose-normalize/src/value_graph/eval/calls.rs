@@ -11,14 +11,16 @@ impl<'a> Builder<'a> {
         // Promise continuation beta-reduction is exact only when a semantic pack can
         // prove the receiver is Promise-like; otherwise arbitrary `.then` methods stay
         // opaque.
-        if let Some(v) = rules::promise_then::apply(self, expr, env) {
-            return v;
-        }
-        if let Some(v) = rules::promise_then::promise_resolve_value(self, expr, env) {
-            return v;
-        }
-        if let Some(v) = rules::promise_then::promise_aggregate_value(self, expr, env) {
-            return v;
+        if rules::promise_then::promise_rules_supported(self.il.meta.lang) {
+            if let Some(v) = rules::promise_then::apply(self, expr, env) {
+                return v;
+            }
+            if let Some(v) = rules::promise_then::promise_resolve_value(self, expr, env) {
+                return v;
+            }
+            if let Some(v) = rules::promise_then::promise_aggregate_value(self, expr, env) {
+                return v;
+            }
         }
         if let Payload::Builtin(builtin) = payload {
             if !self.admitted_builtin_call(expr, builtin) {

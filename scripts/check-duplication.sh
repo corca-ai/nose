@@ -122,6 +122,11 @@ set -euo pipefail
 # remaining delta is representative churn for the same reviewed frontend-lowering families:
 # `596f602568ace201` -> `ac31c3c9bc390d55`, and `a54e8f6b173a160a` -> `ebf5e40476ceff32`.
 # No new budget is accepted.
+# 52 -> 52 (0.17.0 release prep): lazy import-use indexes and release-performance fixes move the
+# reviewed context/export assignment-counting representative (`2a3ff0019f8a1765` ->
+# `1d565f1e57ac5d8b`) and the reviewed semantic-kernel language-core provenance representative
+# (`551e7992e1632597` -> `7c8432da3fcb2c67`). Reviewed in docs/dogfooding.md; no new budget is
+# accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

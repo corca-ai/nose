@@ -131,6 +131,12 @@ impl<'a> Lowering<'a> {
         dependencies: Vec<EvidenceId>,
     ) -> EvidenceId {
         let id = EvidenceId(self.evidence.len() as u32);
+        if let EvidenceKind::Domain(domain) = kind {
+            self.domain_evidence_by_anchor
+                .entry(anchor)
+                .or_default()
+                .push((domain, id));
+        }
         self.evidence.push(EvidenceRecord {
             id,
             anchor,

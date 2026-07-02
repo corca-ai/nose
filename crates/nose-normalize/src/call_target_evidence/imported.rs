@@ -1,4 +1,52 @@
 use super::*;
+use rustc_hash::FxHashMap;
+
+pub(super) struct ImportedBindingIndex {
+    by_hash: FxHashMap<u64, Vec<ImportedBindingRecord>>,
+}
+
+#[derive(Clone, Copy)]
+struct ImportedBindingRecord {
+    span: Span,
+    symbol: SymbolEvidenceKind,
+    id: EvidenceId,
+    asserted_with_dependencies: bool,
+    inside_local_scope: bool,
+    module_scope: Option<NodeId>,
+}
+
+impl ImportedBindingIndex {
+    pub(super) fn new(il: &Il) -> Self {
+        let mut by_hash: FxHashMap<u64, Vec<ImportedBindingRecord>> = FxHashMap::default();
+        for record in &il.evidence {
+            let EvidenceAnchor::Binding { local_hash, span } = record.anchor else {
+                continue;
+            };
+            let EvidenceKind::Symbol(symbol) = record.kind else {
+                continue;
+            };
+            by_hash
+                .entry(local_hash)
+                .or_default()
+                .push(ImportedBindingRecord {
+                    span,
+                    symbol,
+                    id: record.id,
+                    asserted_with_dependencies: record.status == EvidenceStatus::Asserted
+                        && il.evidence_dependencies_asserted(record),
+                    inside_local_scope: il.span_inside_local_scope(span),
+                    module_scope: (il.meta.lang == Lang::Rust)
+                        .then(|| il.nearest_module_scope_containing_span(span))
+                        .flatten(),
+                });
+        }
+        Self { by_hash }
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.by_hash.is_empty()
+    }
+}
 
 pub(super) fn collect_call_nodes(il: &Il, node: NodeId, out: &mut Vec<NodeId>) {
     if il.kind(node) == NodeKind::Call {
@@ -14,6 +62,7 @@ pub(super) fn record_imported_call_target(
     interner: &Interner,
     call: NodeId,
     provenance: CallTargetEvidenceProvenance,
+    binding_index: &ImportedBindingIndex,
     cache: &mut ImportedOccurrenceValidationCache,
 ) {
     if il.kind(call) != NodeKind::Call || !matches!(il.node(call).payload, Payload::None) {
@@ -24,7 +73,8 @@ pub(super) fn record_imported_call_target(
     };
     match il.kind(callee) {
         NodeKind::Var => {
-            if let Some(target) = imported_function_target(il, interner, callee, provenance, cache)
+            if let Some(target) =
+                imported_function_target(il, interner, callee, provenance, binding_index, cache)
             {
                 upsert(
                     il,
@@ -39,9 +89,14 @@ pub(super) fn record_imported_call_target(
                     vec![target.dependency],
                 );
             }
-            if let Some(target) =
-                imported_scoped_member_target(il, interner, callee, provenance, cache)
-            {
+            if let Some(target) = imported_scoped_member_target(
+                il,
+                interner,
+                callee,
+                provenance,
+                binding_index,
+                cache,
+            ) {
                 upsert(
                     il,
                     EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
@@ -57,7 +112,9 @@ pub(super) fn record_imported_call_target(
             }
         }
         NodeKind::Field => {
-            if let Some(target) = imported_member_target(il, interner, callee, provenance, cache) {
+            if let Some(target) =
+                imported_member_target(il, interner, callee, provenance, binding_index, cache)
+            {
                 upsert(
                     il,
                     EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
@@ -81,11 +138,17 @@ fn imported_function_target(
     interner: &Interner,
     callee: NodeId,
     provenance: CallTargetEvidenceProvenance,
+    binding_index: &ImportedBindingIndex,
     cache: &mut ImportedOccurrenceValidationCache,
 ) -> Option<ImportedFunctionTarget> {
     let local_hash = node_name_hash(il, interner, callee)?;
-    let (symbol, binding_dependency) =
-        unique_binding_symbol_for_var(il, interner, callee, ImportedBindingUse::FunctionCallee)?;
+    let (symbol, binding_dependency) = unique_binding_symbol_for_var(
+        il,
+        interner,
+        callee,
+        ImportedBindingUse::FunctionCallee,
+        binding_index,
+    )?;
     let SymbolEvidenceKind::ImportedBinding {
         module_hash,
         exported_hash,
@@ -115,6 +178,7 @@ fn imported_scoped_member_target(
     interner: &Interner,
     callee: NodeId,
     provenance: CallTargetEvidenceProvenance,
+    binding_index: &ImportedBindingIndex,
     cache: &mut ImportedOccurrenceValidationCache,
 ) -> Option<ImportedMemberTarget> {
     let (root, suffix) = scoped_var_root_and_suffix(il, interner, callee)?;
@@ -124,6 +188,7 @@ fn imported_scoped_member_target(
         root_hash,
         il.node(callee).span,
         ImportedBindingUse::MemberReceiver,
+        binding_index,
     )?;
     let dependency = upsert_valid_imported_symbol_occurrence(
         il,
@@ -160,6 +225,7 @@ fn imported_member_target(
     interner: &Interner,
     callee: NodeId,
     provenance: CallTargetEvidenceProvenance,
+    binding_index: &ImportedBindingIndex,
     cache: &mut ImportedOccurrenceValidationCache,
 ) -> Option<ImportedMemberTarget> {
     let Payload::Name(member) = il.node(callee).payload else {
@@ -170,8 +236,13 @@ fn imported_member_target(
     if il.kind(receiver) != NodeKind::Var {
         return None;
     }
-    let (symbol, binding_dependency) =
-        unique_binding_symbol_for_var(il, interner, receiver, ImportedBindingUse::MemberReceiver)?;
+    let (symbol, binding_dependency) = unique_binding_symbol_for_var(
+        il,
+        interner,
+        receiver,
+        ImportedBindingUse::MemberReceiver,
+        binding_index,
+    )?;
     let dependency = upsert_valid_imported_symbol_occurrence(
         il,
         interner,
@@ -206,9 +277,16 @@ fn unique_binding_symbol_for_var(
     interner: &Interner,
     node: NodeId,
     imported_use: ImportedBindingUse,
+    binding_index: &ImportedBindingIndex,
 ) -> Option<(SymbolEvidenceKind, EvidenceId)> {
     let local_hash = node_name_hash(il, interner, node)?;
-    unique_binding_symbol_for_hash(il, local_hash, il.node(node).span, imported_use)
+    unique_binding_symbol_for_hash(
+        il,
+        local_hash,
+        il.node(node).span,
+        imported_use,
+        binding_index,
+    )
 }
 
 fn unique_binding_symbol_for_hash(
@@ -216,27 +294,22 @@ fn unique_binding_symbol_for_hash(
     local_hash: u64,
     occurrence_span: Span,
     imported_use: ImportedBindingUse,
+    binding_index: &ImportedBindingIndex,
 ) -> Option<(SymbolEvidenceKind, EvidenceId)> {
     let mut found = None;
-    for record in il.evidence_binding_anchored(local_hash) {
-        let EvidenceAnchor::Binding { span, .. } = record.anchor else {
+    for record in binding_index.by_hash.get(&local_hash)? {
+        if !imported_binding_span_visible_at_occurrence(il, record, occurrence_span) {
             continue;
         };
-        if !imported_binding_span_visible_at_occurrence(il, span, occurrence_span) {
-            continue;
-        }
-        let EvidenceKind::Symbol(symbol) = record.kind else {
-            continue;
-        };
-        if record.status != EvidenceStatus::Asserted || !il.evidence_dependencies_asserted(record) {
+        if !record.asserted_with_dependencies {
             return None;
         }
-        if !imported_symbol_allowed_for_use(symbol, imported_use) {
+        if !imported_symbol_allowed_for_use(record.symbol, imported_use) {
             return None;
         }
         match found {
-            None => found = Some((symbol, record.id)),
-            Some((existing, _)) if existing == symbol => {}
+            None => found = Some((record.symbol, record.id)),
+            Some((existing, _)) if existing == record.symbol => {}
             Some(_) => return None,
         }
     }
@@ -245,18 +318,18 @@ fn unique_binding_symbol_for_hash(
 
 fn imported_binding_span_visible_at_occurrence(
     il: &Il,
-    binding_span: Span,
+    binding: &ImportedBindingRecord,
     occurrence_span: Span,
 ) -> bool {
+    let binding_span = binding.span;
     if binding_span.file != occurrence_span.file {
         return false;
     }
-    if il.span_inside_local_scope(binding_span) {
+    if binding.inside_local_scope {
         return false;
     }
     if il.meta.lang == Lang::Rust {
-        return il.nearest_module_scope_containing_span(binding_span)
-            == il.nearest_module_scope_containing_span(occurrence_span);
+        return binding.module_scope == il.nearest_module_scope_containing_span(occurrence_span);
     }
     true
 }

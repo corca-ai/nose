@@ -720,3 +720,16 @@ reviewed frontend-lowering families: `596f602568ace201` becomes
 `ac31c3c9bc390d55` for the per-frontend call/constructor/enum-constant lowering
 family, and `a54e8f6b173a160a` becomes `ebf5e40476ceff32` for the Java/C
 expression-dispatch family. No new budget is accepted.
+
+The 0.17.0 release-prep performance slice keeps the count at 52. Making
+import-use indexes lazy and tightening release-runtime hot paths shifts two
+already reviewed representatives: `2a3ff0019f8a1765` becomes
+`1d565f1e57ac5d8b` for the context/export assignment-counting family
+(`value_graph/context.rs` module binding seeding plus
+`module_imports/exports.rs` literal export collection), and
+`551e7992e1632597` becomes `7c8432da3fcb2c67` for the semantic-kernel
+language-core provenance helper family (`trusted_language_core_record`,
+sequence-surface provenance helpers, and language-core record constructors).
+The first family is still domain-parallel top-level binding triage, not a
+shared abstraction worth extracting; the second remains kernel provenance
+plumbing. No new budget is accepted.

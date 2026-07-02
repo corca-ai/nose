@@ -104,6 +104,35 @@ remain positive, while semantic size remains anti-predictive for G1 (`mean_lines
 logistic refresh (+0.155), but the only formula using it is still a dampener and only
 nudges G1 AUC by 0.003 over shipped v5; keep params out of `hazard()`.
 
+## Refresh — 0.17.0 release candidate (re-mined 2026-07-02)
+
+Re-ran the full hazard release checklist because 0.17.0 changes detection output
+through Promise aggregate recovery, import-backed provenance, stdlib slices,
+runtime-boundary reporting, and recall-loss report shape changes. Every event
+carries `nose_ver = "nose 0.17.0"`.
+
+The **formula still holds**. The shipped v5 formula improves over the original
+size-led design and raw value baseline on clean G1. `v7` is again only +0.003
+AUC and still depends on the parameter dampener we have not accepted as a stable
+hazard term. No re-calibration; `hazard()` is untouched for 0.17.0.
+
+| | 0.16.0 refresh | 0.17.0 refresh | Δ |
+|---|---:|---:|---:|
+| events | 432,284 | 432,609 | +325 |
+| families | 14,714 | 14,784 | +70 |
+| ever-G1 | 29.1% | 28.7% | -0.4 pp |
+| ever-G2 proxy | 3.4% | 3.4% | informational only |
+| **v5 (shipped) G1 AUC** | **0.691** | **0.695** | +0.004 |
+| v7 G1 AUC | 0.694 | 0.698 | +0.004 |
+| logistic G1 AUC | 0.659 | 0.662 | +0.003 |
+
+Core weight directions are unchanged: line/edit surface, invisibility, and
+dispersion remain positive, while semantic size remains anti-predictive for G1
+(`mean_lines` +0.570, `invisibility` +0.334, `modules` +0.268, `mean_sem`
+-0.127). `params` is positive in the logistic refresh (+0.147), but the only
+candidate formula using it is still a dampener and only nudges G1 AUC by 0.003
+over shipped v5; keep params out of `hazard()`.
+
 ## Headline finding — the literature-derived formula was mis-specified
 
 Leave-one-repo-out logistic weights (stable, low variance across 12 held-out repos):

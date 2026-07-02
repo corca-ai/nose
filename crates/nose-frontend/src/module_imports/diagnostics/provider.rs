@@ -194,9 +194,7 @@ fn inspect_provider_file(file: ProviderFile<'_>, scan: &mut ProviderScan) {
     let Some(top_level) = context.top_level.as_deref() else {
         return;
     };
-    let Some(binding_uses) = context.binding_uses.as_ref() else {
-        return;
-    };
+    let binding_uses = context.binding_uses(file.il, file.interner);
     inspect_provider_scope(
         ProviderScope {
             il: file.il,

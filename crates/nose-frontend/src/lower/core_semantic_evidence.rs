@@ -68,10 +68,10 @@ impl<'a> Lowering<'a> {
     }
 
     fn record_assignment_binding_domain(&mut self, target: NodeId, value: NodeId) {
-        let Some(local_hash) = self.binding_target_hash(target) else {
+        let Some((domain, dependency)) = self.unique_node_domain_evidence(value) else {
             return;
         };
-        let Some((domain, dependency)) = self.unique_node_domain_evidence(value) else {
+        let Some(local_hash) = self.binding_target_hash(target) else {
             return;
         };
         let anchor = EvidenceAnchor::binding(self.b.node(target).span, local_hash);
@@ -98,16 +98,11 @@ impl<'a> Lowering<'a> {
 
     fn unique_node_domain_evidence(&self, node: NodeId) -> Option<(DomainEvidence, EvidenceId)> {
         let anchor = EvidenceAnchor::node(self.b.node(node).span, self.b.kind(node));
+        let records = self.domain_evidence_by_anchor.get(&anchor)?;
         let mut found = None;
-        for record in &self.evidence {
-            if record.anchor != anchor || record.status != EvidenceStatus::Asserted {
-                continue;
-            }
-            let EvidenceKind::Domain(domain) = record.kind else {
-                continue;
-            };
+        for &(domain, id) in records {
             match found {
-                None => found = Some((domain, record.id)),
+                None => found = Some((domain, id)),
                 Some((existing, _)) if existing == domain => {}
                 Some(_) => return None,
             }
@@ -116,11 +111,9 @@ impl<'a> Lowering<'a> {
     }
 
     fn binding_domain_record_exists(&self, anchor: EvidenceAnchor, domain: DomainEvidence) -> bool {
-        self.evidence.iter().any(|record| {
-            record.anchor == anchor
-                && record.kind == EvidenceKind::Domain(domain)
-                && record.status == EvidenceStatus::Asserted
-        })
+        self.domain_evidence_by_anchor
+            .get(&anchor)
+            .is_some_and(|records| records.iter().any(|&(existing, _)| existing == domain))
     }
 
     fn record_call_mutation_evidence(&mut self, span: Span, kind: NodeKind, children: &[NodeId]) {

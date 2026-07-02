@@ -20,16 +20,16 @@ impl<'a> Builder<'a> {
         self.cur_il_kind = prev_kind;
         v
     }
-    pub(in crate::value_graph) fn raw_name_is(&self, payload: &Payload, name: &str) -> bool {
-        matches!(payload, Payload::Name(s) if self.interner.resolve(*s) == name)
-    }
-
     /// Whether a `Raw` node is an async protocol boundary that the near channel models as a
     /// value-preserving wrapper. Exact admission still sees the original `Raw` IL node.
     pub(in crate::value_graph) fn is_async_protocol_raw(&self, payload: &Payload) -> bool {
-        self.raw_name_is(payload, "await")
-            || self.raw_name_is(payload, "async_block")
-            || self.raw_name_is(payload, "async_function")
+        let Payload::Name(symbol) = payload else {
+            return false;
+        };
+        matches!(
+            self.interner.resolve(*symbol),
+            "await" | "async_block" | "async_function"
+        )
     }
 
     pub(in crate::value_graph) fn async_protocol_value(&mut self, operand: ValueId) -> ValueId {

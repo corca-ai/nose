@@ -101,9 +101,6 @@ fn unresolved_binding_import_misses(
         let Some(top_level) = context.top_level.as_deref() else {
             continue;
         };
-        let Some(binding_uses) = context.binding_uses.as_ref() else {
-            continue;
-        };
         for &stmt in top_level {
             let Some(local) = assignment_name(il, stmt) else {
                 continue;
@@ -111,7 +108,10 @@ fn unresolved_binding_import_misses(
             let Some(proof) = import_binding_proof(il, stmt) else {
                 continue;
             };
-            let provider = if binding_uses.binding_mutated(il, local, stmt) {
+            let provider = if context
+                .binding_uses(il, interner)
+                .binding_mutated(il, local, stmt)
+            {
                 ProviderMiss {
                     reason: "importer-binding-mutated",
                     provider_file: None,

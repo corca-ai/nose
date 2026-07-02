@@ -163,6 +163,8 @@ pub(crate) struct Lowering<'a> {
     pub language_source_fact_provenance: EvidenceProvenance,
     pub units: Vec<Unit>,
     pub evidence: Vec<EvidenceRecord>,
+    pub domain_evidence_by_anchor:
+        rustc_hash::FxHashMap<EvidenceAnchor, Vec<(DomainEvidence, EvidenceId)>>,
     pub type_domain_aliases: TypeDomainAliases,
     pub unsigned_32_aliases: Vec<Unsigned32Alias>,
     /// Stack of `global`-declared names per enclosing function scope (Python). An
@@ -188,6 +190,7 @@ impl<'a> Lowering<'a> {
             ),
             units: Vec::new(),
             evidence: Vec::new(),
+            domain_evidence_by_anchor: rustc_hash::FxHashMap::default(),
             type_domain_aliases: TypeDomainAliases::default(),
             unsigned_32_aliases: Vec::new(),
             global_decls: Vec::new(),

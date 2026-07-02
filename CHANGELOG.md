@@ -6,510 +6,109 @@ break.
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.17.0] - 2026-07-02
+
 ### Added
-- Added a semantic-kernel recall-loss loop around `nose verify --recall-loss-report`,
-  including obligation rollups, deterministic report diff tooling, checked
-  `crates`/corpus artifacts, and corpus-priority census workflows for deciding
-  the next recovery slices from measured repository data.
+- Added the semantic-kernel recall-loss recovery loop around `nose verify
+  --recall-loss-report`, including obligation rollups, deterministic diff
+  tooling, checked artifacts, corpus-priority census workflows, and the new
+  `oracle_exclusions.by_classification` rollup for distinguishing semantic
+  boundary attribution, missing oracle support, path exploration budget, oracle
+  cost budget, empty fingerprint, and core-span failures.
 - Added and expanded the `nose.protocols.string_affix_predicates` protocol pack
   across Python, Java, Rust, Swift, JavaScript, TypeScript, Go, and Ruby, with
-  coordinate hard negatives for receiver type, direction, mutation, shadowing,
-  offset, and dynamic-affix boundaries.
-- Added import-backed immutable provenance and Rust import-snapshot resolution
-  through the #567 and #587 tracks, covering safe provider literals, selected
-  collection factories/constructors, same-crate module lookup, one-hop public
-  re-exports, residual boundary attribution, and relative `super` resolution.
-- Added corpus-driven stdlib audit/prioritization scripts for JS/TS, Python,
-  Rust, Swift, Java, and Go, then processed the first high-volume Python, Rust,
-  and Swift candidate groups without widening exact admission.
-- Added first corpus-prioritized stdlib support slices for Go `strings.Join` and
-  Java `Optional`, while Java `Arrays`/`Collections`, Go `sort`/`slices`/`maps`,
-  Python HOF/runtime, Rust stdlib, Swift stdlib, and JS/TS builtin coverage were
-  recorded as explicit audit artifacts.
-- Added Rust semantic-kernel capabilities for brace-import call targets,
-  import-backed scoped member calls, exact-safe struct-expression sequence
-  surfaces, and receiver-domain recovery for iterator/stream adapter chains.
-- Added the #594 cross-language scheduling/channel/callback obligation census
-  and follow-up artifacts, keeping broad async, callback, channel, aggregate,
-  cancellation, and lifecycle convergence closed until dependency-closed
-  obligations are available.
-- Added the first #602 reporting-only scheduling/lifecycle audit, including a
-  120-repo pricing script and checked artifact for aggregate, executor,
-  cancellation, scheduler, channel, lifecycle, and exception boundary surfaces.
-- Added a #602 reporting-only `new Promise(...)` executor boundary audit and
-  checked artifact. The pinned corpus has `795` constructor occurrences, with
-  direct single-settlement lexical upper bounds of `27` scalar resolves and `4`
-  scalar rejects; exact constructor admission remains closed behind executor
-  timing, callback identity, settlement precedence, throw-to-rejection,
-  callback-effect, thenable-assimilation, and Promise-boundary obligations.
-- Added a #602 reporting-only AbortSignal cancellation/liveness boundary audit
-  and checked artifact. The pinned corpus has `260` Abort mentions, `193`
-  signal option properties, `156` `AbortController` constructors, `175`
-  `.abort()` selector calls, `323` `.signal` property reads, `6` signal-bearing
-  `fetch` calls, `2` signal-bearing timer calls, and `2` signal-bearing
-  `addEventListener` calls; exact cancellation admission remains closed.
-- Added a #602 reporting-only interval/scheduler lifecycle boundary audit and
-  checked artifact. The pinned corpus has `780` `setTimeout` calls, `57`
-  `setImmediate` calls, `73` bare `setInterval` calls, `55`
-  `clearInterval` calls, `133` `clearTimeout` calls, `14` `queueMicrotask`
-  calls, `43` `requestAnimationFrame` calls, and `11` `scheduler.yield` calls;
-  exact scheduling/lifecycle admission remains closed.
-- Added the first #602 exact aggregate capability slices for `Promise.all` and
-  `Promise.allSettled`, plus the first-observed `Promise.race`/`Promise.any`
-  literal-array slice: unshadowed global aggregate calls over literal arrays
-  can recover only when every element already has matching Promise settlement
-  evidence or non-thenable-safe raw input proof. `Promise.all` opens the
-  all-fulfilled ordered payload channel; `Promise.allSettled` opens the
-  fulfilled-result ordered settled-record channel; `Promise.race` opens the
-  first-settled channel for non-empty fully closed literal arrays; and
-  `Promise.any` opens the first-fulfilled channel when a fully closed literal
-  array has a fulfilled candidate. Dynamic iterables, raw object/function
-  inputs without non-thenable proof, all-rejected `Promise.any` AggregateError
-  payloads, thenable assimilation, executor timing, and sync array equivalence
-  remain closed. These slices include checked recall-loss/pricing artifacts.
-- Added the #602 closeout artifact. The milestone now ends at reusable aggregate,
-  executor, cancellation, scheduling, and lifecycle boundary obligations: exact
-  admissions are limited to checked literal Promise aggregate slices, while
-  executor timing, cancellation/liveness, scheduler/timer/microtask/interval
-  behavior, and cross-language lifecycle protocols stay named closed
-  obligations for future priced epics.
-- Added the #653/#655 async/scheduling hard-negative matrix artifact. It audits
-  `82` scoped lifecycle rows plus `11` supplemental JS/TS Promise and
-  timer/scheduler priced surfaces, separates `18` positive fixture groups, `27`
-  hard-negative fixture groups, and `25` reporting artifact evidence groups,
-  and names `48` fixture classes for #657 while keeping exact admission
-  unchanged.
-- Added the #653/#657 executable async/scheduling hard-negative suite. The new
-  cross-language equivalence fixture adds `8` test symbols and `54`
-  fail-closed assertions across JS/TS, Go, Python, Rust, Java, Swift, and Ruby,
-  covering Promise continuation/channel/callback, executor,
-  timer/microtask/cancellation, channel/select/goroutine/defer, asyncio,
-  Future-drive, Future/Executor/Stream, task/try/continuation, and
-  thread/fiber/yield/exception boundaries. The checked artifact maps all `48`
-  #655 classes to evidence status, flags `14` for more granular future
-  executable follow-up, and keeps exact admission unchanged.
-- Added the #653/#654 semantic-kernel capability vocabulary audit. It checks
-  `15` reusable capability groups, `12` evidence kinds, `9` source fact kinds,
-  `16` source protocol kinds, and `98` runtime-boundary obligation rules;
-  preserves `4` legacy aliases for historical artifact readability; and sends
-  `6` duplicate/merge candidates plus `8` feature-shaped Promise diagnostics to
-  #656 cleanup without changing public APIs or exact admission.
-- Added the #656 obligation-label cleanup artifact and docs pass. New docs now
-  prefer shared `async-*` scheduling labels for protocol boundaries, preserve
-  `4` compatibility aliases for old artifacts, and document Promise-shaped
-  producer/continuation labels as missing-proof diagnostics rather than feature
-  admissions; historical artifacts remain untouched and exact admission is
-  unchanged.
-- Added the #658 oracle-exclusion classification layer to recall-loss reports.
-  `oracle_exclusions` now includes `by_classification`, so broad excluded units
-  are split into semantic-boundary attribution, missing oracle support, path
-  exploration budget, oracle cost budget, empty fingerprint, and core-span
-  failures. The current local `crates` report classifies all `6037` excluded
-  units, including `583`
-  semantic-boundary-attributed and `5447` residual missing-oracle-support rows,
-  while keeping exact admission unchanged and the hard gate at `0` false merges.
-- Added Swift structured-concurrency reporting for `Task.sleep`, `Task.yield`,
-  and task-group calls. These now map to shared timer, task-yield, aggregate,
-  cancellation/liveness, result-channel, and exception-channel obligations
-  without opening exact admission; the 120-repo audit prices the new Swift
-  surfaces at `326` occurrences plus `5` corrected `Task.detached(...)` spawn
-  occurrences.
-- Added Java `CompletableFuture`/FutureLike reporting for exact-imported,
-  wildcard-imported, or fully qualified static future calls and receiver-domain
-  proven, exact-import-backed continuation methods. These now map to reusable
-  future-settled, continuation, callback, task, aggregate, and exception
-  obligations without opening exact admission; the 120-repo lexical audit prices
-  `40` Java future reporting candidates while leaving `276` broad
-  `CompletableFuture` mentions closed.
-- Added Java `CompletableFuture` constructor reporting for fully qualified or
-  exact-/wildcard-import-backed `new CompletableFuture<...>()` calls. These now
-  report future-settled, exception-channel, task-handle lifecycle, and
-  cancellation/liveness obligations without opening exact admission. The
-  120-repo audit splits `46` proof-backed constructor occurrences out of the
-  broad Java `CompletableFuture` bucket, reducing the broad closed bucket from
-  `276` to `230`; the Java-heavy query regression kept product output hashes
-  identical on all six measured repos and measured `7023.49ms -> 6991.92ms`
-  (`-0.45%`).
-- Added Java `CompletableFuture` receiver settlement and observation reporting
-  for import-backed `complete`/`completeExceptionally`,
-  `join`/`getNow`/`isCompletedExceptionally`, and timeout methods. The 120-repo
-  audit adds `45` settlement and `45` observation occurrences as
-  reporting-supported closed-boundaries after rejecting same-name receiver
-  bleed-through across scopes, reclassifies the remaining `230` broad
-  `CompletableFuture` type mentions as a superseded overlap row, and keeps
-  exact admission closed. The Java-heavy query regression kept product output
-  hashes identical on all six measured repos and measured `8118.22ms ->
-  8151.13ms` (`+0.41%`).
-- Aligned already source-protocol-backed Python `await`/`async def`, Rust
-  `.await`/`async fn`/`async block`, and Swift `async` function audit rows with
-  runtime-boundary reporting. This moves `19,144` non-JS async source-protocol
-  occurrences to reporting-supported closed-boundaries while exact admission
-  remains closed.
-- Added Swift `try` expression reporting alignment for source-backed
-  `TryPropagation` boundaries, including `try`, `try?`, `try!`, and
-  `for try await`. The 120-repo audit moves `17,970` Swift try-expression
-  occurrences to reporting-supported closed-boundaries while exact admission
-  remains closed.
-- Reclassified the historical Swift `throws/try` lexical audit bucket as a
-  superseded overlap row now that source-backed Swift `try`, throwing function,
-  and throwing closure rows are tracked separately. This keeps the
-  `26,608`-occurrence broad bucket from being treated as an actionable residual
-  gap and makes Ruby `raise/rescue` the largest non-JS actionable closed
-  exception-channel bucket at `4,010` occurrences.
-- Aligned Java `CompletionStage` settlement continuation accounting with the
-  existing receiver-domain reporting path. `FutureLike.handle/whenComplete`
-  moves `10` occurrences across `2` repos to reporting-supported
-  closed-boundaries, raising the total to `88,471` occurrences across `59`
-  rows. The historical broad Java `Executor/Future` type-name bucket remains
-  visible at `3,297` occurrences but is now a superseded overlap row rather than
-  an actionable residual implementation target.
-- Aligned Python generator `yield` audit accounting with existing
-  `Source::Protocol(Yield)` runtime-boundary reporting. The 120-repo audit moves
-  `2,404` Python generator-yield occurrences across `21` repos to
-  reporting-supported closed-boundaries, raising the total to `90,875`
-  occurrences across `60` rows while exact admission remains closed.
-- Aligned direct Python `asyncio.sleep` audit accounting with existing
-  runtime-boundary timer reporting. The 120-repo audit moves `104`
-  occurrences across `6` repos to reporting-supported closed-boundaries,
-  raising the total to `90,979` occurrences across `61` rows and leaving no
-  Python closed-boundary rows in the scheduling/lifecycle audit; exact
-  admission remains closed.
-- Added Ruby exception-channel reporting for unqualified `raise` calls by
-  lowering them to the existing `Throw` boundary, while keeping `rescue` on the
-  existing `Try` boundary. The 120-repo audit prices `2,065` source-backed
-  `raise` and `1,933` `rescue` occurrences as reporting-supported
-  closed-boundaries, reclassifies the old `4,010`-occurrence broad
-  `raise/rescue` bucket as a superseded overlap row, and leaves the 12
-  receiver-qualified broad-only overlaps outside the concrete rows.
-  The Ruby-heavy query regression measured `3295.78ms -> 3330.24ms` (`+1.05%`);
-  family counts stayed stable across all 6 repos, with metadata/hash drift only
-  in `rubocop` and `rspec-core`.
-- Split Java stream lifecycle audit accounting into existing proof-backed
-  `receiver.stream()` and `Arrays.stream(xs)` rows versus residual untyped or
-  parallel stream lifecycle boundaries. The 120-repo audit now accounts for
-  `372` receiver stream adapters and `128` `Arrays.stream` adapters as
-  exact-supported existing capability, reducing the actionable broad
-  `stream/parallelStream` residual from `1,996` to `1,496` without changing
-  product admission or query runtime.
-- Added Java `Executor`/`Future` receiver-method reporting for
-  exact- or wildcard-import-backed `CompletableFuture`, `Future`,
-  `ScheduledFuture`, `Executor`, `ExecutorService`, and
-  `ScheduledExecutorService` parameter, local variable, and explicit
-  `this.<field>` receivers. These now map handle lifecycle,
-  cancellation/liveness, executor scheduling, timer/interval lifecycle,
-  aggregate, callback/effect, future-settled, and exception obligations without
-  opening exact admission; on the current `origin/main` baseline, the 120-repo
-  audit moves Java reporting-supported receiver-method candidates from `858` to
-  `1,093` (`+235`) while the broad `Executor/Future` bucket remains closed.
-- Added Rust `block_on` Future bridge reporting. Qualified/import-backed
-  `tokio_test::block_on` calls and proof-backed `Handle::current().block_on`
-  plus inline `Runtime`/`Builder` receiver chains now map to
-  `future-drive-scheduling-contract` plus
-  `future-settled-value-channel-contract` without opening exact admission;
-  proof-backed local variables assigned from `Handle::current()`,
-  `Runtime::new().unwrap()/expect`, `Runtime::new()?`, or
-  `Builder::new_*().build().unwrap()/expect/?` now receive the same reporting;
-  nominal parameter receivers proven as scope-visible `tokio::runtime::Runtime`
-  or `tokio::runtime::Handle` now do too, including nested static brace imports
-  such as `use tokio::{runtime::{Runtime}}`; exact `self.<field>` receivers
-  whose module or local declaration-scope struct field type proves
-  `tokio::runtime::Runtime` or `Handle` now receive the same reporting, and
-  success-channel-preserving `Result::map_err` adapters over proven
-  `Runtime::new()`/`Builder::build()` results are followed before `unwrap`,
-  `expect`, or `?`; receiver-preserving Builder configuration methods
-  `start_paused`, `unhandled_panic`, `thread_keep_alive`,
-  `global_queue_interval`, `event_interval`, and `disable_lifo_slot` are now
-  followed before `build`. Selector-only `.block_on`, Builder callback hooks,
-  non-self fields, duplicate or shadowed local structs, project-local `tokio`
-  roots or aliases, wildcard or relative imports, type aliases, wrapped
-  constructors, and constructor-assigned fields remain closed.
-- Added Rust async closure source-protocol reporting. `async |...|` and
-  `async move |...|` closures now reuse the shared `AsyncFunction` source
-  protocol boundary, while synchronous closures and Rust `async { ... }`
-  blocks remain distinct; exact async closure admission remains closed.
-- Added Go channel/goroutine/defer obligation refinement. Go source-backed
-  protocol boundaries now report channel send synchronization, receive value,
-  comma-ok receive status, select readiness/case/default, goroutine scheduling
-  plus callback effect, and defer lifecycle plus callback effect obligations
-  without opening exact admission; the 120-repo audit prices `4,294` channel
-  receives, `1,525` sends, `1,920` selects, `3,590` select cases, `546` select
-  defaults, `155` comma-ok receives, `1,949` goroutines, and `17,521` defers.
-- Added scope-aware Python/Rust async runtime attribution hardening. Unrelated
-  local shadows in other functions no longer suppress import-backed `asyncio`
-  and Rust runtime reporting, while same-scope, enclosing-scope, and
-  module-level shadows remain closed. Exact admission remains closed; the
-  120-repo pricing total is
-  unchanged at `146,880`, and the checked `crates` gate stays at `0` false
-  merges. Python/Rust async-runtime recall-loss diagnostics now prefer
-  source-preserving unit roots before falling back to normalized roots, so
-  alpha-renamed diagnostics do not reopen Python `asyncio` alias shadows.
-- Added Python/Swift async runtime breadth reporting. Python `asyncio.run`,
-  `wait_for`, `shield`, `run_coroutine_threadsafe`, and `to_thread` now reuse
-  the existing asyncio import/shadow guards and shared future-drive, timer,
-  task, cancellation/liveness, future-settled, callback, and exception
-  obligations; Swift checked/unsafe continuation bridges now reuse the
-  unshadowed free-runtime-function guard and shared future-settled,
-  settlement-continuation, callback, and exception obligations. Exact admission
-  remains closed; the 120-repo audit adds `107` non-JS source-prevalence
-  occurrences over the prior async-runtime scope-shadowing audit.
-- Added Python async protocol lifecycle reporting. Source-backed `async for`
-  statements, async comprehensions, and `async with` boundaries now reuse
-  generic async iteration/context lifecycle, value-channel, cleanup,
-  exception-channel, and scheduling obligations instead of being erased into
-  ordinary loop/body structure. Exact admission remains closed; the 120-repo
-  audit prices `114` `async for` occurrences and `361` `async with`
-  occurrences across `5` repos with `0` false merges on the checked `crates`
-  gate.
-- Added Swift async iteration protocol reporting. Source-backed `for await`
-  and `for try await` loops now reuse the same generic async iteration
-  lifecycle, value-channel, scheduling, and exception-channel obligations used
-  by Python async iteration, instead of being reported only as ordinary
-  `await`/loop structure. Exact admission remains closed; the 120-repo audit
-  prices `193` Swift async iteration occurrences across `11` repos, and
-  representative Swift NIO, Composable Architecture, and Alamofire spot checks
-  move async-iteration lifecycle evidence units from `0` to `31` with `0`
-  false merges.
-- Added Swift async task source-protocol reporting. Async closures now reuse
-  the existing async-function protocol boundary, while `async let` emits the
-  reusable `TaskSpawn` source protocol capability for child-task scheduling,
-  handle lifecycle, and cancellation/liveness obligations. Exact admission
-  remains closed; the 120-repo audit prices `100` async closures across `4`
-  repos and `51` async-let bindings across `7` repos, and representative
-  Alamofire/Swift NIO/Vapor spot checks move `task_spawn` raw protocol tags
-  from `0` to `36` and async-function tags from `110` to `139` with `0` false
-  merges.
-- Added Swift throwing callable source-protocol reporting. Body-bearing plain
-  and typed `throws`/`rethrows` functions and throwing closures now reuse the
-  existing `TryPropagation` protocol boundary, and async throwing callables
-  report both scheduling and exception-channel obligations without opening exact
-  admission. The 120-repo audit prices `7,008` throwing functions across `17`
-  repos and `169` throwing closures across `6` repos, while the broad Swift
-  `throws`/`try` bucket remains closed at `26,608` occurrences.
-- Added Ruby Thread/Fiber runtime reporting. `Thread.new`, `Thread.start`,
-  `Thread.fork`, `Fiber.new`, and `Fiber.schedule` now reuse shared
-  task-spawn, task-handle, cancellation/liveness, and concurrency scheduling
-  obligations when the runtime root is not defined in the same file. Exact
-  admission remains closed; the 120-repo audit marks `74` Ruby Thread/Fiber
-  occurrences across `11` repos as reporting-supported closed boundaries.
-- Added Ruby yield source-protocol reporting. Block `yield` now preserves a
-  source-backed `BlockYield` callback demand/effect boundary instead of erasing
-  into an ordinary `Seq` or sharing generator-yield semantics, so `yield a, b`
-  stays distinct from `return a, b` and direct `block.call(a, b)` without
-  opening exact admission. The 120-repo audit prices `801` occurrences across
-  `17` repos, the checked `crates` recall-loss gate stays at `0` false merges,
-  and the Ruby-heavy query regression measured `2504.55ms -> 2574.79ms`
-  (`+2.80%`) with one stable-count `rspec-core` representative-label drift.
-- Added Go protocol reporting-support alignment. `go` statements now carry a
-  runtime-scheduled callback demand/effect profile and `defer` statements carry
-  a scope-exit deferred callback profile, while channel/select protocol rows
-  are marked reporting-supported closed-boundaries in the 120-repo audit.
-  Exact admission remains closed; the Go protocol slice covers `31,500`
-  occurrences across the pinned corpus and keeps the checked `crates`
-  recall-loss gate at `0` false merges. The Go-heavy query regression measured
-  `3560.13ms -> 3563.06ms` (`+0.08%`) with identical product hashes on all six
-  measured repos.
-- Added non-JS task-spawn reporting alignment. Rust `tokio`/`async-std` spawn,
-  Swift `Task`/`Task.detached`, Python `asyncio.create_task`/`ensure_future`,
-  and Java `CompletableFuture.supplyAsync`/`runAsync` now align with existing
-  runtime-boundary reporting in the scheduling lifecycle audit. Exact admission
-  remains closed; the slice newly marks `590` source-prevalence occurrences
-  reporting-supported, brings currently backed task-spawn reporting-supported
-  rows to `1,123` occurrences, and keeps the checked `crates` gate at `0` false
-  merges and `0` canon preservation violations.
-- Added non-JS async aggregate reporting alignment. Rust
-  `tokio`/`futures`/`futures_util` `join!`/`try_join!`/`select!`, Python
-  `asyncio.gather`/`wait`, and Java `CompletableFuture.allOf`/`anyOf` now align
-  with existing runtime-boundary reporting in the scheduling lifecycle audit.
-  Exact admission remains closed; the slice newly marks `98`
-  source-prevalence occurrences reporting-supported, brings currently backed
-  async-aggregate reporting-supported rows to `286` occurrences, and keeps the
-  checked `crates` gate at `0` false merges and `0` canon preservation
-  violations.
-- Added Swift await and Java settled-factory reporting alignment. Swift
-  `await` and Java `CompletableFuture.completedFuture`/`failedFuture` now align
-  with existing source-protocol/static-runtime reporting in the scheduling
-  lifecycle audit. Exact admission remains closed; the slice newly marks
-  `8,703` source-prevalence occurrences reporting-supported, brings all
-  reporting-supported closed-boundary rows to `51,301` occurrences across `50`
-  rows, and keeps the checked `crates` gate at `0` false merges and `0` canon
-  preservation violations. The broad Java `CompletableFuture` and looser
-  receiver-settlement buckets remain deferred until the audit counters are split
-  to match product proof.
-- Added non-JS async protocol near-channel mirror support. The dual-view async
-  protocol capability now covers `await`, async-function boundaries, and Rust
-  async blocks in near/witness builds, so Rust `async fn`/`.await` and Swift
-  `async func`/`await` twins can surface as `async-mirror` structural leads
-  without opening exact admission. The focused async/sync synthetic gold set now
-  includes Python, TypeScript, Rust, and Swift pairs plus Rust/Swift hard
+  receiver, direction, mutation, shadowing, offset, and dynamic-affix hard
   negatives.
-- Added hand-audited Swift real-corpus evidence for async/sync mirrors. Swift
-  NIO's sync/async `withTemporaryFile` overloads now back the
-  `async_sync_twin` Swift coverage cell, which moves from `none` to `covered`
-  while keeping Rust unflipped until a clean real-corpus twin is audited.
-- Added staged Promise recovery infrastructure: protocol diagnostics and hard
-  negatives; dependency-closed `Promise.resolve`; local fulfilled/rejected
-  continuation recovery; receiver-producer/call-return attribution; and
-  proof-backed async, direct-function, DirectMethod, and branch-return Promise
-  producer recovery. Added exact-safe `Promise.finally` settlement passthrough
-  and rejection-channel override for admitted Promise receivers with safe
-  zero-argument handlers. Added `PromiseSettledValue` evidence so contract-backed
-  imported Promise producers can recover settled `.then`/`.catch` payloads while
-  preserving Promise boundaries. Unsafe thenables, imported producers without
-  settled-value contracts, mixed fulfilled/rejected branches, unsafe `.finally`
-  handlers, constructors, unsliced aggregate surfaces, and broad scheduling
+- Added import-backed immutable provenance and Rust import-snapshot resolution
+  for safe provider literals, selected collection factories/constructors,
+  same-crate module lookup, one-hop public re-exports, residual boundary
+  attribution, and relative `super` resolution.
+- Added corpus-driven stdlib audit and prioritization scripts for JS/TS,
+  Python, Rust, Swift, Java, and Go, plus first support slices for Go
+  `strings.Join` and Java `Optional`. Java `Arrays`/`Collections`, Go
+  `sort`/`slices`/`maps`, Python HOF/runtime, Rust stdlib, Swift stdlib, and
+  JS/TS builtin coverage are recorded as explicit audit artifacts.
+- Added bounded Promise recovery for safe `Promise.resolve`, local
+  `.then`/`.catch`/`.finally` continuations, imported settled-value contracts,
+  Node `timers/promises` domains and safe payloads, and literal-array
+  `Promise.all`, `Promise.allSettled`, `Promise.race`, and `Promise.any`
+  aggregate slices. Dynamic iterables, unsafe thenables, executor timing,
+  cancellation/liveness, scheduler APIs, interval streams, and broad scheduling
   remain fail-closed.
-  Added dependency-backed Node `timers/promises` imported factory evidence for
-  `setTimeout`/`setImmediate` as PromiseLike receiver proof, including
-  conservative `const` CommonJS destructuring requires with unshadowed
-  `require` proof. Safe no-options payload arities now emit fulfilled
-  `PromiseSettledValue` evidence for `setTimeout(delay, value)` and
-  `setImmediate(value)`, while option-bearing calls, possible thenables,
-  scheduler APIs, interval streams, and broad scheduling remain closed. Recorded
-  the Promise/scheduling closeout artifact that stops API-by-API expansion here
-  and moves unsliced aggregate, lifecycle, cancellation, and broad scheduling
-  work to a separate capability epic.
+- Added cross-language scheduling, channel, callback, lifecycle, aggregate, and
+  exception-channel obligation reporting across JS/TS, Python, Rust, Go, Java,
+  Swift, and Ruby. New executable hard negatives pin Promise, timer, channel,
+  async runtime, Future, task, continuation, yield, and exception boundaries.
+- Added reporting-only async/runtime coverage for Swift structured concurrency
+  and `try`, Java `CompletableFuture`/`Future`/`Executor` receivers, Rust
+  `block_on` runtime provenance, Go channel/goroutine/defer protocols, Python
+  async lifecycle and generator yield, and Ruby `raise`/`rescue`, Thread/Fiber,
+  and block-yield boundaries.
+- Added the #653 semantic-kernel capability vocabulary audit and obligation
+  label cleanup. The current diagnostics prefer reusable capability and
+  `async-*` obligation labels while preserving legacy aliases for historical
+  artifacts.
 
 ### Changed
 - Split exact-admission recall-loss attribution into capability-oriented buckets
   for callee identity, receiver domain, library API occurrence, HOF
   demand/effect, source surface, mutation/effect, unsupported runtime
-  boundaries, value-fingerprint floor, and import-snapshot miss reasons.
-- Refined callback and Promise recall-loss diagnostics from broad runtime
-  buckets into producer-, receiver-, continuation-, channel-, and callback-effect
-  obligations, so stricter admission can be measured without hiding recall loss.
-- Closed the current Promise/scheduling recovery cycle as an explicit measured
-  boundary: current local `crates` recall-loss gating reports zero false merges,
-  zero canon-preservation violations, and zero Promise/scheduling unsupported
-  runtime rows, with the remaining runtime rows attributed to exception-channel
-  contracts.
-- Refined #602 runtime-boundary diagnostics so Promise executor timing,
-  resolve/reject callbacks, throw-to-rejection, Promise aggregate
-  all-fulfilled/first-settled/all-settled/first-fulfilled shapes,
-  scheduler wait/yield timing, interval lifecycle, channel send/select,
-  goroutine scheduling, defer lifecycle, and AbortSignal/AbortController
-  cancellation/lifecycle contracts can be reported as named obligations without
-  opening exact admission. Timer, microtask, scheduler wait liveness, one-shot
-  timer/frame cancellation, and interval cancellation reporting now also have
-  dedicated obligation labels.
-- Renamed current await-boundary recall-loss reporting to the language-neutral
-  `async-await-scheduling-contract` obligation across JS/TS, Python, Rust, and
-  Swift. Legacy Promise-specific await labels remain readable for old checked
-  artifacts, but new reports reserve Promise labels for Promise API and producer
-  semantics.
-- Renamed async-function and async-block scheduling diagnostics to shared
-  `async-function-scheduling-contract` and `async-block-scheduling-contract`
-  obligations. Python, Rust, and Swift runtime-body async functions now use the
-  existing `Source::Protocol(AsyncFunction)` boundary alongside JS/TS, while
-  Rust async blocks use `Source::Protocol(AsyncBlock)`. Legacy Promise/Future
-  labels remain readable for old artifacts, and Promise async-function return
-  producer proof remains JS/TS-only.
-- Refined recall-loss reports so runtime/protocol units excluded before oracle
+  boundaries, value-fingerprint floors, import-snapshot misses, and oracle
+  exclusions.
+- Renamed await, async-function, and async-block diagnostics to language-neutral
+  scheduling obligations. Promise-shaped producer and continuation labels now
+  describe missing Promise proof, not generic async syntax.
+- Refined runtime/protocol diagnostics so units excluded before oracle
   interpretation can still carry diagnostics-only obligation attribution under
-  `oracle_exclusions.by_obligation`. The top-level `by_obligation` rollup stays
-  limited to oracle-interpretable admission rejections.
-- Refined non-JS async runtime API diagnostics so Python `asyncio`
-  task/timer/aggregate calls, Rust `tokio`/`async-std` spawn and
-  qualified `tokio`/`futures`/`futures_util` aggregate macros, and Swift
-  `Task` creation report shared `task-*` and `async-aggregate-*` obligations
-  without opening exact admission.
-- Hardened that non-JS async runtime attribution so Python `asyncio.*` requires
-  import-backed namespace evidence with path-visible local module guards, Rust
-  spawn and aggregate reporting require qualified
-  `tokio`/`async_std`/`futures`/`futures_util` paths whose root is not locally
-  defined in the file, and Swift `Task` reporting requires an unshadowed root
-  before shared runtime obligations are attached.
-- Expanded that non-JS async runtime attribution to import-backed spellings:
-  Python `asyncio` aliases such as `import asyncio as aio; aio.wait(...)` and
-  Rust imported runtime bindings such as `use tokio::spawn; spawn(...)`,
-  `use tokio::join; join!(...)`, and `use futures::select; select!(...)` now
-  receive the same reporting-only task/timer/aggregate obligations when their
-  import identity is proven. Exact admission remains closed.
-- Expanded the same proof path to Python `from asyncio import ...` bindings
-  and Rust brace imports such as `use tokio::{spawn}` or
-  `use futures::{select as fut_select}`. The slice reuses existing
-  `ImportedBinding` evidence, keeps nested Python imports and local
-  shadow/module cases plus Rust block-scoped and other-module imports closed
-  at the imported-occurrence producer, adds `2` newly priced Python imported `sleep`
-  occurrences in the pinned 120-repo corpus, and keeps the release
-  `verify crates` gate at `0` false merges.
-- Refined import-snapshot census reporting to separate missing provider modules,
-  missing exports, re-export boundaries, external/stdlib/workspace boundaries,
-  provider/importer mutation, missing provider API proof, and aggregate shapes
-  that are exact-safe but not import-literal-safe.
-- Kept the duplication ratchet at 53 accepted substantial near-duplicate
-  families after the Promise branch-return work by extracting avoidable test
-  fixture overlap and accepting only representative-ID churn for an existing
-  reviewed direct-call-target test family.
+  `oracle_exclusions.by_obligation`; top-level `by_obligation` remains limited
+  to oracle-interpretable admission rejections.
+- Closed the current Promise/scheduling and semantic-admission guardrail cycles
+  as measured boundaries: exact admissions are limited to checked safe slices,
+  and remaining executor, cancellation, scheduler, interval, lifecycle, and
+  cross-language convergence work is represented as named closed obligations.
+- Reclassified broad audit buckets that are now accounted for by source-backed
+  or proof-backed rows, including Swift `throws/try`, Java Future/Executor type
+  mentions, Java stream lifecycle rows, Python generator yield, direct
+  `asyncio.sleep`, and Ruby `raise/rescue`.
 
 ### Fixed
-- Updated the locked `anyhow` dependency to `1.0.103` to clear
-  `RUSTSEC-2026-0190` in the CI advisory gate.
-- Fixed repository CI ratchets by splitting oversized Rust files back under the
-  file-length gate and updating the async-mirror query JSON test to assert the
-  documented near/shared-core witness contract.
-- Fixed `scripts/check-docs.sh` for both awiki CLIs that support
-  `awiki lint --root docs` and awiki versions that lint the current wiki
-  directory.
+- Updated the locked `anyhow` dependency to clear `RUSTSEC-2026-0190` in the CI
+  advisory gate.
+- Fixed repository CI ratchets by splitting overlong Rust files and updating the
+  async-mirror query JSON test to assert the documented near/shared-core witness
+  contract.
+- Fixed `scripts/check-docs.sh` for both `awiki lint --root docs` and awiki
+  versions that lint the current wiki directory.
 - Hardened JS/TS string-affix receiver proof so wrappers, untyped receivers,
   borrowed prototype calls, custom same-name methods, offsets, shadowed names,
   and `String.prototype` patching stay out of primitive prefix/suffix families.
 - Fixed dataflow normalization across `try` boundaries so temporary inlining no
   longer moves a potentially erroring RHS from before a `try` into the catch
   region.
+- Fixed release-candidate runtime regressions by indexing imported-binding
+  call-target evidence per file, indexing lowering-time domain evidence by anchor,
+  lazily building import mutation/use indexes, and using compact Rust module
+  identities instead of absolute-path suffix hashes.
 
 ### Performance
 - Preserved zero false merges and zero canon-preservation violations across the
-  checked local `crates` recall-loss gates for the semantic-kernel recovery
-  slices in this cycle.
-- Measured representative query-time slices within budget: Go `strings.Join`
-  stayed at +1.6%/-0.6% on paired repos, Java `Optional` stayed at -0.2%/-1.8%,
-  #567 import-backed immutable provenance stayed at +3.3% wall time and +4.3%
-  import-resolve, and the #584/#585 closeout improved median wall time by 8.7%.
-- Confirmed product-code-neutral audit slices by byte-identical release binaries
-  for Java `Arrays`/`Collections`, Go `sort`/`slices`/`maps`, and Python
-  HOF/runtime attribution; the Promise branch-return producer recovery release
-  verify gate passed on `crates` in 1.50s with `false_merges = 0`, the Promise
-  `.finally` settlement recovery gate passed in 1.54s with `false_merges = 0`,
-  and the imported settled-value contract gate passed in 1.69s with
-  `false_merges = 0`.
-- Confirmed the first #602 reporting slice with the local `crates` recall-loss
-  gate at `false_merges = 0` and `canon_preservation_violations = 0`; the
-  checked 120-repo pricing artifact records `semantic_admission_delta = 0`.
-- Confirmed the first #602 `Promise.all` exact aggregate slice with the local
-  `crates` recall-loss gate at `false_merges = 0` and
-  `canon_preservation_violations = 0`; the 120-repo slice artifact records
-  `397` broad `Promise.all` occurrences, `201` literal-array boundary
-  occurrences, and `0` direct safe-seed occurrences in the pinned corpus.
-- Confirmed the #602 `Promise.allSettled` exact aggregate slice with the local
-  `crates` recall-loss gate at `false_merges = 0` and
-  `canon_preservation_violations = 0`; the 120-repo slice artifact records
-  `17` broad `Promise.allSettled` occurrences, `8` literal-array boundary
-  occurrences, and `0` direct safe-seed occurrences in the pinned corpus.
-- Confirmed the #602 Promise aggregate raw-input assimilation slice with the
-  local `crates` recall-loss gate at `false_merges = 0` and
-  `canon_preservation_violations = 0`; the 120-repo slice artifact records
-  `8` `Promise.all` literal arrays and `1` `Promise.allSettled` literal array
-  with a direct raw non-thenable element, with `3` fully lexical direct-safe
-  candidates.
-- Confirmed the #602 `Promise.race`/`Promise.any` first-observed aggregate
-  slice with the local `crates` recall-loss gate at `false_merges = 0` and
-  `canon_preservation_violations = 0`; the 120-repo slice artifact records
-  `32` broad `Promise.race` occurrences, `31` `Promise.race` literal arrays,
-  `1` `Promise.any` occurrence, and `0` fully closed lexical candidates in the
-  pinned corpus.
-- Confirmed the #602 AbortSignal cancellation/liveness reporting slice with the
-  local `crates` recall-loss gate at `false_merges = 0` and
-  `canon_preservation_violations = 0`; the 120-repo artifact records
-  `semantic_admission_delta = 0`.
-- Confirmed the #602 interval/scheduler lifecycle reporting slice with the local
-  `crates` recall-loss gate at `false_merges = 0` and
-  `canon_preservation_violations = 0`; the 120-repo artifact records
-  `semantic_admission_delta = 0`.
-- Confirmed the #602 closeout gate with local `crates` at `false_merges = 0`,
-  `canon_preservation_violations = 0`, and `0`
-  Promise/scheduling/aggregate/cancellation/lifecycle unsupported-runtime
-  rollup rows; the remaining `14` unsupported-runtime boundary rows are named
-  `exception-channel-contract-missing` obligations.
+  checked local `crates` recall-loss gates for this cycle.
+- Kept representative product query-regression slices within budget: Java
+  `CompletableFuture` constructor reporting measured `-0.45%`, Java receiver
+  settlement reporting measured `+0.41%`, Go protocol reporting measured
+  `+0.08%`, and the final oracle-exclusion classification report measured
+  `+0.34%` median wall time with a `+0.05%` report-size increase.
+- Re-ran the hazard release refresh, full local CI, all-pinned-corpus product
+  query-regression, and release-level `v0.16.0..HEAD` output/runtime comparison for the 0.17.0
+  release candidate. The final all-120-repo query-regression run measured
+  `59666.48ms -> 63410.42ms` aggregate median runtime (`+6.27%`), with product
+  hash drift in 120 repos and family-count drift in 30 repos. The current
+  recall-loss gate passed with 0 false merges and 0 canon-preservation
+  violations; `nose 0.16.0` did not yet support `--recall-loss-report`, so
+  recall-loss diffs begin from 0.17.0 artifacts. See
+  [0.17.0 release evidence](docs/release-evidence-0.17.0.md) for details.
 
 ## [0.16.0] - 2026-06-26
 

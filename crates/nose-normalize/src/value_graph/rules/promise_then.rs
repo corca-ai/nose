@@ -16,7 +16,7 @@
 
 use super::super::{Builder, ConstKind, ValOp, ValueDomain, ValueId};
 use nose_il::{
-    stable_symbol_hash, DomainEvidence, NodeId, NodeKind, Payload, PromiseSettlementChannel,
+    stable_symbol_hash, DomainEvidence, Lang, NodeId, NodeKind, Payload, PromiseSettlementChannel,
 };
 use nose_semantics::{
     admitted_promise_aggregate_at_call, admitted_promise_catch_at_call,
@@ -32,6 +32,13 @@ use super::super::ops::{PROMISE_REJECTED_CODE, PROMISE_RESOLVED_CODE};
 enum PromiseState {
     Fulfilled(ValueId),
     Rejected(ValueId),
+}
+
+pub(in super::super) fn promise_rules_supported(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    )
 }
 
 pub(in super::super) fn apply(

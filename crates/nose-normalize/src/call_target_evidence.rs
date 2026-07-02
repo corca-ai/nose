@@ -111,15 +111,19 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
             provenance,
         );
     }
-    let mut imported_occurrence_cache = ImportedOccurrenceValidationCache::default();
-    for call in calls {
-        record_imported_call_target(
-            il,
-            interner,
-            call,
-            provenance,
-            &mut imported_occurrence_cache,
-        );
+    let imported_binding_index = ImportedBindingIndex::new(il);
+    if !imported_binding_index.is_empty() {
+        let mut imported_occurrence_cache = ImportedOccurrenceValidationCache::default();
+        for call in calls {
+            record_imported_call_target(
+                il,
+                interner,
+                call,
+                provenance,
+                &imported_binding_index,
+                &mut imported_occurrence_cache,
+            );
+        }
     }
     record_existing_direct_method_return_domains(il, interner, provenance);
 }

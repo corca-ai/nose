@@ -75,9 +75,6 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
             let Some(top_level) = context.top_level.as_deref() else {
                 return Vec::new();
             };
-            let Some(binding_uses) = context.binding_uses.as_ref() else {
-                return Vec::new();
-            };
             top_level
                 .iter()
                 .copied()
@@ -92,7 +89,10 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
                     if files[export.file_idx].meta.lang != il.meta.lang {
                         return None;
                     }
-                    if binding_uses.binding_mutated(il, local, stmt) {
+                    if context
+                        .binding_uses(il, interner)
+                        .binding_mutated(il, local, stmt)
+                    {
                         return None;
                     }
                     Some(ImportReplacement {
@@ -179,11 +179,11 @@ struct FileImportContext {
     top_level: Option<Vec<NodeId>>,
     module_hashes: Vec<u64>,
     rust_module: Option<RustModuleIdentity>,
-    binding_uses: Option<BindingUseIndex>,
+    binding_uses: std::sync::OnceLock<BindingUseIndex>,
 }
 
 impl FileImportContext {
-    fn new(il: &Il, interner: &Interner) -> Self {
+    fn new(il: &Il, _interner: &Interner) -> Self {
         let module_semantics = semantics(il.meta.lang).modules();
         let participates = module_semantics.sibling_literal_exports()
             || module_semantics.java_class_literal_exports()
@@ -192,8 +192,13 @@ impl FileImportContext {
             top_level: participates.then(|| collect_top_level_statements(il)),
             module_hashes: file_module_hashes(il),
             rust_module: rust_module_identity(&il.meta.path),
-            binding_uses: participates.then(|| BindingUseIndex::new(il, interner)),
+            binding_uses: std::sync::OnceLock::new(),
         }
+    }
+
+    fn binding_uses<'a>(&'a self, il: &Il, interner: &Interner) -> &'a BindingUseIndex {
+        self.binding_uses
+            .get_or_init(|| BindingUseIndex::new(il, interner))
     }
 
     fn module_matches_import_from(&self, importer: &Self, module_hash: u64) -> bool {

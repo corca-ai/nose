@@ -1,4 +1,4 @@
-use super::bindings::{assignment_name, import_namespace_proof, BindingUseIndex};
+use super::bindings::{assignment_name, import_namespace_proof};
 use super::exports::LiteralExports;
 use super::snapshot::{snapshot_subtree, SubtreeSnapshot};
 use super::FileImportContext;
@@ -37,17 +37,8 @@ pub(super) fn collect_namespace_member_replacements(
             let Some(top_level) = context.top_level.as_deref() else {
                 return Vec::new();
             };
-            let Some(binding_uses) = context.binding_uses.as_ref() else {
-                return Vec::new();
-            };
             collect_file_namespace_replacements(
-                files,
-                interner,
-                file_idx,
-                il,
-                top_level,
-                binding_uses,
-                exports,
+                files, interner, file_idx, il, top_level, context, exports,
             )
         })
         .collect()
@@ -59,7 +50,7 @@ fn collect_file_namespace_replacements(
     file_idx: usize,
     il: &Il,
     top_level: &[NodeId],
-    binding_uses: &BindingUseIndex,
+    context: &FileImportContext,
     exports: &LiteralExports,
 ) -> Vec<NamespaceMemberReplacement> {
     let namespace_imports: Vec<NamespaceImport> = top_level
@@ -79,6 +70,7 @@ fn collect_file_namespace_replacements(
     if namespace_imports.is_empty() {
         return Vec::new();
     }
+    let binding_uses = context.binding_uses(il, interner);
     let imported_namespaces: FxHashSet<Symbol> = namespace_imports
         .iter()
         .map(|import| import.namespace)
