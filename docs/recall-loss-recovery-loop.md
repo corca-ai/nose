@@ -147,6 +147,14 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   admission. This is a guardrail slice only:
   `semantic_admission_delta = 0`, and no product query/runtime performance
   comparison is required because only tests, docs, and checked artifacts change.
+- The [#654 semantic-kernel capability audit](../bench/recall_loss/issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json)
+  checks that the current recall-loss vocabulary still describes reusable
+  capabilities rather than selector or API feature support. It audits `15`
+  capability groups, `12` evidence kinds, `9` source fact kinds, `16` source
+  protocol kinds, and `98` runtime-boundary obligation rules. The audit keeps
+  exact admission unchanged, preserves `4` legacy aliases for historical
+  artifact readability, and sends `6` duplicate/merge candidates plus `8`
+  feature-shaped Promise diagnostics to the #656 cleanup path.
 - [Non-JS source-protocol reporting alignment](../bench/recall_loss/non-js-source-protocol-reporting-alignment-2026-07-02.v1.json) records the audit closeout for already-backed async source-protocol rows.
   Python `await`/`async def`, Rust `.await`/`async fn`/`async block`, and Swift
   `async` function rows now move to reporting-supported closed-boundaries,

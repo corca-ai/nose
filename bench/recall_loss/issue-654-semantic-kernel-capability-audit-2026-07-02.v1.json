@@ -1,0 +1,360 @@
+{
+  "report_kind": "issue-654-semantic-kernel-capability-audit",
+  "schema_version": 1,
+  "issue": 654,
+  "parent_issue": 653,
+  "generated_on": "2026-07-02",
+  "scope": {
+    "goal": "Audit whether the semantic-kernel vocabulary is organized around reusable capabilities rather than language or API feature labels.",
+    "non_goals": [
+      "Do not add public semantic-kernel APIs.",
+      "Do not open new exact semantic admissions.",
+      "Do not rewrite checked historical artifacts in place."
+    ],
+    "product_behavior": "unchanged"
+  },
+  "sources": {
+    "documents_audited": [
+      "docs/semantic-kernel.md",
+      "docs/evidence-records.md",
+      "docs/demand-effect-semantics.md",
+      "docs/source-facts.md",
+      "docs/semantic-kernel-roadmap.md",
+      "docs/scheduling-channel-callback-obligations-594.md",
+      "docs/recall-loss-recovery-loop.md"
+    ],
+    "code_paths_audited": [
+      "crates/nose-il/src/node/evidence.rs",
+      "crates/nose-il/src/node/source.rs",
+      "crates/nose-cli/src/recall_loss_report/obligations.rs"
+    ],
+    "updated_discoverability_paths": [
+      "bench/recall_loss/README.md",
+      "docs/recall-loss-recovery-loop.md",
+      "docs/scheduling-channel-callback-obligations-594.md",
+      "docs/semantic-kernel-roadmap.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "summary": {
+    "capability_groups_audited": 15,
+    "evidence_record_kinds_audited": 12,
+    "source_fact_kinds_audited": 9,
+    "source_protocol_kinds_audited": 16,
+    "runtime_boundary_rules_audited": 98,
+    "runtime_boundary_obligation_families_audited": 11,
+    "total_obligation_families_audited": 14,
+    "runtime_boundary_subreasons_audited": 98,
+    "promise_prefixed_runtime_obligation_labels": 46,
+    "non_promise_prefixed_runtime_obligation_labels": 52,
+    "legacy_aliases_preserved_for_readability": 4,
+    "duplicate_or_merge_candidates": 6,
+    "feature_shaped_entries_requiring_follow_up": 8,
+    "documents_audited": 7,
+    "code_paths_audited": 3,
+    "docs_or_changelog_paths_updated": 5,
+    "public_api_expansion": 0,
+    "semantic_admission_delta": 0,
+    "product_performance_assessment": "not_applicable_docs_and_checked_artifact_only"
+  },
+  "audited_code_vocabularies": {
+    "evidence_kind": [
+      "Source",
+      "Domain",
+      "Import",
+      "Symbol",
+      "Type",
+      "Guard",
+      "Place",
+      "Effect",
+      "LibraryApi",
+      "CallTarget",
+      "PromiseSettledValue",
+      "SequenceSurface"
+    ],
+    "source_fact_kind": [
+      "Operator",
+      "Cast",
+      "Call",
+      "Protocol",
+      "Literal",
+      "Comprehension",
+      "Range",
+      "Pattern",
+      "Binding"
+    ],
+    "source_protocol_kind": [
+      "Await",
+      "AsyncBlock",
+      "AsyncFunction",
+      "AsyncContext",
+      "AsyncIteration",
+      "BlockYield",
+      "ChannelReceive",
+      "ChannelSelect",
+      "ChannelSelectCase",
+      "ChannelSelectDefault",
+      "ChannelSend",
+      "Defer",
+      "GoRoutine",
+      "TaskSpawn",
+      "TryPropagation",
+      "Yield"
+    ],
+    "runtime_boundary_obligation_families": [
+      "ambiguous-selector-boundary",
+      "callback-demand-effect",
+      "cancellation-liveness-boundary",
+      "channel-boundary",
+      "exception-channel",
+      "executor-callback",
+      "lifecycle-materialization-boundary",
+      "rejection-channel",
+      "scheduling-boundary",
+      "source-protocol-boundary",
+      "success-error-result-channel"
+    ],
+    "all_obligation_families": [
+      "ambiguous-selector-boundary",
+      "callback-demand-effect",
+      "cancellation-liveness-boundary",
+      "channel-boundary",
+      "exception-channel",
+      "executor-callback",
+      "lifecycle-materialization-boundary",
+      "non-degenerate-fingerprint-floor",
+      "receiver-mutation",
+      "rejection-channel",
+      "scheduling-boundary",
+      "source-protocol-boundary",
+      "success-error-result-channel",
+      "unattributed-boundary"
+    ]
+  },
+  "count_derivation": {
+    "evidence_and_source_enums": "Extracted from current Rust enum variants in crates/nose-il/src/node/evidence.rs and crates/nose-il/src/node/source.rs.",
+    "runtime_boundary_rules": "Parsed from RUNTIME_BOUNDARY_OBLIGATIONS in crates/nose-cli/src/recall_loss_report/obligations.rs, including runtime_rule! entries and explicit RuntimeBoundaryRule entries.",
+    "runtime_boundary_rule_breakdown": {
+      "runtime_rules_total": 98,
+      "promise_prefixed_evidence_labels": 46,
+      "non_promise_prefixed_evidence_labels": 52,
+      "unique_runtime_families": 11,
+      "unique_runtime_subreasons": 98
+    }
+  },
+  "accepted_capability_groups": [
+    {
+      "id": "source-fact-provenance",
+      "status": "keep",
+      "decision": "Source facts preserve syntax and protocol distinctions erased by the shared IL; exact consumers must still require downstream contracts before admission."
+    },
+    {
+      "id": "domain-requirement-evidence",
+      "status": "keep",
+      "decision": "Domain evidence and DomainRequirement stay as reusable receiver/result constraints, not selector-name proof."
+    },
+    {
+      "id": "import-symbol-identity",
+      "status": "keep",
+      "decision": "Import and symbol evidence are identity/provenance capabilities that other packs compose with; they do not approve semantics by themselves."
+    },
+    {
+      "id": "call-target-identity",
+      "status": "keep",
+      "decision": "CallTarget evidence remains a target-identity capability for direct, method, imported, and dynamic-dispatch distinctions."
+    },
+    {
+      "id": "library-api-occurrence",
+      "status": "keep",
+      "decision": "LibraryApi evidence records an occurrence of a known selector or coordinate; exact admission still requires receiver, domain, arity, shadowing, demand, and effect preconditions."
+    },
+    {
+      "id": "promise-settled-value",
+      "status": "keep-with-name-compatibility",
+      "decision": "PromiseSettledValue is accepted as the current settled-value channel evidence. The name is JS-oriented, so future non-JS FutureLike settled-value work should group it under the shared success/error result-channel capability rather than create a parallel feature list."
+    },
+    {
+      "id": "sequence-surface",
+      "status": "keep",
+      "decision": "SequenceSurface keeps exact-safe sequence materialization separate from raw syntax and from library API selectors."
+    },
+    {
+      "id": "demand-effect-profile",
+      "status": "keep",
+      "decision": "DemandEffectProfile is the shared capability for eager, lazy, callback, short-circuit, async, generator, and channel-like execution obligations."
+    },
+    {
+      "id": "place-effect-mutation",
+      "status": "keep",
+      "decision": "Place and Effect evidence should remain fact-level mutation/effect capabilities that block unsafe exact convergence until dependencies are closed."
+    },
+    {
+      "id": "runtime-boundary-obligation-taxonomy",
+      "status": "keep",
+      "decision": "Runtime-boundary family/subreason reporting is the right abstraction layer for recall-loss diagnostics. Subreasons may retain selector-shaped labels only when they identify the missing proof."
+    },
+    {
+      "id": "scheduling-lifecycle-protocols",
+      "status": "keep",
+      "decision": "Scheduling, lifecycle, materialization, cancellation, and channel obligations should stay protocol capabilities shared by JS/TS, Python, Rust, Go, Java, Swift, and Ruby."
+    },
+    {
+      "id": "success-error-exception-rejection-channels",
+      "status": "keep",
+      "decision": "Result, exception, and rejection channels are accepted as channel capabilities; language-specific spellings must map onto them instead of creating independent exact paths."
+    },
+    {
+      "id": "callback-demand-effect-obligations",
+      "status": "keep",
+      "decision": "Callback identity, demand, result, and effect obligations stay as reusable exact-channel preconditions across HOFs, executors, goroutines, defers, promises, and futures."
+    },
+    {
+      "id": "semantic-pack-manifest-conformance",
+      "status": "keep",
+      "decision": "Pack descriptors and conformance checks are the extension boundary; #654 found no need to expand that public API for this audit."
+    },
+    {
+      "id": "law-pack-value-graph",
+      "status": "keep",
+      "decision": "LawPack/value-graph semantics remain separate from evidence emission and exact admission; no feature-shaped drift found in this audit slice."
+    }
+  ],
+  "legacy_aliases": [
+    {
+      "alias": "promise-await-scheduling-contract",
+      "canonical": "async-await-scheduling-contract",
+      "decision": "Preserve readability for historical checked artifacts; prefer the canonical shared label in new reports and docs."
+    },
+    {
+      "alias": "promise-async-function-scheduling-contract",
+      "canonical": "async-function-scheduling-contract",
+      "decision": "Preserve readability for historical checked artifacts; prefer the canonical shared label in new reports and docs."
+    },
+    {
+      "alias": "future-async-block-scheduling-contract",
+      "canonical": "async-block-scheduling-contract",
+      "decision": "Preserve readability for historical checked artifacts; prefer the canonical shared label in new reports and docs."
+    },
+    {
+      "alias": "EvidenceEmitter::FirstParty Rust associated const and Builtin serde alias",
+      "canonical": "EvidenceEmitter::Builtin Rust variant",
+      "decision": "Keep Rust source compatibility and current wire compatibility distinct: the Builtin variant still serializes as \"FirstParty\" and accepts \"Builtin\" as a deserialization alias. No public wire-label migration is proposed by this audit."
+    }
+  ],
+  "feature_shaped_entries_requiring_follow_up": [
+    {
+      "entry": "promise-constructor-receiver-producer-proof",
+      "capability": "success-error-result-channel",
+      "decision": "Keep as a precise missing-proof diagnostic now; #656 should document or normalize the capability grouping."
+    },
+    {
+      "entry": "promise-async-function-return-producer-proof",
+      "capability": "scheduling-boundary",
+      "decision": "Keep because JS/TS Promise producer recovery currently needs this proof; #656 should clarify its relationship to async-function scheduling."
+    },
+    {
+      "entry": "promise-call-return-direct-function-return-domain-proof",
+      "capability": "success-error-result-channel",
+      "decision": "Keep separate from method/imported variants only because the producer proof source differs."
+    },
+    {
+      "entry": "promise-call-return-direct-method-return-domain-proof",
+      "capability": "success-error-result-channel",
+      "decision": "Keep separate from direct-function/imported variants only because the producer proof source differs."
+    },
+    {
+      "entry": "promise-call-return-imported-function-settled-value-contract",
+      "capability": "success-error-result-channel",
+      "decision": "Keep as imported settled-value contract proof; document under settled-value channel capability rather than imported-function feature support."
+    },
+    {
+      "entry": "promise-call-return-imported-member-settled-value-contract",
+      "capability": "success-error-result-channel",
+      "decision": "Keep as imported settled-value contract proof; document under settled-value channel capability rather than imported-member feature support."
+    },
+    {
+      "entry": "promise-then-promise-like-receiver-proof",
+      "capability": "ambiguous-selector-boundary",
+      "decision": "Keep as receiver proof for the FutureLike continuation capability; avoid treating .then as selector-only admission."
+    },
+    {
+      "entry": "promise-factory-settled-value-contract",
+      "capability": "success-error-result-channel",
+      "decision": "Keep as a producer-channel diagnostic; future non-JS FutureLike factories should map to the shared channel vocabulary."
+    }
+  ],
+  "duplicate_or_merge_candidates": [
+    {
+      "entries": [
+        "promise-await-scheduling-contract",
+        "async-await-scheduling-contract"
+      ],
+      "decision": "Treat as a legacy alias pair, not two capabilities."
+    },
+    {
+      "entries": [
+        "promise-async-function-scheduling-contract",
+        "async-function-scheduling-contract"
+      ],
+      "decision": "Treat as a legacy alias pair, not two capabilities."
+    },
+    {
+      "entries": [
+        "future-async-block-scheduling-contract",
+        "async-block-scheduling-contract"
+      ],
+      "decision": "Treat as a legacy alias pair, not two capabilities."
+    },
+    {
+      "entries": [
+        "promise-call-return-direct-function-return-domain-proof",
+        "promise-call-return-direct-method-return-domain-proof"
+      ],
+      "decision": "Keep as separate diagnostics, but document both under call-target producer proof."
+    },
+    {
+      "entries": [
+        "promise-call-return-imported-function-settled-value-contract",
+        "promise-call-return-imported-member-settled-value-contract"
+      ],
+      "decision": "Keep as separate diagnostics, but document both under imported settled-value channel proof."
+    },
+    {
+      "entries": [
+        "promise-then-fulfillment-continuation-contract",
+        "promise-then-rejection-continuation-contract",
+        "promise-catch-rejection-continuation-contract",
+        "promise-finally-settlement-continuation-contract"
+      ],
+      "decision": "Keep channel-specific subreasons, but group them as continuation channel obligations in docs and follow-up planning."
+    }
+  ],
+  "follow_up_decisions": [
+    {
+      "issue": 656,
+      "decision": "Use this audit as the input for vocabulary/documentation cleanup: prefer canonical shared labels in new docs, keep historical aliases readable, and clarify feature-shaped subreasons as missing-proof diagnostics."
+    },
+    {
+      "issue": 658,
+      "decision": "Use the audited capability groups when reporting oracle exclusions so strict fail-closed behavior is not confused with missing observability or unsupported selector features."
+    },
+    {
+      "issue": 653,
+      "decision": "Any later behavior-changing async/scheduling exact slice must cite the capability group it opens, add adjacent hard negatives, and record semantic admission/performance deltas."
+    }
+  ],
+  "hard_gate": {
+    "public_api_expansion": 0,
+    "semantic_admission_delta": 0,
+    "exact_channel_opened": false,
+    "backward_readability_preserved": true
+  },
+  "validation_commands": [
+    "jq empty bench/recall_loss/issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json",
+    "jq -e '.summary.capability_groups_audited == (.accepted_capability_groups | length) and .summary.evidence_record_kinds_audited == (.audited_code_vocabularies.evidence_kind | length) and .summary.source_fact_kinds_audited == (.audited_code_vocabularies.source_fact_kind | length) and .summary.source_protocol_kinds_audited == (.audited_code_vocabularies.source_protocol_kind | length) and .summary.runtime_boundary_rules_audited == .count_derivation.runtime_boundary_rule_breakdown.runtime_rules_total and .summary.promise_prefixed_runtime_obligation_labels == .count_derivation.runtime_boundary_rule_breakdown.promise_prefixed_evidence_labels and .summary.non_promise_prefixed_runtime_obligation_labels == .count_derivation.runtime_boundary_rule_breakdown.non_promise_prefixed_evidence_labels and .summary.runtime_boundary_obligation_families_audited == (.audited_code_vocabularies.runtime_boundary_obligation_families | length) and .summary.runtime_boundary_obligation_families_audited == .count_derivation.runtime_boundary_rule_breakdown.unique_runtime_families and .summary.runtime_boundary_subreasons_audited == .count_derivation.runtime_boundary_rule_breakdown.unique_runtime_subreasons and .summary.total_obligation_families_audited == (.audited_code_vocabularies.all_obligation_families | length) and .summary.legacy_aliases_preserved_for_readability == (.legacy_aliases | length) and .summary.duplicate_or_merge_candidates == (.duplicate_or_merge_candidates | length) and .summary.feature_shaped_entries_requiring_follow_up == (.feature_shaped_entries_requiring_follow_up | length) and .summary.documents_audited == (.sources.documents_audited | length) and .summary.code_paths_audited == (.sources.code_paths_audited | length) and .summary.docs_or_changelog_paths_updated == (.sources.updated_discoverability_paths | length) and .hard_gate.public_api_expansion == 0 and .hard_gate.semantic_admission_delta == 0' bench/recall_loss/issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json",
+    "scripts/check-docs.sh",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "scripts/check-duplication.sh",
+    "git diff --check"
+  ]
+}

@@ -1157,6 +1157,14 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   only on existing executable/reporting evidence, and, across those mapped
   statuses, `14` remain flagged for more granular future executable follow-up
   before broader exact admission. It keeps `semantic_admission_delta = 0`.
+- [issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json](issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json)
+  records the #653/#654 semantic-kernel capability vocabulary audit. It checks
+  `15` capability groups, `12` evidence kinds, `9` source fact kinds, `16`
+  source protocol kinds, and `98` runtime-boundary obligation rules. The audit
+  accepts the current capability groups, preserves `4` legacy aliases for old
+  artifact readability, identifies `6` duplicate/merge candidates and `8`
+  feature-shaped Promise diagnostics for #656 follow-up, and keeps
+  `public_api_expansion = 0` and `semantic_admission_delta = 0`.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

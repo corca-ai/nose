@@ -88,6 +88,12 @@ break.
   thread/fiber/yield/exception boundaries. The checked artifact maps all `48`
   #655 classes to evidence status, flags `14` for more granular future
   executable follow-up, and keeps exact admission unchanged.
+- Added the #653/#654 semantic-kernel capability vocabulary audit. It checks
+  `15` reusable capability groups, `12` evidence kinds, `9` source fact kinds,
+  `16` source protocol kinds, and `98` runtime-boundary obligation rules;
+  preserves `4` legacy aliases for historical artifact readability; and sends
+  `6` duplicate/merge candidates plus `8` feature-shaped Promise diagnostics to
+  #656 cleanup without changing public APIs or exact admission.
 - Added Swift structured-concurrency reporting for `Task.sleep`, `Task.yield`,
   and task-group calls. These now map to shared timer, task-yield, aggregate,
   cancellation/liveness, result-channel, and exception-channel obligations

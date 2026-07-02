@@ -665,6 +665,15 @@ Future async/scheduling exact slices should add their behavior-changing
 positive coverage alongside adjacent hard negatives in this suite or one of the
 existing Promise/query-level boundary files linked by the artifact.
 
+The [#654 semantic-kernel capability audit](../bench/recall_loss/issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json)
+checks this page's vocabulary against the capability-over-features rule. The
+accepted boundary is the shared obligation family, evidence, source protocol,
+and demand/effect contract model; selector-shaped labels are allowed only as
+missing-proof diagnostics when they preserve the exact blocker. The audit keeps
+old Promise/Future scheduling aliases readable, prefers the newer shared
+`async-*` labels for protocol boundaries, and sends Promise-shaped producer and
+continuation labels to #656 for documentation or normalization follow-up.
+
 The post-#602 [cross-language await obligation reporting](../bench/recall_loss/cross-language-await-obligation-reporting-2026-06-30.v1.json)
 artifact records that async/await reporting uses the language-neutral
 `async-await-scheduling-contract` label for `Source::Protocol(Await)` across
