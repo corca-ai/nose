@@ -9,7 +9,7 @@ use crate::{
     units::{self, UnitFeat},
 };
 use nose_semantics::ValueLaw;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
     let first = &units[members[0]];
@@ -100,7 +100,7 @@ pub(crate) fn build_groups(
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
 ) -> Vec<Group> {
-    let mut by_root: rustc_hash::FxHashMap<usize, (f64, u32)> = rustc_hash::FxHashMap::default();
+    let mut by_root: FxHashMap<usize, (f64, u32)> = FxHashMap::default();
     for &(i, _j, s) in accepted {
         let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
         e.0 += s;
@@ -154,7 +154,7 @@ fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<Value
 }
 
 fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
-    let mut buckets: HashMap<Vec<u64>, Vec<usize>> = HashMap::new();
+    let mut buckets: FxHashMap<Vec<u64>, Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         if unit.exact_safe && unit.value.len() >= EXACT_VALUE_MIN {
             buckets.entry(unit.value.clone()).or_default().push(idx);
@@ -201,7 +201,7 @@ fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
     // Anchors are COLLECTED at the finer containment floor; the near channel keeps its
     // own coarser floor at every consumption point, so its behavior is unchanged.
     let floor = nose_normalize::anchor_min_weight();
-    let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
+    let mut buckets: FxHashMap<u64, Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
         for a in &unit.anchors {
             if a.weight < floor {
