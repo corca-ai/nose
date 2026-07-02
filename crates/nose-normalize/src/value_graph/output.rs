@@ -16,9 +16,12 @@ impl<'a> Builder<'a> {
     /// `(hash, weight)` so the detector can RANK a shared sub-DAG by how big the shared
     /// computation is (a larger shared chunk is a stronger partial-clone signal).
     pub(super) fn anchors(&self, min_weight: u32) -> Anchors {
-        const WEIGHT_CAP: u32 = 1 << 20;
-        let n = self.nodes.len();
-        let mut reachable = vec![false; n];
+        let reachable = self.reachable_values();
+        self.anchors_from_reachable(min_weight, &reachable)
+    }
+
+    fn reachable_values(&self) -> Vec<bool> {
+        let mut reachable = vec![false; self.nodes.len()];
         let mut stack: Vec<ValueId> = self.sinks.iter().map(|s| s.value).collect();
         while let Some(v) = stack.pop() {
             let vi = v as usize;
@@ -32,6 +35,12 @@ impl<'a> Builder<'a> {
                 }
             }
         }
+        reachable
+    }
+
+    fn anchors_from_reachable(&self, min_weight: u32, reachable: &[bool]) -> Anchors {
+        const WEIGHT_CAP: u32 = 1 << 20;
+        let n = self.nodes.len();
         let mut weight = vec![0u32; n];
         for i in 0..n {
             let mut w: u32 = 1;
@@ -107,22 +116,25 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn fingerprint_lits(&self) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+        let reachable = self.reachable_values();
+        self.fingerprint_lits_from_reachable(&reachable)
+    }
+
+    pub(super) fn fingerprint_lits_anchors(
+        &self,
+        min_weight: u32,
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Anchors) {
+        let reachable = self.reachable_values();
+        let (fingerprint, lits, returns) = self.fingerprint_lits_from_reachable(&reachable);
+        let anchors = self.anchors_from_reachable(min_weight, &reachable);
+        (fingerprint, lits, returns, anchors)
+    }
+
+    fn fingerprint_lits_from_reachable(
+        &self,
+        reachable: &[bool],
+    ) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
         let h = &self.vhash; // structural hashes, maintained during construction
-                             // reachable from sinks
-        let mut reachable = vec![false; self.nodes.len()];
-        let mut stack: Vec<ValueId> = self.sinks.iter().map(|sink| sink.value).collect();
-        while let Some(v) = stack.pop() {
-            let vi = v as usize;
-            if reachable[vi] {
-                continue;
-            }
-            reachable[vi] = true;
-            for &a in &self.nodes[vi].args {
-                if !reachable[a as usize] {
-                    stack.push(a);
-                }
-            }
-        }
         let mut out: Vec<u64> = Vec::new();
         let mut lits: Vec<u64> = Vec::new();
         for i in 0..self.nodes.len() {

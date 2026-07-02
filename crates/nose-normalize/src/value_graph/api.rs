@@ -194,8 +194,8 @@ pub fn containment_anchor_min_weight() -> u32 {
 }
 
 fn finish_fingerprint_law_bundle(mut b: Builder<'_>) -> FingerprintLawBundle {
-    let (v, l, r) = b.fingerprint_lits();
-    let a = b.anchors(containment_anchor_min_weight().min(anchor_min_weight()));
+    let (v, l, r, a) =
+        b.fingerprint_lits_anchors(containment_anchor_min_weight().min(anchor_min_weight()));
     b.value_laws.sort_unstable();
     b.value_laws.dedup();
     let sink_profile = b.sink_profile();
