@@ -5,6 +5,7 @@ Generated on 2026-07-02 after the `nose 0.17.0` release evidence review.
 See the machine-readable [runtime-triage-0.17.0-post-release-2026-07-02.v1.json](../bench/recall_loss/runtime-triage-0.17.0-post-release-2026-07-02.v1.json) artifact for the focused measurements and repo classifications.
 This page links back to the [0.17.0 release evidence](release-evidence-0.17.0.md),
 which contains the all-120 release-candidate query regression run.
+The follow-up [runtime-triage-arrow-minio-followup-2026-07-02.v1.json](../bench/recall_loss/runtime-triage-arrow-minio-followup-2026-07-02.v1.json) artifact records the subsequent `arrow` residual-cost and `minio` reclassification pass.
 
 ## Goal
 
@@ -67,3 +68,21 @@ Continue with the no-family-growth cases before broad micro-optimizing:
    class-data sensitivity.
 2. Investigate the `minio` Go hot path.
 3. For capability-growth repos, report runtime cost per additional surfaced family.
+
+## Follow-Up Result
+
+The follow-up did not leave a second code change. A prototype that shared the reachable
+value-node set between value/literal fingerprint extraction and anchor extraction preserved
+query JSON hashes, but its 5-run medians stayed within ordinary timing noise. It was removed.
+
+Updated classification:
+
+- `arrow`: residual cost is real but small. The representative hot unit is still
+  `arrow/arrow/locales.py` class data (`85` class units seen, `79` kept, `12,723`
+  tokens, `8,200` value atoms, representative value time `44.2ms`). Do not optimize
+  this by weakening class-data sensitivity; a future fix needs a literal-table fast path
+  that emits the same value/literal/anchor hashes.
+- `minio`: not a single Go value-graph hot path. The representative top unit is
+  `cmd/site-replication.go`, but the observed cost is split across lower/normalization
+  passes and shared-line/render work. If this remains important, add lower-stage profiling
+  before optimizing a specific Go unit.

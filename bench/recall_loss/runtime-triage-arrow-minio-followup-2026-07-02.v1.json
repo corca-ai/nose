@@ -1,0 +1,63 @@
+{
+  "schema": "nose.runtime_triage_followup.v1",
+  "generated_on": "2026-07-02",
+  "parent_artifact": "bench/recall_loss/runtime-triage-0.17.0-post-release-2026-07-02.v1.json",
+  "objective": "Follow up on the remaining no-family-growth runtime cases after the 0.17.0 post-release triage: arrow residual class-data cost and minio.",
+  "code_change": "none",
+  "reason_no_code_change": "The only implemented prototype, shared reachable-set reuse between value fingerprint and anchor extraction, preserved output hashes but did not produce a stable median runtime improvement. It was removed.",
+  "arrow": {
+    "query": "nose query bench/repos/arrow all top=0 --mode semantic --format json",
+    "families": 2,
+    "output_sha256": "7ce920beb6bfa9161cd347d959feab2b83a689330f7e6a6f7cddd7e79c563e11",
+    "current_final_r5_median_ms": {
+      "lower": 49.5,
+      "normalize_extract": 59.6,
+      "shared_lines": 5.4,
+      "query_render": 0.4
+    },
+    "representative_top_unit": {
+      "kind": "Class",
+      "file": "bench/repos/arrow/arrow/locales.py",
+      "seen": 85,
+      "kept": 79,
+      "skipped": 6,
+      "tokens": 12723,
+      "value_atoms": 8200,
+      "total_ms": 45.6,
+      "value_ms": 44.2,
+      "features_ms": 1.1
+    },
+    "classification": "remaining cost is real but small and dominated by class literal-table value construction; do not weaken class-data sensitivity to optimize it",
+    "next_safe_direction": "A future fix needs a literal-table-specific fast path that emits the same value/literal/anchor hashes, or better internal timing to prove a narrower hot path."
+  },
+  "minio": {
+    "query": "nose query bench/repos/minio all top=0 --mode semantic --format json",
+    "families": 54,
+    "output_sha256": "82f8b31edb7275b65ba1c834c3b223a6daee779c5cc0faf316ed8ab13ad498d3",
+    "current_final_r5_median_ms": {
+      "lower": 240.6,
+      "normalize_extract": 209.0,
+      "shared_lines": 33.1,
+      "query_render": 4.7
+    },
+    "representative_top_unit": {
+      "kind": "Method",
+      "file": "bench/repos/minio/cmd/site-replication.go",
+      "seen": 87,
+      "kept": 85,
+      "skipped": 2,
+      "tokens": 19384,
+      "value_atoms": 8829,
+      "total_ms": 24.4,
+      "value_ms": 21.9,
+      "features_ms": 2.2
+    },
+    "classification": "not a single Go value-graph hot path; the observed cost is split across lower/normalization passes and report shared-lines/render work",
+    "next_safe_direction": "Do not optimize a specific MinIO unit first. If MinIO remains important, measure lower-stage pass deltas with a dedicated lower profiler and compare cost per changed output family."
+  },
+  "rejected_prototype": {
+    "summary": "Share the reachable value-node set between fingerprint/literal extraction and anchor extraction.",
+    "output_hashes_preserved": true,
+    "reason_rejected": "The 5-run medians were within ordinary run-to-run noise and did not justify additional code complexity."
+  }
+}
