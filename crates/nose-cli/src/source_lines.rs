@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Anti-unify N line-blocks at line granularity. Anchored on the first (largest) copy,
 /// a line *survives* into the shared body only if it is matched in *every* other copy
@@ -147,7 +148,7 @@ pub(crate) fn shared_lines_of(
     // tied to `varying_spots` and drives `param_penalty`/`shallow-extraction`). These are
     // the ranking inputs. The same diff also votes the all-copies display count, avoiding a
     // second anti-unification pass over the same member slices.
-    let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut counts: FxHashMap<String, usize> = FxHashMap::default();
     let mut n_others = 0usize;
     let mut params = 0u32;
     for b in locs.iter().skip(1).take(MEMBER_CAP - 1) {
@@ -342,7 +343,7 @@ pub(crate) fn is_trivial_line(t: &str) -> bool {
 /// thing we want to surface — keeps full weight; only genuinely pervasive lines are
 /// docked. This matters on small repos, where naive IDF would penalize everything.
 pub(crate) struct LineIdf {
-    df: std::collections::HashMap<String, u32>,
+    df: FxHashMap<String, u32>,
     n_files: f64,
 }
 
@@ -379,7 +380,7 @@ pub(crate) fn corpus_line_idf(
         .map(|path| {
             let data = std::fs::read_to_string(&path).ok().map(|text| {
                 let lines = text.lines().map(str::to_string).collect::<Vec<_>>();
-                let mut seen = std::collections::HashSet::new();
+                let mut seen = FxHashSet::default();
                 for line in &lines {
                     let t = line.trim();
                     if !is_trivial_line(t) {
@@ -391,7 +392,7 @@ pub(crate) fn corpus_line_idf(
             (path, data)
         })
         .collect::<Vec<_>>();
-    let mut df: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    let mut df: FxHashMap<String, u32> = FxHashMap::default();
     let mut n_files = 0u32;
     for (path, data) in loaded {
         match data {

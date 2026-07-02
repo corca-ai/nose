@@ -469,6 +469,7 @@ dependencies = [
  "nose-normalize",
  "nose-semantics",
  "rayon",
+ "rustc-hash",
  "serde",
  "serde_json",
  "toml",
