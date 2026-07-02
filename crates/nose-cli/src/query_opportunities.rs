@@ -1,4 +1,6 @@
 use crate::baseline;
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::cmp::Ordering;
 
 pub(crate) fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
     fs.iter().map(|f| f.dup_lines).sum()
@@ -14,9 +16,9 @@ pub(crate) fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
 #[derive(Default)]
 pub(crate) struct OpportunityGroups {
     /// Slice family id → its primary's family id.
-    pub(crate) primary_of: std::collections::HashMap<String, String>,
+    pub(crate) primary_of: FxHashMap<String, String>,
     /// Primary family id → slice family ids, in rank order.
-    pub(crate) slices_of: std::collections::HashMap<String, Vec<String>>,
+    pub(crate) slices_of: FxHashMap<String, Vec<String>>,
 }
 
 impl OpportunityGroups {
@@ -31,26 +33,43 @@ impl OpportunityGroups {
         // A file listing implausibly many families would make candidate
         // generation quadratic; skip it rather than risk query speed.
         const PER_FILE_CAP: usize = 200;
-        let mut by_file: std::collections::HashMap<&str, Vec<usize>> =
-            std::collections::HashMap::new();
+        let mut by_file: FxHashMap<&str, FileOpportunityBucket> = FxHashMap::default();
+        let mut family_files: Vec<Vec<&str>> = Vec::with_capacity(families.len());
         for (i, f) in families.iter().enumerate() {
             let mut files: Vec<&str> = f.locations.iter().map(|l| l.file.as_str()).collect();
             files.sort_unstable();
             files.dedup();
-            for file in files {
-                by_file.entry(file).or_default().push(i);
+            for &file in &files {
+                by_file.entry(file).or_default().families.push(i);
             }
-        }
-        let mut candidates = Vec::new();
-        for idxs in by_file.values().filter(|v| v.len() <= PER_FILE_CAP) {
-            for (p, &i) in idxs.iter().enumerate() {
-                for &j in &idxs[p + 1..] {
-                    candidates.push((i.min(j), i.max(j)));
-                }
+            for loc in &f.locations {
+                by_file
+                    .entry(loc.file.as_str())
+                    .or_default()
+                    .intervals
+                    .push(MemberInterval {
+                        family: i,
+                        start: loc.start_line,
+                        end: loc.end_line,
+                    });
             }
+            family_files.push(files);
         }
+        let capped_files: FxHashSet<&str> = by_file
+            .iter()
+            .filter_map(|(&file, bucket)| (bucket.families.len() <= PER_FILE_CAP).then_some(file))
+            .collect();
+        // Keep the old cap semantics (a pair needs at least one capped shared file), but
+        // only run the full greedy overlap check for pairs that have two possible member
+        // overlaps anywhere. The greedy pass below remains the behavioral authority.
+        let mut candidates: Vec<(usize, usize)> = overlapping_candidate_counts(&by_file)
+            .into_iter()
+            .filter_map(|(pair @ (i, j), count)| {
+                (count >= 2 && share_capped_file(&family_files[i], &family_files[j], &capped_files))
+                    .then_some(pair)
+            })
+            .collect();
         candidates.sort_unstable();
-        candidates.dedup();
         // Union-find keyed so each set's root is its smallest (best-ranked)
         // index — that root is the opportunity's primary.
         let mut parent: Vec<usize> = (0..families.len()).collect();
@@ -90,6 +109,76 @@ impl OpportunityGroups {
             .get(&baseline::family_id(family))
             .map(Vec::as_slice)
     }
+}
+
+#[derive(Default)]
+struct FileOpportunityBucket {
+    families: Vec<usize>,
+    intervals: Vec<MemberInterval>,
+}
+
+#[derive(Clone, Copy)]
+struct MemberInterval {
+    family: usize,
+    start: u32,
+    end: u32,
+}
+
+fn overlapping_candidate_counts(
+    by_file: &FxHashMap<&str, FileOpportunityBucket>,
+) -> FxHashMap<(usize, usize), u8> {
+    let mut counts: FxHashMap<(usize, usize), u8> = FxHashMap::default();
+    for bucket in by_file.values() {
+        let mut intervals = bucket.intervals.clone();
+        intervals.sort_unstable_by_key(|iv| (iv.start, iv.end, iv.family));
+        for left in 0..intervals.len() {
+            let a = intervals[left];
+            for &b in &intervals[left + 1..] {
+                if b.start > a.end {
+                    break;
+                }
+                if a.family == b.family || !intervals_half_overlap(a, b) {
+                    continue;
+                }
+                let key = (a.family.min(b.family), a.family.max(b.family));
+                let count = counts.entry(key).or_insert(0);
+                if *count < 2 {
+                    *count += 1;
+                }
+            }
+        }
+    }
+    counts
+}
+
+fn intervals_half_overlap(a: MemberInterval, b: MemberInterval) -> bool {
+    let lo = a.start.max(b.start);
+    let hi = a.end.min(b.end);
+    if lo > hi {
+        return false;
+    }
+    let overlap = hi - lo + 1;
+    let len_a = a.end - a.start + 1;
+    let len_b = b.end - b.start + 1;
+    overlap * 2 >= len_a.min(len_b)
+}
+
+fn share_capped_file(a: &[&str], b: &[&str], capped_files: &FxHashSet<&str>) -> bool {
+    let (mut i, mut j) = (0, 0);
+    while let (Some(&fa), Some(&fb)) = (a.get(i), b.get(j)) {
+        match fa.cmp(fb) {
+            Ordering::Less => i += 1,
+            Ordering::Greater => j += 1,
+            Ordering::Equal => {
+                if capped_files.contains(fa) {
+                    return true;
+                }
+                i += 1;
+                j += 1;
+            }
+        }
+    }
+    false
 }
 
 /// Greedy one-to-one count of member pairs that overlap on the same file by
