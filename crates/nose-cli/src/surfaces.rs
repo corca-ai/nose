@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use rustc_hash::FxHashSet;
 
 use crate::path_utils::relativize;
 use crate::source_lines::FileLineCache;
@@ -11,7 +12,7 @@ pub(crate) fn classify_surface_overrides(
     families: &mut [nose_detect::RefactorFamily],
 ) -> SurfaceOverrides {
     let generated_sources = if families.is_empty() {
-        std::collections::HashSet::new()
+        FxHashSet::default()
     } else {
         generated_source_index(families)
     };
@@ -32,11 +33,11 @@ pub(crate) fn classify_surface_overrides(
 /// the action-oriented surfaces (human/markdown/SARIF/`--fail-on`) omit them.
 pub(crate) struct SurfaceOverrides {
     /// Files whose head or stylesheet distribution markers classify them as generated (#224).
-    pub(crate) generated_sources: std::collections::HashSet<String>,
+    pub(crate) generated_sources: FxHashSet<String>,
     /// Family ids whose every member span is provably only import/include/
     /// use/re-export declarations — duplication the language mandates per
     /// file, with no extraction action to take.
-    pub(crate) declaration_run_ids: std::collections::HashSet<String>,
+    pub(crate) declaration_run_ids: FxHashSet<String>,
 }
 
 /// The surface an integration should treat this family as: the ranked
@@ -105,9 +106,7 @@ fn family_declaration_run(
 /// statement keeps the family on its ranked surface. Misclassifying a real
 /// finding is the error class this guards against; missing an import run is
 /// only a ranking nuisance.
-fn declaration_run_ids(
-    families: &[nose_detect::RefactorFamily],
-) -> std::collections::HashSet<String> {
+fn declaration_run_ids(families: &[nose_detect::RefactorFamily]) -> FxHashSet<String> {
     // Three passes (coevo s4 perf packet): a cheap serial prescreen picks the
     // candidate families, the unique candidate files parse in PARALLEL (the
     // serial per-file AST parse cost +29% wall on sympy), and the final pass
@@ -284,7 +283,7 @@ pub(crate) fn span_is_declarations(
 
 fn family_all_generated_source(
     family: &nose_detect::RefactorFamily,
-    generated_sources: &std::collections::HashSet<String>,
+    generated_sources: &FxHashSet<String>,
 ) -> bool {
     !family.locations.is_empty()
         && family
@@ -295,7 +294,7 @@ fn family_all_generated_source(
 
 fn family_generated_source(
     family: &nose_detect::RefactorFamily,
-    generated_sources: &std::collections::HashSet<String>,
+    generated_sources: &FxHashSet<String>,
 ) -> bool {
     family_all_generated_source(family, generated_sources)
         || family_is_compiled_css_pipeline(family, generated_sources)
@@ -312,7 +311,7 @@ fn family_generated_source(
 /// generated families demoted (108 beyond the all-compiled rule), 0 worthy — sound.
 pub(crate) fn family_is_compiled_css_pipeline(
     family: &nose_detect::RefactorFamily,
-    generated_sources: &std::collections::HashSet<String>,
+    generated_sources: &FxHashSet<String>,
 ) -> bool {
     if family.locations.is_empty() || !family.locations.iter().all(|l| l.file.ends_with(".css")) {
         return false;
@@ -386,11 +385,9 @@ pub(crate) fn surface_omission_note(
     ))
 }
 
-fn generated_source_index(
-    families: &[nose_detect::RefactorFamily],
-) -> std::collections::HashSet<String> {
+fn generated_source_index(families: &[nose_detect::RefactorFamily]) -> FxHashSet<String> {
     let cwd = std::env::current_dir().ok();
-    let mut generated = std::collections::HashSet::new();
+    let mut generated = FxHashSet::default();
     let files = families
         .iter()
         .flat_map(|f| f.locations.iter().map(|l| l.file.as_str()))

@@ -25,7 +25,7 @@ fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
 
 #[test]
 fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
-    let gen: std::collections::HashSet<String> = [
+    let gen: rustc_hash::FxHashSet<String> = [
         "css/bundle.css".to_string(),
         "css/bundle.min.css".to_string(),
     ]
@@ -40,7 +40,7 @@ fn compiled_css_pipeline_demotes_source_plus_outputs_but_not_cross_source() {
     assert!(family_is_compiled_css_pipeline(&pipe, &gen));
     let ov = SurfaceOverrides {
         generated_sources: gen.clone(),
-        declaration_run_ids: std::collections::HashSet::new(),
+        declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     assert_eq!(effective_surface(&pipe, &ov), "generated");
     assert!(
@@ -101,8 +101,8 @@ fn query_family_json_carries_fold_navigation() {
     let ranked = [&a, &b];
     let opp = OpportunityGroups::from_ranked(&ranked);
     let ov = SurfaceOverrides {
-        generated_sources: std::collections::HashSet::new(),
-        declaration_run_ids: std::collections::HashSet::new(),
+        generated_sources: rustc_hash::FxHashSet::default(),
+        declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     // The primary lists the slice ids it subsumes (navigable id= handles).
     let ja = query_family_json(&a, &ov, &opp, false, None, None);
@@ -148,8 +148,8 @@ fn line_diff_preserves_lcs_output_order() {
 #[test]
 fn query_family_json_carries_proof_depth() {
     let ov = SurfaceOverrides {
-        generated_sources: std::collections::HashSet::new(),
-        declaration_run_ids: std::collections::HashSet::new(),
+        generated_sources: rustc_hash::FxHashSet::default(),
+        declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     let empty = OpportunityGroups::default();
     // Exact channel: how much is proven identical (the shared value-multiset size).
@@ -181,8 +181,8 @@ fn query_family_json_carries_proof_depth() {
 #[test]
 fn query_family_json_carries_raw_detector_metrics() {
     let ov = SurfaceOverrides {
-        generated_sources: std::collections::HashSet::new(),
-        declaration_run_ids: std::collections::HashSet::new(),
+        generated_sources: rustc_hash::FxHashSet::default(),
+        declaration_run_ids: rustc_hash::FxHashSet::default(),
     };
     let empty = OpportunityGroups::default();
     let mut f = fam(2, 3, &[Some("a"), Some("b"), Some("c")]);
