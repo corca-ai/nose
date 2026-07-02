@@ -20,7 +20,11 @@ const DIGEST_PREFIX: &str = "fnv1a64";
 
 /// Stable cross-run identity of a family.
 pub(crate) fn family_key(f: &RefactorFamily) -> u64 {
-    let mut members = member_keys(f);
+    let mut members: Vec<_> = f
+        .locations
+        .iter()
+        .map(BorrowedMemberKey::from_location)
+        .collect();
     members.sort_unstable();
     let mut h = crate::fnv::OFFSET_BASIS;
     let mut mix = |bytes: &[u8]| {
@@ -67,17 +71,58 @@ pub(crate) struct MemberKey {
     pub reason_code: Option<String>,
 }
 
-impl MemberKey {
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+struct BorrowedMemberKey<'a> {
+    file: &'a str,
+    lang: Option<&'a str>,
+    start_line: Option<u32>,
+    end_line: Option<u32>,
+    kind: Option<&'a str>,
+    name: &'a str,
+    is_fragment: Option<bool>,
+    fragment_kind: Option<&'a str>,
+    reason_code: Option<&'a str>,
+}
+
+impl<'a> BorrowedMemberKey<'a> {
+    fn from_location(loc: &'a Loc) -> Self {
+        Self {
+            file: &loc.file,
+            lang: Some(&loc.lang),
+            start_line: Some(loc.start_line),
+            end_line: Some(loc.end_line),
+            kind: Some(unit_kind_name(loc.kind)),
+            name: loc.name.as_deref().unwrap_or_default(),
+            is_fragment: Some(loc.is_fragment),
+            fragment_kind: loc.fragment_kind.map(fragment_kind_name),
+            reason_code: loc.reason_code,
+        }
+    }
+
+    fn from_member_key(member: &'a MemberKey) -> Self {
+        Self {
+            file: &member.file,
+            lang: member.lang.as_deref(),
+            start_line: member.start_line,
+            end_line: member.end_line,
+            kind: member.kind.as_deref(),
+            name: &member.name,
+            is_fragment: member.is_fragment,
+            fragment_kind: member.fragment_kind.as_deref(),
+            reason_code: member.reason_code.as_deref(),
+        }
+    }
+
     fn mix_into(&self, mix: &mut impl FnMut(&[u8])) {
         mix(self.file.as_bytes());
-        mix_opt_str(mix, self.lang.as_deref());
+        mix_opt_str(mix, self.lang);
         mix_opt_u32(mix, self.start_line);
         mix_opt_u32(mix, self.end_line);
-        mix_opt_str(mix, self.kind.as_deref());
+        mix_opt_str(mix, self.kind);
         mix(self.name.as_bytes());
         mix_opt_bool(mix, self.is_fragment);
-        mix_opt_str(mix, self.fragment_kind.as_deref());
-        mix_opt_str(mix, self.reason_code.as_deref());
+        mix_opt_str(mix, self.fragment_kind);
+        mix_opt_str(mix, self.reason_code);
     }
 }
 
@@ -155,10 +200,16 @@ fn fragment_kind_name(kind: nose_detect::FragmentKind) -> &'static str {
 }
 
 pub(crate) fn member_id(loc: &Loc) -> String {
-    format_key(member_key_hash(&member_key_from_location(loc)))
+    format_key(member_key_hash_borrowed(&BorrowedMemberKey::from_location(
+        loc,
+    )))
 }
 
 fn member_key_hash(member: &MemberKey) -> u64 {
+    member_key_hash_borrowed(&BorrowedMemberKey::from_member_key(member))
+}
+
+fn member_key_hash_borrowed(member: &BorrowedMemberKey<'_>) -> u64 {
     let mut h = crate::fnv::OFFSET_BASIS;
     let mut mix = |bytes: &[u8]| {
         for &b in bytes {
@@ -170,7 +221,8 @@ fn member_key_hash(member: &MemberKey) -> u64 {
     h
 }
 
-pub(crate) fn member_keys(f: &RefactorFamily) -> Vec<MemberKey> {
+#[cfg(test)]
+fn member_keys(f: &RefactorFamily) -> Vec<MemberKey> {
     f.locations.iter().map(member_key_from_location).collect()
 }
 
@@ -495,5 +547,36 @@ mod tests {
                 serde_json::to_value(kind).unwrap().as_str().unwrap()
             );
         }
+    }
+
+    #[test]
+    fn borrowed_member_keys_match_owned_baseline_identity() {
+        let family = fragment_family(&[937, 866, 902]);
+        let loc = &family.locations[0];
+        let owned = member_key_from_location(loc);
+
+        assert_eq!(
+            member_id(loc),
+            format_key(member_key_hash(&owned)),
+            "fast member ids must stay identical to the owned baseline key"
+        );
+
+        let mut members = member_keys(&family);
+        members.sort_unstable();
+        let mut h = crate::fnv::OFFSET_BASIS;
+        let mut mix = |bytes: &[u8]| {
+            for &b in bytes {
+                h = crate::fnv::mix(h, b as u64);
+            }
+            h = crate::fnv::mix(h, 0xff);
+        };
+        for member in &members {
+            BorrowedMemberKey::from_member_key(member).mix_into(&mut mix);
+        }
+        assert_eq!(
+            family_key(&family),
+            h,
+            "fast family ids must preserve owned member ordering and hashing"
+        );
     }
 }
