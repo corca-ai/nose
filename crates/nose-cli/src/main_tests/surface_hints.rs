@@ -179,7 +179,7 @@ fn shared_lines_params_come_from_first_successful_pair() {
     // locs[1] (the first compared pair) is unreadable; locs[2] reads and differs
     // from the representative by one parameter line.
     let locs = vec![mk(f0), mk(missing), mk(f2)];
-    let mut cache = FileLineCache(std::collections::HashMap::new());
+    let mut cache = FileLineCache::default();
     let s = shared_lines_of(&locs, &mut cache).expect("a later pair reads");
 
     assert!(

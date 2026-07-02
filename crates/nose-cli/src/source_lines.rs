@@ -425,7 +425,7 @@ pub(crate) fn family_anchor(f: &nose_detect::RefactorFamily) -> (&str, u32) {
 /// Memoizes file contents (split into lines) so ranking many families that touch the
 /// same files reads each file at most once. `None` for files that fail to read.
 #[derive(Default)]
-pub(crate) struct FileLineCache(pub(crate) std::collections::HashMap<String, Option<Vec<String>>>);
+pub(crate) struct FileLineCache(pub(crate) FxHashMap<String, Option<Vec<String>>>);
 
 impl FileLineCache {
     /// All lines of `file`, reading and caching on first touch. `None` if unreadable.
