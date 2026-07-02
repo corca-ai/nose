@@ -211,8 +211,12 @@ impl<'a> Builder<'a> {
         context: Option<&ValueFingerprintContext>,
     ) {
         if let Some(context) = context {
-            let required = context.module.required_bindings_for(self.il, root);
-            self.seed_module_value_bindings_from_context(&context.module, Some(&required));
+            if context.module.assignment_counts.is_empty() {
+                self.seed_module_value_bindings_from_context(&context.module, None);
+            } else {
+                let required = context.module.required_bindings_for(self.il, root);
+                self.seed_module_value_bindings_from_context(&context.module, Some(&required));
+            }
         } else {
             self.seed_module_value_bindings();
         }
