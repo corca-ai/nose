@@ -41,14 +41,16 @@ impl OpportunityGroups {
                 by_file.entry(file).or_default().push(i);
             }
         }
-        let mut candidates = std::collections::BTreeSet::new();
+        let mut candidates = Vec::new();
         for idxs in by_file.values().filter(|v| v.len() <= PER_FILE_CAP) {
             for (p, &i) in idxs.iter().enumerate() {
                 for &j in &idxs[p + 1..] {
-                    candidates.insert((i.min(j), i.max(j)));
+                    candidates.push((i.min(j), i.max(j)));
                 }
             }
         }
+        candidates.sort_unstable();
+        candidates.dedup();
         // Union-find keyed so each set's root is its smallest (best-ranked)
         // index — that root is the opportunity's primary.
         let mut parent: Vec<usize> = (0..families.len()).collect();
