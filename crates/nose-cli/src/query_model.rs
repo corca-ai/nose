@@ -265,6 +265,7 @@ pub(super) fn query_family_json_with_counts(
 ) -> serde_json::Value {
     let removable = query_removable_lines(f, shared);
     let helper = family_existing_helper(f);
+    let id = baseline::family_id(f);
     let locations: Vec<_> = f
         .locations
         .iter()
@@ -292,7 +293,7 @@ pub(super) fn query_family_json_with_counts(
         })
         .collect();
     let mut obj = serde_json::json!({
-        "id": baseline::family_id(f),
+        "id": id.clone(),
         "scope": f.scope,
         "witness": witness_token(f.witness.as_ref().map(|w| w.kind)),
         "surface": effective_surface(f, ov),
@@ -309,7 +310,7 @@ pub(super) fn query_family_json_with_counts(
         "value": f.value,
         "extraction_shape": f.extraction_shape(),
         "same_symbol": family_same_symbol(f),
-        "folds": opp.slices(f).map(<[_]>::len).unwrap_or(0),
+        "folds": opp.slices_of.get(&id).map(Vec::len).unwrap_or(0),
         "locations": locations,
     });
     // Proof depth: for the exact channel, how much is proven identical — the size of the shared
@@ -339,11 +340,10 @@ pub(super) fn query_family_json_with_counts(
     }
     // Fold-graph navigation: the actual related family ids, not just a count — so a caller can
     // jump to the fuller overlapping family or open the slices it subsumes (HATEOAS).
-    let id = baseline::family_id(f);
     if let Some(primary) = opp.primary_of.get(&id) {
         obj["subsumed_by"] = serde_json::Value::from(short_id(primary));
     }
-    if let Some(slices) = opp.slices(f).filter(|s| !s.is_empty()) {
+    if let Some(slices) = opp.slices_of.get(&id).filter(|s| !s.is_empty()) {
         let ids: Vec<&str> = slices.iter().map(|s| short_id(s)).collect();
         obj["subsumes"] = serde_json::Value::from(ids);
     }
