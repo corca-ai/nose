@@ -76,6 +76,21 @@ gate asks for it.
 The broader refactoring policy lives in
 [`docs/refactoring-ratchets.md`](docs/refactoring-ratchets.md).
 
+### Runtime regression triage
+
+For semantic-kernel, lowering, normalization, query, or corpus-scale behavior
+changes, run the broad query-regression gate before treating a runtime delta as a
+bug or an optimization target. If the broad run shows a meaningful increase, use
+the [runtime triage runbook](docs/runtime-triage.md) to classify the affected repos
+as noise, capability-growth cost, lower/front-end cost, value-graph cost, or a mixed
+hot path.
+
+Do not optimize a repo-level slowdown until the classification is recorded. For
+capability-growth cases, report runtime cost per newly surfaced family first; for
+no-family-growth cases, name the measured stage before changing code. Link the
+focused artifact from the issue, PR, or release evidence page so future maintainers
+can distinguish expected semantic expansion cost from accidental degradation.
+
 ### One-time tool install
 
 `cargo-machete`, `cargo-deny`, `cargo-llvm-cov`,

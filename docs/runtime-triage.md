@@ -4,6 +4,17 @@ Runtime triage turns a query-regression report into a reproducible performance d
 which repos are expected capability cost, which are noisy, and which need a focused fix.
 Use it before optimizing a slow repo by hand.
 
+## When Required
+
+Run this process when a PR, release candidate, or post-release follow-up changes semantic
+admission, lowering, normalization, query ranking/filtering, or corpus-scale analysis
+behavior and the broad query-regression run reports a meaningful runtime increase.
+
+The broad gate answers whether runtime moved. Runtime triage answers why it moved. Do
+not skip the classification step just because a repo looks slow: capability-growth cost,
+measurement noise, lower/front-end cost, and value-graph hot paths call for different
+actions.
+
 ## Harness
 
 Use `scripts/runtime-triage-harness.py` when comparing two binaries on one or more corpus
@@ -74,6 +85,10 @@ Use the timing knobs in increasing order of verbosity:
 3. Optimize only `no-family-growth-*` cases with clear stage attribution.
 4. For `capability-growth`, report cost per newly surfaced family before changing code.
 5. Record the artifact under `bench/recall_loss/` or `target/` and link the summary doc.
+
+The triage is complete when every selected repo has a recorded classification, any
+code change names the stage it is intended to improve, and the follow-up document
+links both the broad query-regression artifact and the focused runtime-triage artifact.
 
 The [0.17.0 post-release runtime triage](runtime-triage-0.17.0.md) is the first
 documented use of this process.

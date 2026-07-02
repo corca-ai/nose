@@ -6,7 +6,10 @@ break.
 
 ## [Unreleased]
 
-No unreleased changes.
+### Added
+- Added a runtime-triage harness and maintainer runbook for classifying query-runtime
+  regressions as noise, capability-growth cost, lower/front-end cost, value-graph cost,
+  or mixed hot paths before optimizing.
 
 ## [0.17.0] - 2026-07-02
 
