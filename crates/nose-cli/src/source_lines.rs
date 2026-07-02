@@ -140,12 +140,13 @@ pub(crate) fn shared_lines_of(
     const MEMBER_CAP: usize = 8;
     // Read the anchor (largest copy) and up to MEMBER_CAP-1 others once.
     let anchor = cache.slice(&locs[0].file, locs[0].start_line, locs[0].end_line)?;
-    let mut members: Vec<Vec<String>> = vec![anchor];
+    let ar: Vec<&str> = anchor.iter().map(String::as_str).collect();
+    let mut display_survive = vec![true; ar.len()];
     // The pairwise pass against the anchor feeds the majority-vote `rank_lines`
     // (→ `shared_weight`) and `params` (the representative-pair hole count, which stays
     // tied to `varying_spots` and drives `param_penalty`/`shallow-extraction`). These are
-    // the ranking inputs and are computed exactly as before, so the family order is
-    // unchanged. Only `display` becomes the all-copies count, below (#366).
+    // the ranking inputs. The same diff also votes the all-copies display count, avoiding a
+    // second anti-unification pass over the same member slices.
     let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut n_others = 0usize;
     let mut params = 0u32;
@@ -153,22 +154,35 @@ pub(crate) fn shared_lines_of(
         let Some(lb) = cache.slice(&b.file, b.start_line, b.end_line) else {
             continue;
         };
-        let ar: Vec<&str> = members[0].iter().map(String::as_str).collect();
         let br: Vec<&str> = lb.iter().map(String::as_str).collect();
         let mut shared = Vec::new();
+        let mut display_matched = vec![false; ar.len()];
+        let mut ai = 0usize;
         let mut p = 0u32;
         let mut in_hole = false;
         for (tag, line) in &line_diff(&ar, &br) {
             if *tag == ' ' {
+                if ai < display_matched.len() {
+                    display_matched[ai] = true;
+                }
+                ai += 1;
                 in_hole = false;
                 let t = line.trim();
                 if !t.is_empty() {
                     shared.push(t.to_string());
                 }
-            } else if !in_hole {
-                in_hole = true;
-                p += 1;
+            } else {
+                if *tag == '-' {
+                    ai += 1;
+                }
+                if !in_hole {
+                    in_hole = true;
+                    p += 1;
+                }
             }
+        }
+        for (survive, matched) in display_survive.iter_mut().zip(display_matched) {
+            *survive &= matched;
         }
         // Params come from the first pair that actually reads (the rep pair).
         if n_others == 0 {
@@ -179,7 +193,6 @@ pub(crate) fn shared_lines_of(
         for l in uniq {
             *counts.entry(l).or_insert(0) += 1;
         }
-        members.push(lb);
     }
     if n_others == 0 {
         return None;
@@ -190,7 +203,10 @@ pub(crate) fn shared_lines_of(
     // diverge). Display-only and gold-set-measured ranking-neutral: the order reads
     // `shared_weight`/`params`, never this. (All-copies *params* was measured too and
     // regressed held-out — experiments §CL — so `params` stays representative-pair.)
-    let (_skeleton, display, _params) = anti_unify_all(&members);
+    let display = display_survive
+        .into_iter()
+        .filter(|survives| *survives)
+        .count() as u32;
     let need = ((n_others as f64) * 0.6).ceil().max(1.0) as usize;
     let mut rank_lines: Vec<String> = counts
         .into_iter()
