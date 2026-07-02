@@ -211,9 +211,7 @@ impl<'a> Builder<'a> {
         context: Option<&ValueFingerprintContext>,
     ) {
         if let Some(context) = context {
-            if context.module.assignment_counts.is_empty() {
-                self.seed_module_value_bindings_from_context(&context.module, None);
-            } else {
+            if !context.module.assignment_counts.is_empty() {
                 let required = context.module.required_bindings_for(self.il, root);
                 self.seed_module_value_bindings_from_context(&context.module, Some(&required));
             }
@@ -262,6 +260,9 @@ impl<'a> Builder<'a> {
         unit_symbols: Option<&FxHashSet<Symbol>>,
         required_bindings: Option<&FxHashSet<Symbol>>,
     ) {
+        if counts.is_empty() {
+            return;
+        }
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         for &stmt in top_level {
             let kids = self.il.children(stmt);
