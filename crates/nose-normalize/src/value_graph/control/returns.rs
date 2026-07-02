@@ -1,5 +1,7 @@
 use super::super::*;
 
+pub(in crate::value_graph) const PATH_COND_FORMULA_THRESHOLD: usize = 32;
+
 impl<'a> Builder<'a> {
     /// Recognize an existence/universal loop written with an early return, and rewrite it
     /// to the same `Reduce(REDUCE_ANY/ALL, [predicate])` the functional `any`/`all` builds:
@@ -263,6 +265,13 @@ impl<'a> Builder<'a> {
     /// top — the path suffix relative to a marked entry point, used by inline return
     /// capture to express a callee-internal guard without the caller's own conditions.
     pub(in crate::value_graph) fn path_cond_from(&mut self, base: usize) -> Option<ValueId> {
+        let suffix_len = self.path.len().saturating_sub(base);
+        if suffix_len == 0 {
+            return None;
+        }
+        if suffix_len >= PATH_COND_FORMULA_THRESHOLD {
+            return Some(self.compact_path_cond_from(base, suffix_len));
+        }
         let mut pc: Option<ValueId> = None;
         // Indexed loop: `mk` needs `&mut self` and never touches `path`.
         for i in base..self.path.len() {
@@ -274,6 +283,19 @@ impl<'a> Builder<'a> {
         }
         pc
     }
+
+    fn compact_path_cond_from(&mut self, base: usize, suffix_len: usize) -> ValueId {
+        // Long generated decision tables can produce hundreds of nested path guards.
+        // Preserve the exact ordered condition identity in one Formula key instead of
+        // materializing an equally-large `And` DAG for every guarded sink.
+        let mut h = combine(0x9A7C_0D1D, Op::And as u64);
+        h = combine(h, suffix_len as u64);
+        for i in base..self.path.len() {
+            h = combine(h, self.vhash[self.path[i] as usize]);
+        }
+        self.mk(ValOp::Formula(h), vec![])
+    }
+
     /// Does `v`'s value subgraph reference an `Elem` (a collection element)? Bounded DAG
     /// walk; used to confirm a guard is a per-element predicate of a loop.
     pub(in crate::value_graph) fn refs_elem(&self, v: ValueId) -> bool {

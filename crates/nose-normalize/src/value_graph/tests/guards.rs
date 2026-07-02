@@ -1,6 +1,44 @@
 use super::support::*;
 
 #[test]
+fn long_path_conditions_compact_to_formula() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let root = b.add(NodeKind::Block, Payload::None, sp(1), &[]);
+    let il = finish_test_il(b, root, Lang::Rust);
+    let mut builder = Builder::new(&il, &interner);
+    for idx in 0..40 {
+        let value = builder.int_const(idx as u32);
+        builder.path.push(value);
+    }
+
+    let condition = builder.path_cond().expect("path condition");
+    assert!(matches!(
+        builder.nodes[condition as usize].op,
+        ValOp::Formula(_)
+    ));
+}
+
+#[test]
+fn short_path_conditions_keep_explicit_and_chain() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let root = b.add(NodeKind::Block, Payload::None, sp(1), &[]);
+    let il = finish_test_il(b, root, Lang::Rust);
+    let mut builder = Builder::new(&il, &interner);
+    for idx in 0..3 {
+        let value = builder.int_const(idx as u32);
+        builder.path.push(value);
+    }
+
+    let condition = builder.path_cond().expect("path condition");
+    assert!(!matches!(
+        builder.nodes[condition as usize].op,
+        ValOp::Formula(_)
+    ));
+}
+
+#[test]
 fn record_guard_value_tag_requires_guard_evidence() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
