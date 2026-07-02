@@ -12,6 +12,18 @@ fn lowered_java_unit_with_features(
     shape_features: bool,
     abstraction_witnesses: bool,
 ) -> UnitFeat {
+    lowered_java_units_with_features(src, interner, shape_features, abstraction_witnesses)
+        .into_iter()
+        .find(|unit| unit.kind == kind && unit.name.as_deref() == Some(name))
+        .expect("requested Java unit")
+}
+
+fn lowered_java_units_with_features(
+    src: &str,
+    interner: &Interner,
+    shape_features: bool,
+    abstraction_witnesses: bool,
+) -> Vec<UnitFeat> {
     let raw =
         nose_frontend::lower_source(FileId(0), "T.java", src.as_bytes(), Lang::Java, interner)
             .expect("lower Java source");
@@ -31,9 +43,10 @@ fn lowered_java_unit_with_features(
         },
     );
     units
-        .into_iter()
-        .find(|unit| unit.kind == kind && unit.name.as_deref() == Some(name))
-        .expect("requested Java unit")
+}
+
+fn lowered_java_units(src: &str, interner: &Interner) -> Vec<UnitFeat> {
+    lowered_java_units_with_features(src, interner, false, false)
 }
 
 fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str) -> UnitFeat {
@@ -42,6 +55,28 @@ fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str)
 
 fn lowered_java_method_unit(src: &str, interner: &Interner) -> UnitFeat {
     lowered_java_unit(src, interner, UnitKind::Method, "f")
+}
+
+#[test]
+fn declaration_only_java_methods_do_not_enter_semantic_units() {
+    let interner = Interner::new();
+    let units = lowered_java_units(
+        "abstract class T { abstract int f(int x); native int g(int x); int h(int x) { return x + 1; } }\n",
+        &interner,
+    );
+
+    assert!(
+        units.iter().all(|unit| unit.name.as_deref() != Some("f")),
+        "abstract declarations have no reusable semantic body"
+    );
+    assert!(
+        units.iter().all(|unit| unit.name.as_deref() != Some("g")),
+        "native declarations have no reusable semantic body"
+    );
+    assert!(
+        units.iter().any(|unit| unit.name.as_deref() == Some("h")),
+        "implemented methods must remain eligible"
+    );
 }
 
 fn lowered_fragment_units(src: &str, lang: Lang, interner: &Interner) -> Vec<UnitFeat> {

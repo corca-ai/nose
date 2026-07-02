@@ -19,7 +19,10 @@ pub(crate) use fragments::top_level_statement_fragment_context_safe;
 use fragments::{collect_extra_unit_roots, strict_exact_self_field_fragment_safe};
 pub(crate) use model::abstraction_family_witness;
 pub use model::UnitFeat;
-use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitKind, UnitOrigin};
+use nose_il::{
+    Il, Interner, NodeId, NodeKind, Payload, Span, Symbol, UnitBodyKind, UnitEvidenceFlag,
+    UnitKind, UnitOrigin,
+};
 use nose_semantics::ValueLaw;
 use std::time::Instant;
 use test_paths::is_test_path;
@@ -323,6 +326,7 @@ fn exact_safe_for_unit(ctx: &UnitExtractCtx<'_>, root: NodeId, exact_fragment: b
 
 fn skip_before_value_fingerprint(
     kind: UnitKind,
+    origin: UnitOrigin,
     tokens: usize,
     lines: u32,
     syntactically_small: bool,
@@ -332,6 +336,9 @@ fn skip_before_value_fingerprint(
 ) -> bool {
     // Cheap structural gates run before strict/value extraction; syntax copy-paste coverage
     // still handles exact repeats from generated-like mega-functions and huge test fixtures.
+    if declaration_only_callable(kind, origin) {
+        return true;
+    }
     if semantic_container_token_cap(kind).is_some_and(|cap| tokens > cap) {
         return true;
     }
@@ -352,7 +359,7 @@ fn gate_unit(
         root,
         kind,
         name: _,
-        origin: _,
+        origin,
         fragment_kind,
     } = unit_root;
     let exact_fragment = fragment_kind.is_some();
@@ -386,6 +393,7 @@ fn gate_unit(
     let syntactically_small = lines < ctx.min_lines || pre.len() < ctx.min_tokens;
     if skip_before_value_fingerprint(
         kind,
+        origin,
         pre.len(),
         lines,
         syntactically_small,
@@ -479,6 +487,12 @@ fn data_like_function_unit(kind: UnitKind, tokens: usize, lines: u32) -> bool {
     matches!(kind, UnitKind::Function | UnitKind::Method)
         && tokens > DATA_LIKE_FUNCTION_MIN_TOKENS
         && tokens / (lines.max(1) as usize) > DATA_LIKE_FUNCTION_MIN_TOKENS_PER_LINE
+}
+
+fn declaration_only_callable(kind: UnitKind, origin: UnitOrigin) -> bool {
+    matches!(kind, UnitKind::Function | UnitKind::Method)
+        && (origin.body_kind == UnitBodyKind::DeclarationOnly
+            || origin.has_evidence(UnitEvidenceFlag::DeclarationOnly))
 }
 
 fn test_structural_unit(large_test_file: bool, kind: UnitKind) -> bool {
