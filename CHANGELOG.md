@@ -94,6 +94,12 @@ break.
   preserves `4` legacy aliases for historical artifact readability; and sends
   `6` duplicate/merge candidates plus `8` feature-shaped Promise diagnostics to
   #656 cleanup without changing public APIs or exact admission.
+- Added the #656 obligation-label cleanup artifact and docs pass. New docs now
+  prefer shared `async-*` scheduling labels for protocol boundaries, preserve
+  `4` compatibility aliases for old artifacts, and document Promise-shaped
+  producer/continuation labels as missing-proof diagnostics rather than feature
+  admissions; historical artifacts remain untouched and exact admission is
+  unchanged.
 - Added Swift structured-concurrency reporting for `Task.sleep`, `Task.yield`,
   and task-group calls. These now map to shared timer, task-yield, aggregate,
   cancellation/liveness, result-channel, and exception-channel obligations

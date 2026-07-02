@@ -673,6 +673,11 @@ missing-proof diagnostics when they preserve the exact blocker. The audit keeps
 old Promise/Future scheduling aliases readable, prefers the newer shared
 `async-*` labels for protocol boundaries, and sends Promise-shaped producer and
 continuation labels to #656 for documentation or normalization follow-up.
+The [#656 cleanup artifact](../bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json)
+records that follow-up as a docs-only compatibility layer: new writing should
+prefer shared `async-*` protocol labels, while Promise/Future-shaped labels in
+old checked artifacts remain readable and Promise producer/continuation labels
+stay missing-proof diagnostics rather than exact feature admissions.
 
 The post-#602 [cross-language await obligation reporting](../bench/recall_loss/cross-language-await-obligation-reporting-2026-06-30.v1.json)
 artifact records that async/await reporting uses the language-neutral

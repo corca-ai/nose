@@ -1,0 +1,162 @@
+{
+  "report_kind": "issue-656-obligation-label-docs-cleanup",
+  "schema_version": 1,
+  "issue": 656,
+  "parent_issue": 663,
+  "broader_context_issue": 653,
+  "generated_on": "2026-07-02",
+  "input_artifact": "bench/recall_loss/issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json",
+  "scope": {
+    "goal": "Apply the non-behavioral documentation cleanup decisions from the #654 semantic-kernel capability audit.",
+    "non_goals": [
+      "Do not rewrite historical checked artifacts.",
+      "Do not rename runtime report labels in product code.",
+      "Do not open exact semantic admission.",
+      "Do not add public semantic-kernel APIs."
+    ],
+    "product_behavior": "unchanged"
+  },
+  "summary": {
+    "docs_or_changelog_paths_touched": 6,
+    "checked_artifacts_added": 1,
+    "canonical_shared_obligation_labels_documented": 3,
+    "compatibility_aliases_preserved": 4,
+    "feature_shaped_promise_diagnostics_documented": 8,
+    "duplicate_or_grouping_decisions_documented": 6,
+    "historical_artifacts_rewritten": 0,
+    "public_api_expansion": 0,
+    "semantic_admission_delta": 0,
+    "product_performance_assessment": "not_applicable_docs_and_checked_artifact_only"
+  },
+  "docs_or_changelog_paths_touched": [
+    "CHANGELOG.md",
+    "bench/recall_loss/README.md",
+    "docs/recall-loss-diagnostics.md",
+    "docs/recall-loss-recovery-loop.md",
+    "docs/scheduling-channel-callback-obligations-594.md",
+    "docs/semantic-kernel-roadmap.md"
+  ],
+  "canonical_shared_obligation_labels": [
+    {
+      "canonical": "async-await-scheduling-contract",
+      "historical_or_legacy": [
+        "promise-await-scheduling-contract"
+      ],
+      "policy": "New docs and reports should use the canonical shared await protocol label. Historical artifacts remain readable."
+    },
+    {
+      "canonical": "async-function-scheduling-contract",
+      "historical_or_legacy": [
+        "promise-async-function-scheduling-contract"
+      ],
+      "policy": "New docs and reports should use the canonical shared async-function protocol label. Promise producer-return proof remains a separate JS/TS producer diagnostic."
+    },
+    {
+      "canonical": "async-block-scheduling-contract",
+      "historical_or_legacy": [
+        "future-async-block-scheduling-contract"
+      ],
+      "policy": "New docs and reports should use the canonical shared async-block protocol label. Historical Rust Future wording remains readable."
+    }
+  ],
+  "compatibility_aliases_preserved": [
+    "promise-await-scheduling-contract",
+    "promise-async-function-scheduling-contract",
+    "future-async-block-scheduling-contract",
+    "EvidenceEmitter::FirstParty Rust associated const and Builtin serde alias"
+  ],
+  "feature_shaped_promise_diagnostics": [
+    {
+      "label": "promise-constructor-receiver-producer-proof",
+      "documented_as": "missing Promise producer/channel proof, not constructor feature support"
+    },
+    {
+      "label": "promise-async-function-return-producer-proof",
+      "documented_as": "JS/TS Promise producer proof, not the shared async-function scheduling label"
+    },
+    {
+      "label": "promise-call-return-direct-function-return-domain-proof",
+      "documented_as": "direct-function call-return producer proof"
+    },
+    {
+      "label": "promise-call-return-direct-method-return-domain-proof",
+      "documented_as": "direct-method call-return producer proof"
+    },
+    {
+      "label": "promise-call-return-imported-function-settled-value-contract",
+      "documented_as": "imported settled-value channel proof"
+    },
+    {
+      "label": "promise-call-return-imported-member-settled-value-contract",
+      "documented_as": "imported member settled-value channel proof"
+    },
+    {
+      "label": "promise-then-promise-like-receiver-proof",
+      "documented_as": "FutureLike receiver proof for continuation admission"
+    },
+    {
+      "label": "promise-factory-settled-value-contract",
+      "documented_as": "producer settled-value channel proof"
+    }
+  ],
+  "duplicate_or_grouping_decisions": [
+    {
+      "entries": [
+        "promise-await-scheduling-contract",
+        "async-await-scheduling-contract"
+      ],
+      "decision": "Document as alias pair."
+    },
+    {
+      "entries": [
+        "promise-async-function-scheduling-contract",
+        "async-function-scheduling-contract"
+      ],
+      "decision": "Document as alias pair."
+    },
+    {
+      "entries": [
+        "future-async-block-scheduling-contract",
+        "async-block-scheduling-contract"
+      ],
+      "decision": "Document as alias pair."
+    },
+    {
+      "entries": [
+        "promise-call-return-direct-function-return-domain-proof",
+        "promise-call-return-direct-method-return-domain-proof"
+      ],
+      "decision": "Group under call-target producer proof while preserving distinct diagnostics."
+    },
+    {
+      "entries": [
+        "promise-call-return-imported-function-settled-value-contract",
+        "promise-call-return-imported-member-settled-value-contract"
+      ],
+      "decision": "Group under imported settled-value channel proof while preserving distinct diagnostics."
+    },
+    {
+      "entries": [
+        "promise-then-fulfillment-continuation-contract",
+        "promise-then-rejection-continuation-contract",
+        "promise-catch-rejection-continuation-contract",
+        "promise-finally-settlement-continuation-contract"
+      ],
+      "decision": "Group as continuation channel obligations while preserving channel-specific subreasons."
+    }
+  ],
+  "hard_gate": {
+    "historical_artifacts_rewritten": 0,
+    "public_api_expansion": 0,
+    "semantic_admission_delta": 0,
+    "exact_channel_opened": false
+  },
+  "validation_commands": [
+    "jq empty bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json",
+    "jq -e '.summary.docs_or_changelog_paths_touched == (.docs_or_changelog_paths_touched | length) and .summary.canonical_shared_obligation_labels_documented == (.canonical_shared_obligation_labels | length) and .summary.compatibility_aliases_preserved == (.compatibility_aliases_preserved | length) and .summary.feature_shaped_promise_diagnostics_documented == (.feature_shaped_promise_diagnostics | length) and .summary.duplicate_or_grouping_decisions_documented == (.duplicate_or_grouping_decisions | length) and .hard_gate.historical_artifacts_rewritten == 0 and .hard_gate.public_api_expansion == 0 and .hard_gate.semantic_admission_delta == 0' bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json",
+    "scripts/check-docs.sh",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "scripts/check-duplication.sh",
+    "git diff --check"
+  ]
+}

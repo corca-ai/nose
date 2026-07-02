@@ -1165,6 +1165,13 @@ python3 scripts/interval-scheduler-lifecycle-slice-audit.py \
   artifact readability, identifies `6` duplicate/merge candidates and `8`
   feature-shaped Promise diagnostics for #656 follow-up, and keeps
   `public_api_expansion = 0` and `semantic_admission_delta = 0`.
+- [issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json](issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json)
+  records the #656 non-behavioral label/docs cleanup from the #654 audit. It
+  documents `3` shared scheduling labels as the canonical wording for new docs
+  and reports, preserves `4` compatibility aliases for old artifacts, groups
+  `8` feature-shaped Promise diagnostics under their reusable capability
+  blockers, documents `6` duplicate/grouping decisions, and keeps
+  historical artifacts untouched with `semantic_admission_delta = 0`.
 - [scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json](scheduling-lifecycle-boundary-audit-non-js-async-runtime-scope-shadowing-2026-06-30.v1.json)
   records the Python/Rust async runtime scope-shadowing hardening. It keeps
   exact admission closed while making unrelated local shadows in other

@@ -155,6 +155,13 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   exact admission unchanged, preserves `4` legacy aliases for historical
   artifact readability, and sends `6` duplicate/merge candidates plus `8`
   feature-shaped Promise diagnostics to the #656 cleanup path.
+- The [#656 obligation-label cleanup](../bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json)
+  applies that path without changing product behavior. New docs should prefer
+  `async-await-scheduling-contract`, `async-function-scheduling-contract`, and
+  `async-block-scheduling-contract` for shared protocol boundaries; historical
+  Promise/Future labels remain readable. Promise-shaped producer, receiver, and
+  continuation diagnostics are documented as missing-proof blockers, not
+  selector-only feature support. Exact admission remains unchanged.
 - [Non-JS source-protocol reporting alignment](../bench/recall_loss/non-js-source-protocol-reporting-alignment-2026-07-02.v1.json) records the audit closeout for already-backed async source-protocol rows.
   Python `await`/`async def`, Rust `.await`/`async fn`/`async block`, and Swift
   `async` function rows now move to reporting-supported closed-boundaries,

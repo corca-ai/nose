@@ -109,6 +109,42 @@ recall-loss report schema: `closed-boundary` is residual exact-closed work,
 specific obligation, `exact-supported-boundary` is existing proof-backed exact
 capability accounted separately, and `superseded-overlap-boundary` is a broad
 historical bucket replaced by concrete operation rows.
+
+## Label Compatibility
+
+New reports should prefer the shared scheduling/protocol labels recorded by the [#656 obligation-label cleanup artifact](../bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json).
+Historical checked artifacts remain readable; do not rewrite them in place.
+
+| current label | historical label | policy |
+|---|---|---|
+| `async-await-scheduling-contract` | `promise-await-scheduling-contract` | Await is a shared `Source::Protocol(Await)` scheduling boundary across JS/TS, Python, Rust, and Swift. Promise-specific await wording is compatibility text only. |
+| `async-function-scheduling-contract` | `promise-async-function-scheduling-contract` | Async function body scheduling is shared protocol evidence. JS/TS Promise producer-return proof remains a separate missing-proof diagnostic. |
+| `async-block-scheduling-contract` | `future-async-block-scheduling-contract` | Rust async block scheduling uses the shared async-block label; Future wording remains historical artifact vocabulary. |
+
+Promise-shaped subreasons such as
+`promise-call-return-direct-function-return-domain-proof`,
+`promise-call-return-imported-function-settled-value-contract`, and
+`promise-then-promise-like-receiver-proof` are still valid diagnostics when they
+name the missing proof precisely. Read them as capability blockers under
+call-target producer proof, imported settled-value channel proof, receiver
+proof, continuation channel proof, or callback demand/effect proof. They are not
+evidence that the semantic kernel has opened selector-only Promise feature
+support.
+
+The #656 cleanup keeps these feature-shaped diagnostics grouped under their
+capability blockers:
+
+| diagnostic | capability blocker |
+|---|---|
+| `promise-constructor-receiver-producer-proof` | Promise producer/channel proof |
+| `promise-async-function-return-producer-proof` | JS/TS Promise producer proof, separate from shared async-function scheduling |
+| `promise-call-return-direct-function-return-domain-proof` | direct-function call-return producer proof |
+| `promise-call-return-direct-method-return-domain-proof` | direct-method call-return producer proof |
+| `promise-call-return-imported-function-settled-value-contract` | imported settled-value channel proof |
+| `promise-call-return-imported-member-settled-value-contract` | imported member settled-value channel proof |
+| `promise-then-promise-like-receiver-proof` | FutureLike continuation receiver proof |
+| `promise-factory-settled-value-contract` | producer settled-value channel proof |
+
 The #572 cycle also records a diagnostics-only refinement: expression-statement
 calls that need an effect contract stay in the effect boundary bucket, and
 unmodeled Rust macros such as `format!` stay in the source-surface bucket until
