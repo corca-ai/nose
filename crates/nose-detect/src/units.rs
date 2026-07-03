@@ -324,7 +324,7 @@ fn exact_safe_for_unit(ctx: &UnitExtractCtx<'_>, root: NodeId, exact_fragment: b
             }))
 }
 
-fn skip_before_value_fingerprint(
+struct PreValueFingerprintGate {
     kind: UnitKind,
     origin: UnitOrigin,
     tokens: usize,
@@ -333,21 +333,26 @@ fn skip_before_value_fingerprint(
     declarative: bool,
     exact_fragment: bool,
     large_test_file: bool,
-) -> bool {
+}
+
+fn skip_before_value_fingerprint(gate: PreValueFingerprintGate) -> bool {
     // Cheap structural gates run before strict/value extraction; syntax copy-paste coverage
     // still handles exact repeats from generated-like mega-functions and huge test fixtures.
-    if declaration_only_callable(kind, origin) {
+    if declaration_only_callable(gate.kind, gate.origin) {
         return true;
     }
-    if semantic_container_token_cap(kind).is_some_and(|cap| tokens > cap) {
+    if semantic_container_token_cap(gate.kind).is_some_and(|cap| gate.tokens > cap) {
         return true;
     }
-    if data_like_function_unit(kind, tokens, lines) || test_structural_unit(large_test_file, kind) {
+    if data_like_function_unit(gate.kind, gate.tokens, gate.lines)
+        || test_structural_unit(gate.large_test_file, gate.kind)
+    {
         return true;
     }
-    let can_use_dense_gate =
-        declarative || matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;
-    syntactically_small && !can_use_dense_gate
+    let can_use_dense_gate = gate.declarative
+        || matches!(gate.kind, UnitKind::Function | UnitKind::Method)
+        || gate.exact_fragment;
+    gate.syntactically_small && !can_use_dense_gate
 }
 
 fn gate_unit(
@@ -391,16 +396,16 @@ fn gate_unit(
     // `value.len() >= EXACT_VALUE_MIN` floor below rather than the syntactic floor.
     let declarative = matches!(ctx.il.kind(root), NodeKind::CssRule | NodeKind::HtmlElement);
     let syntactically_small = lines < ctx.min_lines || pre.len() < ctx.min_tokens;
-    if skip_before_value_fingerprint(
+    if skip_before_value_fingerprint(PreValueFingerprintGate {
         kind,
         origin,
-        pre.len(),
+        tokens: pre.len(),
         lines,
         syntactically_small,
         declarative,
         exact_fragment,
-        ctx.large_test_file,
-    ) {
+        large_test_file: ctx.large_test_file,
+    }) {
         skip(unit_timer, None, None);
         return None;
     }

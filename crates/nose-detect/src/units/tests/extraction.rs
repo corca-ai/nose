@@ -30,7 +30,7 @@ fn lowered_java_units_with_features(
     let il =
         nose_normalize::normalize(&raw, interner, &nose_normalize::NormalizeOptions::default());
     let seeds = crate::minhash::seeds(64);
-    let units = extract(
+    extract(
         &il,
         interner,
         &seeds,
@@ -41,8 +41,7 @@ fn lowered_java_units_with_features(
             shape_features,
             abstraction_witnesses,
         },
-    );
-    units
+    )
 }
 
 fn lowered_java_units(src: &str, interner: &Interner) -> Vec<UnitFeat> {
