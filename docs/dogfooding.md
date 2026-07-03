@@ -733,3 +733,17 @@ sequence-surface provenance helpers, and language-core record constructors).
 The first family is still domain-parallel top-level binding triage, not a
 shared abstraction worth extracting; the second remains kernel provenance
 plumbing. No new budget is accepted.
+
+The post-0.17.0 runtime pass moves the reviewed default-surface count from 52
+to 53. Two IDs are representative churn from profile-guided candidate/indexing
+changes: `1d565f1e57ac5d8b` becomes `c967b3bcff5a2b58` for the same
+context/export assignment-counting family, and `77d8e8012b2ac08a` becomes
+`a7f4d8398c1920e6` for the same `query_opportunities` origin-hint/reason
+family (`origin_extract_hint` and `hint_reasons`). The new family,
+`cc48beefc6a85976`, is a real production cross-crate similarity between
+Markdown fingerprint candidate-pair generation and semantic anchor candidate
+generation. Both enumerate bounded pairs from bucketed members, but they live
+in different engines with different bucket semantics, stop rules, and output
+policies. Pulling that into a lower shared crate would add an abstraction for
+loop shape rather than domain meaning, so it is accepted as visible algorithm
+debt rather than deduped in this CI repair.

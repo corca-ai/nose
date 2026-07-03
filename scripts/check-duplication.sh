@@ -127,6 +127,13 @@ set -euo pipefail
 # `1d565f1e57ac5d8b`) and the reviewed semantic-kernel language-core provenance representative
 # (`551e7992e1632597` -> `7c8432da3fcb2c67`). Reviewed in docs/dogfooding.md; no new budget is
 # accepted.
+# 52 -> 53 (post-0.17.0 runtime pass): profile-guided candidate/indexing changes move the reviewed
+# context/export representative (`1d565f1e57ac5d8b` -> `c967b3bcff5a2b58`) and the reviewed
+# query-origin hint representative (`77d8e8012b2ac08a` -> `a7f4d8398c1920e6`). The same pass also
+# surfaces a new production cross-crate candidate-pair enumeration family (`cc48beefc6a85976`)
+# between Markdown fingerprint pair generation and semantic anchor pair generation. Reviewed in
+# docs/dogfooding.md; accepted as visible cross-engine algorithm debt, not a reason to introduce a
+# lower-layer utility dependency.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
