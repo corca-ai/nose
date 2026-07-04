@@ -3,8 +3,11 @@
 //! (the discriminative signal that token-set methods lack — it rewards units
 //! whose structure lines up *in order*, not just in aggregate).
 
-/// Weighted (multiset) Jaccard of two sorted feature multisets:
-/// `Σ min(count) / Σ max(count)`.
+/// Weighted Jaccard for sorted `u64` feature multisets.
+///
+/// Inputs must be sorted in ascending order, with duplicates preserved as
+/// multiplicity. The score is `Σ min(count) / Σ max(count)`, and two empty
+/// multisets are treated as a full match (`1.0`).
 pub fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
     if a.is_empty() && b.is_empty() {
         return 1.0;

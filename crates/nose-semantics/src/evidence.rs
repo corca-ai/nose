@@ -35,6 +35,12 @@ pub(crate) enum EvidenceResolution<T> {
     Ambiguous,
 }
 
+/// Return whether `record` was emitted by the builtin language-core pack for
+/// `il`'s language.
+///
+/// This checks only provenance (`emitter`, `pack_hash`, and `rule_hash`). It does
+/// not require the record to be asserted or dependency-live; callers that need an
+/// admitted fact should use [`asserted_language_core_record`].
 pub fn language_core_record_has_provenance(il: &Il, record: &EvidenceRecord) -> bool {
     if record.provenance.emitter != EvidenceEmitter::Builtin {
         return false;
@@ -43,6 +49,8 @@ pub fn language_core_record_has_provenance(il: &Il, record: &EvidenceRecord) -> 
     record.provenance.pack_hash == Some(pack_hash) && record.provenance.rule_hash == Some(rule_hash)
 }
 
+/// Return whether `record` is an asserted, dependency-live builtin language-core
+/// fact for `il`'s language.
 pub fn asserted_language_core_record(il: &Il, record: &EvidenceRecord) -> bool {
     record.status == EvidenceStatus::Asserted
         && language_core_record_has_provenance(il, record)
