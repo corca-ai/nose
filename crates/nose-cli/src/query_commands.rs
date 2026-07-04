@@ -2,8 +2,13 @@ use super::query_dashboard::render_query_dashboard;
 use super::query_model::*;
 use super::query_open::render_query_family;
 use super::query_views::*;
+use crate::baseline_comparison::BaselineComparison;
 use crate::divergence;
 use crate::legacy_prelude::*;
+use crate::query_baseline_gate::{
+    apply_query_baseline, compare_since, enforce_query_fail_on_selection, partition_ignored,
+    write_query_baseline,
+};
 use crate::query_dataset::{
     build_query_dataset, resolve_query_semantic_packs, QueryDataset, QuerySettings,
 };

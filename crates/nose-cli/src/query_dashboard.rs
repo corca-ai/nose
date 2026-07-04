@@ -1,5 +1,6 @@
 use super::query_model::*;
 use super::query_views::{loc_cell, metrics_cell};
+use crate::baseline_comparison::BaselineComparison;
 use crate::legacy_prelude::*;
 use crate::query_semantic_packs::with_semantic_packs;
 

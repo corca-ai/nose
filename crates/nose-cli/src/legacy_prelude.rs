@@ -5,14 +5,11 @@
 //! public run API instead of acting as the implicit owner of every helper.
 
 pub(crate) use crate::baseline;
-pub(crate) use crate::baseline_comparison::*;
 pub(crate) use crate::cli_args::*;
 pub(crate) use crate::falsify;
-pub(crate) use crate::ignores;
 pub(crate) use crate::markdown;
 pub(crate) use crate::oracle_gate::*;
 pub(crate) use crate::path_utils::*;
-pub(crate) use crate::query_baseline_gate::*;
 pub(crate) use crate::query_markdown::*;
 pub(crate) use crate::query_opportunities::*;
 pub(crate) use crate::query_options::*;

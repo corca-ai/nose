@@ -1,4 +1,10 @@
-use crate::legacy_prelude::*;
+use crate::baseline;
+use crate::baseline_comparison::{BaselineComparison, BaselineStatus};
+use crate::cli_args::QueryArgs;
+use crate::ignores;
+use crate::query_opportunities::family_hint;
+use crate::query_options::{DetectionChannels, FailOn};
+use anyhow::{Context, Result};
 
 pub(crate) fn write_query_baseline(
     args: &QueryArgs,
