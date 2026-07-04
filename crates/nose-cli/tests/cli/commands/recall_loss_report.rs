@@ -179,6 +179,10 @@ fn recall_loss_report_ratchets_representative_admission_buckets() {
     ];
     let report_dir = TempProject::new("recall_loss_bucket_ratchet");
     report_dir.write(
+        "callee_identity.py",
+        "def custom_call(v):\n    return helper(v)\n",
+    );
+    report_dir.write(
         "hof_callback_member_call.rs",
         "use std::path::PathBuf;\n\n\
 fn command_paths(paths: &[PathBuf]) -> Vec<String> {\n\
@@ -197,6 +201,12 @@ fn command_paths(paths: &[PathBuf]) -> Vec<String> {\n\
         .join("hof_callback_member_call.rs")
         .display()
         .to_string();
+    let callee_identity_path = report_dir
+        .path()
+        .join("callee_identity.py")
+        .display()
+        .to_string();
+    args.push(callee_identity_path.as_str());
     args.push(hof_callback_path.as_str());
     args.extend([
         "--max-violations",
