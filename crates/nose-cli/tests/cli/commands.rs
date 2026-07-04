@@ -12,6 +12,8 @@ mod ignores_sarif;
 mod proposal_query;
 #[path = "commands/query_reinvented.rs"]
 mod query_reinvented;
+#[path = "commands/query_roots.rs"]
+mod query_roots;
 #[path = "commands/recall_loss_report.rs"]
 mod recall_loss_report;
 #[path = "commands/recall_loss_report/java_completable_future.rs"]
