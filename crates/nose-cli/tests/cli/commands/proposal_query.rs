@@ -89,6 +89,59 @@ fn query_accepts_explicit_multi_roots() {
 }
 
 #[test]
+fn query_dedupes_repeated_explicit_roots() {
+    let dir = make_project("repeated_roots");
+    let path = dir.to_str().unwrap();
+    let dotted = dir.join(".");
+    let dotted = dotted.to_str().unwrap();
+    let child = dir.join("a");
+    let child = child.to_str().unwrap();
+    let direct_file = dir.join("a/f.py");
+    let direct_file = direct_file.to_str().unwrap();
+    let query_roots = |roots: &[&str]| {
+        let mut args = vec!["query"];
+        for root in roots {
+            args.push("-r");
+            args.push(*root);
+        }
+        args.extend([
+            "--mode",
+            "semantic",
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+            "--format",
+            "json",
+        ]);
+        query_json(&run_raw(&args))
+    };
+
+    let once = query_roots(&[path]);
+    let repeated = query_roots(&[path, path]);
+    let dotted = query_roots(&[path, dotted]);
+    let overlapping = query_roots(&[path, child]);
+    let direct_file = query_roots(&[path, direct_file]);
+
+    assert_eq!(once["summary"]["scanned_files"], 4);
+    for (label, json) in [
+        ("same root", &repeated),
+        ("dotted root", &dotted),
+        ("overlapping child root", &overlapping),
+        ("direct file root", &direct_file),
+    ] {
+        assert_eq!(
+            json["summary"]["scanned_files"], once["summary"]["scanned_files"],
+            "{label} must not double-count the analysis scope: {json}"
+        );
+        assert_eq!(
+            json["families"], once["families"],
+            "{label} must not change the family dataset"
+        );
+    }
+}
+
+#[test]
 fn query_second_path_suggests_explicit_roots() {
     let dir = make_project("second_path_hint");
     let a = dir.join("a");

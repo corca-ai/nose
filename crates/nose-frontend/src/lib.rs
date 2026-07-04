@@ -30,7 +30,8 @@ pub use module_imports::{imported_immutable_snapshot_census, ImportSnapshotCensu
 
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
-use std::path::Path;
+use std::collections::BTreeSet;
+use std::path::{Component, Path, PathBuf as StdPathBuf};
 
 #[cfg(test)]
 pub(crate) mod test_helpers {
@@ -186,6 +187,68 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
     out.into_inner().unwrap()
 }
 
+fn clean_discovered_path(path: &Path) -> String {
+    let mut cleaned = StdPathBuf::new();
+    for component in path.components() {
+        if !matches!(component, Component::CurDir) {
+            cleaned.push(component.as_os_str());
+        }
+    }
+    if cleaned.as_os_str().is_empty() {
+        path.to_string_lossy().to_string()
+    } else {
+        cleaned.to_string_lossy().to_string()
+    }
+}
+
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct DiscoveredPathIdentity(StdPathBuf);
+
+fn discovered_path_identity(path: &str) -> DiscoveredPathIdentity {
+    DiscoveredPathIdentity(std::fs::canonicalize(path).unwrap_or_else(|_| StdPathBuf::from(path)))
+}
+
+struct DiscoveredPath {
+    root_index: usize,
+    path: String,
+    lang: Lang,
+}
+
+/// Discover supported source files under all `roots`, then sort and deduplicate
+/// canonical path aliases. The returned path spelling is still the stable,
+/// user-facing discovered path, so reports do not need a separate display map.
+pub fn discover_unique_paths(roots: &[&Path], exclude: &[String]) -> Vec<(String, Lang)> {
+    let mut paths = Vec::new();
+    for (root_index, root) in roots.iter().enumerate() {
+        paths.extend(
+            discover_paths(root, exclude)
+                .into_iter()
+                .map(|(path, lang)| DiscoveredPath {
+                    root_index,
+                    path: clean_discovered_path(Path::new(&path)),
+                    lang,
+                }),
+        );
+    }
+    // The parallel walk yields paths in nondeterministic order. First choose the
+    // user-facing spelling from the earliest explicit root that discovered a
+    // physical path; then sort those representatives by path so `FileId`s remain
+    // stable across runs and machines.
+    paths.sort_unstable_by(|a, b| {
+        a.root_index
+            .cmp(&b.root_index)
+            .then_with(|| a.path.cmp(&b.path))
+    });
+    let mut seen = BTreeSet::new();
+    paths.retain(|entry| seen.insert(discovered_path_identity(&entry.path)));
+    let mut paths = paths
+        .into_iter()
+        .map(|entry| (entry.path, entry.lang))
+        .collect::<Vec<_>>();
+    paths.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    paths
+}
+
 /// Discover, read, and lower every supported file under `root`, in parallel.
 /// Files that fail to read or parse are skipped. Each surviving [`Il`] carries a
 /// unique [`FileId`] (its index in the discovered path list) and its own path in
@@ -207,13 +270,7 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
     let t0 = std::time::Instant::now();
 
     let interner = Interner::new();
-    let mut paths = Vec::new();
-    for r in roots {
-        paths.extend(discover_paths(r, exclude));
-    }
-    // The parallel walk yields paths in nondeterministic order; sort by path (unique)
-    // so each file's `FileId` (its index here) is stable across runs and machines.
-    paths.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    let paths = discover_unique_paths(roots, exclude);
     if timing {
         eprintln!(
             "  [time] {:<12} {:>7.1}ms  ({} files)",

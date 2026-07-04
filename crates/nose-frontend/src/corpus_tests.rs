@@ -43,6 +43,26 @@ fn discover_paths_ignores_direct_unsupported_file() {
 }
 
 #[test]
+fn discover_unique_paths_keeps_hard_links_distinct() {
+    let dir = temp_dir("hard_links");
+    let original = dir.join("original.py");
+    let linked = dir.join("linked.py");
+    fs::write(&original, "def f():\n    return 1\n").unwrap();
+    fs::hard_link(&original, &linked).unwrap();
+
+    let paths = discover_unique_paths(&[dir.as_path()], &[]);
+    let files = paths
+        .iter()
+        .map(|(path, _lang)| Path::new(path).file_name().unwrap().to_string_lossy())
+        .collect::<Vec<_>>();
+
+    assert_eq!(paths.len(), 2, "hard-linked source files remain distinct");
+    assert!(files.iter().any(|file| file == "original.py"));
+    assert!(files.iter().any(|file| file == "linked.py"));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn lower_corpus_skips_ansi_highlight_artifacts() {
     let dir = temp_dir("ansi_highlight_artifacts");
     let source = dir.join("keep.go");

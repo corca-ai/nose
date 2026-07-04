@@ -367,13 +367,9 @@ pub(crate) fn corpus_line_idf(
     exclude: &[String],
     cache: &mut FileLineCache,
 ) -> LineIdf {
-    let paths = refs
-        .iter()
-        .flat_map(|root| {
-            nose_frontend::discover_paths(root, exclude)
-                .into_iter()
-                .map(|(path, _lang)| path)
-        })
+    let paths = nose_frontend::discover_unique_paths(refs, exclude)
+        .into_iter()
+        .map(|(path, _lang)| path)
         .collect::<Vec<_>>();
     let loaded = paths
         .into_par_iter()
