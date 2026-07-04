@@ -1558,7 +1558,7 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
   decide and act from the JSON alone: 14/18 sampled families were decidable, and
   the four failures fix the evidence roadmap — no equivalence witness on default
   families, no difference evidence, generated-content markers unsurfaced, and
-  missing enclosing unit names (docs/query_json-agent-audit-2026-06-10.md).
+  missing enclosing unit names (docs/query-json-agent-audit-2026-06-10.md).
 - Ruby `**` now lowers to the shared exponentiation operator and converges with
   Python/JS `**`.
 - Compact CLI regression fixtures now pin the real-corpus strict-nullish hard
@@ -1750,11 +1750,11 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
 ## [0.2.0] - 2026-06-04
 
 ### Changed
-- **`nose query --mode` is now channel-based**: `syntax` (Type-1/2 copy-paste),
+- **The legacy analysis `--mode` flag is now channel-based**: `syntax` (Type-1/2 copy-paste),
   `semantic` (exact value-fingerprint Type-4), and `near` (Type-3 fuzzy
   near-duplicates). Omitting `--mode` runs `syntax,semantic`; specifying `--mode`
   runs exactly the comma-separated/repeated channels provided.
-- Removed the old `cpd`, `refactor`, `behavior`, and `behavior-strict` query modes
+- Removed the old `cpd`, `refactor`, `behavior`, and `behavior-strict` modes
   and removed `--no-contiguous`. `--threshold` is now valid only when `near` is
   enabled.
 - The `near` channel now uses shape-based candidate generation, so Type-3 edits
@@ -1766,7 +1766,7 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
 ## [0.1.1] - 2026-06-04
 
 ### Fixed
-- **`nose query top=0` now shows all families**, as `docs/usage.md` and
+- **The legacy report surface's `--top 0` flag now shows all families**, as `docs/usage.md` and
   `docs/benchmark.md` document. The code used `.take(top)` with no special case,
   so `--top 0` silently returned an empty report; `0` is now treated as unlimited,
   the flag help says so, and a regression test covers it.
@@ -1786,7 +1786,7 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
 ## [0.1.0] - 2026-06-04
 
 ### Added
-- **`nose query --mode`** — four explicit query modes: `cpd` (copy-paste channel only,
+- **Explicit legacy analysis modes** — four choices: `cpd` (copy-paste channel only,
   jscpd-style CI gate), `refactor` (the default broad refactoring-candidate workflow),
   `behavior` (strict behavioral scorer with the calibrated 0.86 threshold), and
   `behavior-strict` (exact value-fingerprint Type-4 matches plus the copy-paste floor,
@@ -1811,11 +1811,11 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
   short-circuit reduction. Free-monoid string model, map/filter fusion, and a
   ternary-return decomposition (`return a if c else b` ↔ `if c {return a} else {return b}`)
   also landed on the value graph.
-- **`nose query`** — ranked architecture/design-level refactoring candidates.
+- **Ranked architecture/design-level refactoring candidates.**
   Human / JSON / Markdown / SARIF output; `--diff` shows source diffs between
   representatives, `--proposal` shows extraction skeletons with the differing parts
   marked as parameters.
-- **`nose query sort=`** — `extractability` (default), `value`, or `sites`.
+- **Report sorting** — `extractability` (default), `value`, or `sites`.
   The default ranks by how cleanly a family folds into one helper — *invariant*
   (shared) lines × copies × spread, weighted by **tightness** (shared/total: 22 shared
   of 384 lines is 6% invariant — barely a dedup) and penalized by parameter count —
@@ -1832,13 +1832,13 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
   `sim 1.00` that read as "identical" even when two copies shared only a handful of
   literal lines (a dispatch skeleton over divergent bodies). Cross-language families,
   which share no *source* lines, still show structural `sim`.
-- **`scanned N files` scope line** — `query`'s human/Markdown output now opens with the
+- **`scanned N files` scope line** — the human/Markdown output now opens with the
   file count and per-language breakdown (e.g. `scanned 1113 files · typescript 900 · tsx
   213`). A repo whose `.gitignore`/`--exclude` pruned vendored or generated code now shows the
   far fewer files than sit on disk; the count makes that scope explicit instead of a
   silent gap. JSON/SARIF output is unaffected; the language breakdown is omitted under
   `--cache-dir` (which tracks only the count).
-- **Refactoring-candidate mode** (`--candidates` on `detect`, default for `query`):
+- **Refactoring-candidate mode** (`--candidates` on `detect`, default for the legacy report surface):
   gates off + lower threshold, ~99% review-worthy on a refactoring-worthiness rubric.
 - **Rust, Java, C, and Ruby frontends** — 8 base languages (Python, JS, TS, Go,
   Rust, Java, C, Ruby). Cross-language convergence (a Rust/Java/C/Ruby accumulator
@@ -1848,8 +1848,8 @@ behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON
   (newlines kept), so the script parses as JS/TS in place with exact line numbers;
   `lang="ts"` selects TypeScript. The same logic in a `.ts`, `.vue`, `.svelte`, and
   `.html` file forms one cross-container clone family.
-- `nose query --min-value V` to hide low-value families (noise floor on large repos).
-- `nose query --hotspots` — architecture view ranking directories by the lines that
+- `--min-value V` to hide low-value families (noise floor on large repos).
+- Architecture hotspot view ranking directories by the lines that
   sit in a clone family (e.g. surfaces `zod/.../locales`, translation/locale dirs).
 - Per-family **refactoring hint** (e.g. "consolidate `name` — N copies", "extract a shared
   base class / mixin", cross-language flag) and the languages a cross-language family spans.

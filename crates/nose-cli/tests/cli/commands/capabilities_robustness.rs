@@ -27,6 +27,12 @@ fn capabilities_command_emits_machine_readable_contract() {
             .is_some_and(|s| !s.is_empty()),
         "platform.arch should be non-empty: {out}"
     );
+    assert!(
+        json["platform"]["family"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty()),
+        "platform.family should be non-empty: {out}"
+    );
     assert_eq!(json["interfaces"]["capabilities_json"], true);
     assert_eq!(json["interfaces"]["version_json"], false);
     assert_eq!(json["interfaces"]["doctor_json"], false);
