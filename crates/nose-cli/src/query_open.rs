@@ -1,7 +1,15 @@
 use super::query_model::*;
-use crate::legacy_prelude::*;
+use crate::baseline;
+use crate::baseline_comparison::BaselineComparison;
+use crate::family_display::representative_lines;
 use crate::query_family_text::{print_member_diff, print_member_proposal};
+use crate::query_opportunities::{
+    family_hint, hint_reasons, proposal_action_label, OpportunityGroups,
+};
 use crate::query_semantic_packs::with_semantic_packs;
+use crate::schema_versions;
+use crate::style;
+use crate::surfaces::SurfaceOverrides;
 
 /// Render the origin-derived "why this hint" reasons (#453) under a family's hint, if any.
 fn print_hint_reasons(f: &nose_detect::RefactorFamily) {

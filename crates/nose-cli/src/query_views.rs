@@ -1,8 +1,18 @@
 use super::query_model::*;
+use crate::baseline;
+use crate::baseline_comparison::BaselineComparison;
 use crate::divergence;
-use crate::legacy_prelude::*;
+use crate::family_display::{removable_lines, representative_lines};
+use crate::query_baseline_gate::family_status;
 use crate::query_family_text::print_member_proposal;
+use crate::query_opportunities::{proposal_action_label, OpportunityGroups};
 use crate::query_semantic_packs::with_semantic_packs;
+use crate::query_terms::Query;
+use crate::report_text::plural;
+use crate::schema_versions;
+use crate::source_lines::FileLineCache;
+use crate::style;
+use crate::surfaces::{effective_surface, SurfaceOverrides};
 
 pub(super) fn print_query_prelude() {
     println!("nose finds duplication in code and docs.");

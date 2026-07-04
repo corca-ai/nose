@@ -8,7 +8,6 @@ pub(crate) use crate::baseline;
 pub(crate) use crate::baseline_comparison::*;
 pub(crate) use crate::cli_args::*;
 pub(crate) use crate::falsify;
-pub(crate) use crate::family_display::*;
 pub(crate) use crate::ignores;
 pub(crate) use crate::markdown;
 pub(crate) use crate::oracle_gate::*;
@@ -28,8 +27,7 @@ pub(crate) use crate::style;
 #[cfg(test)]
 pub(crate) use crate::surfaces::family_actionability_reason;
 pub(crate) use crate::surfaces::{
-    classify_surface_overrides, effective_surface, is_default_report_family, surface_omission_note,
-    SurfaceOverrides,
+    classify_surface_overrides, is_default_report_family, surface_omission_note, SurfaceOverrides,
 };
 pub(crate) use crate::timing::*;
 pub(crate) use crate::verify_census;

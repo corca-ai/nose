@@ -15,8 +15,8 @@ from pathlib import Path
 
 
 DEFAULT_ROOT = Path("crates/nose-cli/src")
-DEFAULT_MAX_USERS = 16
-DEFAULT_MAX_EXPORTS = 30
+DEFAULT_MAX_USERS = 13
+DEFAULT_MAX_EXPORTS = 29
 LEGACY_IMPORT_PREFIX = "use crate::legacy_prelude"
 LEGACY_EXPORT_PREFIX = "pub(crate) use "
 

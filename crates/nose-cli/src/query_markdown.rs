@@ -1,4 +1,11 @@
-use crate::legacy_prelude::*;
+use crate::baseline;
+use crate::baseline_comparison::BaselineComparison;
+use crate::family_display::{abstraction_witness_summary, similarity_cell};
+use crate::ignores;
+use crate::query_opportunities::{family_hint, family_langs, total_dup_lines_refs};
+use crate::query_options::DetectionChannels;
+use crate::report_text::plural;
+use crate::source_lines::{anti_unify_all, line_diff, read_lines};
 
 /// Markdown form of the all-copies extraction skeleton (#360), rendered on an `id=<fam>`
 /// drilldown so `--format markdown` honors the help's "every copy + extraction skeleton"
