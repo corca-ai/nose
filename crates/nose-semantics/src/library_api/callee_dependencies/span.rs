@@ -440,18 +440,21 @@ pub(in crate::library_api) fn library_api_dependencies_match_method_callee_at_sp
             if !callee_span.is_some_and(|span| field_method_at_span(il, interner, span, method)) {
                 return false;
             }
-            if receiver == MethodReceiverContract::UnshadowedGlobal("Math") {
-                let Some(source_call) = node_at_span_with_kind(il, call_span, NodeKind::Call)
-                else {
-                    return false;
-                };
-                return library_api_receiver_dependencies_for_call(
-                    il,
-                    interner,
-                    source_call,
-                    callee,
-                )
-                .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies));
+            if let Some(matches) = call_anchored_method_dependencies_match(
+                il,
+                interner,
+                call_span,
+                callee_span,
+                receiver_span,
+                callee,
+                record,
+            ) {
+                return matches;
+            }
+            if receiver == MethodReceiverContract::ExactProtocolPairArgument
+                || receiver == MethodReceiverContract::UnshadowedGlobal("Math")
+            {
+                return false;
             }
             receiver_span.is_some_and(|span| {
                 method_receiver_dependencies_at_span(il, interner, span, receiver)
@@ -477,4 +480,46 @@ pub(in crate::library_api) fn library_api_dependencies_match_method_callee_at_sp
         }
         _ => false,
     }
+}
+
+fn call_anchored_method_dependencies_match(
+    il: &Il,
+    interner: &Interner,
+    call_span: Span,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> Option<bool> {
+    let source_call = node_at_span_with_kind(il, call_span, NodeKind::Call)?;
+    if !source_call_spans_match_span_query(il, source_call, callee_span, receiver_span) {
+        return None;
+    }
+    Some(
+        library_api_receiver_dependencies_for_call(il, interner, source_call, callee)
+            .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies)),
+    )
+}
+
+fn source_call_spans_match_span_query(
+    il: &Il,
+    source_call: NodeId,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+) -> bool {
+    let Some(&callee) = il.children(source_call).first() else {
+        return false;
+    };
+    if callee_span.is_some_and(|span| il.node(callee).span != span) {
+        return false;
+    }
+    if let Some(span) = receiver_span {
+        let Some(&receiver) = il.children(callee).first() else {
+            return false;
+        };
+        if il.node(receiver).span != span {
+            return false;
+        }
+    }
+    true
 }

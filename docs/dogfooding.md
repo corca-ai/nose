@@ -807,3 +807,19 @@ test scope everywhere. Re-running
 the Go frontend helper family as `test`, and `scripts/check-duplication.sh`
 still reports `49` default-surface families against budget `49`; no budget
 change is accepted.
+
+The callee-dependency matcher cleanup tightens the count from 49 to 48. The
+self-query report flagged `04d39fd18168311f`, the static-import half of the
+node/span LibraryApi callee-dependency matcher parallelism first accepted during
+the Swift stdlib capability slice. The node-backed call matcher now extracts
+call/callee/receiver spans, checks the ordinary callee shape, and delegates to
+the span-backed dependency matcher for non-method callees. Method-family callees
+still use call-aware dependency extraction so argument-sensitive contracts such
+as Rust `Iterator::zip` keep requiring both receiver and pair-argument protocol
+proofs. This removed the static-import parallel family and the now-dead
+node-specific dependency helper wrappers while preserving the node-anchored
+`FreeName`/`Property` admission path. The remaining `dbbb03b3c0fa93e8` family is
+no longer node/span drift; it is same-file similarity between named-callee and
+static-import span matchers with nine varying spots, so extracting it would
+create a high-parameter helper rather than a clearer policy owner. No new budget
+is accepted.

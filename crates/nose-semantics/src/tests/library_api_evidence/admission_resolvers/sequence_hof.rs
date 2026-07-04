@@ -307,6 +307,97 @@ fn admitted_rust_iterator_hof_pack_covers_lazy_adapters_and_terminals() {
 }
 
 #[test]
+fn admitted_rust_zip_requires_pair_argument_protocol_dependency() {
+    let contract = library_method_call_contract(Lang::Rust, "zip", 1).expect("Rust zip row");
+    assert_eq!(
+        contract.callee,
+        LibraryApiCalleeContract::Method {
+            method: "zip",
+            receiver: MethodReceiverContract::ExactProtocolPairArgument,
+        }
+    );
+
+    let (mut missing_pair, interner, call, callee, receiver) =
+        receiver_method_call_il(Lang::Rust, "zip", 1, 700);
+    let pair = missing_pair.children(call)[1];
+    push_receiver_domain_dependency(&mut missing_pair, 0, receiver, DomainEvidence::Collection);
+    missing_pair
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            1,
+            missing_pair.node(call).span,
+            contract.id,
+            contract.callee,
+            1,
+            EvidenceStatus::Asserted,
+            &[0],
+            contract.pack_id,
+            contract.producer_id,
+        ));
+    assert!(
+        admitted_library_method_call_at_call(&missing_pair, &interner, call).is_none(),
+        "Rust zip node-backed admission requires protocol proof for the pair argument"
+    );
+    assert_eq!(
+        library_api_contract_evidence_at_call_span(
+            &missing_pair,
+            &interner,
+            LibraryApiSpanEvidenceQuery {
+                call_span: Some(missing_pair.node(call).span),
+                callee_span: Some(missing_pair.node(callee).span),
+                receiver_span: Some(missing_pair.node(receiver).span),
+                id: contract.id,
+                callee: contract.callee,
+                arg_count: 1,
+            },
+        ),
+        LibraryApiEvidenceStatus::Rejected,
+        "Rust zip span-backed admission also requires protocol proof for the pair argument"
+    );
+    assert_ne!(pair, receiver);
+
+    let (mut admitted, interner, call, callee, receiver) =
+        receiver_method_call_il(Lang::Rust, "zip", 1, 710);
+    let pair = admitted.children(call)[1];
+    push_receiver_domain_dependency(&mut admitted, 0, receiver, DomainEvidence::Collection);
+    push_receiver_domain_dependency(&mut admitted, 1, pair, DomainEvidence::Collection);
+    admitted
+        .evidence
+        .push(library_api_record_with_provenance_and_arity(
+            2,
+            admitted.node(call).span,
+            contract.id,
+            contract.callee,
+            1,
+            EvidenceStatus::Asserted,
+            &[0, 1],
+            contract.pack_id,
+            contract.producer_id,
+        ));
+    let occurrence = admitted_library_method_call_at_call(&admitted, &interner, call)
+        .expect("Rust zip with receiver and pair protocol proofs is admitted");
+    assert_eq!(
+        occurrence.contract.id,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Zip))
+    );
+    assert_eq!(
+        library_api_contract_evidence_at_call_span(
+            &admitted,
+            &interner,
+            LibraryApiSpanEvidenceQuery {
+                call_span: Some(admitted.node(call).span),
+                callee_span: Some(admitted.node(callee).span),
+                receiver_span: Some(admitted.node(receiver).span),
+                id: contract.id,
+                callee: contract.callee,
+                arg_count: 1,
+            },
+        ),
+        LibraryApiEvidenceStatus::Admitted
+    );
+}
+
+#[test]
 fn sequence_hof_pack_does_not_open_unsupported_find_shape() {
     let (mut il, interner, call, receiver) = sequence_hof_call_il("find", 1);
     push_protocol_receiver_dependency(&mut il, receiver);

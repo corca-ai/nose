@@ -26,7 +26,6 @@ pub(in crate::library_api) use dependency_facts::*;
 pub(in crate::library_api) use receiver_dependencies::{
     async_receiver_dependencies_at_span, domain_dependency_anchor_matches_receiver,
     iterator_adapter_receiver_dependencies_at_span, method_receiver_dependencies_at_span,
-    static_index_membership_receiver_dependency_id,
     static_index_membership_receiver_dependency_id_at_span,
 };
 pub(crate) use receiver_dependencies::{

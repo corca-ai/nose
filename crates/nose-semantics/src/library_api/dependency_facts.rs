@@ -31,15 +31,6 @@ pub(in crate::library_api) fn dependency_has_source_call(
     ) && dependency_has_asserted_record(il, record, anchor, kind)
 }
 
-pub(in crate::library_api) fn dependency_has_source_fact_node(
-    il: &Il,
-    record: &EvidenceRecord,
-    node: NodeId,
-    expected: SourceFactKind,
-) -> bool {
-    dependency_has_source_fact_anchor(il, record, il.node(node).span, expected)
-}
-
 pub(in crate::library_api) fn dependency_has_source_fact_anchor(
     il: &Il,
     record: &EvidenceRecord,
@@ -167,17 +158,6 @@ pub(in crate::library_api) fn dependency_has_unshadowed_global_anchor(
     )
 }
 
-pub(in crate::library_api) fn dependency_has_qualified_global_node(
-    il: &Il,
-    record: &EvidenceRecord,
-    node: NodeId,
-    expected: &str,
-) -> bool {
-    let span = il.node(node).span;
-    let kind = il.kind(node);
-    dependency_has_qualified_global_anchor(il, record, span, kind, expected)
-}
-
 pub(in crate::library_api) fn dependency_has_qualified_global_anchor(
     il: &Il,
     record: &EvidenceRecord,
@@ -201,28 +181,6 @@ pub(in crate::library_api) fn dependency_has_qualified_global_anchor(
                 && qualified_global_symbol_record_valid(il, dependency, contract)
         })
     })
-}
-
-pub(in crate::library_api) fn dependency_has_imported_member_node(
-    il: &Il,
-    interner: &Interner,
-    record: &EvidenceRecord,
-    node: NodeId,
-    module: &str,
-    exported: &str,
-) -> bool {
-    match il.kind(node) {
-        NodeKind::Var => {
-            dependency_has_imported_binding_node(il, interner, record, node, module, exported)
-        }
-        NodeKind::Field => {
-            let Some(receiver) = il.children(node).first().copied() else {
-                return false;
-            };
-            dependency_has_imported_namespace_node(il, interner, record, receiver, module)
-        }
-        _ => false,
-    }
 }
 
 pub(in crate::library_api) fn dependency_has_imported_binding_node(
@@ -258,23 +216,6 @@ pub(in crate::library_api) fn dependency_has_imported_binding_anchor(
         exported_hash: stable_symbol_hash(exported),
     };
     dependency_has_imported_symbol_anchor(il, interner, record, span, kind, expected)
-}
-
-pub(in crate::library_api) fn dependency_has_imported_namespace_node(
-    il: &Il,
-    interner: &Interner,
-    record: &EvidenceRecord,
-    node: NodeId,
-    module: &str,
-) -> bool {
-    dependency_has_imported_namespace_anchor(
-        il,
-        interner,
-        record,
-        il.node(node).span,
-        il.kind(node),
-        module,
-    )
 }
 
 pub(in crate::library_api) fn dependency_has_imported_namespace_anchor(
