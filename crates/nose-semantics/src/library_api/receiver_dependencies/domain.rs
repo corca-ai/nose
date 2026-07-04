@@ -1,4 +1,5 @@
 use super::*;
+use crate::evidence::{binding_lhs_matches_local_hash, free_name_reference_matches_binding_domain};
 
 pub(in crate::library_api) fn domain_or_sequence_dependency_ids(
     il: &Il,
@@ -149,48 +150,6 @@ pub(in crate::library_api) fn unique_binding_lhs_for_var_reference_with_cache(
         }
     }
     found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
-}
-
-fn free_name_reference_matches_binding_domain(
-    il: &Il,
-    interner: &Interner,
-    lhs: NodeId,
-    reference: NodeId,
-) -> bool {
-    let Payload::Name(name) = il.node(reference).payload else {
-        return false;
-    };
-    binding_lhs_matches_local_hash(
-        il,
-        interner,
-        lhs,
-        stable_symbol_hash(interner.resolve(name)),
-    )
-}
-
-fn binding_lhs_matches_local_hash(
-    il: &Il,
-    interner: &Interner,
-    lhs: NodeId,
-    local_hash: u64,
-) -> bool {
-    node_name_hash(il, interner, lhs) == Some(local_hash)
-        || binding_lhs_has_live_domain_hash(il, lhs, local_hash)
-}
-
-fn binding_lhs_has_live_domain_hash(il: &Il, lhs: NodeId, local_hash: u64) -> bool {
-    let span = il.node(lhs).span;
-    il.evidence_anchored_at(span).any(|record| {
-        matches!(
-            record.anchor,
-            EvidenceAnchor::Binding {
-                span: anchor_span,
-                local_hash: anchor_hash,
-            } if anchor_span == span && anchor_hash == local_hash
-        ) && matches!(record.kind, EvidenceKind::Domain(_))
-            && record.status == EvidenceStatus::Asserted
-            && il.evidence_dependencies_asserted(record)
-    })
 }
 
 pub(in crate::library_api) fn nearest_scope_cached(

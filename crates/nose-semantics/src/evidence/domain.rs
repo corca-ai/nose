@@ -329,7 +329,7 @@ pub(crate) fn unique_binding_lhs_for_var_reference(
     found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
 }
 
-fn free_name_reference_matches_binding_domain(
+pub(crate) fn free_name_reference_matches_binding_domain(
     il: &Il,
     interner: &Interner,
     lhs: NodeId,
@@ -346,7 +346,7 @@ fn free_name_reference_matches_binding_domain(
     )
 }
 
-fn binding_lhs_matches_local_hash(
+pub(crate) fn binding_lhs_matches_local_hash(
     il: &Il,
     interner: &Interner,
     lhs: NodeId,
