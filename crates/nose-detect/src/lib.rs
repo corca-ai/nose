@@ -23,6 +23,7 @@ mod orchestration;
 mod reinvented;
 mod report;
 mod strict_exact;
+mod test_paths;
 mod units;
 mod witness;
 

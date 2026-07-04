@@ -794,3 +794,16 @@ first 5-iteration runtime triage was neutral at aggregate scale (+1.8%) but
 flagged `pixijs` once as a value hot-path candidate; a focused 9-iteration
 rerun on `pixijs` classified the delta as `small-or-noisy` (+1.9%,
 hash-identical), so no performance regression is accepted.
+
+The documentation/design cleanup keeps the reviewed default-surface count at
+49 but fixes a scope attribution error surfaced by the same self-query loop.
+The `6a34db62d8` family in `crates/nose-frontend/src/go/tests.rs` is modular
+Rust test code (`#[cfg(test)] mod tests;` lowered through `src/*/tests.rs`),
+not production frontend code. Moving the path convention into one shared
+`nose-detect` helper makes report scoping and unit-extraction gates agree:
+`test.rs`/`tests.rs`, root `spec/`, and root `__tests__/` paths now classify as
+test scope everywhere. Re-running
+`nose query crates all top=30 --mode near --min-value 40 group=dir` reports
+the Go frontend helper family as `test`, and `scripts/check-duplication.sh`
+still reports `49` default-surface families against budget `49`; no budget
+change is accepted.

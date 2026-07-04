@@ -92,12 +92,14 @@ A Cargo workspace; data flows left-to-right through them.
 | `nose-semantics` | builtin semantic facade: language profiles, evidence/source-fact helpers, type-domain contracts, effect/operator/module/stdlib predicates, API contracts, and exact-channel proof obligations |
 | `nose-frontend` | tree-sitter parse + per-language CST→IL lowering and builtin evidence emission (one module tree per language, incl. declarative CSS/HTML; `<script>`/`<style>`/markup region extraction for Vue/Svelte/HTML) |
 | `nose-normalize` | the normalization passes, inferred immutable binding-domain evidence, and the value graph (GVN) |
-| `nose-detect` | unit/feature extraction, MinHash/LSH, scoring, clustering, refactor ranking |
+| `nose-detect` | unit/feature extraction, exact-fragment extraction, strict exact-safety gates, MinHash/LSH, scoring, clustering, test/generated scope tagging, refactor ranking, and query-surface policy |
 | `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) — see [benchmark](benchmark.md) |
 | `nose-markdown` | self-contained same-language Markdown prose near-duplicate domain (char-n-gram MinHash-LSH + winnowing + containment → TF-IDF rank → span witness), distinct from the value-graph code engine — see [markdown-duplication](markdown-duplication.md) |
-| `nose-cli` | the `nose` binary, config loading, baselines, caching |
+| `nose-cli` | the `nose` binary and process boundary: argument models, command dispatch, config/cache/baseline plumbing, query dashboard/JSON/open views, scan compatibility commands, verify/oracle reporting, recall-loss reports, and local diagnostics |
 
 The current semantic assumptions these crates share are summarized in [semantic-kernel-snapshot](semantic-kernel-snapshot.md).
+The incremental crate/module split is ratcheted in [refactoring-ratchets](refactoring-ratchets.md);
+new code should follow the focused owners there rather than growing dispatcher or facade roots.
 
 ## Design choices worth knowing
 

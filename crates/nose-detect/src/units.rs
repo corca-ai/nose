@@ -7,7 +7,6 @@ mod features;
 mod fragments;
 mod gates;
 mod model;
-mod test_paths;
 mod timing;
 mod tree;
 

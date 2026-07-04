@@ -1,4 +1,4 @@
-use super::test_paths::is_test_path;
+use crate::test_paths::is_test_path;
 use nose_il::{Il, UnitBodyKind, UnitEvidenceFlag, UnitKind, UnitOrigin};
 
 /// Upper bound (pre-order node count) for a *block* unit. Blocks are meant to surface

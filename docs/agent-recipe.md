@@ -90,8 +90,9 @@ Read the fields in this order — each step either decides or narrows:
    divergence — genuine logic difference, be skeptical). `extraction_shape` names the decidable
    shape of the fix for a clean candidate (`call-existing-helper` is the strongest — an existing
    helper is reinvented inline, so the action is to *call* it, not extract anew).
-5. **Where it lives — `scope`.** `scope` is `prod` / `test` / `mixed` (a Rust inline `mod tests`
-   counts as test scope even in a production file). Test-scaffolding duplication is still worthy
+5. **Where it lives — `scope`.** `scope` is `prod` / `test` / `mixed` (conventional test paths,
+   Rust modular `test.rs`/`tests.rs`, and Rust inline `mod test`/`mod tests` spans count as test
+   scope even when nested under `src/`). Test-scaffolding duplication is still worthy
    (a test helper is the refactor) — but weigh it below production logic when budgeting attention.
 6. **The core question** (the same rubric the v5 labels use,
    [bench/labels/RUBRIC.md](../bench/labels/RUBRIC.md)): *would extracting one

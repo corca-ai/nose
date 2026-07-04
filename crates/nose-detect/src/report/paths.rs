@@ -1,6 +1,8 @@
 use crate::Loc;
 use std::path::Path;
 
+pub use crate::test_paths::is_test_path;
+
 /// The directory ("module") a file lives in — the design-level grouping key.
 pub(super) fn module_of(file: &str) -> &str {
     Path::new(file)
@@ -32,37 +34,12 @@ pub(super) fn overlap_frac(a: &Loc, b: &Loc) -> f64 {
 /// display context plus the opt-in `--scope` filter, never a worthiness input.
 /// Public so presentation layers can scope-guard per-location advice (e.g. never
 /// recommend calling a test helper from production copies).
-/// Whether a file PATH is test code, by the well-known conventions (a `/test(s)/` or
-/// `/spec/` or `/__tests__/` directory, a `_test.go` / `conftest.py` / `.test.` /
-/// `.spec.` file, or a `test_`-prefixed stem). Path-only — the [`is_test_loc`] superset
-/// also consults the unit name and the inline-test-module flag.
-pub fn is_test_path(file: &str) -> bool {
-    let p = file.to_ascii_lowercase();
-    p.contains("/test/")
-        || p.contains("/tests/")
-        || p.contains("/__tests__/")
-        || p.contains("/spec/")
-        || p.starts_with("test/")
-        || p.starts_with("tests/")
-        || p.ends_with("_test.go")
-        || p.ends_with("conftest.py")
-        || ["_test.", ".test.", ".spec.", "_spec."]
-            .iter()
-            .any(|m| p.contains(m))
-        || file_stem(&p).starts_with("test_")
-}
-
 pub fn is_test_loc(l: &Loc) -> bool {
     let name_test = l
         .name
         .as_deref()
         .is_some_and(|n| n.starts_with("Test") || n.starts_with("test_"));
     is_test_path(&l.file) || name_test || l.in_test_module
-}
-
-fn file_stem(path: &str) -> &str {
-    let file = path.rsplit('/').next().unwrap_or(path);
-    file.split('.').next().unwrap_or(file)
 }
 
 /// Is this site vendored / generated / third-party code — not the maintainer's to

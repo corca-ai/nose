@@ -77,15 +77,30 @@ fundamentals; the rest is grouped by area.
 
 ### Semantic kernel & packs
 
+#### Current architecture and operating process
+
 - [semantic-kernel](semantic-kernel.md) — semantic-kernel and pack architecture: language/library semantics, extension boundaries, responsibility model, and exact-channel eligibility.
 - [semantic-pack-architecture](semantic-pack-architecture.md) — the #473 migration rulebook for builtin/external pack terminology, kernel-vs-pack ownership, behavior gates, and performance gates.
-- [recall-loss-diagnostics](recall-loss-diagnostics.md) — local diagnostics and PR-reporting metrics for attributing fail-closed recall loss while preserving the hard exact-soundness gate.
+- [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
+- [evidence-records](evidence-records.md) — the internal pack-facing evidence substrate for source, domain, import, symbol, type, guard, place/effect, library API, and sequence-surface facts.
+- [source-facts](source-facts.md) — source-origin evidence for semantic contracts: construct syntax, async/generator/error boundaries, literal/operator provenance, pack boundaries, and fail-closed exact admission.
+- [demand-effect-semantics](demand-effect-semantics.md) — the internal demand/effect contract model for eager, lazy, short-circuit, async, generator, and channel boundaries.
 - [recall-loss-recovery-loop](recall-loss-recovery-loop.md) — checked-in baseline summaries, report diff workflow, five-cycle recovery/attribution loop, and the full-corpus priority census for semantic-kernel work.
 - [semantic-pack-adoption](semantic-pack-adoption.md) — promotion, rollback, and adoption-gate reports for moving external or optional packs into official builtin support without forking semantic vocabulary.
 - [semantic-pack-compatibility](semantic-pack-compatibility.md) — manifest API, installed-version, kernel-vocabulary, and fail-closed external-influence compatibility policy for semantic packs.
+- [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) — versioned v0 schema and provider-facing extension API for language/library semantic packs.
+- [semantic-pack-conformance](semantic-pack-conformance.md) — provider/user workflow for checking local pack manifests and the builtin inventory workflow for auditing shipped pack coverage.
+- [semantic-pack-loading](semantic-pack-loading.md) — local pack manifest loading, explicit opt-in trust policy, and current metadata-only limits.
+
+#### Planning and pricing
+
+- [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
+- [semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md) — issue #507 primitive census, blocker taxonomy, and accept/reject matrix for deriving minimal kernel capabilities from pack blockers.
 - [semantic-pack-ecosystem-candidates](semantic-pack-ecosystem-candidates.md) — narrow-slice candidate matrix for future large-ecosystem builtin packs such as Guava, Lodash, NumPy, and RxJS.
 - [semantic-pack-candidate-pricing](semantic-pack-candidate-pricing.md) — corpus-backed pricing loop for deciding which narrow semantic-pack rows are ready, blocked, or unpriced before implementation.
-- [semantic-kernel-capability-minimization](semantic-kernel-capability-minimization.md) — issue #507 primitive census, blocker taxonomy, and accept/reject matrix for deriving minimal kernel capabilities from pack blockers.
+
+#### Historical closeouts and audits
+
 - [semantic-kernel-builtin-expansion-509](semantic-kernel-builtin-expansion-509.md) — issue #509 blocker packet, admitted API result-domain primitive, and builtin expansion record.
 - [semantic-kernel-expansion-511](semantic-kernel-expansion-511.md) — issue #511 R1-R3 cycles: generalized admitted API result-domain materialization, external fixed-domain authoring, and transition assessment.
 - [semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md) — issue #511 R4: external-pack authorability matrix, Guava fixed-domain dry run, and transition-to-R5 assessment.
@@ -97,19 +112,12 @@ fundamentals; the rest is grouped by area.
 - [js-ts-string-affix-hardening-closeout-550](js-ts-string-affix-hardening-closeout-550.md) — closeout for the #550 JavaScript/TypeScript string-affix receiver proof hardening, including false-open and runtime evidence.
 - [ruby-string-affix-closeout-551](ruby-string-affix-closeout-551.md) — closeout for the #551 Ruby `String#start_with?`/`String#end_with?` proof slice, including product-output, inventory, and runtime evidence.
 - [string-affix-coordinate-closeout-552](string-affix-coordinate-closeout-552.md) — closeout for the #552 string-affix coordinate boundary hardening, including parameter/binding coordinates and deferred multi/offset forms.
+- [string-affix-conformance-closeout-558](string-affix-conformance-closeout-558.md) — closeout for the #558 string-affix conformance and builtin inventory hardening pass.
 - [import-backed-immutable-provenance-closeout-567](import-backed-immutable-provenance-closeout-567.md) — closeout for the #567 imported immutable value provenance capability, including admitted coordinate families, hard-negative boundaries, recall-loss census, and runtime evidence.
 - [semantic-pack-boundary-review-2026-06-22](semantic-pack-boundary-review-2026-06-22.md) — pre-release review of the semantic kernel vs builtin semantic-pack boundary after the #484 stabilization tracker.
-- [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
-- [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
 - [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md) — post-PR #147 audit of remaining raw/local semantic pockets and follow-up owners.
 - [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md) — closeout for the #109 semantic-kernel foundation and follow-up tranche.
-- [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) — versioned v0 schema and provider-facing extension API for language/library semantic packs.
-- [semantic-pack-conformance](semantic-pack-conformance.md) — provider/user workflow for checking local pack manifests and the builtin inventory workflow for auditing shipped pack coverage.
-- [semantic-pack-loading](semantic-pack-loading.md) — local pack manifest loading, explicit opt-in trust policy, and current metadata-only limits.
-- [evidence-records](evidence-records.md) — the internal pack-facing evidence substrate for source, domain, import, symbol, type, guard, place/effect, library API, and sequence-surface facts.
-- [demand-effect-semantics](demand-effect-semantics.md) — the internal demand/effect contract model for eager, lazy, short-circuit, async, generator, and channel boundaries.
 - [scheduling-channel-callback-obligations-594](scheduling-channel-callback-obligations-594.md) — issue #594's cross-language obligation vocabulary, Promise/scheduling closeout, and #602 census-backed guardrails, exact Promise aggregate slices, reporting-only executor/cancellation/scheduling lifecycle slices, and closeout for scheduling, aggregate, cancellation, error/rejection channels, callback demand/effect, lifecycle, and mutation boundaries.
-- [source-facts](source-facts.md) — source-origin evidence for semantic contracts: construct syntax, async/generator/error boundaries, literal/operator provenance, pack boundaries, and fail-closed exact admission.
 
 ### Type-4, hazard & measurement
 

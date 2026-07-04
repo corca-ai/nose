@@ -143,8 +143,9 @@ source-code signal.
 This shipped as a ranking-time policy layer (experiments §U):
 
 1. Each family is tagged `scope = prod | test | mixed` by a conservative path +
-   unit-name heuristic (`test/`, `tests/`, `__tests__/`, `*_test.go`, `*.spec.*`,
-   `*.test.*`, `conftest.py`, ...; see `is_test_loc` in `nose-detect/src/report/paths.rs`).
+   unit-name heuristic (`test/`, `tests/`, `__tests__/`, `spec/`, `*_test.go`,
+   `test.rs`, `tests.rs`, `*.spec.*`, `*.test.*`, `conftest.py`, ...; see
+   `is_test_loc` in `nose-detect/src/report/paths.rs`).
 2. Test-only families are **not** value-discounted anymore. That early discount hid real
    repeated test helpers, so it was reverted in [experiments](experiments.md) §U.1.
 3. Nothing is dropped: the scope is shown in the report (`· in test code`,
