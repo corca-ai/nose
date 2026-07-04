@@ -832,3 +832,18 @@ Swift frontend tests. Moving the `NodeKind` + `Payload::Name` extraction into
 the crate-local `test_helpers::payload_names_for_kind` keeps per-language
 lowering fixtures local while removing the repeated name-collection loop. No
 new family appears, so the baseline budget is tightened to 47.
+
+The language-core provenance cleanup tightens the count from 47 to 46. The
+self-query report flagged `7c8432da3fcb2c67`, the repeated builtin
+language-core provenance checks across frontend module exports, normalize
+sequence-surface consumers, and semantic import/sequence-surface admission.
+Moving the provenance-only and asserted/dependency-closed checks into
+`nose-semantics` removes that production helper family. Two accepted production
+families only changed representative IDs: `1b952c1370c4f637` becomes
+`7a67923c4ee93aca` for the `source_*_at_node` accessor family after evidence
+facade line movement, and `c967b3bcff5a2b58` becomes `fc4edd8f87a8a8f0` for the
+same context/export assignment-counting family. The reviewer-driven follow-up
+that routed symbol and iterator admission through the same helper also moves the
+already reviewed `evidence_anchor_span` helper representative from
+`2b26aa8a17d81eae` to `734ee4c50e4d001e`. No new family appears, so the baseline
+budget is tightened to 46.

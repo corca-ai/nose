@@ -4,8 +4,8 @@ use nose_il::{
     SequenceSurfaceKind, Symbol,
 };
 use nose_semantics::{
-    binding_write_target, language_core_evidence_provenance, opaque_argument_escape_args,
-    receiver_mutation_call_receiver,
+    binding_write_target, language_core_evidence_provenance, language_core_record_has_provenance,
+    opaque_argument_escape_args, receiver_mutation_call_receiver,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -220,7 +220,7 @@ fn sequence_domain_evidence_record_for_node(
         let EvidenceKind::SequenceSurface(surface) = record.kind else {
             continue;
         };
-        if !sequence_surface_record_has_language_core_provenance(il, record) {
+        if !language_core_record_has_provenance(il, record) {
             continue;
         }
         if !record_is_live(il, record) {
@@ -239,15 +239,6 @@ fn sequence_domain_evidence_record_for_node(
         _ => return None,
     };
     Some((domain, id))
-}
-
-fn sequence_surface_record_has_language_core_provenance(il: &Il, record: &EvidenceRecord) -> bool {
-    if record.provenance.emitter != EvidenceEmitter::Builtin {
-        return false;
-    }
-    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
-    record.provenance.pack_hash == Some(stable_symbol_hash(pack_id))
-        && record.provenance.rule_hash == Some(stable_symbol_hash(producer_id))
 }
 
 fn record_is_live(il: &Il, record: &EvidenceRecord) -> bool {

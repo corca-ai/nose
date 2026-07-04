@@ -179,7 +179,7 @@ pub(crate) fn sequence_surface_evidence_record_at_sequence_span(
         let EvidenceKind::SequenceSurface(kind) = record.kind else {
             continue;
         };
-        if !language_core_sequence_surface_record(il, record) {
+        if !language_core_record_has_provenance(il, record) {
             continue;
         }
         if record.status != EvidenceStatus::Asserted || !il.evidence_dependencies_asserted(record) {
@@ -192,15 +192,6 @@ pub(crate) fn sequence_surface_evidence_record_at_sequence_span(
         }
     }
     found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
-}
-
-fn language_core_sequence_surface_record(il: &Il, record: &EvidenceRecord) -> bool {
-    if record.provenance.emitter != EvidenceEmitter::Builtin {
-        return false;
-    }
-    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
-    record.provenance.pack_hash == Some(stable_symbol_hash(pack_id))
-        && record.provenance.rule_hash == Some(stable_symbol_hash(producer_id))
 }
 
 pub(super) fn sequence_surface_evidence_matches_node(

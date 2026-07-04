@@ -221,7 +221,7 @@ fn dependency_proves_iterable_source(
         }
         EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection) => {
             dependency.anchor == EvidenceAnchor::sequence(source_span)
-                && evidence_record_has_language_core_provenance(il, dependency)
+                && language_core_record_has_provenance(il, dependency)
         }
         EvidenceKind::Source(SourceFactKind::Comprehension(kind)) => {
             dependency.anchor == EvidenceAnchor::source_span(source_span)
@@ -257,11 +257,6 @@ fn source_comprehension_is_iterable(lang: Lang, kind: SourceComprehensionKind) -
                 | SourceComprehensionKind::PythonListComprehension
         )
     )
-}
-
-fn evidence_record_has_language_core_provenance(il: &Il, record: &EvidenceRecord) -> bool {
-    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
-    library_api_record_has_builtin_provenance(record, pack_id, producer_id)
 }
 
 fn evidence_record_has_language_source_fact_provenance(il: &Il, record: &EvidenceRecord) -> bool {

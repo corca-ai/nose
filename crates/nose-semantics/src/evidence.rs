@@ -35,6 +35,20 @@ pub(crate) enum EvidenceResolution<T> {
     Ambiguous,
 }
 
+pub fn language_core_record_has_provenance(il: &Il, record: &EvidenceRecord) -> bool {
+    if record.provenance.emitter != EvidenceEmitter::Builtin {
+        return false;
+    }
+    let (pack_hash, rule_hash) = language_core_evidence_provenance_hashes(il.meta.lang);
+    record.provenance.pack_hash == Some(pack_hash) && record.provenance.rule_hash == Some(rule_hash)
+}
+
+pub fn asserted_language_core_record(il: &Il, record: &EvidenceRecord) -> bool {
+    record.status == EvidenceStatus::Asserted
+        && language_core_record_has_provenance(il, record)
+        && il.evidence_dependencies_asserted(record)
+}
+
 /// Resolve the unique evidence value projected by `project` among the records
 /// anchored exactly at `span` (anchors only ever match by exact span equality,
 /// so the span-bucketed index replaces a full `evidence` pass per query).

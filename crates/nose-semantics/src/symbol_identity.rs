@@ -210,14 +210,7 @@ pub(super) fn symbol_record_has_admitted_provenance(il: &Il, record: &EvidenceRe
         EvidenceKind::Symbol(
             SymbolEvidenceKind::UnshadowedGlobal { .. }
             | SymbolEvidenceKind::ImportedNamespace { .. },
-        ) => {
-            if record.provenance.emitter != EvidenceEmitter::Builtin {
-                return false;
-            }
-            let (pack_hash, rule_hash) = language_core_evidence_provenance_hashes(il.meta.lang);
-            record.provenance.pack_hash == Some(pack_hash)
-                && record.provenance.rule_hash == Some(rule_hash)
-        }
+        ) => language_core_record_has_provenance(il, record),
         EvidenceKind::Symbol(_) => true,
         _ => false,
     }

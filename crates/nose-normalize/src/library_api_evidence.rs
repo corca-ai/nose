@@ -3,17 +3,19 @@ mod static_globals;
 use recording::*;
 use static_globals::record_static_global_method_library_api;
 
+#[cfg(test)]
+use nose_il::EvidenceRecord;
 use nose_il::{
     stable_symbol_hash, Builtin, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId,
-    EvidenceKind, EvidenceRecord, EvidenceStatus, Il, Interner, Lang, LibraryApiEvidenceKind,
-    NodeId, NodeKind, Payload, PromiseSettledValueEvidenceKind, PromiseSettlementChannel,
-    SequenceSurfaceKind, Symbol, SymbolEvidenceKind,
+    EvidenceKind, EvidenceStatus, Il, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind,
+    Payload, PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
+    Symbol, SymbolEvidenceKind,
 };
 use nose_semantics::{
     admitted_library_api_result_domain_for_call_record, builder_append_method_contract,
-    language_core_evidence_provenance, library_api_callee_contract_hash,
-    library_api_contract_id_hash, library_api_free_name_shadow_safe,
-    library_api_property_dependencies_for_field_with_cache,
+    language_core_evidence_provenance, language_core_record_has_provenance,
+    library_api_callee_contract_hash, library_api_contract_id_hash,
+    library_api_free_name_shadow_safe, library_api_property_dependencies_for_field_with_cache,
     library_api_receiver_dependencies_for_call_with_cache,
     library_imported_promise_factory_contract, library_method_call_contract,
     library_promise_aggregate_contract, library_promise_resolve_contract,
@@ -471,7 +473,7 @@ fn sequence_surface_evidence_id_for_node(
         let EvidenceKind::SequenceSurface(kind) = record.kind else {
             continue;
         };
-        if !sequence_surface_record_has_language_core_provenance(il, record) {
+        if !language_core_record_has_provenance(il, record) {
             continue;
         }
         if record.status != EvidenceStatus::Asserted || !il.evidence_dependencies_asserted(record) {
@@ -484,15 +486,6 @@ fn sequence_surface_evidence_id_for_node(
         }
     }
     found.and_then(|(kind, id)| (kind == expected).then_some(id))
-}
-
-fn sequence_surface_record_has_language_core_provenance(il: &Il, record: &EvidenceRecord) -> bool {
-    if record.provenance.emitter != EvidenceEmitter::Builtin {
-        return false;
-    }
-    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
-    record.provenance.pack_hash == Some(stable_symbol_hash(pack_id))
-        && record.provenance.rule_hash == Some(stable_symbol_hash(producer_id))
 }
 
 #[cfg(test)]

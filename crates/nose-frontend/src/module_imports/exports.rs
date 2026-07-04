@@ -5,10 +5,10 @@ use super::bindings::{
 use super::modules::java_class_module_hashes;
 use super::{ExportedBinding, FileImportContext};
 use nose_il::{
-    stable_symbol_hash, EvidenceAnchor, EvidenceEmitter, EvidenceKind, EvidenceRecord,
-    EvidenceStatus, Il, ImportEvidenceKind, Interner, NodeId, Symbol, UnitKind,
+    stable_symbol_hash, EvidenceAnchor, EvidenceKind, Il, ImportEvidenceKind, Interner, NodeId,
+    Symbol, UnitKind,
 };
-use nose_semantics::{imported_literal_export_safe, language_core_evidence_provenance, semantics};
+use nose_semantics::{asserted_language_core_record, imported_literal_export_safe, semantics};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(super) struct LiteralExports {
@@ -263,7 +263,7 @@ fn collect_reexport_records(il: &Il, file_idx: usize, out: &mut Vec<ReExportReco
         let EvidenceAnchor::Binding { span, local_hash } = record.anchor else {
             continue;
         };
-        if !trusted_language_core_record(il, record) {
+        if !asserted_language_core_record(il, record) {
             continue;
         }
         out.push(ReExportRecord {
@@ -274,18 +274,6 @@ fn collect_reexport_records(il: &Il, file_idx: usize, out: &mut Vec<ReExportReco
             target_exported_hash,
         });
     }
-}
-
-fn trusted_language_core_record(il: &Il, record: &EvidenceRecord) -> bool {
-    if record.status != EvidenceStatus::Asserted
-        || record.provenance.emitter != EvidenceEmitter::Builtin
-        || !il.evidence_dependencies_asserted(record)
-    {
-        return false;
-    }
-    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
-    record.provenance.pack_hash == Some(stable_symbol_hash(pack_id))
-        && record.provenance.rule_hash == Some(stable_symbol_hash(producer_id))
 }
 
 struct StatementExportScope<'a> {

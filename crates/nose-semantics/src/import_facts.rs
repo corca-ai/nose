@@ -70,10 +70,7 @@ pub(super) fn import_fact_evidence_at_sequence_span(
         }) else {
             continue;
         };
-        if record.status != EvidenceStatus::Asserted
-            || !language_core_record_for_il(il, record)
-            || !il.evidence_dependencies_asserted(record)
-        {
+        if !asserted_language_core_record(il, record) {
             return EvidenceResolution::Ambiguous;
         }
         match found {
@@ -150,10 +147,7 @@ fn imported_literal_evidence_at_span(
         if !imported_literal_record_matches(record.kind, kind, admission) {
             continue;
         }
-        if record.status != EvidenceStatus::Asserted
-            || !language_core_record_for_il(il, record)
-            || !il.evidence_dependencies_asserted(record)
-        {
+        if !asserted_language_core_record(il, record) {
             return EvidenceResolution::Ambiguous;
         }
         found = true;
@@ -184,13 +178,4 @@ fn imported_literal_record_matches(
         ) => root_kind == kind,
         _ => false,
     }
-}
-
-fn language_core_record_for_il(il: &Il, record: &EvidenceRecord) -> bool {
-    if record.provenance.emitter != EvidenceEmitter::Builtin {
-        return false;
-    }
-    let (pack_id, producer_id) = language_core_evidence_provenance(il.meta.lang);
-    record.provenance.pack_hash == Some(stable_symbol_hash(pack_id))
-        && record.provenance.rule_hash == Some(stable_symbol_hash(producer_id))
 }
