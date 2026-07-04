@@ -1,4 +1,5 @@
 use crate::legacy_prelude::*;
+use nose_detect::multiset_jaccard;
 
 /// Behavioral ground truth for the value-add evaluator: each interpretable unit with
 /// a stable hash of its behavior battery (equal hash ⟺ behaviorally equal on the
@@ -318,7 +319,7 @@ fn best_split_pair(mut reps: Vec<&VerifyRec>) -> (String, String, f64) {
     let mut best = (0.0f64, reps[0], reps[0]);
     for i in 0..reps.len() {
         for j in (i + 1)..reps.len() {
-            let vj = multiset_jaccard_u64(&reps[i].fp, &reps[j].fp);
+            let vj = multiset_jaccard(&reps[i].fp, &reps[j].fp);
             if vj >= best.0 {
                 best = (vj, reps[i], reps[j]);
             }
@@ -383,7 +384,7 @@ pub(super) fn report_verify_calibration(recs: &[VerifyRec]) {
     };
     for (i, a) in sorted.iter().enumerate() {
         for b in sorted.iter().skip(i + 1).take(32) {
-            let vj = multiset_jaccard_u64(&a.fp, &b.fp);
+            let vj = multiset_jaccard(&a.fp, &b.fp);
             if let Some(bi) = bin(vj) {
                 tot[bi] += 1;
                 eq[bi] += (a.beh == b.beh) as usize;
@@ -403,27 +404,5 @@ pub(super) fn report_verify_calibration(recs: &[VerifyRec]) {
                 100.0 * eq[i] as f64 / tot[i] as f64
             );
         }
-    }
-}
-
-/// Multiset Jaccard over two sorted `u64` vectors (intersection / union by count).
-pub(super) fn multiset_jaccard_u64(a: &[u64], b: &[u64]) -> f64 {
-    let (mut i, mut j, mut inter) = (0, 0, 0usize);
-    while i < a.len() && j < b.len() {
-        match a[i].cmp(&b[j]) {
-            std::cmp::Ordering::Less => i += 1,
-            std::cmp::Ordering::Greater => j += 1,
-            std::cmp::Ordering::Equal => {
-                inter += 1;
-                i += 1;
-                j += 1;
-            }
-        }
-    }
-    let union = a.len() + b.len() - inter;
-    if union == 0 {
-        1.0
-    } else {
-        inter as f64 / union as f64
     }
 }

@@ -1,5 +1,5 @@
 use crate::legacy_prelude::*;
-use crate::verify_report::multiset_jaccard_u64;
+use nose_detect::multiset_jaccard;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -197,7 +197,7 @@ fn best_split_pair(mut reps: Vec<&VerifyRec>) -> UnderMerge {
     let mut best = (0.0f64, reps[0], reps[0]);
     for i in 0..reps.len() {
         for j in (i + 1)..reps.len() {
-            let vj = multiset_jaccard_u64(&reps[i].fp, &reps[j].fp);
+            let vj = multiset_jaccard(&reps[i].fp, &reps[j].fp);
             if vj >= best.0 {
                 best = (vj, reps[i], reps[j]);
             }

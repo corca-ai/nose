@@ -847,3 +847,14 @@ that routed symbol and iterator admission through the same helper also moves the
 already reviewed `evidence_anchor_span` helper representative from
 `2b26aa8a17d81eae` to `734ee4c50e4d001e`. No new family appears, so the baseline
 budget is tightened to 46.
+
+The multiset-similarity cleanup tightens the count from 46 to 45. The self-query
+report flagged `1fc08105c8b5d5c0`, the repeated sorted multiset/set
+intersection loop across the code-clone detector, CLI verify reporting, and the
+Markdown prose engine. Moving the CLI verify and recall-loss reports to the
+`nose_detect::multiset_jaccard` helper removes the avoidable code-clone/CLI
+duplication without making the deliberately separate Markdown prose engine depend
+on the code-clone engine. The same line movement changes the already reviewed
+`report_falsify`/`soundness_gate` representative from `41586dd06dff63b5` to
+`1f922efb624c7f79`. No new family appears, so the baseline budget is tightened
+to 45.

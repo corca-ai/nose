@@ -5,7 +5,7 @@
 
 /// Weighted (multiset) Jaccard of two sorted feature multisets:
 /// `Σ min(count) / Σ max(count)`.
-pub(crate) fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
+pub fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
     if a.is_empty() && b.is_empty() {
         return 1.0;
     }

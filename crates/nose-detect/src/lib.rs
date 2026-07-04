@@ -27,6 +27,7 @@ mod test_paths;
 mod units;
 mod witness;
 
+pub use align::multiset_jaccard;
 pub use contiguous::Stream;
 pub(crate) use detectors::env_or;
 pub use detectors::{
