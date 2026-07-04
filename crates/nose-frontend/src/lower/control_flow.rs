@@ -106,6 +106,36 @@ pub(crate) fn fold_switch_labels(
     acc
 }
 
+/// Fold a non-empty list of condition nodes with left-associative `Or`.
+pub(crate) fn fold_or_conditions(
+    lo: &mut Lowering,
+    span: Span,
+    conditions: impl IntoIterator<Item = NodeId>,
+) -> Option<NodeId> {
+    let mut it = conditions.into_iter();
+    let mut acc = it.next()?;
+    for cond in it {
+        acc = lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[acc, cond]);
+    }
+    Some(acc)
+}
+
+/// Combine two optional condition nodes with `And`, preserving a lone condition.
+pub(crate) fn combine_optional_conditions(
+    lo: &mut Lowering,
+    span: Span,
+    left: Option<NodeId>,
+    right: Option<NodeId>,
+) -> Option<NodeId> {
+    match (left, right) {
+        (Some(left), Some(right)) => {
+            Some(lo.add(NodeKind::BinOp, Payload::Op(Op::And), span, &[left, right]))
+        }
+        (Some(cond), None) | (None, Some(cond)) => Some(cond),
+        (None, None) => None,
+    }
+}
+
 fn is_switch_body_child(kind: &str) -> bool {
     matches!(
         kind,

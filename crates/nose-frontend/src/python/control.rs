@@ -159,7 +159,9 @@ pub(super) fn lower_match(lo: &mut Lowering, node: TsNode) -> NodeId {
             .find(|child| child.kind() == "if_clause")
             .and_then(first_semantic_named_child)
             .map(|guard| lower_expr(lo, guard));
-        let Some(cond) = combine_match_conditions(lo, cspan, pattern_cond, guard_cond) else {
+        let Some(cond) =
+            crate::lower::combine_optional_conditions(lo, cspan, pattern_cond, guard_cond)
+        else {
             acc = body;
             continue;
         };
@@ -188,7 +190,7 @@ pub(super) fn lower_match_pattern_condition(
             let cond = lower_match_pattern_condition(lo, subject, child, span)?;
             conditions.push(cond);
         }
-        return fold_or(lo, span, conditions);
+        return crate::lower::fold_or_conditions(lo, span, conditions);
     }
     if pattern.kind() == "as_pattern" {
         return semantic_named_children(pattern)
@@ -198,31 +200,6 @@ pub(super) fn lower_match_pattern_condition(
     }
     let pat = lower_expr(lo, pattern);
     Some(lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[subject, pat]))
-}
-pub(super) fn fold_or(lo: &mut Lowering, span: Span, conditions: Vec<NodeId>) -> Option<NodeId> {
-    let mut it = conditions.into_iter();
-    let mut acc = it.next()?;
-    for cond in it {
-        acc = lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[acc, cond]);
-    }
-    Some(acc)
-}
-pub(super) fn combine_match_conditions(
-    lo: &mut Lowering,
-    span: Span,
-    pattern_cond: Option<NodeId>,
-    guard_cond: Option<NodeId>,
-) -> Option<NodeId> {
-    match (pattern_cond, guard_cond) {
-        (Some(pattern), Some(guard)) => Some(lo.add(
-            NodeKind::BinOp,
-            Payload::Op(Op::And),
-            span,
-            &[pattern, guard],
-        )),
-        (Some(cond), None) | (None, Some(cond)) => Some(cond),
-        (None, None) => None,
-    }
 }
 pub(super) fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);

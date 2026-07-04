@@ -480,7 +480,7 @@ pub(super) fn lower_switch_entry(
     let test = if labels.is_empty() {
         Some(lo.raw("switch_case", switch_span, &[]))
     } else {
-        fold_or(lo, span, labels)
+        crate::lower::fold_or_conditions(lo, span, labels)
     };
     (test, body)
 }
@@ -511,14 +511,4 @@ pub(super) fn lower_switch_label(
         ),
         None => value,
     }
-}
-pub(super) fn fold_or(lo: &mut Lowering, span: Span, mut values: Vec<NodeId>) -> Option<NodeId> {
-    if values.is_empty() {
-        return None;
-    }
-    let mut acc = values.remove(0);
-    for value in values {
-        acc = lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[acc, value]);
-    }
-    Some(acc)
 }

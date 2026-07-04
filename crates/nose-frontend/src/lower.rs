@@ -141,7 +141,8 @@ mod post_lower_evidence;
 mod symbol_evidence;
 
 pub(crate) use control_flow::{
-    c_style_for, fold_switch_labels, if_stmt, stmt_as_block, switch_to_if_chain, while_loop,
+    c_style_for, combine_optional_conditions, fold_or_conditions, fold_switch_labels, if_stmt,
+    stmt_as_block, switch_to_if_chain, while_loop,
 };
 pub(crate) use expr_helpers::*;
 pub(crate) use file::*;
