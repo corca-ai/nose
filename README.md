@@ -79,7 +79,7 @@ nose query src                               # summary, best candidates first
 nose query src id=<fam> full                 # open one family: every copy + extraction skeleton
 nose query src base=origin/main              # PR check: a change applied to one copy but not its siblings
 nose query src --format markdown             # a ranked report to paste into a PR or issue
-nose query src --format json                 # the versioned machine-readable contract (query-JSON v6)
+nose query src --format json                 # the versioned machine-readable contract
 nose query docs                              # also reports same-language near-duplicate Markdown prose
 
 # Gate on copy-paste only, with an explicit size budget

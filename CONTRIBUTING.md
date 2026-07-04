@@ -37,12 +37,12 @@ full run here is a green CI. The full gates are:
 | **docs** | `RUSTDOCFLAGS=-D warnings cargo doc --no-deps --workspace` | no broken/private intra-doc links |
 | **build** | `cargo build --release` | the workspace compiles in release |
 | **tests** | `cargo test --release` | the full suite, incl. cross-language convergence |
-| **coverage** | `cargo llvm-cov --workspace --summary-only --fail-under-lines 86` | line coverage stays above the ratchet floor (currently ~86%); runs before PR merge and release publishing |
+| **coverage** | `./scripts/check-ci-local.sh --full` / CI | line coverage stays above the ratchet floor owned by CI and the local check script; runs before PR merge and release publishing |
 | **copy-paste** | `./scripts/check-duplication.sh` | nose run on its own source, including tests — substantial duplicate family IDs match the reviewed baseline |
 | **MSRV** | `cargo +$MSRV check --workspace --all-targets` | the crates still build on the declared minimum Rust (`rust-version` in `Cargo.toml`) |
 | **unused deps** | `cargo machete` | no dependency declared but unused (à la *knip*) |
 | **supply chain** | `cargo deny check` | no advisories/yanked crates, only allowed licenses, no dup/wildcard deps, crates.io-only |
-| **docs wiki** | `awiki lint --root docs` | the `docs/` wiki is one connected graph — no orphan pages or islands |
+| **docs wiki** | `./scripts/check-docs.sh` | the `docs/` wiki is one connected graph — no orphan pages or islands |
 | **formal obligations** | `python3 scripts/check-formal-obligations.py --self-test && python3 scripts/check-formal-obligations.py` | proof-sensitive Rust markers are registered, theorem names exist, and counterexample files are tracked |
 | **formal proofs** | `./scripts/check-lean-proofs.sh` | Lean shared models and obligation proofs type-check with warnings, including `sorry`, treated as errors |
 
@@ -56,9 +56,8 @@ and inherited by every crate via `[lints] workspace = true`. The tunable
 thresholds (`cognitive-complexity-threshold`, `too-many-lines-threshold`,
 `too-many-arguments`, `type-complexity`) live in `clippy.toml`. Both the clippy
 thresholds and the coverage floor start lenient and are **ratchets** — tighten
-them over time (lower the clippy thresholds, raise `--fail-under-lines`) as the
-code is simplified and tests are added; never loosen them to make a red build
-pass.
+them over time as the code is simplified and tests are added; never loosen them
+to make a red build pass.
 
 The file-length gate is a design ratchet, not a formatter preference. New Rust
 files under `crates/` must stay below 600 lines (the enforced default max is 599).

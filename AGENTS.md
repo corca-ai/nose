@@ -11,7 +11,9 @@ Documentation is everything. Search and read relevant docs before you touch anyt
 - Treat docs like code: reduce duplications, reveal intentions, and keep them clear and simple.
 - Prefer small focused docs with Single Reponsibility Principle over long mixed docs.
 - Link related docs, just like Wiki.
-- Use `awiki` CLI to keep docs up to date. Use `<PROJECT_ROOT>/docs` as `--root`.
+- Use `awiki` CLI to keep docs up to date. Prefer `<PROJECT_ROOT>/scripts/check-docs.sh`;
+  when running `awiki` directly, use `<PROJECT_ROOT>/docs` as the wiki root in the
+  syntax supported by the installed `awiki` version.
 - Keep `<PROJECT_ROOT>/README.md` minimal and point to `<PROJECT_ROOT>/AGENTS.md`.
 - Keep `<PROJECT_ROOT>/AGENTS.md` minimal and link to detailed docs in `<PROJECT_ROOT>/docs/`.
 - Use `<PROJECT_ROOT>/docs/home.md` as the entry point of the entire project documentation.
