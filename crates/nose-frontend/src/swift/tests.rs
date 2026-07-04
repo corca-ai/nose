@@ -14,33 +14,11 @@ fn il(src: &str) -> Il {
 }
 
 fn raw_names(il: &Il, interner: &Interner) -> Vec<String> {
-    il.nodes
-        .iter()
-        .filter_map(|node| {
-            if node.kind != NodeKind::Raw {
-                return None;
-            }
-            let Payload::Name(name) = node.payload else {
-                return None;
-            };
-            Some(interner.resolve(name).to_string())
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(il, interner, NodeKind::Raw)
 }
 
 fn seq_names(il: &Il, interner: &Interner) -> Vec<String> {
-    il.nodes
-        .iter()
-        .filter_map(|node| {
-            if node.kind != NodeKind::Seq {
-                return None;
-            }
-            let Payload::Name(name) = node.payload else {
-                return None;
-            };
-            Some(interner.resolve(name).to_string())
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(il, interner, NodeKind::Seq)
 }
 
 fn seq_first_string_hashes(il: &Il, interner: &Interner, expected: &str) -> Vec<u64> {

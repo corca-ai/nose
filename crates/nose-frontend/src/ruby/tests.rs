@@ -55,14 +55,7 @@ fn raw_name_set(src: &str) -> Vec<String> {
 fn raw_names(src: &str) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.rb", src.as_bytes(), &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Raw)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Raw)
 }
 
 fn node_kinds(src: &str) -> Vec<NodeKind> {
@@ -72,14 +65,7 @@ fn node_kinds(src: &str) -> Vec<NodeKind> {
 fn field_names(src: &str) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.rb", src.as_bytes(), &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Field)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Field)
 }
 
 fn has_post_test_loop_block(src: &str) -> bool {
@@ -112,14 +98,7 @@ fn func_body_kinds(src: &str) -> Vec<NodeKind> {
 fn var_names(src: &str) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.rb", src.as_bytes(), &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Var)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Var)
 }
 
 fn raw_names_without_errors(src: &str) -> Vec<String> {

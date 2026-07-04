@@ -39,6 +39,21 @@ pub(crate) mod test_helpers {
     use nose_il::{Il, Interner, NodeId, NodeKind, Payload, SourceProtocolKind};
     use nose_semantics::source_protocol_at_node;
 
+    pub(crate) fn payload_names_for_kind(
+        il: &Il,
+        interner: &Interner,
+        kind: NodeKind,
+    ) -> Vec<String> {
+        il.nodes
+            .iter()
+            .filter(|node| node.kind == kind)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
+                _ => None,
+            })
+            .collect()
+    }
+
     pub(crate) fn expect_raw_protocol_boundary(
         il: &Il,
         interner: &Interner,

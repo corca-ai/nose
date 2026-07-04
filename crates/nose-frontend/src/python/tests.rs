@@ -5,27 +5,13 @@ use nose_semantics::source_comprehension_at_node;
 fn raw_names(src: &[u8]) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.py", src, &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Raw)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Raw)
 }
 
 fn seq_names(src: &[u8]) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.py", src, &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Seq)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Seq)
 }
 
 fn expect_python_protocol_boundary(src: &[u8], tag: &str, protocol: SourceProtocolKind) {

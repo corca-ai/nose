@@ -37,27 +37,13 @@ fn switch_case_rhs_ints(src: &str) -> Vec<i64> {
 fn raw_names(src: &str) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.go", src.as_bytes(), &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Raw)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Raw)
 }
 
 fn seq_names(src: &str) -> Vec<String> {
     let interner = Interner::new();
     let il = lower(FileId(0), "t.go", src.as_bytes(), &interner).expect("lower");
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Seq)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(&il, &interner, NodeKind::Seq)
 }
 
 fn node_kind_count(src: &str, kind: NodeKind) -> usize {

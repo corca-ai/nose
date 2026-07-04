@@ -824,3 +824,11 @@ no longer node/span drift; it is same-file similarity between named-callee and
 static-import span matchers with nine varying spots, so extracting it would
 create a high-parameter helper rather than a clearer policy owner. No new budget
 is accepted.
+
+The frontend test-helper cleanup tightens the count from 48 to 47. The
+self-query report flagged `6a34db62d843f27d`, repeated `raw_names`/`seq_names`
+and adjacent payload-name collectors across Go, Java, Ruby, Python, Rust, and
+Swift frontend tests. Moving the `NodeKind` + `Payload::Name` extraction into
+the crate-local `test_helpers::payload_names_for_kind` keeps per-language
+lowering fixtures local while removing the repeated name-collection loop. No
+new family appears, so the baseline budget is tightened to 47.

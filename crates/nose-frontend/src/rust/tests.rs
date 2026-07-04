@@ -31,14 +31,7 @@ fn lower_rust(src: &str) -> (Interner, Il) {
 }
 
 fn raw_names(il: &Il, interner: &Interner) -> Vec<String> {
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Raw)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(il, interner, NodeKind::Raw)
 }
 
 fn raw_name_set(il: &Il, interner: &Interner) -> Vec<String> {
@@ -49,25 +42,11 @@ fn raw_name_set(il: &Il, interner: &Interner) -> Vec<String> {
 }
 
 fn seq_names(il: &Il, interner: &Interner) -> Vec<String> {
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Seq)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(il, interner, NodeKind::Seq)
 }
 
 fn var_names(il: &Il, interner: &Interner) -> Vec<String> {
-    il.nodes
-        .iter()
-        .filter(|node| node.kind == NodeKind::Var)
-        .filter_map(|node| match node.payload {
-            Payload::Name(sym) => Some(interner.resolve(sym).to_string()),
-            _ => None,
-        })
-        .collect()
+    crate::test_helpers::payload_names_for_kind(il, interner, NodeKind::Var)
 }
 
 fn return_seq_var_names(il: &Il, interner: &Interner) -> Vec<String> {
