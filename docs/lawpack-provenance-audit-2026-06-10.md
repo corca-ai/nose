@@ -1,7 +1,7 @@
 # LawPack provenance audit, 2026-06-10
 
 This audit closes [#186](https://github.com/corca-ai/nose/issues/186): run
-targeted real-corpus scans for the first-party LawPack pilot and decide whether
+targeted real-corpus query runs for the first-party LawPack pilot and decide whether
 `semantic_laws` provenance is showing up as actionable signal.
 
 The checked-in data artifact is [bench/labels/lawpack_provenance_audit_2026_06_10.json](../bench/labels/lawpack_provenance_audit_2026_06_10.json).
@@ -16,35 +16,35 @@ The pack under test was the compiled first-party LawPack,
 | `value-graph.factor-distribute.numeric-common-factor` | `normalize.value_graph.factor_distribute` |
 | `value-graph.clamp.integer-ordered-minmax` | `normalize.value_graph.clamp` |
 
-The scan command was:
+The query command was:
 
 ```sh
-target/release/nose scan bench/repos/<repo> --mode semantic --format json --top 0
+target/release/nose query bench/repos/<repo> --mode semantic top=0 --format json
 ```
 
 The release binary was built from `1b83307085171ca6a6f61efaaa2480fdaead463c`.
 
 ## Corpus Result
 
-The full `bench/repos` pass had one scanner failure and zero law-bearing
+The full `bench/repos` pass had one query failure and zero law-bearing
 families:
 
 | measure | value |
 |---|---:|
 | successful repos | 104 |
 | failed repos | 1 (`rxjs`, stack overflow) |
-| scanned files | 59,865 |
+| analyzed files | 59,865 |
 | reported families | 10,967 |
 | repos with active `nose.value_graph.laws` | 104 |
 | repos with `semantic_laws` families | 0 |
 | `semantic_laws` families | 0 |
 
-Follow-up: #198 fixed the `rxjs` scanner crash by preventing sub-unit value
+Follow-up: #198 fixed the `rxjs` query crash by preventing sub-unit value
 fingerprints from inlining their own enclosing recursive helper. This document
 keeps the original 104/105 audit result because it describes the checked-in
 artifact above.
 
-Language coverage in the successful scans:
+Language coverage in the successful query runs:
 
 | language | files | repos |
 |---|---:|---:|
@@ -83,7 +83,7 @@ surfaces.
 ## Qualitative Read
 
 The negative result is not evidence that the pack is disconnected. Every
-successful scan reported `nose.value_graph.laws` in `semantic_packs` with two
+successful query run reported `nose.value_graph.laws` in `semantic_packs` with two
 value laws. `semantic_laws` is deliberately narrower: it appears only when a
 proven value-graph law actually participates in a reported family.
 
@@ -94,13 +94,13 @@ The targeted search found real law-shaped code, but not law-bearing families:
 | `fzf` generic clamp helper | `bench/repos/fzf/src/util/util.go:63` | `return max(min(val, maximum), minimum)` is a real clamp helper, but generic `cmp.Ordered` operands and parameter names do not prove integer domain or `minimum <= maximum`. |
 | `pixijs` color clamp | `bench/repos/pixijs/src/color/Color.ts:1095` | `Math.min(Math.max(value, min), max)` is a useful idiom candidate, but TypeScript `number` is not integer-only and bound order is not proven. |
 | `pixijs` render target clamp | `bench/repos/pixijs/src/rendering/renderers/shared/renderTarget/RenderTargetSystem.ts:409` | Bitwise-rounded dimensions are probably integer-shaped, but the current proof boundary does not connect that evidence to the min/max pair. |
-| `meilisearch` facet clamp | `bench/repos/meilisearch/crates/milli/src/update/facet/mod.rs:413` | Rust `.clamp(2, 127)` is exact in isolation, but this scan did not report a duplicate family bridging it to an equivalent min/max or ternary member. |
+| `meilisearch` facet clamp | `bench/repos/meilisearch/crates/milli/src/update/facet/mod.rs:413` | Rust `.clamp(2, 127)` is exact in isolation, but this query run did not report a duplicate family bridging it to an equivalent min/max or ternary member. |
 | `alacritty` scroll clamp | `bench/repos/alacritty/alacritty_terminal/src/grid/mod.rs:166` | The expression is clamp-shaped, but mixed casts/newtypes and dynamic bounds keep it outside the small ordered-integer law surface. |
 
 ## Conclusion
 
 This is a useful negative field result. The LawPack pilot is present and
-serialized in scan metadata, but the current two laws did not surface in the
+serialized in query metadata, but the current two laws did not surface in the
 real-corpus family layer. The main gap is not pack loading; it is that the
 current exact law surface is too narrow for common real-code clamp forms, and
 clone-family output is the wrong instrument for singleton law-shaped misses.

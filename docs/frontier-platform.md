@@ -14,7 +14,7 @@ data.
 
 ## Two layers, never mixed
 
-The single most important rule (issue #36's hard lesson) is that a regex prevalence scan is
+The single most important rule (issue #36's hard lesson) is that a regex prevalence census is
 a **queue signal**, not proof:
 
 - **Queue signal** — how broadly a semantic axis *appears* in the pinned corpus.
@@ -97,7 +97,7 @@ bounds, custom method names, and float domains outside the shared Clamp value.
 `bench/type4/miss_mining.py` is a corpus-wide **queue-signal** source on the same
 two-layer discipline: it LSH-bands the detection minhash over every meaningful-size
 unit per repo and emits unit pairs with high exact value-Jaccard that **no family on
-the maximal current scan surface co-reports** — same-computation evidence the product
+the maximal current query surface co-reports** — same-computation evidence the product
 stays silent on, annotated with `fp_equal`, `exact_safe`, and a source
 `text_similarity` ratio (the low-text tail is what a token-based pool can never
 contribute). Every record carries `evidence_tier: detector-suggested` and nothing is
@@ -187,7 +187,7 @@ skeleton, so the next worker need not redo the corpus pass:
   "detector": {
     "current_detector_miss": true,
     "binary_path": "<path>", "nose_version": "<nose --version>", "build_ref": "<git sha>",
-    "baseline_command": "nose scan <files> --mode semantic --format json --top 0 --min-size 1 --min-lines 1",
+    "baseline_command": "nose query <files> --mode semantic --min-size 1 --min-lines 1 top=0 --format json",
     "baseline_result": "<what the run showed>"
   },
   "proof_invariant": "<narrow proof fact required to merge soundly>",

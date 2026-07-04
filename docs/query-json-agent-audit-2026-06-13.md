@@ -1,11 +1,11 @@
-# Scan-JSON agent-usability re-validation, 2026-06-13
+# Query-JSON agent-usability re-validation, 2026-06-13
 
-The [2026-06-10 audit](scanjson-agent-audit-2026-06-10.md) measured whether an LLM agent
-([design](design.md) §2's consumer 1) can decide and act from scan JSON alone, and scored
+The [2026-06-10 audit](query-json-agent-audit-2026-06-10.md) measured whether an LLM agent
+([design](design.md) §2's consumer 1) can decide and act from query JSON alone, and scored
 **14 of 18** families decidable — with a ranked list of five evidence gaps behind the four
 failures. Since then those gaps have been filled, most recently by the
 [graded witness](graded-witness.md) (#315, which targeted gaps 1–2). This re-validation
-asks: **do the fixes actually close the gaps?** The data artifact is [bench/labels/scanjson_agent_revalidate_2026_06_13.json](../bench/labels/scanjson_agent_revalidate_2026_06_13.json).
+asks: **do the fixes actually close the gaps?** The data artifact is [bench/labels/query_json_agent_revalidate_2026_06_13.json](../bench/labels/query_json_agent_revalidate_2026_06_13.json).
 
 ## Protocol
 
@@ -13,7 +13,7 @@ The four previously-failed families were re-located in the current detector outp
 *same discriminating cases*; detection has shifted since June 10, so this is the same
 protocol on the same cases, not byte-identical families), plus a fresh four-repo sample
 (top default family of `flask`, `gin`, `rxjs`, `jedis`). An independent agent decided
-worthy / not-worthy / **undecidable** for each using **only the scan-JSON object** — no
+worthy / not-worthy / **undecidable** for each using **only the query-JSON object** — no
 source access — and named the JSON fields that drove the call. Decisions were then graded
 against the known truth.
 
@@ -61,5 +61,5 @@ recurring fresh-repo head-of-ranking audit ([design](design.md) §2c) remains th
 instrument; this confirms the #315 evidence investment paid off against the gaps it
 targeted.
 
-*See also: [scanjson-agent-audit-2026-06-10](scanjson-agent-audit-2026-06-10.md) ·
-[graded-witness](graded-witness.md) · [scan JSON](scan-json.md) · [design](design.md) · [agent-recipe](agent-recipe.md).*
+*See also: [query-json-agent-audit-2026-06-10](query-json-agent-audit-2026-06-10.md) ·
+[graded-witness](graded-witness.md) · [query JSON](query-json.md) · [design](design.md) · [agent-recipe](agent-recipe.md).*

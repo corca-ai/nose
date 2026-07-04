@@ -118,7 +118,7 @@ actual evidence from queue noise:
 - RuboCop was SOUND but produced only low-nearness leads unrelated to the map-default
   receiver-provenance frontier already parked in `real_frontier.v1.json`.
 - ANTLR Python `dict.get(..., None)` and Alacritty Rust `TermMode::VI` `contains` samples
-  did not produce under-merged leads in selected scans. The Alacritty hits are dynamic
+  did not produce under-merged leads in selected query runs. The Alacritty hits are dynamic
   bitflag receiver calls, so they remain queue noise unless a future proof fact can prove
   the receiver/domain and a concrete clone pair.
 
@@ -181,17 +181,17 @@ Representative recent fragment gates:
 ```text
 fragment focused gates: expected positives found, adjacent hard negatives excluded
 compact all-cross core: positive recall 634/634, hard-negative false merges 0/1246
-full-corpus semantic scans: no unexplained candidate-path regression observed in the measured batches
+full-corpus semantic queries: no unexplained candidate-path regression observed in the measured batches
 ```
 
 ## Performance Notes
 
-Performance checks were mostly stable. Selected real-repo scans usually changed by only a
+Performance checks were mostly stable. Selected real-repo queries usually changed by only a
 few milliseconds in normalize/extract or candidate paths. Two notes should remain visible:
 
 - The C u32 unsigned-cast byte-pack batch saw SQLite candidate path move from 15.6ms to
   115.7ms in one measured run; it was called out to watch next batch rather than ignored.
-- Exact fragment expansion can increase reported families without much scan-time cost, but
+- Exact fragment expansion can increase reported families without much query-runtime cost, but
   output noise and ranking pressure need monitoring separately from raw runtime.
 
 ## Frontier Evidence Platform (issue #44)
@@ -233,7 +233,7 @@ The tool-assisted manual audit produced **one implementation-ready packet**: `nu
 
 - `min(max(x,lo),hi)` / `max(min(x,hi),lo)` / two-comparison clamp are equivalent for
   `lo ≤ hi`, but the value graph converges none of them — unlike the structurally-similar
-  abs idiom, which it DOES canonicalize. Confirmed on the current binary: a controlled scan
+  abs idiom, which it DOES canonicalize. Confirmed on the current binary: a controlled query
   merges `absTern`/`absBuilt` but not `clampTern`/`clampBuilt`, and boltons `clamp` (min(max))
   and fzf `Constrain` (max(min)) do not merge across files.
 - Broad and generalizing: present in 26 repos across 7 of the current 8 primary-language buckets,
@@ -308,10 +308,10 @@ Closed five Swift matrix cells with focused exact-query probes and adjacent hard
 - `total_order_compare`: strict/non-strict absorption is admitted for Swift integer-domain
   operands only; overloaded/String comparisons remain closed.
 
-The probe runner now uses `nose query ... witness=exact` rather than the deprecated scan
+The probe runner now uses `nose query ... witness=exact` rather than the deprecated broad query
 path. Re-running the focused probes records Swift at 20/24 applicable matrix cells. It also
 exposes that several older non-Swift `flat_map` probe rows do not satisfy the stricter
-exact-query check; those rows are left as gaps rather than preserving stale broad-scan
+exact-query check; those rows are left as gaps rather than preserving stale broad-query
 evidence.
 
 ## Current Next Work

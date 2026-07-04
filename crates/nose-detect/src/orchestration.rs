@@ -212,8 +212,8 @@ pub fn detect_from_units(
     let mut clk = StageTimer::new();
 
     let (candidates, accepted) = if opts.structural {
-        // 3. LSH candidate generation. Semantic scans use the value-graph signature;
-        //    near-duplicate scans also use shape signatures so Type-3 edits that
+        // 3. LSH candidate generation. Semantic runs use the value-graph signature;
+        //    near-duplicate runs also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
         //    channels run, score the union once.
         let candidates = structural_candidates(&units, opts);

@@ -140,8 +140,8 @@ fundamentals; the rest is grouped by area.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
 - [dogfooding](dogfooding.md) — nose run on its own source, and what its findings taught us.
 - [reinvented-helper-audit-2026-06-13](reinvented-helper-audit-2026-06-13.md) — the hand-labeled field audit that promoted the reinvented-helper channel to the default surface.
-- [scanjson-agent-audit-2026-06-10](scanjson-agent-audit-2026-06-10.md) — historical machine-contract audit for consumer 1's evidence surface.
-- [scanjson-agent-audit-2026-06-13](scanjson-agent-audit-2026-06-13.md) — historical re-validation after the gap fixes (incl. the graded witness): all five gaps closed, 8/8 decidable from JSON alone.
+- [query-json-agent-audit-2026-06-10](query-json-agent-audit-2026-06-10.md) — machine-contract audit for consumer 1's evidence surface.
+- [query-json-agent-audit-2026-06-13](query-json-agent-audit-2026-06-13.md) — re-validation after the gap fixes (incl. the graded witness): all five gaps closed, 8/8 decidable from JSON alone.
 - [fragment-quality-audit-2026-06-10](fragment-quality-audit-2026-06-10.md) — labeled Java/Python exact-fragment sample and the resulting surface policy.
 - [lawpack-provenance-audit-2026-06-10](lawpack-provenance-audit-2026-06-10.md) — full-corpus and targeted real-repo audit of `nose.value_graph.laws` provenance.
 - [default-surface-noise-audit-2026-06-14](default-surface-noise-audit-2026-06-14.md) — re-judging the #263/#264/#11/#353 triage-noise feedback on fresh repos: the default-surface noise is two populations (decidable-shape vs judgment-deep AAA scaffolding), and the principle-respecting lever.

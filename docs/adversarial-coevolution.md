@@ -232,7 +232,7 @@ Measured execution speed ([§BZ](experiments.md), series 1 on an M-class laptop)
 | five-campaign series incl. recording | ~70 min |
 | corpus re-price sweep (105 repos, declaration filter) | ~3 min |
 | full nose-cli e2e suite | ~23 s |
-| pathological perf fixture scan (the C3 packet) | ≤ 3.2 s |
+| pathological perf fixture query (the C3 packet) | ≤ 3.2 s |
 
 Budget rule of thumb: a release-cadence series costs about an hour of agent time and
 two corpus sweeps; the dominant human cost is arbitrating judgment-axis packets,

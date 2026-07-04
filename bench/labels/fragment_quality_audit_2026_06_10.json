@@ -11,7 +11,7 @@
       "bench/repos/poetry",
       "bench/repos/packaging"
     ],
-    "scan_command_template": "nose scan bench/repos/<repo> --mode semantic --format json --top 0"
+    "query_command_template": "nose query bench/repos/<repo> --mode semantic top=0 --format json"
   },
   "label_schema": {
     "useful_diagnostic": "Correct exact fragment with meaningful synchronization, refactor, or review signal.",

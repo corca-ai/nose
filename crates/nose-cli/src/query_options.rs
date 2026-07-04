@@ -287,7 +287,7 @@ pub(crate) enum SortKey {
     /// same (the invisible siblings a developer won't update). Calibrated against mined
     /// history as a *divergence-propensity* signal — it is NOT yet a validated *harm*
     /// ranker (an LLM-gold audit found ~chance harm discrimination); see
-    /// `docs/hazard-ranking.md`. Opt-in via `--sort hazard`.
+    /// `docs/hazard-ranking.md`. Opt-in via `sort=hazard`.
     Hazard,
 }
 

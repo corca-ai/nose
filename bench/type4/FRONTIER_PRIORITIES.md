@@ -5,8 +5,8 @@ This report is generated from the pinned benchmark repos by
 repo/language spread, estimated implementation cost, soundness risk, scope,
 and whether a frontier is already covered.
 
-- repos scanned: 105
-- files scanned: 59515
+- repos analyzed: 105
+- files analyzed: 59515
 - max bytes per file: 512000
 - matches: raw syntactic hits
 - weighted: raw hits adjusted by pattern precision (`high=1.0`, `medium=0.55`, `low=0.15`)

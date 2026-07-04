@@ -56,7 +56,7 @@ The contract path can verify a fragment through the *same* independent behavior 
 a whole function. It does **not** add a new interpreter path. Instead the contract is lowered
 into a synthetic single-function IL — free inputs become parameters, the fragment subtree is
 deep-copied into the body — and handed to the existing
-[interpreter](../crates/nose-normalize/src/interp.rs). The production scan still uses the
+[interpreter](../crates/nose-normalize/src/interp.rs). The production detection path still uses the
 predicate path described below; the contract path is kept in lockstep by differential tests
 and proof obligations.
 
@@ -142,17 +142,19 @@ still be poor default output: one-line guards, common assertions, fixture setup,
 effect snippets are often better as review context or diagnostic evidence than as top-level
 refactoring candidates.
 
-`scan` and `review` therefore keep two facts separate:
+`query` therefore keeps two facts separate:
 
 - fragment proof metadata (`is_fragment`, `fragment_kind`, `reason_code`, span size, and
   `enclosing_unit` when recoverable) explains why the sub-function region is exact-safe;
 - family placement (`recommended_surface`) says whether the finding belongs on the default
-  action-oriented surface, the review-hazard surface, or hidden/debug output.
+  action-oriented surface, a divergence-hazard surface, or hidden/debug output.
 
-The default human, Markdown, SARIF, and `--fail-on` scan surfaces show action-oriented
-families. Full scan JSON keeps diagnostic fragment families available for tooling and audits;
-see [scan-json](scan-json.md#fragment-metadata). `nose review` uses review-surface fragments
-when changed-line context makes a small exact region useful as an un-propagated-change hint.
+The default human, Markdown, SARIF, and `--fail-on` query surfaces show action-oriented
+families. Full query JSON (`top=0`) keeps diagnostic fragment families available for tooling
+and audits; the `base` view serializes fragment metadata on changed and not-updated sites
+when that context affects the gate explanation. See [query-json](query-json.md).
+`nose query <path> base=<ref>` uses divergence-surface fragments when changed-line context
+makes a small exact region useful as an un-propagated-change hint.
 
 ## Migrated kinds
 

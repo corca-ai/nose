@@ -65,14 +65,14 @@
         "substrate_required": "none"
       },
       "current_detector_result": {
-        "baseline_command": "nose scan <two-form file with abs control + clamp> --mode semantic --format json --top 0 --min-size 1 --min-lines 1",
-        "baseline_result": "Historic controlled scan: abs control merged (1 family: absTern, absBuilt); clamp ternary/library bridge forms did not. Current focused equivalence/adversarial cases now cover the proof-backed controlled bridge forms.",
+        "baseline_command": "nose query <two-form file with abs control + clamp> --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+        "baseline_result": "Historic controlled query: abs control merged (1 family: absTern, absBuilt); clamp ternary/library bridge forms did not. Current focused equivalence/adversarial cases now cover the proof-backed controlled bridge forms.",
         "binary_path": "/Users/ak/prjs/cc/nose/target/release/nose",
         "build_ref": "58c4c9b0c513b3893b4d29552167b800595ce87e",
         "current_detector_miss": true,
-        "default_scan_result": "The value graph now has proof-backed integer Clamp canon for min/max, two-comparison, and supported library method surfaces when lo<=hi is proven, but this real cross-language pair still lacks a shared proven bound-order fact on both sides; default syntax/semantic scan does not merge it.",
+        "default_query_result": "The value graph now has proof-backed integer Clamp canon for min/max, two-comparison, and supported library method surfaces when lo<=hi is proven, but this real cross-language pair still lacks a shared proven bound-order fact on both sides; default syntax/semantic query does not merge it.",
         "nose_version": "nose 0.5.0",
-        "semantic_scan_result": "nose scan boltons/boltons/mathutils.py fzf/src/util/util.go --mode semantic --format json --top 0 --min-size 1 --min-lines 1: the clamp pair is not merged across files."
+        "semantic_query_result": "nose query boltons/boltons/mathutils.py fzf/src/util/util.go --mode semantic top=0 --format json --min-size 1 --min-lines 1: the clamp pair is not merged across files."
       },
       "evidence_case_ids": [
         "numeric-clamp-minmax-ternary-real-miss"

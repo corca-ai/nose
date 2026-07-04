@@ -59,7 +59,7 @@ flags are source-surface facts: component-cased JSX tags carry `component-tag`, 
 rendered attributes carry `bound-attributes`, and only rendered static attributes carry
 `static-attrs-only`. Unknown origin is normal; it falls back to the legacy hint and never
 changes actionability, baselines, family ids, or structured ignores. Machine consumers can
-read the additive `locations[].origin` object in [query-JSON](query-json.md) and [scan-JSON](scan-json.md).
+read the additive `locations[].origin` object in [query-JSON](query-json.md).
 
 ## Declarative languages: CSS
 

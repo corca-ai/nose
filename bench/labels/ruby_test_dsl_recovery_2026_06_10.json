@@ -1322,6 +1322,6 @@
   "source_artifacts": {
     "after_probe_command": "python3 bench/labels/recall_ceiling_probe.py --repos-root /Users/ak/prjs/cc/nose/bench/repos --json-out <tmp-after-probe.json>",
     "before_probe": "bench/labels/recall_ceiling_probe_2026_06_10.json",
-    "unit_delta_command": "NOSE_TIME_UNIT_SUMMARY=1 <before-or-after-nose> scan --format json --top 0 <ruby-repo>"
+    "unit_delta_command": "NOSE_TIME_UNIT_SUMMARY=1 <before-or-after-nose> query top=0 --format json <ruby-repo>"
   }
 }

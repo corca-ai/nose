@@ -198,7 +198,7 @@ first; promote to the full model only if the priced recall loss justifies it.
   predicate as the narrowing), so `nose verify` WITNESSES the int32-vs-bigint difference
   (`0xF_0000_0003 & 0xF_0000_0005` is `1` under int32, `0xF_0000_0001` as bigint) instead of
   being blind to it. A `verify_battery` row carries high-bit-overlapping ints so the wrap is
-  observable. Scan fingerprint unchanged (family delta 0); verify clean across type4/coevo and
+  observable. Query fingerprint unchanged (family delta 0); verify clean across type4/coevo and
   the JS-heavy repos — the oracle agrees with the floor.
 - **Full fixed-width recall recovery — measured NOT needed (#344).** The would-be win is
   reconverging JS `a&b` ≡ Java-`int` `a&b` ≡ C-`int32_t` `a&b`. But the §6 "promote only if the
@@ -206,7 +206,7 @@ first; promote to the full model only if the priced recall loss justifies it.
   full 105-repo pinned corpus** (4309 → 4309) — cross-language bitwise clones are too rare to
   matter — so the floor is the correct stopping point and the full per-type-width canon (the
   largest canon surface, and risky for platform-dependent C int width) is not built.
-- **Cost:** floor + oracle int32 execution paid (0 recall, scan unchanged). Full fixed-width
+- **Cost:** floor + oracle int32 execution paid (0 recall, query unchanged). Full fixed-width
   recall recovery: measured unnecessary.
 
 ### 3.3 D-div — Float value kind
@@ -238,7 +238,7 @@ first; promote to the full model only if the priced recall loss justifies it.
   the interpreter gained a real IEEE-754 `Value::Float` (`interp/value.rs`, with arithmetic in
   `interp/ops.rs`), and a `verify_battery` float row (`1e16 ± 1e16`) feeds untyped params
   adversarial floats so the oracle WITNESSES the
-  non-associativity; the scan holds the grouping (`possibly_float` = a truly-untyped param in a
+  non-associativity; the query path holds the grouping (`possibly_float` = a truly-untyped param in a
   dynamically-typed language, mirrored in `algebra`). Crucially the hold is associativity-only —
   COMMUTATIVITY is preserved (`a+b+1 ≡ b+a+1`, same grouping) via a grouping-preserving rebuild
   that still sorts operands when the chain is non-concat — and `: int`-typed and `Number`-typed
@@ -269,7 +269,7 @@ For each candidate fix, record **before → after**:
    above the standing baseline (currently **0** on the pinned corpus — the last
    spurious cases were resolved by the up-to-abort gate, §7.2 / experiments §CN).
 2. **Recall delta (the price).**
-   `nose scan bench/repos --mode semantic --top 0` family count, **dev split and
+   `nose query bench/repos --mode semantic top=0` family count, **dev split and
    heldout split separately**. A change that holds family count on dev but drops
    it on heldout is over-fit; a change that holds both at ~0 cost (as
    [#283-B](https://github.com/corca-ai/nose/issues/283) did: 4294 → 4294) is a
@@ -334,7 +334,7 @@ original "extend the value model" framing was too coarse). Each was closed indep
 3. **D-div (Float) — CLOSED.** The true/floored/truncated fingerprints are split, and float
    `+`/`*` non-associativity is held for syntactic-float, float-typed-param (#339/#340) AND
    fully-untyped (#342) chains. The full `Value::Float` model shipped: the interpreter models
-   IEEE-754 (so the oracle witnesses non-associativity), the scan holds untyped chains, and the
+   IEEE-754 (so the oracle witnesses non-associativity), the query path holds untyped chains, and the
    recall price was **measured 0 on the full 105-repo pinned corpus** (4309 → 4309). Remaining
    float work is breadth (a full Int↔Float coercion lattice, float literals), not a soundness
    gap — see **[value-float-kind-design](value-float-kind-design.md)** (#342).
@@ -386,7 +386,7 @@ re-derives the #283-C string-non-commutativity distinguisher BY SEARCH (regressi
 `search_finds_string_noncommutativity_distinguisher`), and on the pinned corpus finds **0 new
 false merges** (the fixed battery + value model already separate every checked group) — so it
 institutionalizes the adversarial-input discipline without changing the gate's verdict today.
-It is offline/opt-in: the scan path and the default `verify` gate are untouched.
+It is offline/opt-in: the query path and the default `verify` gate are untouched.
 
 ### 7.1 The equality-over-`Err` mechanism — fixed (coevo series 9)
 
@@ -401,7 +401,7 @@ erroring operand to the right, the full IL returned a `Bool` while the pre-canon
 returned `Err` — a spurious violation. **Fix: `bin` propagates `Err` from *either*
 operand** (the symmetric twin of `un`'s existing `(Op::Not, Err) => Err`); the left
 short-circuit stays for laziness/effect order. This is pure interpreter fidelity —
-`interp.rs` is verify-only, so scan output is byte-identical — and it closes the class
+`interp.rs` is verify-only, so query output is byte-identical — and it closes the class
 wherever it arises: **sympy 20 → 2 canon violations, netty 3 → 2**, every other checked
 repo unchanged at 0, zero false merges throughout.
 

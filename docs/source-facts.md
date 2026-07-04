@@ -33,7 +33,7 @@ preconditions.
 - Do not use broad heuristics such as "a function named `map` means Map
   semantics" or "a method named `test` means regex semantics".
 - Do not expose raw CST nodes as the pack interface.
-- Do not promise that the current internal evidence records are the final scan
+- Do not promise that the current internal evidence records are the final query
   JSON or external pack manifest contract.
 - Do not make nose responsible for certifying external pack correctness. nose
   validates the extension shape and fails closed; external providers own their
@@ -62,8 +62,8 @@ preconditions.
 4. Normalize and detect use only admitted contracts and kernel proof helpers for
    exact semantic fingerprinting.
 5. Reports should eventually expose the pack and contract provenance that
-   influenced each exact match. The current public scan JSON does not yet expose
-   those fields.
+   influenced each exact match. The current public query JSON exposes active
+   semantic packs, but not per-match contract provenance.
 
 ## Fact classes
 

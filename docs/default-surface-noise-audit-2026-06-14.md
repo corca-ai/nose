@@ -20,7 +20,7 @@ and [excalidraw](https://github.com/excalidraw/excalidraw) (React/TSX, 602 TS/TS
 
 ## 1. The complaints reproduce on current `main`
 
-`nose scan . --format json --top 0`, HEAD binary:
+`nose query . surface=default top=0 --format json`, HEAD binary:
 
 | | goreleaser | excalidraw |
 |---|---:|---:|
@@ -181,7 +181,7 @@ members' real source. **NO-GO, for two structural reasons:**
    `map.rs new()`/`iter()` with `deserialize_tuple_struct`** — a small unit's leaf-abstracted
    whole-unit shape is generic ("calls + return" ≈ "construct + return"), so unrelated small
    units are mutually similar. No metric × threshold × linkage × min-node floor separated true
-   siblings from generic-shape collisions; cost was **+67% scan time** (re-lowering the whole
+   siblings from generic-shape collisions; cost was **+67% query runtime** (re-lowering the whole
    surface for shapes).
 
 Shipping it would hide distinct genuine findings under a misleading "same shape" label *and*

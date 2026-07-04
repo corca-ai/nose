@@ -43,7 +43,7 @@ also validates each rewrite.
 Validated: `recursion_tail_numeric` now covered in ALL 7 languages (java/ruby flipped); test
 `pure_method_recursion_converges_with_iteration`; full suite + clippy green; real-corpus
 `nose verify` on the affected repos (netty/antlr4/commons-lang) **byte-identical to baseline**
-(0 false merges, same 20 canon-changed). The full-corpus scan diff's family reshuffling is the
+(0 false merges, same 20 canon-changed). The full-corpus query diff's family reshuffling is the
 Lean-proven recursion canon correctly remapping coincidental matches — 0 detection genuinely
 lost (members stay detected), 0 new false merges.
 
@@ -58,7 +58,7 @@ exact-safe gate didn't recognize, even though the value graph already models it 
 **Fix:** `strict_exact_rust_vec_new_safe` (units.rs) admits `Vec::new()` (no args) to the
 exact channel — mirroring the value graph (a constant empty collection, no inputs/effects).
 rust builder-loop now `exact_safe=True`; rust flat_map converges. Validated: test
-`rust_vec_new_builder_loop_converges_with_flat_map`, full suite + clippy, real-corpus scan
+`rust_vec_new_builder_loop_converges_with_flat_map`, full suite + clippy, real-corpus query
 behavior-invariance (0 detection lost; only new convergences) + `nose verify` 0-violation gate.
 
 ## L3 — java stream `.reduce(seed, lambda)` — ✅ RESOLVED (fixture, not a detector gap)
@@ -92,7 +92,7 @@ artifact). The recurring theme was that the *value graph* already modeled an equ
 *syntactic recognizer/gate* hadn't caught up (recursion recognizer's bare-Return match; the
 exact-safe gate's `Vec::new`; the recursion canon's Function-only filter) — each fix aligned
 the gate/recognizer with the established value-graph semantics, never a blind loosen, and was
-validated by full suite + clippy + real-corpus scan behavior-invariance (0 detection lost) +
+validated by full suite + clippy + real-corpus query behavior-invariance (0 detection lost) +
 `nose verify` delta (0 new false merges) + Lean where a new equivalence (flatMap-identity).
 
 Remaining structural axes are larger NEW MECHANISMS (not gate alignments), tracked in
@@ -115,7 +115,7 @@ issue fixed the prerequisite frontend bug: tree-sitter-ruby wraps the `for x in 
 in an `in` node, which lowered to an exact-unsafe `Raw("in")` — every ruby `for` loop was
 out of the exact channel. Tests: `ruby_for_in_shovel_builder_converges_with_comprehension`
 (positive + shift/parameter/contribution hard negatives),
-`ruby_for_in_loop_converges_with_python_for`. Ruby-corpus scan diff: zero detection change
+`ruby_for_in_loop_converges_with_python_for`. Ruby-corpus query diff: zero detection change
 (idiomatic ruby uses `each`, which stays closed by design) — this closes the cross-language
 evenness gap, not a corpus-recall one.
 

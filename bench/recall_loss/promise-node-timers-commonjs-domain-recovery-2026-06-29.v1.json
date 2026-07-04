@@ -57,7 +57,7 @@
     "cargo test -q -p nose-frontend commonjs_node_timers",
     "cargo test -q -p nose-normalize node_timers_commonjs"
   ],
-  "source_scan_commands": [
+  "source_census_commands": [
     "rg -n \"require\\\\([\\\\\\\"'](?:node:)?timers/promises[\\\\\\\"']\\\\)|timers/promises\" bench/repos --glob '*.{js,ts,jsx,tsx,mjs,cjs}'",
     "for f in bench/repos/jest/e2e/circus-concurrent/__tests__/concurrent-mixed.test.js bench/repos/jest/e2e/circus-concurrent/__tests__/concurrent.test.js bench/repos/jest/e2e/circus-concurrent/__tests__/concurrent-skip.test.js bench/repos/jest/e2e/circus-concurrent/__tests__/concurrent-only.test.js bench/repos/jest/packages/jest-circus/src/__tests__/concurrent.test.ts; do rg -o \"setTimeout\\\\(\" \"$f\"; done | wc -l"
   ],

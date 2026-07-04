@@ -298,7 +298,7 @@ break.
 ## [0.13.3] - 2026-06-19
 
 ### Changed
-- Removed the old `scan` and `review` CLI surfaces. Use `nose query <path> ...` for clone-family
+- Removed the legacy report and review CLI surfaces. Use `nose query <path> ...` for clone-family
   exploration and `nose query <path> base=<ref>` for divergent-edit gates.
 - Bulk `nose query ... all top=0 --format json` rendering now reuses one source-line cache while
   preserving byte-identical JSON. This keeps the existing all-copies `params` contract but avoids
@@ -323,7 +323,7 @@ break.
   dedup, family-referenced generated-source classification, bounded non-CSS generated-header reads,
   dependency/large-file block-unit suppression, dense data-like function gating, large-test-fixture
   semantic skip with syntax coverage retained, skipped raw-pair materialization for grouped
-  query/scan reports, parallel shared-line IDF, and one-pass Markdown candidate verification.
+  query reports, parallel shared-line IDF, and one-pass Markdown candidate verification.
 
 ### Fixed
 - **Markdown dashboard verification cost.** `nose query` now computes Markdown TF-IDF cosine,
@@ -349,7 +349,7 @@ break.
 ### Changed
 - **query-JSON schema bumped to v3** for the additive `locations[].origin` and `hint_reasons[]`
   fields. Existing fields and the `extraction_shape` enum values are unchanged; `nose capabilities`
-  advertises `query_json: [3]`. scan-JSON (v1, deprecated) also surfaces `origin` per location when
+  advertises `query_json: [3]`. Legacy JSON v1 also surfaces `origin` per location when
   known.
 - Swift `actor` declarations are now lowered as type units, so duplicate actors are detected like
   classes/structs (small additive recall; actors lower the same way as other reference types).
@@ -420,7 +420,7 @@ higher cross-language Type-4 coverage floor. Detection of the existing languages
   coordinates, optional `??` defaulting, `Double` clamp forms, and overloaded/String
   comparisons remain adjacent hard negatives. The checked-in Type-4 matrix moves Swift from
   15/24 to 20/24 applicable cells, and focused probes now run through
-  `nose query ... witness=exact` rather than the deprecated scan path.
+  `nose query ... witness=exact` rather than the legacy broad-query path.
 - **Type-4 coverage floor raised to ≥50%.** The checked-in coverage matrix
   (`bench/type4/coverage_matrix.v1.json`) now keeps every primary language at or above 56% of
   covered applicable cells, backed by new evidence-carrying probes (extract-method-inline,
@@ -455,21 +455,21 @@ emits query-JSON v2 and spells the witness `subdag`.
   `NO_COLOR`, when piped, and for the JSON/Markdown/SARIF formats, with column alignment
   computed on visible width so ANSI never skews the columns. The terse `grammar:` block
   becomes a runnable `explore` cheatsheet.
-- **CLI surface cleanup (#431).** The deprecated `scan`/`review` and the experimental
+- **CLI surface cleanup (#431).** The legacy report/review surfaces and the experimental
   `behavioral-gate` are hidden from top-level `--help` (they still work, still warn on a TTY,
   and stay listed under `capabilities.commands.deprecated`); flag docs are self-contained
-  instead of "(same as scan)"; count nouns are pluralized; empty/single-directory dashboards
+  instead of "(same as query)"; count nouns are pluralized; empty/single-directory dashboards
   no longer emit dead next-commands.
 
 ### Documentation
 - **User-facing docs drift, consistency, and IA sweep (#431, #432).** Re-verified every
-  user-facing page against the live CLI (clap help, query DSL parser, query/scan JSON,
+  user-facing page against the live CLI (clap help, query DSL parser, query JSON,
   capabilities). Reconciled the witness vocabulary (`shared-core` human ↔ `subdag` JSON);
-  corrected scan-JSON-v1-only fields wrongly attributed to query-JSON v2 (`baseline_status`,
+  corrected legacy-JSON-v1-only fields wrongly attributed to query-JSON v2 (`baseline_status`,
   `ignore.expired`, `ignored_families`) and pointed query users at the `since=<baseline>` term;
-  clarified that the `top` config key bounds `nose scan` only; documented that `sort=sites`/
-  `hazard` work under `query` and that `behavioral-gate` is hidden; renamed usage "Scan modes"
-  → "Detection modes"; added a canonical "default surface" section; de-duplicated the CSS/HTML
+  clarified that the `top` config key bounds the legacy report only; documented that `sort=sites`/
+  `hazard` work under `query` and that `behavioral-gate` is hidden; renamed the usage mode
+  section to "Detection modes"; added a canonical "default surface" section; de-duplicated the CSS/HTML
   detail against `languages.md`; gave Vue/Svelte their own extension table; and fixed broken
   cross-links (`awiki lint` clean).
 
@@ -553,7 +553,7 @@ markup model that converges the same component across HTML/Vue/Svelte/JSX/TSX.
   **0 worthy** dropped, default-surface worthy-rate 20% → 41% (framework 11% → 31%).
 - **`nose stats` JSON moved under the tool-wide `--format json` (#420).** The one-off `--json`
   flag is removed (not aliased — one way, not two; pre-1.0 diagnostic command, sole in-repo
-  consumer migrated), so `stats` follows the same `--format` contract as `query`/`scan`/`il`.
+  consumer migrated), so `stats` follows the same `--format` contract as `query`/`il`.
 - **tree-sitter core upgraded `0.24` → `0.25`, grammars `tree-sitter-c` → `0.24.2`,
   `tree-sitter-python`/`tree-sitter-javascript` → `0.25.0`** (#403, unblocks the reverted
   #399/#400/#401). The bumped grammars compile to grammar ABI 15; core 0.25 accepts ABI **14
@@ -591,11 +591,11 @@ markup model that converges the same component across HTML/Vue/Svelte/JSX/TSX.
   all-copies extraction skeleton (and `full` the representative diff), composing with the
   human/JSON views; help/usage/query-json wording corrected so the `value` sort key reads as
   duplicated *volume*, not the `removable` field.
-- **`nose query top=0` now shows *all* families** (matching `nose scan --top 0`), instead of
+- **`nose query top=0` now shows *all* families**, instead of
   returning an empty result. The dataset build already used `top=0` for "every family"; the
   display paths (`list`, `base`, `reinvented`, and the `--format markdown`/`sarif` report) now
   agree, so `nose query <path> --format sarif top=0` is the complete-upload spelling and query
-  fully subsumes scan's truncation control. No `top=` term still defaults to 30.
+  fully subsumes truncation control. No `top=` term still defaults to 30.
 
 ### Notes
 - **value-graph opaque census instrument (#405, #391 prevalence probe).** A hidden
@@ -607,12 +607,12 @@ markup model that converges the same component across HTML/Vue/Svelte/JSX/TSX.
 
 ## [0.10.0] - 2026-06-15
 
-Breaking: **`nose query` becomes the primary surface and `nose scan`/`nose review` are
+Breaking: **`nose query` becomes the primary surface and the legacy report/review surfaces are
 deprecated** (both still work, with an interactive one-line nudge; removal is slated for a
 later release).
 
 ### Added
-- **`nose query` is now a complete surface** over the same dataset `scan` computes:
+- **`nose query` is now a complete surface** over the same family dataset:
   - **Explorability (#374):** DSL negation (`field!=value` / `path!~substr`), **set-membership
     OR** (`witness=exact,subdag` matches either; `!=` over a comma-set drops all of them), an
     `at=FILE:LINE` selector (a stable family handle across edits), a `same_symbol` evidence field
@@ -622,18 +622,18 @@ later release).
     separates near families whose varying spots are clean value-leaves from those with genuine
     logic divergence (computed on demand from the graded witness — only when queried, for cost).
   - **Analysis flags:** `--mode`/`--min-*`/`--exclude`/`--cache-dir`/`--ignore-file`/
-    `--semantic-pack`/`--config`, configured identically to scan.
-  - **CI gate:** `--fail-on any`/`new` with `--baseline`/`--write-baseline`, reusing scan's
+    `--semantic-pack`/`--config`, with the same analysis options.
+  - **CI gate:** `--fail-on any`/`new` with `--baseline`/`--write-baseline`, reusing the shared
     gate/baseline/ignore logic — `nose query <path> --fail-on any` is a drop-in gate.
   - **A structured, versioned JSON contract** ([query-json](docs/query-json.md), schema v2)
     across every view, advertised as `capabilities.schemas.query_json`, plus `--format
-    markdown`/`sarif` report output (reusing scan's formatters over the query selection).
+    markdown`/`sarif` report output (using the shared report formatters over the query selection).
   - **Object model — query the whole dataset, not just families:** `group=` buckets now carry
     summed removable lines and rank by them (`group=dir`/`group=file` is a duplication hotspot
     map), `file` is a new group key, the `family` view emits fold-graph links
     (`subsumes`/`subsumed_by` — the related `id=` handles, not just a count), and a new
     `reinvented` view surfaces the reinvented-helper channel ("call the existing helper") that
-    was previously `scan --show reinvented` only.
+    was previously available only in the legacy report.
   - **Decision completeness — act in one turn:** `full` skeletons annotate each varying spot
     with a coarse value-class hint (`⟨param N: literal|name|call|expr|block⟩`) for the helper
     signature (#374 item 6), and the family object carries proof depth — `value_nodes` (the
@@ -665,7 +665,7 @@ later release).
   worthy-recall +1 with no regression elsewhere. (The variant *condition* is now Raw-free;
   whole-family convergence for copies differing only in the bound name needs binding extraction,
   a follow-up.) See experiments §CP (the coverage worklist) and §CQ.
-- **`nose scan` is deprecated** in favour of `nose query`. It still works (an interactive run
+- **The legacy report surface is deprecated** in favour of `nose query`. It still works (an interactive run
   prints a one-line nudge); `capabilities` moves it from `commands.stable` to
   `commands.deprecated`; docs lead with `query`. Removal is slated for a later release.
 - **`nose review` is deprecated** in favour of `nose query <paths> base=<ref>` (which runs the
@@ -673,22 +673,22 @@ later release).
   `capabilities` moves it to `commands.deprecated`. Removal is slated for a later release.
 
 ### Deprecated
-- `nose scan` (and the scan-JSON v1 contract) and `nose review` — migrate to `nose query`
+- The legacy report surface (and legacy JSON v1 contract) and `nose review` — migrate to `nose query`
   (`query <path>`, `query <path> base=<ref>`) and the query-JSON v2 contract.
 
 ### Documentation
 - **The docs lead with `nose query`.** README, the wiki [home](docs/home.md),
   [getting-started](docs/getting-started.md), and the full [usage](docs/usage.md) reference now
   present `nose query` as the everyday command — explore, one-shot report (`--format markdown`),
-  PR check (`base=<ref>`), CI gate (`--fail-on`), and the versioned JSON contract. `nose
-  scan`/`nose review` are documented as deprecated aliases, and usage is reordered so the
+  PR check (`base=<ref>`), CI gate (`--fail-on`), and the versioned JSON contract. The legacy
+  report and `nose review` are documented as deprecated aliases, and usage is reordered so the
   primary command and the shared Ranking / detection-mode sections come before the deprecated
-  `scan` reference. The CLI `--help` text (`long_about`, the `scan`/`query` summaries) was
+  legacy reference. The CLI `--help` text (`long_about`, the primary/legacy summaries) was
   updated to match.
 - **Code↔docs drift sweep.** Fixed the [capabilities](docs/capabilities.md) example
   (`commands.stable` no longer lists `review`; `deprecated` adds it; `schemas.query_json` added);
   migrated the [agent-recipe](docs/agent-recipe.md) decision procedure to query-JSON v2 field
-  names; added a deprecation banner to [scan-json](docs/scan-json.md) pointing to query-JSON v2;
+  names; added a legacy JSON note to [query-json](docs/query-json.md) pointing to query-JSON v2;
   corrected [clone-types](docs/clone-types.md) (`near` is part of the default surface, not
   opt-in); updated [languages](docs/languages.md) for the #390 boundary/gap Raw split; and
   refreshed the stale `nose query` dashboard examples against the shipped output.
@@ -696,17 +696,17 @@ later release).
 ## [0.9.1] - 2026-06-15
 
 Documentation release: lead with `nose query`, and a full code-docs drift sweep. No
-behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contract.
+behavior change to `query`/legacy report/`review`/`--fail-on` or the legacy JSON v1 contract.
 
 ### Changed
 - **Docs lead with `nose query`.** README, [home](docs/home.md),
   [getting-started](docs/getting-started.md), [agent-recipe](docs/agent-recipe.md), and
   [design](docs/design.md) §2 now present `nose query` as the interactive/agent exploration
-  entry point, with `nose scan` framed as the one-shot report plus the frozen JSON contract and
-  the `--fail-on` CI gate — both over the same dataset. `nose scan` is **not** deprecated.
+  entry point, with the legacy report framed as the one-shot report plus the frozen JSON contract and
+  the `--fail-on` CI gate — both over the same dataset. The legacy report is **not** deprecated.
 
 ### Fixed (code-docs drift)
-- **Default scan mode** in [configuration](docs/configuration.md) said `["syntax","semantic"]`;
+- **Default query mode** in [configuration](docs/configuration.md) said `["syntax","semantic"]`;
   the real default is `["syntax","semantic","near"]` (matches the CLI and `README`).
 - **The verify oracle now models IEEE-754 floats** ([oracle-value-model](docs/oracle-value-model.md)
   §1 still said "there is no Float", contradicting #342 and its own §3.3/§6); the input battery's
@@ -719,12 +719,12 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   (the no-flag default sorts by `value` and won't reproduce the headline P@10); canon-preservation
   described "up to abort" (#369); `extractability` description gains the member-span heterogeneity
   penalty (#365) in [field-evaluation](docs/field-evaluation.md); `clone-types` near threshold
-  `0.70`; `scan-json` example `surface_counts` includes the always-emitted `generated`/`declaration`/`shallow`.
+  `0.70`; `query-json` example `surface_counts` includes the always-emitted `generated`/`declaration`/`shallow`.
 - **Hazard re-calibration checklist** ([hazard-release-checklist](docs/hazard-release-checklist.md))
   quick-check no longer over-triggers on display-only/reorder changes (e.g. #365/#366) — it compares
   the calibrated feature fields sort-independently, with a display-vs-feature note (`shared_lines` ≠
   `shared_weight`).
-- **scan-JSON v1 contract test** now asserts the always-emitted `shallow` surface count (fixture
+- **Legacy JSON v1 contract test** now asserts the always-emitted `shallow` surface count (fixture
   + `support.rs` had drifted); `--show` help lists the `reinvented` view; a stale `family_hint`
   doc-comment said "modules". Experiments log: the duplicate `§CA` anchor was disambiguated
   (default-surface-noise is now `§CO`).
@@ -733,7 +733,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 
 ### Added
 - **`nose query` — a stateless, self-describing exploration surface for agents (#359).** A new
-  opt-in subcommand over the *same* family dataset `scan` computes: with no terms it prints a
+  opt-in subcommand over the *same* family dataset: with no terms it prints a
   landing dashboard, terms slice (`field=value`/`>`/`<`/`path~substr`), facet (`group=FIELD`), or
   open a family (`id=FAM`, add `full` for the all-copies extraction skeleton). Every result is
   self-describing and ends in **runnable `nose query …` next-commands**, so an agent navigates by
@@ -741,10 +741,10 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   economics (`M/REP shared, Pp · ~N removable`); the surface is production-first, default-surface-
   consistent (`all` widens), folds overlapping slices, and is evidence-never-verdict (unknown
   fields/values error loudly; deterministic). Validated by 4 rounds of LLM-as-judge on 6 corpus
-  repos ("a functional superset of scan, more honest per-family"). `scan`, `--fail-on`, and the
-  scan-JSON v1 contract are unchanged; `build_scan_dataset` is factored out so both share one
+  repos ("a functional superset of the legacy report, more honest per-family"). The legacy report,
+  `--fail-on`, and the legacy JSON v1 contract are unchanged; the shared dataset builder is factored out so both share one
   deterministic family build. MCP is deliberately *not* added (a Skill is the intended packaging).
-- **Family-level actionability vocabulary in scan JSON (#11).** Two new optional fields make a
+- **Family-level actionability vocabulary in query JSON (#11).** Two new optional fields make a
   family's triage *machine-readable as classification, not a verdict* (no `refactorability_score` /
   `confidence` — that judgment is the consumer's, design §2):
   - `actionability_reason` — why a family is **not** a clean default candidate: `trivial`
@@ -763,7 +763,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 - **Default-surface honesty: `shallow-extraction` demotion + production-first human report
   (#263, #264, #11).** A fresh-repo head-of-ranking audit
   ([default-surface-noise-audit](docs/default-surface-noise-audit-2026-06-14.md)) measured the
-  bare-default scan surface as ~58% test-scope token-level copy-paste and only 4–5% proven
+  bare-default query surface as ~58% test-scope token-level copy-paste and only 4–5% proven
   channels. Two measured, principle-respecting levers:
   - Unproven families whose extracted helper would be mostly parameters (`params` ≥ a third of
     `shared_lines`) are classified `shallow` (a new `recommended_surface` value / `surface_counts`
@@ -782,14 +782,14 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   hide each scenario's intent. It is a caveat, not a verdict (the worthy fixture-vs-scaffold call
   is the reader's and is not feature-decidable); `mixed` test↔prod leaks get no caveat, and the
   high-parameter caution still wins when both apply.
-- **Scan's `shared`/`removable` headline on the all-copies basis (#366).** `shared_lines` and the
+- **Report `shared`/`removable` headline on the all-copies basis (#366).** `shared_lines` and the
   derived `~removable` now count lines invariant across **all** of a family's copies (the same
   all-copies anti-unification `nose query` reports), not just the representative pair — which
   over-stated families whose 3rd+ copies diverge (serde's 25-copy `serialize_newtype_variant`
   read `11 shared → ~264 removable`, now `4 → ~96`). Gold-set measured neutral (held-out P@10
   flat, worthy-recall byte-identical; experiments §CL). `params`/`varying_spots` stay
-  representative-pair (the all-copies hole count regressed held-out, and it keeps the scan-JSON v1
-  `params↔varying_spots` invariant); scan-JSON v1 schema unchanged.
+  representative-pair (the all-copies hole count regressed held-out, and it keeps the legacy JSON v1
+  `params↔varying_spots` invariant); legacy JSON v1 schema unchanged.
 - **Foldability-aware `extractability` ranking (#365).** The default ranking gains a member-span
   **heterogeneity** penalty (`× 1/(1+CV)`, same-language): copies that vary widely in length are
   not one shape, so no single helper folds them — a decidable proxy for signature/arity
@@ -801,7 +801,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   id=FAM full` anti-unify over **all** of a family's copies (not just the two largest), so the
   drafted helper is safe to apply to every copy — pairwise by default, full alignment on drill.
 - **Directory terminology (#363).** Human-facing output says "directory/directories": nose's
-  spatial unit is the parent directory, not an under-defined "module". The scan-JSON `modules`
+  spatial unit is the parent directory, not an under-defined "module". The query-JSON `modules`
   field name is kept for v1 compatibility.
 
 ### Fixed
@@ -838,27 +838,27 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   toward `--max-violations`. Unlike broadening the global battery (which manufactures impossible
   type-incoherent rows), it compares group members against each other and never touches the
   canon-preservation check, so the spurious-violation hazard does not arise. Offline/opt-in: the
-  scan path and the default `verify` gate are unchanged. The engine re-derives the #283-C
+  query path and the default `verify` gate are unchanged. The engine re-derives the #283-C
   distinguisher by search (regression test) and finds 0 new false merges on the full pinned
   corpus (the value model already separates every checked group). (oracle-value-model §7.)
 
 ### Performance
-- **Interactive `nose scan` no longer pays for the graded witness it does not show.**
+- **Interactive `nose query` no longer pays for the graded witness it does not show.**
   The graded witness (#315) is serialized only by `--format json`; the human and SARIF
   surfaces never render it. Enrichment now runs only when JSON is emitted, so a default
-  human scan skips it entirely — ~2.8s of a ~4.6s `--mode near` scan on netty (3249 near
+  human query skips it entirely — ~2.8s of a ~4.6s `--mode near` query on netty (3249 near
   families), now ~1.9s. JSON output is unchanged. Referent resolution in the witness is
   also indexed (sorted call-target evidence + a name-by-span map) instead of an
-  O(units × evidence) scan, and the anti-unification hot path no longer clones argument
+  O(units × evidence) query, and the anti-unification hot path no longer clones argument
   vectors. A `NOSE_TIME`-gated `enrich` stage timing was added.
 
 ### Fixed
 - **Soundness oracle now witnesses int32 bitwise (#344).** A JS-family `a & b` / `a | b` /
   `a ^ b` / `~a` coerces its operands to int32, so the interpreter (the `nose verify` oracle)
   now evaluates them under int32 wrap (`0xF_0000_0003 & 0xF_0000_0005` is `1`, not the bigint
-  `0xF_0000_0001`) instead of arbitrary-precision i64. The scan fingerprint already split JS
+  `0xF_0000_0001`) instead of arbitrary-precision i64. The query fingerprint already split JS
   bitwise from bigint via the `ToInt32` floor (#283-D); this makes the oracle agree with that
-  split rather than be blind to it, widening the verify gate's coverage. Scan unchanged (family
+  split rather than be blind to it, widening the verify gate's coverage. Query unchanged (family
   delta 0); a `verify_battery` row with high-bit-overlapping ints makes the wrap observable.
   The deferred **full fixed-width canon** (reconverging JS `a&b` ≡ Java-`int` `a&b`) was
   **measured unnecessary**: disabling the int32 narrowing changes 0 families on the full 105-repo
@@ -955,7 +955,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   `0 == Err` as `Bool(false)`. That made the canon look like a behavior change on
   type-incoherent battery rows — a spurious canon-preservation false positive. `bin` now
   propagates `Err` symmetrically (the twin of `un`'s `Not`-of-`Err`); the left short-circuit
-  stays for laziness. Verify-only (`interp.rs`), so scan output is byte-identical. Closes the
+  stays for laziness. Verify-only (`interp.rs`), so query output is byte-identical. Closes the
   equality-over-`Err` false-positive class: **sympy 20 → 2 canon-preservation violations,
   netty 3 → 2**, no false merges. The narrower effect-trace and comprehension-context residue
   is scoped in [oracle-value-model §7](docs/oracle-value-model.md).
@@ -1001,13 +1001,13 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   (definition-site decorators/annotations and signatures are out of scope; tracked
   follow-up). Validated full-corpus (104 repos: 86% of near pairs at *k* ≤ 3, exact
   control 100% *k* = 0) and by independent qualitative review. See
-  [graded-witness](docs/graded-witness.md) and [scan JSON](docs/scan-json.md).
+  [graded-witness](docs/graded-witness.md) and [query JSON](docs/query-json.md).
 
 ### Changed
 - **The reinvented-helper channel is promoted to the default surface.** A hand-labeled
   [field audit](docs/reinvented-helper-audit-2026-06-13.md) of all 17 corpus findings
   measured 94% genuine value-duplications and 71% directly actionable (non-test); the
-  bare `nose scan` report now LISTS the non-test findings instead of a one-line count.
+  bare `nose query` report now LISTS the non-test findings instead of a one-line count.
   Test-container findings (`container_in_test` — where "calling the helper" would make a
   test circular) are a decidable judgment-deep class (§2b), excluded from the default but
   kept under `--show reinvented` and in the additive JSON.
@@ -1081,7 +1081,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   behaviorally-equal twin) are excluded — calling is the fix, not the smell — and
   idiom-sized helpers are floored out (≥ 20 source tokens, ≥ 8 value nodes). Surfaces
   as a one-line count in the human report (`--show reinvented` lists findings) and an
-  additive `reinvented_helpers` array in scan JSON. Measured on the 105-repo corpus:
+  additive `reinvented_helpers` array in query JSON. Measured on the 105-repo corpus:
   16 findings, 16/16 value-exact on hand-labeling, including a real upstream bug
   (h2database's `getGarbageCollectionCount()` still calls `getCollectionTime()`).
 
@@ -1095,7 +1095,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   body-identical helpers converge regardless of helper name — in the `near` channel;
   exact-channel admission of such calls is deliberately deferred until its precision
   is measured. Soundness re-verified: `nose verify` clean on the corpus stress repos,
-  byte-identical output across thread counts, sympy scan cost +2.4%.
+  byte-identical output across thread counts, sympy query cost +2.4%.
 
 ## [0.7.0] - 2026-06-12
 
@@ -1189,13 +1189,13 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 
 ### Fixed
 - **Embedded `<script>` extraction (Vue/Svelte/HTML) is now context-aware** (#280,
-  coevo §CE). The byte-scanner was naive `find_ci`, so five real shapes broke it:
+  coevo §CE). The byte finder was naive `find_ci`, so five real shapes broke it:
   a `</script>` inside a JS string truncated the block (missed dup); a
   commented-out `<script>` was analyzed as live and the span swallowed the
   surrounding markup; a Vue 3.3 `generic="T extends Record<string, number>"`
   attribute `>` was taken as the tag end (span started mid-tag); an unclosed
   `<script>` (valid HTML) was dropped (missed dup); and trailing markup left as
-  blank lines made the whole-block span bleed past `</script>`. The scanner now
+  blank lines made the whole-block span bleed past `</script>`. The extractor now
   skips HTML comments, finds the tag-end `>` outside quoted attributes, finds
   `</script>` outside JS strings/comments, extracts an unclosed block to EOF, and
   truncates the analyzed buffer at the last script byte so spans stop at the
@@ -1204,8 +1204,8 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 - **`--cache-dir` now reproduces cross-file imported-literal convergence** (#275).
   The cache keyed each file's units on its source bytes and lowered files
   independently, skipping the corpus-level `resolve_imported_immutable_bindings`
-  pass — so a cached scan under-merged an `imported LOOKUP.get(k)` with an inline
-  `{…}.get(k)` that the non-cached scan converges. The cached path now lowers and
+  pass — so a cached query under-merged an `imported LOOKUP.get(k)` with an inline
+  `{…}.get(k)` that the non-cached query converges. The cached path now lowers and
   resolves the whole corpus every run (the smaller half of the work, §BQ) and
   caches only the dominant normalize+extract step, keyed on an interner-independent
   value-retaining hash of each file's **post-resolve** IL. Cached output is now
@@ -1259,7 +1259,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 
 ### Changed
 - **The AST declaration classifier is cost-neutral** (§CC addendum): the
-  migration's serial per-file re-parse cost +29% wall on family-dense scans
+  migration's serial per-file re-parse cost +29% wall on family-dense query runs
   (measured A/B vs the prior binary); a sound-direction prescreen plus
   parallel candidate-file parsing brings sympy to 4.67 s and a 1,364-file TS
   app to 0.55 s — at or under the pre-migration baseline, with byte-identical
@@ -1295,7 +1295,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   - Honest fences documented: baseline keys are span/path/mode-sensitive (pin
     `--mode`, re-baseline after refactors — every drift direction is loud);
     `is_test_loc` markers are ecosystem conventions, not a "never" guarantee.
-  - Cache/cold scan code-path asymmetry deferred with reproduction notes
+  - Cache/cold query code-path asymmetry deferred with reproduction notes
     (#275); coverage rows and caution-boundary tests adopted from the
     informed auditor.
 - **Adversarial co-evolution, series 2** (experiments §CA, issue #272): first run
@@ -1308,9 +1308,9 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   specifiers, closers match strict shapes, and C/Ruby arguments must be lone
   string literals. The "call the existing helper" hint no longer bypasses the
   high-parameter caution. Seven untested-but-supported declaration shapes locked
-  as fixtures (incl. ASI imports, `pub(crate) use`); the scan-JSON contract
+  as fixtures (incl. ASI imports, `pub(crate) use`); the query-JSON contract
   checker now requires the `generated`/`declaration` surface-count keys and the
-  checked-in v1 example was refreshed. The review `--fail` gate and the scan-JSON
+  checked-in v1 example was refreshed. The review `--fail` gate and the query-JSON
   contract survived their blind attackers with zero violations. Corpus price
   after all tightening: unchanged (2,265 declaration families, zero
   reclassification).
@@ -1321,7 +1321,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   `require`, or a Ruby modifier-conditional `require`, can no longer classify;
   shapes found verbatim in the corpus); the "call the existing helper" hint never
   points production copies at a test-code or generated-file helper; the
-  declaration classifier reads each file once per scan instead of once per family
+  declaration classifier reads each file once per query instead of once per family
   member. Corpus price after all tightening: identical (2,265 declaration
   families, zero worthy-label loss). Two priced findings deferred with
   measurements: few-huge-files inputs serialize `normalize+extract` (#269), and
@@ -1335,11 +1335,11 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 - **Triage ergonomics from the 0.6.0 field feedback** (issues #263/#264):
   - **Opportunity grouping**: families whose members are overlapping slices of
     the same source regions fold under their best-ranked family in the human
-    report (`↳ N overlapping slice families fold into this entry`); scan JSON
+    report (`↳ N overlapping slice families fold into this entry`); query JSON
     keeps every family and marks slices with `overlap_primary_id` (additive).
     Grouping is presentation policy — baselines, ignores, `--fail-on`, and the
     JSON family list are unchanged.
-  - **`--scope prod|test|all`** on `nose scan`: keep one side of the test
+  - **`--scope prod|test|all`** on `nose query`: keep one side of the test
     boundary (`prod` drops all-test families but keeps test↔prod leaks).
     An explicit consumer choice; the default stays `all`.
   - **"Call the existing helper" hint**: when exactly one family member is a
@@ -1369,21 +1369,21 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 - **design.md gains §2b (the decidability boundary) and §2c (the bare default
   is the product)**: mechanically-decidable non-actionability is the
   detector's job (the dual of "judgment-deep worthiness belongs to the
-  calling agent"), and the no-flags `nose scan` report is the first-user
+  calling agent"), and the no-flags `nose query` report is the first-user
   surface that evidence-based filters defend.
 
 ## [0.6.0] - 2026-06-11
 
 ### Changed
-- **CLI usability pass for first-time users.** `nose scan`, `nose review`, and
+- **CLI usability pass for first-time users.** `nose query`, `nose review`, and
   `nose stats` now **error on a named path that doesn't exist** (a typo'd path
   in a CI gate must fail loudly) instead of warning and exiting 0; a path that
-  exists but contains no supported files still warns and reports an empty scan.
+  exists but contains no supported files still warns and reports an empty query.
   Top-level help and command descriptions were rewritten to match the current
   default channel mix (`syntax,semantic,near`, stale since the #241 flip) and
-  mention `nose review`; the command list is ordered by user journey (`scan`,
+  mention `nose review`; the command list is ordered by user journey (`query`,
   `review` first) with one-line summaries (details live in each command's
-  `--help`). The human scan report prints a friendly line instead of
+  `--help`). The human query report prints a friendly line instead of
   `0 clone families … (showing 0)` when nothing is found, and ends with a
   one-line hint pointing at `--show diff`, `--show proposal`, and `--top 0`
   when extra views weren't already requested. README and getting-started were
@@ -1400,7 +1400,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   `witness_kind`, `scope`, and per-changed-site `touches_shared`; human output
   marks gate-firing findings with `[gate: touches shared lines]`.
 
-- **`nose scan`'s default channel mix is now `syntax,semantic,near`** (#241,
+- **`nose query`'s default channel mix is now `syntax,semantic,near`** (#241,
   experiments §BM): omitting `--mode` also runs the fuzzy Type-3 `near` channel
   at its standard `0.70` acceptance floor. Measured on the 105-repo corpus,
   the flip lifts held-out worthy-recall 88.5% → 96.7% with held-out P@10
@@ -1409,11 +1409,11 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   **Migration:** an explicit `--mode` (or config `mode`) is unaffected — it
   replaces the default exactly as before. CI gates and baseline users should
   pin `--mode` (e.g. `--mode syntax,semantic` for the old mix) or re-baseline
-  with `--write-baseline`, since a default-mode scan now reports more families
+  with `--write-baseline`, since a default-mode query now reports more families
   and `--fail-on any` can newly fail. `nose review`'s default is **unchanged**
   (`syntax,semantic`): review feeds a gate, where false fires cost more than
-  missed candidates, and the §BM pricing covered the scan surface only.
-  `nose capabilities` advertises the new `scan.default_modes` truthfully.
+  missed candidates, and the §BM pricing covered the query surface only.
+  `nose capabilities` advertises the new `query.default_modes` truthfully.
 
 ### Added
 - `NOSE_ANCHOR_MIN_WEIGHT` research knob: overrides the sub-DAG anchor weight
@@ -1438,10 +1438,10 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   (no Enumerable inference from a method name).
 
 ### Performance
-- Scans are 2–4× faster end-to-end on the benchmark corpus (sympy 20.0 → 4.7s,
+- Queries are 2–4× faster end-to-end on the benchmark corpus (sympy 20.0 → 4.7s,
   redis 3.9 → 1.0s, git 2.7 → 1.1s wall; experiments §BQ) with byte-identical
   output. The evidence passes and semantic-evidence queries that dominated
-  `normalize+extract` were quadratic — per-node helpers re-scanning the whole
+  `normalize+extract` were quadratic — per-node helpers re-walking the whole
   `il.evidence`/`il.nodes` tables — and now go through index-backed lookups:
   the anchor-span evidence index everywhere (emit-path dedup included, plus a
   new binding-hash bucket and a staleness sentinel that survives
@@ -1461,7 +1461,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   replay: a JSON consumer parsing review stdout broke on exactly those PRs.
 - Rust units inside an inline `#[cfg(test)] mod tests` now classify as test
   scope (the path+name heuristic tagged them `prod`, distorting triage — the
-  #216 audit's alacritty family). Locations carry `in_test_module` in scan
+  #216 audit's alacritty family). Locations carry `in_test_module` in query
   JSON; a copy-paste run crossing test functions counts as test scaffolding
   when every overlapping unit sits in the test module.
 - **Soundness:** five fingerprint erasure classes no longer collapse working code
@@ -1485,7 +1485,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   site. Such single-site windows are not clone families and no longer participate
   in rank-time overlap subsumption, so adding the syntax channel cannot erase an
   otherwise reported semantic region.
-- Scan JSON `family_id` values are now unique for distinct reported families that
+- Query JSON `family_id` values are now unique for distinct reported families that
   share the same files and symbol names but point at different spans, especially
   hidden exact-fragment families. The ID now includes each member's displayed
   path, language, span, unit kind, symbol name, and fragment proof metadata; old
@@ -1496,7 +1496,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   exists before cloning, and writes a deterministic
   `bench/labels/prune_manifest.json` audit artifact with a post-prune corpus
   digest.
-- Semantic scans no longer stack-overflow when a recursive helper is referenced
+- Semantic queries no longer stack-overflow when a recursive helper is referenced
   from inside one of its own callback bodies while extracting a block or exact
   fragment. The value graph now excludes the enclosing function/method from the
   per-unit inline registry, preserving bounded inlining for sub-unit
@@ -1532,7 +1532,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   spot on exactly the convergences the value graph claims.
 
 ### Added
-- Generated-code markers now reach scan JSON: the generated-header index the
+- Generated-code markers now reach query JSON: the generated-header index the
   human report already used is computed for every output format, locations
   carry `looks_generated`, all-generated families report
   `recommended_surface: "generated"` (re2c output used to reach agents as
@@ -1540,32 +1540,32 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   `generated` bucket. Partly-generated families stay on their ranked surface
   with generated members flagged.
 - Block locations now carry `enclosing_unit` (the host function/method) in
-  scan JSON — structural blocks via the fragment recovery path, copy-paste-run
+  query JSON — structural blocks via the fragment recovery path, copy-paste-run
   blocks via a new span lookup over the unit set, and same-span method/body
   pairs resolve to the method. Every sampled #216 audit block had `name: null`
   with nothing to anchor a discussion to.
-- Scan JSON families now carry `varying_spots` difference evidence: per varying
+- Query JSON families now carry `varying_spots` difference evidence: per varying
   spot, both representative copies' absolute line ranges and trimmed text —
   consistent with `params` by construction. With the witness's shape-vs-value
   Jaccard split, a data-table family (the #216 audit's arrow case) is
   classifiable from JSON alone.
-- Scan JSON families now carry an agent-facing equivalence `witness` naming WHY
+- Query JSON families now carry an agent-facing equivalence `witness` naming WHY
   the members merged: `exact-value-graph` (with the shared multiset size),
   `shared-sub-dag`, `copy-paste-run`, or `structural-similarity` (with mean
   value vs shape Jaccard). The #216 audit's top gap — `shared_lines: 0` with
   `mean_score: 1.0` was uninterpretable on a real cross-language Type-4 family.
-- A scan-JSON agent-usability audit artifact records whether an LLM agent can
+- A query-JSON agent-usability audit artifact records whether an LLM agent can
   decide and act from the JSON alone: 14/18 sampled families were decidable, and
   the four failures fix the evidence roadmap — no equivalence witness on default
   families, no difference evidence, generated-content markers unsurfaced, and
-  missing enclosing unit names (docs/scanjson-agent-audit-2026-06-10.md).
+  missing enclosing unit names (docs/query_json-agent-audit-2026-06-10.md).
 - Ruby `**` now lowers to the shared exponentiation operator and converges with
   Python/JS `**`.
 - Compact CLI regression fixtures now pin the real-corpus strict-nullish hard
   negatives: `x ?? d` / `x == null ? d : x` stay separate from `x === null ? d :
   x`, and loose `!= null` object guards stay out of the strict non-null object
   guard family.
-- Scan JSON `ranking` now includes `surface_counts`, a pre-`--top` breakdown of
+- Query JSON `ranking` now includes `surface_counts`, a pre-`--top` breakdown of
   `default`, `review`, `hidden`, and `debug` families plus the same breakdown for
   exact-fragment families. This makes the human-action surface explicit for
   integrations that should filter `recommended_surface == "default"`.
@@ -1573,7 +1573,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   exact-fragment families now records the criteria, votes, and policy decisions
   behind the diagnostic-surface follow-up.
 - A LawPack provenance audit artifact now records the 105-repo and targeted
-  real-corpus pass for `nose.value_graph.laws`: the pack is active in scan JSON,
+  real-corpus pass for `nose.value_graph.laws`: the pack is active in query JSON,
   but the current two proof-backed laws produced no real clone families with
   `semantic_laws` provenance.
 - The design §5 recall-ceiling probe (`bench/labels/recall_ceiling_probe.py` plus
@@ -1613,14 +1613,14 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 
 ### Performance
 - Minified-bundle-sized files no longer hit a quadratic cliff: `nearest_scope`
-  and evidence-record lookups were per-query linear scans over all IL
+  and evidence-record lookups were per-query linear walks over all IL
   nodes/records and are now lazy per-file indexes. A 246 KB minified JS file
   went from 227 s to ≈ 2 s in normalize+extract (~118×), and ordinary repos get
   ~3× faster normalize+extract. Profiler-driven (`sample` + `NOSE_TIME=1`).
 - Large Java test files with many imported API occurrences no longer spend
   minutes revalidating the same import-shadow proof. Imported occurrence
   validation now reuses a per-file function/local-shadow cache; the
-  `commons-lang` semantic scan outlier went from ≈119 s to <1 s in
+  `commons-lang` semantic query outlier went from ≈119 s to <1 s in
   normalize+extract, with identical family ids.
 
 ### Removed
@@ -1717,7 +1717,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   to improve apparent coverage.
 - Type-4 frontier prioritization can now reuse cached corpus analysis and reports top
   matching repos per candidate for targeted real-repo audits.
-- Type-4 manifest evaluation and frontier summaries now index scan locations by file,
+- Type-4 manifest evaluation and frontier summaries now index query locations by file,
   making full-manifest validation practical after corpus growth.
 
 ## [0.3.0] - 2026-06-04
@@ -1750,11 +1750,11 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 ## [0.2.0] - 2026-06-04
 
 ### Changed
-- **`nose scan --mode` is now channel-based**: `syntax` (Type-1/2 copy-paste),
+- **`nose query --mode` is now channel-based**: `syntax` (Type-1/2 copy-paste),
   `semantic` (exact value-fingerprint Type-4), and `near` (Type-3 fuzzy
   near-duplicates). Omitting `--mode` runs `syntax,semantic`; specifying `--mode`
   runs exactly the comma-separated/repeated channels provided.
-- Removed the old `cpd`, `refactor`, `behavior`, and `behavior-strict` scan modes
+- Removed the old `cpd`, `refactor`, `behavior`, and `behavior-strict` query modes
   and removed `--no-contiguous`. `--threshold` is now valid only when `near` is
   enabled.
 - The `near` channel now uses shape-based candidate generation, so Type-3 edits
@@ -1766,7 +1766,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 ## [0.1.1] - 2026-06-04
 
 ### Fixed
-- **`nose scan --top 0` now shows all families**, as `docs/usage.md` and
+- **`nose query top=0` now shows all families**, as `docs/usage.md` and
   `docs/benchmark.md` document. The code used `.take(top)` with no special case,
   so `--top 0` silently returned an empty report; `0` is now treated as unlimited,
   the flag help says so, and a regression test covers it.
@@ -1786,7 +1786,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
 ## [0.1.0] - 2026-06-04
 
 ### Added
-- **`nose scan --mode`** — four explicit scan modes: `cpd` (copy-paste channel only,
+- **`nose query --mode`** — four explicit query modes: `cpd` (copy-paste channel only,
   jscpd-style CI gate), `refactor` (the default broad refactoring-candidate workflow),
   `behavior` (strict behavioral scorer with the calibrated 0.86 threshold), and
   `behavior-strict` (exact value-fingerprint Type-4 matches plus the copy-paste floor,
@@ -1811,11 +1811,11 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   short-circuit reduction. Free-monoid string model, map/filter fusion, and a
   ternary-return decomposition (`return a if c else b` ↔ `if c {return a} else {return b}`)
   also landed on the value graph.
-- **`nose scan`** — ranked architecture/design-level refactoring candidates.
+- **`nose query`** — ranked architecture/design-level refactoring candidates.
   Human / JSON / Markdown / SARIF output; `--diff` shows source diffs between
   representatives, `--proposal` shows extraction skeletons with the differing parts
   marked as parameters.
-- **`nose scan --sort`** — `extractability` (default), `value`, or `sites`.
+- **`nose query sort=`** — `extractability` (default), `value`, or `sites`.
   The default ranks by how cleanly a family folds into one helper — *invariant*
   (shared) lines × copies × spread, weighted by **tightness** (shared/total: 22 shared
   of 384 lines is 6% invariant — barely a dedup) and penalized by parameter count —
@@ -1832,13 +1832,13 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   `sim 1.00` that read as "identical" even when two copies shared only a handful of
   literal lines (a dispatch skeleton over divergent bodies). Cross-language families,
   which share no *source* lines, still show structural `sim`.
-- **`scanned N files` scope line** — `scan`'s human/Markdown output now opens with the
+- **`scanned N files` scope line** — `query`'s human/Markdown output now opens with the
   file count and per-language breakdown (e.g. `scanned 1113 files · typescript 900 · tsx
-  213`). A repo whose `.gitignore`/`--exclude` pruned vendored or generated code scans
+  213`). A repo whose `.gitignore`/`--exclude` pruned vendored or generated code now shows the
   far fewer files than sit on disk; the count makes that scope explicit instead of a
   silent gap. JSON/SARIF output is unaffected; the language breakdown is omitted under
   `--cache-dir` (which tracks only the count).
-- **Refactoring-candidate mode** (`--candidates` on `detect`, default for `scan`):
+- **Refactoring-candidate mode** (`--candidates` on `detect`, default for `query`):
   gates off + lower threshold, ~99% review-worthy on a refactoring-worthiness rubric.
 - **Rust, Java, C, and Ruby frontends** — 8 base languages (Python, JS, TS, Go,
   Rust, Java, C, Ruby). Cross-language convergence (a Rust/Java/C/Ruby accumulator
@@ -1848,8 +1848,8 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   (newlines kept), so the script parses as JS/TS in place with exact line numbers;
   `lang="ts"` selects TypeScript. The same logic in a `.ts`, `.vue`, `.svelte`, and
   `.html` file forms one cross-container clone family.
-- `nose scan --min-value V` to hide low-value families (noise floor on large repos).
-- `nose scan --hotspots` — architecture view ranking directories by the lines that
+- `nose query --min-value V` to hide low-value families (noise floor on large repos).
+- `nose query --hotspots` — architecture view ranking directories by the lines that
   sit in a clone family (e.g. surfaces `zod/.../locales`, translation/locale dirs).
 - Per-family **refactoring hint** (e.g. "consolidate `name` — N copies", "extract a shared
   base class / mixin", cross-language flag) and the languages a cross-language family spans.
@@ -1896,10 +1896,10 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   cache being documented as a transparent speed-up. The cache now also stores each
   file's contiguous token stream (content-derived, so cacheable by source hash like
   the units), and the copy-paste channel runs from it. Cached output is byte-identical
-  to a normal scan again (verified across the corpus). Cache schema bumped, so existing
+  to a normal query again (verified across the corpus). Cache schema bumped, so existing
   caches repopulate.
 - **Byte-identical output restored across thread counts.** Three latent
-  nondeterminism sources let `scan`/`verify` output vary with `RAYON_NUM_THREADS`
+  nondeterminism sources let `query`/`verify` output vary with `RAYON_NUM_THREADS`
   (and the per-process hash seed) on some repos, violating the determinism
   guarantee: (1) the honest shared-line ranking summed `idf` weights over lines in
   `HashMap` order, so float-add non-associativity perturbed `shared_weight` (and,
@@ -1908,7 +1908,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   map's capacity-dependent iteration order — fixed by breaking ties on the offset
   value; (3) `nose verify`'s under-merged-clones diagnostic iterated `HashMap`s into
   its output. A determinism sweep over the 105-repo corpus now reports **0**
-  nondeterministic repos for `scan` and `detect` (was 4 for `scan`). A stronger
+  nondeterministic repos for `query` and `detect` (was 4 for `query`). A stronger
   cross-thread-count regression test (8 families × 5 near-duplicate copies) guards
   the class.
 - **`--proposal` no longer overstates family-wide overlap.** The skeleton is a
@@ -1965,7 +1965,7 @@ behavior change to `scan`/`query`/`review`/`--fail-on` or the scan-JSON v1 contr
   sort-based parallel LSH candidate-gen (22→6 ms), fused normalize+extract (~halves
   peak IL memory). parse+lower scales 11.6× on 18 cores. **~14k → ~19.5k files/sec**
   on the 3620-file corpus; deterministic across runs, threads, *and* machines.
-- `nose scan --cache-dir <dir>` — opt-in on-disk cache of per-file units keyed
+- `nose query --cache-dir <dir>` — opt-in on-disk cache of per-file units keyed
   by content hash; ~1.6× faster re-runs on unchanged files (output byte-identical).
 
 ### Tooling & quality gates

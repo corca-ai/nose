@@ -130,7 +130,7 @@ Focused tests cover both the safe rows and the hard negatives:
 ## Pricing Impact
 
 This pass does not refresh `candidate_pricing.v1.json` because it does not add
-new corpus candidates to the pricing scanner. It adds a second blocker packet
+new corpus candidates to the pricing censusner. It adds a second blocker packet
 and capability matrix for issue #509. A pricing rerun should therefore produce
 no committed pricing diff.
 

@@ -5,7 +5,7 @@
   "git_revision": "1b83307085171ca6a6f61efaaa2480fdaead463c",
   "binary": {
     "build_command": "cargo build -p nose-cli --release",
-    "scan_command_template": "target/release/nose scan bench/repos/<repo> --mode semantic --format json --top 0"
+    "query_command_template": "target/release/nose query bench/repos/<repo> --mode semantic top=0 --format json"
   },
   "pack_under_test": {
     "id": "nose.value_graph.laws",
@@ -29,7 +29,7 @@
     "failed_repos": [
       {
         "repo": "rxjs",
-        "failure": "scan aborted with stack overflow"
+        "failure": "query aborted with stack overflow"
       }
     ],
     "source_files": 59865,
@@ -237,7 +237,7 @@
       "location": "bench/repos/fzf/src/util/util.go:63",
       "surface": "return max(min(val, maximum), minimum)",
       "law": "value-graph.clamp.integer-ordered-minmax",
-      "assessment": "Real clamp helper, but generic Ordered operands and parameter names do not prove integer domain or minimum <= maximum. The scan also found no equivalent family member that would require pack-facing law provenance."
+      "assessment": "Real clamp helper, but generic Ordered operands and parameter names do not prove integer domain or minimum <= maximum. The query also found no equivalent family member that would require pack-facing law provenance."
     },
     {
       "id": "pixijs-color-clamp",
@@ -261,7 +261,7 @@
       "location": "bench/repos/meilisearch/crates/milli/src/update/facet/mod.rs:413",
       "surface": "group_size.clamp(2, 127) and min(max(...)) nearby",
       "law": "value-graph.clamp.integer-ordered-minmax",
-      "assessment": "Rust .clamp can be exact in isolation, but this scan did not produce a duplicate family that bridged .clamp to an equivalent min/max or ternary member with law provenance."
+      "assessment": "Rust .clamp can be exact in isolation, but this query did not produce a duplicate family that bridged .clamp to an equivalent min/max or ternary member with law provenance."
     },
     {
       "id": "alacritty-scroll-clamp",
@@ -274,7 +274,7 @@
   ],
   "conclusion": {
     "verdict": "negative-real-corpus-yield",
-    "summary": "The first-party LawPack pilot is wired into scan JSON across the successful corpus, but this 105-repo pass found no real clone family with semantic_laws provenance. The result is a useful boundary finding rather than a safety regression: current law provenance fires only when a proven value-graph law participates in a reported family.",
+    "summary": "The first-party LawPack pilot is wired into query JSON across the successful corpus, but this 105-repo pass found no real clone family with semantic_laws provenance. The result is a useful boundary finding rather than a safety regression: current law provenance fires only when a proven value-graph law participates in a reported family.",
     "next_work": [
       "Add a dedicated law-provenance corpus fixture or focused benchmark so the JSON contract stays pinned outside unit tests.",
       "Build a miss-mining arm that records singleton law-shaped candidates and proof blockers separately from clone families.",

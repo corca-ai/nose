@@ -66,15 +66,15 @@ What nose owes consumer 1:
 - **High recall** — surface the candidates; the agent filters cheaply.
 - **Good-enough, deterministic ranking** — to triage and save the agent's tokens, not to be
   a perfect worth-it oracle.
-- **Rich machine-readable evidence** — the [scan JSON](scan-json.md) output should carry
+- **Rich machine-readable evidence** — the [query JSON](query-json.md) output should carry
   *why* two units are equivalent, *what* differs, exact locations, and the behavior contract,
   so the agent can decide and act without re-deriving the analysis.
 - **A navigable, self-describing surface** — [`nose query`](usage.md#nose-query) lets the
   agent *explore* the same dataset interactively: a landing dashboard, sliceable
   filters/facets, drill-into-one-family, and a runnable next-command on every result, so the
-  agent navigates by following links instead of re-reading a schema or hand-writing `jq`. This
-  is consumer 1's interactive entry point; the one-shot scan JSON is the batch/contract form of
-  the same dataset. (Packaged as a Skill, deliberately not as an MCP server.)
+  agent navigates by following links instead of re-reading a schema or hand-writing `jq`.
+  The same `nose query --format json` surface is the batch/contract form. (Packaged as a
+  Skill, deliberately not as an MCP server.)
 - **Speed.**
 
 Implication: **perfectly separating parallel-by-design is not specially important here** — the
@@ -133,9 +133,8 @@ is held to proof discipline (§1). Actionability splits by **decidability, not c
 
 ### 2c. The bare default is the product
 
-A no-flags invocation is the first-user experience: `nose query <path>` (the interactive
-landing dashboard) for an exploring agent or human, or the deprecated `nose scan <path>`
-(the one-shot report) for a batch read or CI. Both render the **same default surface**, and
+A no-terms invocation is the first-user experience: `nose query <path>` (the interactive
+landing dashboard) for an exploring agent or human. It renders the **default surface**, and
 its head is nose's one chance to demonstrate value. Two consequences:
 
 - The default surface must be **dominated by actionable findings**. A finding class leaves
@@ -158,7 +157,7 @@ its head is nose's one chance to demonstrate value. Two consequences:
   consumers depend on; this is what makes the guarantee scale as rules are added.
 - **query-JSON evidence richness.** The real lever for consumer 1 — make equivalence
   *explainable and actionable* in machine-readable form (the shipped `nose query --format
-  json` contract, currently [query JSON schema v7](query-json.md); scan-JSON v1 deprecated).
+  json` contract, currently [query JSON schema v7](query-json.md)).
 - **`query base=<ref>`-as-gate.** The natural high-precision bottom-line for consumer 2
   (the shipped divergent-edit view, formerly `nose review`); harden it past
   v1 and define a conservative fire policy. *Measured 2026-06-11
@@ -220,7 +219,7 @@ engine over a single formal IL semantics was evaluated in depth. The current evi
 - behavioral equivalence is **not a congruence** under the IL's ordered effects (the oracle
   compares an ordered effect trace), so a congruence-closure merge is unsound except on a pure
   sub-IL — at which point it largely reinvents the existing normal form;
-- performance: the canonicalizer is single-pass today and is not the dominant scan cost
+- performance: the canonicalizer is single-pass today and is not the dominant query runtime cost
   (per-unit value-graph extraction is, now that the evidence passes are index-backed —
   [experiments §BQ](experiments.md)); saturation is super-linear and determinism-hostile.
 
@@ -299,11 +298,11 @@ Cheap experiments that turn direction into data:
   zero-shared-mass judgment cases. Follow-up experiments closed most Ruby test-DSL block
   misses and part of the Rust `macro_rules!` arm gap; see [experiments §BN](experiments.md)
   and [§BO](experiments.md).
-- **Byte-determinism stress** — diff `nose scan --format json` across thread counts on a large
+- **Byte-determinism stress** — diff `nose query <path> top=0 --format json` across thread counts on a large
   repo. Any difference is a hard-invariant violation. *(Protects both consumers.)*
 
 ---
 
 *See also: [architecture](architecture.md) · [normalization](normalization.md) ·
 [formal soundness](formal-soundness.md) · [clone types](clone-types.md) ·
-[scan JSON](scan-json.md) · [review](divergent-edits.md).*
+[query JSON](query-json.md) · [divergent edits](divergent-edits.md).*

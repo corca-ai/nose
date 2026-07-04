@@ -107,7 +107,7 @@ Guiding constraints for every pass:
 - **Soundness is axis-dependent** (the two-axis principle, [experiments](experiments.md) §AH).
   nose has two fingerprints over this IL: a **behavioral** one (the value graph /
   GVN — *what the code computes*) and a **representation/candidate** one (structural
-  shape, used by `scan`'s default candidate mode). The behavioral fingerprint is
+  shape, used by the default candidate mode). The behavioral fingerprint is
   **sound by intent** — a *false merge* (two behaviorally-different snippets sharing a
   value-graph fingerprint) is a **bug**, not an accepted approximation. Soundness is
   enforced by an **independent interpreter oracle** (`nose verify`) that interprets the

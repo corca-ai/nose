@@ -403,7 +403,7 @@ with `0` false merges on the local `crates` gate.
 The follow-up [Python async protocol lifecycle pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-python-async-lifecycle-2026-07-01.v1.json)
 keeps exact recovery closed while splitting Python `async for` statements,
 async comprehensions, and `async with` into source-backed async
-iteration/context lifecycle obligations. The 120-repo scan records `114`
+iteration/context lifecycle obligations. The 120-repo source census records `114`
 `async for` and `361` `async with` occurrences across `5` repos with `0` false
 merges and `0` canon preservation violations.
 The follow-up [Ruby Thread/Fiber runtime artifact](../bench/recall_loss/ruby-thread-fiber-runtime-reporting-2026-07-01.v1.json)

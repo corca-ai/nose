@@ -165,7 +165,7 @@ tranches:
 
 - #150 completed the post-PR #147 raw/local semantic pocket audit.
 - #151 defined the provider-facing extension API v0.
-- #152 added local metadata loading, opt-in trust plumbing, and scan JSON pack
+- #152 added local metadata loading, opt-in trust plumbing, and query JSON pack
   provenance.
 - #153 added the internal demand/effect substrate.
 - #154 added Promise receiver proof for the supported first-party `.then`

@@ -15,8 +15,7 @@ This is the productized outcome of the #315 investigation; the
 [architecture](architecture.md) pipeline (step 5, scoring) emits it where a presentation
 surface asks for the enrichment. `nose query` exposes it as `graded` on family JSON when
 the query filters or groups by `spotclass`, along with `graded_pair` so consumers know
-which two `locations[]` members were compared; scan-family witnesses use the same witness
-schema under `witness.graded` when enriched.
+which two `locations[]` members were compared.
 
 ## What it computes
 
@@ -97,8 +96,8 @@ guessed one.
 ## Ranking
 
 The witness's hole count is, in principle, a more semantically-grounded "number of
-parameters the helper would need" than the source-line [`varying_spots`](scan-json.md)
-count the default [extractability](usage.md) ranking uses. Re-ranking by it was measured
+parameters the helper would need" than source-line anti-unification can provide.
+Re-ranking by it was measured
 on the gold set (`bench/labels/eval_by_language.py`, anti-unification re-rank vs the
 extractability baseline): the effect is **within noise overall** (dev +2pp, held-out
 −1pp P@10, CIs overlapping; it helps Java/Ruby/Rust and hurts Python/TypeScript). Per
@@ -139,10 +138,9 @@ not folded into nose's deterministic order on a neutral signal.
   battery, not by Lean; treat `referent_mismatches`/`caveat_names` as the honest boundary
   of the claim.
 - It is **best-effort enrichment**, computed at the presentation layer (which has
-  source access), exactly like the line-level [`varying_spots`](scan-json.md) — the two
-  describe the same divergence at the value-graph and source-line granularities
-  respectively.
+  source access). Query JSON carries the value-graph view as `graded.spots` and
+  the opened-family source view as `skeleton` when requested with `full`.
 
 *See also: [design](design.md) · [architecture](architecture.md) ·
 [normalization](normalization.md) · [clone-types](clone-types.md) ·
-[scan JSON](scan-json.md) · [review](divergent-edits.md).*
+[query JSON](query-json.md) · [divergent edits](divergent-edits.md).*

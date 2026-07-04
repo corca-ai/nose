@@ -52,7 +52,7 @@ over 5 measured iterations and 1 warmup:
 
 - aggregate focus-set runtime: `2764.9ms -> 3715.5ms` (`+34.4%`).
 - `arrow`: real hot path, partially fixed. Remaining cost is class attribute value-graph
-  construction, not the repeated mutation scan.
+  construction, not the repeated mutation walk.
 - `minio`: no family growth (`54 -> 54`) with a remaining Go hot path; this is the next
   highest-value performance investigation.
 - `ripgrep`, `rustls`, `alacritty`, `regex`, `tokio`, `meilisearch`, `image`,

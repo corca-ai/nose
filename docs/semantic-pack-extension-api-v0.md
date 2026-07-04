@@ -484,7 +484,7 @@ proof obligations, release gating, and documentation.
 Expectation labels are provider-authored strings. The example LawPack uses
 `semantic-law-provenance-present` only for report-visible provenance and
 `internal-law-unit-positive` for narrower fixtures that exercise a builtin
-law without promising a scan-family JSON row.
+law without promising a query-family JSON row.
 
 ## Builtin Mapping
 

@@ -13,7 +13,7 @@ The four types:
 - **Type-4** — fragments that perform the same computation but are implemented by different
   syntactic variants (semantic clones).
 
-This page states what nose does for each — including where it stops. The scan modes are
+This page states what nose does for each — including where it stops. The detection modes are
 detector channels, not perfect taxonomy buckets: the default combines `syntax`,
 `semantic`, and `near` (the fuzzy Type-3 channel is part of the default). The engine is
 described in [architecture](architecture.md).
@@ -88,7 +88,7 @@ graph, and canonicalizations actually model:
 
 For the classes it captures, equal fingerprint -> equal behavior is the design invariant:
 guarded by the hidden `nose verify` oracle, regression tests, and Lean obligations for the
-core canonicalizations, but not a per-scan or whole-pipeline proof. See
+core canonicalizations, but not a per-run or whole-pipeline proof. See
 [normalization](normalization.md) for the full pass list.
 
 ### What nose does *not* do (no overclaim)
@@ -166,8 +166,7 @@ locations carry stable proof metadata explaining why a region is exact-safe, but
 placement — which surface a family lands on — is decided separately. See
 [fragment-contracts](fragment-contracts.md) for the exact-fragment contract; the stable
 output field names and curation tiers are documented under the
-[scan-JSON v1](scan-json.md#fragment-metadata) contract (deprecated, but still the reference
-for these fragment fields).
+[query-JSON](query-json.md) contract.
 
 ## Declarative languages (CSS / HTML) — the taxonomy on a different denotation
 

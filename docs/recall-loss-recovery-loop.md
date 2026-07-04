@@ -544,7 +544,7 @@ gap that `crates` did not show: `unattributed-strict-exact-unsafe` is `1,896`,
 mostly Python (`1,429`), so future cycles must continue reducing that bucket
 while widening exact admission.
 
-The same census adds a separate stdlib/API source-prevalence scan. Raw
+The same census adds a separate stdlib/API source-prevalence census. Raw
 prevalence is led by C string/memory and allocation calls, but those are
 high-risk pointer/effect/lifetime surfaces. The safer initial semantic-kernel
 order is therefore: Go `strings` transforms, Java `Optional`, Java
@@ -735,7 +735,7 @@ behavior-changing signal is pinned by focused value-graph and CLI equivalence
 tests. The next measured queue remains producer proof for non-local Promise
 receivers, then settlement/aggregate channels.
 The next recovery pass, [same-file async-function return recovery](../bench/recall_loss/promise-async-function-return-recovery-2026-06-29.v1.json),
-opens the smallest measured call-return producer class from the prior scan:
+opens the smallest measured call-return producer class from the prior census:
 `79` same-file async-function call receivers across `10` JS/TS corpus repos. A
 direct call to a source-proven async function now carries `PromiseLike`
 result-domain evidence, and a pure non-thenable-safe returned payload can feed
@@ -748,7 +748,7 @@ thenables, opaque call results, constructor receivers, imported/member call
 returns, `.finally`, and aggregate channels remain closed.
 The next recovery pass, [direct-function Promise return recovery](../bench/recall_loss/promise-direct-function-return-recovery-2026-06-29.v1.json),
 opens the proof-backed same-file direct-function subset of the `184`
-local/parameter call-return candidates from the prior 120-repo JS/TS scan.
+local/parameter call-return candidates from the prior 120-repo JS/TS census.
 Direct calls now get `Domain(PromiseLike)` result evidence when their target is
 a non-async single-return function whose returned expression already has
 PromiseLike domain proof. This lets literal `Promise.resolve`, typed
@@ -784,7 +784,7 @@ does not open exact admission. It sharpens the imported target-present labels
 exposed by the call-return diagnostics: imported function/member receivers need
 a settled-value or rejection-channel contract, not return-domain proof alone,
 because an import coordinate does not expose an evaluable local body. The source
-scan keeps the next imported queue quantified at `105` imported-member
+source census keeps the next imported queue quantified at `105` imported-member
 candidates across `9` repos and `73` imported-binding candidates across `15`
 repos, while focused report/equivalence tests keep import-backed Promise member
 calls distinct from direct Promise forms and synchronous payloads.
@@ -804,7 +804,7 @@ AbortSignal rejection. Exactly `setTimeout(delay, value)` and
 `setImmediate(value)` can now name the fulfilled payload, while
 `setTimeout(delay, value, options)`, `setImmediate(value, options)`,
 possible-thenable payloads, scheduler APIs, interval streams, and broad
-scheduling equivalence stay closed. The current 120-repo corpus scan found
+scheduling equivalence stay closed. The current 120-repo corpus source census found
 `0` direct safe-payload call sites, so the measured pinned-corpus recall delta
 is intentionally `0`; the benefit is that future safe call sites and focused
 fixtures use the shared kernel contract rather than a selector shortcut.
@@ -819,7 +819,7 @@ aggregate, cancellation, and lifecycle capability epic, tracked as
 pricing, hard negatives, local gates, performance checks, and docs.
 The first #602 reporting slice is [scheduling/lifecycle boundary audit](../bench/recall_loss/scheduling-lifecycle-boundary-audit-602-2026-06-29.v1.json).
 It adds a reusable lexical pricing script for the 120-repo corpus and keeps
-`semantic_admission_delta = 0`. The scan prices `142,844` scheduling,
+`semantic_admission_delta = 0`. The source census prices `142,844` scheduling,
 aggregate, cancellation, channel, executor, lifecycle, and exception
 occurrences by file language. The first recommended targets are `Promise.all`
 (`397` occurrences), `Promise.race` (`32`), `new Promise` (`795`),
@@ -852,7 +852,7 @@ broad `Promise.allSettled` occurrences and `8` literal-array boundary
 occurrences in the pinned corpus. The following [Promise aggregate raw-input assimilation](../bench/recall_loss/promise-aggregate-raw-input-recovery-2026-06-29.v1.json)
 slice reuses the existing non-thenable-safe proof to treat raw primitive
 aggregate elements as fulfilled inputs for already-admitted literal
-`Promise.all` and `Promise.allSettled` calls. The corpus scan finds `8`
+`Promise.all` and `Promise.allSettled` calls. The corpus query finds `8`
 `Promise.all` literal arrays and `1` `Promise.allSettled` literal array with a
 direct raw non-thenable element, with `3` fully lexical direct-safe candidates.
 The [Promise.race/Promise.any literal aggregate recovery](../bench/recall_loss/promise-race-any-literal-aggregate-recovery-2026-06-30.v1.json)
@@ -861,7 +861,7 @@ contract family. `Promise.race` recovers only non-empty literal arrays where
 every element has closed settlement or non-thenable-safe raw-input proof, and
 returns the first element's settlement. `Promise.any` recovers only fully closed
 literal arrays with at least one fulfilled candidate, and returns the first
-fulfilled element. The corpus scan finds `32` broad `Promise.race` occurrences,
+fulfilled element. The corpus query finds `32` broad `Promise.race` occurrences,
 `31` `Promise.race` literal arrays, `1` broad/literal `Promise.any` occurrence,
 and `0` fully closed lexical candidates for either opened path in the pinned
 corpus. Dynamic iterables, object/function raw inputs, untyped possible

@@ -12,7 +12,7 @@ The first tranche covered the follow-up issues created from the post-PR
 |---|---|---|
 | #150 | #158 | completed the post-PR #147 raw/local semantic pocket audit |
 | #151 | #160 | defined the provider-facing semantic pack extension API v0 |
-| #152 | #161 | added local pack manifest loading, opt-in trust plumbing, and scan JSON pack provenance |
+| #152 | #161 | added local pack manifest loading, opt-in trust plumbing, and query JSON pack provenance |
 | #153 | #159 | added the internal demand/effect semantic substrate |
 | #154 | #162 | added Promise receiver proof and conservative `.then` continuation reduction |
 | #155 | #164 | expanded call-target and dispatch evidence vocabulary and resolvers |

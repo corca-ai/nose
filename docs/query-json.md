@@ -86,7 +86,9 @@ omitted from `items[]` because production code should rehome/extract a helper be
 **`base`** (`base=<git-ref>`) — the divergent-edit view. `base` (the ref), `summary` (`changed_files`, `divergences`,
 `shown_divergences`, `limit`, `fire_eligible`), and `items[]` of `{family_id, similarity,
 complexity, scope, witness_kind, fire_eligible, graded, changed[], not_updated[]}` — each
-`changed`/`not_updated` site carries `{file, name, start_line, end_line, …, touches_shared}`.
+`changed`/`not_updated` site carries `{file, name, start_line, end_line, lang, kind,
+span_lines, span_tokens, is_fragment, fragment_kind, reason_code, enclosing_unit,
+touches_shared}`.
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
 `limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the conservative
 proven-shared-logic verdict the gate fires on.
@@ -135,6 +137,11 @@ such as `shared`, `rep_lines`, and `removable` are computed: `mean_sem`, `member
 in generated/distributed output and CSS source-plus-compiled/minified build pipelines; a
 default family may still contain a generated-looking location when the hand-written copies
 remain actionable.
+
+Fragment proof metadata is intentionally scoped to views that need it. Dashboard/list/family
+`locations[]` stay compact and do not repeat `is_fragment`, `fragment_kind`, `reason_code`,
+or `enclosing_unit`; the divergent-edit `base` view serializes those fields on
+`changed[]`/`not_updated[]` sites because fragment context affects the gate explanation.
 
 Evidence, never a verdict: there is no `worth_it`/`confidence` field — the worthy-vs-parallel
 judgment is the caller's ([design §2](design.md)). See the [agent-recipe](agent-recipe.md) for

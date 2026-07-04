@@ -14,7 +14,7 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
     use std::sync::Mutex;
 
     // A file path on the command line does not need a directory walker. This keeps
-    // explicit fixture/file scans cheap while leaving configured excludes on the
+    // explicit fixture/file discovery cheap while leaving configured excludes on the
     // existing walker path, where their gitignore semantics are already defined.
     if exclude.is_empty() && root.is_file() {
         return Lang::from_file_path(root)

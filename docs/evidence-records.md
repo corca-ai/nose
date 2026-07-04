@@ -30,7 +30,7 @@ for compatibility.
 - Do not let evidence records mint value fingerprints, bypass laws, or mark clone
   pairs exact.
 - Do not expose this internal Rust record as the final external pack manifest or
-  scan JSON schema.
+  query JSON schema.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
 - Do not model demand as evidence records or cover every place/effect family in
@@ -890,7 +890,7 @@ callers:
   gates, and `undefined` nullish-default handling.
   Value-graph nullish
   value semantics are evidence-only for `undefined`; raw spelling plus a
-  scope scan no longer reopens that exact path;
+  scope walk no longer reopens that exact path;
 - qualified-global symbol proof for selected JS/TS API paths: own-property
   guard evidence depends on `Object.hasOwn` or
   `Object.prototype.hasOwnProperty.call`, static-object map-key views require

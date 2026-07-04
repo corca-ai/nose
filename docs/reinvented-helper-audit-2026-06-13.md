@@ -7,7 +7,7 @@ promoting the channel from a one-line count to a listed default section.
 
 ## Method
 
-`nose scan <repo> --format json` over every corpus repo; every `reinvented_helpers`
+`nose query <repo> reinvented --format json` over every corpus repo; every `items[]`
 finding collected and hand-labeled by reading the helper body and the container's matched
 region. A finding is **actionable** when the container genuinely recomputes the helper's
 value AND replacing it with a call is a valid fix; a **value-duplication** when the two
@@ -52,7 +52,7 @@ isolation (cross-file context artifact). All others are genuine value matches.
 The non-actionable findings are **dominated by test-container code** (the `test_type_G`
 circular assertion, the prettier test inputs, the poetry fixture). This is a *decidable*
 class (§2b): **test-container findings are excluded from the bare-default surface** (kept
-in `--show reinvented` and the JSON, with `container_in_test: true`). After that filter
+in `nose query <repo> reinvented --format json`, with `container_in_test: true`). After that filter
 the default surface is 14 findings, **94% genuine value-duplications and 71% directly
 actionable** — dominated by actionable findings, clearing the §2c bar. The channel is
 therefore **promoted**: the default human report lists the (non-test) findings instead of

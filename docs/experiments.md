@@ -15,7 +15,7 @@ pipeline, with exact semantic matches coming from the value graph.
 > **Historical record.** This log spans a pre-v5 era whose measurement code (many
 > `bench/*.py` scripts and gold sets — `typed4`, labelsets v1–v4, the `judge/` pipeline)
 > was later pruned to keep the repo lean; those names are the reproduction record of the
-> time and live in git history. Older sections mention removed scan spellings (`--mode
+> time and live in git history. Older sections mention removed CLI spellings (`--mode
 > behavior`, `--no-contiguous`) — use [usage](usage.md) for the current CLI. The
 > **current** benchmark is the v5 refactoring-family labelset (`bench/labels/eval_by_language.py`),
 > see [benchmark](benchmark.md) (§AU onward).
@@ -225,7 +225,7 @@ candidate/refactoring path (gates off, **0.70 operating point**) — the seed of
 
 ## R. Performance — frontend parser pool
 
-The frontend (discover + parse + lower) dominates a scan (~88ms warm vs ~13ms pipeline).
+The frontend (discover + parse + lower) dominates a query run (~88ms warm vs ~13ms pipeline).
 **Adopted: a thread-local parser pool** — cache one `tree_sitter::Parser` per grammar per
 rayon worker (`lower::parse`); ~1.8× (date-fns 88 → 48ms), byte-identical. (A `SmallVec`
 child-list was a noise-level null result — parsing dominates, not allocation.)
@@ -255,7 +255,7 @@ reverted.)
 ## U. Refactor-worthiness ranking — test-awareness + type-def discount
 
 For the refactoring goal the metric is top-family precision, not Type-4 recall. The dominant
-real noise is test duplication and value-poor type definitions. A ranking-time discount (scan
+real noise is test duplication and value-poor type definitions. A ranking-time discount (query
 path only; `rank_families`, gold path untouched): each family is tagged `scope = prod | test |
 mixed`, and **all-`Class` families with mean `sem < 12` are ×0.25**. Disable with
 `NOSE_NO_REFACTOR_DISCOUNT=1`. **Mixed test↔prod is *not* discounted** — logic that lives in
@@ -271,7 +271,7 @@ reported *context* with no ranking effect; the value-poor type-def discount stay
 Expanding the corpus to 31 repos across all 8 languages exposed that nose was far from a
 jscpd-weak superset (all-pairs coverage 18.2%): **jscpd matches arbitrary contiguous token
 runs, nose matched unit-bounded families.** Closing the gap needed a second channel.
-**V.2 — the contiguous copy-paste channel** (`contiguous.rs`): a Rabin-Karp scan over each
+**V.2 — the contiguous copy-paste channel** (`contiguous.rs`): a Rabin-Karp pass over each
 file's **raw-IL** token stream finding maximal duplicated runs regardless of unit boundaries —
 the Type-1/2 floor. Built from raw IL because alpha-renaming is function-scoped; honours
 `// nose-ignore`. Coverage 18.2% → 78.1%. This is today's `syntax` channel.
@@ -288,7 +288,7 @@ maps, generated/vendored). This is the measurement foundation the §U/§V false 
 
 Using the §W labelset as ground truth, **every candidate ranking signal was validated before
 shipping — and the labelset rejected most of them, exactly as intended.** Only the
-generated/vendored-path discount (×0.1, scan-only) shipped: precision@10 61% → 63%, recall
+generated/vendored-path discount (×0.1, query-only) shipped: precision@10 61% → 63%, recall
 held at 97%. Rejected: a literal-dominance (`data_ratio`) down-weight (the opposite of the
 hypothesis — high `data_ratio` is *more* worthy) and a candidate-mode data-table gate. The
 dominant remaining polluters are zod-style locale/version parallel-data variants, structurally
@@ -771,13 +771,13 @@ not the weights, so we mined ground truth before implementing.
   cached clones); per-release steps in [hazard-release-checklist](hazard-release-checklist.md).
   Full numbers in [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md).
 
-## BH. Scan performance — normalize proof lookup, not path exclusions
+## BH. Query performance — normalize proof lookup, not path exclusions
 
 Profiling real corpora across Rust (`nose-normalize`, `nose-detect`), TypeScript
 (`moonlight-server`, `moonlight-web`, `tex`), Python (`episteme2-app`), and Go
-(`sah-cli`) showed that semantic/near scans were bottlenecked in the shared
+(`sah-cli`) showed that semantic/near queries were bottlenecked in the shared
 `normalize+extract` path, not in JS-specific parsing or candidate scoring. Large generated
-JS bundles can dominate an unscoped scan, but the product fix is not a built-in generated-path
+JS bundles can dominate an unscoped query, but the product fix is not a built-in generated-path
 exclusion; benchmark scoping used only the existing `--exclude`/config mechanism.
 
 The hot path was `desugar` repeatedly re-scanning the whole IL to prove receiver-domain
@@ -807,13 +807,13 @@ Caching file top-level statements, path-derived module hashes, and binding-use f
 reduced representative `import-resolve` costs without changing output JSON: `tex`
 ~31–34ms→~4ms, `moonlight-server` ~21–25ms→~6ms, `nose-normalize` ~7–8ms→<1ms,
 and `episteme2` ~6–7ms→~2ms; Go corpora stayed at 0ms. Two tempting follow-ups were
-rejected after output checks: skipping import resolution for `syntax`-only scans changed
+rejected after output checks: skipping import resolution for `syntax`-only query runs changed
 `moonlight-server` syntax families, and caching pure-inline registries changed one
 Python near-family. Both are behavior changes, not safe speedups.
 
 ## BI. Language profile pass — file roots, not language-specific exclusions
 
-A follow-up language-by-language semantic scan profiled Python, JavaScript, TypeScript,
+A follow-up language-by-language semantic query profiled Python, JavaScript, TypeScript,
 Go, Rust, Java, C, Ruby, and embedded-script containers on local corpus repos. The goal
 was to avoid repeating the earlier JS-specific trap: large bundles can be expensive, but
 the product should not learn new built-in file/path exclusions. The safe optimization was
@@ -860,7 +860,7 @@ beyond everything reachable today.
 
 **Method** (`bench/labels/recall_ceiling_probe.py`, artifact
 `bench/labels/recall_ceiling_probe_2026_06_10.json`): for every worthy v5 label, two
-scans — arm0 = the default surface (`syntax,semantic`), arm1 = the maximal current
+query runs — arm0 = the default surface (`syntax,semantic`), arm1 = the maximal current
 surface (`syntax,semantic,near --min-value 0`). Labels arm1 misses are classified from
 `nose features` dumps of the member files: **subdag-ceiling** if the two members'
 tightest covering units share value-fingerprint multiset-intersection mass ≥ 8
@@ -970,8 +970,8 @@ constructs* keep units out of the interpreter. `nose verify --exclusion-census`
 outcome, fingerprint, and raw construct tags — for excluded AND interpretable
 populations, deriving the discriminating constructs at analysis time instead of
 hard-coding an "unsupported" list that would rot when lowerings change (the §BC–BF
-durability lesson). Run per repo (merge pairs counted within a repo, matching how scans
-run) and merged by `bench/labels/merge_exclusion_census.py`; artifact
+durability lesson). Run per repo (merge pairs counted within a repo, matching how query
+runs are sharded) and merged by `bench/labels/merge_exclusion_census.py`; artifact
 `bench/labels/oracle_exclusion_census_2026_06_10.json` (104 repos; `raylib` excluded —
 verify does not finish on it in useful time, #208).
 
@@ -1046,7 +1046,7 @@ not guessed — with a fail-closed site cap.*
 ### BL.2 — raylib verify budget: bound the oracle, don't hang it
 
 Issue #208 exposed a verify-only performance path: `nose verify bench/repos/raylib` exceeded a
-120s local timeout even though normal scanning completed. Sampling showed two costs compounding:
+120s local timeout even though normal query analysis completed. Sampling showed two costs compounding:
 the oracle rebuilt file-level value-graph context for every unit, then ran the full input battery
 against large C functions.
 
@@ -1065,17 +1065,17 @@ The after run on top of the symbolic-oracle baseline reported 8182 total units, 
 interpretable units, and 18 oversized `battery-bail` exclusions. It also surfaced two
 pre-existing value-fingerprint false-merge leads and one
 canon-preservation lead in raylib; #208 intentionally does not mask them with exclusions because
-the product semantic scan did not report those targeted pairs, and the point of `verify` is to
+the product semantic query did not report those targeted pairs, and the point of `verify` is to
 make such soundness leads visible once the oracle is tractable.
 
-## BM. Near on the default scan surface — price the locked +8pp recall
+## BM. Near on the default query surface — price the locked +8pp recall
 
 §BJ measured the biggest proven recall gap in today's product: the shipped but opt-in
 `near` channel lifts worthy-recall by about eight points. This experiment prices the
 product decision rather than assuming the answer: keep the current CLI default
 (`syntax,semantic`), add unthresholded `near`, or adopt a thresholded middle.
 
-**Method.** `bench/labels/near_default_surface_experiment.py` scans all 105 v5 repos
+**Method.** `bench/labels/near_default_surface_experiment.py` analyzes all 105 v5 repos
 with four arms: default, `syntax,semantic,near`, `syntax,semantic,near:0.8`, and
 `syntax,semantic,near:0.85`. P@10 uses the native `nose query --format json` order
 (`extractability`); worthy-recall is over worthy v5 labels; noise comes from the
@@ -1189,7 +1189,7 @@ the flag that the primary consumer is least likely to remember.
 The verdict was executed in #241: `nose query`'s default is now
 `syntax,semantic,near` (an explicit `--mode`/config `mode` still replaces it;
 the divergent-edit gate default deliberately stays `syntax,semantic` — it feeds a
-gate, and this experiment priced the scan surface only). Post-flip sanity on the
+gate, and this experiment priced the query surface only). Post-flip sanity on the
 then-current binary (post-§BP/§BQ, so absolute numbers differ from the BM.1–BM.2
 tables), default arm vs pinned `--mode syntax,semantic`
 (`bench/labels/near_default_flip_sanity_2026_06_11.txt`):
@@ -1250,7 +1250,7 @@ They need a different unit-coverage decision.
 
 ### BN.2 — default product metric
 
-The default scan surface is unchanged by this fix, because the new units recover
+The default query surface is unchanged by this fix, because the new units recover
 candidate bodies for maximal/near recall without adding new default-surface families
 in the measured corpus. Full `eval_by_language.py --rank extractability --top 0`
 after the change matched the §BM default baseline:
@@ -1264,7 +1264,7 @@ after the change matched the §BM default baseline:
 
 Measured across the 15 Ruby corpus repos with `NOSE_TIME_UNIT_SUMMARY=1`:
 
-| Ruby corpus scan metric | before | after | delta |
+| Ruby corpus query metric | before | after | delta |
 |---|---:|---:|---:|
 | units seen | 7479 | 12283 | +4804 |
 | units kept | 3377 | 5705 | +2328 |
@@ -1273,7 +1273,7 @@ Measured across the 15 Ruby corpus repos with `NOSE_TIME_UNIT_SUMMARY=1`:
 | candidate families | 2985 | 2985 | 0 |
 | default-surface families | 2865 | 2865 | 0 |
 
-Wall-clock scan timing in the ad hoc run was cache-order noisy, but showed no obvious
+Wall-clock query timing in the ad hoc run was cache-order noisy, but showed no obvious
 regression. The stable cost signal is extraction work: about 247ms extra over the
 Ruby corpus, with no candidate-family or default-surface expansion. Verdict: keep
 the allowlisted Ruby test-DSL block units. They remove the dominant Ruby unit-blind
@@ -1331,13 +1331,13 @@ duplication visible for review.
 
 Measured across the 15 Rust corpus repos:
 
-| Rust corpus scan metric | before | after | delta |
+| Rust corpus query metric | before | after | delta |
 |---|---:|---:|---:|
 | units kept | 93948 | 94507 | +559 |
 | macro-arm units kept | 0 | 356 | +356 |
 | candidate families | 4819 | 4826 | +7 |
 | default-surface families | 4782 | 4789 | +7 |
-| scan wall time sum | 5.808s | 5.860s | +0.052s |
+| query wall time sum | 5.808s | 5.860s | +0.052s |
 | features wall time sum | 17.482s | 17.759s | +0.277s |
 
 The new macro-arm units have exactly one raw boundary each. Their measured raw ratio
@@ -1399,22 +1399,22 @@ both arms, per-language rows unchanged) with heldout worthy-recall *up* four lab
 (Go +3, Python +1) — the erasure fixes split only behaviorally-different pairs, and
 representing deref effects let a few previously stub-collapsed units group correctly.
 
-## BQ. The evidence-index campaign — the quadratic scans behind `normalize+extract`
+## BQ. The evidence-index campaign — the quadratic lookups behind `normalize+extract`
 
 `NOSE_TIME=1` stage timing on the corpus showed `normalize+extract` at 95–97% of
-scan cost (sympy: 20.5s of a 21s scan; redis: 6.9s of 7.4s), and the per-pass
+query runtime cost (sympy: 20.5s of a 21s run; redis: 6.9s of 7.4s), and the per-pass
 `NOSE_TIME_NORMALIZE` aggregation put 92% of the normalize half in the four
 evidence passes — call-target 35.6s, binding 14.3s, effect 21.7s, api 1.8s CPU
 on sympy. The shape was always the same: **a per-node/per-call query running a
-full linear scan of `il.evidence` (or `il.nodes`)** — O(n²) on evidence-dense
+full linear walk of `il.evidence` (or `il.nodes`)** — O(n²) on evidence-dense
 files. The span-keyed evidence index existed (`Il::evidence_anchored_at`), but
 most consumers predated it.
 
-What landed, all output-preserving (byte-identical scan JSON on
+What landed, all output-preserving (byte-identical query JSON on
 redis/git/tokio/guava/sympy/netty and the full test suite before/after):
 
 1. **Every anchored evidence query goes through the index.**
-   `find_or_push_builtin_evidence` (the emit-path dedup scan — quadratic on
+   `find_or_push_builtin_evidence` (the emit-path dedup walk — quadratic on
    its own output), both evidence `upsert`s, the call-target/binding/library-api
    pass helpers, and ~15 anchored scans in `nose-semantics` now query the
    span bucket. `EvidenceIndex` gained a `by_binding_hash` bucket for the
@@ -1424,7 +1424,7 @@ redis/git/tokio/guava/sympy/netty and the full test suite before/after):
 2. **Two more lazy arena indexes on `Il`,** under the same nodes-are-immutable
    discipline as `scope_index`: `nodes_spanning` (span → nodes; kills the
    whole-arena `node_at_span*` scans in library-api span queries) and
-   `assigns_in_scope` (nearest-scope → assigns; kills the whole-arena scan in
+   `assigns_in_scope` (nearest-scope -> assigns; kills the whole-arena walk in
    `unique_binding_lhs_for_var_reference`, which ran per Var reference).
 3. **`binding_evidence` inverted its mutation walk.** Per-binding
    `visit_scope_nodes` (O(assignments × scope size)) became one
@@ -1442,7 +1442,7 @@ redis/git/tokio/guava/sympy/netty and the full test suite before/after):
    `direct_function_call_target_span_at_call` + span lookup. The context-free
    path shares the same mechanism (the old `inline_fns` map is gone).
 
-**Result** (release, 10-core M-series, default `syntax,semantic` scan): sympy
+**Result** (release, 10-core M-series, default `syntax,semantic` query): sympy
 20.0 → 4.7s wall (81.3 → 23.5s CPU), redis 3.9 → 1.0s, git 2.7 → 1.1s, netty
 3.5 → 1.8s, guava 3.6 → 2.2s, tokio 0.5 → 0.3s — **2–4× end-to-end** with
 byte-identical output. The dogfood gate caught one real near-duplicate the
@@ -1568,7 +1568,7 @@ fingerprint-identical to the Python comprehension/builder loop (and the bare
 ruby `for` ≡ python `for`). Validation per the standing discipline: equivalence
 tests + 3 adjacent hard negatives (different contribution / integer shift /
 unproven parameter receiver); `nose verify` SOUND + canon PRESERVED on
-rubocop/fastlane/sidekiq/jekyll/asciidoctor; maximal-surface scan diff across 7
+rubocop/fastlane/sidekiq/jekyll/asciidoctor; maximal-surface query diff across 7
 Ruby corpus repos: **zero locations lost, zero gained** — idiomatic Ruby uses
 `each`, so the axis closes the §4b cross-language `exact_safe` evenness gap, not
 a corpus-recall gap (the §BO macro-arm shape). Builder ≡ comprehension now holds
@@ -1699,7 +1699,7 @@ overrides the anchor weight floor; the never-run §BJ sweep ran at 20/16/12/8
 The recall gain is real and monotone (+1.4pp dev / +0.9pp held-out at floor 8)
 with P@10 flat across overlapping CIs — and on corpus repos the default surface
 CONSOLIDATES (more shared anchors merge related families: netty 4,882 → 3,120
-total) at a 5–15% scan-time cost. §BJ's "weak refactor targets" expectation was
+total) at a 5–15% query-runtime cost. §BJ's "weak refactor targets" expectation was
 half wrong. The other half was right where it bites: on the near-only gate
 surface, nose's own dup-gate jumps 24 → 73 "substantial" families — the band IS
 dense in small real-but-marginal near-duplicates, and the dogfood budget is a
@@ -1710,7 +1710,7 @@ surfaces keep the conservative floor.
 
 ## BX. The agent recipe, validated the #227 way — and sharpened by its own failures
 
-#249 closes the consumer-1 loop the #227 audit opened: scan JSON now carries the
+#249 closes the consumer-1 loop the #227 audit opened: query JSON now carries the
 evidence (witness #230, varying spots #231, generated markers #232, enclosing
 names #233), and [docs/agent-recipe.md](agent-recipe.md) is the protocol an LLM
 agent follows to act on it — field reading order, the v5 rubric's core question,
@@ -1743,7 +1743,7 @@ deliberately leaves to the caller.
 ## BY. Declaration runs — the first decidability-boundary filter, priced on the corpus
 
 A fresh-repo head-of-ranking audit (three sibling projects: a 1,351-file TS app,
-two small Go CLIs) found an import-statement block ranked #5 on a default scan —
+two small Go CLIs) found an import-statement block ranked #5 on a default query —
 seven textually-identical `import … from` lines across two modules. The
 detection is correct and the duplication real, but the language *mandates* those
 declarations per file: no extraction exists, so no judgment is owed. That is a
@@ -1907,7 +1907,7 @@ under-fire; insertion boundary arithmetic correct at the edges). Two
 conservative-direction notes recorded (sibling-selection incompleteness, spot-cap
 misses) — both consistent with "fires on proof, never on absence of one".
 
-**S2-C5 (blind, docs-vs-code → scan JSON contract).** Contract verified exhaustively
+**S2-C5 (blind, docs-vs-code -> query JSON contract).** Contract verified exhaustively
 in both directions: zero undocumented emissions, zero documented-but-missing fields,
 invariants hold (counts sum, `overlap_primary_id` slices-only, witness kinds exact).
 One stale artifact: the checked-in v1 example fixture lacked `declaration: 0` and
@@ -2248,7 +2248,7 @@ nodes. After: 2 findings on sympy, both hand-verified true.
 - **Soundness:** `nose verify --max-violations 0` clean on sympy (37,564 units, 14,075
   interpretable — the largest single-repo surface) and axios+asciidoctor; the full
   workspace battery (973 tests) green. Zero false merges with generalized inlining live.
-- **Determinism:** byte-identical scan JSON across 2/13/default thread counts (redis).
+- **Determinism:** byte-identical query JSON across 2/13/default thread counts (redis).
 - **Performance:** sympy normalize+extract +2.4% median (interleaved A/B, 4 pairs) —
   the cost of evaluating helper bodies at call sites.
 - **Default-surface stability:** family counts moved 0–3 per repo (axios 218→218,
@@ -2268,7 +2268,7 @@ nodes. After: 2 findings on sympy, both hand-verified true.
 
 **Verdict.** The §BJ "0.3%, don't chase pair recall" call stands — and the same
 mechanism, pointed at containment instead of pair recovery, yields a small,
-high-precision, novel finding surface at +2.4% scan cost. Floor-first shipped; exact
+high-precision, novel finding surface at +2.4% query runtime cost. Floor-first shipped; exact
 admission and default-surface promotion follow the labelset discipline.
 
 ## CG. Adversarial co-evolution, series 6 — the #299 surfaces (generalized inline, content keying, containment, oracle)
@@ -2446,11 +2446,11 @@ behavioral difference can't be witnessed; a latent gap recorded, not a confirmed
 a kind/identity token lost in an encoding (keyword names, `global`, splats, then literal
 kinds), and every fix preserves it explicitly rather than inferring it from a lossy pack.
 
-## CJ. Scan performance — profiler-first extraction hotspots (2026-06-13)
+## CJ. Query performance — profiler-first extraction hotspots (2026-06-13)
 
 Performance pass against `origin/main` (`6f61fb3`) using `NOSE_TIME=1`,
 `NOSE_TIME_NORMALIZE=1`, `NOSE_TIME_UNIT_SUMMARY=1`, and macOS `sample` on the pinned
-local bench repos. The profiling target was the semantic scan `normalize+extract` path,
+local bench repos. The profiling target was the semantic query `normalize+extract` path,
 not candidate scoring: on sympy, the instrumented baseline spent `2726.2ms` in
 `normalize+extract` after lowering, with cumulative unit timing dominated by value graph
 builds for units that were later skipped (`Block value=4837.6ms`, `Function
@@ -2458,7 +2458,7 @@ value=2270.3ms`). The hottest skipped block file was
 `sympy/physics/quantum/tests/test_spin.py` (`1326` block candidates, `1325` skipped,
 `739.8ms` value time).
 
-Five profiler-backed hotspots were removed without changing scan output:
+Five profiler-backed hotspots were removed without changing query output:
 
 1. Context-backed value graph builders now borrow the file-level `local_scope_nodes`
    bitmap directly. The old `Builder::new(...).with_context(...)` path built a fresh
@@ -2484,7 +2484,7 @@ the fingerprint it already builds (`exact_claim_eligible_parts`), avoiding dupli
 extraction for excluded functions.
 
 Measured output was byte-identical (`cmp`) for sympy, rubocop, and prettier semantic
-scans. The instrumented sympy run dropped `normalize+extract` from `2726.2ms` to
+query runs. The instrumented sympy run dropped `normalize+extract` from `2726.2ms` to
 `2082.2ms` (about `-23.6%`). A lower-overhead warm reverse-order sympy pair dropped
 `normalize+extract` from `3176.9ms` to `2211.3ms` (about `-30.4%`). Smaller repo checks
 kept the same direction after repeat/reverse runs: rubocop repeated pairs moved from
@@ -2531,7 +2531,7 @@ issue #329; commit `6f61fb3`.
 **Soundness by construction + measured.** Both fixes only ADD distinctions (a `ToInt32`
 node; held operand order) — they can only SPLIT fingerprints, never create a merge, so no
 new false merge is possible. Measured anyway: `nose verify --max-violations 0` clean on 13
-repos across the changed-path languages (Ruby/TS/Python/Java/Go); scan output **byte-
+repos across the changed-path languages (Ruby/TS/Python/Java/Go); query output **byte-
 identical** to `origin/main` on faraday, rack, axios, requests, gson (the merges were
 latent — absent from the corpus, the §AS reason batteries exist); determinism byte-
 identical across `RAYON_NUM_THREADS`. Permanent battery: two `equivalence.rs` tests with
@@ -2634,11 +2634,11 @@ for two structural reasons:**
    group `map.rs new()`/`iter()` with `deserialize_tuple_struct`** — a small function's
    leaf-abstracted whole-unit shape is generic ("calls + return" ≈ "construct + return"), so
    semantically-unrelated small units are mutually similar. No metric × threshold × linkage ×
-   min-node floor separated true siblings from generic-shape collisions. Cost: **+67% scan
+   min-node floor separated true siblings from generic-shape collisions. Cost: **+67% query
    time** (2.96 s → 4.94 s on prometheus) to re-lower the whole default surface for shapes.
 
 Shipping folding would **hide distinct genuine findings under a misleading "same shape" label**
-(the over-folding hazard) *and* slow scans — strictly worse. The whole-unit structural signal
+(the over-folding hazard) *and* slow query runs — strictly worse. The whole-unit structural signal
 is not clean enough to separate per-variant siblings from coincidental shape collisions. The
 independent, source-verified lever from the same audit stands unaffected: a decidable
 **evidence** flag for language-forced parallel duplication (`owned-vs-borrowed` /
@@ -2647,15 +2647,15 @@ evidence-not-verdict), plus retiring "proven ⇒ trust/lead" (serde's top `share
 `Value` vs `&Value`, value 179, **params 15** — forced duplication at the head of the proven
 channel). See the audit doc §5.
 
-## CL. Honest headline numbers — scan's `shared_lines` to the all-copies basis (#366, 2026-06-14)
+## CL. Honest headline numbers — `shared_lines` to the all-copies basis (#366, 2026-06-14)
 
 `nose query` reports the all-copies anti-unification economics (`M/REP shared · ~N
-removable`, reusing #360's `anti_unify_all`); the legacy scan headline counted the
+removable`, reusing #360's `anti_unify_all`); the former representative-pair headline counted the
 **representative pair**, so for a family whose 3rd+ copies diverge the two surfaces
-disagreed — serde's 25-copy `serialize_newtype_variant` read `11 shared → ~264
-removable` on scan but `4 shared → ~96 removable` on query. The pairwise number
+disagreed — serde's 25-copy `serialize_newtype_variant` read `11 shared -> ~264
+removable` under the old basis but `4 shared -> ~96 removable` on query. The pairwise number
 over-states: the helper that folds *all* copies can only hoist what is invariant across
-*all* of them. #366 converges scan's `shared_lines` (and the derived `~removable`) onto
+*all* of them. #366 converges `shared_lines` (and the derived `~removable`) onto
 that all-copies count.
 
 The catch, found by measurement, is that `shared_lines` is **not** display-only: it feeds
@@ -2675,12 +2675,10 @@ Held-out is the generalization gate. Moving **`shared_lines`** alone holds it fl
 principled (it correctly demotes the low-foldability serde family — the standing #365
 target) but **regressed held-out** (59→57, Java −9): the all-copies hole count over-fires
 `shallow-extraction` on dev-shaped families that don't generalize. So `params` deliberately
-stays representative-pair (also keeping it tied to `varying_spots` and the frozen scan-JSON
-v1 contract). The lesson repeats §AV/§CO: the residual ranking loss is judgment-deep, not a
+stays representative-pair. The lesson repeats §AV/§CO: the residual ranking loss is judgment-deep, not a
 number-basis bug — #365 needs its own signal (signature/arity heterogeneity), not a more
-honest parameter count. Scan and query now print one shared/removable headline per family;
-the `params`/`spots-differ` count stays each surface's own (scan = representative pair,
-query = all-copies helper arity).
+honest parameter count. Query now prints one shared/removable headline per family, while
+`params` stays the all-copies helper arity.
 
 ## CM. Foldability ranking — the member-span heterogeneity demotion (#365, 2026-06-14)
 
@@ -3157,7 +3155,7 @@ A large symlinked Obsidian-style wiki (9,454 Markdown files, 11,389 files total)
 real scale cost of the Markdown `nose query` domain. Baseline release run:
 `nose query <wiki-root>/` took **117.26s real / 113.92s user**, with **~1.29GB peak RSS**, and
 reported **284 Markdown near-duplicate families** (35 templated). The code-clone corpus was empty
-(`scanned 0 files`), so the cost was isolated to `nose-markdown`.
+(`analyzed 0 files`), so the cost was isolated to `nose-markdown`.
 
 **Profiler result.** A 20s macOS `sample` run showed the dominant stack in
 `nose_markdown::verify::CorpusModel::tfidf_cosine`: every candidate pair recomputed both unit

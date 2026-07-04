@@ -9,7 +9,7 @@ nose's own source is [dogfooding](dogfooding.md).
 
 ## Projects exercised
 
-| project shape | languages | files scanned | Raw% | verdict |
+| project shape | languages | files analyzed | Raw% | verdict |
 |---|---|---:|---:|---|
 | web app A | Svelte + TS | 172 | 0.000% | strong -- real cross-component duplication |
 | collaboration app | TS + TSX | 1113 | 0.001% | strong -- exact 4-5x helper copies |
@@ -19,9 +19,9 @@ nose's own source is [dogfooding](dogfooding.md).
 | Go CLI | Go | 37 | 0.403% | works, but Go coverage was weak at the time |
 | node-heavy Python project | Python | 629 | ~0% | strong -- near-duplicate API classes |
 
-Some projects had far fewer scanned files than raw files on disk because
+Some projects had far fewer analyzed files than raw files on disk because
 `.gitignore` correctly pruned vendored dependencies, virtualenvs, generated
-models, and build output. That is a real adoption win, but a one-line "scanned N
+models, and build output. That is a real adoption win, but a one-line "analyzed N
 files, ignored M" notice would build trust.
 
 ## What it gets right
@@ -33,7 +33,7 @@ files, ignored M" notice would build trust.
   - cross-container duplication between Svelte components and TypeScript helpers.
 - **Coverage is excellent for TS/JS/Python/Svelte** in these repos: Raw-node
   ratios were essentially zero.
-- **Fast enough for interactive use**: hundreds of files scanned in well under
+- **Fast enough for interactive use**: hundreds of files analyzed in well under
   100 ms, with no crashes in this pass.
 - **Clean repos mostly stay quiet**, which matters as much as finding large
   duplication in noisy repos.
@@ -43,7 +43,7 @@ files, ignored M" notice would build trust.
 ### P0 -- blocks real adoption
 
 1. **Relative paths in output.** Reports should print paths relative to the
-   scanned root or current directory so CI logs and review comments are portable.
+   analyzed root or current directory so CI logs and review comments are portable.
 2. **Baseline / incremental adoption.** Existing codebases often show many
    families; a fail-on-any gate is unusable until accepted duplication can be
    recorded and only new or changed duplication is reported.
@@ -82,7 +82,7 @@ The [LawPack provenance audit](lawpack-provenance-audit-2026-06-10.md) ran the
 compiled builtin `nose.value_graph.laws` pack across the 105-repo
 `bench/repos` corpus, plus a targeted 10-repo subset selected for clamp/min-max
 and arithmetic-law surfaces. The pack was active in all 104 successful full-corpus
-scans, covering 59,865 source files and 10,967 reported families, but no family
+query runs, covering 59,865 source files and 10,967 reported families, but no family
 contained `semantic_laws` provenance. The checked-in audit recorded `rxjs`
 separately because it hit a scanner stack overflow at the time; follow-up #198
 fixed that crash, and the current semantic JSON corpus loop completes 105/105
@@ -93,7 +93,7 @@ real code contains many clamp-shaped idioms (`fzf` generic `Constrain`,
 `pixijs` `Math.min(Math.max(...))`, Rust `.clamp`), but current provenance only
 appears when a proof-backed law actually participates in a reported clone
 family. The next useful layer is miss-mining for singleton law-shaped candidates
-and proof blockers, not merely another broad clone scan.
+and proof blockers, not merely another broad clone query.
 
 ## Update -- backlog addressed
 
@@ -159,7 +159,7 @@ type-definition families, not test scope. See [usage](usage.md) for the scope ta
 
 A third read-only pass (ten unrelated local projects: Go CLIs, TypeScript
 games/tools, Python services, mixed monorepos) confirmed the interactive-speed
-claim for normal repositories — every project scanned in ≤ 0.13 s end-to-end,
+claim for normal repositories — every project analyzed in ≤ 0.13 s end-to-end,
 lowering coverage stayed under 0.1 % Raw, and the semantic channel's findings
 were true positives on inspection (e.g. two identically-shaped `` `${x},${z}` ``
 key-builder methods in different modules of a TypeScript game; a duplicated
@@ -174,7 +174,7 @@ Two substantive findings came out of this pass:
    quadratic when one file has hundreds of thousands of IL nodes and evidence
    records. Both are now lazy per-file indexes (a whole-arena
    nearest-enclosing-scope table and an exact-anchor-span evidence index), and
-   the same file scans in **≈ 2 s** — with small-repo scans getting ~3× faster
+   the same file is analyzed in **≈ 2 s** — with small-repo query runs getting ~3× faster
    normalize+extract as a side effect. The fix was profiler-driven
    (`sample` on the live process; `NOSE_TIME=1` stage timing).
 2. **The oracle blind spot it closed found a real false merge.** Making
@@ -187,13 +187,13 @@ Two substantive findings came out of this pass:
    equally-seeded loops still converge with each other and the mislabeled
    benchmark case was flipped to a hard negative.
 
-The practical advice stands: scan source roots, not build output — but a
+The practical advice stands: analyze source roots, not build output — but a
 committed bundle must degrade gracefully, and now it does.
 
 ## Fourth pass follow-up — imported call-target proof cache
 
 The 105-repo bench corpus pass exposed a second real-world performance cliff:
-`commons-lang` scanned 620 files, but one large Java test file
+`commons-lang` analyzed 620 files, but one large Java test file
 (`ArrayUtilsTest.java`) made `normalize+extract` take **≈119 s** while
 parse/lower and detector clustering stayed below 0.1 s and 0.02 s respectively.
 Sampler output showed almost all CPU under imported call-target occurrence
@@ -201,8 +201,8 @@ validation, repeatedly proving that the same imported binding was still visible
 and not locally shadowed.
 
 Imported occurrence validation now reuses a per-file function/local-shadow cache.
-The same `commons-lang` semantic scan runs `normalize+extract` in **<1 s** with
-identical family ids; the single pathological `ArrayUtilsTest.java` scan dropped
+The same `commons-lang` semantic query runs `normalize+extract` in **<1 s** with
+identical family ids; the single pathological `ArrayUtilsTest.java` query dropped
 from **≈119 s** to **≈0.8 s**. This keeps the semantic-kernel fail-closed proof
 policy intact while removing the quadratic proof-validation shape.
 
@@ -252,5 +252,5 @@ larger Poetry authenticator test setup fragment. The policy change from the audi
 narrow: tiny test-only exact fragments with enclosing-unit context now stay hidden
 instead of review-visible. Broader pruning is deferred; #199 closed the stable
 `family_id` collision follow-up by including location spans and fragment metadata in
-scan JSON IDs. The remaining follow-up is overly generic one-line direct-return
+query JSON IDs. The remaining follow-up is overly generic one-line direct-return
 fragments.

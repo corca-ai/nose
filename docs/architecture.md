@@ -62,7 +62,7 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    multiset of subtree-shape hashes, a value-graph fingerprint, a pre-order linearization
    for alignment, a MinHash signature, plus literal- and return-value multisets used by
    the strict precision gates.
-4. **Candidate generation**: the selected scan channels decide which candidates exist.
+4. **Candidate generation**: the selected detection channels decide which candidates exist.
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
    uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
    stream, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
@@ -95,7 +95,7 @@ A Cargo workspace; data flows left-to-right through them.
 | `nose-detect` | unit/feature extraction, exact-fragment extraction, strict exact-safety gates, MinHash/LSH, scoring, clustering, test/generated scope tagging, refactor ranking, and query-surface policy |
 | `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) — see [benchmark](benchmark.md) |
 | `nose-markdown` | self-contained same-language Markdown prose near-duplicate domain (char-n-gram MinHash-LSH + winnowing + containment → TF-IDF rank → span witness), distinct from the value-graph code engine — see [markdown-duplication](markdown-duplication.md) |
-| `nose-cli` | the `nose` binary and process boundary: argument models, command dispatch, config/cache/baseline plumbing, query dashboard/JSON/open views, scan compatibility commands, verify/oracle reporting, recall-loss reports, and local diagnostics |
+| `nose-cli` | the `nose` binary and process boundary: argument models, command dispatch, config/cache/baseline plumbing, query dashboard/JSON/open views, verify/oracle reporting, recall-loss reports, and local diagnostics |
 
 The current semantic assumptions these crates share are summarized in [semantic-kernel-snapshot](semantic-kernel-snapshot.md).
 The incremental crate/module split is ratcheted in [refactoring-ratchets](refactoring-ratchets.md);
@@ -112,7 +112,7 @@ new code should follow the focused owners there rather than growing dispatcher o
   enclosing scope, span → nodes, scope → assignments, and the evidence anchor
   index (span buckets, binding-hash buckets, id resolution). Per-node helpers
   must query these instead of scanning `il.nodes`/`il.evidence`; the raw scans
-  were the dominant scan cost until they were indexed ([experiments §BQ](experiments.md)).
+  were the dominant query runtime cost until they were indexed ([experiments §BQ](experiments.md)).
 - **Interner-independent features.** A unit's features are content-derived
   hashes, not interner ids, so they're portable across runs — the basis for the
   content-hash cache.

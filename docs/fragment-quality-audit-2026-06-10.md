@@ -10,7 +10,7 @@ The checked-in data artifact is [bench/labels/fragment_quality_audit_2026_06_10.
 
 ## Sample
 
-The sample takes the top five hidden/review exact-fragment families, in scan JSON order,
+The sample takes the top five non-default exact-fragment families, in query JSON order,
 from each of four audited repositories:
 
 | language | repos | candidates |
@@ -18,10 +18,10 @@ from each of four audited repositories:
 | Java | `commons-lang`, `retrofit` | 10 |
 | Python | `poetry`, `packaging` | 10 |
 
-The source scan cache was `/tmp/nose-semantic-eval-current-517ad5c`, produced with:
+The source query cache was `/tmp/nose-semantic-eval-current-517ad5c`, produced with:
 
 ```sh
-nose scan bench/repos/<repo> --mode semantic --format json --top 0
+nose query bench/repos/<repo> --mode semantic witness=exact surface!=default top=0 --format json
 ```
 
 Each candidate was labeled independently by three reviewers using this schema:
@@ -62,7 +62,7 @@ synchronization signal review output should preserve:
 
 The audit supports the current separation between exactness and product placement:
 
-- Keep exact fragments in full scan JSON. They are useful proof/review substrate for
+- Keep exact fragments in full query JSON. They are useful proof/review substrate for
   integrations, audits, and changed-line review workflows.
 - Keep `recommended_surface == "default"` as the human-action filter. Hidden/review
   fragments should not become default findings merely because they are exact.
@@ -75,7 +75,7 @@ The audit supports the current separation between exactness and product placemen
   review.
 
 One follow-up remains outside this narrow policy change. The stable family identity
-follow-up was closed by #199: scan JSON IDs now include span and fragment metadata
+follow-up was closed by #199: query JSON IDs now include span and fragment metadata
 so distinct hidden fragment families do not share one `family_id`.
 
 - **One-line direct returns:** `exact-direct-return` one-liners are correct too often to

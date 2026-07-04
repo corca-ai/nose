@@ -88,7 +88,7 @@ fn main() {
     }
 
     eprintln!(
-        "scanned {} markdown files \u{2192} {} near-duplicate families",
+        "analyzed {} markdown files \u{2192} {} near-duplicate families",
         docs.len(),
         fams.len()
     );

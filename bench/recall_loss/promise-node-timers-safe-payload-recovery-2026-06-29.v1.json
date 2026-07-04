@@ -90,7 +90,7 @@
     "duplication": "passed",
     "performance_degradation": "not observed"
   },
-  "source_scan_commands": [
+  "source_census_commands": [
     "find bench/repos -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' '",
     "node read-only binding/arity scan over bench/repos JS/TS files for named imports and conservative const require destructuring from node:timers/promises or timers/promises"
   ],

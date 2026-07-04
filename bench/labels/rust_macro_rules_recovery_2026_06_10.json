@@ -329,7 +329,7 @@
   "source_commands": {
     "after_probe": "python3 bench/labels/recall_ceiling_probe.py --repos-root /Users/ak/prjs/cc/nose/bench/repos --json-out <tmp-after-probe.json>",
     "default_eval_after": "python3 bench/labels/eval_by_language.py --repos-root /Users/ak/prjs/cc/nose/bench/repos --rank extractability --top 0 --bootstrap 2000 --cache-dir <tmp-cache>",
-    "rust_delta": "<before-or-after-nose> scan/features over the 15 Rust corpus repos from bench/goldens/corpus.json"
+    "rust_delta": "<before-or-after-nose> query/features over the 15 Rust corpus repos from bench/goldens/corpus.json"
   },
   "spike_conclusion": "tree-sitter-rust exposes macro_rules! arms as macro_rule nodes with token_tree RHS, not full Rust statement AST. The implementation extracts each RHS as a named Block unit with one Raw macro_rule_body boundary plus identifier/literal atoms, so it is matchable by syntax/near but not exact_safe semantic proof."
 }

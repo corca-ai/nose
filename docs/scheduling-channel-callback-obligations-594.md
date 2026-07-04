@@ -384,13 +384,13 @@ The next reporting-only follow-up, [promise-receiver-producer-diagnostics-2026-0
 splits Promise continuation receiver producers without opening exact admission:
 constructor receivers map to settlement-channel proof, async-function returns
 map to scheduling proof, and generic call-return receivers remain ambiguous
-callee/selector proof. The 120-repo JS/TS scan found `835` generic call-return
+callee/selector proof. The 120-repo JS/TS source census found `835` generic call-return
 receivers, `49` same-file async-function call receivers, and only `2`
 constructor receivers, so constructor exact semantics should not be the next
 priority.
 The follow-up [promise-call-return-callee-diagnostics-2026-06-29.v1.json](../bench/recall_loss/promise-call-return-callee-diagnostics-2026-06-29.v1.json)
 splits the generic call-return bucket by callee shape. The revised 120-repo
-scan found `932` member call-return candidates, `184` local/parameter
+source census found `932` member call-return candidates, `184` local/parameter
 candidates, `105` imported-member candidates, `73` imported-binding candidates,
 and `79` same-file async-function call candidates. Broad member recovery is the
 largest surface but remains the riskiest; exact recovery should require both
@@ -406,7 +406,7 @@ paths, possible thenables, opaque call results, constructors, imported/member
 call returns, `.finally`, and aggregate combinators remain closed.
 The follow-up [promise-direct-function-return-recovery-2026-06-29.v1.json](../bench/recall_loss/promise-direct-function-return-recovery-2026-06-29.v1.json)
 opens the next producer-proof slice inside the `184` local/parameter
-call-return candidates from the JS/TS corpus scan. A same-file direct function
+call-return candidates from the JS/TS corpus query. A same-file direct function
 call can now become a PromiseLike receiver only when direct callee evidence
 points to a non-async single-return function and the returned expression already
 has PromiseLike domain proof. This admits literal and typed non-thenable
@@ -416,7 +416,7 @@ constructors, `.finally`, aggregate channels, and broad scheduling remain
 closed.
 The follow-up [promise-direct-method-return-recovery-2026-06-29.v1.json](../bench/recall_loss/promise-direct-method-return-recovery-2026-06-29.v1.json)
 opens the proof-backed DirectMethod subset inside the `932` member
-call-return candidates from the JS/TS corpus scan. A member call can become a
+call-return candidates from the JS/TS corpus query. A member call can become a
 PromiseLike receiver only when an existing DirectMethod call-target record
 points to a non-async single-return method and the returned expression already
 has PromiseLike domain proof. The value graph evaluates only that returned
@@ -462,7 +462,7 @@ show ESM named imports and conservative `const` CommonJS destructuring requires
 providing PromiseLike receiver-domain proof for `setTimeout`/`setImmediate`,
 raising the priced slice from `82` to `97` call sites. Only the no-options
 payload arities emit fulfilled `PromiseSettledValue`, and the current 120-repo
-direct named-binding scan found `0` such safe-payload call sites. Options
+direct named-binding source census found `0` such safe-payload call sites. Options
 objects, scheduler APIs, interval streams, namespace/default imports,
 mutable/dynamic CommonJS shapes, possible thenables, and broad scheduling stay
 closed.
@@ -477,7 +477,7 @@ instead of continuing as API-by-API Promise expansion.
 The first #602 slice is the reporting-only [scheduling/lifecycle boundary audit](../bench/recall_loss/scheduling-lifecycle-boundary-audit-602-2026-06-29.v1.json).
 It adds a 120-repo pricing script for scheduling, aggregate, cancellation,
 channel, executor, lifecycle, and exception surfaces without opening exact
-admission. The scan prices `142,844` source-prevalence occurrences and ranks
+admission. The source census prices `142,844` source-prevalence occurrences and ranks
 the first next-work targets as Promise aggregates, executor timing,
 AbortSignal cancellation, interval lifecycle, Go goroutines, Java
 `CompletableFuture`, and Swift `await`. The local `crates` gate remains
@@ -532,7 +532,7 @@ The [AbortSignal cancellation boundary audit](../bench/recall_loss/abort-signal-
 is the following reporting-only #602 slice. It adds named runtime-boundary
 labels for `AbortSignal.abort`, `AbortSignal.any`, `AbortSignal.timeout`, and
 `new AbortController()` without admitting cancellation equivalence. The 120-repo
-scan splits `260` Abort mentions into controller lifecycle, direct static
+census splits `260` Abort mentions into controller lifecycle, direct static
 AbortSignal calls, signal option properties, and signal-aware `fetch`,
 timer, listener, and scheduler surfaces. Exact cancellation remains closed until
 signal identity, abort ordering, abort reasons, rejection/cleanup behavior, and
@@ -543,7 +543,7 @@ is the next reporting-only #602 slice. It adds named runtime-boundary labels for
 global timer scheduling, `scheduler.wait` timing plus cancellation/liveness,
 `scheduler.yield` microtask ordering, `setInterval` repeated-emission
 lifecycle, interval cancellation, and one-shot timer/frame cancellation. The
-120-repo scan prices `780`
+120-repo source census prices `780`
 `setTimeout` calls, `57` `setImmediate` calls, `73` bare `setInterval` calls,
 `55` `clearInterval` calls, `133` `clearTimeout` calls, `14`
 `queueMicrotask` calls, `43` `requestAnimationFrame` calls, and `11`

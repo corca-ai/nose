@@ -673,7 +673,7 @@
    ]
   },
   {
-   "fix": "cheap file-head scan -> per-location looks_generated flag; consider ranking demotion",
+   "fix": "cheap file-head detector -> per-location looks_generated flag; consider ranking demotion",
    "gap": "generated-content markers not surfaced or honored",
    "rank": 3,
    "unblocked": [
@@ -963,5 +963,5 @@
    "truth": "MISLED BY SCOPE \u2014 these are #[test] fns in an inline `mod tests`; scope says prod (is_test_loc misses Rust inline test modules). Test scaffolding, borderline parameterize"
   }
  },
- "what": "scan-JSON agent-usability audit (#216): can consumer 1 decide and act from the JSON alone?"
+ "what": "query-JSON agent-usability audit (#216): can consumer 1 decide and act from the JSON alone?"
 }

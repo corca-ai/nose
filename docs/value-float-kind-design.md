@@ -15,7 +15,7 @@ Companion to [oracle-value-model §3.3 / §6](oracle-value-model.md) (the cluste
 > - **P1 (oracle):** a real IEEE-754 `Value::Float` in `interp/value.rs`, primitive
 >   float arithmetic in `interp/ops.rs`, plus a `verify_battery` float row
 >   (`1e16 ± 1e16`) so the oracle WITNESSES `(a+b)+c ≠ a+(b+c)`.
-> - **P2 (scan):** the value graph holds the grouping for a truly-untyped param in a
+> - **P2 (query):** the value graph holds the grouping for a truly-untyped param in a
 >   dynamically-typed language (`possibly_float`), mirrored in the `algebra` pass.
 >
 > The hold is **associativity-only**: commutativity is preserved (`a+b+1 ≡ b+a+1`, same
@@ -79,8 +79,8 @@ the oracle to back it. So the model is the actual work, not an avoidable epic.
 
 Method: force `chain_has_float` (algebra) and `proven_float` (value graph) to treat every
 `+`/`*` chain as possibly-float — an **upper bound** on the hold's recall cost (it also
-holds provably-integer chains the real model would leave associative). Scan `--mode
-semantic`, compare exact-channel family counts.
+holds provably-integer chains the real model would leave associative). Run
+`nose query <path> --mode semantic`, compare exact-channel family counts.
 
 | corpus | baseline families | hold-all families | delta |
 |---|---|---|---|
@@ -90,7 +90,7 @@ semantic`, compare exact-channel family counts.
 Zero loss even at the upper bound, including the Python-heavy synthetic clone corpus.
 **Caveat:** neither corpus is a large dynamically-typed real-world repo, where untyped
 integer arithmetic written in varied groupings is most likely. Re-measure on the pinned
-`bench/repos` set (`scripts/corpus-verify-nightly.sh` corpus) before flipping the scan
+`bench/repos` set (`scripts/corpus-verify-nightly.sh` corpus) before flipping the query
 default in Phase 2.
 
 ## 4. The model
@@ -122,7 +122,7 @@ runtime, which is language-specific:
   not arise — these have no fully-untyped numeric params.
 
 So the *untyped-possibly-float* case is **only** reachable in the dynamically-typed
-languages. That bounds Phase 2's scan-hold to Python/JS/Ruby `+`/`*` chains whose leaves
+languages. That bounds Phase 2's query hold to Python/JS/Ruby `+`/`*` chains whose leaves
 have no integer evidence — narrower (and cheaper) than the §3 upper-bound measurement.
 
 ### 4.3 Fingerprint — hold untyped `+`/`*`, justified
@@ -138,11 +138,11 @@ machinery #339/#340 shipped; the only new input is "untyped leaf in Python/JS/Ru
    `verify_battery` float row (a list/scalar pool entry that is a float), and the
    coercion rules for the dynamic languages. Deliverable: `nose verify` reports
    `assoc_l`/`assoc_r` in `float_assoc.py` as a **witnessed** false merge (behavior
-   groups distinct). No scan change yet — this *exposes* the bug under the soundness gate.
+   groups distinct). No query change yet — this *exposes* the bug under the soundness gate.
    Risk: medium (NaN/±0/coercion correctness); fully covered by interp unit tests.
-2. **P2 — scan hold (close the merge).** Extend `chain_has_float`/`proven_float` to the
+2. **P2 — query hold (close the merge).** Extend `chain_has_float`/`proven_float` to the
    untyped-dynamic-language case so the fingerprint splits the two. Re-measure recall on
-   the pinned corpus first; ship only if the loss stays negligible. Deliverable: scan
+   the pinned corpus first; ship only if the loss stays negligible. Deliverable: query
    splits them, verify clean again.
 3. **P3 — cross-language coercion lattice.** Generalize §4.2 so float-ness propagates
    through calls and mixed Int/Float expressions, and fold the remaining float-coercion
@@ -165,7 +165,7 @@ machinery #339/#340 shipped; the only new input is "untyped leaf in Python/JS/Ru
 ## 7. Outcome (what shipped, #342)
 
 **SHIPPED — P1 + P2 together.** P1 alone is NOT gate-safe (it turns the latent merge into a
-*witnessed* violation without fixing the scan), so both halves landed in one change:
+*witnessed* violation without fixing the query path), so both halves landed in one change:
 
 - **P1 (oracle):** `Value::Float(F64)` in `interp/value.rs`, with IEEE-754 `bin`/`un`
   arithmetic in `interp/ops.rs` (`F64` is a newtype with a behavior-comparison `Eq` that
@@ -173,7 +173,7 @@ machinery #339/#340 shipped; the only new input is "untyped leaf in Python/JS/Ru
   adversarial floats (`1e16 ± 1e16`) so the oracle witnesses non-associativity. Float
   *literals* stay opaque (`LitFloat` carries only a hash) — only battery-fed params are
   concrete, which bounds the new interpretable surface.
-- **P2 (scan):** `possibly_float` = `proven_float` OR a **truly-untyped** (`None`-domain) param
+- **P2 (query):** `possibly_float` = `proven_float` OR a **truly-untyped** (`None`-domain) param
   in a dynamically-typed language, used by the grouping holds (`eval_assoc_comm_chain`,
   `eval_sub_chain`, `ac_chain_canon`) and mirrored in `algebra`. A grouping-preserving rebuild
   (`rebuild_grouped_float_chain`) keeps the source grouping while still sorting non-concat

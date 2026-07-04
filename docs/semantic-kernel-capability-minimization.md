@@ -162,7 +162,7 @@ intentional: the accepted reduction lowers the cost of representing
 receiver/domain blockers, but it does not prove a NumPy dtype, Rails receiver
 class, Rust trait identity, or Go map-order boundary for a concrete occurrence.
 
-The pricing scanner was rerun with:
+The pricing censusner was rerun with:
 
 ```sh
 python3 bench/semantic_pack/pricing.py --nose ./target/release/nose --query-sample-repos 1

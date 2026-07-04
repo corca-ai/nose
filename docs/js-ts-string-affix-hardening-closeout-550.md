@@ -124,7 +124,7 @@ Median: `12.342 ms -> 11.657 ms` (`-0.685 ms`).
   control-flow and `Object.defineProperty` prototype patches were missed;
   `value?: string` was admitted as primitive `string`. Non-blocking finding:
   local `String` shadows over-closed unrelated primitive string calls. Accepted
-  changes in `9e3047f2`: recursive module-scope mutation scan that stops at
+  changes in `9e3047f2`: recursive module-scope mutation walk that stops at
   function/lambda boundaries, unshadowed `String`/`Object` checks, exact
   `Object.defineProperty(String.prototype, "startsWith"|"endsWith", ...)`
   suppression, optional TypeScript annotation fail-closed behavior, and durable

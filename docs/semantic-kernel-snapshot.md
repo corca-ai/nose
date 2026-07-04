@@ -684,7 +684,7 @@ still being migrated toward it.
 The current model already enforces the main product principle: exact semantic
 matches must be fail-closed and false merges are bugs.
 
-An experimental `abstraction` scan mode now exists as a weak sibling surface over
+An experimental `abstraction` detection mode now exists as a weak sibling surface over
 `near`, not as an exact semantic relaxation. It keeps only same-language candidates
 whose family-wide normalized IL differs by exactly one shared supported literal leaf
 position and emits an `abstraction_witness` with a typed hole, a reason code, checked
@@ -868,7 +868,7 @@ migrated.
   `local_hash` and only applies an assignment to
   receiver uses that occur after it. Strict exact receiver gates consume this
   resolver directly instead of caching raw collection/map names or CIDs from an
-  assignment scan. Domain evidence can satisfy a receiver-domain precondition,
+  assignment walk. Domain evidence can satisfy a receiver-domain precondition,
   but it is not exact-tree proof for the binding value: an opaque initializer
   with `Domain(Collection)` still does not make the variable generally
   exact-safe. The current mutation-risk producers are conservative and
@@ -1369,7 +1369,7 @@ migrated.
   It is preserved as a name and only treated as the nullish sentinel through an
   unshadowed-global contract. Value-graph nullish-value evaluation now requires
   asserted `Symbol(UnshadowedGlobal("undefined"))` evidence instead of falling
-  back to raw spelling plus a file-scope scan; strict exact-safe gates consume
+  back to raw spelling plus a file-scope pass; strict exact-safe gates consume
   the same proof, so temp-bound `Map.get(...)` defaulting can stay open without
   admitting shadowed `undefined` bindings.
 - Go literal map default lookup is represented by shared contracts for both the
