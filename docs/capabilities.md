@@ -138,6 +138,9 @@ should treat absence from `query.modes` as "not stable for automation."
 installed binary's own version (`nose --version`); the example deliberately does not pin a
 release so it can't drift.
 
+The JSON example above is compared against `nose capabilities` by the CLI integration test;
+only `tool.version` and the platform values are normalized for the local build.
+
 ## Version 4 Fields
 
 | field | type | meaning |

@@ -33,6 +33,20 @@ fn capabilities_command_emits_machine_readable_contract() {
 }
 
 #[test]
+fn capabilities_docs_example_matches_command_contract() {
+    let out = run(&["capabilities"]);
+    let actual: serde_json::Value =
+        serde_json::from_str(&out).expect("capabilities must emit valid JSON");
+    let doc_example = capabilities_doc_example();
+    let normalized_actual = normalize_capabilities_for_docs(actual, &doc_example);
+
+    assert_eq!(
+        normalized_actual, doc_example,
+        "docs/capabilities.md JSON example drifted from `nose capabilities`"
+    );
+}
+
+#[test]
 fn capabilities_command_lists_stable_commands_and_schemas() {
     let out = run(&["capabilities"]);
     let json: serde_json::Value =
@@ -244,6 +258,68 @@ fn deeply_nested_file_does_not_overflow() {
     fs::write(dir.join("deep.js"), body).unwrap();
     let _ = run(&["query", dir.to_str().unwrap()]);
     let _ = fs::remove_dir_all(&dir);
+}
+
+fn capabilities_doc_example() -> serde_json::Value {
+    let docs_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root")
+        .join("docs/capabilities.md");
+    let markdown = fs::read_to_string(&docs_path)
+        .unwrap_or_else(|err| panic!("read {}: {err}", docs_path.display()));
+    let example_section = markdown_section(&markdown, "## Example")
+        .unwrap_or_else(|| panic!("missing Example section in {}", docs_path.display()));
+    let json = fenced_json_block(example_section)
+        .unwrap_or_else(|| panic!("missing JSON example in {}", docs_path.display()));
+    serde_json::from_str(&json)
+        .unwrap_or_else(|err| panic!("parse {} JSON example: {err}", docs_path.display()))
+}
+
+fn markdown_section<'a>(markdown: &'a str, heading: &str) -> Option<&'a str> {
+    let start = markdown.find(heading)?;
+    let rest = &markdown[start + heading.len()..];
+    let end = rest
+        .find("\n## ")
+        .or_else(|| rest.find("\n# "))
+        .unwrap_or(rest.len());
+    Some(&rest[..end])
+}
+
+fn fenced_json_block(markdown: &str) -> Option<String> {
+    let mut lines = markdown.lines();
+    for line in lines.by_ref() {
+        if line.trim() == "```json" {
+            break;
+        }
+    }
+    let mut json = String::new();
+    for line in lines {
+        if line.trim() == "```" {
+            return Some(json);
+        }
+        json.push_str(line);
+        json.push('\n');
+    }
+    None
+}
+
+fn normalize_capabilities_for_docs(
+    mut actual: serde_json::Value,
+    doc_example: &serde_json::Value,
+) -> serde_json::Value {
+    assert_eq!(doc_example["tool"]["version"], "<version>");
+    actual["tool"]["version"] = doc_example["tool"]["version"].clone();
+    for key in ["os", "arch", "family"] {
+        assert!(
+            doc_example["platform"][key]
+                .as_str()
+                .is_some_and(|value| !value.is_empty()),
+            "docs capabilities platform.{key} example should be a non-empty string"
+        );
+        actual["platform"][key] = doc_example["platform"][key].clone();
+    }
+    actual
 }
 
 #[test]
