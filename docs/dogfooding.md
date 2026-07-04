@@ -858,3 +858,11 @@ on the code-clone engine. The same line movement changes the already reviewed
 `report_falsify`/`soundness_gate` representative from `41586dd06dff63b5` to
 `1f922efb624c7f79`. No new family appears, so the baseline budget is tightened
 to 45.
+
+The source-fact accessor cleanup tightens the count from 45 to 44. The self-query
+report flagged `7a67923c4ee93aca`, the repeated `source_*_at_node` lookup shape
+inside `nose-semantics/src/evidence.rs`. Moving the common span-keyed
+`SourceFactKind` projection into `source_fact_value_at_node` keeps the
+provenance-specialized `source_cast_at_node` path separate while removing the
+repeated asserted-evidence lookup wrappers. No new family appears, so the
+baseline budget is tightened to 44.

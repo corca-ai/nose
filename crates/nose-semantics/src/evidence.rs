@@ -138,15 +138,26 @@ pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool 
     }
 }
 
-pub fn source_binding_at_node(il: &Il, node: NodeId) -> Option<SourceBindingKind> {
+fn source_fact_value_at_node<T: Copy + Eq>(
+    il: &Il,
+    node: NodeId,
+    project: impl Fn(SourceFactKind) -> Option<T>,
+) -> Option<T> {
     let span = il.node(node).span;
     match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Binding(binding)) => Some(binding),
+        EvidenceKind::Source(fact) => project(fact),
         _ => None,
     }) {
-        EvidenceResolution::Found(binding) => Some(binding),
-        _ => None,
+        EvidenceResolution::Found(value) => Some(value),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
+}
+
+pub fn source_binding_at_node(il: &Il, node: NodeId) -> Option<SourceBindingKind> {
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Binding(binding) => Some(binding),
+        _ => None,
+    })
 }
 
 /// The definition rooted at `node` was DECORATED in source: its runtime binding is the
@@ -261,14 +272,10 @@ fn collect_target_names(il: &Il, target: NodeId, out: &mut rustc_hash::FxHashSet
 }
 
 pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Operator(operator)) => Some(operator),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Operator(operator) => Some(operator),
         _ => None,
-    }) {
-        EvidenceResolution::Found(operator) => Some(operator),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn source_cast_at_node(il: &Il, node: NodeId) -> Option<SourceCastKind> {
@@ -308,69 +315,45 @@ fn source_cast_provenance_admitted(record: &EvidenceRecord, cast: SourceCastKind
 }
 
 pub fn source_call_at_node(il: &Il, node: NodeId) -> Option<SourceCallKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Call(call)) => Some(call),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Call(call) => Some(call),
         _ => None,
-    }) {
-        EvidenceResolution::Found(call) => Some(call),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn source_protocol_at_node(il: &Il, node: NodeId) -> Option<SourceProtocolKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Protocol(protocol)) => Some(protocol),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Protocol(protocol) => Some(protocol),
         _ => None,
-    }) {
-        EvidenceResolution::Found(protocol) => Some(protocol),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn source_literal_at_node(il: &Il, node: NodeId) -> Option<SourceLiteralKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Literal(literal)) => Some(literal),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Literal(literal) => Some(literal),
         _ => None,
-    }) {
-        EvidenceResolution::Found(literal) => Some(literal),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn source_comprehension_at_node(il: &Il, node: NodeId) -> Option<SourceComprehensionKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Comprehension(comprehension)) => Some(comprehension),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Comprehension(comprehension) => Some(comprehension),
         _ => None,
-    }) {
-        EvidenceResolution::Found(comprehension) => Some(comprehension),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn source_range_at_node(il: &Il, node: NodeId) -> Option<SourceRangeKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Range(range)) => Some(range),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Range(range) => Some(range),
         _ => None,
-    }) {
-        EvidenceResolution::Found(range) => Some(range),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn source_pattern_at_node(il: &Il, node: NodeId) -> Option<SourcePatternKind> {
-    let span = il.node(node).span;
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Source(SourceFactKind::Pattern(pattern)) => Some(pattern),
+    source_fact_value_at_node(il, node, |fact| match fact {
+        SourceFactKind::Pattern(pattern) => Some(pattern),
         _ => None,
-    }) {
-        EvidenceResolution::Found(pattern) => Some(pattern),
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
-    }
+    })
 }
 
 pub fn admitted_hof_api_at_node(il: &Il, node: NodeId, kind: HoFKind) -> bool {
