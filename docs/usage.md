@@ -168,7 +168,7 @@ are — a measured proxy for signature heterogeneity (see [experiments](experime
 For cross-language families, source-line overlap is not meaningful; the row says
 `cross-language · ~N repeated`, and query JSON marks `source_comparable: false`.
 
-`--sort hazard` is an **experimental** severity-style ranking calibrated on mined
+`sort=hazard` is an **experimental** severity-style ranking calibrated on mined
 divergent-edit history. It predicts *which clones get edited inconsistently* (divergence
 propensity) but, per a gold-label audit, **does not yet rank actual *harm* better than
 chance** — see [hazard-ranking](hazard-ranking.md) for the full, honest evaluation.

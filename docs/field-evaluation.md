@@ -122,7 +122,7 @@ weighted by tightness and penalized by parameter count and member-span heterogen
 #365/§CM), with the report's
 similarity cell replaced by an honest `N/M shared · Pp`. Same-language families
 that share *no* invariant lines (a language idiom, or two unrelated type literals
-of the same shape) now sink instead of topping the list. `--sort value` retains
+of the same shape) now sink instead of topping the list. `sort=value` retains
 the raw-volume ranking. This is not the abstractness re-rank §AU/§AV rejected:
 the historical §AZ run recorded a held-out lift for extractability. The current
 reproducible v5 evaluator and its confidence intervals are summarized in [benchmark](benchmark.md).
@@ -215,29 +215,27 @@ accepted a loose `candidate != null` guard as equivalent to a strict
 `candidate !== null` guard.
 
 Those are now covered by compact CLI fixtures instead of depending on checked-out
-third-party repositories. The fixtures run `nose scan --mode semantic` over small
+third-party repositories. The fixtures run `nose query --mode semantic` over small
 JavaScript projects and assert that the exact semantic channel keeps
 loose-nullish and strict-null families separate while preserving the positive
 families on each side.
 
 ## Fourth pass follow-up — diagnostic surface volume
 
-The 18-repo semantic sample intentionally used `--format json --top 0`, so it
+The 18-repo semantic sample intentionally used `--format json top=0`, so it
 captured diagnostic families as well as the default human action surface. The
-current output shape was:
+experiment rollup was:
 
 - 940 semantic families total;
-- 277 `recommended_surface = "default"` families;
+- 277 `surface = "default"` families;
 - 48 `review` families;
 - 615 `hidden` families;
 - 657 families with at least one exact fragment location.
 
 That hidden/review volume is expected: exact fragments are proof and review
 substrate, not automatically top-level refactoring recommendations. The
-integration contract now makes that explicit by documenting
-`recommended_surface == "default"` as the human-action filter and by emitting
-`ranking.surface_counts`, including a nested exact-fragment breakdown, before
-`--top` truncation.
+integration contract now makes that explicit through each family's `surface`
+field; full `top=0` query JSON can be counted before display truncation.
 
 ## Fourth pass follow-up — fragment quality audit
 

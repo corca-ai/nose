@@ -1,6 +1,6 @@
 # Hazard ranking (divergent-edit risk)
 
-> Status: **experimental, opt-in `--sort hazard` (NOT the default).** The formula
+> Status: **experimental, opt-in `sort=hazard` (NOT the default).** The formula
 > predicts divergent-edit *propensity* well (which clones get edited inconsistently —
 > leave-one-repo-out AUC 0.64 on the G1 label) but, on an LLM-built **gold harm label**,
 > it ranks actual *harm* no better than chance (AUC ~0.51). So it is **not yet a
@@ -140,7 +140,7 @@ often. (An earlier draft pinned this as a *cross-language* effect; that was a re
 mislabel — true cross-language clones are structurally rare, 37 of 15,199 families, so
 the signal is general, not cross-language-specific. See [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md).)
 
-This is implemented as **opt-in `--sort hazard`**, not the default. The weights are
+This is implemented as **opt-in `sort=hazard`**, not the default. The weights are
 calibrated on divergence *propensity* (the clean **G1** label, leave-one-repo-out AUC
 0.644 over the 12-repo corpus — beating the former size-led design at 0.609, the value
 baseline at 0.611, and random at ~0.49). The default remains `extractability` because
@@ -163,7 +163,7 @@ the edit likely should have propagated*.
 
 The measured building blocks are:
 
-- **2a (cheap):** at scan time, compare each copy's `git blame` last-edit commit /
+- **2a (cheap):** at query time, compare each copy's `git blame` last-edit commit /
   time. Copies last touched in *different* commits = maintenance attention has
   already diverged — a DIVp proxy with no full genealogy.
 - **2b (full):** track families across history; detect Kim-style *Inconsistent
@@ -186,13 +186,13 @@ later converged was probably unintended), and let users dismiss false positives 
    `scope_weight` (prod 1.0 / mixed 0.5 / test 0.25) inline. Magnitude is `mean_lines`
    — **not** `mean_sem` (the data showed semantic size is anti-predictive; this also
    softly demotes the tiny dense functions the `min-size` gate cannot, see [normalization](normalization.md)).
-2. ✅ `SortKey::Hazard` in `crates/nose-cli/src/scan_options.rs`, wired into `score()`,
-   `sort_name()`, the `--sort` value list, and `capabilities`. It remains opt-in via
-   `--sort hazard`; `extractability` is the default.
+2. ✅ `SortKey::Hazard` in `crates/nose-cli/src/query_options.rs`, wired into `score()`,
+   the `sort=` value list, and the query capabilities surface. It remains opt-in via
+   `sort=hazard`; `extractability` is the default.
 3. ✅ Tier-0 contract unit tests in `crates/nose-detect/src/report/tests/hazard.rs`
    (divergent > tight under hazard and the reverse under extractability; cross-language
    ranks high; test scope demoted).
-4. ✅ Docs: [usage](usage.md#ranking) ranking table, scan-json, capabilities, README.
+4. ✅ Docs: [usage](usage.md#ranking) ranking table, query JSON, capabilities, README.
 
 No change to detection, normalization, or the value graph.
 

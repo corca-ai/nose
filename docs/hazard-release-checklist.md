@@ -12,7 +12,7 @@ from git history and are version-independent — see [hazard-benchmark › Versi
 for the full coupling model. This checklist makes the re-calibration step impossible to
 miss.
 
-> Status: `hazard()` is implemented as opt-in `--sort hazard` and calibrated as a
+> Status: `hazard()` is implemented as opt-in `sort=hazard` and calibrated as a
 > divergence-propensity signal ([eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md)).
 > It is **not** the default and is **not** a validated harm ranker; see [hazard-ranking](hazard-ranking.md).
 
@@ -25,23 +25,23 @@ miss.
 | **Ranking only** — `extractability`, `hazard()` itself, sort keys, output format | No | No | Nothing — the dataset is built from detection output + git, never from ranking |
 | **Performance / refactor with identical output** | No | No | Nothing (confirm output is byte-identical first) |
 
-**How to tell if detection output changed**, if unsure: scan a fixed fixture corpus with
-the old and new binary and diff the JSON `families` (`nose scan <fixtures> --mode
-semantic,near --format json --top 0`, where `--top 0` emits every family), comparing
+**How to tell if detection output changed**, if unsure: query a fixed fixture corpus with
+the old and new binary and diff the JSON `families` (`nose query <fixtures> --mode
+semantic,near --format json top=0`, where `top=0` emits every family), comparing
 **sort-independently** and looking only at
 the calibrated inputs — family identity, member sets, fingerprints, and the feature values in
 the row above (`mean_sem`, `shared_weight`, `params`, `mean_lines`, `modules`, `scope`). A
 change there → refresh. **Ignore** pure-display fields and ordering: a reorder of the
 extractability-sorted `families` array, or a changed `shared_lines`/`dup_lines`/`~removable`
 value, is *not* a hazard input (e.g. v0.9.0's #365 reorder and #366 all-copies `shared_lines`
-both moved the JSON without touching any hazard feature — see the note below). When a real
+both moved query JSON without touching any hazard feature — see the note below). When a real
 feature value moved, refresh — it costs minutes (cached clones).
 
 > **Display vs feature.** The display field `shared_lines` (#366; computed CLI-side, feeds
 > `extractability` via the shallow-extraction gate) is **not** the calibrated hazard feature
 > `shared_weight` (the IDF-weighted majority-vote count, byte-identical across #366). `hazard()`
 > consumes `shared_weight`/`mean_lines`/`spread`/`scope` — never `shared_lines` — so a
-> #366-style change is "Nothing" for hazard even though it alters scan JSON and extractability
+> #366-style change is "Nothing" for hazard even though it alters query JSON and extractability
 > order.
 
 ## The refresh procedure
@@ -90,7 +90,7 @@ Compare `tune.py` output against the previous `nose_ver` recorded in [RESULTS.md
 
 | Thing | Location |
 |---|---|
-| The score (`hazard()`, `SortKey::Hazard`) | `crates/nose-detect/src/report/model.rs`, `crates/nose-cli/src/scan_options.rs` |
+| The score (`hazard()`, `SortKey::Hazard`) | `crates/nose-detect/src/report/model.rs`, `crates/nose-cli/src/query_options.rs` |
 | The formula + evidence | [hazard-ranking › Score design](hazard-ranking.md#score-design) |
 | Evaluation criteria, dataset, versioning model | [hazard-benchmark](hazard-benchmark.md) |
 | Mining + tuning tooling | [eval/hazard/](../eval/hazard/) (`mine.py`, `run_corpus.sh`, `analyze.py`, `tune.py`) |
@@ -104,7 +104,7 @@ Compare `tune.py` output against the previous `nose_ver` recorded in [RESULTS.md
   flips or the headline AUC moves beyond a threshold — turns "remember to refresh" into a
   failing check.
 - **Change-fact cache:** persist the nose-independent per-`(file, symbol, interval)` git
-  change facts so a refresh only re-runs the nose scan + join, not the diffs.
+  change facts so a refresh only re-runs the nose query + join, not the diffs.
 
 ## See also
 

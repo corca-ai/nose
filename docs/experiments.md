@@ -599,7 +599,7 @@ semantic-signal-limited.**
 ## AZ. Extractability as the default ranking — the re-rank that *does* generalize
 
 §AU/§AV settled that a uniform abstractness re-rank does not generalize. The **`extractability`
-ranking — now the default sort for `nose scan`** — is not that re-rank: instead of a bare
+ranking — now the default sort for `nose query`** — is not that re-rank: instead of a bare
 abstractness multiplier it scores *invariant (shared) source lines × copies × spread* with three
 correctives the prototype lacked — **tightness** (shared/total, so a 22/384 dispatch skeleton can't
 outrank a 15/15 pair), a **parameter penalty** (a 30-hole "helper" is scaffolding), and an **IDF
@@ -610,7 +610,7 @@ the first ranking change to move the held-out number in the right direction (hel
 dev flat, no recall cost, reordering only). The durable lesson is that a re-rank built from
 what actually extracts (tight, few-param, non-idiom shared lines) generalized where one built
 from raw structural abstractness did not. For current reproducible P@10/recall numbers, use
-[benchmark](benchmark.md); `--sort value` is retained for raw-volume triage, and detection is
+[benchmark](benchmark.md); `sort=value` is retained for raw-volume triage, and detection is
 unchanged (same families, only order and the `N/M shared · Pp` cell differ).
 
 ## BA. Exact-Type-4 convergence push — stronger types, Lean-backed algebra, filter fusion
@@ -705,7 +705,7 @@ not the weights, so we mined ground truth before implementing.
   large-tail artifact). Source-**line** span is the real magnitude signal.
 - **BG-formula.** `hazard = mean_lines × spread(files,modules,languages) × invisibility ×
   scope_weight` — leave-one-repo-out AUC **G1 0.644** vs **0.609** size-led draft, 0.611
-  value-baseline, ~0.49 random. **Implemented as opt-in `--sort hazard`**;
+  value-baseline, ~0.49 random. **Implemented as opt-in `sort=hazard`**;
   `extractability` stays the default fixability axis. The param-dampening term tested
   earlier was dropped (sign-unstable weight).
   `invisibility` (1−tightness) is a modest, stable general signal (+0.14). **Correction:**
@@ -828,8 +828,8 @@ in discovery mechanics instead:
 - semantic extraction skips normalization only for a raw IL that is exactly an empty
   module, preserving top-level block extraction for files that have executable statements.
 
-The representative before/after medians below used `NOSE_TIME=1 nose scan --mode semantic
---top 0 --format json`, five repetitions after the change, and the same corpus inputs as
+The representative before/after medians below used `NOSE_TIME=1 nose query <repo> top=0
+--mode semantic --format json`, five repetitions after the change, and the same corpus inputs as
 the baseline run:
 
 | language | files | baseline wall | after wall | result |
@@ -1077,10 +1077,10 @@ product decision rather than assuming the answer: keep the current CLI default
 
 **Method.** `bench/labels/near_default_surface_experiment.py` scans all 105 v5 repos
 with four arms: default, `syntax,semantic,near`, `syntax,semantic,near:0.8`, and
-`syntax,semantic,near:0.85`. P@10 uses the native `nose scan --format json` order
-(`extractability`); worthy-recall is over worthy v5 labels; noise is the
-`ranking.surface_counts.default` delta plus family `scope` splits from full `--top 0`
-JSON. Artifact: `bench/labels/near_default_surface_2026_06_10.json`. Held-out was
+`syntax,semantic,near:0.85`. P@10 uses the native `nose query --format json` order
+(`extractability`); worthy-recall is over worthy v5 labels; noise comes from the
+experiment artifact's default-surface-count rollup plus family `scope` splits from full
+`top=0` JSON. Artifact: `bench/labels/near_default_surface_2026_06_10.json`. Held-out was
 not tuned; the threshold arms are reported as candidate policies, not selected by
 fitting held-out.
 
@@ -1186,9 +1186,9 @@ the flag that the primary consumer is least likely to remember.
 
 ### BM.4 — the flip, shipped + post-flip sanity re-run (#241, 2026-06-11)
 
-The verdict was executed in #241: `nose scan`'s default is now
+The verdict was executed in #241: `nose query`'s default is now
 `syntax,semantic,near` (an explicit `--mode`/config `mode` still replaces it;
-`nose review`'s default deliberately stays `syntax,semantic` — review feeds a
+the divergent-edit gate default deliberately stays `syntax,semantic` — it feeds a
 gate, and this experiment priced the scan surface only). Post-flip sanity on the
 then-current binary (post-§BP/§BQ, so absolute numbers differ from the BM.1–BM.2
 tables), default arm vs pinned `--mode syntax,semantic`
@@ -1757,9 +1757,9 @@ equivalence channel.
 The filter: a family whose **every member span** consists solely of
 import/include/`use`/re-export declarations (plus blanks and full-line comments,
 per-language line grammar, multi-line statements tracked to their close) is
-reclassified `recommended_surface: "declaration"` — off the human/markdown/
+reclassified `surface: "declaration"` — off the human/markdown/
 SARIF/`--fail-on` surfaces, counted in the omitted line, kept in
-`--format json --top 0` (classification, never deletion). Fail-open by
+`--format json top=0` (classification, never deletion). Fail-open by
 construction: an unsupported extension, an unreadable span, an unclosed
 multi-line statement, or any line not provably a declaration keeps the family
 on its ranked surface. The mixed-span shape (imports + one real statement) is
@@ -2607,7 +2607,7 @@ surface — see the audit doc §5.
 
 **Tier-2 sibling-family folding — NO-GO (measured 2026-06-14).** A natural follow-up to the
 scope-aware *rendering* lever above: the bare default surface is still a long list (per-repo
-default families, fresh `--top 0`: rxjs 636, prometheus 1455, redis 484, zod 397), so collapse
+default families, fresh `top=0`: rxjs 636, prometheus 1455, redis 484, zod 397), so collapse
 the *per-variant sibling-family wall* — the rxjs per-operator marble tests, the prometheus
 per-service AWS-discovery inits, the serde owned/borrowed impls — into one folded
 "opportunity" the way overlap slices already fold, lifting the genuine standalone wins into
@@ -2650,7 +2650,7 @@ channel). See the audit doc §5.
 ## CL. Honest headline numbers — scan's `shared_lines` to the all-copies basis (#366, 2026-06-14)
 
 `nose query` reports the all-copies anti-unification economics (`M/REP shared · ~N
-removable`, reusing #360's `anti_unify_all`); `nose scan`'s headline counted the
+removable`, reusing #360's `anti_unify_all`); the legacy scan headline counted the
 **representative pair**, so for a family whose 3rd+ copies diverge the two surfaces
 disagreed — serde's 25-copy `serialize_newtype_variant` read `11 shared → ~264
 removable` on scan but `4 shared → ~96 removable` on query. The pairwise number

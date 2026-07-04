@@ -58,22 +58,23 @@ and behavior easier to reason about:
 - separate CLI orchestration from query planning, rendering, config parsing, and
   file/process effects;
 - keep the CLI binary root focused on process setup and subcommand dispatch;
-  argument models, legacy detect/IL adapters, scan baseline handling, graded
+  argument models, legacy detect/IL adapters, query baseline handling, graded
   witness enrichment, opportunity grouping, source-line diff/proposal logic,
-  human/markdown/SARIF scan rendering, and CLI-side timing helpers now live in
-  dedicated `nose-cli/src/{cli_args,detect_command,il_command,scan_*,timing}.rs`
+  human/markdown/SARIF query rendering, and CLI-side timing helpers now live in
+  dedicated `nose-cli/src/{cli_args,detect_command,detect_pipeline,il_command,query_*,timing}.rs`
   modules;
 - keep the CLI binary root as the process entry point only; command dispatch,
-  scan/review detection setup, path diagnostics, terminal styling, runtime
+  detect/query divergence setup, path diagnostics, terminal styling, runtime
   setup, shared report text, and CLI-root tests now live in
   `nose-cli/src/{command_dispatch,detect_pipeline,path_utils,style,runtime,report_text,main_tests/*}.rs`;
 - keep the `nose-cli` crate root free of ambient helper imports. Remaining
   compatibility imports are isolated in `nose-cli/src/legacy_prelude.rs`; do not
   add new module dependencies there when a module can name its actual owner with
   `crate::<module>::...`, and shrink the prelude as files move to explicit imports;
-- keep divergent-edit review split by adapter boundary; review detection policy,
+- keep divergent-edit review split by adapter boundary; detection policy,
   git/worktree diff plumbing, output formats, and tests now live under
-  `nose-cli/src/review/`;
+  `nose-cli/src/divergence/`, with the `base=<ref>` query adapter in
+  `nose-cli/src/{query_commands,query_views}.rs`;
 - keep `nose-il` roots as API indexes; units/domains/evidence facets, the arena
   and lazy indexes, the builder/corpus wrappers, node core/domain/evidence/source
   facts, and node operators now live in focused `nose-il/src/{unit*,il,builder,corpus,node/*}.rs`
@@ -93,15 +94,18 @@ and behavior easier to reason about:
 - keep the `nose query` surface outside the dispatcher: query model/JSON helpers,
   renderers, dashboard, family drilldown, and command orchestration now live in
   `nose-cli/src/query_*.rs`;
-- keep shared scan dataset construction and deprecated `nose scan` command
-  orchestration outside the dispatcher; they now live in
-  `nose-cli/src/scan_commands.rs`;
-- keep shared scan option parsing and report model types outside the dispatcher;
-  mode parsing, scan-channel resolution, report formats, ranking keys, gate
-  selectors, and scan scope summaries now live in `nose-cli/src/scan_options.rs`;
-- keep deprecated `nose scan` report rendering and gate output outside the
-  dispatcher; the JSON/markdown/human/SARIF format switch, hotspots, and
-  reinvented-helper report section now live in `nose-cli/src/scan_report.rs`;
+- keep shared query dataset construction and command orchestration outside the
+  dispatcher; detection, scope extraction, source-line weighting, query terms,
+  semantic-pack metadata, and family drilldown now live in
+  `nose-cli/src/query_{commands,dataset,terms,semantic_packs,open}.rs`;
+- keep query option parsing and report model types outside the dispatcher; mode
+  parsing, report formats, ranking keys, gate selectors, and scope summaries now
+  live in `nose-cli/src/{query_options,query_model}.rs`;
+- keep query report rendering and gate output outside the dispatcher; the format
+  switch stays in `nose-cli/src/query_commands.rs`, while dashboard, family text,
+  JSON/markdown/SARIF renderers, opportunities, witness enrichment, and
+  baseline/divergence gate output now live in
+  `nose-cli/src/query_{dashboard,views,markdown,sarif,family_text,opportunities,witness,baseline_gate}.rs`;
 - keep local recall-loss reporting split by responsibility; the JSON model and
   obligation rollups now live under `nose-cli/src/recall_loss_report/` instead
   of growing the report writer root;
