@@ -1,5 +1,6 @@
 use super::super::tree::parent_of;
 use crate::fragment::FragmentKind;
+use crate::il_utils::{empty_or_single_block_child, EmptyOrSingleChild};
 use crate::strict_exact::{strict_exact_safe_tree, StrictFacts};
 use nose_il::{Il, Interner, NodeId, NodeKind};
 use nose_semantics::{
@@ -125,19 +126,12 @@ fn exact_self_field_statement_branch_root(
     interner: &Interner,
     node: NodeId,
 ) -> Option<bool> {
-    if il.kind(node) != NodeKind::Block {
-        return None;
+    match empty_or_single_block_child(il, node)? {
+        EmptyOrSingleChild::Empty => Some(false),
+        EmptyOrSingleChild::Single(child) => Some(exact_self_field_statement_fragment_root(
+            il, interner, child,
+        )),
     }
-    let kids = il.children(node);
-    if kids.is_empty() {
-        return Some(false);
-    }
-    if kids.len() != 1 {
-        return None;
-    }
-    Some(exact_self_field_statement_fragment_root(
-        il, interner, kids[0],
-    ))
 }
 
 pub(in crate::units) fn strict_exact_self_field_fragment_safe(

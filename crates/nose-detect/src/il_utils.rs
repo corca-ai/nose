@@ -1,6 +1,22 @@
 use nose_il::{Il, NodeId, NodeKind, Payload};
 use rustc_hash::FxHashSet;
 
+pub(crate) enum EmptyOrSingleChild {
+    Empty,
+    Single(NodeId),
+}
+
+pub(crate) fn empty_or_single_block_child(il: &Il, node: NodeId) -> Option<EmptyOrSingleChild> {
+    if il.kind(node) != NodeKind::Block {
+        return None;
+    }
+    match il.children(node) {
+        [] => Some(EmptyOrSingleChild::Empty),
+        [child] => Some(EmptyOrSingleChild::Single(*child)),
+        _ => None,
+    }
+}
+
 pub(crate) fn node_mentions_any_cid(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
     if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
         if cids.contains(&cid) {

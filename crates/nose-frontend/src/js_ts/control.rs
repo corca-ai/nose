@@ -3,7 +3,7 @@ use super::expressions::lower_expr;
 use super::operators::js_bin_op;
 use super::{lower_block, lower_stmt};
 use crate::lower::Lowering;
-use nose_il::{Builtin, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span};
+use nose_il::{Builtin, LitClass, LoopKind, NodeId, NodeKind, Op, Payload};
 use tree_sitter::Node as TsNode;
 
 pub(super) fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -213,9 +213,12 @@ pub(super) fn lower_switch(lo: &mut Lowering, node: TsNode) -> NodeId {
                         continue;
                     }
                     let block = lo.add(NodeKind::Block, Payload::None, cspan, &stmts);
-                    if let Some(cond) =
-                        fold_js_switch_labels(lo, span, scrutinee, pending_labels.split_off(0))
-                    {
+                    if let Some(cond) = crate::lower::fold_switch_labels(
+                        lo,
+                        span,
+                        scrutinee,
+                        pending_labels.split_off(0),
+                    ) {
                         branches.push((cond, block));
                     }
                 }
@@ -234,28 +237,6 @@ pub(super) fn lower_switch(lo: &mut Lowering, node: TsNode) -> NodeId {
     let mut acc = default_block.unwrap_or_else(|| lo.empty_block(span));
     for (cond, block) in branches.into_iter().rev() {
         acc = lo.add(NodeKind::If, Payload::None, span, &[cond, block, acc]);
-    }
-    acc
-}
-
-fn fold_js_switch_labels(
-    lo: &mut Lowering,
-    span: Span,
-    scrutinee: NodeId,
-    labels: Vec<NodeId>,
-) -> Option<NodeId> {
-    let mut acc = None;
-    for label in labels {
-        let cond = lo.add(
-            NodeKind::BinOp,
-            Payload::Op(Op::Eq),
-            span,
-            &[scrutinee, label],
-        );
-        acc = Some(match acc {
-            None => cond,
-            Some(prev) => lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[prev, cond]),
-        });
     }
     acc
 }

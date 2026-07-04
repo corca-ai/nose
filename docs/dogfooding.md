@@ -747,3 +747,50 @@ in different engines with different bucket semantics, stop rules, and output
 policies. Pulling that into a lower shared crate would add an abstraction for
 loop shape rather than domain meaning, so it is accepted as visible algorithm
 debt rather than deduped in this CI repair.
+
+The query-opportunities dogfood cleanup tightens the count from 53 to 52.
+The self-query report flagged `a7f4d8398c1920e6`, the local production overlap
+between `origin_extract_hint` and `hint_reasons`, and correctly warned that a
+large extraction would need too many parameters. Extracting the smaller
+invariant `OriginFactSummary` keeps the public query API unchanged while sharing
+the domain/body/subkind/name facts used by both decisions. The family no longer
+reports, so the baseline removes `a7f4d8398c1920e6` and tightens the ratchet.
+
+The switch-label dogfood cleanup tightens the count from 52 to 51. The
+self-query report flagged `f57a5ee0ebbdf114`, the identical production
+OR-chain fold used by Java switch expressions, JS/TS switch cases, and the
+shared C-family `switch_to_if_chain` helper. Unlike the cross-engine candidate
+pair loop above, this is one frontend-domain operation: turn case labels into
+`scrutinee == label` conditions joined by `Or`. Moving it to
+`lower::fold_switch_labels` removes the family while preserving lowering order.
+The paired product query-regression on `axios`, `date-fns`, `pixijs`, `jsoup`,
+and `guava` reported byte-identical JSON hashes for every repo, and the
+5-iteration runtime triage was neutral at aggregate scale (+0.6%, with only
+small/noisy repo-level deltas).
+
+The fragment block-shape dogfood cleanup tightens the count from 51 to 50.
+The self-query report flagged `4ac4a88371e43e72`, the repeated production
+pattern where conditional/direct-effect and self-field recognizers accept an
+empty branch block, accept exactly one child, and reject multi-statement blocks.
+Extracting the crate-internal `empty_or_single_block_child` helper keeps the
+effect-specific recognizers local while single-sourcing the shared IL block
+shape. The cleanup also shifts the already reviewed fragment span-noise family
+from `bf4255f2994b1d65` to `9a228db20ad1a68b`; members, value, and judgment
+remain the same. Product query-regression on `guava`, `jsoup`, `axios`,
+`requests`, `hugo`, and `alacritty` reported byte-identical JSON hashes for
+every repo. The 5-iteration runtime triage was neutral at aggregate scale
+(+0.3%), with only `small-or-noisy` positive deltas.
+
+The strict-exact HOF dogfood cleanup tightens the count from 50 to 49. The
+self-query report flagged `f010e9908081b902`, the local production overlap
+between `strict_exact_safe_hof`, `strict_exact_terminal_reduction_arg_safe`,
+and `strict_exact_len_arg_safe`. Extracting `StrictExactHofUse` keeps the three
+admission policies explicit: general tree HOFs, terminal reduction arguments,
+and `len` arguments still allow different comprehension and demand profiles
+while sharing the common source-comprehension / HOF payload / children-safe
+flow. Product query-regression on `axios`, `date-fns`, `pixijs`, `requests`,
+`boltons`, and `guava` reported byte-identical JSON hashes for every repo. The
+first 5-iteration runtime triage was neutral at aggregate scale (+1.8%) but
+flagged `pixijs` once as a value hot-path candidate; a focused 9-iteration
+rerun on `pixijs` classified the delta as `small-or-noisy` (+1.9%,
+hash-identical), so no performance regression is accepted.

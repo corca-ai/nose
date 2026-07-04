@@ -220,7 +220,7 @@ pub(super) fn lower_switch_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
 
         let body = body.unwrap_or_else(|| lo.empty_block(span));
-        match fold_switch_expr_labels(lo, span, scrutinee, labels) {
+        match crate::lower::fold_switch_labels(lo, span, scrutinee, labels) {
             Some(cond) => branches.push((cond, body)),
             None => default_body = Some(body),
         }
@@ -256,27 +256,6 @@ pub(super) fn lower_switch_yield_expr(lo: &mut Lowering, node: TsNode) -> Option
                 .or_else(|| child.named_child(0))
         })
         .map(|expr| lower_expr(lo, expr))
-}
-pub(super) fn fold_switch_expr_labels(
-    lo: &mut Lowering,
-    span: Span,
-    scrutinee: NodeId,
-    labels: Vec<NodeId>,
-) -> Option<NodeId> {
-    let mut acc = None;
-    for label in labels {
-        let cond = lo.add(
-            NodeKind::BinOp,
-            Payload::Op(Op::Eq),
-            span,
-            &[scrutinee, label],
-        );
-        acc = Some(match acc {
-            None => cond,
-            Some(prev) => lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[prev, cond]),
-        });
-    }
-    acc
 }
 pub(super) fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);

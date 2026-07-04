@@ -6,24 +6,7 @@ pub(super) fn strict_exact_safe_hof(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    match source_comprehension_at_node(il, node) {
-        Some(SourceComprehensionKind::PythonListComprehension)
-        | Some(SourceComprehensionKind::PythonDictComprehension) => {
-            strict_exact_hof_children_safe(il, interner, facts, node)
-        }
-        Some(
-            SourceComprehensionKind::PythonGeneratorExpression
-            | SourceComprehensionKind::PythonSetComprehension,
-        ) => false,
-        None => match il.node(node).payload {
-            Payload::HoF(kind)
-                if admitted_hof_demand_effect_profile_at_node(il, node, kind).is_some() =>
-            {
-                strict_exact_hof_children_safe(il, interner, facts, node)
-            }
-            _ => false,
-        },
-    }
+    strict_exact_hof_use_safe(il, interner, facts, node, StrictExactHofUse::Tree)
 }
 
 pub(super) fn strict_exact_terminal_reduction_arg_safe(
@@ -32,27 +15,13 @@ pub(super) fn strict_exact_terminal_reduction_arg_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.kind(node) != NodeKind::HoF {
-        return strict_exact_safe_tree(il, interner, facts, node);
-    }
-    match source_comprehension_at_node(il, node) {
-        Some(
-            SourceComprehensionKind::PythonGeneratorExpression
-            | SourceComprehensionKind::PythonListComprehension,
-        ) => strict_exact_hof_children_safe(il, interner, facts, node),
-        Some(
-            SourceComprehensionKind::PythonDictComprehension
-            | SourceComprehensionKind::PythonSetComprehension,
-        ) => false,
-        None => match il.node(node).payload {
-            Payload::HoF(kind)
-                if admitted_hof_demand_effect_profile_at_node(il, node, kind).is_some() =>
-            {
-                strict_exact_hof_children_safe(il, interner, facts, node)
-            }
-            _ => false,
-        },
-    }
+    strict_exact_hof_use_safe(
+        il,
+        interner,
+        facts,
+        node,
+        StrictExactHofUse::TerminalReductionArg,
+    )
 }
 
 pub(super) fn strict_exact_len_arg_safe(
@@ -61,23 +30,72 @@ pub(super) fn strict_exact_len_arg_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
+    strict_exact_hof_use_safe(il, interner, facts, node, StrictExactHofUse::LenArg)
+}
+
+#[derive(Clone, Copy)]
+enum StrictExactHofUse {
+    Tree,
+    TerminalReductionArg,
+    LenArg,
+}
+
+impl StrictExactHofUse {
+    fn non_hof_safe(self, il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
+        match self {
+            StrictExactHofUse::Tree => false,
+            StrictExactHofUse::TerminalReductionArg | StrictExactHofUse::LenArg => {
+                strict_exact_safe_tree(il, interner, facts, node)
+            }
+        }
+    }
+
+    fn allows_source_comprehension(self, kind: SourceComprehensionKind) -> bool {
+        match self {
+            StrictExactHofUse::Tree => matches!(
+                kind,
+                SourceComprehensionKind::PythonListComprehension
+                    | SourceComprehensionKind::PythonDictComprehension
+            ),
+            StrictExactHofUse::TerminalReductionArg => matches!(
+                kind,
+                SourceComprehensionKind::PythonGeneratorExpression
+                    | SourceComprehensionKind::PythonListComprehension
+            ),
+            StrictExactHofUse::LenArg => {
+                matches!(kind, SourceComprehensionKind::PythonListComprehension)
+            }
+        }
+    }
+
+    fn allows_hof_kind(self, il: &Il, node: NodeId, kind: HoFKind) -> bool {
+        match self {
+            StrictExactHofUse::Tree | StrictExactHofUse::TerminalReductionArg => {
+                admitted_hof_demand_effect_profile_at_node(il, node, kind).is_some()
+            }
+            StrictExactHofUse::LenArg => admitted_hof_demand_effect_profile_at_node(il, node, kind)
+                .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
+        }
+    }
+}
+
+fn strict_exact_hof_use_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    hof_use: StrictExactHofUse,
+) -> bool {
     if il.kind(node) != NodeKind::HoF {
-        return strict_exact_safe_tree(il, interner, facts, node);
+        return hof_use.non_hof_safe(il, interner, facts, node);
     }
     match source_comprehension_at_node(il, node) {
-        Some(SourceComprehensionKind::PythonListComprehension) => {
+        Some(kind) if hof_use.allows_source_comprehension(kind) => {
             strict_exact_hof_children_safe(il, interner, facts, node)
         }
-        Some(
-            SourceComprehensionKind::PythonDictComprehension
-            | SourceComprehensionKind::PythonGeneratorExpression
-            | SourceComprehensionKind::PythonSetComprehension,
-        ) => false,
+        Some(_) => false,
         None => match il.node(node).payload {
-            Payload::HoF(kind)
-                if admitted_hof_demand_effect_profile_at_node(il, node, kind)
-                    .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()) =>
-            {
+            Payload::HoF(kind) if hof_use.allows_hof_kind(il, node, kind) => {
                 strict_exact_hof_children_safe(il, interner, facts, node)
             }
             _ => false,

@@ -32,7 +32,7 @@ pub(crate) fn switch_to_if_chain(
     let mut default_block = None;
     for case in cases {
         let (labels, block) = lower_switch_case(lo, case, span, &mut lower_expr, &mut lower_stmt);
-        match fold_switch_case_labels(lo, span, scrutinee, labels) {
+        match fold_switch_labels(lo, span, scrutinee, labels) {
             Some(cond) => branches.push((cond, block)),
             None => default_block = Some(block),
         }
@@ -84,7 +84,7 @@ where
     (labels, block)
 }
 
-fn fold_switch_case_labels(
+pub(crate) fn fold_switch_labels(
     lo: &mut Lowering,
     span: Span,
     scrutinee: NodeId,

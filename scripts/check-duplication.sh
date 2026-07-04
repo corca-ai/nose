@@ -134,6 +134,18 @@ set -euo pipefail
 # between Markdown fingerprint pair generation and semantic anchor pair generation. Reviewed in
 # docs/dogfooding.md; accepted as visible cross-engine algorithm debt, not a reason to introduce a
 # lower-layer utility dependency.
+# 53 -> 52 (query-opportunities dogfood): extracting the shared origin-fact summary for
+# `origin_extract_hint` and `hint_reasons` removes the reviewed query-origin hint family
+# `a7f4d8398c1920e6`, so the ratchet tightens.
+# 52 -> 51 (switch-label dogfood): moving the identical switch-label OR-chain fold into
+# `lower::fold_switch_labels` removes the reviewed C-family frontend lowering family
+# `f57a5ee0ebbdf114` without changing product query output.
+# 51 -> 50 (fragment block-shape dogfood): sharing `empty_or_single_block_child` removes
+# the reviewed direct-effect/self-field branch family `4ac4a88371e43e72`. The old
+# fragment span-noise representative `bf4255f2994b1d65` moves to `9a228db20ad1a68b`.
+# 50 -> 49 (strict-exact HOF dogfood): factoring the tree/terminal-reduction/len HOF
+# admission variants into `StrictExactHofUse` removes `f010e9908081b902` with no
+# product query output drift.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

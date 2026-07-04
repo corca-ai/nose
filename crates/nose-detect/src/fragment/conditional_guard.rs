@@ -12,8 +12,8 @@ use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
 use crate::il_utils::{
-    local_nontrivial_assignment, local_nontrivial_assignment_chain,
-    node_mentions_any_cid as mentions_any,
+    empty_or_single_block_child, local_nontrivial_assignment, local_nontrivial_assignment_chain,
+    node_mentions_any_cid as mentions_any, EmptyOrSingleChild,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
@@ -177,17 +177,10 @@ fn empty_or_single_direct_effect_block(
     interner: &Interner,
     node: NodeId,
 ) -> Option<Option<EffectSite>> {
-    if il.kind(node) != NodeKind::Block {
-        return None;
+    match empty_or_single_block_child(il, node)? {
+        EmptyOrSingleChild::Empty => Some(None),
+        EmptyOrSingleChild::Single(child) => direct_effect_site(il, interner, child).map(Some),
     }
-    let kids = il.children(node);
-    if kids.is_empty() {
-        return Some(None);
-    }
-    if kids.len() != 1 {
-        return None;
-    }
-    direct_effect_site(il, interner, kids[0]).map(Some)
 }
 
 fn direct_effect_site(il: &Il, interner: &Interner, node: NodeId) -> Option<EffectSite> {
