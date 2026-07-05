@@ -36,6 +36,7 @@ You want to *run* nose on a codebase and act on what it finds.
 - [usage](usage.md) — the complete command and flag reference: `query`, `stats`, `il`, `capabilities`, `semantic-pack`, the ranking keys, and the detection modes.
 - [usage › nose query](usage.md#nose-query) — `nose query`: analyze a path, inspect the best duplicated-code families, filter/group/sort the list, open one family, run the `--fail-on` CI gate, or emit the versioned JSON contract.
 - [divergent edits](divergent-edits.md) — the `base=<ref>` check: flag clones changed inconsistently in a diff (a copy fixed, its siblings missed).
+- [divergent history mining](divergent-history-mining.md) — bounded offline replay of the divergent-edit check across commit ranges.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, modes, ranking, thresholds, and structured-ignore defaults.
 - [continuous-integration](continuous-integration.md) — the `--fail-on any` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
 - [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.

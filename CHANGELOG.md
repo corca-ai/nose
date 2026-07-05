@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added a divergent-edit history-mining harness for bounded commit-range audits.
+  `scripts/divergent-history-mining.py` replays the existing `base=<parent>`
+  JSON view in temporary worktrees, emits deterministic
+  `nose.divergent_history.v1` JSON, groups repeated findings across commits, and
+  documents the offline workflow separately from the PR-time `base=<ref>` gate.
 - Added the divergent-edit v2 `new-copy` report-only lane for `base=<ref>`:
   added/copied/renamed current-tree clone relationships now appear in human,
   JSON, and SARIF output with `base_family_id=null`, `current_only[]` current-tree

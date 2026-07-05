@@ -1,0 +1,147 @@
+{
+  "command": "nose query <repo> base=HEAD --format json top=0 --mode syntax,semantic --min-size 8",
+  "provenance": {
+    "baseline_binary": "/Users/ak/prjs/cc/nose/target/release/nose",
+    "baseline_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "baseline_source_ref": "HEAD",
+    "baseline_source_sha": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+    "current_binary": "/Users/ak/prjs/cc/nose/target/release/nose",
+    "current_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "current_source_ref": "HEAD",
+    "current_source_sha": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+    "harness": "scripts/query-regression-harness.py",
+    "harness_command": "scripts/query-regression-harness.py --baseline-binary target/release/nose --current-binary target/release/nose --baseline-source-ref HEAD --current-source-ref HEAD --repos-root crates/nose-cli/tests --repo cli --iterations 5 --warmups 1 --query-args query {repo} base=HEAD --format json top=0 --mode syntax,semantic --min-size 8 --output bench/divergent_history/issue-676-base-runtime-control.v1.json",
+    "working_tree_status_before_measurement": "M CHANGELOG.md\n M docs/divergent-edits.md\n M docs/home.md\n?? bench/divergent_history/\n?? docs/divergent-history-mining.md\n?? scripts/divergent-history-mining.py"
+  },
+  "repos": [
+    "cli"
+  ],
+  "runs": [
+    {
+      "bytes": 25993,
+      "elapsed_ms": 18.61074985936284,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 16.3134578615427,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 17.95458421111107,
+      "families": 0,
+      "iteration": 2,
+      "label": "current",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 20.227499771863222,
+      "families": 0,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 22.492665797472,
+      "families": 0,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 22.526958025991917,
+      "families": 0,
+      "iteration": 3,
+      "label": "current",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 17.924750223755836,
+      "families": 0,
+      "iteration": 4,
+      "label": "current",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 19.749958999454975,
+      "families": 0,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 18.621291033923626,
+      "families": 0,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    },
+    {
+      "bytes": 25993,
+      "elapsed_ms": 12.88783410564065,
+      "families": 0,
+      "iteration": 5,
+      "label": "current",
+      "repo": "cli",
+      "sha256": "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+    }
+  ],
+  "summary": {
+    "aggregate_baseline_median_ms": 19.749958999454975,
+    "aggregate_current_median_ms": 17.924750223755836,
+    "aggregate_delta_pct": -9.241582606574058,
+    "by_repo": {
+      "cli": {
+        "baseline": {
+          "bytes": [
+            25993
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+          ],
+          "median_ms": 19.749958999454975
+        },
+        "current": {
+          "bytes": [
+            25993
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "d2a37c8657a741d115e6828899340b0730952940e417fa8b20a480ff700c4656"
+          ],
+          "median_ms": 17.924750223755836
+        }
+      }
+    },
+    "hashes_identical_by_repo": {
+      "cli": true
+    }
+  }
+}

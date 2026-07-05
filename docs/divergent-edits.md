@@ -224,10 +224,19 @@ may be missing), so a code-scanning annotation lands on the copy the change skip
 rule id, level, message, and `properties.tier` identify whether a finding is `strict`,
 `review`, or `report-only`.
 
+## History Mining
+
+For offline audits across a bounded commit range, use the maintained [`scripts/divergent-history-mining.py`](../scripts/divergent-history-mining.py) harness.
+The harness checks out each selected commit in a temporary worktree, runs the
+normal `base=<parent>` JSON view with `top=0`, and groups repeated findings so a
+long-lived skipped sibling is reviewable once instead of once per commit. See
+[divergent history mining](divergent-history-mining.md) for the workflow and
+schema.
+
 ## Limits
 
 - Checks a **single diff** (`base..worktree`). Mining a whole history for old, still-
-  unreconciled divergences is future work.
+  unreconciled divergences is handled by the bounded history-mining harness above.
 - The default base-divergence lane detects clone families at the base. A clone whose copy is
   **newly added** in the change has no base member, so it is considered only by the bounded
   `new-copy` report-only lane when the diff is small enough to keep runtime predictable.
