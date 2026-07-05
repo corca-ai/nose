@@ -888,3 +888,13 @@ representatives move with the line changes: `4f5e190b35a2dac2` becomes
 `method_call_library_api_evidence` fixture pair, and `eadc678efab56738` is the
 tiny `sp` helper representative. No production family appears, so the baseline
 budget is tightened to 42.
+
+The LibraryApi fixture-builder cleanup tightens the count from 42 to 39. The
+self-query report flagged `8a741b956dc35bad` and `a14558ef919c3e76`, repeated
+LibraryApi test record wrappers in `nose-semantics`, plus `1a260c845757db00`,
+the Python collection-factory fixture overlap between `nose-semantics` and
+`nose-normalize`. Moving the semantics wrappers through a test-local
+`LibraryApiFixturePack`/`LibraryApiFixtureContract` path and routing provenanced
+records through `EvidenceRecord::builtin` removes the repeated contract
+id/callee/arity/provenance literal shape while preserving each fixture's named
+pack policy. No new family appears, so the baseline budget is tightened to 39.

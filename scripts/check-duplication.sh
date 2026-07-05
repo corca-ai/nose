@@ -149,6 +149,8 @@ set -euo pipefail
 # 44 -> 42 (cross-crate evidence fixtures): shared `EvidenceRecord` constructors and
 # feature-gated `nose-semantics::test_support` helpers remove the repeated
 # compatibility-pack evidence fixture builders across normalize, semantics, and detect tests.
+# 42 -> 39 (LibraryApi fixture builders): shared test-only LibraryApi record
+# pack/provenance builders remove the repeated contract id/callee/arity fixture wrappers.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

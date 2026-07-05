@@ -70,11 +70,19 @@ fn library_api_record_with_provenance_and_arity(
     pack_id: &str,
     rule: &str,
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_record_with_arity(id, span, contract_id, callee, arity, status, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(pack_id));
-    record.provenance.rule_hash = Some(stable_symbol_hash(rule));
-    record
+    EvidenceRecord::builtin(
+        EvidenceId(id),
+        EvidenceAnchor::node(span, NodeKind::Call),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract_id),
+            callee_hash: library_api_callee_contract_hash(callee),
+            arity,
+        }),
+        pack_id,
+        rule,
+        dependencies.iter().copied().map(EvidenceId).collect(),
+        status,
+    )
 }
 
 fn property_builtin_record(
@@ -94,44 +102,6 @@ fn property_builtin_record(
         dependencies,
         PROPERTY_BUILTIN_PROTOCOL_PACK_ID,
         PROPERTY_BUILTIN_PROTOCOL_PRODUCER_ID,
-    )
-}
-
-fn python_builtin_collection_factory_record(
-    id: u32,
-    span: Span,
-    contract: LibraryCollectionFactoryContract,
-    status: EvidenceStatus,
-    dependencies: &[u32],
-) -> EvidenceRecord {
-    library_api_record_with_provenance(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        status,
-        dependencies,
-        PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
-        PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID,
-    )
-}
-
-fn python_stdlib_collection_factory_record(
-    id: u32,
-    span: Span,
-    contract: LibraryCollectionFactoryContract,
-    status: EvidenceStatus,
-    dependencies: &[u32],
-) -> EvidenceRecord {
-    library_api_record_with_provenance(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        status,
-        dependencies,
-        PYTHON_STDLIB_COLLECTION_FACTORY_PACK_ID,
-        PYTHON_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
     )
 }
 

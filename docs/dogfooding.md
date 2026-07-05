@@ -28,11 +28,10 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current reviewed default-surface budget is 42 families, matching
+The current reviewed default-surface budget is 39 families, matching
 `scripts/duplication-baseline.json`. The latest documented cleanup is the
-cross-crate evidence-fixture cleanup, which tightened the budget from 44 to 42
-by sharing semantic evidence record constructors and test-support fixture
-builders.
+LibraryApi fixture-builder cleanup, which tightened the budget from 42 to 39 by
+sharing the test-only LibraryApi record pack/provenance wrapper path.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline

@@ -7,17 +7,11 @@ pub(crate) fn receiver_membership_protocol_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        1,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,
-        RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID,
+        RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID
     )
+    .contract_record(id, span, contract, status, dependencies)
 }
 
 pub(crate) fn map_key_view_protocol_record(
@@ -27,17 +21,11 @@ pub(crate) fn map_key_view_protocol_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        0,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         MAP_KEY_VIEW_PROTOCOL_PACK_ID,
-        MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID,
+        MAP_KEY_VIEW_PROTOCOL_PRODUCER_ID
     )
+    .contract_record_with_arity(id, span, contract, 0, status, dependencies)
 }
 
 pub(crate) fn builtin_method_call_protocol_record(
@@ -48,16 +36,13 @@ pub(crate) fn builtin_method_call_protocol_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
+    library_api_fixture_pack!(contract.pack_id, contract.producer_id).contract_record_with_arity(
         id,
         span,
-        contract.id,
-        contract.callee,
+        contract,
         arity,
         status,
         dependencies,
-        contract.pack_id,
-        contract.producer_id,
     )
 }
 
@@ -70,17 +55,11 @@ pub(crate) fn iterator_identity_adapter_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract_id,
-        callee,
-        arity,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         ITERATOR_IDENTITY_ADAPTER_PACK_ID,
-        ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID,
+        ITERATOR_IDENTITY_ADAPTER_PRODUCER_ID
     )
+    .parts_record_with_arity(id, span, contract_id, callee, arity, status, dependencies)
 }
 
 pub(crate) fn rust_stdlib_collection_factory_record(
@@ -90,16 +69,11 @@ pub(crate) fn rust_stdlib_collection_factory_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         RUST_STDLIB_COLLECTION_FACTORY_PACK_ID,
-        RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        RUST_STDLIB_COLLECTION_FACTORY_PRODUCER_ID
     )
+    .contract_record(id, span, contract, status, dependencies)
 }
 
 pub(crate) fn rust_stdlib_map_factory_record(
@@ -109,16 +83,11 @@ pub(crate) fn rust_stdlib_map_factory_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         RUST_STDLIB_MAP_FACTORY_PACK_ID,
-        RUST_STDLIB_MAP_FACTORY_PRODUCER_ID,
+        RUST_STDLIB_MAP_FACTORY_PRODUCER_ID
     )
+    .contract_record(id, span, contract, status, dependencies)
 }
 
 pub(crate) fn java_stdlib_collection_factory_record(
@@ -129,17 +98,11 @@ pub(crate) fn java_stdlib_collection_factory_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        arity,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
-        JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
+        JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID
     )
+    .contract_record_with_arity(id, span, contract, arity, status, dependencies)
 }
 
 pub(crate) fn java_stdlib_collection_constructor_record(
@@ -150,17 +113,11 @@ pub(crate) fn java_stdlib_collection_constructor_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        arity,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PACK_ID,
-        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID,
+        JAVA_STDLIB_COLLECTION_CONSTRUCTOR_PRODUCER_ID
     )
+    .contract_record_with_arity(id, span, contract, arity, status, dependencies)
 }
 
 pub(crate) fn java_stdlib_map_factory_record(
@@ -171,17 +128,11 @@ pub(crate) fn java_stdlib_map_factory_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        arity,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         JAVA_STDLIB_MAP_FACTORY_PACK_ID,
-        JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID,
+        JAVA_STDLIB_MAP_FACTORY_PRODUCER_ID
     )
+    .contract_record_with_arity(id, span, contract, arity, status, dependencies)
 }
 
 pub(crate) fn java_stdlib_map_entry_record(
@@ -192,17 +143,11 @@ pub(crate) fn java_stdlib_map_entry_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        arity,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         JAVA_STDLIB_MAP_ENTRY_PACK_ID,
-        JAVA_STDLIB_MAP_ENTRY_PRODUCER_ID,
+        JAVA_STDLIB_MAP_ENTRY_PRODUCER_ID
     )
+    .contract_record_with_arity(id, span, contract, arity, status, dependencies)
 }
 
 pub(crate) fn java_stdlib_static_collection_adapter_record(
@@ -213,17 +158,11 @@ pub(crate) fn java_stdlib_static_collection_adapter_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    library_api_record_with_provenance_and_arity(
-        id,
-        span,
-        contract.id,
-        contract.callee,
-        arity,
-        status,
-        dependencies,
+    library_api_fixture_pack!(
         JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PACK_ID,
-        JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PRODUCER_ID,
+        JAVA_STDLIB_STATIC_COLLECTION_ADAPTER_PRODUCER_ID
     )
+    .contract_record_with_arity(id, span, contract, arity, status, dependencies)
 }
 
 pub(crate) fn library_api_record_with_arity(
