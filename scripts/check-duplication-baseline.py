@@ -116,8 +116,8 @@ def check(nose_bin: Path, baseline_path: Path) -> int:
             print(f"  - {failure}", file=sys.stderr)
         print("", file=sys.stderr)
         print(
-            "Evaluate the family delta, update docs/dogfooding.md, then update "
-            f"{baseline_path} in the same change.",
+            "Evaluate the family delta, update docs/dogfooding-history.md, then "
+            f"update {baseline_path} in the same change.",
             file=sys.stderr,
         )
         return 1

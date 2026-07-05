@@ -4,12 +4,12 @@
 # Fails when the set of *substantial* duplicate families on nose's own source differs
 # from the accepted baseline. The mode, minimum refactoring value, output surface, and
 # accepted family IDs live in scripts/duplication-baseline.json; the decision trail lives
-# in docs/dogfooding.md. To accept a genuinely new one, either dedupe it or update both
-# files with a one-line justification in the PR.
+# in docs/dogfooding-history.md. To accept a genuinely new one, either dedupe it or update
+# the baseline and history with a one-line justification in the PR.
 #
 # Runs only the `near` channel: this gate is about *design-level* Type-3 duplication
 # (families worth extracting), not the syntax copy-paste floor — which always surfaces
-# the accepted per-grammar frontend parallelism (see docs/dogfooding.md).
+# the accepted per-grammar frontend parallelism (see docs/dogfooding-history.md).
 #
 # DETERMINISM: the count is reproducible run-to-run AND across platforms — nose hashes with
 # FxHash (no random seed) and ranks with IEEE correctly-rounded ops only (+ - * / sqrt), and the
@@ -23,12 +23,12 @@ set -euo pipefail
 # candidates + high-vj acceptance for impure code, and sub-DAG anchor pairing), so nose now
 # detects 14 additional PRE-EXISTING near-duplicate families in its own source — the cross-grammar
 # frontend helpers and the `proven_*` value-graph factories — not new code introduced here. They
-# are dedup candidates (see docs/dogfooding.md); the gate stays a ratchet against NEW duplication
+# are dedup candidates (see docs/dogfooding-history.md); the gate stays a ratchet against NEW duplication
 # on top of this stronger detector.
 # Scope expansion in the quality-gates pass: the gate now scans tests as well as production
 # code. Current binary, current tree: production-only default surface reports 24 substantial
 # families, while the tests-included default surface reports 39. The newly visible
-# tests/mixed families and post-release refresh deltas are reviewed in docs/dogfooding.md;
+# tests/mixed families and post-release refresh deltas are reviewed in docs/dogfooding-history.md;
 # this is a scope expansion and reviewed baseline refresh, not a loosening of the old
 # production-only gate.
 #
@@ -41,7 +41,7 @@ set -euo pipefail
 # dispatch chain (one `if recognizer { return true }` line) lifts the PRE-EXISTING
 # `strict_exact_safe_call` ↔ `strict_exact_in_membership_safe` similarity (a ~4-line incidental
 # overlap between a recognizer dispatch and a membership checker, not extractable duplication) past
-# the value ≥ 40 line — not new avoidable duplication. See docs/dogfooding.md.
+# the value ≥ 40 line — not new avoidable duplication. See docs/dogfooding-history.md.
 # Re-baselined 23 -> 24 in the #210 campaign: stronger fingerprint fidelity (deref
 # stores, loop-effect keying) made one PRE-EXISTING cross-crate near-family visible —
 # the assignment-name counting loops in value_graph/context.rs::seed_module_value_bindings
@@ -75,7 +75,7 @@ set -euo pipefail
 # 36 -> 55 (builtin semantic-pack migration): moving language/library/protocol evidence into
 # pack-owned provenance and file-length-compliant modules makes many existing semantic-evidence
 # test helpers/resolver negatives visible as separate near families. A few production families are
-# known semantic-kernel plumbing made more explicit by the migration. Reviewed in docs/dogfooding.md;
+# known semantic-kernel plumbing made more explicit by the migration. Reviewed in docs/dogfooding-history.md;
 # accepted as migration debt rather than deduped inside the architecture move.
 # 56 -> 54 (#536 JS/TS Array HOF): adding the callback-obligation review fix unifies the inline
 # callback shape in method-call and typed/free-call IL fixtures, so two accepted test-fixture
@@ -88,14 +88,14 @@ set -euo pipefail
 # receiver-method call fixture removes that accepted representative with no new family.
 # 53 -> 54 (#582 receiver-domain recovery): module/static binding seeding moves the accepted
 # context/export assignment-counting representative and surfaces one small value-graph whole-impl
-# span with only one shared/removable line. Reviewed in docs/dogfooding.md; accepted as detector
+# span with only one shared/removable line. Reviewed in docs/dogfooding-history.md; accepted as detector
 # span noise, not avoidable duplication.
 # 54 -> 54 (#587 Rust module resolution 1-3): context-aware imported literal export collection
 # moves the accepted context/export assignment-counting representative again. Reviewed in
-# docs/dogfooding.md; no new budget is accepted.
+# docs/dogfooding-history.md; no new budget is accepted.
 # 54 -> 54 (#587 Rust direct re-exports): one-hop public-use alias evidence moves the accepted
 # context/export representative, the value-graph whole-impl span, and the semantic-kernel
-# provenance-helper representative. Reviewed in docs/dogfooding.md; no new budget is accepted.
+# provenance-helper representative. Reviewed in docs/dogfooding-history.md; no new budget is accepted.
 # 54 -> 53 (Promise async return recovery): same-file async DirectFunction recovery first surfaced
 # an avoidable production family between call-target evidence upsert and LibraryApi evidence
 # recording. Splitting the call-target upsert matcher removed it; the remaining direct-call-target
@@ -125,14 +125,14 @@ set -euo pipefail
 # 52 -> 52 (0.17.0 release prep): lazy import-use indexes and release-performance fixes move the
 # reviewed context/export assignment-counting representative (`2a3ff0019f8a1765` ->
 # `1d565f1e57ac5d8b`) and the reviewed semantic-kernel language-core provenance representative
-# (`551e7992e1632597` -> `7c8432da3fcb2c67`). Reviewed in docs/dogfooding.md; no new budget is
+# (`551e7992e1632597` -> `7c8432da3fcb2c67`). Reviewed in docs/dogfooding-history.md; no new budget is
 # accepted.
 # 52 -> 53 (post-0.17.0 runtime pass): profile-guided candidate/indexing changes move the reviewed
 # context/export representative (`1d565f1e57ac5d8b` -> `c967b3bcff5a2b58`) and the reviewed
 # query-origin hint representative (`77d8e8012b2ac08a` -> `a7f4d8398c1920e6`). The same pass also
 # surfaces a new production cross-crate candidate-pair enumeration family (`cc48beefc6a85976`)
 # between Markdown fingerprint pair generation and semantic anchor pair generation. Reviewed in
-# docs/dogfooding.md; accepted as visible cross-engine algorithm debt, not a reason to introduce a
+# docs/dogfooding-history.md; accepted as visible cross-engine algorithm debt, not a reason to introduce a
 # lower-layer utility dependency.
 # 53 -> 52 (query-opportunities dogfood): extracting the shared origin-fact summary for
 # `origin_extract_hint` and `hint_reasons` removes the reviewed query-origin hint family

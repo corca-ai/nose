@@ -130,11 +130,12 @@ the substantial Type-3 near-duplicate family IDs (refactoring value ≥ 40, defa
 surface) on the crates differ from the reviewed baseline in
 `scripts/duplication-baseline.json`. The scan includes tests as well as production
 code, so fixture/scaffolding copy-paste is visible instead of hidden behind
-file-length-only pressure. The currently accepted families are reviewed and recorded in
-[`docs/dogfooding.md`](docs/dogfooding.md) (e.g. the borrow-checker-blocked `generic`
-node-copy and reviewed test scaffolding). If your change introduces or removes a
-substantial family, either factor it out or update the dogfooding review and baseline
-in the same PR. It is a ratchet, not a fixed wall.
+file-length-only pressure. The current gate workflow is documented in
+[`docs/dogfooding.md`](docs/dogfooding.md), and the accepted-family decision trail is
+recorded in [`docs/dogfooding-history.md`](docs/dogfooding-history.md) (e.g. the
+borrow-checker-blocked `generic` node-copy and reviewed test scaffolding). If your
+change introduces or removes a substantial family, either factor it out or update the
+dogfooding review and baseline in the same PR. It is a ratchet, not a fixed wall.
 
 ## Repository CI and automation
 
