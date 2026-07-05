@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the #678 semantic-pack default-promotion audit: a checked
+  `bench/semantic_pack/default_promotion_audit_678.v1.json` artifact and docs
+  page now record the current builtin lane state, row-level coverage refs,
+  promotion-candidate decision, rollback requirements, and external
+  metadata-only policy.
 - Added the #677 Rust `block_on` residual closeout: the async scheduling
   hard-negative suite now covers nested runtime drive, wrapper-returned
   `Runtime` values, and constructor-assigned runtime fields, with a checked

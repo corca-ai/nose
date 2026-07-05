@@ -113,6 +113,7 @@ fundamentals; the rest is grouped by area.
 - [semantic-kernel-external-authorability-511](semantic-kernel-external-authorability-511.md) — issue #511 R4: external-pack authorability matrix, Guava fixed-domain dry run, and transition-to-R5 assessment.
 - [semantic-kernel-hof-demand-511](semantic-kernel-hof-demand-511.md) — issue #511 R5: HOF, demand, and materialization boundary matrix.
 - [semantic-kernel-expansion-closeout-511](semantic-kernel-expansion-closeout-511.md) — issue #511 R6 closeout: minimal capability set, builtin expansion, external authorability, remaining blockers, and validation gates.
+- [semantic-pack-default-promotion-audit-678](semantic-pack-default-promotion-audit-678.md) — issue #678 audit of builtin semantic-pack lane state, exact-capable coverage, default-promotion candidates, and rollback gates.
 - [semantic-kernel-closeout-533](semantic-kernel-closeout-533.md) — closeout for the #533 sequence-HOF and iterator materialization tranche, including product metrics and process-evidence gaps.
 - [string-affix-protocol-closeout-548](string-affix-protocol-closeout-548.md) — closeout for the #548 string prefix/suffix predicate protocol extraction, including inventory, product-output, and review evidence.
 - [go-string-affix-closeout-549](go-string-affix-closeout-549.md) — closeout for the #549 Go `strings.HasPrefix`/`HasSuffix` namespace-proof migration into the string-affix protocol.

@@ -215,6 +215,12 @@ builtin inventory audit. It is not a product decision by itself; promotion to
 `builtin-default` still requires the behavior, runtime, docs, release-note, and
 rollback evidence above.
 
+The 2026-07-06 default-promotion audit is recorded in the [semantic-pack-default-promotion-audit-678](semantic-pack-default-promotion-audit-678.md) snapshot.
+It found 49 compiled builtin packs, all in `builtin-default`; 39 exact-capable
+rows were `covered`, 10 language/compatibility packs were
+`tracked-no-exact-rows`, and no `builtin-optional` promotion candidates or
+blocked builtin rows existed.
+
 ## Implementation Rule
 
 Enablement is trust/default metadata plus gates:

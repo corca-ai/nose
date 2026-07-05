@@ -150,9 +150,9 @@ The focused #552 coordinate-boundary slice is recorded in [string-affix-coordina
     "builtin_packs": 49,
     "exact_capable_packs": 39,
     "packs_needing_coverage": 0,
-    "positive_fixtures": 192,
-    "hard_negatives": 177,
-    "conformance_refs": 369,
+    "positive_fixtures": 194,
+    "hard_negatives": 178,
+    "conformance_refs": 372,
     "unsupported_refs": 23
   },
   "evidence_policy": {

@@ -45,6 +45,9 @@ Outputs:
 - `kernel_expansion_closeout.v1.json` — issue #511 R6 closeout snapshot for the
   primitive set, builtin expansion, external authorability, remaining blockers,
   product-output gate, and runtime gate.
+- `default_promotion_audit_678.v1.json` — issue #678 builtin semantic-pack
+  lane, coverage, promotion-candidate, docs-consistency, rollback, and
+  no-hot-path-change audit.
 
 The scanner reports corpus queue signals. It does not prove semantic
 correctness and does not authorize broad ecosystem packs. Only `priced-ready`
