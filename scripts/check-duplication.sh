@@ -171,6 +171,9 @@ set -euo pipefail
 # provenance helpers remove the reviewed `library_api_contract_evidence` and
 # `method_call_library_api_evidence` fixture families. The tiny `sp` helper representative moves
 # from `eadc678efab56738` to `e46ab190592b0850`.
+# 31 -> 29 (Guava map factory fixtures): shared Guava `ImmutableMap.of` test IL/evidence and
+# unsupported-arity payload builders remove `6b3b0c88a12efe80` and `f2646ca6f31a0c0b`. The tiny
+# `sp` helper representative moves from `e46ab190592b0850` to `c2c6dbcb3016eb40`.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

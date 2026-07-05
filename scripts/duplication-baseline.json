@@ -1,6 +1,6 @@
 {
   "accepted_family_ids": [
-    "e46ab190592b0850",
+    "c2c6dbcb3016eb40",
     "1e76918c4878bab0",
     "fc4edd8f87a8a8f0",
     "2a5aa3db45d33592",
@@ -8,7 +8,6 @@
     "318c7eb92b77189f",
     "3cdf8f9a869d1932",
     "44bfd76822ddbe95",
-    "6b3b0c88a12efe80",
     "ac31c3c9bc390d55",
     "f6a2c8af9c3fd791",
     "ebf5e40476ceff32",
@@ -27,12 +26,11 @@
     "e6d039006310127f",
     "e91ec2b8c9d99c30",
     "ea0bb003c4b01bf8",
-    "f2646ca6f31a0c0b",
     "f4bd533cf627ba92",
     "f88aeebdec4f2c68",
     "cc48beefc6a85976"
   ],
-  "budget": 31,
+  "budget": 29,
   "generated_by": "target/release/nose query crates all top=0 --mode near --min-value 40 --format json",
   "min_value": 40,
   "mode": "near",

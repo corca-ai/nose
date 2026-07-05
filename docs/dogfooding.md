@@ -28,11 +28,11 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current reviewed default-surface budget is 31 families, matching
+The current reviewed default-surface budget is 29 families, matching
 `scripts/duplication-baseline.json`. The latest documented cleanup is the
-LibraryApi test evidence builder integration, which tightened the budget from
-33 to 31 by moving common LibraryApi test evidence construction and method-call
-provenance policy into `nose_semantics::test_support`.
+Guava map factory fixture cleanup, which tightened the budget from 31 to 29 by
+moving the repeated `ImmutableMap.of` hard-negative IL/evidence fixture and
+unsupported-arity payload builder into `nose_semantics::test_support`.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline

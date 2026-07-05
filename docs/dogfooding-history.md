@@ -973,3 +973,15 @@ names. The already reviewed tiny `sp` test helper representative moves from
 `eadc678efab56738` to `e46ab190592b0850`; it still has no meaningful shared
 removable body. No production family appears, so the baseline budget is
 tightened to 31.
+
+The Guava map factory fixture cleanup tightens the count from 31 to 29. The
+self-query report no longer reports `6b3b0c88a12efe80`, the repeated
+`ImmutableMap.of` hard-negative IL/evidence builder across semantic evidence,
+value-graph, and strict-exact tests, or `f2646ca6f31a0c0b`, the identical
+unsupported-arity `eleven_entry_payloads` helper. `nose_semantics::test_support`
+now owns the shared Guava map fixture, including import evidence and Guava
+LibraryApi occurrence provenance, while callers keep their axis-specific root
+shape, Unit metadata, and span-line choices. The already reviewed tiny `sp` test
+helper representative moves from `e46ab190592b0850` to `c2c6dbcb3016eb40`; it
+still has no meaningful shared removable body. No production family appears, so
+the baseline budget is tightened to 29.

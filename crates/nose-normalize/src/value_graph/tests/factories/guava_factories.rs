@@ -119,7 +119,7 @@ fn java_guava_map_factory_rejects_throwing_or_unsupported_shapes() {
     ];
     assert_guava_map_not_canonicalized(&null_key, 140);
 
-    let unsupported_arity = eleven_entry_payloads();
+    let unsupported_arity = guava_immutable_map_eleven_entry_payloads();
     assert_guava_map_not_canonicalized(&unsupported_arity, 150);
 }
 
@@ -176,77 +176,22 @@ fn java_guava_collection_factory_rejects_static_null_elements() {
 }
 
 fn assert_guava_map_not_canonicalized(args: &[Payload], base_line: u32) {
-    let (il, interner, call) = java_guava_map_call_il(args, base_line);
+    let (il, interner, call) = guava_immutable_map_of_test_il(
+        args,
+        base_line,
+        GuavaImmutableMapFixtureOptions {
+            root_kind: GuavaImmutableMapFixtureRoot::Module,
+            span_lines: GuavaImmutableMapFixtureSpanLines::MatchOffsets,
+            import_rhs: GuavaImmutableMapFixtureImportRhs::QualifiedSymbols {
+                module: "java.util",
+                exported: "Map",
+            },
+            include_function_unit: false,
+            path: "t",
+        },
+    );
     assert!(
         !matches!(eval_op(&il, &interner, call), ValOp::Seq(SEQ_VALUE_MAP)),
         "Guava ImmutableMap.of shape must stay uncanonicalized"
     );
-}
-
-fn java_guava_map_call_il(args: &[Payload], base_line: u32) -> (Il, Interner, NodeId) {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let local = interner.intern("ImmutableMap");
-    let import = java_util_map_import(&mut b, Payload::Name(local), sp(base_line));
-    let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(base_line + 1), &[]);
-    let callee = b.add(
-        NodeKind::Field,
-        Payload::Name(interner.intern("of")),
-        sp(base_line + 2),
-        &[receiver],
-    );
-    let arg_nodes: Vec<_> = args
-        .iter()
-        .enumerate()
-        .map(|(idx, &payload)| b.add(NodeKind::Lit, payload, sp(base_line + 3 + idx as u32), &[]))
-        .collect();
-    let mut children = Vec::with_capacity(arg_nodes.len() + 1);
-    children.push(callee);
-    children.extend(arg_nodes);
-    let call = b.add(
-        NodeKind::Call,
-        Payload::None,
-        sp(base_line + 3 + args.len() as u32),
-        &children,
-    );
-    let root = b.add(
-        NodeKind::Module,
-        Payload::None,
-        sp(base_line),
-        &[import, call],
-    );
-    let mut il = finish_test_il(b, root, Lang::Java);
-    il.evidence.clear();
-    let contract = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of")
-        .expect("ImmutableMap.of contract");
-    push_imported_binding_use(
-        &mut il,
-        0,
-        sp(base_line),
-        1,
-        sp(base_line + 1),
-        "com.google.common.collect",
-        "ImmutableMap",
-    );
-    il.evidence
-        .push(java_guava_immutable_collection_factory_evidence(
-            2,
-            sp(base_line + 3 + args.len() as u32),
-            contract.id,
-            contract.callee,
-            args.len() as u16,
-            vec![EvidenceId(1)],
-        ));
-    (il, interner, call)
-}
-
-fn eleven_entry_payloads() -> Vec<Payload> {
-    (0..11)
-        .flat_map(|idx| {
-            [
-                Payload::LitStr(stable_symbol_hash(&format!("k{idx}"))),
-                Payload::LitInt(idx),
-            ]
-        })
-        .collect()
 }

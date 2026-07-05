@@ -5,8 +5,11 @@ use nose_il::{
 };
 pub(super) use nose_semantics::test_support::{
     builtin_library_api_test_evidence_with_dependencies, compat_test_asserted_evidence as evidence,
+    guava_immutable_map_eleven_entry_payloads, guava_immutable_map_of_test_il,
     language_core_test_asserted_evidence as language_core_evidence,
-    method_call_library_api_test_evidence_with_dependencies, LibraryApiTestContract,
+    method_call_library_api_test_evidence_with_dependencies, GuavaImmutableMapFixtureImportRhs,
+    GuavaImmutableMapFixtureOptions, GuavaImmutableMapFixtureRoot,
+    GuavaImmutableMapFixtureSpanLines, LibraryApiTestContract,
 };
 use nose_semantics::{
     LibraryApiCalleeContract, LibraryApiContractId, LibraryCollectionFactoryContract,

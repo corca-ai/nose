@@ -235,64 +235,27 @@ fn strict_exact_java_guava_map_factory_rejects_throwing_or_unsupported_shapes() 
     ];
     assert_guava_map_strict_exact(&null_key, 80, false);
 
-    let unsupported_arity = eleven_entry_payloads();
+    let unsupported_arity = guava_immutable_map_eleven_entry_payloads();
     assert_guava_map_strict_exact(&unsupported_arity, 90, false);
 }
 
 fn assert_guava_map_strict_exact(args: &[Payload], base_line: u32, expected: bool) {
-    let (il, interner, call) = guava_map_factory_il(args, base_line);
+    let (il, interner, call) = guava_immutable_map_of_test_il(
+        args,
+        base_line,
+        GuavaImmutableMapFixtureOptions {
+            root_kind: GuavaImmutableMapFixtureRoot::Block,
+            span_lines: GuavaImmutableMapFixtureSpanLines::MatchOffsets,
+            import_rhs: GuavaImmutableMapFixtureImportRhs::EmptySeq,
+            include_function_unit: false,
+            path: "t.java",
+        },
+    );
     let facts = StrictFacts::collect(&il, &interner);
     assert_eq!(
         strict_exact_java_map_factory_safe(&il, &interner, &facts, call),
         expected
     );
-}
-
-fn guava_map_factory_il(args: &[Payload], base_line: u32) -> (Il, Interner, NodeId) {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let import = imported_binding_assignment(&mut b, &interner, "ImmutableMap", sp(base_line));
-    let receiver = b.add(
-        NodeKind::Var,
-        Payload::Name(interner.intern("ImmutableMap")),
-        sp(base_line + 1),
-        &[],
-    );
-    let callee = b.add(
-        NodeKind::Field,
-        Payload::Name(interner.intern("of")),
-        sp(base_line + 2),
-        &[receiver],
-    );
-    let arg_nodes: Vec<_> = args
-        .iter()
-        .enumerate()
-        .map(|(idx, &payload)| b.add(NodeKind::Lit, payload, sp(base_line + 3 + idx as u32), &[]))
-        .collect();
-    let mut children = Vec::with_capacity(arg_nodes.len() + 1);
-    children.push(callee);
-    children.extend(arg_nodes);
-    let call_span = sp(base_line + 3 + args.len() as u32);
-    let call = b.add(NodeKind::Call, Payload::None, call_span, &children);
-    let root = b.add(
-        NodeKind::Block,
-        Payload::None,
-        sp(base_line),
-        &[import, call],
-    );
-    let mut il = finish_java_il(b, root);
-    push_guava_import_symbol(&mut il, "ImmutableMap", sp(base_line), sp(base_line + 1));
-    let contract = library_java_map_factory_contract(Lang::Java, "ImmutableMap", "of")
-        .expect("ImmutableMap.of contract");
-    push_guava_api_evidence(
-        &mut il,
-        2,
-        call_span,
-        contract.id,
-        contract.callee,
-        args.len() as u16,
-    );
-    (il, interner, call)
 }
 
 fn imported_binding_assignment(
@@ -405,15 +368,4 @@ fn push_guava_api_evidence(
         JAVA_GUAVA_IMMUTABLE_COLLECTION_FACTORY_PRODUCER_ID,
     ));
     il.evidence.push(record);
-}
-
-fn eleven_entry_payloads() -> Vec<Payload> {
-    (0..11)
-        .flat_map(|idx| {
-            [
-                Payload::LitStr(stable_symbol_hash(&format!("k{idx}"))),
-                Payload::LitInt(idx),
-            ]
-        })
-        .collect()
 }
