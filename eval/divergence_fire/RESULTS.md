@@ -1,4 +1,4 @@
-# Divergent-edit fire-precision benchmark — results (2026-06-11, #243)
+# Divergent-edit fire-precision benchmark — results (2026-06-11 #243, 2026-07-06 #670)
 
 The consumer-2 measurement [design](../../docs/design.md) §3 called for: when query base
 is used as a PR gate, how often does it fire, and how often is the fire right? Protocol and
@@ -16,20 +16,94 @@ numbers below; the experiment narrative lives in
   (`--mode syntax,semantic,near`).
 - **Labeling unit**: a fired change's **top-ranked finding** (`--fail` is a per-change
   decision and query base ranks most-likely-unpropagated first). 120 findings stratified
-  round-robin by (arm, repo). Lower-ranked findings are unlabeled — a stated limit.
+  round-robin by (arm, repo). Lower-ranked findings were unlabeled in the 2026-06-11
+  baseline — a stated limit that #670 addresses below.
 - **Judge**: §BG-gold method — independent judge labels, then **two adversarial refuters
   on every positive**; a positive survives only if both sustain it. Verdict classes:
   `should_propagate` (the gate-positive), `intentional_divergence`, `not_a_clone`,
   `no_propagation_needed` (real clones, but the diff does not touch the shared logic),
-  `unclear`.
+  `test_scaffolding`, `unclear`.
 
-Reproduce: `cargo build --release` then
+Reproduce the checked 2026-06-11 artifacts and current harness invariants:
+
+```sh
+python3 eval/divergence_fire/replay.py selftest
+python3 eval/divergence_fire/replay.py check-artifacts
+```
+
+Re-run the historical rank-prioritized sampling protocol with `cargo build --release` then
 
 ```sh
 python3 eval/divergence_fire/replay.py replay --per-repo 25 --out /tmp/df-replay.jsonl
 python3 eval/divergence_fire/replay.py summarize --records /tmp/df-replay.jsonl
-python3 eval/divergence_fire/replay.py sample --records /tmp/df-replay.jsonl --n 120 --out sample.jsonl
+python3 eval/divergence_fire/replay.py sample --records /tmp/df-replay.jsonl --n 120 --findings-per-change 0 --out sample.jsonl
+python3 eval/divergence_fire/replay.py policy-eval --samples sample.jsonl --verdicts verdicts.jsonl --out policy_eval.json
 ```
+
+For the #670 / divergent-edit v2 refresh, also keep a strict top-1 comparison sample:
+
+```sh
+python3 eval/divergence_fire/replay.py sample --records /tmp/df-replay.jsonl --n 120 --findings-per-change 1 --sid-prefix rv2t1 --out sample.top1.jsonl
+python3 eval/divergence_fire/replay.py policy-eval --samples sample.top1.jsonl --verdicts verdicts.top1.jsonl --out policy_eval.top1.json
+```
+
+Then price lower-ranked gate findings from the full all-findings selected pool:
+
+```sh
+python3 eval/divergence_fire/replay.py sample --records /tmp/df-replay.jsonl --n 0 --findings-per-change 0 --sid-prefix rv2 --out sample.all-findings.jsonl
+python3 eval/divergence_fire/replay.py policy-eval --samples sample.all-findings.jsonl --verdicts verdicts.all-findings.jsonl --out policy_eval.all-findings.json
+```
+
+For checked #670 policy reproduction, keep only labeled rows and redact source excerpts:
+
+```sh
+jq -cr --slurpfile verdicts <(jq -s 'map(.sid)' eval/divergence_fire/verdicts_2026_07_06.jsonl) 'select(.sid as $sid | $verdicts[0] | index($sid))' sample.top1.jsonl sample.all-findings.jsonl | jq -s -c 'unique_by(.sid)[]' > sample.labeled.jsonl
+python3 eval/divergence_fire/replay.py redact-sample --samples sample.labeled.jsonl --out eval/divergence_fire/sampled_findings_2026_07_06.jsonl
+python3 eval/divergence_fire/replay.py policy-eval --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl --out eval/divergence_fire/policy_eval_2026_07_06.json
+```
+
+## Refresh run (2026-07-06, #670 in progress)
+
+The first v2 replay refresh broadened the corpus sample to 28 repos and 10 commits
+per repo, keeping both historical arms. The durable summary is
+[`replay_summary_2026_07_06.json`](replay_summary_2026_07_06.json). Raw replay JSONL
+and sampled judging packets remain scratch artifacts because they embed source excerpts
+and diffs. The checked redacted sample
+[`sampled_findings_2026_07_06.jsonl`](sampled_findings_2026_07_06.jsonl) contains
+the source-free fields required to recompute the policy artifact.
+
+| arm | replays | errors | fire rate | findings | findings/fire p50 | p90 | divergence s p50 | p90 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| default (`syntax,semantic`) | 280 | 0 | **31.8%** | 209 | 1 | 5 | 2.33 | 8.84 |
+| near (`syntax,semantic,near`) | 280 | 0 | **39.6%** | 274 | 1 | 6 | 2.45 | 10.31 |
+
+This run is not a policy closeout until the required #670 reviews are recorded,
+but the refreshed labelset now covers the full strict top-1 sample plus every
+lower-ranked fire-eligible finding in the all-findings selected pool. Verdicts are in
+[`verdicts_2026_07_06.jsonl`](verdicts_2026_07_06.jsonl), with policy simulation
+in [`policy_eval_2026_07_06.json`](policy_eval_2026_07_06.json).
+
+| slice | labeled | should-propagate | precision if all fired |
+|---|---:|---:|---:|
+| top-1 strict sample | 120 | 21 | 17.5% |
+| lower-ranked fire-eligible findings | 59 | 28 | 47.5% |
+| combined labeled set | 179 | 49 | 27.4% |
+
+Overall verdict counts are: 49 `should_propagate`, 46 `test_scaffolding`, 40
+`no_propagation_needed`, 26 `intentional_divergence`, and 18 `not_a_clone`.
+The lower-ranked fire-eligible slice remains materially richer than top-1
+(28/59 vs 21/120), so policy work must not optimize only for rank 0. On this
+complete labeled set, the serialized `fire_eligible` policy fires on 94 findings
+with 45 true positives and 49 false positives (precision 0.479).
+
+The remaining false-positive buckets under serialized `fire_eligible` are:
+
+| bucket | false positives | v2 implication |
+|---|---:|---|
+| `no_propagation_needed` | 17 | tighten shared-line/changed-logic overlap beyond span-level contact |
+| `intentional_divergence` | 13 | add variant-aware signals or ignore ergonomics |
+| `test_scaffolding` | 12 | keep test/scope filtering prominent in default policy |
+| `not_a_clone` | 7 | improve family grouping quality for broad low-specificity matches |
 
 ## Fire rate (change level; 347 replayed changes per arm)
 

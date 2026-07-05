@@ -1495,6 +1495,19 @@ limits recorded in RESULTS.md: top-1 only, 14 repos, and merged-PR replay sees o
 the surviving change stream. A side catch: `--format json|sarif` printed a human
 sentence on empty reviewable diffs (adds-only PRs) — fixed in #252.
 
+#670 refresh (2026-07-06) broadens this measurement before v2 policy work:
+28 repos, 10 first-parent commits per repo, both historical arms, and labels beyond
+rank 0. The replay fire rates stay in the same broad range — 31.8% for default and
+39.6% for `near` — but the labelset changes the actionable read: strict top-1
+precision on the refreshed sample is 21/120 (17.5%), while lower-ranked
+fire-eligible findings from the all-findings selected pool are 28/59 (47.5%).
+The checked source-free sample, verdicts, policy simulation, selected replay list,
+timings, binary hash, and command chain live under `eval/divergence_fire/*2026_07_06*`.
+This qualifies the June limit directly: rank-0-only policy tuning would throw away
+much of the useful signal. The remaining `fire_eligible` false-positive buckets are
+`no_propagation_needed`, intentional variants, test/scaffolding, and grouping
+artifacts, in that order.
+
 ## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
 
 §BK's structural arm is blind below vj 0.8 by construction; #246 built the
