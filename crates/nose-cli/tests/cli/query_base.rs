@@ -41,6 +41,10 @@ fn init_git_repo(dir: &Path) {
 fn nose_query_in(dir: &Path, extra: &[&str]) -> std::process::Output {
     let mut args = vec!["query", "."];
     args.extend_from_slice(extra);
+    run_nose_query(dir, &args, "run nose query")
+}
+
+fn run_nose_query(dir: &Path, args: &[&str], context: &str) -> std::process::Output {
     Command::new(bin())
         .current_dir(dir)
         .env_remove("GIT_DIR")
@@ -48,13 +52,24 @@ fn nose_query_in(dir: &Path, extra: &[&str]) -> std::process::Output {
         .env_remove("GIT_INDEX_FILE")
         .env_remove("GIT_OBJECT_DIRECTORY")
         .env_remove("GIT_COMMON_DIR")
-        .args(&args)
+        .args(args)
         .output()
-        .expect("run nose query")
+        .expect(context)
 }
 
 fn nose_query_base(dir: &Path, extra: &[&str]) -> std::process::Output {
+    nose_query_base_with_mode(dir, None, extra)
+}
+
+fn nose_query_base_with_mode(
+    dir: &Path,
+    mode: Option<&str>,
+    extra: &[&str],
+) -> std::process::Output {
     let mut args = vec!["query", ".", "base=HEAD", "--min-size", "8"];
+    if let Some(mode) = mode {
+        args.extend_from_slice(&["--mode", mode]);
+    }
     for arg in extra {
         if *arg == "--fail" {
             args.extend_from_slice(&["--fail-on", "any"]);
@@ -62,16 +77,7 @@ fn nose_query_base(dir: &Path, extra: &[&str]) -> std::process::Output {
             args.push(arg);
         }
     }
-    Command::new(bin())
-        .current_dir(dir)
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_INDEX_FILE")
-        .env_remove("GIT_OBJECT_DIRECTORY")
-        .env_remove("GIT_COMMON_DIR")
-        .args(&args)
-        .output()
-        .expect("run nose query base")
+    run_nose_query(dir, &args, "run nose query base")
 }
 
 #[test]

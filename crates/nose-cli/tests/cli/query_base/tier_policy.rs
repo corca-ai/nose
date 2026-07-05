@@ -202,32 +202,7 @@ fn make_fire_policy_project() -> PathBuf {
 }
 
 fn fire_policy_query_base(dir: &Path, extra: &[&str]) -> std::process::Output {
-    let mut args = vec![
-        "query",
-        ".",
-        "base=HEAD",
-        "--min-size",
-        "8",
-        "--mode",
-        "syntax,semantic,near",
-    ];
-    for arg in extra {
-        if *arg == "--fail" {
-            args.extend_from_slice(&["--fail-on", "any"]);
-        } else {
-            args.push(arg);
-        }
-    }
-    Command::new(bin())
-        .current_dir(dir)
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_INDEX_FILE")
-        .env_remove("GIT_OBJECT_DIRECTORY")
-        .env_remove("GIT_COMMON_DIR")
-        .args(&args)
-        .output()
-        .expect("run nose query base")
+    nose_query_base_with_mode(dir, Some("syntax,semantic,near"), extra)
 }
 
 fn first_fire_policy_finding(dir: &Path) -> serde_json::Value {
