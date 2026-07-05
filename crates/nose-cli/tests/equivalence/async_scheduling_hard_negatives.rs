@@ -235,6 +235,16 @@ fn rust_future_drive_spawn_join_and_select_boundaries_stay_split() {
     let select = "async fn f(a: Fut, b: Fut) -> Result<i32, E> { tokio::select! { v = a => v, v = b => v } }\n";
     let block_on = "fn f(rt: tokio::runtime::Runtime, fut: F) { rt.block_on(fut); }\n";
     let return_future = "fn f(rt: tokio::runtime::Runtime, fut: F) -> F { fut }\n";
+    let nested_runtime =
+        "fn f(rt: tokio::runtime::Runtime, fut: F) { rt.block_on(async { rt.block_on(fut); }); }\n";
+    let wrapper_returned_runtime =
+        "fn f(fut: F) { make().block_on(fut); }\nfn make() -> tokio::runtime::Runtime { tokio::runtime::Runtime::new().unwrap() }\n";
+    let local_runtime =
+        "fn f(fut: F) { let rt = tokio::runtime::Runtime::new().unwrap(); rt.block_on(fut); }\n";
+    let constructor_assigned_field =
+        "fn f(fut: F) { let runner = Runner::new(tokio::runtime::Runtime::new().unwrap()); runner.rt.block_on(fut); }\nstruct Runner { rt: tokio::runtime::Runtime }\nimpl Runner { fn new(rt: tokio::runtime::Runtime) -> Self { Self { rt } } }\n";
+    let direct_field_assignment =
+        "fn f(fut: F) { let runner = Runner { rt: tokio::runtime::Runtime::new().unwrap() }; runner.rt.block_on(fut); }\nstruct Runner { rt: tokio::runtime::Runtime }\n";
 
     assert_ne!(
         value_fp(&i, spawn, Lang::Rust),
@@ -255,6 +265,21 @@ fn rust_future_drive_spawn_join_and_select_boundaries_stay_split() {
         value_fp(&i, block_on, Lang::Rust),
         value_fp(&i, return_future, Lang::Rust),
         "block_on drives a Future; returning the Future leaves it undriven"
+    );
+    assert_ne!(
+        value_fp(&i, nested_runtime, Lang::Rust),
+        value_fp(&i, block_on, Lang::Rust),
+        "nested runtime drive hazards need explicit scheduling proof before block_on exact recovery"
+    );
+    assert_ne!(
+        value_fp_named(&i, wrapper_returned_runtime, Lang::Rust, "f"),
+        value_fp_named(&i, local_runtime, Lang::Rust, "f"),
+        "wrapper-returned Runtime values need callable result provenance before receiver proof can widen"
+    );
+    assert_ne!(
+        value_fp_named(&i, constructor_assigned_field, Lang::Rust, "f"),
+        value_fp_named(&i, direct_field_assignment, Lang::Rust, "f"),
+        "constructor-assigned Runtime fields need field lifecycle proof before inheriting direct field proof"
     );
 }
 

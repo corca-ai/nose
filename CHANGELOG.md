@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the #677 Rust `block_on` residual closeout: the async scheduling
+  hard-negative suite now covers nested runtime drive, wrapper-returned
+  `Runtime` values, and constructor-assigned runtime fields, with a checked
+  artifact documenting why exact `block_on` recovery remains reporting-only.
 - Added a divergent-edit history-mining harness for bounded commit-range audits.
   `scripts/divergent-history-mining.py` replays the existing `base=<parent>`
   JSON view in temporary worktrees, emits deterministic
@@ -46,6 +50,11 @@ break.
   splitting `diff --git` headers on whitespace.
 
 ### Performance
+- Verified the #677 Rust `block_on` residual closeout with no product-output
+  drift or reproduced runtime degradation: the focused Rust query-regression
+  slice kept identical hashes and family counts across `hyperfine`, `nushell`,
+  and `tokio`, while same-binary runtime triage measured `1542.89ms ->
+  1451.96ms` aggregate median (`-5.89%`).
 - Closed the divergent-edit v2 epic with final replay and product-output evidence:
   the 560-record replay completed with 0 errors, v2 strict retained 45/45 confirmed
   v1 missed-propagation positives while improving strict precision from 0.479 to

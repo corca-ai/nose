@@ -147,6 +147,18 @@ Checked-in summaries live under [bench/recall_loss](../bench/recall_loss/):
   admission. This is a guardrail slice only:
   `semantic_admission_delta = 0`, and no product query/runtime performance
   comparison is required because only tests, docs, and checked artifacts change.
+- The [#677 Rust block_on residual closeout](../bench/recall_loss/issue-677-rust-block-on-residual-closeout-2026-07-06.v1.json)
+  selects one #657 residual tranche for follow-up and keeps it
+  reporting-only. It adds `3` executable hard-negative assertions for nested
+  runtime drive, wrapper-returned `Runtime` values, and constructor-assigned
+  runtime fields, while preserving the existing direct future-return guard.
+  Exact `block_on` admission remains closed because callable result provenance,
+  field lifecycle/mutation proof, nested scheduling/liveness proof, and
+  block_on/await result-channel contracts are still missing. The checked
+  `crates` gate records `false_merges = 0` and
+  `canon_preservation_violations = 0`; product hashes are identical on the
+  focused Rust query-regression slice, and runtime triage reproduces no
+  degradation.
 - The [#654 semantic-kernel capability audit](../bench/recall_loss/issue-654-semantic-kernel-capability-audit-2026-07-02.v1.json)
   checks that the current recall-loss vocabulary still describes reusable
   capabilities rather than selector or API feature support. It audits `15`

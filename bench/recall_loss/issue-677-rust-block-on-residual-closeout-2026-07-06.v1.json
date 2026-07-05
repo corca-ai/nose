@@ -1,0 +1,143 @@
+{
+  "report_kind": "issue-677-rust-block-on-residual-closeout",
+  "schema_version": 1,
+  "generated_on": "2026-07-06",
+  "issue": 677,
+  "measurement_base_commit": "df2aab26908c47f83ae4ea8c743f3b679bbd2467",
+  "provenance_note": "The checked artifact is versioned by the #677 change commit. Product query and runtime controls use the unchanged target/release/nose binary built from measurement_base_commit because #677 changes tests, docs, and artifacts only.",
+  "selected_tranche": {
+    "language": "rust",
+    "family": "block_on future-drive residual hard negatives",
+    "decision": "remain-reporting-only",
+    "semantic_admission_delta": 0,
+    "exact_admission_opened": false,
+    "reason": "Existing runtime-provenance rows can report future-drive obligations, but nested runtime drive, wrapper-returned Runtime values, and constructor-assigned Runtime fields still lack proof for exact block_on/await or block_on/sync convergence."
+  },
+  "selection_evidence": {
+    "source_artifacts": [
+      "bench/recall_loss/issue-655-hard-negative-matrix-2026-07-02.v1.json",
+      "bench/recall_loss/issue-657-hard-negative-fixtures-2026-07-02.v1.json",
+      "bench/recall_loss/rust-block-on-future-drive-obligation-reporting-2026-07-01.v1.json",
+      "bench/recall_loss/rust-block-on-local-runtime-provenance-2026-07-01.v1.json",
+      "bench/recall_loss/rust-block-on-parameter-runtime-provenance-2026-07-01.v1.json",
+      "bench/recall_loss/rust-nested-brace-runtime-provenance-2026-07-01.v1.json",
+      "bench/recall_loss/rust-block-on-map-err-runtime-provenance-2026-07-01.v1.json",
+      "bench/recall_loss/rust-block-on-builder-config-runtime-provenance-2026-07-01.v1.json",
+      "bench/recall_loss/rust-self-field-runtime-provenance-2026-07-01.v1.json",
+      "bench/recall_loss/rust-local-self-field-runtime-provenance-2026-07-01.v1.json"
+    ],
+    "issue_655_priority": {
+      "language_rank": 4,
+      "reason": "Rust had 13,228 reporting-supported async/runtime occurrences and existing runtime-provenance tests that could be extended without new public API."
+    },
+    "issue_657_residual_class": {
+      "matrix_class": "remaining block_on future-drive hard negatives beyond existing provenance slices: nested runtime hazards, wrapper-returned runtimes, constructor-assigned fields, and direct future return distinctions",
+      "coverage_status_before_issue_677": "partial-new-and-existing-executable",
+      "future_granular_executable_follow_up_required_before_issue_677": true
+    }
+  },
+  "added_executable_coverage": {
+    "test_file": "crates/nose-cli/tests/equivalence/async_scheduling_hard_negatives.rs",
+    "test": "rust_future_drive_spawn_join_and_select_boundaries_stay_split",
+    "assertions_added": 3,
+    "new_hard_negative_classes": [
+      "nested runtime drive hazards must not collapse into a single block_on drive",
+      "wrapper-returned Runtime values must not inherit local Runtime receiver proof",
+      "constructor-assigned Runtime fields must not inherit direct field proof"
+    ],
+    "existing_assertion_retained": "block_on drives a Future; returning the Future leaves it undriven"
+  },
+  "missing_proof": [
+    {
+      "surface": "nested rt.block_on(async { rt.block_on(fut) })",
+      "missing": "Scheduling, re-entry, wake/poll, and panic/liveness proof for nested runtime drive."
+    },
+    {
+      "surface": "make_runtime().block_on(fut)",
+      "missing": "Callable result provenance proving that the wrapper always returns the same trusted Runtime or Handle shape."
+    },
+    {
+      "surface": "let runner = Runner::new(rt); runner.rt.block_on(fut)",
+      "missing": "Field lifecycle and mutation proof connecting constructor assignment, receiver identity, and later field reads."
+    },
+    {
+      "surface": "block_on(fut) versus returning or awaiting fut",
+      "missing": "Complete future-drive scheduling, cancellation/liveness, and result-channel equivalence contracts."
+    }
+  ],
+  "actionable_diagnostics": {
+    "kept_reporting_only": [
+      "future-drive-scheduling-contract",
+      "future-settled-value-channel-contract",
+      "async-await-scheduling-contract",
+      "async-block-scheduling-contract"
+    ],
+    "next_followups": [
+      "Add callable result provenance before wrapper-returned Runtime receiver proof can widen.",
+      "Model field lifecycle and mutation for constructor-assigned runtime fields before non-self receiver exact recovery.",
+      "Keep block_on/await convergence closed until scheduling, cancellation/liveness, and result-channel contracts are all dependency-backed."
+    ]
+  },
+  "hard_gate": {
+    "command": "target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-677.crates.json",
+    "total_units": 7174,
+    "interpretable_units": 1045,
+    "excluded_units": 6129,
+    "admission_rejections": 869,
+    "fingerprint_groups": 41,
+    "false_merges": 0,
+    "canon_checked": 104,
+    "canon_preservation_violations": 0,
+    "gate_passed": true
+  },
+  "product_query_regression": {
+    "artifact": "bench/recall_loss/issue-677-rust-block-on-query-regression-2026-07-06.v1.json",
+    "baseline_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "current_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "repos": [
+      "hyperfine",
+      "nushell",
+      "tokio"
+    ],
+    "hashes_identical_by_repo": {
+      "hyperfine": true,
+      "nushell": true,
+      "tokio": true
+    },
+    "family_counts_identical_by_repo": {
+      "hyperfine": true,
+      "nushell": true,
+      "tokio": true
+    },
+    "aggregate_baseline_median_ms": 1470.0869568623602,
+    "aggregate_current_median_ms": 1483.1632073037326,
+    "aggregate_delta_pct": 0.8894882292732758,
+    "assessment": "same-binary control; no product output drift"
+  },
+  "runtime_triage": {
+    "artifact": "bench/recall_loss/issue-677-rust-block-on-runtime-triage-2026-07-06.v1.json",
+    "baseline_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "current_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "aggregate_baseline_median_ms": 1542.894375976175,
+    "aggregate_current_median_ms": 1451.9591671414673,
+    "aggregate_delta_pct": -5.893806488028312,
+    "repo_classifications": {
+      "hyperfine": "small-or-noisy",
+      "nushell": "not-reproduced",
+      "tokio": "not-reproduced"
+    },
+    "assessment": "No runtime degradation is reproduced. Product code is unchanged; the only positive per-repo delta is below runtime-triage thresholds."
+  },
+  "validation_commands": [
+    "cargo fmt --check",
+    "cargo test -p nose-cli --test equivalence rust_future_drive_spawn_join_and_select_boundaries_stay_split -- --nocapture",
+    "cargo test -p nose-cli --test equivalence async_scheduling_hard_negatives -- --nocapture",
+    "target/release/nose verify crates --max-violations 0 --recall-loss-report target/recall-loss.issue-677.crates.json",
+    "python3 scripts/query-regression-harness.py --baseline-binary target/release/nose --current-binary target/release/nose --baseline-source-ref HEAD --current-source-ref HEAD --repo tokio --repo hyperfine --repo nushell --iterations 5 --warmups 1 --query-args 'query {repo} all top=0 --mode semantic --format json' --output bench/recall_loss/issue-677-rust-block-on-query-regression-2026-07-06.v1.json",
+    "python3 scripts/runtime-triage-harness.py --baseline-binary target/release/nose --current-binary target/release/nose --baseline-source-ref HEAD --current-source-ref HEAD --repo tokio --repo hyperfine --repo nushell --iterations 3 --warmups 1 --query-args 'query {repo} all top=0 --mode semantic --format json' --output bench/recall_loss/issue-677-rust-block-on-runtime-triage-2026-07-06.v1.json",
+    "jq empty bench/recall_loss/issue-677-rust-block-on-residual-closeout-2026-07-06.v1.json bench/recall_loss/issue-677-rust-block-on-query-regression-2026-07-06.v1.json bench/recall_loss/issue-677-rust-block-on-runtime-triage-2026-07-06.v1.json",
+    "./scripts/check-docs.sh",
+    "python3 scripts/check-file-lengths.py --ratchet-base origin/main",
+    "git diff --check"
+  ]
+}
