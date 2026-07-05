@@ -1,4 +1,5 @@
-use crate::legacy_prelude::*;
+use crate::source_lines::FileLineCache;
+use nose_il::{FileId, Interner, Lang};
 use std::collections::HashMap;
 
 const GRADED_REP_MEMBER_LIMIT: usize = 8;

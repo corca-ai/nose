@@ -30,6 +30,6 @@ pub(crate) use crate::timing::*;
 pub(crate) use crate::verify_census;
 pub(crate) use crate::verify_collect::*;
 pub(crate) use anyhow::{Context, Result};
-pub(crate) use nose_il::{Corpus, FileId, Interner, Lang};
+pub(crate) use nose_il::{Corpus, Interner, Lang};
 pub(crate) use rayon::prelude::*;
 pub(crate) use std::path::PathBuf;

@@ -1,4 +1,7 @@
-use crate::legacy_prelude::*;
+use crate::path_utils::paths_as_refs;
+use crate::query_options::{DetectionChannels, DetectionMode, DIVERGENCE_DEFAULT_MODES};
+use anyhow::{Context, Result};
+use std::path::PathBuf;
 
 struct ChannelDetector {
     name: &'static str,
