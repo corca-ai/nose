@@ -155,7 +155,7 @@ fn query_dashboard_filter_and_family() {
     // A sizeable 3-copy near family (one call target each) survives the default size floor.
     let dir = std::env::temp_dir().join(format!("nose_query_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
-    for d in ["a", "b", "c"] {
+    for d in ["a", "b", "c", "docs"] {
         fs::create_dir_all(dir.join(d)).unwrap();
     }
     let mk = |combine: &str| {
@@ -166,6 +166,9 @@ fn query_dashboard_filter_and_family() {
     fs::write(dir.join("a/m.py"), mk("adjust")).unwrap();
     fs::write(dir.join("b/m.py"), mk("scale")).unwrap();
     fs::write(dir.join("c/m.py"), mk("offset")).unwrap();
+    let md = "# Shared operations guide\n\nThis section explains how operators should review repeated helper logic before merging a risky change.\n\nIt keeps a stable paragraph with enough repeated prose for the Markdown detector to align the two files.\n";
+    fs::write(dir.join("docs/one.md"), md).unwrap();
+    fs::write(dir.join("docs/two.md"), md).unwrap();
     let p = dir.to_str().unwrap();
 
     // Dashboard: self-describing, with a real candidate carrying a runnable drill link.
@@ -313,6 +316,14 @@ fn query_dashboard_filter_and_family() {
     assert!(
         dash["families"].is_array() && dash["top_candidates"].is_array(),
         "dashboard json exposes the family array under the stable `families` key: {dash}"
+    );
+    assert!(
+        dash["markdown"].is_array(),
+        "dashboard json exposes markdown prose findings under the additive `markdown` key: {dash}"
+    );
+    assert!(
+        !dash["markdown"].as_array().unwrap().is_empty(),
+        "dashboard json keeps real markdown prose findings under `markdown`, not code `families`: {dash}"
     );
     assert_eq!(
         dash["families"], dash["top_candidates"],

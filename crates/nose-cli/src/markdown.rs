@@ -150,7 +150,7 @@ pub(crate) fn print_section(fams: &[Family], path: &str) {
     println!(
         "  {}",
         crate::style::dim(&format!(
-            "see all: nose query {path} --format json  # markdown[] array"
+            "see all: nose query {path} --format json  # top-level markdown array"
         ))
     );
 }

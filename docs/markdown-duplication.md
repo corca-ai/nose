@@ -16,17 +16,18 @@ needs an LLM). Paraphrase / Type-4 semantic equivalence is also out of scope for
 
 ```
 nose query <path>                     # dashboard: a "markdown near-duplicates" section
-nose query <path> --format json       # Markdown rows appear in the shared "families" array
+nose query <path> --format json       # dashboard JSON includes a top-level "markdown" array
 ```
 
 `nose query` discovers `.md`/`.markdown` under the path (respecting `.gitignore` and the same
 `exclude` globs as code) and reports ranked near-duplicate **families** alongside the code clones.
-The JSON contract is the normal [query JSON](query-json.md) envelope; Markdown findings use the
-same `families[]` list instead of a separate top-level key. Each family carries:
+The dashboard JSON uses the normal [query JSON](query-json.md) envelope and reports Markdown
+findings in an additive top-level `markdown[]` array, separate from code-clone `families[]`.
+Each Markdown family carries:
 
 - a **relation tier** (`exact` / `near-high` / `near-med` / `near-low` / `partial`) + score,
 - a **span witness** — the exact duplicated line range in each file (local alignment),
-- **orthogonal evidence** you filter on: `commonness` (how ubiquitous the shared content is —
+- **orthogonal evidence** exposed in JSON: `commonness` (how ubiquitous the shared content is —
   high ⇒ likely boilerplate), `removable` (lines saved if single-sourced), `files`, `members`.
 
 ## What it does — and deliberately does NOT do

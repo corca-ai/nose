@@ -65,7 +65,8 @@ enum value spells it `copy-paste` (hyphen) — so don't index `by_confidence[fam
 for that one channel.
 `families[]` (the top 5 families ranked by extractability — scope-blind, so test and
 production are ranked alike; each a *family object*), `top_candidates[]` (compatibility alias
-for the same array), and `next[]` (runnable follow-up commands).
+for the same array), `markdown[]` (Markdown near-duplicate prose families from the separate
+prose engine; additive dashboard-only field), and `next[]` (runnable follow-up commands).
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.
