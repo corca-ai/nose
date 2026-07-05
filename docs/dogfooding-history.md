@@ -961,3 +961,15 @@ overlap between `verify_report.rs::report_falsify` and
 fingerprint-group classification, while falsification search consumes the same
 hard-gate equal-pair selection instead of repeating the grouping logic. No new
 default-surface family appears, so the baseline budget is tightened to 33.
+
+The LibraryApi test evidence builder integration tightens the count from 33 to
+31. The self-query report no longer reports `8977e7bce9b8d9a5`, the repeated
+`library_api_contract_evidence` fixture pair across normalize and detect tests,
+or `e5b8f23a075e9657`, the repeated detect-only
+`method_call_library_api_evidence` fixture pair. `nose_semantics::test_support`
+now owns the shared LibraryApi contract evidence construction and builtin
+method-call provenance policy, while crate-local helpers keep their scenario
+names. The already reviewed tiny `sp` test helper representative moves from
+`eadc678efab56738` to `e46ab190592b0850`; it still has no meaningful shared
+removable body. No production family appears, so the baseline budget is
+tightened to 31.

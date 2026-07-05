@@ -1,24 +1,19 @@
 use nose_il::{
-    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceRecord, FileId,
-    FileMeta, Il, IlBuilder, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Payload,
+    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceRecord,
+    EvidenceStatus, FileId, FileMeta, Il, IlBuilder, Interner, Lang, NodeId, NodeKind, Payload,
     SequenceSurfaceKind, SourceCallKind, SourceFactKind, Span, SymbolEvidenceKind,
 };
 pub(super) use nose_semantics::test_support::{
-    compat_test_asserted_evidence as evidence,
+    builtin_library_api_test_evidence_with_dependencies, compat_test_asserted_evidence as evidence,
     language_core_test_asserted_evidence as language_core_evidence,
+    method_call_library_api_test_evidence_with_dependencies, LibraryApiTestContract,
 };
 use nose_semantics::{
-    library_api_callee_contract_hash, library_api_contract_id_hash, library_method_call_contract,
     LibraryApiCalleeContract, LibraryApiContractId, LibraryCollectionFactoryContract,
-    LibraryMapFactoryContract, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
-    FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
-    JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
-    JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
-    JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PRODUCER_ID, MAP_GET_DEFAULT_PROTOCOL_PACK_ID,
-    MAP_GET_DEFAULT_PROTOCOL_PRODUCER_ID, PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
-    PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID,
-    RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID, SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    LibraryMapFactoryContract, JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID,
+    JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID, JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PACK_ID,
+    JS_LIKE_BUILTIN_COLLECTION_CONSTRUCTOR_PRODUCER_ID, PYTHON_BUILTIN_COLLECTION_FACTORY_PACK_ID,
+    PYTHON_BUILTIN_COLLECTION_FACTORY_PRODUCER_ID, SWIFT_STDLIB_COLLECTION_FACTORY_PACK_ID,
     SWIFT_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
 };
 
@@ -59,29 +54,17 @@ pub(super) fn library_api_contract_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = evidence(
+    builtin_library_api_test_evidence_with_dependencies(
         id,
-        EvidenceAnchor::node(call_span, NodeKind::Call),
-        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract_id),
-            callee_hash: library_api_callee_contract_hash(callee),
+        call_span,
+        LibraryApiTestContract {
+            id: contract_id,
+            callee,
             arity,
-        }),
+        },
+        EvidenceStatus::Asserted,
         dependencies,
-    );
-    if matches!(contract_id, LibraryApiContractId::FreeFunctionBuiltin(_)) {
-        record.provenance.pack_hash =
-            Some(stable_symbol_hash(FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash = Some(stable_symbol_hash(
-            FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
-        ));
-    } else if matches!(contract_id, LibraryApiContractId::MethodCall(_)) {
-        record.provenance.pack_hash =
-            Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash =
-            Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID));
-    }
-    record
+    )
 }
 
 pub(super) fn js_like_builtin_collection_constructor_evidence(
@@ -179,53 +162,14 @@ pub(super) fn method_call_library_api_evidence(
     arity: usize,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let contract = library_method_call_contract(lang, method, arity).expect("method call contract");
-    let mut record = library_api_contract_evidence(
+    method_call_library_api_test_evidence_with_dependencies(
         id,
+        lang,
+        method,
         call_span,
-        contract.id,
-        contract.callee,
-        arity as u16,
+        arity,
         dependencies,
-    );
-    if contract.id
-        == LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::GetOrDefault))
-        && matches!(
-            contract.callee,
-            LibraryApiCalleeContract::Method {
-                receiver: MethodReceiverContract::ExactMap,
-                ..
-            }
-        )
-    {
-        record.provenance.pack_hash = Some(stable_symbol_hash(MAP_GET_DEFAULT_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash =
-            Some(stable_symbol_hash(MAP_GET_DEFAULT_PROTOCOL_PRODUCER_ID));
-    } else if contract.id
-        == LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Contains))
-        && matches!(
-            contract.callee,
-            LibraryApiCalleeContract::Method {
-                receiver: MethodReceiverContract::ExactMap
-                    | MethodReceiverContract::ExactCollectionOrMap
-                    | MethodReceiverContract::ExactCollectionOrJavaKeySet
-                    | MethodReceiverContract::ExactSetOrMap,
-                ..
-            }
-        )
-        && contract.result.args == MethodBuiltinArgs::FirstThenReceiver
-    {
-        record.provenance.pack_hash =
-            Some(stable_symbol_hash(RECEIVER_MEMBERSHIP_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash =
-            Some(stable_symbol_hash(RECEIVER_MEMBERSHIP_PROTOCOL_PRODUCER_ID));
-    } else {
-        record.provenance.pack_hash =
-            Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash =
-            Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID));
-    }
-    record
+    )
 }
 
 /// Push the `List.of(…)`-shaped factory contract plus the dependent `contains`

@@ -174,14 +174,14 @@ pub(crate) fn library_api_record_with_arity(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
-    evidence_with_dependencies(
+    test_support::compat_library_api_test_evidence_with_dependencies(
         id,
-        EvidenceAnchor::node(span, NodeKind::Call),
-        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract_id),
-            callee_hash: library_api_callee_contract_hash(callee),
+        span,
+        test_support::LibraryApiTestContract {
+            id: contract_id,
+            callee,
             arity,
-        }),
+        },
         status,
         dependencies.iter().copied().map(EvidenceId).collect(),
     )

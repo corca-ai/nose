@@ -8,29 +8,17 @@ pub(crate) fn library_api_contract_evidence(
     arity: u16,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    let mut record = evidence_with_dependencies(
+    nose_semantics::test_support::builtin_library_api_test_evidence_with_dependencies(
         id,
-        EvidenceAnchor::node(call_span, NodeKind::Call),
-        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-            contract_hash: library_api_contract_id_hash(contract_id),
-            callee_hash: library_api_callee_contract_hash(callee),
+        call_span,
+        nose_semantics::test_support::LibraryApiTestContract {
+            id: contract_id,
+            callee,
             arity,
-        }),
+        },
+        EvidenceStatus::Asserted,
         dependencies,
-    );
-    if matches!(contract_id, LibraryApiContractId::FreeFunctionBuiltin(_)) {
-        record.provenance.pack_hash =
-            Some(stable_symbol_hash(FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash = Some(stable_symbol_hash(
-            FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
-        ));
-    } else if matches!(contract_id, LibraryApiContractId::MethodCall(_)) {
-        record.provenance.pack_hash =
-            Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID));
-        record.provenance.rule_hash =
-            Some(stable_symbol_hash(BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID));
-    }
-    record
+    )
 }
 
 fn library_api_contract_evidence_with_pack(
@@ -42,11 +30,18 @@ fn library_api_contract_evidence_with_pack(
     dependencies: Vec<EvidenceId>,
     provenance: (&str, &str),
 ) -> EvidenceRecord {
-    let mut record =
-        library_api_contract_evidence(id, call_span, contract_id, callee, arity, dependencies);
-    record.provenance.pack_hash = Some(stable_symbol_hash(provenance.0));
-    record.provenance.rule_hash = Some(stable_symbol_hash(provenance.1));
-    record
+    nose_semantics::test_support::library_api_test_evidence_with_dependencies(
+        id,
+        call_span,
+        nose_semantics::test_support::LibraryApiTestContract {
+            id: contract_id,
+            callee,
+            arity,
+        },
+        EvidenceStatus::Asserted,
+        dependencies,
+        provenance,
+    )
 }
 
 pub(crate) fn js_like_builtin_collection_constructor_evidence(

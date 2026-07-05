@@ -167,6 +167,10 @@ set -euo pipefail
 # 34 -> 33 (verify soundness classification): shared fingerprint-group classification removes
 # the reviewed verify/recall-loss soundness overlap `1f922efb624c7f79`; no new family appears,
 # so the ratchet tightens.
+# 33 -> 31 (LibraryApi test evidence builders): common LibraryApi test evidence and method-call
+# provenance helpers remove the reviewed `library_api_contract_evidence` and
+# `method_call_library_api_evidence` fixture families. The tiny `sp` helper representative moves
+# from `eadc678efab56738` to `e46ab190592b0850`.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

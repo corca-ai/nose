@@ -28,11 +28,11 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current reviewed default-surface budget is 33 families, matching
+The current reviewed default-surface budget is 31 families, matching
 `scripts/duplication-baseline.json`. The latest documented cleanup is the
-verify soundness classification cleanup, which tightened the budget from 34 to
-33 by sharing fingerprint-group soundness classification between verify reports
-and recall-loss diagnostics.
+LibraryApi test evidence builder integration, which tightened the budget from
+33 to 31 by moving common LibraryApi test evidence construction and method-call
+provenance policy into `nose_semantics::test_support`.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline
