@@ -90,7 +90,7 @@ reports cheap to write.
 | `hof-demand-effect-proof-missing` | A higher-order surface lacks a demand, effect, and materialization profile. |
 | `source-surface-proof-missing` | A source construct, operator, comprehension, Rust macro invocation, or syntax distinction is required but not proven. |
 | `mutation-effect-boundary` | Mutation, place, side-effecting call, or effect obligations close exact admission until an effect-preserving contract exists. |
-| `unsupported-runtime-boundary` | Runtime/protocol boundaries such as raw lowered constructs, try/throw, splat, or keyword-argument surfaces intentionally fail closed. |
+| `unsupported-runtime-boundary` | Runtime/protocol boundaries such as source protocol facts, raw lowered constructs, try/throw, splat, or keyword-argument surfaces intentionally fail closed. |
 | `value-fingerprint-too-small` | The unit is strict-exact-safe, but its value fingerprint is below the non-degenerate exact-claim floor. |
 | `unattributed-strict-exact-unsafe` | Fallback for unknown strict-exact rejection. This should stay visible and should trend toward zero. |
 
@@ -110,7 +110,7 @@ They do not change exact admission.
 | `rejection-channel` | `promise-reject-rejected-value-channel-contract-missing`, `promise-catch-rejection-continuation-contract-missing`, `promise-finally-settlement-continuation-contract-missing`, `promise-then-rejection-continuation-contract-missing`, legacy `promise-rejection-channel-contract-missing`/`promise-rejection-continuation-contract-missing`, or `exception-channel-contract-missing` | Rejection, catch/finally settlement, throw, rescue, or non-local error flow must remain distinct from ordinary return values. |
 | `success-error-result-channel` | `promise-factory-settled-value-contract-missing`, `promise-aggregate-all-fulfilled-contract-missing`, `promise-aggregate-all-settled-contract-missing`, `promise-aggregate-first-fulfilled-contract-missing`, `promise-aggregate-result-channel-contract-missing`, `promise-then-fulfillment-continuation-contract-missing`, `future-settled-value-channel-contract-missing`, `future-fulfillment-continuation-contract-missing`, `future-settlement-continuation-contract-missing`, `async-iteration-value-channel-contract-missing`, `async-aggregate-all-completion-contract-missing`, `async-aggregate-completion-contract-missing`, or `async-aggregate-result-channel-contract-missing` | Success, empty/default, error/rejection, async iteration value, and aggregate result channels need explicit result-shape proof. |
 | `cancellation-liveness-boundary` | `promise-aggregate-first-settled-contract-missing`, `promise-aggregate-cancellation-liveness-contract-missing`, `abort-signal-cancellation-contract-missing`, `abort-signal-lifecycle-contract-missing`, `abort-controller-signal-lifecycle-contract-missing`, `scheduler-wait-cancellation-liveness-contract-missing`, `timer-cancellation-liveness-contract-missing`, `interval-cancellation-liveness-contract-missing`, `task-cancellation-liveness-contract-missing`, `async-aggregate-first-completion-contract-missing`, or `async-aggregate-cancellation-liveness-contract-missing` | First-settled, cancellation, liveness, stop, and early-exit behavior must stay separate from all-value result channels. |
-| `scheduling-boundary` | `async-await-scheduling-contract-missing`, `async-function-scheduling-contract-missing`, `async-block-scheduling-contract-missing`, legacy `promise-await-scheduling-contract-missing`, `promise-async-function-scheduling-contract-missing`, `future-async-block-scheduling-contract-missing`, `promise-non-construct-call-boundary-contract-missing`, `scheduler-wait-timing-contract-missing`, `scheduler-yield-microtask-order-contract-missing`, `timer-scheduling-contract-missing`, `task-spawn-scheduling-contract-missing`, `task-yield-scheduling-contract-missing`, `future-drive-scheduling-contract-missing`, `goroutine-scheduling-contract-missing`, or `runtime-protocol-boundary-contract-missing` | A lowered runtime/protocol construct needs scheduling or protocol semantics before exact use. |
+| `scheduling-boundary` | `async-await-scheduling-contract-missing`, `async-function-scheduling-contract-missing`, `async-block-scheduling-contract-missing`, historical `promise-await-scheduling-contract-missing`, `promise-async-function-scheduling-contract-missing`, `future-async-block-scheduling-contract-missing`, `promise-non-construct-call-boundary-contract-missing`, `scheduler-wait-timing-contract-missing`, `scheduler-yield-microtask-order-contract-missing`, `timer-scheduling-contract-missing`, `task-spawn-scheduling-contract-missing`, `task-yield-scheduling-contract-missing`, `future-drive-scheduling-contract-missing`, `goroutine-scheduling-contract-missing`, or `runtime-protocol-boundary-contract-missing` | A lowered runtime/protocol construct needs scheduling or protocol semantics before exact use. |
 | `channel-boundary` | `channel-send-synchronization-contract-missing`, `channel-receive-value-channel-contract-missing`, `channel-receive-status-contract-missing`, `channel-select-readiness-contract-missing`, `channel-select-case-selection-contract-missing`, `channel-select-default-liveness-contract-missing`, legacy `channel-send-receive-protocol-contract-missing`, `channel-select-protocol-contract-missing`, or `channel-protocol-contract-missing` | Channel send/receive/select semantics need blocking, synchronization, close/status, readiness, and liveness evidence before exact use. |
 | `exception-channel` | `exception-channel-contract-missing` or `future-exception-continuation-contract-missing` | Try/throw/error propagation and exceptional future continuations are explicit channel boundaries, not scheduling boundaries. |
 | `lifecycle-materialization-boundary` | `async-iteration-lifecycle-contract-missing`, `async-context-lifecycle-contract-missing`, `async-context-cleanup-contract-missing`, `interval-async-iteration-lifecycle-contract-missing`, `task-handle-lifecycle-contract-missing`, `defer-lifecycle-ordering-contract-missing`, `generator-yield-lifecycle-contract-missing`, `generator-yield-protocol-contract-missing`, or `java-stream-lifecycle-contract-missing` | Async iteration/context setup and cleanup, repeated emission, deferred execution, suspension, task handles, one-shot views, reusable collections, stream adapters, and materialization require explicit lifecycle proof. |
@@ -132,6 +132,11 @@ historical bucket replaced by concrete operation rows.
 
 New reports should prefer the shared scheduling/protocol labels recorded by the [#656 obligation-label cleanup artifact](../bench/recall_loss/issue-656-obligation-label-docs-cleanup-2026-07-02.v1.json).
 Historical checked artifacts remain readable; do not rewrite them in place.
+
+This is a producer/reader split. The runtime-boundary code emits the current
+shared labels for `SourceProtocolKind::Await`, `AsyncFunction`, and
+`AsyncBlock`; the recall-loss obligation rollup still accepts the historical
+Promise/Future labels so old checked artifacts can be compared.
 
 | current label | historical label | policy |
 |---|---|---|
@@ -192,11 +197,11 @@ Promise protocol diagnostics keep exact admission closed while splitting
 runtime-boundary evidence by scheduling, executor callback, rejection channel,
 and aggregate-result obligations. Current reports use the language-neutral
 `async-await-scheduling-contract` label for `Source::Protocol(Await)` across
-JS/TS, Python, Rust, and Swift, while legacy checked artifacts may still contain
+JS/TS, Python, Rust, and Swift; only historical checked artifacts should contain
 the older Promise-specific await label. The follow-up [oracle-exclusion obligation reporting](../bench/recall_loss/oracle-exclusion-obligation-reporting-2026-06-30.v1.json)
-keeps that label visible even when await-only runtime/protocol units are excluded
-before admission-rejection rows exist: JS/TS, Python, Rust, and Swift fixtures
-roll up under `oracle_exclusions.by_obligation` as
+keeps the shared async-await label visible even when await-only runtime/protocol
+units are excluded before admission-rejection rows exist: JS/TS, Python, Rust,
+and Swift fixtures roll up under `oracle_exclusions.by_obligation` as
 `scheduling-boundary/async-await-scheduling-contract-missing`, while the
 top-level interpretable `by_obligation` stays separate. The follow-up [cross-language async-function obligation reporting](../bench/recall_loss/cross-language-async-function-obligation-reporting-2026-06-30.v1.json)
 extends the same reporting vocabulary to `Source::Protocol(AsyncFunction)` for
@@ -464,12 +469,14 @@ to `230`, and keeps exact admission closed.
 The
 checked [promise-protocol diagnostics](../bench/recall_loss/promise-protocol-diagnostics-2026-06-28.v1.json)
 connect the JS/TS source-prevalence group (`29,094` Promise/async occurrences)
-to report labels such as legacy `promise-await-scheduling-contract`,
+to historical report labels such as `promise-await-scheduling-contract`,
 `promise-async-function-scheduling-contract`,
 `promise-executor-callback-effect-contract`,
 `promise-aggregate-result-channel-contract`,
 `promise-rejection-channel-contract`, and
 `promise-non-construct-call-boundary-contract`.
+Current source-protocol reports use the shared async labels in
+[Label Compatibility](#label-compatibility) instead.
 The follow-up [promise-protocol hard negatives](../bench/recall_loss/promise-protocol-hard-negatives-2026-06-28.v1.json)
 keep `semantic_admission_delta = 0` and pin the closed boundaries that must
 hold before any Promise recovery slice opens: async-function/sync convergence,
