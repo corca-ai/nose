@@ -1,6 +1,9 @@
 use super::*;
 use std::collections::HashMap;
 
+type LineRangesByFile = HashMap<String, Vec<(u32, u32)>>;
+type ChangedRangesAndEntries = (LineRangesByFile, LineRangesByFile, Vec<DiffEntry>);
+
 /// A git command rooted at `root`, with inherited git env vars cleared so it always
 /// operates on `root`'s repo — not on a `GIT_DIR`/`GIT_WORK_TREE` set by an outer hook.
 fn git(root: &Path, args: &[&str]) -> Result<std::process::Output> {
@@ -127,11 +130,7 @@ pub(super) fn git_changed_ranges_and_entries(
     root: &Path,
     base: &str,
     paths: &[PathBuf],
-) -> Result<(
-    HashMap<String, Vec<(u32, u32)>>,
-    HashMap<String, Vec<(u32, u32)>>,
-    Vec<DiffEntry>,
-)> {
+) -> Result<ChangedRangesAndEntries> {
     let out = git_diff(
         root,
         base,

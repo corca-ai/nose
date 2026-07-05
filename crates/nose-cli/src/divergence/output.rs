@@ -115,90 +115,89 @@ fn shown_divergences(flagged: &[Divergence], top: Option<usize>) -> &[Divergence
     }
 }
 
-pub(super) fn divergence_sarif(
-    flagged: &[Divergence],
-    top: Option<usize>,
-    top_zero_spelling: &str,
-) -> Result<String> {
+fn sarif_location(s: &Site) -> serde_json::Value {
     use serde_json::json;
-    let phys = |s: &Site| {
-        let message = fragment_context(s).unwrap_or_else(|| site_label(s));
-        json!({
-            "message": { "text": message },
-            "physicalLocation": {
-                "artifactLocation": { "uri": s.file },
-                "region": { "startLine": s.start_line, "endLine": s.end_line }
-            }
-        })
-    };
-    let shown = shown_divergences(flagged, top);
-    let results: Vec<_> = shown
+    let message = fragment_context(s).unwrap_or_else(|| site_label(s));
+    json!({
+        "message": { "text": message },
+        "physicalLocation": {
+            "artifactLocation": { "uri": s.file },
+            "region": { "startLine": s.start_line, "endLine": s.end_line }
+        }
+    })
+}
+
+fn tier_label(tier: DivergenceTier) -> &'static str {
+    match tier {
+        DivergenceTier::Strict => "Strict",
+        DivergenceTier::Review => "Review-only",
+        DivergenceTier::ReportOnly => "Report-only",
+    }
+}
+
+fn divergence_sarif_result(d: &Divergence) -> serde_json::Value {
+    use serde_json::json;
+    let tier = d.tier();
+    let changed = d
+        .changed
         .iter()
-        .map(|d| {
-            let tier = d.tier();
-            let tier_label = match tier {
-                DivergenceTier::Strict => "Strict",
-                DivergenceTier::Review => "Review-only",
-                DivergenceTier::ReportOnly => "Report-only",
-            };
-            let changed = d
-                .changed
-                .iter()
-                .map(site_label)
-                .collect::<Vec<_>>()
-                .join(", ");
-            let siblings = d
-                .not_updated
-                .iter()
-                .map(site_label)
-                .collect::<Vec<_>>()
-                .join(", ");
-            let (message, locations, related_locations) = match d.lane {
-                DivergenceLane::BaseDivergence => (
-                    format!(
-                        "{tier_label} divergent edit: a clone of this code was changed \
-                         ({changed}) but this copy was not; inspect whether the change \
-                         should propagate here."
-                    ),
-                    // For base-divergence, SARIF locations are the un-updated siblings
-                    // so code scanning annotates the copy the change skipped.
-                    d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
-                    d.changed.iter().map(&phys).collect::<Vec<_>>(),
-                ),
-                DivergenceLane::NewCopy => (
-                    format!(
-                        "Report-only new-copy evidence: this current-tree copy is newly \
-                         connected to clone siblings ({siblings}); it never fails default CI."
-                    ),
-                    d.changed.iter().map(&phys).collect::<Vec<_>>(),
-                    d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
-                ),
-            };
-            json!({
-                "ruleId": tier.sarif_rule_id(),
-                "level": tier.sarif_level(),
-                "message": { "text": message },
-                "locations": locations,
-                "relatedLocations": related_locations,
-                "properties": {
-                    "family_id": d.family_id,
-                    "base_family_id": d.lane.base_family_id(&d.family_id),
-                    "lane": d.lane.as_str(),
-                    "tier": tier.as_str(),
-                    "tier_reasons": d.tier_reasons(),
-                    "taxonomy_hint": d.taxonomy_hint(),
-                    "gate": {
-                        "eligible": tier.gate_eligible(),
-                        "fail_default": d.gate_fail_default(),
-                        "policy": DIVERGENT_EDIT_V2_POLICY,
-                    },
-                    "policy": DIVERGENT_EDIT_V2_POLICY,
-                    "fire_eligible": d.fire_eligible,
-                },
-            })
-        })
-        .collect();
-    let rules = [
+        .map(site_label)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let siblings = d
+        .not_updated
+        .iter()
+        .map(site_label)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let (message, locations, related_locations) = match d.lane {
+        DivergenceLane::BaseDivergence => (
+            format!(
+                "{} divergent edit: a clone of this code was changed ({changed}) but this copy \
+                 was not; inspect whether the change should propagate here.",
+                tier_label(tier)
+            ),
+            // For base-divergence, SARIF locations are the un-updated siblings
+            // so code scanning annotates the copy the change skipped.
+            d.not_updated.iter().map(sarif_location).collect::<Vec<_>>(),
+            d.changed.iter().map(sarif_location).collect::<Vec<_>>(),
+        ),
+        DivergenceLane::NewCopy => (
+            format!(
+                "Report-only new-copy evidence: this current-tree copy is newly connected to \
+                 clone siblings ({siblings}); it never fails default CI."
+            ),
+            d.changed.iter().map(sarif_location).collect::<Vec<_>>(),
+            d.not_updated.iter().map(sarif_location).collect::<Vec<_>>(),
+        ),
+    };
+    json!({
+        "ruleId": tier.sarif_rule_id(),
+        "level": tier.sarif_level(),
+        "message": { "text": message },
+        "locations": locations,
+        "relatedLocations": related_locations,
+        "properties": {
+            "family_id": d.family_id,
+            "base_family_id": d.lane.base_family_id(&d.family_id),
+            "lane": d.lane.as_str(),
+            "tier": tier.as_str(),
+            "tier_reasons": d.tier_reasons(),
+            "taxonomy_hint": d.taxonomy_hint(),
+            "gate": {
+                "eligible": tier.gate_eligible(),
+                "fail_default": d.gate_fail_default(),
+                "policy": DIVERGENT_EDIT_V2_POLICY,
+            },
+            "policy": DIVERGENT_EDIT_V2_POLICY,
+            "fire_eligible": d.fire_eligible,
+        },
+    })
+}
+
+fn divergence_sarif_rules() -> Vec<serde_json::Value> {
+    use serde_json::json;
+    [
         DivergenceTier::Strict,
         DivergenceTier::Review,
         DivergenceTier::ReportOnly,
@@ -215,15 +214,24 @@ pub(super) fn divergence_sarif(
             } }
         })
     })
-    .collect::<Vec<_>>();
+    .collect()
+}
+
+pub(super) fn divergence_sarif(
+    flagged: &[Divergence],
+    top: Option<usize>,
+    top_zero_spelling: &str,
+) -> Result<String> {
+    use serde_json::json;
+    let shown = shown_divergences(flagged, top);
     let mut run = json!({
         "tool": { "driver": {
             "name": "nose",
             "informationUri": "https://github.com/corca-ai/nose",
             "version": env!("CARGO_PKG_VERSION"),
-            "rules": rules
+            "rules": divergence_sarif_rules()
         }},
-        "results": results,
+        "results": shown.iter().map(divergence_sarif_result).collect::<Vec<_>>(),
         "properties": {
             "inconsistent_families": flagged.len(),
             "total_families": flagged.len(),

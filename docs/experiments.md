@@ -1526,6 +1526,21 @@ not include a budget-eligible real-world `new-copy` row after the cap; the produ
 contract is covered by the focused JSON/SARIF fixtures while the replay establishes
 that the advisory lane does not introduce a runtime regression.
 
+#675 closeout repeated the full 560-record replay after the v2 strict gate,
+bounded `new-copy` lane, SARIF/output polish, and docs work. The closeout replay
+again had 0 errors. Default remained at a 31.8% fire rate with p50/p90
+2.16s/8.78s; `near` remained at a 39.6% fire rate with p50/p90 2.36s/10.69s.
+The checked policy simulation still gives the v2 strict gate 80 fires, 45 true
+positives, 35 false positives, and 0.562 precision, retaining all 45 confirmed
+v1 missed-propagation positives while cutting labeled default-failing findings
+from 94 to 80. A non-`base=` query regression over 10 corpus repos compared
+`origin/main` to the closeout binary and found identical product hashes, family
+counts, and output byte counts for every repo, with aggregate median
+5166.74ms -> 5209.02ms (+0.82%). No performance degradation was confirmed; the
+same-binary control measured +1.06% on the same slice, and the only increased
+replay cell was the `near` p90 tail, within the observed replay noise from the
+same-environment reruns.
+
 ## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
 
 §BK's structural arm is blind below vj 0.8 by construction; #246 built the

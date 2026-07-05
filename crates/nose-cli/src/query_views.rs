@@ -19,8 +19,7 @@ pub(super) fn print_query_prelude() {
     println!("nose finds; you judge. Filter, group, sort, or open families to explore.");
 }
 
-/// The location cell — `file:line  name` — coloured (path dim, symbol bold) with its
-/// *visible* width (sans ANSI) for column alignment.
+/// The location cell — `file:line  name` — coloured with its visible width for alignment.
 pub(super) fn loc_cell(f: &nose_detect::RefactorFamily) -> (String, usize) {
     let l = &f.locations[0];
     let pos = format!("{}:{}", l.file, l.start_line);
@@ -157,20 +156,15 @@ pub(super) fn render_query_base(
         format!("{}:{}-{}{name}", s.file, s.start_line, s.end_line)
     };
     for d in flagged.iter().take(limit) {
-        let tier = d.tier();
-        let propagation = match (tier, d.lane, d.taxonomy_hint()) {
+        let propagation = match (d.tier(), d.lane, d.taxonomy_hint()) {
             (divergence::DivergenceTier::Strict, _, _) => "strict (likely missed propagation)",
             (divergence::DivergenceTier::Review, _, "no_propagation_needed") => {
                 "review (shared logic not touched)"
             }
             (divergence::DivergenceTier::Review, _, _) => "review (shared logic unproven)",
-            (divergence::DivergenceTier::ReportOnly, divergence::DivergenceLane::NewCopy, _) => {
-                "report-only (new current-tree copy)"
-            }
-            (divergence::DivergenceTier::ReportOnly, _, "test_scaffolding") => {
-                "report-only (test/mixed scope)"
-            }
-            (divergence::DivergenceTier::ReportOnly, _, _) => "report-only (advisory)",
+            (_, divergence::DivergenceLane::NewCopy, _) => "report-only (new current-tree copy)",
+            (_, _, "test_scaffolding") => "report-only (test/mixed scope)",
+            _ => "report-only (advisory)",
         };
         let lane = d.lane.as_str();
         println!(

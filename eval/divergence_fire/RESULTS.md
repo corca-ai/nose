@@ -1,4 +1,4 @@
-# Divergent-edit fire-precision benchmark — results (2026-06-11 #243, 2026-07-06 #670)
+# Divergent-edit fire-precision benchmark — results (2026-06-11 #243, 2026-07-06 #670-#675)
 
 The consumer-2 measurement [design](../../docs/design.md) §3 called for: when query base
 is used as a PR gate, how often does it fire, and how often is the fire right? Protocol and
@@ -62,7 +62,7 @@ python3 eval/divergence_fire/replay.py redact-sample --samples sample.labeled.js
 python3 eval/divergence_fire/replay.py policy-eval --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl --out eval/divergence_fire/policy_eval_2026_07_06.json
 ```
 
-## Refresh run (2026-07-06, #670 in progress)
+## Refresh run (2026-07-06, #670-#675)
 
 The first v2 replay refresh broadened the corpus sample to 28 repos and 10 commits
 per repo, keeping both historical arms. The durable summary is
@@ -77,9 +77,9 @@ the source-free fields required to recompute the policy artifact.
 | default (`syntax,semantic`) | 280 | 0 | **31.8%** | 209 | 1 | 5 | 2.33 | 8.84 |
 | near (`syntax,semantic,near`) | 280 | 0 | **39.6%** | 274 | 1 | 6 | 2.45 | 10.31 |
 
-This run is not a policy closeout until the required #670 reviews are recorded,
-but the refreshed labelset now covers the full strict top-1 sample plus every
-lower-ranked fire-eligible finding in the all-findings selected pool. Verdicts are in
+The initial #670 run refreshed the labelset to cover the full strict top-1
+sample plus every lower-ranked fire-eligible finding in the all-findings selected
+pool. Verdicts are in
 [`verdicts_2026_07_06.jsonl`](verdicts_2026_07_06.jsonl), with policy simulation
 in [`policy_eval_2026_07_06.json`](policy_eval_2026_07_06.json).
 
@@ -110,6 +110,48 @@ replay measured default 2.38s/9.55s and near 2.43s/10.37s, also with 0 errors.
 The fixed replay sample had no budget-eligible real-world `new-copy` row after the
 cap; the lane's product contract is pinned by the focused JSON/SARIF fixtures while
 the replay checks the no-runtime-regression constraint.
+
+The #675 closeout replay reran the same 28-repo, 560-record replay after the
+v2 strict gate, bounded `new-copy` lane, SARIF/output polish, and docs updates.
+It completed with 0 errors. Scratch raw records are intentionally not checked in
+because they contain source excerpts; the closeout summary and policy commands were:
+
+```sh
+cargo build --release -p nose-cli
+python3 eval/divergence_fire/replay.py replay \
+  --repos git redis curl hugo minio cobra prometheus netty rxjava guava gson scrapy sympy black requests rubocop sidekiq devise clap tokio regex fd jest rxjs prettier axios date-fns execa \
+  --per-repo 10 --jobs 6 --timeout 240 \
+  --out /tmp/nose-675/divfire-final-2026-07-06.raw.jsonl
+python3 eval/divergence_fire/replay.py summarize \
+  --records /tmp/nose-675/divfire-final-2026-07-06.raw.jsonl \
+  --out /tmp/nose-675/replay_summary_final_2026_07_06.json
+python3 eval/divergence_fire/replay.py policy-eval \
+  --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl \
+  --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl \
+  --out /tmp/nose-675/policy_eval_final_2026_07_06.json
+```
+
+| arm | replays | errors | fire rate | strict-firing changes | findings | tier counts | divergence s p50 | p90 |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| default (`syntax,semantic`) | 280 | 0 | 31.8% | 32 | 209 | report-only 105, review 62, strict 42 | 2.16 | 8.78 |
+| near (`syntax,semantic,near`) | 280 | 0 | 39.6% | 43 | 274 | report-only 118, review 90, strict 66 | 2.36 | 10.69 |
+
+The checked policy inputs still reproduce the v2 strict result: 80 strict fires,
+45 true positives, 35 false positives, precision 0.562. That retains all 45/45
+confirmed positives from the serialized v1 `fire_eligible` slice while reducing
+labeled default-failing findings from 94 to 80.
+
+Runtime did not show a confirmed degradation. Against the same-environment #672
+strict-gate replay, default p50/p90 moved 2.53s/9.52s -> 2.16s/8.78s and near
+p50/p90 moved 2.70s/10.66s -> 2.36s/10.69s. Against the durable #670 refresh
+summary, default p50/p90 moved 2.33s/8.84s -> 2.16s/8.78s and near p50/p90 moved
+2.45s/10.31s -> 2.36s/10.69s; the only increased replay cell is the near p90
+tail. A separate non-`base=` product-output regression over 10 corpus repos and
+5 iterations compared `origin/main` to the closeout worktree binary: aggregate
+median 5166.74ms -> 5209.02ms (+0.82%), with identical product hashes, family
+counts, and output byte counts for all 10 repos. A same-binary control over the
+same repos and iterations measured 5192.14ms -> 5247.17ms (+1.06%), so the
+observed before/after delta is below harness noise for this slice.
 
 The remaining false-positive buckets under serialized `fire_eligible` are:
 
