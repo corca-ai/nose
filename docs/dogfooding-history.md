@@ -907,3 +907,16 @@ fragment-only query path and branch positive/negative checks into
 `exact_fragments/support.rs` keeps each fixture matrix local while removing the
 duplicated harness. No new family appears, so the baseline budget is tightened
 to 37.
+
+The exact-fragment branch-shape cleanup keeps the count at 37 while narrowing
+the reviewed production fragment mirror representative. The old
+`9a228db20ad1a68b` family mixed contract loop-effect recognition, legacy
+loop-effect predicates, conditional guard summarization, and self-field branch
+handling. Moving the shared `if` branch-block shape into
+`il_utils::if_branch_blocks` removes that broad cross-shape representative, and
+splitting the loop-effect body scanners keeps the contract recognizer and the
+legacy differential guard independent. The remaining `5ad08a3c9ab9f5c3`
+representative is the narrower two-copy loop temp-window scanner mirror. It is
+kept as reviewed differential-test debt rather than extracted into a shared
+recognizer helper, because sharing that scanner would couple the production
+contract path to its independent predicate oracle. No new budget is accepted.

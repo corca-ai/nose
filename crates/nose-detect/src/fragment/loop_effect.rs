@@ -1,11 +1,11 @@
 //! Independent contract-path recognizer for the [`FragmentKind::LoopEffect`] shape.
 //!
-//! Issue #49 (Team A), migration 1. The production authority stays the predicate matrix in
-//! [`crate::units`]; this re-expresses the *same acceptance boundary* on the contract path so
-//! the differential gate (`super::recognize`) can hold the two in lockstep. Per the issue
-//! decision, the re-expression is **independent**: it shares only substrate-level generic
-//! utilities (AST traversal over canonical ids), never the predicate's acceptance helpers
-//! (`units::exact_loop_effect_fragment_root`, `foreach_effect_body_depends_on_iter`, …).
+//! Issue #49 (Team A), migration 1. The production authority is the contract path; the
+//! legacy predicate matrix in [`crate::units`] remains a debug/differential guard for the
+//! same acceptance boundary. Per the issue decision, the re-expression is **independent**:
+//! it shares only substrate-level generic utilities (AST traversal over canonical ids),
+//! never the predicate's acceptance helpers (`units::exact_loop_effect_fragment_root`,
+//! `foreach_effect_body_depends_on_iter`, …).
 //!
 //! A `LoopEffect` is a `for-each` loop whose body produces at least one **iteration-dependent
 //! observable effect** — an append or an index write whose written value/key depends on the
@@ -18,7 +18,9 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use crate::il_utils::{local_nontrivial_assignment, node_mentions_any_cid as mentions_any};
+use crate::il_utils::{
+    if_branch_blocks, local_nontrivial_assignment, node_mentions_any_cid as mentions_any,
+};
 use nose_il::{Il, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{builder_append_call_args, exact_non_overloadable_index_assignment_parts};
 use rustc_hash::FxHashSet;
@@ -73,79 +75,105 @@ fn body_depends_on_iter(
     effects: &mut Vec<EffectSite>,
 ) -> Option<bool> {
     match il.kind(node) {
-        NodeKind::Block => {
-            let kids = il.children(node);
-            let mut has_effect = false;
-            let mut idx = 0;
-            while idx < kids.len() {
-                // Two- and three-statement temp windows consume their statements as a unit.
-                if idx + 2 < kids.len()
-                    && temp_chain_consumed_by_effect(
-                        il,
-                        interner,
-                        kids[idx],
-                        kids[idx + 1],
-                        kids[idx + 2],
-                        iter_cids,
-                        effects,
-                    )
-                {
-                    has_effect = true;
-                    idx += 3;
-                    continue;
-                }
-                if idx + 1 < kids.len()
-                    && temp_assignment_consumed_by_effect(
-                        il,
-                        interner,
-                        kids[idx],
-                        kids[idx + 1],
-                        iter_cids,
-                        effects,
-                    )
-                {
-                    has_effect = true;
-                    idx += 2;
-                    continue;
-                }
-                has_effect |= body_depends_on_iter(il, interner, kids[idx], iter_cids, effects)?;
-                idx += 1;
-            }
-            Some(has_effect)
-        }
+        NodeKind::Block => block_depends_on_iter(il, interner, node, iter_cids, effects),
         NodeKind::ExprStmt => {
-            let kids = il.children(node);
-            if kids.len() == 1 && append_depends_on_iter(il, interner, kids[0], iter_cids) {
-                effects.push(EffectSite::observable(Effect::Append));
-                Some(true)
-            } else {
-                None
-            }
+            expr_statement_depends_on_iter(il, interner, node, iter_cids, effects)
         }
-        NodeKind::Assign => {
-            if index_assignment_depends_on_iter(il, node, iter_cids) {
-                effects.push(EffectSite::observable(Effect::IndexWrite));
-                Some(true)
-            } else {
-                None
-            }
-        }
-        NodeKind::If => {
-            let kids = il.children(node);
-            if !(kids.len() == 2 || kids.len() == 3) {
-                return None;
-            }
-            let mut has_effect = false;
-            for &branch in kids.iter().skip(1) {
-                if il.kind(branch) != NodeKind::Block {
-                    return None;
-                }
-                has_effect |= body_depends_on_iter(il, interner, branch, iter_cids, effects)?;
-            }
-            Some(has_effect)
-        }
+        NodeKind::Assign => assignment_depends_on_iter(il, node, iter_cids, effects),
+        NodeKind::If => if_body_depends_on_iter(il, interner, node, iter_cids, effects),
         _ => None,
     }
+}
+
+fn block_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+    effects: &mut Vec<EffectSite>,
+) -> Option<bool> {
+    let kids = il.children(node);
+    let mut has_effect = false;
+    let mut idx = 0;
+    while idx < kids.len() {
+        // Two- and three-statement temp windows consume their statements as a unit.
+        if idx + 2 < kids.len()
+            && temp_chain_consumed_by_effect(
+                il,
+                interner,
+                kids[idx],
+                kids[idx + 1],
+                kids[idx + 2],
+                iter_cids,
+                effects,
+            )
+        {
+            has_effect = true;
+            idx += 3;
+            continue;
+        }
+        if idx + 1 < kids.len()
+            && temp_assignment_consumed_by_effect(
+                il,
+                interner,
+                kids[idx],
+                kids[idx + 1],
+                iter_cids,
+                effects,
+            )
+        {
+            has_effect = true;
+            idx += 2;
+            continue;
+        }
+        has_effect |= body_depends_on_iter(il, interner, kids[idx], iter_cids, effects)?;
+        idx += 1;
+    }
+    Some(has_effect)
+}
+
+fn expr_statement_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+    effects: &mut Vec<EffectSite>,
+) -> Option<bool> {
+    let kids = il.children(node);
+    if kids.len() == 1 && append_depends_on_iter(il, interner, kids[0], iter_cids) {
+        effects.push(EffectSite::observable(Effect::Append));
+        Some(true)
+    } else {
+        None
+    }
+}
+
+fn assignment_depends_on_iter(
+    il: &Il,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+    effects: &mut Vec<EffectSite>,
+) -> Option<bool> {
+    if index_assignment_depends_on_iter(il, node, iter_cids) {
+        effects.push(EffectSite::observable(Effect::IndexWrite));
+        Some(true)
+    } else {
+        None
+    }
+}
+
+fn if_body_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+    effects: &mut Vec<EffectSite>,
+) -> Option<bool> {
+    let mut has_effect = false;
+    for &branch in if_branch_blocks(il, node)? {
+        has_effect |= body_depends_on_iter(il, interner, branch, iter_cids, effects)?;
+    }
+    Some(has_effect)
 }
 
 // ---- direct iteration-dependent effects --------------------------------------------------

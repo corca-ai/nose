@@ -56,9 +56,9 @@ The contract path can verify a fragment through the *same* independent behavior 
 a whole function. It does **not** add a new interpreter path. Instead the contract is lowered
 into a synthetic single-function IL — free inputs become parameters, the fragment subtree is
 deep-copied into the body — and handed to the existing
-[interpreter](../crates/nose-normalize/src/interp.rs). The production detection path still uses the
-predicate path described below; the contract path is kept in lockstep by differential tests
-and proof obligations.
+[interpreter](../crates/nose-normalize/src/interp.rs). Production detection now uses the
+contract path; the older predicate path is kept only as a debug/differential guard while it
+remains in-tree.
 
 Wrapper synthesis preserves the copied nodes' original spans and carries the source IL's
 evidence graph into the wrapper. This is required for semantic-kernel admission: canonical

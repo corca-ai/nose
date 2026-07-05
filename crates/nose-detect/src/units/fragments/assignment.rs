@@ -1,6 +1,6 @@
 use super::super::tree::parent_of;
 use crate::fragment::FragmentKind;
-use crate::il_utils::{empty_or_single_block_child, EmptyOrSingleChild};
+use crate::il_utils::{empty_or_single_block_child, if_branch_blocks, EmptyOrSingleChild};
 use crate::strict_exact::{strict_exact_safe_tree, StrictFacts};
 use nose_il::{Il, Interner, NodeId, NodeKind};
 use nose_semantics::{
@@ -102,12 +102,11 @@ fn exact_self_field_statement_fragment_root(il: &Il, interner: &Interner, node: 
     match il.kind(node) {
         NodeKind::Assign => exact_self_field_assignment_fragment_root(il, interner, node),
         NodeKind::If => {
-            let kids = il.children(node);
-            if !(kids.len() == 2 || kids.len() == 3) {
+            let Some(branches) = if_branch_blocks(il, node) else {
                 return false;
-            }
+            };
             let mut has_field_assignment = false;
-            for &branch in kids.iter().skip(1) {
+            for &branch in branches {
                 let Some(branch_has_field_assignment) =
                     exact_self_field_statement_branch_root(il, interner, branch)
                 else {
@@ -179,15 +178,14 @@ fn strict_exact_self_field_effect_safe(
                 && strict_exact_safe_tree(il, interner, facts, kids[1])
         }
         NodeKind::If => {
-            let kids = il.children(node);
-            if !(kids.len() == 2 || kids.len() == 3) {
+            let Some(branches) = if_branch_blocks(il, node) else {
                 return false;
-            }
-            if !strict_exact_safe_tree(il, interner, facts, kids[0]) {
+            };
+            if !strict_exact_safe_tree(il, interner, facts, il.children(node)[0]) {
                 return false;
             }
             let mut has_field_assignment = false;
-            for &branch in kids.iter().skip(1) {
+            for &branch in branches {
                 let Some(branch_has_field_assignment) =
                     strict_exact_self_field_branch_safe(il, interner, facts, parents, branch)
                 else {

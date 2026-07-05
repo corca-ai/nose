@@ -17,6 +17,21 @@ pub(crate) fn empty_or_single_block_child(il: &Il, node: NodeId) -> Option<Empty
     }
 }
 
+pub(crate) fn if_branch_blocks(il: &Il, node: NodeId) -> Option<&[NodeId]> {
+    if il.kind(node) != NodeKind::If {
+        return None;
+    }
+    let kids = il.children(node);
+    if !(kids.len() == 2 || kids.len() == 3) {
+        return None;
+    }
+    let branches = &kids[1..];
+    branches
+        .iter()
+        .all(|&branch| il.kind(branch) == NodeKind::Block)
+        .then_some(branches)
+}
+
 pub(crate) fn node_mentions_any_cid(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
     if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
         if cids.contains(&cid) {

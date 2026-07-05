@@ -8,8 +8,8 @@ use super::loop_effect::{
 };
 use super::{exact_conditional_fragment_root, exact_expr_statement_fragment_root};
 use crate::il_utils::{
-    empty_or_single_block_child, local_nontrivial_assignment, local_nontrivial_assignment_chain,
-    node_mentions_any_cid, EmptyOrSingleChild,
+    empty_or_single_block_child, if_branch_blocks, local_nontrivial_assignment,
+    local_nontrivial_assignment_chain, node_mentions_any_cid, EmptyOrSingleChild,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::exact_non_overloadable_index_assignment_parts;
@@ -139,12 +139,11 @@ fn exact_conditional_direct_effect_fragment_root(
     interner: &Interner,
     node: NodeId,
 ) -> bool {
-    let kids = il.children(node);
-    if il.kind(node) != NodeKind::If || !(kids.len() == 2 || kids.len() == 3) {
+    let Some(branches) = if_branch_blocks(il, node) else {
         return false;
-    }
+    };
     let mut has_effect = false;
-    for &branch in kids.iter().skip(1) {
+    for &branch in branches {
         let Some(branch_has_effect) =
             empty_or_single_direct_exact_effect_block(il, interner, branch)
         else {

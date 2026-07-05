@@ -12,8 +12,8 @@ use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
 use crate::il_utils::{
-    empty_or_single_block_child, local_nontrivial_assignment, local_nontrivial_assignment_chain,
-    node_mentions_any_cid as mentions_any, EmptyOrSingleChild,
+    empty_or_single_block_child, if_branch_blocks, local_nontrivial_assignment,
+    local_nontrivial_assignment_chain, node_mentions_any_cid as mentions_any, EmptyOrSingleChild,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
@@ -57,15 +57,8 @@ impl Summary {
 }
 
 fn conditional_summary(il: &Il, interner: &Interner, node: NodeId) -> Option<Summary> {
-    if il.kind(node) != NodeKind::If {
-        return None;
-    }
-    let kids = il.children(node);
-    if !(kids.len() == 2 || kids.len() == 3) {
-        return None;
-    }
     let mut out = Summary::default();
-    for &branch in kids.iter().skip(1) {
+    for &branch in if_branch_blocks(il, node)? {
         let summary = branch_block(il, interner, branch)?;
         out.has_statement |= summary.has_statement;
         out.effects.extend(summary.effects);
@@ -153,16 +146,9 @@ fn conditional_direct_effect_sites(
     interner: &Interner,
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
-    if il.kind(node) != NodeKind::If {
-        return None;
-    }
-    let kids = il.children(node);
-    if !(kids.len() == 2 || kids.len() == 3) {
-        return None;
-    }
     let mut has_effect = false;
     let mut effects = Vec::new();
-    for &branch in kids.iter().skip(1) {
+    for &branch in if_branch_blocks(il, node)? {
         let branch_effect = empty_or_single_direct_effect_block(il, interner, branch)?;
         has_effect |= branch_effect.is_some();
         if let Some(site) = branch_effect {

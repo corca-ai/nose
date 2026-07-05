@@ -1,5 +1,5 @@
 use super::super::tree::collect_cids;
-use crate::il_utils::{local_nontrivial_assignment, node_mentions_any_cid};
+use crate::il_utils::{if_branch_blocks, local_nontrivial_assignment, node_mentions_any_cid};
 use nose_il::{Il, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{builder_append_call_args, exact_non_overloadable_index_assignment_parts};
 use rustc_hash::FxHashSet;
@@ -27,68 +27,88 @@ fn foreach_effect_body_depends_on_iter(
     iter_cids: &FxHashSet<u32>,
 ) -> Option<bool> {
     match il.kind(node) {
-        NodeKind::Block => {
-            let mut has_effect = false;
-            let kids = il.children(node);
-            let mut idx = 0;
-            while idx < kids.len() {
-                if idx + 2 < kids.len()
-                    && loop_temp_chain_consumed_by_effect(
-                        il,
-                        interner,
-                        kids[idx],
-                        kids[idx + 1],
-                        kids[idx + 2],
-                        iter_cids,
-                    )
-                {
-                    has_effect = true;
-                    idx += 3;
-                    continue;
-                }
-                if idx + 1 < kids.len()
-                    && loop_temp_assignment_consumed_by_effect(
-                        il,
-                        interner,
-                        kids[idx],
-                        kids[idx + 1],
-                        iter_cids,
-                    )
-                {
-                    has_effect = true;
-                    idx += 2;
-                    continue;
-                }
-                has_effect |=
-                    foreach_effect_body_depends_on_iter(il, interner, kids[idx], iter_cids)?;
-                idx += 1;
-            }
-            Some(has_effect)
-        }
-        NodeKind::ExprStmt => {
-            let kids = il.children(node);
-            (kids.len() == 1 && append_effect_depends_on_iter(il, interner, kids[0], iter_cids))
-                .then_some(true)
-        }
-        NodeKind::Assign => {
-            index_assignment_effect_depends_on_iter(il, interner, node, iter_cids).then_some(true)
-        }
-        NodeKind::If => {
-            let kids = il.children(node);
-            if !(kids.len() == 2 || kids.len() == 3) {
-                return None;
-            }
-            let mut has_append = false;
-            for &branch in kids.iter().skip(1) {
-                if il.kind(branch) != NodeKind::Block {
-                    return None;
-                }
-                has_append |= foreach_effect_body_depends_on_iter(il, interner, branch, iter_cids)?;
-            }
-            Some(has_append)
-        }
+        NodeKind::Block => foreach_block_depends_on_iter(il, interner, node, iter_cids),
+        NodeKind::ExprStmt => foreach_expr_statement_depends_on_iter(il, interner, node, iter_cids),
+        NodeKind::Assign => foreach_assignment_depends_on_iter(il, interner, node, iter_cids),
+        NodeKind::If => foreach_if_depends_on_iter(il, interner, node, iter_cids),
         _ => None,
     }
+}
+
+fn foreach_block_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+) -> Option<bool> {
+    let mut has_effect = false;
+    let kids = il.children(node);
+    let mut idx = 0;
+    while idx < kids.len() {
+        if idx + 2 < kids.len()
+            && loop_temp_chain_consumed_by_effect(
+                il,
+                interner,
+                kids[idx],
+                kids[idx + 1],
+                kids[idx + 2],
+                iter_cids,
+            )
+        {
+            has_effect = true;
+            idx += 3;
+            continue;
+        }
+        if idx + 1 < kids.len()
+            && loop_temp_assignment_consumed_by_effect(
+                il,
+                interner,
+                kids[idx],
+                kids[idx + 1],
+                iter_cids,
+            )
+        {
+            has_effect = true;
+            idx += 2;
+            continue;
+        }
+        has_effect |= foreach_effect_body_depends_on_iter(il, interner, kids[idx], iter_cids)?;
+        idx += 1;
+    }
+    Some(has_effect)
+}
+
+fn foreach_expr_statement_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+) -> Option<bool> {
+    let kids = il.children(node);
+    (kids.len() == 1 && append_effect_depends_on_iter(il, interner, kids[0], iter_cids))
+        .then_some(true)
+}
+
+fn foreach_assignment_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+) -> Option<bool> {
+    index_assignment_effect_depends_on_iter(il, interner, node, iter_cids).then_some(true)
+}
+
+fn foreach_if_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+) -> Option<bool> {
+    let mut has_append = false;
+    for &branch in if_branch_blocks(il, node)? {
+        has_append |= foreach_effect_body_depends_on_iter(il, interner, branch, iter_cids)?;
+    }
+    Some(has_append)
 }
 
 fn loop_temp_assignment_consumed_by_effect(

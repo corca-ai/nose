@@ -10,7 +10,7 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use crate::il_utils::{empty_or_single_block_child, EmptyOrSingleChild};
+use crate::il_utils::{empty_or_single_block_child, if_branch_blocks, EmptyOrSingleChild};
 use nose_il::{Il, Interner, NodeId, NodeKind};
 use nose_semantics::{exact_java_return_this, exact_self_field_write_assignment};
 
@@ -72,12 +72,8 @@ fn self_field_statement(
     match il.kind(node) {
         NodeKind::Assign => self_field_assign(il, interner, node, effects),
         NodeKind::If => {
-            let kids = il.children(node);
-            if !(kids.len() == 2 || kids.len() == 3) {
-                return None;
-            }
             let mut has_field_assignment = false;
-            for &branch in kids.iter().skip(1) {
+            for &branch in if_branch_blocks(il, node)? {
                 let before = effects.len();
                 self_field_branch(il, interner, branch, effects)?;
                 has_field_assignment |= effects.len() != before;

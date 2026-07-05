@@ -30,9 +30,8 @@ cannot mask a newly introduced duplicate.
 
 The current reviewed default-surface budget is 37 families, matching
 `scripts/duplication-baseline.json`. The latest documented cleanup is the
-exact-fragment ordered-branch fixture cleanup, which tightened the budget from
-39 to 37 by sharing the CLI exact-fragment query and branch-pair assertion
-harness.
+exact-fragment branch-shape cleanup, which keeps the budget at 37 while moving
+the old broad fragment mirror representative to a narrower loop-window mirror.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline

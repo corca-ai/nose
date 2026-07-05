@@ -153,6 +153,9 @@ set -euo pipefail
 # pack/provenance builders remove the repeated contract id/callee/arity fixture wrappers.
 # 39 -> 37 (exact-fragment ordered branch fixtures): shared CLI exact-fragment query and
 # branch-pair assertion helpers remove the repeated ordered-branch fixture harness.
+# 37 -> 37 (exact-fragment branch shape): shared `if_branch_blocks` removes the broad
+# fragment mirror representative `9a228db20ad1a68b`; the narrower loop-window mirror
+# representative `5ad08a3c9ab9f5c3` remains reviewed differential-test debt.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
