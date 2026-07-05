@@ -170,7 +170,7 @@ Every packet and its verdict accumulates in **`bench/coevo/packets.v1.json`**
    Lean obligation if proof-sensitive ([formal-soundness](formal-soundness.md));
    corpus label join showing zero worthy-label loss (the
    [eval/declaration_runs](../eval/declaration_runs/RESULTS.md) precedent); the
-   zero-false-merge and determinism gates ([CONTRIBUTING](../CONTRIBUTING.md)).
+   zero-false-merge and determinism gates ([contributing](contributing.md)).
 
    **The accept-distribution pre-gate** (promoted after two consecutive catches,
    §CA/§CB): a defense that tightens a filter ships only after the corpus

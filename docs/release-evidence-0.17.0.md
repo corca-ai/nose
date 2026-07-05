@@ -16,7 +16,7 @@ See the machine-readable [release-0.17.0-evidence-2026-07-02.v1.json](../bench/r
   violations. `nose 0.16.0` did not support `--recall-loss-report`, so deterministic
   recall-loss diffs start with 0.17.0 artifacts.
 - Full local CI must pass before tagging; see [continuous integration](continuous-integration.md)
-  and the release steps in [CONTRIBUTING](../CONTRIBUTING.md#releasing).
+  and the release steps in [contributing](contributing.md#releasing).
 
 ## Performance fixes
 

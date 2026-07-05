@@ -67,6 +67,8 @@ fundamentals; the rest is grouped by area.
 
 ### Repository workflow
 
+- [contributing](contributing.md) — contributor workflow, local quality gates,
+  repository automation, conventions, changelog discipline, and release steps.
 - [agent-instructions](agent-instructions.md) — repository-specific instructions for coding agents, including documentation workflow and docs checks.
 
 ### Channels, witnesses & proofs
@@ -151,5 +153,5 @@ fundamentals; the rest is grouped by area.
 - [lawpack-provenance-audit-2026-06-10](lawpack-provenance-audit-2026-06-10.md) — full-corpus and targeted real-repo audit of `nose.value_graph.laws` provenance.
 - [default-surface-noise-audit-2026-06-14](default-surface-noise-audit-2026-06-14.md) — re-judging the #263/#264/#11/#353 triage-noise feedback on fresh repos: the default-surface noise is two populations (decidable-shape vs judgment-deep AAA scaffolding), and the principle-respecting lever.
 
-The contributor workflow and quality gates live in
-[CONTRIBUTING](../CONTRIBUTING.md); release history is in [CHANGELOG](../CHANGELOG.md).
+The root [CONTRIBUTING](../CONTRIBUTING.md) is a short entry point to the
+[contributing](contributing.md) workflow page; release history is in [CHANGELOG](../CHANGELOG.md).

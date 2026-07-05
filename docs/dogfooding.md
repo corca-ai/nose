@@ -5,7 +5,7 @@ This page is the current operating guide for that gate; the detailed review log
 and older candidate-by-candidate judgments live in [dogfooding history](dogfooding-history.md).
 
 The third-party counterpart is [field evaluation](field-evaluation.md). The
-repository workflow that runs this gate is in [CONTRIBUTING](../CONTRIBUTING.md).
+repository workflow that runs this gate is in [contributing](contributing.md).
 
 ## Current gate
 

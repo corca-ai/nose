@@ -212,6 +212,6 @@ object-surface, C type/preprocessor recovery, and CSS extension-surface tranches
 [experiments](experiments.md). The log records the
 full sequence of gap closures (Java records, Rust `async` blocks, Go/JS/TS/C/Java/Ruby/Swift
 `switch`/`case` shapes, and more); the
-convergence-test discipline that keeps each one honest is in [`CONTRIBUTING`](../CONTRIBUTING.md).
+convergence-test discipline that keeps each one honest is in [contributing](contributing.md).
 
 For the planned pack-based language onboarding model, see [semantic-kernel-roadmap](semantic-kernel-roadmap.md).

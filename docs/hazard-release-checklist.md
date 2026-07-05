@@ -2,7 +2,7 @@
 
 > **One page, everything in one place:** what to do for the [hazard ranking](hazard-ranking.md)
 > every time you cut a new nose version. The general release process (version bump,
-> [CHANGELOG](../CHANGELOG.md), [CONTRIBUTING](../CONTRIBUTING.md)) is separate; this
+> [CHANGELOG](../CHANGELOG.md), [contributing](contributing.md#releasing)) is separate; this
 > page is the hazard-specific obligation that is easy to forget.
 
 **Why this exists.** `hazard()`'s weights are *calibrated against mined data whose

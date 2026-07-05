@@ -9,7 +9,7 @@ live in [dogfooding](dogfooding.md).
 Goal: honestly assess whether `nose query crates all top=0 --mode near --min-value 40` produces *real* design-level
 refactoring opportunities on its own codebase, act on the genuine ones, and record
 where the tool is weak. The third-party counterpart is [field evaluation](field-evaluation.md);
-the duplication gate that grew out of this lives in [CONTRIBUTING](../CONTRIBUTING.md).
+the duplication gate that grew out of this lives in [contributing](contributing.md#the-duplication-gate-dogfooding).
 
 Original review scope: the then-production crates only (6 Rust crates, 8-language
 frontends). Result at the start of this review: 34 candidate families, ~662 duplicated

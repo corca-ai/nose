@@ -196,4 +196,4 @@ nose query src --cache-dir .nose-cache --fail-on any
 
 Contributing to nose itself? The repository's own CI — the local preflight, the duplication
 ratchet and the nightly soundness corpus-verify policy — lives in
-[CONTRIBUTING](../CONTRIBUTING.md), not here.
+[contributing](contributing.md), not here.
