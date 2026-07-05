@@ -1,5 +1,18 @@
 use super::*;
 
+const QUERY_JSON_REQUIRED_FAMILY_KEYS: &[&str] = &[
+    "id",
+    "scope",
+    "witness",
+    "members",
+    "shared",
+    "params",
+    "removable",
+    "locations",
+    "extraction_shape",
+    "same_symbol",
+];
+
 #[test]
 fn query_top_zero_shows_all_families() {
     // Regression for the v0.10.0 query-subsumes-query gap: `top=0` must mean *all* (matching
@@ -147,6 +160,89 @@ fn async_mirror_fixture_file(path: &str) -> bool {
     [".py", ".ts", ".rs", ".swift"]
         .iter()
         .any(|suffix| path.ends_with(suffix))
+}
+
+fn assert_query_json_docs_cover_smoke_keys() {
+    let docs_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root")
+        .join("docs/query-json.md");
+    let markdown = fs::read_to_string(&docs_path)
+        .unwrap_or_else(|err| panic!("read {}: {err}", docs_path.display()));
+    assert_query_json_doc_section_fields(
+        &markdown,
+        "envelope",
+        "## Envelope",
+        "## Semantic packs",
+        &["schema_version", "tool", "view", "path", "semantic_packs"],
+    );
+    assert_query_json_doc_section_fields(
+        &markdown,
+        "dashboard view",
+        "**`dashboard`**",
+        "**`list`**",
+        &["summary", "families", "top_candidates", "markdown", "next"],
+    );
+    assert_query_json_doc_section_fields(
+        &markdown,
+        "group view",
+        "**`group`**",
+        "**`family`**",
+        &["field", "groups", "removable"],
+    );
+    assert_query_json_doc_section_fields(
+        &markdown,
+        "family view",
+        "**`family`**",
+        "**`reinvented`**",
+        &["hint", "hint_reasons", "family", "skeleton"],
+    );
+    assert_query_json_doc_section_fields(
+        &markdown,
+        "family object",
+        "## The family object",
+        "`metrics` carries",
+        QUERY_JSON_REQUIRED_FAMILY_KEYS,
+    );
+}
+
+fn assert_query_json_doc_section_fields(
+    markdown: &str,
+    section_name: &str,
+    start_marker: &str,
+    end_marker: &str,
+    keys: &[&str],
+) {
+    let section = markdown_between(markdown, start_marker, end_marker);
+    for key in keys {
+        assert!(
+            query_json_docs_mentions_field(section, key),
+            "docs/query-json.md {section_name} section should document `{key}` because the query JSON smoke test checks that contract surface"
+        );
+    }
+}
+
+fn markdown_between<'a>(markdown: &'a str, start_marker: &str, end_marker: &str) -> &'a str {
+    let start = markdown
+        .find(start_marker)
+        .unwrap_or_else(|| panic!("docs/query-json.md missing {start_marker}"));
+    let rest = &markdown[start + start_marker.len()..];
+    let end = rest
+        .find(end_marker)
+        .unwrap_or_else(|| panic!("docs/query-json.md missing {end_marker} after {start_marker}"));
+    &rest[..end]
+}
+
+fn query_json_docs_mentions_field(markdown: &str, key: &str) -> bool {
+    [
+        format!("`{key}`"),
+        format!("`{key}[]`"),
+        format!("{key}:"),
+        format!("{key},"),
+    ]
+    .iter()
+    .any(|needle| markdown.contains(needle))
 }
 
 #[test]
@@ -344,19 +440,9 @@ fn query_dashboard_filter_and_family() {
         serde_json::from_str(&run(&["query", p, "group=dir", "--format", "json"])).unwrap();
     assert_eq!(grouped["view"], "group");
     assert_query_json_reports_semantic_packs(&grouped);
+    assert_query_json_docs_cover_smoke_keys();
     let fam = &list["families"][0];
-    for k in [
-        "id",
-        "scope",
-        "witness",
-        "members",
-        "shared",
-        "params",
-        "removable",
-        "locations",
-        "extraction_shape",
-        "same_symbol",
-    ] {
+    for k in QUERY_JSON_REQUIRED_FAMILY_KEYS {
         assert!(!fam[k].is_null(), "query-json family.{k} present: {list}");
     }
     // `full` carries the all-copies extraction skeleton on the family object.
