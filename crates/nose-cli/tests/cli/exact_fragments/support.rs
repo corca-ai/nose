@@ -28,12 +28,8 @@ fn query_fragment_fixtures_with(
     fixtures: &[(&str, &str)],
     size_args: &[&str],
 ) -> FragmentQuery {
-    let dir = std::env::temp_dir().join(format!("{tag}_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let dir = make_temp_dir(tag);
+    write_files(&dir, fixtures);
     let mut args = vec!["query", dir.to_str().unwrap(), "--mode", "semantic"];
     args.extend_from_slice(size_args);
     args.extend_from_slice(&["--format", "json", "top=0"]);

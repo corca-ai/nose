@@ -5,13 +5,6 @@ use super::*;
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_branch_temp_consumption_fragments_under_opaque_functions() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_branch_temp_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "temp_return_a.py",
@@ -150,25 +143,8 @@ fn semantic_query_reports_exact_safe_branch_temp_consumption_fragments_under_opa
             "package p\nfunc tempIndexChainUsesPrior(xs []int, out []int, ok bool) {\n  if ok {\n    shifted := xs[0] + 1\n    slot := shifted * shifted\n    out[slot + shifted] = xs[1]\n  }\n  audit(xs)\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
+    let (dir, out, families) =
+        query_fragment_only_fixtures("nose_exact_branch_temp_fragments", &fixtures);
 
     let assert_temp_family = |left: &str, right: &str, negative: &str| {
         let family = families

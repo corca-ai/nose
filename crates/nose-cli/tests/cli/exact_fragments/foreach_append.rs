@@ -5,13 +5,6 @@ use super::*;
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_foreach_append_effect_fragments_under_opaque_functions() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_loop_effect_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "loop_push_square_a.ts",
@@ -130,25 +123,8 @@ fn semantic_query_reports_exact_safe_foreach_append_effect_fragments_under_opaqu
             "function loopUntypedPushSquare(xs, out) {\n  for (const x of xs) {\n    out.push(x * x);\n  }\n  audit(xs);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
+    let (dir, out, families) =
+        query_fragment_only_fixtures("nose_exact_loop_effect_fragments", &fixtures);
 
     let assert_loop_family = |left: &str,
                               right: &str,

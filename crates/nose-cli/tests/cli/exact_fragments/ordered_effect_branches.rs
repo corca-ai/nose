@@ -5,13 +5,6 @@ use super::*;
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_ordered_foreach_effect_branch_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "cond_two_loops_a.ts",
@@ -66,30 +59,13 @@ fn semantic_query_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
             "package p\nfunc condTwoIndexLoopsWrongReceiver(flag bool, xs []int, ys []int, out []int) {\n  if flag {\n    for i, x := range xs {\n      out[i] = x * x\n    }\n    for j, y := range ys {\n      ys[j+1] = y + 1\n    }\n  }\n  audit(out)\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
+    let (dir, out, families) =
+        query_fragment_only_fixtures("nose_ordered_foreach_effect_branch_fragments", &fixtures);
 
     let assert_branch_pair =
         |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {
             let family =
-                block_branch_pair_family(families, left, right, negative, start_line, end_line)
+                block_branch_pair_family(&families, left, right, negative, start_line, end_line)
                     .unwrap_or_else(|| {
                         panic!("missing ordered foreach-effect branch family {left}/{right}: {out}")
                     });
@@ -111,7 +87,7 @@ fn semantic_query_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
                                  right_end: u64| {
         assert!(
             !families_pair_locations(
-                families,
+                &families,
                 (left, left_start, left_end),
                 (right, right_start, right_end),
             ),

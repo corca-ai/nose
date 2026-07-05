@@ -304,11 +304,6 @@ fn semantic_query_reports_exact_safe_index_assignment_fragments_for_non_overload
 
 #[test]
 fn semantic_query_reports_exact_safe_throw_fragments_under_opaque_functions() {
-    let dir =
-        std::env::temp_dir().join(format!("nose_exact_throw_fragments_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "throw_arith_a.js",
@@ -347,21 +342,7 @@ fn semantic_query_reports_exact_safe_throw_fragments_under_opaque_functions() {
             "function throwProductMutated(zs) {\n  zs.push(1);\n  throw (zs[0] + zs[1]) * (zs[2] + 4);\n  audit(zs);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
+    let (dir, out, families) = query_fragment_fixtures("nose_exact_throw_fragments", &fixtures);
 
     let assert_throw_family = |left: &str, right: &str, negative: &str| {
         let family = families

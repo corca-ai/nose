@@ -5,13 +5,6 @@ use super::*;
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_foreach_index_assignment_fragments_for_go() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_foreach_index_assign_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "loop_index_square_a.go",
@@ -102,25 +95,8 @@ fn semantic_query_reports_exact_safe_foreach_index_assignment_fragments_for_go()
             "package p\nfunc directIndexUnused(out []int) {\n  out[0] = 1\n  audit(out)\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
+    let (dir, out, families) =
+        query_fragment_only_fixtures("nose_exact_foreach_index_assign_fragments", &fixtures);
 
     let assert_loop_family =
         |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {

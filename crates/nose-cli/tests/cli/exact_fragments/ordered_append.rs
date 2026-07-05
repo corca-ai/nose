@@ -5,13 +5,6 @@ use super::*;
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_ordered_append_effect_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_append_effect_order_boundary_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "append_pair_a.ts",
@@ -74,25 +67,8 @@ fn semantic_query_reports_exact_safe_ordered_append_effect_branch_fragments() {
             "function appendCondAfter(flag: boolean, out: number[], x: number): void {\n  out.push(x + 2);\n  if (flag) {\n    out.push(x + 1);\n  }\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
+    let (dir, out, families) =
+        query_fragment_only_fixtures("nose_append_effect_order_boundary", &fixtures);
 
     let assert_block_pair = |left: &str, right: &str, negative: &str| {
         let family = families
