@@ -985,3 +985,12 @@ shape, Unit metadata, and span-line choices. The already reviewed tiny `sp` test
 helper representative moves from `e46ab190592b0850` to `c2c6dbcb3016eb40`; it
 still has no meaningful shared removable body. No production family appears, so
 the baseline budget is tightened to 29.
+
+The callee-dependency matcher policy-helper cleanup keeps the reviewed
+default-surface count at 29. The span matcher now names the repeated free-name
+proof plus shadow-safety check and the static receiver import plus shadow-safety
+check as local helpers. The remaining named-callee/static-import matcher family
+moves from `dbbb03b3c0fa93e8` to `95e83331abfa623f`, with the shared body reduced
+from 21 to 18 lines and varying spots from 9 to 7. It is still same-file
+policy-shape similarity rather than a clearer shared abstraction, so no new
+budget is accepted.

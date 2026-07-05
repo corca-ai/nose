@@ -82,37 +82,26 @@ pub(in crate::library_api) fn library_api_dependencies_match_named_callee_at_spa
 ) -> bool {
     match callee {
         LibraryApiCalleeContract::FreeName { name, shadow } => {
-            callee_span.is_some_and(|span| {
-                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
-            }) && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-                callee_span
-                    .is_some_and(|span| file_defines_name_visible_at(il, interner, candidate, span))
-            })
+            free_name_dependency_safe_at_span(il, interner, record, callee_span, name, shadow)
         }
         LibraryApiCalleeContract::LabeledFreeName {
             name,
             first_label,
             shadow,
         } => {
-            callee_span.is_some_and(|span| {
-                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
-            }) && call_first_arg_label_matches_at_span(il, interner, call_span, first_label)
-                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-                    callee_span.is_some_and(|span| {
-                        file_defines_name_visible_at(il, interner, candidate, span)
-                    })
-                })
+            free_name_dependency_safe_at_span(il, interner, record, callee_span, name, shadow)
+                && call_first_arg_label_matches_at_span(il, interner, call_span, first_label)
         }
         LibraryApiCalleeContract::RustMacro { name, shadow } => {
             dependency_has_source_call(il, record, call_span, SourceCallKind::MacroInvocation)
-                && callee_span.is_some_and(|span| {
-                    dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
-                })
-                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-                    callee_span.is_some_and(|span| {
-                        file_defines_name_visible_at(il, interner, candidate, span)
-                    })
-                })
+                && free_name_dependency_safe_at_span(
+                    il,
+                    interner,
+                    record,
+                    callee_span,
+                    name,
+                    shadow,
+                )
         }
         LibraryApiCalleeContract::JsGlobalConstructor {
             receiver,
@@ -158,6 +147,23 @@ pub(in crate::library_api) fn library_api_dependencies_match_named_callee_at_spa
         }
         _ => false,
     }
+}
+
+fn free_name_dependency_safe_at_span(
+    il: &Il,
+    interner: &Interner,
+    record: &EvidenceRecord,
+    callee_span: Option<Span>,
+    name: &str,
+    shadow: LibraryApiShadowPolicy,
+) -> bool {
+    let Some(span) = callee_span else {
+        return false;
+    };
+    dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
+        && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+            file_defines_name_visible_at(il, interner, candidate, span)
+        })
 }
 
 fn call_first_arg_label_matches_at_span(
@@ -244,15 +250,18 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
 ) -> bool {
     match callee {
         LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
-            static_receiver_import_proven_at_span(
+            static_receiver_dependency_safe_at_span(
                 il,
                 interner,
                 record,
                 receiver_span,
-                "java.util",
-                receiver,
-                true,
-            ) && static_receiver_shadow_safe_at_span(il, interner, receiver_span, receiver, true)
+                StaticReceiverDependency {
+                    module: "java.util",
+                    receiver,
+                    import_required: true,
+                    shadow_required: true,
+                },
+            )
         }
         LibraryApiCalleeContract::JavaStaticMember {
             module,
@@ -260,23 +269,18 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
             requires_import_for_simple_receiver,
             requires_no_local_type_shadow,
             ..
-        } => {
-            static_receiver_import_proven_at_span(
-                il,
-                interner,
-                record,
-                receiver_span,
+        } => static_receiver_dependency_safe_at_span(
+            il,
+            interner,
+            record,
+            receiver_span,
+            StaticReceiverDependency {
                 module,
                 receiver,
-                requires_import_for_simple_receiver,
-            ) && static_receiver_shadow_safe_at_span(
-                il,
-                interner,
-                receiver_span,
-                receiver,
-                requires_no_local_type_shadow,
-            )
-        }
+                import_required: requires_import_for_simple_receiver,
+                shadow_required: requires_no_local_type_shadow,
+            },
+        ),
         LibraryApiCalleeContract::JavaUtilConstructor {
             simple_type,
             qualified_type,
@@ -319,6 +323,38 @@ pub(in crate::library_api) fn library_api_dependencies_match_static_import_calle
         }
         _ => false,
     }
+}
+
+#[derive(Clone, Copy)]
+struct StaticReceiverDependency {
+    module: &'static str,
+    receiver: &'static str,
+    import_required: bool,
+    shadow_required: bool,
+}
+
+fn static_receiver_dependency_safe_at_span(
+    il: &Il,
+    interner: &Interner,
+    record: &EvidenceRecord,
+    receiver_span: Option<Span>,
+    dependency: StaticReceiverDependency,
+) -> bool {
+    static_receiver_import_proven_at_span(
+        il,
+        interner,
+        record,
+        receiver_span,
+        dependency.module,
+        dependency.receiver,
+        dependency.import_required,
+    ) && static_receiver_shadow_safe_at_span(
+        il,
+        interner,
+        receiver_span,
+        dependency.receiver,
+        dependency.shadow_required,
+    )
 }
 
 pub(in crate::library_api) fn library_api_dependencies_match_static_member_callee_at_span(

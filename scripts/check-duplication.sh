@@ -174,6 +174,9 @@ set -euo pipefail
 # 31 -> 29 (Guava map factory fixtures): shared Guava `ImmutableMap.of` test IL/evidence and
 # unsupported-arity payload builders remove `6b3b0c88a12efe80` and `f2646ca6f31a0c0b`. The tiny
 # `sp` helper representative moves from `e46ab190592b0850` to `c2c6dbcb3016eb40`.
+# 29 -> 29 (callee dependency matcher policy helpers): named-callee and static-receiver proof
+# helpers reduce the reviewed callee-dependency matcher family without making it a clearer shared
+# abstraction. The representative moves from `dbbb03b3c0fa93e8` to `95e83331abfa623f`.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
