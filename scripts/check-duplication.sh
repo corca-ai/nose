@@ -156,6 +156,9 @@ set -euo pipefail
 # 37 -> 37 (exact-fragment branch shape): shared `if_branch_blocks` removes the broad
 # fragment mirror representative `9a228db20ad1a68b`; the narrower loop-window mirror
 # representative `5ad08a3c9ab9f5c3` remains reviewed differential-test debt.
+# 37 -> 36 (value-graph binary node inspection): generalized the existing `bin_args`
+# helper into `bin_op_args`, removing the selection/reduction whole-impl representative
+# `1dfaba2582163d7c` without sharing min/max or reduction policy.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

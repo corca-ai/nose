@@ -920,3 +920,15 @@ representative is the narrower two-copy loop temp-window scanner mirror. It is
 kept as reviewed differential-test debt rather than extracted into a shared
 recognizer helper, because sharing that scanner would couple the production
 contract path to its independent predicate oracle. No new budget is accepted.
+
+The value-graph binary node inspection cleanup tightens the count from 37 to
+36. The self-query report flagged `1dfaba2582163d7c`, a whole-impl span between
+Phi selection canonicalization and loop-reduction recognition. The semantic
+policies stay separate: selection still owns ternary/Phi canonicalization, and
+reductions still own accumulator-step recognition. The cleanup only generalizes
+the existing `bin_args` structural helper to `bin_op_args`, then routes both
+modules through that low-level `ValOp::Bin` argument reader. That removes the
+reviewed cross-module representative without introducing a shared min/max or
+reduction policy helper. The already reviewed `2a5aa3db45d33592` builder/value
+DAG whole-impl span and `149bb759833d2d51` oracle/value-graph evaluator span
+remain accepted span-noise families.

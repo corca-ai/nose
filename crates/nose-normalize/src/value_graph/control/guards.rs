@@ -138,11 +138,19 @@ impl<'a> Builder<'a> {
         value: ValueId,
         want: u32,
     ) -> Option<(ValueId, ValueId)> {
+        let (op, left, right) = self.bin_op_args(value)?;
+        (op == want).then_some((left, right))
+    }
+
+    pub(in crate::value_graph) fn bin_op_args(
+        &self,
+        value: ValueId,
+    ) -> Option<(u32, ValueId, ValueId)> {
         match &self.nodes[value as usize] {
             ValNode {
                 op: ValOp::Bin(op),
                 args,
-            } if *op == want && args.len() == 2 => Some((args[0], args[1])),
+            } if args.len() == 2 => Some((*op, args[0], args[1])),
             _ => None,
         }
     }

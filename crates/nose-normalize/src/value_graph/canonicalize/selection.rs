@@ -113,14 +113,7 @@ impl<'a> Builder<'a> {
         if !self.is_integer_domain_value(v) {
             return None;
         }
-        let cn = &self.nodes[cond as usize];
-        let opc = match cn.op {
-            ValOp::Bin(o) => o,
-            _ => return None,
-        };
-        if cn.args.len() != 2 {
-            return None;
-        }
+        let (opc, left, right) = self.bin_op_args(cond)?;
         let is_zero = |s: &Self, id: ValueId| {
             matches!(
                 s.nodes[id as usize].op,
@@ -130,12 +123,12 @@ impl<'a> Builder<'a> {
                 }
             )
         };
-        let (nonneg, neg) = if cn.args[0] == v && is_zero(self, cn.args[1]) {
+        let (nonneg, neg) = if left == v && is_zero(self, right) {
             (
                 opc == Op::Ge as u32 || opc == Op::Gt as u32,
                 opc == Op::Lt as u32 || opc == Op::Le as u32,
             )
-        } else if cn.args[1] == v && is_zero(self, cn.args[0]) {
+        } else if right == v && is_zero(self, left) {
             (
                 opc == Op::Le as u32 || opc == Op::Lt as u32,
                 opc == Op::Gt as u32 || opc == Op::Ge as u32,
@@ -160,16 +153,11 @@ impl<'a> Builder<'a> {
         if !self.comparison_law_enabled(ComparisonLaw::MinMaxTernary) {
             return None;
         }
-        let cn = &self.nodes[cond as usize];
-        let opc = match cn.op {
-            ValOp::Bin(o) => o,
-            _ => return None,
-        };
-        if !(opc == Op::Lt as u32 || opc == Op::Le as u32) || cn.args.len() != 2 {
+        let (opc, x, y) = self.bin_op_args(cond)?;
+        if !(opc == Op::Lt as u32 || opc == Op::Le as u32) {
             return None;
         }
-        let (x, y) = (cn.args[0], cn.args[1]); // cond is `x < y`
-                                               // `x if x<y else y` → min(x,y);  `y if x<y else x` → max(x,y).
+        // cond is `x < y`: `x if x<y else y` → min(x,y); `y if x<y else x` → max(x,y).
         if then == x && els == y {
             Some(self.mk(ValOp::Bin(MIN_CODE), vec![x, y]))
         } else if then == y && els == x {
@@ -188,15 +176,10 @@ impl<'a> Builder<'a> {
         then: ValueId,
         els: ValueId,
     ) -> Option<ValueId> {
-        let cn = &self.nodes[cond as usize];
-        let opc = match cn.op {
-            ValOp::Bin(o) => o,
-            _ => return None,
-        };
-        if !(opc == Op::Lt as u32 || opc == Op::Le as u32) || cn.args.len() != 2 {
+        let (opc, left, right) = self.bin_op_args(cond)?;
+        if !(opc == Op::Lt as u32 || opc == Op::Le as u32) {
             return None;
         }
-        let (left, right) = (cn.args[0], cn.args[1]);
 
         if then == right {
             let hi = self.bin_other_arg(els, MIN_CODE, left)?;
@@ -240,16 +223,13 @@ impl<'a> Builder<'a> {
             .java_primitive_integer_ops()
     }
     fn parity_zero_condition(&self, cond: ValueId) -> Option<(ValueId, bool)> {
-        let node = &self.nodes[cond as usize];
-        let even_when_true = match node.op {
-            ValOp::Bin(o) if o == Op::Eq as u32 => true,
-            ValOp::Bin(o) if o == Op::Ne as u32 => false,
+        let (op, left, right) = self.bin_op_args(cond)?;
+        let even_when_true = match op {
+            o if o == Op::Eq as u32 => true,
+            o if o == Op::Ne as u32 => false,
             _ => return None,
         };
-        if node.args.len() != 2 {
-            return None;
-        }
-        for (candidate, zero) in [(node.args[0], node.args[1]), (node.args[1], node.args[0])] {
+        for (candidate, zero) in [(left, right), (right, left)] {
             if self.int_const_eq(zero, 0) {
                 if let Some(base) = self.mod_by_two_base(candidate) {
                     return Some((base, even_when_true));
@@ -259,18 +239,18 @@ impl<'a> Builder<'a> {
         None
     }
     fn mod_by_two_base(&self, value: ValueId) -> Option<ValueId> {
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Bin(o) if o == Op::Mod as u32) || node.args.len() != 2 {
+        let (op, left, right) = self.bin_op_args(value)?;
+        if op != Op::Mod as u32 {
             return None;
         }
-        if self.int_const_eq(node.args[1], 2) {
-            Some(node.args[0])
+        if self.int_const_eq(right, 2) {
+            Some(left)
         } else {
             None
         }
     }
     fn additive_one_delta(&mut self, value: ValueId, base: ValueId) -> Option<i8> {
-        if !matches!(self.nodes[value as usize].op, ValOp::Bin(o) if o == Op::Add as u32) {
+        if !matches!(self.bin_op_args(value), Some((op, _, _)) if op == Op::Add as u32) {
             return None;
         }
         let mut leaves = Vec::new();

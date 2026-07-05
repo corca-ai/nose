@@ -211,21 +211,20 @@ impl<'a> Builder<'a> {
         loopv: ValueId,
         cache: &mut ReductionCache,
     ) -> Option<(u32, ValueId)> {
-        if let ValOp::Bin(o) = self.nodes[val as usize].op {
-            if o == MIN_CODE || o == MAX_CODE {
-                let a = self.nodes[val as usize].args.clone();
-                let red = if o == MAX_CODE {
-                    REDUCE_MAX
-                } else {
-                    REDUCE_MIN
-                };
-                if a[0] == loopv && !self.references_cached(a[1], loopv, cache) {
-                    return Some((red, a[1]));
-                }
-                if a[1] == loopv && !self.references_cached(a[0], loopv, cache) {
-                    return Some((red, a[0]));
-                }
-            }
+        let (op, left, right) = self.bin_op_args(val)?;
+        if op != MIN_CODE && op != MAX_CODE {
+            return None;
+        }
+        let red = if op == MAX_CODE {
+            REDUCE_MAX
+        } else {
+            REDUCE_MIN
+        };
+        if left == loopv && !self.references_cached(right, loopv, cache) {
+            return Some((red, right));
+        }
+        if right == loopv && !self.references_cached(left, loopv, cache) {
+            return Some((red, left));
         }
         None
     }
@@ -252,10 +251,9 @@ impl<'a> Builder<'a> {
     /// in logical `Not`.
     pub(in crate::value_graph) fn negate_guard(&mut self, v: ValueId) -> ValueId {
         if self.comparison_law_enabled(ComparisonLaw::Negation) {
-            if let ValOp::Bin(opc) = self.nodes[v as usize].op {
+            if let Some((opc, left, right)) = self.bin_op_args(v) {
                 if let Some(flip) = negate_cmp_code(self.il.meta.lang, opc) {
-                    let args = self.nodes[v as usize].args.clone();
-                    return self.mk(ValOp::Bin(flip), args);
+                    return self.mk(ValOp::Bin(flip), vec![left, right]);
                 }
             }
         }
@@ -274,16 +272,9 @@ impl<'a> Builder<'a> {
         if !self.comparison_law_enabled(ComparisonLaw::SelectionReductionGuard) {
             return None;
         }
-        let n = &self.nodes[cond as usize];
-        let opc = match n.op {
-            ValOp::Bin(o) => o,
-            _ => return None,
-        };
-        if n.args.len() != 2 {
-            return None;
-        }
-        let cand_first = n.args[0] == cand && n.args[1] == loopv;
-        let acc_first = n.args[0] == loopv && n.args[1] == cand;
+        let (opc, left, right) = self.bin_op_args(cond)?;
+        let cand_first = left == cand && right == loopv;
+        let acc_first = left == loopv && right == cand;
         if !cand_first && !acc_first {
             return None;
         }
