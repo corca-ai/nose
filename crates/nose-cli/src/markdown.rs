@@ -9,6 +9,7 @@
 
 use nose_markdown::{detect, Family, Options};
 use rayon::prelude::*;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Vendor/build directories never worth checking for prose duplication — excluded even without a
@@ -71,88 +72,118 @@ fn discover(root: &Path, excludes: &[String]) -> Vec<PathBuf> {
     out
 }
 
-/// Detect markdown near-duplicate families under `root` for the `nose query` dashboard.
-pub(crate) fn detect_under(root: &Path, excludes: &[String]) -> Vec<Family> {
-    let files = discover(root, excludes);
-    let docs: Vec<(String, String)> = files
-        .par_iter()
-        .filter_map(|p| {
-            std::fs::read(p).ok().map(|b| {
-                (
-                    p.to_string_lossy().into_owned(),
-                    String::from_utf8_lossy(&b).into_owned(),
-                )
+/// Query-facing Markdown domain report. The dashboard owns presentation order; this adapter owns
+/// discovery, the `markdown[]` JSON field, and the prose-domain honesty wording.
+pub(crate) struct QueryMarkdownReport {
+    families: Vec<Family>,
+}
+
+impl QueryMarkdownReport {
+    /// Detect Markdown near-duplicate families under the `nose query` roots for the dashboard.
+    pub(crate) fn detect_under(roots: &[PathBuf], excludes: &[String]) -> Self {
+        let files = discover_roots(roots, excludes);
+        let docs: Vec<(String, String)> = files
+            .par_iter()
+            .filter_map(|p| {
+                std::fs::read(p).ok().map(|b| {
+                    (
+                        p.to_string_lossy().into_owned(),
+                        String::from_utf8_lossy(&b).into_owned(),
+                    )
+                })
             })
-        })
-        .collect();
-    detect(&docs, &Options::default())
-}
-
-/// The `markdown` array for the query-JSON dashboard (additive, backwards-compatible). `Family`
-/// already derives `Serialize`, so this is its faithful structured form.
-pub(crate) fn families_json(fams: &[Family]) -> serde_json::Value {
-    serde_json::to_value(fams).unwrap_or(serde_json::Value::Array(vec![]))
-}
-
-/// Human "Markdown near-duplicates" section appended to the `nose query` dashboard.
-pub(crate) fn print_section(fams: &[Family], path: &str) {
-    if fams.is_empty() {
-        return;
+            .collect();
+        QueryMarkdownReport {
+            families: detect(&docs, &Options::default()),
+        }
     }
-    let (templates, dups): (Vec<&Family>, Vec<&Family>) = fams.iter().partition(|f| f.template);
-    println!(
-        "\n{} ({}, {} templated)",
-        crate::style::bold("markdown near-duplicates"),
-        plural(dups.len(), "family", "families"),
-        templates.len(),
-    );
-    println!(
-        "  {}",
-        crate::style::dim(
-            "prose near-dup: score + span witness + commonness; not a worth-it verdict"
-        )
-    );
-    for f in dups.iter().take(5) {
-        let common = if f.commonness > 0.25 {
-            "  [common]"
-        } else {
-            ""
-        };
-        let head = f
-            .members
-            .first()
-            .and_then(|m| m.heading.as_deref())
-            .map(|h| short(h, 48))
-            .unwrap_or_default();
-        let loc = f
-            .members
-            .first()
-            .map(|m| format!("{}:{}-{}", file_only(&m.path), m.start_line, m.end_line))
-            .unwrap_or_default();
+
+    pub(crate) fn has_findings(&self) -> bool {
+        !self.families.is_empty()
+    }
+
+    /// The `markdown` array for the query-JSON dashboard (additive, backwards-compatible).
+    /// `Family` already derives `Serialize`, so this is its faithful structured form.
+    pub(crate) fn dashboard_json(&self) -> serde_json::Value {
+        serde_json::to_value(&self.families).unwrap_or(serde_json::Value::Array(vec![]))
+    }
+
+    /// Human "Markdown near-duplicates" section appended to the `nose query` dashboard.
+    pub(crate) fn print_dashboard_section(&self, path: &str) {
+        if self.families.is_empty() {
+            return;
+        }
+        let (templates, dups): (Vec<&Family>, Vec<&Family>) =
+            self.families.iter().partition(|f| f.template);
         println!(
-            "  {loc:<40}  {} copies · {} · ~{} removable · {}{}",
-            f.members.len(),
-            crate::style::blue(f.tier),
-            f.removable,
-            short(&head, 40),
-            crate::style::dim(common),
+            "\n{} ({}, {} templated)",
+            crate::style::bold("markdown near-duplicates"),
+            plural(dups.len(), "family", "families"),
+            templates.len(),
         );
-    }
-    if !templates.is_empty() {
+        println!(
+            "  {}",
+            crate::style::dim(
+                "prose near-dup: score + span witness + commonness; not a worth-it verdict"
+            )
+        );
+        for f in dups.iter().take(5) {
+            let common = if f.commonness > 0.25 {
+                "  [common]"
+            } else {
+                ""
+            };
+            let head = f
+                .members
+                .first()
+                .and_then(|m| m.heading.as_deref())
+                .map(|h| short(h, 48))
+                .unwrap_or_default();
+            let loc = f
+                .members
+                .first()
+                .map(|m| format!("{}:{}-{}", file_only(&m.path), m.start_line, m.end_line))
+                .unwrap_or_default();
+            println!(
+                "  {loc:<40}  {} copies · {} · ~{} removable · {}{}",
+                f.members.len(),
+                crate::style::blue(f.tier),
+                f.removable,
+                short(&head, 40),
+                crate::style::dim(common),
+            );
+        }
+        if !templates.is_empty() {
+            println!(
+                "  {}",
+                crate::style::dim(&format!(
+                    "+ {} templated section(s) (one skeleton repeated across files)",
+                    templates.len()
+                ))
+            );
+        }
         println!(
             "  {}",
             crate::style::dim(&format!(
-                "+ {} templated section(s) (one skeleton repeated across files)",
-                templates.len()
+                "see all: nose query {path} --format json  # top-level markdown array"
             ))
         );
     }
-    println!(
-        "  {}",
-        crate::style::dim(&format!(
-            "see all: nose query {path} --format json  # top-level markdown array"
-        ))
-    );
+}
+
+fn discover_roots(roots: &[PathBuf], excludes: &[String]) -> Vec<PathBuf> {
+    let mut seen = HashSet::new();
+    let mut files = Vec::new();
+    for root in roots {
+        for path in discover(root, excludes) {
+            let key = path.canonicalize().unwrap_or_else(|_| path.clone());
+            if seen.insert(key) {
+                files.push(path);
+            }
+        }
+    }
+    files.sort();
+    files
 }
 
 fn plural(n: usize, one: &str, many: &str) -> String {

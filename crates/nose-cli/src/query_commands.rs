@@ -312,8 +312,9 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
             .iter()
             .filter(|r| !r.container_in_test && !r.helper_in_test)
             .count();
-        let md = markdown::detect_under(&ctx.args.paths[0], &ctx.settings.exclude);
-        let markdown_found = !md.is_empty();
+        let markdown_report =
+            markdown::QueryMarkdownReport::detect_under(&ctx.args.paths, &ctx.settings.exclude);
+        let markdown_found = markdown_report.has_findings();
         render_query_dashboard(
             ctx.families,
             ctx.overrides,
@@ -324,7 +325,7 @@ fn render_query_exploration(ctx: &QueryOutput<'_>) -> Result<bool> {
             json,
             ctx.baseline_comparison,
             ctx.since,
-            &md,
+            &markdown_report,
             ctx.semantic_packs,
         );
         return Ok(markdown_found);

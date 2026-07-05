@@ -106,6 +106,9 @@ and behavior easier to reason about:
   JSON/markdown/SARIF renderers, opportunities, witness enrichment, and
   baseline/divergence gate output now live in
   `nose-cli/src/query_{dashboard,views,markdown,sarif,family_text,opportunities,witness,baseline_gate}.rs`;
+- keep the query-facing Markdown prose domain adapter in `nose-cli/src/markdown.rs`;
+  `query_dashboard` receives its report object and should not reach into
+  `nose_markdown::Family` or duplicate Markdown JSON/rendering details;
 - keep local recall-loss reporting split by responsibility; the JSON model and
   obligation rollups now live under `nose-cli/src/recall_loss_report/` instead
   of growing the report writer root;

@@ -5,6 +5,9 @@ fn query_accepts_explicit_multi_roots() {
     let dir = make_project("multi_roots");
     let a = dir.join("a");
     let b = dir.join("b");
+    let md = "# Shared root guide\n\nThis section explains how operators should review repeated helper logic before merging a risky change.\n\nIt keeps a stable paragraph with enough repeated prose for the Markdown detector to align separate query roots.\n";
+    fs::write(a.join("guide.md"), md).unwrap();
+    fs::write(b.join("guide.md"), md).unwrap();
     let a = a.to_str().unwrap();
     let b = b.to_str().unwrap();
 
@@ -49,6 +52,26 @@ fn query_accepts_explicit_multi_roots() {
     assert!(
         dash.contains(&format!("nose query -r {a} -r {b} id=")),
         "multi-root drill links should remain runnable: {dash}"
+    );
+
+    let dash_json = query_json(&run_raw(&[
+        "query",
+        "-r",
+        a,
+        "-r",
+        b,
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+    ]));
+    assert!(
+        !dash_json["markdown"].as_array().unwrap().is_empty(),
+        "dashboard JSON should detect Markdown families across all explicit roots: {dash_json}"
     );
 }
 

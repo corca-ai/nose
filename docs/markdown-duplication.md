@@ -19,10 +19,12 @@ nose query <path>                     # dashboard: a "markdown near-duplicates" 
 nose query <path> --format json       # dashboard JSON includes a top-level "markdown" array
 ```
 
-`nose query` discovers `.md`/`.markdown` under the path (respecting `.gitignore` and the same
+`nose query` discovers `.md`/`.markdown` under the query root or roots (respecting `.gitignore` and the same
 `exclude` globs as code) and reports ranked near-duplicate **families** alongside the code clones.
 The dashboard JSON uses the normal [query JSON](query-json.md) envelope and reports Markdown
 findings in an additive top-level `markdown[]` array, separate from code-clone `families[]`.
+Markdown findings are a dashboard domain today: list/group/family views, non-dashboard report
+formats, baselines, and `--fail-on` gates continue to operate on code-clone families.
 Each Markdown family carries:
 
 - a **relation tier** (`exact` / `near-high` / `near-med` / `near-low` / `partial`) + score,

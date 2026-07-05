@@ -286,6 +286,10 @@ fn query_dashboard_filter_and_family() {
         "dashboard teaches the grammar: {dash}"
     );
     assert!(
+        dash.contains("markdown near-duplicates"),
+        "dashboard surfaces Markdown prose findings separately: {dash}"
+    );
+    assert!(
         dash.contains("verified = machine-checked evidence")
             && !dash.contains("proven = same behavior, machine-verified")
             && !dash.contains("proven families (same behavior"),

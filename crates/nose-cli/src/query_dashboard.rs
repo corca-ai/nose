@@ -61,7 +61,7 @@ pub(super) fn render_query_dashboard(
     json: bool,
     baseline_cmp: Option<&BaselineComparison>,
     since: Option<&BaselineComparison>,
-    markdown: &[nose_markdown::Family],
+    markdown: &markdown::QueryMarkdownReport,
     semantic_packs: &[serde_json::Value],
 ) {
     // Default surface, slice-folds removed (shown under their primary) — matches analysis.
@@ -103,7 +103,7 @@ pub(super) fn render_query_dashboard(
                     "top_candidates": top,
                     // Markdown near-duplicate families (separate prose engine). Additive key —
                     // query-JSON consumers that don't know it simply ignore it.
-                    "markdown": markdown::families_json(markdown),
+                    "markdown": markdown.dashboard_json(),
                     "next": [format!("nose query {path} sort=extractability"), format!("nose query {path} group=dir"),
                         format!("nose query {path} witness=exact"), format!("nose query {path} all")],
                 }),
@@ -285,5 +285,5 @@ pub(super) fn render_query_dashboard(
         style::dim("filter/group fields: scope · witness · lang · path · members · files · value · params · shared · dir · same_symbol")
     );
     // Markdown near-duplicate prose, reported as a query domain (separate `nose-markdown` engine).
-    markdown::print_section(markdown, path);
+    markdown.print_dashboard_section(path);
 }

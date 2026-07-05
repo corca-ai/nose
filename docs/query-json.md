@@ -63,10 +63,12 @@ their `influence` is `metadata-only`.
 Note the copy-paste bucket key is `copy_paste` (underscore), while the per-family `witness`
 enum value spells it `copy-paste` (hyphen) — so don't index `by_confidence[family.witness]`
 for that one channel.
-`families[]` (the top 5 families ranked by extractability — scope-blind, so test and
+`families[]` (the top 5 code-clone families ranked by extractability — scope-blind, so test and
 production are ranked alike; each a *family object*), `top_candidates[]` (compatibility alias
 for the same array), `markdown[]` (Markdown near-duplicate prose families from the separate
 prose engine; additive dashboard-only field), and `next[]` (runnable follow-up commands).
+`markdown[]` is not counted in `summary.families`, is not mirrored into `families[]`, and does
+not participate in `--fail-on` gates.
 
 **`list`** (filters / `sort=` / `top=`) — `summary` (`families`, `shown`, `widened`),
 `families[]` (the selection, each a *family object*), `next[]`.

@@ -139,6 +139,8 @@ per file, with nothing to extract), and **shallow-extraction** families (a helpe
 be mostly parameters — `params` ≥ a third of the shared lines). Add `all` to widen the view
 to the full raw universe, each demoted family labeled with why it was held back. This curated
 surface is what `--fail-on` gates on — a family in the `all` view alone never fails a run.
+Markdown prose findings are displayed as a separate dashboard domain and dashboard-JSON
+`markdown[]` field; they are not code-clone `families[]` and do not trip `--fail-on`.
 
 ## Ranking
 
