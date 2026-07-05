@@ -1,4 +1,5 @@
 use crate::legacy_prelude::*;
+use crate::verify_soundness::count_verify_soundness;
 use nose_detect::multiset_jaccard;
 use std::collections::HashMap;
 use std::path::Path;
@@ -88,41 +89,14 @@ fn soundness_gate(
     canon_preservation_violations: usize,
     max_violations: Option<usize>,
 ) -> SoundnessGate {
-    let has_sym = |r: &VerifyRec| r.beh.iter().any(nose_normalize::behavior_has_sym);
-    let mut by_fp: HashMap<&[u64], Vec<&VerifyRec>> = HashMap::new();
-    for rec in recs {
-        by_fp.entry(&rec.fp).or_default().push(rec);
-    }
-
-    let mut fingerprint_groups = 0usize;
-    let mut false_merges = 0usize;
-    let mut lossy_fingerprint_collisions = 0usize;
-    let mut advisory_disagreements = 0usize;
-    for members in by_fp.values() {
-        if members.len() < 2 {
-            continue;
-        }
-        fingerprint_groups += 1;
-        let first = members[0];
-        for rec in &members[1..] {
-            if rec.beh == first.beh {
-                continue;
-            }
-            if has_sym(first) || has_sym(rec) || first.domain_sig != rec.domain_sig {
-                advisory_disagreements += 1;
-            } else if first.claimable && rec.claimable {
-                false_merges += 1;
-            } else {
-                lossy_fingerprint_collisions += 1;
-            }
-        }
-    }
+    let soundness = count_verify_soundness(recs);
+    let false_merges = soundness.false_merges;
 
     SoundnessGate {
-        fingerprint_groups,
+        fingerprint_groups: soundness.fingerprint_groups,
         false_merges,
-        lossy_fingerprint_collisions,
-        advisory_disagreements,
+        lossy_fingerprint_collisions: soundness.lossy_fingerprint_collisions,
+        advisory_disagreements: soundness.advisory_disagreements,
         canon_preservation_violations,
         max_violations,
         gate_passed: max_violations

@@ -1,4 +1,7 @@
 use crate::legacy_prelude::*;
+use crate::verify_soundness::{
+    classify_verify_soundness, hard_gate_equal_behavior_representative_pairs,
+};
 use nose_detect::multiset_jaccard;
 
 /// Behavioral ground truth for the value-add evaluator: each interpretable unit with
@@ -78,65 +81,43 @@ pub(super) fn print_verify_exclusions(exclusions: &VerifyExclusions) {
 /// canonicalization (AC ordering, distribution) can legitimately make two equivalent
 /// units' symbolic traces differ — those need a human look, not a red gate.
 pub(super) fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
-    let has_sym = |r: &VerifyRec| r.beh.iter().any(nose_normalize::behavior_has_sym);
-    let mut by_fp: std::collections::HashMap<&[u64], Vec<&VerifyRec>> =
-        std::collections::HashMap::new();
-    for r in recs {
-        by_fp.entry(&r.fp).or_default().push(r);
-    }
-    let mut fp_groups = 0usize;
-    let mut violations: Vec<(String, String, usize)> = Vec::new();
-    let mut advisory: Vec<(String, String, usize)> = Vec::new();
-    let mut lossy: Vec<(String, String, usize)> = Vec::new();
-    for members in by_fp.values() {
-        if members.len() < 2 {
-            continue;
-        }
-        fp_groups += 1;
-        let first = members[0];
-        for r in &members[1..] {
-            if r.beh != first.beh {
-                let diff = r.beh.iter().zip(&first.beh).filter(|(a, b)| a != b).count();
-                let rec = (first.loc.clone(), r.loc.clone(), diff);
-                if has_sym(first) || has_sym(r) || first.domain_sig != r.domain_sig {
-                    advisory.push(rec);
-                } else if first.claimable && r.claimable {
-                    violations.push(rec);
-                } else {
-                    lossy.push(rec);
-                }
-            }
-        }
-    }
+    let summary = classify_verify_soundness(recs);
     println!("\nSOUNDNESS — fingerprint-equal ⟹ behavior-equal (exact claim surface):");
-    println!("  fingerprint groups (≥2): {fp_groups}");
-    let n_violations = violations.len();
-    if violations.is_empty() {
+    println!("  fingerprint groups (≥2): {}", summary.fingerprint_groups);
+    let n_violations = summary.false_merges.len();
+    if summary.false_merges.is_empty() {
         println!("  SOUND: no false merges ✓");
     } else {
         println!("  [!] {n_violations} VIOLATION(S) (false merges):");
-        for (a, b, d) in violations.iter().take(20) {
-            println!("    {a}  ≡?  {b}   ({d} differing inputs)");
+        for disagreement in summary.false_merges.iter().take(20) {
+            println!(
+                "    {}  ≡?  {}   ({} differing inputs)",
+                disagreement.a, disagreement.b, disagreement.differing_inputs
+            );
         }
     }
-    if !lossy.is_empty() {
-        lossy.sort();
+    if !summary.lossy_fingerprint_collisions.is_empty() {
         println!(
             "  lossy-fingerprint collisions (outside the exact claim — diagnostics, not gated): {}",
-            lossy.len()
+            summary.lossy_fingerprint_collisions.len()
         );
-        for (a, b, d) in lossy.iter().take(10) {
-            println!("    {a}  ≠  {b}   ({d} differing inputs)");
+        for disagreement in summary.lossy_fingerprint_collisions.iter().take(10) {
+            println!(
+                "    {}  ≠  {}   ({} differing inputs)",
+                disagreement.a, disagreement.b, disagreement.differing_inputs
+            );
         }
     }
-    if !advisory.is_empty() {
-        advisory.sort();
+    if !summary.advisory_disagreements.is_empty() {
         println!(
             "  advisory (symbolic-trace disagreements — divergence, not gated): {}",
-            advisory.len()
+            summary.advisory_disagreements.len()
         );
-        for (a, b, d) in advisory.iter().take(10) {
-            println!("    {a}  ≢?  {b}   ({d} differing inputs)");
+        for disagreement in summary.advisory_disagreements.iter().take(10) {
+            println!(
+                "    {}  ≢?  {}   ({} differing inputs)",
+                disagreement.a, disagreement.b, disagreement.differing_inputs
+            );
         }
     }
     n_violations
@@ -153,52 +134,37 @@ pub(super) fn report_falsify(
     recs: &[VerifyRec],
     probes: &[nose_normalize::Value],
 ) -> usize {
-    use std::collections::HashMap;
     const PER_PAIR_BUDGET: usize = 4096;
     let oracle_opts = nose_normalize::NormalizeOptions {
         oracle: true,
         ..*opts
     };
-    let mut by_fp: HashMap<&[u64], Vec<&VerifyRec>> = HashMap::new();
-    for r in recs {
-        by_fp.entry(&r.fp).or_default().push(r);
-    }
-    let mut core_cache: HashMap<usize, nose_il::Il> = HashMap::new();
+    let mut core_cache: std::collections::HashMap<usize, nose_il::Il> =
+        std::collections::HashMap::new();
     let mut found: Vec<(String, String)> = Vec::new();
-    for members in by_fp.values() {
-        if members.len() < 2 {
-            continue;
+    for pair in hard_gate_equal_behavior_representative_pairs(recs) {
+        // The battery already found these EQUAL; only such groups need a deeper search.
+        // Restrict to hard-gate-eligible pairs (claimable, comparable declarations) so a hit
+        // is a real false merge, not an advisory/lossy diagnostic.
+        for &idx in &[pair.first.file_idx, pair.other.file_idx] {
+            core_cache.entry(idx).or_insert_with(|| {
+                nose_normalize::normalize(&corpus.files[idx], &corpus.interner, &oracle_opts)
+            });
         }
-        let first = members[0];
-        for r in &members[1..] {
-            // The battery already found these EQUAL; only such groups need a deeper search.
-            // Restrict to hard-gate-eligible pairs (claimable, comparable declarations) so a hit
-            // is a real false merge, not an advisory/lossy diagnostic.
-            if r.beh != first.beh
-                || !(first.claimable && r.claimable && first.domain_sig == r.domain_sig)
-            {
-                continue;
-            }
-            for &idx in &[first.file_idx, r.file_idx] {
-                core_cache.entry(idx).or_insert_with(|| {
-                    nose_normalize::normalize(&corpus.files[idx], &corpus.interner, &oracle_opts)
-                });
-            }
-            let il_a = &core_cache[&first.file_idx];
-            let il_b = &core_cache[&r.file_idx];
-            if falsify::falsify_pair(
-                il_a,
-                first.core_root,
-                il_b,
-                r.core_root,
-                &corpus.interner,
-                probes,
-                PER_PAIR_BUDGET,
-            )
-            .is_some()
-            {
-                found.push((first.loc.clone(), r.loc.clone()));
-            }
+        let il_a = &core_cache[&pair.first.file_idx];
+        let il_b = &core_cache[&pair.other.file_idx];
+        if falsify::falsify_pair(
+            il_a,
+            pair.first.core_root,
+            il_b,
+            pair.other.core_root,
+            &corpus.interner,
+            probes,
+            PER_PAIR_BUDGET,
+        )
+        .is_some()
+        {
+            found.push((pair.first.loc.clone(), pair.other.loc.clone()));
         }
     }
     println!("\nFALSIFICATION SEARCH (#317) — distinguishing inputs beyond the fixed battery:");

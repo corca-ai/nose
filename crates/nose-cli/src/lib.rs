@@ -48,6 +48,7 @@ mod verify_admission;
 mod verify_census;
 mod verify_collect;
 mod verify_report;
+mod verify_soundness;
 
 use anyhow::Result;
 

@@ -164,6 +164,9 @@ set -euo pipefail
 # share Raw surface classification through `nose_frontend::raw_node_surface`. These remove the
 # reviewed production representatives `9510e3368e161f45` and `936f238ab2e0d6b2`; no new family
 # appears, so the ratchet tightens.
+# 34 -> 33 (verify soundness classification): shared fingerprint-group classification removes
+# the reviewed verify/recall-loss soundness overlap `1f922efb624c7f79`; no new family appears,
+# so the ratchet tightens.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

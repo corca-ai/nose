@@ -953,3 +953,11 @@ classification overlap between frontend coverage and CLI gap-impact
 diagnostics, because `nose_frontend::raw_node_surface` now owns the shared
 `NodeKind::Raw`/surface-kind/boundary projection. No new default-surface family
 appears, so the baseline budget is tightened to 34.
+
+The verify soundness classification cleanup tightens the count from 34 to 33.
+The self-query report no longer reports `1f922efb624c7f79`, the reviewed
+overlap between `verify_report.rs::report_falsify` and
+`recall_loss_report.rs::soundness_gate`. `verify_soundness` now owns the shared
+fingerprint-group classification, while falsification search consumes the same
+hard-gate equal-pair selection instead of repeating the grouping logic. No new
+default-surface family appears, so the baseline budget is tightened to 33.
