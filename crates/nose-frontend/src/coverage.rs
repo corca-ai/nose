@@ -4,7 +4,7 @@
 //! `Raw` per language tell us exactly where the IL is weak — and what to fix next.
 
 use crate::lower::is_intentional_raw_boundary_tag;
-use nose_il::{Corpus, NodeKind, Payload};
+use nose_il::{Corpus, Interner, Node, NodeKind, Payload};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -42,6 +42,26 @@ pub struct CoverageReport {
     pub top_unhandled: Vec<UnhandledKind>,
 }
 
+pub struct RawSurface {
+    pub surface_kind: String,
+    pub boundary: bool,
+}
+
+pub fn raw_node_surface(interner: &Interner, node: &Node) -> Option<RawSurface> {
+    if node.kind != NodeKind::Raw {
+        return None;
+    }
+    let surface_kind = match node.payload {
+        Payload::Name(sym) => interner.resolve(sym).to_string(),
+        _ => "<unknown>".to_string(),
+    };
+    let boundary = is_intentional_raw_boundary_tag(&surface_kind);
+    Some(RawSurface {
+        surface_kind,
+        boundary,
+    })
+}
+
 /// Compute coverage over a (raw) corpus. `top` caps the unhandled-kind histogram.
 pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
     let mut total_nodes = 0usize;
@@ -62,18 +82,14 @@ pub fn coverage(corpus: &Corpus, top: usize) -> CoverageReport {
         total_nodes += il.nodes.len();
 
         for node in &il.nodes {
-            if node.kind == NodeKind::Raw {
+            if let Some(raw) = raw_node_surface(&corpus.interner, node) {
                 raw_nodes += 1;
                 *lang_raw.entry(lang).or_default() += 1;
-                let surface = match node.payload {
-                    Payload::Name(s) => corpus.interner.resolve(s).to_string(),
-                    _ => "<unknown>".to_string(),
-                };
-                if is_intentional_raw_boundary_tag(&surface) {
+                if raw.boundary {
                     boundary_raw += 1;
                     *lang_boundary.entry(lang).or_default() += 1;
                 }
-                *unhandled.entry((lang, surface)).or_default() += 1;
+                *unhandled.entry((lang, raw.surface_kind)).or_default() += 1;
             }
         }
     }

@@ -1,5 +1,10 @@
-use crate::legacy_prelude::*;
+use crate::query_options::{
+    parse_bands, parse_min_value, parse_minhash_k, parse_threshold, DetectionMode, FailOn,
+    ReportFormat, SortKey,
+};
+use crate::semantic_pack;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(

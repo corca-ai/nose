@@ -201,13 +201,15 @@ pub fn evaluate(scored: &[ScoredPair], golden: &Golden) -> Metrics {
 
 fn roc_auc(scores: &[f64], labels: &[u8]) -> f64 {
     let mut idx: Vec<usize> = (0..scores.len()).collect();
-    idx.sort_by(|&a, &b| scores[a].partial_cmp(&scores[b]).unwrap());
+    idx.sort_by(|&a, &b| scores[a].total_cmp(&scores[b]));
     // average ranks with tie handling
     let mut ranks = vec![0.0f64; scores.len()];
     let mut i = 0;
     while i < idx.len() {
         let mut j = i;
-        while j + 1 < idx.len() && scores[idx[j + 1]] == scores[idx[i]] {
+        while j + 1 < idx.len()
+            && scores[idx[j + 1]].total_cmp(&scores[idx[i]]) == std::cmp::Ordering::Equal
+        {
             j += 1;
         }
         let avg = (i + j) as f64 / 2.0 + 1.0;
@@ -232,7 +234,7 @@ fn roc_auc(scores: &[f64], labels: &[u8]) -> f64 {
 
 fn average_precision(scores: &[f64], labels: &[u8]) -> f64 {
     let mut idx: Vec<usize> = (0..scores.len()).collect();
-    idx.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap());
+    idx.sort_by(|&a, &b| scores[b].total_cmp(&scores[a]));
     let npos = labels.iter().filter(|&&l| l == 1).count();
     if npos == 0 {
         return f64::NAN;
@@ -254,7 +256,7 @@ fn average_precision(scores: &[f64], labels: &[u8]) -> f64 {
 
 fn recall_at_precision(scores: &[f64], labels: &[u8], min_prec: f64) -> f64 {
     let mut idx: Vec<usize> = (0..scores.len()).collect();
-    idx.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap());
+    idx.sort_by(|&a, &b| scores[b].total_cmp(&scores[a]));
     let npos = labels.iter().filter(|&&l| l == 1).count();
     if npos == 0 {
         return f64::NAN;

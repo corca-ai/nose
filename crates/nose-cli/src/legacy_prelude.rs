@@ -18,11 +18,8 @@ pub(crate) use crate::query_terms::{family_at, parse_query, Query};
 pub(crate) use crate::query_witness::*;
 pub(crate) use crate::report_text::*;
 pub(crate) use crate::schema_versions;
-pub(crate) use crate::semantic_pack;
 pub(crate) use crate::source_lines::*;
 pub(crate) use crate::style;
-#[cfg(test)]
-pub(crate) use crate::surfaces::family_actionability_reason;
 pub(crate) use crate::surfaces::{
     classify_surface_overrides, is_default_report_family, surface_omission_note, SurfaceOverrides,
 };

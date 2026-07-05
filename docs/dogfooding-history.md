@@ -932,3 +932,24 @@ reviewed cross-module representative without introducing a shared min/max or
 reduction policy helper. The already reviewed `2a5aa3db45d33592` builder/value
 DAG whole-impl span and `149bb759833d2d51` oracle/value-graph evaluator span
 remain accepted span-noise families.
+
+The UnionFind boundary review leaves `e633f3912604730d` accepted. The duplicate
+shape is real, but it crosses the deliberately separate code-clone and Markdown
+prose engines: `nose-detect` owns clone clustering over IL units, while
+`nose-markdown` is a self-contained prose detector with no `nose-detect`
+dependency. Introducing a shared crate or making Markdown depend on the code
+detector just for this data structure would make dependency direction less clear
+than the duplicated implementation. Keep the family visible under the ratchet
+until a broader shared utility crate exists for multiple domain-neutral
+structures, not just this one helper.
+
+The pre-large-work design/docs cleanup tightens the count from 36 to 34. The
+self-query report no longer reports `9510e3368e161f45`, the repeated
+`language_profile.rs` language/provenance match family, because
+`language_core_evidence_provenance_hashes` now derives both stable hashes from
+`language_core_evidence_provenance` instead of maintaining a second language
+match. It also no longer reports `936f238ab2e0d6b2`, the production Raw-node
+classification overlap between frontend coverage and CLI gap-impact
+diagnostics, because `nose_frontend::raw_node_surface` now owns the shared
+`NodeKind::Raw`/surface-kind/boundary projection. No new default-surface family
+appears, so the baseline budget is tightened to 34.

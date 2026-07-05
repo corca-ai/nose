@@ -1,4 +1,8 @@
-use crate::legacy_prelude::*;
+use crate::path_utils::{paths_as_refs, require_paths_exist, warn_if_empty};
+use anyhow::{Context, Result};
+use nose_il::Corpus;
+use rayon::prelude::*;
+use std::path::PathBuf;
 
 /// Dump each unit's detection features as JSON `{units: [...]}` — the raw value-graph,
 /// shape, return and literal fingerprints, before candidate generation/thresholding.
@@ -319,7 +323,7 @@ pub(super) fn cmd_gap_impact(paths: Vec<PathBuf>, top: usize, json: bool) -> Res
 fn collect_gap_impact_accs(
     corpus: &Corpus,
 ) -> std::collections::BTreeMap<(String, String), GapImpactAcc> {
-    use nose_il::{NodeId, NodeKind, Payload, Span};
+    use nose_il::{NodeId, Span};
     use std::collections::{BTreeMap, HashMap};
 
     let mut rows: BTreeMap<(String, String), GapImpactAcc> = BTreeMap::new();
@@ -335,18 +339,14 @@ fn collect_gap_impact_accs(
         let mut unit_size_cache: HashMap<u32, (usize, u32)> = HashMap::new();
 
         for node in &il.nodes {
-            if node.kind != NodeKind::Raw {
+            let Some(raw) = nose_frontend::raw_node_surface(&corpus.interner, node) else {
                 continue;
-            }
-            let surface = match node.payload {
-                Payload::Name(sym) => corpus.interner.resolve(sym).to_string(),
-                _ => "<unknown>".to_string(),
             };
-            if nose_frontend::is_intentional_raw_boundary_tag(&surface) {
+            if raw.boundary {
                 continue;
             }
 
-            let key = (lang.clone(), surface);
+            let key = (lang.clone(), raw.surface_kind);
             let acc = rows.entry(key).or_default();
             acc.raw_count += 1;
             acc.files.insert(path.clone());

@@ -227,7 +227,7 @@ pub fn detect(docs: &[(String, String)], opts: &Options) -> Vec<Family> {
         let key = |f: &Family| (f.removable as f64) * f.score;
         a.template
             .cmp(&b.template)
-            .then(key(b).partial_cmp(&key(a)).unwrap())
+            .then(key(b).total_cmp(&key(a)))
             .then(b.members.len().cmp(&a.members.len()))
             .then(a.members[0].path.cmp(&b.members[0].path))
     });
@@ -263,10 +263,7 @@ fn build_family(
     let exact = members
         .iter()
         .all(|&m| units[m].norm == units[members[0]].norm);
-    let rep = inpairs
-        .iter()
-        .max_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
-        .unwrap();
+    let rep = inpairs.iter().max_by(|a, b| a.2.total_cmp(&b.2)).unwrap();
     let wit = witness::witness(&units[rep.0], &units[rep.1]).map(|span| WitnessRef {
         a_path: units[rep.0].path.clone(),
         b_path: units[rep.1].path.clone(),

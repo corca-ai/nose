@@ -159,6 +159,11 @@ set -euo pipefail
 # 37 -> 36 (value-graph binary node inspection): generalized the existing `bin_args`
 # helper into `bin_op_args`, removing the selection/reduction whole-impl representative
 # `1dfaba2582163d7c` without sharing min/max or reduction policy.
+# 36 -> 34 (design/docs cleanup): `language_core_evidence_provenance_hashes` now derives
+# hashes from `language_core_evidence_provenance`, and coverage plus gap-impact diagnostics
+# share Raw surface classification through `nose_frontend::raw_node_surface`. These remove the
+# reviewed production representatives `9510e3368e161f45` and `936f238ab2e0d6b2`; no new family
+# appears, so the ratchet tightens.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

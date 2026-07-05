@@ -46,7 +46,7 @@ python3 scripts/check-legacy-prelude.py
 while they move to explicit owner imports. The gate counts top-level
 `nose-cli/src/*.rs` modules that still import from `crate::legacy_prelude` and
 the number of `pub(crate) use` exports inside the prelude itself. The current
-budget is 9 users and 26 exports; future refactors should lower those budgets
+budget is 6 users and 24 exports; future refactors should lower those budgets
 when they remove users or exports, and new users should import from the owning
 `crate::<module>` instead.
 

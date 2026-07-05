@@ -28,11 +28,11 @@ cannot mask a newly introduced duplicate.
 
 ## Current baseline
 
-The current reviewed default-surface budget is 36 families, matching
+The current reviewed default-surface budget is 34 families, matching
 `scripts/duplication-baseline.json`. The latest documented cleanup is the
-value-graph binary node inspection cleanup, which tightened the budget from 37
-to 36 by sharing the low-level `ValOp::Bin` argument reader used by selection
-and reduction recognizers.
+pre-large-work design/docs cleanup, which tightened the budget from 36 to 34 by
+removing the `language_profile` provenance match clone and sharing Raw surface
+classification between coverage and gap-impact diagnostics.
 
 The accepted family IDs are intentionally kept in the
 [`scripts/duplication-baseline.json`](../scripts/duplication-baseline.json) baseline

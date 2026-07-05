@@ -25,7 +25,7 @@ mod type_domain_aliases;
 #[cfg(test)]
 mod corpus_tests;
 
-pub use coverage::{coverage, CoverageReport};
+pub use coverage::{coverage, raw_node_surface, CoverageReport, RawSurface};
 pub use declaration_facts::{declaration_facts, DeclarationFacts};
 pub use discover::{discover_paths, discover_unique_paths};
 pub use module_imports::{imported_immutable_snapshot_census, ImportSnapshotCensus};
