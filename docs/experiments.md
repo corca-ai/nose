@@ -1508,6 +1508,13 @@ much of the useful signal. The remaining `fire_eligible` false-positive buckets 
 `no_propagation_needed`, intentional variants, test/scaffolding, and grouping
 artifacts, in that order.
 
+#672 shipped the first v2 strict gate cut from that contract: `base=<ref>` now emits
+schema-v8 tier fields and default CI fails only on `tier="strict"` (`fire_eligible`
+in `scope="prod"` for the base-divergence lane). On the checked #670 labeled set this
+keeps **45/45** v1 confirmed missed-propagation positives, reduces strict fires from
+94 to 80, and improves precision from 0.479 to 0.562. The demoted bucket is mixed/test
+scope evidence, which remains visible as `report-only` instead of failing default CI.
+
 ## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
 
 §BK's structural arm is blind below vj 0.8 by construction; #246 built the

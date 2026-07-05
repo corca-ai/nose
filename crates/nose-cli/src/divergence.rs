@@ -29,6 +29,8 @@ use nose_detect::{EnclosingUnit, FragmentKind, Loc, RefactorFamily};
 pub(crate) use detect::{detect_divergences, divergences_fire};
 pub(crate) use output::divergence_items_json;
 
+pub(crate) const DIVERGENT_EDIT_V2_POLICY: &str = "divergent-edit-v2-strict";
+
 pub(crate) fn divergence_sarif(
     flagged: &[Divergence],
     top: Option<usize>,
@@ -77,6 +79,97 @@ pub(crate) struct Divergence {
     pub(crate) changed: Vec<Site>,
     /// Sibling members the change did *not* touch (where it may be missing).
     pub(crate) not_updated: Vec<Site>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DivergenceTier {
+    Strict,
+    Review,
+    ReportOnly,
+}
+
+impl DivergenceTier {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Strict => "strict",
+            Self::Review => "review",
+            Self::ReportOnly => "report-only",
+        }
+    }
+
+    pub(crate) fn sarif_rule_id(self) -> &'static str {
+        match self {
+            Self::Strict => "nose.divergent.strict",
+            Self::Review => "nose.divergent.review",
+            Self::ReportOnly => "nose.divergent.report-only",
+        }
+    }
+
+    pub(crate) fn sarif_rule_name(self) -> &'static str {
+        match self {
+            Self::Strict => "DivergentEditStrict",
+            Self::Review => "DivergentEditReview",
+            Self::ReportOnly => "DivergentEditReportOnly",
+        }
+    }
+
+    pub(crate) fn sarif_level(self) -> &'static str {
+        match self {
+            Self::Strict => "error",
+            Self::Review => "warning",
+            Self::ReportOnly => "note",
+        }
+    }
+
+    pub(crate) fn gate_eligible(self) -> bool {
+        matches!(self, Self::Strict | Self::Review)
+    }
+}
+
+impl Divergence {
+    pub(crate) fn tier(&self) -> DivergenceTier {
+        if self.scope != "prod" {
+            DivergenceTier::ReportOnly
+        } else if self.fire_eligible {
+            DivergenceTier::Strict
+        } else {
+            DivergenceTier::Review
+        }
+    }
+
+    pub(crate) fn gate_fail_default(&self) -> bool {
+        self.tier() == DivergenceTier::Strict
+    }
+
+    pub(crate) fn taxonomy_hint(&self) -> &'static str {
+        if self.scope != "prod" {
+            "test_scaffolding"
+        } else if self.fire_eligible {
+            "missed_propagation"
+        } else if self.changed.iter().any(|s| s.touches_shared == Some(false)) {
+            "no_propagation_needed"
+        } else {
+            "unclear"
+        }
+    }
+
+    pub(crate) fn tier_reasons(&self) -> Vec<&'static str> {
+        let mut reasons = Vec::with_capacity(3);
+        if self.changed.iter().any(|s| s.touches_shared == Some(true)) {
+            reasons.push("shared_logic_touched");
+        } else if self.changed.iter().any(|s| s.touches_shared == Some(false)) {
+            reasons.push("shared_logic_not_touched");
+        } else {
+            reasons.push("shared_logic_unproven");
+        }
+        if self.scope == "prod" {
+            reasons.push("non_test_scope");
+        } else {
+            reasons.push("test_scope");
+            reasons.push("test_scaffolding");
+        }
+        reasons
+    }
 }
 
 #[derive(Clone)]

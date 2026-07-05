@@ -24,13 +24,13 @@ nose query . base=origin/main
 ```
 
 ```
-1 divergent family vs `origin/main` (3 files changed; 1 touch shared logic):
+1 divergent family vs `origin/main` (3 files changed; 1 strict):
   9f2c1a  similar · prod · shared-logic (likely missed propagation)
     changed:      src/fs.rs:88-95  normalize_path
     not updated:  src/router.py:212-220  clean_route
 
 next:
-  nose query . base=origin/main --fail-on any   # fail CI on a proven divergence
+  nose query . base=origin/main --fail-on any   # fail CI on strict divergences
 ```
 
 The location listed under **not updated** is the copy your change skipped — open it and
@@ -58,48 +58,50 @@ touched, not that the change definitely belongs there. Inspect each flagged sibl
 
 The report and the gate are deliberately different surfaces. The report shows every
 inconsistently-changed family; on `nose query <path> base=<ref>`, **`--fail-on any` fires
-only on findings that pass the conservative shared-logic policy** ([experiments](experiments.md)):
+only on unsuppressed `strict` findings** ([experiments](experiments.md)). A `strict`
+finding must satisfy the legacy conservative shared-logic proof and the v2 tier policy:
 
 - the diff **provably touches lines the changed copy shares with its un-updated
   sibling** — by the family's own equivalence proof for `exact-value-graph` families
   (a renamed twin's every line is shared logic), or by subtracting the member's
   varying spots for token/fuzzy families (an edit inside the part that already
-  differed is not a propagation hazard); unprovable cases do not fire — the gate
-  fires on proof, never on absence of one; and
-- the family is not all-test scaffolding (`scope != "test"`).
+  differed is not a propagation hazard); unprovable cases do not become `strict`
+  — the gate fires on proof, never on absence of one; and
+- the family is production scope (`scope="prod"`). Mixed and all-test findings remain
+  visible, but they are `report-only` by default.
 
-Measured on replayed merged PRs against judge-labeled findings: the policy
-keeps **every** genuine missed propagation while firing 73% less often than
-span-overlap firing (change-level: 15% of merged changes vs 33%), at 3.7× the
-precision. `base=<ref> --fail-on any` *is* this conservative gate. Each JSON finding carries
-`fire_eligible`, `witness_kind`,
-`scope`, per-changed-site `touches_shared`, and — for near families — the family's
-[graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`, `holes`,
-`patterns`, `referent_mismatches`, `caveat_names`), so a CI wrapper can apply its own
-tier without re-deriving the analysis.
+Measured on replayed merged PRs against judge-labeled findings: the v1 conservative
+`fire_eligible` policy kept every genuine missed propagation while firing 73% less
+often than span-overlap firing (change-level: 15% of merged changes vs 33%), at 3.7×
+the precision. The #672 v2 strict policy keeps the same confirmed positives on the
+checked #670 labelset while demoting mixed/test evidence from default-failing output.
+Each JSON finding carries legacy `fire_eligible`, the v2 `tier` and `gate.fail_default`,
+`witness_kind`, `scope`, per-changed-site `touches_shared`, and — for near families —
+the family's [graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`,
+`holes`, `patterns`, `referent_mismatches`, `caveat_names`), so a CI wrapper can use
+the emitted tier without re-deriving the analysis.
 
 The graded witness is **evidence for the consumer, not a fire gate**: a clean
 `equal_modulo_holes` family is a strong missed-propagation candidate, while a
 `referent-mismatch` / `decorator-differs` family is one whose copies are not really
 the same logic (a likely false fire the consumer can down-rank). It deliberately does
-**not** gate `fire_eligible` — a decorator or a same-named-but-different-referent
+**not** gate legacy `fire_eligible` — a decorator or a same-named-but-different-referent
 difference does not stop a shared-*body* fix from being a genuine missed propagation,
 so suppressing on it would risk the keep-every-propagation property the shared-logic policy
-is measured against. The fire decision stays the shared-logic proof; the witness only
-makes a borderline fire explainable.
+is measured against. The shared-logic proof stays separate from graded-witness
+presentation evidence; the v2 tier decides whether that proof is default-failing.
 
 ## V2 gate tiers (design contract)
 
 #670 refreshed the replay measurement and changed the next implementation target:
 the useful signal is not only the top-ranked finding. The v2 contract therefore
 separates **what nose reports** from **what may fail CI** with an explicit tier on
-each divergent-edit finding. This section is the design contract for the follow-up
-implementation issues; the current released binary still emits the v1 fields described
-above.
+each divergent-edit finding. The v1 `fire_eligible` field remains as compatibility
+evidence, but default CI uses the v2 `strict` tier.
 
 | tier | CI behavior | evidence requirement | intended reader action |
 |---|---|---|---|
-| `strict` | `base=<ref> --fail-on any` exits non-zero when at least one unsuppressed `strict` finding is shown | `fire_eligible=true`, `taxonomy_hint="missed_propagation"`, and no higher-priority report-only or suppression reason | treat as a likely missed sibling edit; block or require an explicit suppression |
+| `strict` | `base=<ref> --fail-on any` exits non-zero when at least one unsuppressed `strict` finding is shown | `fire_eligible=true`, `scope="prod"`, `taxonomy_hint="missed_propagation"`, and no higher-priority report-only or suppression reason | treat as a likely missed sibling edit; block or require an explicit suppression |
 | `review` | reported in human/JSON/SARIF, does not fail by default | base-tree divergent-edit candidate that is not suppressed, not report-only, and not strict | inspect during review; optionally fail in a custom wrapper |
 | `report-only` | reported only as advisory evidence, never fails default CI | useful context outside the default gate: test-only scaffolding, grouping artifacts, or newly added current-tree copies with no base member | use as reviewer/agent context; do not treat as a blocker |
 | `suppressed` | omitted from active human/SARIF gate output and never fails | matched by a structured ignore or accepted suppression | audit through the ignore file, not through repeated PR noise |
@@ -129,9 +131,11 @@ The tier decision is deterministic. Apply these rules in order:
    SARIF output omit it, and it never fails a gate. A partial path/language ignore
    still obeys the existing all-members selector semantics.
 2. `test_scaffolding`, `grouping_artifact`, `test_scope`, and
-   `new_copy_no_base_member` route to `report-only`.
+   `new_copy_no_base_member` route to `report-only`. In the implemented #672
+   strict policy, `test_scope` covers both `scope="test"` and `scope="mixed"`;
+   only `scope="prod"` can be `strict`.
 3. An unsuppressed finding with `fire_eligible=true` and
-   `taxonomy_hint="missed_propagation"` routes to `strict`.
+   `taxonomy_hint="missed_propagation"` in `scope="prod"` routes to `strict`.
 4. Every other unsuppressed base-tree divergent-edit candidate routes to `review`.
 
 Newly added copy evidence is a separate report-only lane, not a base-tree
@@ -157,7 +161,7 @@ query filters (`path~`, `witness=`, `group=`, `since=`, `id=`) are rejected inst
 | flag / term | effect |
 |---|---|
 | `base=<ref>` | compare the working tree against this git ref (`HEAD` = uncommitted changes; `origin/main` for a PR branch) |
-| `--fail-on any` | exit non-zero when the gate fires — the conservative shared-logic policy (see *The gate* above) |
+| `--fail-on any` | exit non-zero when at least one unsuppressed `strict` finding has `gate.fail_default=true` (see *The gate* above) |
 | `--format human\|json\|markdown\|sarif` | output format (default `human`; `markdown` currently renders the human-readable divergent-edit report) |
 | `--ignore-file <file>` | suppress accepted divergences (auto-reads `nose.ignore.json`) |
 | `top=N` | show at most N findings (`0` = all; default 30) |

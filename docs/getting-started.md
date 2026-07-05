@@ -168,7 +168,7 @@ not the others:
 nose query .                            # explore the duplication first
 nose query . base=HEAD                  # inspect uncommitted local changes
 nose query . base=origin/main           # inspect a PR branch (e.g. in CI)
-nose query . base=origin/main --fail-on any   # the CI gate (fires only on the proven case)
+nose query . base=origin/main --fail-on any   # the CI gate (fires only on strict findings)
 ```
 
 See [divergent edits](divergent-edits.md) for how these findings are ranked and the gate policy.

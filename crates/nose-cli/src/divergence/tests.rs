@@ -1,6 +1,7 @@
 use super::detect::{divergence_priority, ranges_touch, to_site};
 use super::git::parse_old_side_ranges;
 use super::output::fragment_context;
+use super::{Divergence, DivergenceTier, Site};
 
 use nose_detect::{EnclosingUnit, FragmentKind, LineSpan, Loc, LocInit, RefactorFamily};
 
@@ -123,5 +124,63 @@ fn divergence_priority_promotes_fragment_surface() {
         divergence_priority(&family, &[&changed], &[&sibling]),
         3,
         "divergence-surface fragment hazards should rank before generic clone divergences"
+    );
+}
+
+fn tier_site(file: &str, touches_shared: Option<bool>) -> Site {
+    Site {
+        file: file.into(),
+        name: Some("f".into()),
+        start_line: 1,
+        end_line: 8,
+        lang: "python".into(),
+        kind: nose_il::UnitKind::Function,
+        span_lines: 8,
+        span_tokens: 24,
+        is_fragment: false,
+        fragment_kind: None,
+        reason_code: None,
+        enclosing_unit: None,
+        touches_shared,
+    }
+}
+
+fn tier_divergence(scope: &'static str, fire_eligible: bool, touch: Option<bool>) -> Divergence {
+    Divergence {
+        family_id: "fam".into(),
+        similarity: 1.0,
+        hazard: 0.0,
+        divergence_priority: 0,
+        complexity: 24,
+        scope,
+        witness_kind: Some("copy-paste-run"),
+        fire_eligible,
+        graded: None,
+        changed: vec![tier_site("a.py", touch)],
+        not_updated: vec![tier_site("b.py", None)],
+    }
+}
+
+#[test]
+fn v2_tier_routes_unknown_shared_evidence_to_review() {
+    let d = tier_divergence("prod", false, None);
+    assert_eq!(d.tier(), DivergenceTier::Review);
+    assert!(!d.gate_fail_default(), "unknown evidence must fail closed");
+    assert_eq!(d.taxonomy_hint(), "unclear");
+    assert_eq!(
+        d.tier_reasons(),
+        vec!["shared_logic_unproven", "non_test_scope"]
+    );
+}
+
+#[test]
+fn v2_tier_routes_mixed_scope_to_report_only_even_when_legacy_fire_eligible() {
+    let d = tier_divergence("mixed", true, Some(true));
+    assert_eq!(d.tier(), DivergenceTier::ReportOnly);
+    assert!(!d.gate_fail_default(), "report-only never fails default CI");
+    assert_eq!(d.taxonomy_hint(), "test_scaffolding");
+    assert_eq!(
+        d.tier_reasons(),
+        vec!["shared_logic_touched", "test_scope", "test_scaffolding"]
     );
 }

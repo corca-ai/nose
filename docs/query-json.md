@@ -1,4 +1,4 @@
-# nose query JSON (schema v7)
+# nose query JSON (schemas v7 and v8)
 
 `nose query <path> [terms…] --format json` emits a structured, versioned contract over the
 duplicated-code family dataset — the **machine** form of the
@@ -8,7 +8,7 @@ For multi-root analysis, use repeated roots:
 `nose query --root <path> --root <path> [terms…] --format json`.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[7]`).
+versions the installed binary emits (currently `[7, 8]`).
 
 ## Envelope
 
@@ -16,7 +16,7 @@ Every response is an object with:
 
 | field | meaning |
 |---|---|
-| `schema_version` | `7` |
+| `schema_version` | `7` for the non-`base` query views; `8` for `base=<ref>` |
 | `tool` | `"nose"` |
 | `view` | which surface produced it: `dashboard` \| `list` \| `group` \| `family` \| `reinvented` \| `base` |
 | `path` | the analyzed path expression, as given; multi-root commands render the repeated `--root`/`-r` flags |
@@ -25,7 +25,8 @@ Every response is an object with:
 plus the view-specific body below. Like the human surface, a result is a pure function of
 (repo state, command); an unknown field or enum value is a hard error.
 
-Schema v7 adds on-demand family-level `graded` and `graded_pair` evidence for
+Schema v8 adds the divergent-edit `base=<ref>` tier contract. Schema v7 adds
+on-demand family-level `graded` and `graded_pair` evidence for
 `spotclass` enrichment. Schema v6 added the top-level `semantic_packs`
 reporting field and renamed pack-facing trust/source values from legacy
 first-party spelling to builtin spelling.
@@ -86,29 +87,31 @@ value, approximate}` — code that reimplements an existing helper; the action i
 `test_helper` counts production containers whose only existing helper is in test code; those are
 omitted from `items[]` because production code should rehome/extract a helper before calling it.
 
-**`base`** (`base=<git-ref>`) — the divergent-edit view. `base` (the ref), `summary` (`changed_files`, `divergences`,
-`shown_divergences`, `limit`, `fire_eligible`), and `items[]` of `{family_id, similarity,
-complexity, scope, witness_kind, fire_eligible, graded, changed[], not_updated[]}` — each
+**`base`** (`base=<git-ref>`, schema v8) — the divergent-edit view. `base` (the ref), `summary` (`changed_files`, `divergences`,
+`shown_divergences`, `limit`, `fire_eligible`, `strict`), and `items[]` of `{family_id, lane,
+base_family_id, similarity, complexity, scope, witness_kind, fire_eligible, tier,
+tier_reasons[], taxonomy_hint, gate, suppression, graded, changed[], not_updated[]}` — each
 `changed`/`not_updated` site carries `{file, name, start_line, end_line, lang, kind,
 span_lines, span_tokens, is_fragment, fragment_kind, reason_code, enclosing_unit,
-touches_shared}`.
+touches_shared, tree}`.
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
 `limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the legacy v1
 conservative gate verdict. In the current implementation it means the diff provably touches
-shared logic and the family is not all-test scaffolding.
+shared logic and the family is not all-test scaffolding. `strict` counts the v2 default-failing
+items.
 
-Planned v8 base-view additions for divergent-edit v2 are intentionally schema-breaking
+The v8 base-view additions for divergent-edit v2 are intentionally schema-breaking
 instead of silent v7 additions: CI wrappers and agents need stable enums for gate behavior.
-The current v7 evidence fields remain available, but `fire_eligible` stays a compatibility
-verdict rather than a raw input. The raw inputs are `scope`, `witness_kind`, `graded`, and
-per-site `touches_shared`.
+The v7 evidence fields remain available in the base item, but `fire_eligible` stays a
+compatibility verdict rather than a raw input. The raw inputs are `scope`, `witness_kind`,
+`graded`, and per-site `touches_shared`.
 
-The planned v8 `base.items[]` object adds:
+The v8 `base.items[]` object adds:
 
 | field | type | meaning |
 |---|---|---|
-| `lane` | string enum | `base-divergence` for the existing base-tree propagation lane, or `new-copy` for current-tree clone evidence with no base member. |
-| `base_family_id` | string or null | The base-tree family id for `base-divergence`; `null` for `new-copy`. |
+| `lane` | string enum | `base-divergence` for the implemented base-tree propagation lane. `new-copy` is reserved for #673 current-tree clone evidence with no base member. |
+| `base_family_id` | string or null | The base-tree family id for `base-divergence`; `null` for future `new-copy`. |
 | `tier` | string enum | `strict`, `review`, `report-only`, or `suppressed`. `strict` is the only default CI-failing tier; `review` and `report-only` are visible but non-failing; `suppressed` is emitted only by an explicit future suppressed/debug surface. |
 | `tier_reasons[]` | array of strings | Closed reason-code enum: `shared_logic_touched`, `shared_logic_not_touched`, `shared_logic_unproven`, `non_test_scope`, `test_scope`, `variant_signal`, `test_scaffolding`, `grouping_artifact`, `new_copy_no_base_member`, `structured_ignore`, or `unclassified`. |
 | `taxonomy_hint` | string or null | Closed false-fire bucket for routing and UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This is evidence for consumers, not a correctness verdict. |
@@ -125,8 +128,8 @@ Composition rules for v8:
   explicit. `new-copy` emits `current_only[]` sites with `tree: "current"` and
   no `not_updated[]` sites.
 - `strict` requires `fire_eligible=true`, `taxonomy_hint="missed_propagation"`,
-  and no higher-priority suppression or report-only reason. Missing proof fails
-  closed to `review` or `report-only`.
+  `scope="prod"`, and no higher-priority suppression or report-only reason. Missing
+  proof or mixed/test scope fails closed to `review` or `report-only`.
 - `report-only` is for advisory lanes: `test_scaffolding`, `grouping_artifact`,
   `test_scope`, or `new_copy_no_base_member`.
 - `suppressed` wins over all other tiers and must never set `gate.fail_default=true`.

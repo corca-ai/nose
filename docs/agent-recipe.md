@@ -129,14 +129,15 @@ Read the fields in this order — each step either decides or narrows:
 ## PR-time: divergent-edit findings
 
 `nose query <path> base=<ref> --format json` (the `base` view) emits one `items[]`
-finding per divergence, each carrying the gate
-fields: `fire_eligible` (the conservative shared-logic policy verdict the gate fires on),
-`witness_kind`, `scope`, and per-changed-site `touches_shared`. For a harm pass over the top
+finding per divergence, each carrying the v2 gate fields: `tier`, `tier_reasons[]`,
+`taxonomy_hint`, and `gate.fail_default`, plus legacy `fire_eligible` compatibility
+evidence, `witness_kind`, `scope`, and per-changed-site `touches_shared`. For a harm pass over the top
 findings, judge each as
 should-propagate / intentional-divergence / not-a-clone using the changed member's
 diff and the un-updated sibling's body. Most fires are not propagation hazards; the
-gate's `fire_eligible` tier is the high-precision slice ([experiments](experiments.md)
-measured the base rates).
+`strict` tier is the default-failing high-precision slice ([experiments](experiments.md)
+measured the base rates). Do not reconstruct the default gate from `fire_eligible`;
+use `gate.fail_default`.
 
 ## Validation
 

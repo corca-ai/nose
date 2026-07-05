@@ -67,10 +67,9 @@ pub(crate) fn detect_divergences(
     Ok(Some((flagged, changed.len())))
 }
 
-/// Whether a flagged set fires the conservative CI gate: at least one non-test finding where
-/// the diff provably touches lines shared with an un-updated sibling.
+/// Whether a flagged set fires the v2 strict CI gate.
 pub(crate) fn divergences_fire(flagged: &[Divergence]) -> bool {
-    flagged.iter().any(|d| d.fire_eligible)
+    flagged.iter().any(Divergence::gate_fail_default)
 }
 
 /// Flag families with *some but not all* members changed by the diff, most likely

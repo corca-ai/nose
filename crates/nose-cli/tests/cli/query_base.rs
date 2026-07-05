@@ -73,6 +73,7 @@ fn query_base_flags_divergent_edits() {
     // `nose query . base=<ref>` is the query base pipeline surfaced under query: detect at the
     // ref, flag a clone changed in one copy but not its siblings, gate on the proven case.
     let dir = make_project("query_base");
+    fs::remove_dir_all(dir.join("tests")).unwrap();
     init_git_repo(&dir);
     let a = dir.join("a/f.py");
     let src = fs::read_to_string(&a).unwrap();
@@ -94,6 +95,7 @@ fn query_base_flags_divergent_edits() {
 
     let jout = nose_query_in(&dir, &["base=main", "--min-size", "8", "--format", "json"]);
     let j: serde_json::Value = serde_json::from_slice(&jout.stdout).unwrap();
+    assert_eq!(j["schema_version"], 8, "base view emits v2 schema: {j}");
     assert_eq!(j["view"], "base", "query schema envelope, base view: {j}");
     assert_query_json_reports_semantic_packs(&j);
     assert_eq!(j["base"], "main");
@@ -104,6 +106,29 @@ fn query_base_flags_divergent_edits() {
     assert!(
         j["items"][0]["fire_eligible"].is_boolean(),
         "items carry the §BV fire verdict: {j}"
+    );
+    let item = &j["items"][0];
+    assert_eq!(item["lane"], "base-divergence", "v2 lane: {j}");
+    assert_eq!(
+        item["base_family_id"], item["family_id"],
+        "base family id: {j}"
+    );
+    assert_eq!(item["tier"], "strict", "shared prod edit is strict: {j}");
+    assert_eq!(
+        item["taxonomy_hint"], "missed_propagation",
+        "strict taxonomy: {j}"
+    );
+    assert_eq!(
+        item["gate"]["fail_default"], true,
+        "strict fails default gate: {j}"
+    );
+    assert_eq!(
+        item["gate"]["policy"], "divergent-edit-v2-strict",
+        "policy: {j}"
+    );
+    assert_eq!(
+        item["changed"][0]["tree"], "base",
+        "site coordinate origin: {j}"
     );
 
     let sout = nose_query_in(&dir, &["base=main", "--min-size", "8", "--format", "sarif"]);
@@ -119,6 +144,11 @@ fn query_base_flags_divergent_edits() {
             .is_some_and(|r| !r.is_empty()),
         "query base= SARIF reuses query base findings: {sarif}"
     );
+    let sarif_result = &sarif["runs"][0]["results"][0];
+    assert_eq!(sarif_result["ruleId"], "nose.divergent.strict");
+    assert_eq!(sarif_result["level"], "error");
+    assert_eq!(sarif_result["properties"]["tier"], "strict");
+    assert_eq!(sarif_result["properties"]["gate"]["fail_default"], true);
     let unsupported = nose_query_in(&dir, &["base=main", "path~a/f.py", "--min-size", "8"]);
     let stderr = String::from_utf8_lossy(&unsupported.stderr);
     assert!(
@@ -155,11 +185,11 @@ fn query_base_flags_divergent_edits() {
         );
     }
 
-    // `--fail-on any` over base= fires on the conservative (shared-logic) policy.
+    // `--fail-on any` over base= fires on the strict v2 policy.
     let gated = nose_query_in(&dir, &["base=main", "--min-size", "8", "--fail-on", "any"]);
     assert!(
         !gated.status.success(),
-        "base= --fail-on any exits non-zero on a proven divergence"
+        "base= --fail-on any exits non-zero on a strict divergence"
     );
 
     let _ = fs::remove_dir_all(&dir);
@@ -168,7 +198,7 @@ fn query_base_flags_divergent_edits() {
 #[test]
 fn query_base_matches_base_ref_findings() {
     // `base=HEAD` and `base=main` run the same detection against this fixture state, so they
-    // report the same findings (family_id + fire verdict) on one diff.
+    // report the same findings (family_id + legacy fire verdict + v2 tier) on one diff.
     let dir = make_project("query_base_parity");
     init_git_repo(&dir);
     let a = dir.join("a/f.py");
@@ -190,7 +220,7 @@ fn query_base_matches_base_ref_findings() {
     .unwrap();
 
     let key = |v: &serde_json::Value, arr: &str| {
-        let mut ks: Vec<(String, bool)> = v[arr]
+        let mut ks: Vec<(String, bool, String)> = v[arr]
             .as_array()
             .unwrap()
             .iter()
@@ -198,6 +228,7 @@ fn query_base_matches_base_ref_findings() {
                 (
                     f["family_id"].as_str().unwrap().to_string(),
                     f["fire_eligible"].as_bool().unwrap(),
+                    f["tier"].as_str().unwrap().to_string(),
                 )
             })
             .collect();
@@ -209,7 +240,7 @@ fn query_base_matches_base_ref_findings() {
     assert_eq!(
         rev_keys,
         key(&qry, "items"),
-        "query base= reports the same family ids + fire verdicts as query base"
+        "query base= reports the same family ids + fire verdicts + tiers as query base"
     );
 
     let _ = fs::remove_dir_all(&dir);
@@ -277,6 +308,7 @@ fn query_base_pathspec_is_relative_to_invocation_dir() {
 #[test]
 fn query_base_flags_a_clone_changed_in_one_copy_only() {
     let dir = make_project("query_base_flag");
+    fs::remove_dir_all(dir.join("tests")).unwrap();
     init_git_repo(&dir);
 
     // Edit ONE copy of the clone family (a/f.py) — a fix not propagated to b/f.py.
@@ -311,6 +343,190 @@ fn query_base_flags_a_clone_changed_in_one_copy_only() {
     assert!(
         !gated.status.success(),
         "--fail should exit non-zero when flagged"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_mixed_scope_is_report_only_not_strict() {
+    let dir = make_project("query_base_mixed_report_only");
+    init_git_repo(&dir);
+
+    // The family spans prod copies and a test copy. Editing only the test copy is useful
+    // review context, but v2 must not let this mixed/test-scaffolding lane fail default CI.
+    let tests = dir.join("tests/f.py");
+    let src = fs::read_to_string(&tests).unwrap();
+    fs::write(
+        &tests,
+        src.replace("    return s", "    s = s + 1\n    return s"),
+    )
+    .unwrap();
+
+    let out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    let finding = json["items"]
+        .as_array()
+        .and_then(|items| items.first())
+        .expect("mixed-scope divergent finding");
+    assert_eq!(
+        finding["scope"], "mixed",
+        "fixture should be mixed-scope: {json}"
+    );
+    assert_eq!(
+        finding["fire_eligible"], true,
+        "legacy v1 verdict still records the shared-logic touch: {json}"
+    );
+    assert_eq!(
+        finding["tier"], "report-only",
+        "mixed scope is not strict: {json}"
+    );
+    assert_eq!(
+        finding["taxonomy_hint"], "test_scaffolding",
+        "taxonomy: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["fail_default"], false,
+        "report-only never fails: {json}"
+    );
+    assert!(
+        finding["tier_reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r == "test_scope"),
+        "report-only finding explains the test-scope reason: {json}"
+    );
+
+    let gated = nose_query_base(&dir, &["--fail"]);
+    assert!(
+        gated.status.success(),
+        "--fail must stay quiet for report-only mixed/test evidence"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_all_test_scope_is_report_only_not_strict() {
+    let dir = make_temp_dir("query_base_all_test_report_only");
+    let body = |name: &str, acc: &str, it: &str| {
+        format!(
+            "def {name}(items):\n    {acc} = 0\n    for {it} in items:\n        if {it} > 0:\n            {acc} = {acc} + {it} * {it}\n    return {acc}\n"
+        )
+    };
+    write_files(
+        &dir,
+        &[
+            ("tests/a/f.py", &body("first", "total", "x")),
+            ("tests/b/f.py", &body("second", "acc", "v")),
+        ],
+    );
+    init_git_repo(&dir);
+
+    let a = dir.join("tests/a/f.py");
+    let src = fs::read_to_string(&a).unwrap();
+    fs::write(
+        &a,
+        src.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+
+    let out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    let finding = json["items"]
+        .as_array()
+        .and_then(|items| items.first())
+        .expect("all-test divergent finding");
+    assert_eq!(
+        finding["scope"], "test",
+        "fixture should be all-test: {json}"
+    );
+    assert_eq!(
+        finding["fire_eligible"], false,
+        "legacy v1 verdict excludes all-test findings: {json}"
+    );
+    assert_eq!(
+        finding["tier"], "report-only",
+        "all-test scope stays visible but non-strict: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["fail_default"], false,
+        "all-test report-only finding does not fail: {json}"
+    );
+
+    let gated = nose_query_base(&dir, &["--fail"]);
+    assert!(
+        gated.status.success(),
+        "--fail must stay quiet for all-test evidence"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_exact_renamed_twin_remains_strict() {
+    let dir = make_mode_project("query_base_exact_strict");
+    init_git_repo(&dir);
+
+    let a = dir.join("renamed_a.py");
+    let src = fs::read_to_string(&a).unwrap();
+    fs::write(
+        &a,
+        src.replace(
+            "total = total + item * item",
+            "total = total + item * item + 1",
+        ),
+    )
+    .unwrap();
+
+    let out = nose_query_base(&dir, &["--mode", "semantic", "--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    let finding = json["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| {
+            item["changed"].to_string().contains("renamed_a.py")
+                && item["not_updated"].to_string().contains("renamed_b.py")
+        })
+        .unwrap_or_else(|| panic!("expected renamed-twin divergence: {json}"));
+    assert_eq!(
+        finding["witness_kind"], "exact-value-graph",
+        "exact witness: {json}"
+    );
+    assert_eq!(
+        finding["fire_eligible"], true,
+        "exact twin touches shared logic: {json}"
+    );
+    assert_eq!(
+        finding["tier"], "strict",
+        "exact renamed twin stays strict: {json}"
+    );
+    assert_eq!(finding["gate"]["fail_default"], true, "strict gate: {json}");
+
+    let gated = nose_query_base(&dir, &["--mode", "semantic", "--fail"]);
+    assert!(
+        !gated.status.success(),
+        "--fail must fire for an exact renamed-twin strict divergence"
     );
 
     let _ = fs::remove_dir_all(&dir);
@@ -562,6 +778,18 @@ fn query_base_fail_fires_on_shared_logic_only() {
         finding["fire_eligible"], false,
         "a varying-spot-only change must not be gate-eligible: {json}"
     );
+    assert_eq!(
+        finding["tier"], "review",
+        "a varying-spot-only change remains visible for review: {json}"
+    );
+    assert_eq!(
+        finding["taxonomy_hint"], "no_propagation_needed",
+        "v2 explains the non-strict taxonomy: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["fail_default"], false,
+        "review findings do not fail default CI: {json}"
+    );
     let gated = query_base(&dir, &["--fail"]);
     assert!(
         gated.status.success(),
@@ -582,6 +810,18 @@ fn query_base_fail_fires_on_shared_logic_only() {
     assert_eq!(
         finding["fire_eligible"], true,
         "a shared-line change is gate-eligible: {json}"
+    );
+    assert_eq!(
+        finding["tier"], "strict",
+        "a prod shared-line change is strict: {json}"
+    );
+    assert_eq!(
+        finding["taxonomy_hint"], "missed_propagation",
+        "strict findings carry the missed-propagation taxonomy: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["fail_default"], true,
+        "strict findings fail default CI: {json}"
     );
     assert_eq!(
         finding["changed"][0]["touches_shared"], true,

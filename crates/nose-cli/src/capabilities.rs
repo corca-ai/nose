@@ -151,7 +151,10 @@ impl Report {
 fn current_schemas() -> Schemas {
     Schemas {
         capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
-        query_json: vec![crate::schema_versions::QUERY_JSON_SCHEMA_VERSION],
+        query_json: vec![
+            crate::schema_versions::QUERY_JSON_SCHEMA_VERSION,
+            crate::schema_versions::QUERY_BASE_JSON_SCHEMA_VERSION,
+        ],
         semantic_packs: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
         semantic_pack_conformance: vec![crate::semantic_pack::CONFORMANCE_SCHEMA_VERSION],
         semantic_pack_inventory: vec![crate::semantic_pack::INVENTORY_SCHEMA_VERSION],

@@ -21,15 +21,15 @@ use anyhow::Result;
 use std::path::PathBuf;
 
 /// The `base=<git-ref>` view: divergent edits (a clone changed in one copy but not its
-/// siblings) detected at the ref and surfaced under query. Reuses the same conservative
-/// shared-logic policy measured in §BV.
+/// siblings) detected at the ref and surfaced under query. Default CI gates only on the
+/// strict tier; broader divergences remain visible as review/report-only evidence.
 fn run_query_base(args: &QueryArgs, base_ref: &str, q: &Query, path_arg: &str) -> Result<()> {
     validate_base_query(q, args)?;
     // `base=` gates on a diff against a ref, not a saved baseline — `--fail-on new` (which
     // needs `--baseline`) is meaningless here.
     if matches!(args.fail_on, Some(FailOn::New)) {
         anyhow::bail!(
-            "`base=` gates on a diff, not a baseline — use `--fail-on any` (fires on a proven divergence)"
+            "`base=` gates on a diff, not a baseline — use `--fail-on any` (fires on unsuppressed strict divergences)"
         );
     }
     let semantic_packs_json = if matches!(args.format, ReportFormat::Json) {
@@ -73,7 +73,7 @@ fn run_query_base(args: &QueryArgs, base_ref: &str, q: &Query, path_arg: &str) -
             &semantic_packs_json,
         ),
     }
-    // The gate fires on the §BV conservative policy: a proven shared-logic divergence.
+    // The default gate fires on the v2 strict tier.
     if matches!(args.fail_on, Some(FailOn::Any)) && divergence::divergences_fire(&flagged) {
         std::process::exit(1);
     }

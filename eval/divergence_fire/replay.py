@@ -430,6 +430,10 @@ def cmd_sample(args):
             "family_id": f["family_id"],
             "similarity": f.get("similarity"), "complexity": f.get("complexity"),
             "fire_eligible": f.get("fire_eligible"),
+            "tier": f.get("tier"),
+            "tier_reasons": f.get("tier_reasons"),
+            "taxonomy_hint": f.get("taxonomy_hint"),
+            "gate": f.get("gate"),
             "witness_kind": f.get("witness_kind"),
             "scope": f.get("scope"),
             "changed": sites["changed"], "not_updated": sites["not_updated"],
@@ -461,6 +465,10 @@ def redact_sample_row(row):
         "similarity": row.get("similarity"),
         "complexity": row.get("complexity"),
         "fire_eligible": row.get("fire_eligible"),
+        "tier": row.get("tier"),
+        "tier_reasons": row.get("tier_reasons"),
+        "taxonomy_hint": row.get("taxonomy_hint"),
+        "gate": row.get("gate"),
         "witness_kind": row.get("witness_kind"),
         "scope": row.get("scope"),
         "changed": [redact_site(s) for s in row.get("changed", [])],
@@ -504,6 +512,12 @@ def policy_row(name, rows, predicate):
     }
 
 
+def v2_strict(row):
+    if row.get("tier") is not None:
+        return row.get("tier") == "strict"
+    return row.get("fire_eligible") is True and row.get("scope") == "prod"
+
+
 def policy_rows_from_labeled_rows(rows, name_prefix=""):
     return [
         policy_row(f"{name_prefix}any sampled finding", rows, lambda _r: True),
@@ -517,6 +531,7 @@ def policy_rows_from_labeled_rows(rows, name_prefix=""):
                    and r["scope"] != "test"),
         policy_row(f"{name_prefix}serialized fire_eligible", rows,
                    lambda r: r.get("fire_eligible") is True),
+        policy_row(f"{name_prefix}V2 strict: tier=strict", rows, v2_strict),
     ]
 
 
@@ -543,7 +558,7 @@ def compute_policy_eval(samples, verdicts):
         witness = sample.get("witness_kind")
         line = changed_touches_shared(sample)
         scope = sample.get("scope")
-        rows.append({
+        row = {
             "sid": sample["sid"],
             "pos": verdict["verdict"] == "should_propagate",
             "verdict": verdict["verdict"],
@@ -553,7 +568,10 @@ def compute_policy_eval(samples, verdicts):
             "rank": sample.get("rank"),
             "identity": list(key) if key is not None else None,
             "fire_eligible": sample.get("fire_eligible"),
-        })
+        }
+        if sample.get("tier") is not None:
+            row["tier"] = sample.get("tier")
+        rows.append(row)
     return {
         "schema_version": 2,
         "method": "policy simulation from sampled findings joined to verdict labels by stable finding identity, with sid fallback for legacy verdict drafts",

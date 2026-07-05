@@ -44,6 +44,7 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
     use serde_json::json;
     let site = |s: &Site| {
         json!({
+            "tree": "base",
             "file": s.file, "name": s.name,
             "start_line": s.start_line, "end_line": s.end_line, "lang": s.lang,
             "kind": s.kind,
@@ -59,13 +60,25 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
     flagged
         .iter()
         .map(|d| {
+            let tier = d.tier();
             json!({
                 "family_id": d.family_id,
+                "lane": "base-divergence",
+                "base_family_id": d.family_id,
                 "similarity": d.similarity,
                 "complexity": d.complexity,
                 "scope": d.scope,
                 "witness_kind": d.witness_kind,
                 "fire_eligible": d.fire_eligible,
+                "tier": tier.as_str(),
+                "tier_reasons": d.tier_reasons(),
+                "taxonomy_hint": d.taxonomy_hint(),
+                "gate": {
+                    "eligible": tier.gate_eligible(),
+                    "fail_default": d.gate_fail_default(),
+                    "policy": DIVERGENT_EDIT_V2_POLICY,
+                },
+                "suppression": null,
                 "graded": d.graded,
                 "changed": d.changed.iter().map(&site).collect::<Vec<_>>(),
                 "not_updated": d.not_updated.iter().map(&site).collect::<Vec<_>>(),
@@ -105,6 +118,7 @@ pub(super) fn divergence_sarif(
     let results: Vec<_> = shown
         .iter()
         .map(|d| {
+            let tier = d.tier();
             let changed = d
                 .changed
                 .iter()
@@ -112,28 +126,56 @@ pub(super) fn divergence_sarif(
                 .collect::<Vec<_>>()
                 .join(", ");
             json!({
-                "ruleId": "unpropagated-change",
-                "level": "warning",
+                "ruleId": tier.sarif_rule_id(),
+                "level": tier.sarif_level(),
                 "message": { "text": format!(
                     "A clone of this code was changed ({changed}) but this copy was not — \
                      inspect whether the change should propagate here."
                 ) },
                 "locations": d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
                 "relatedLocations": d.changed.iter().map(&phys).collect::<Vec<_>>(),
-                "properties": { "family_id": d.family_id },
+                "properties": {
+                    "family_id": d.family_id,
+                    "base_family_id": d.family_id,
+                    "lane": "base-divergence",
+                    "tier": tier.as_str(),
+                    "tier_reasons": d.tier_reasons(),
+                    "taxonomy_hint": d.taxonomy_hint(),
+                    "gate": {
+                        "eligible": tier.gate_eligible(),
+                        "fail_default": d.gate_fail_default(),
+                        "policy": DIVERGENT_EDIT_V2_POLICY,
+                    },
+                    "policy": DIVERGENT_EDIT_V2_POLICY,
+                    "fire_eligible": d.fire_eligible,
+                },
             })
         })
         .collect();
+    let rules = [
+        DivergenceTier::Strict,
+        DivergenceTier::Review,
+        DivergenceTier::ReportOnly,
+    ]
+    .into_iter()
+    .map(|tier| {
+        json!({
+            "id": tier.sarif_rule_id(),
+            "name": tier.sarif_rule_name(),
+            "shortDescription": { "text": match tier {
+                DivergenceTier::Strict => "A likely missed clone-sibling edit",
+                DivergenceTier::Review => "A divergent clone edit needing review",
+                DivergenceTier::ReportOnly => "Advisory divergent clone evidence",
+            } }
+        })
+    })
+    .collect::<Vec<_>>();
     let mut run = json!({
         "tool": { "driver": {
             "name": "nose",
             "informationUri": "https://github.com/corca-ai/nose",
             "version": env!("CARGO_PKG_VERSION"),
-            "rules": [{
-                "id": "unpropagated-change",
-                "name": "UnpropagatedChange",
-                "shortDescription": { "text": "A clone was changed but a sibling copy was not" }
-            }]
+            "rules": rules
         }},
         "results": results,
         "properties": {

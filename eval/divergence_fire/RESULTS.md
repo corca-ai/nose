@@ -94,7 +94,11 @@ Overall verdict counts are: 49 `should_propagate`, 46 `test_scaffolding`, 40
 The lower-ranked fire-eligible slice remains materially richer than top-1
 (28/59 vs 21/120), so policy work must not optimize only for rank 0. On this
 complete labeled set, the serialized `fire_eligible` policy fires on 94 findings
-with 45 true positives and 49 false positives (precision 0.479).
+with 45 true positives and 49 false positives (precision 0.479). The #672 v2 strict
+policy (`tier=strict`, implemented as `fire_eligible && scope == "prod"` for the
+base-divergence lane) fires on 80 findings with the same 45 true positives and 35 false
+positives (precision 0.562), so it preserves every confirmed v1 missed-propagation catch
+while cutting labeled strict fires by 14.9%.
 
 The remaining false-positive buckets under serialized `fire_eligible` are:
 

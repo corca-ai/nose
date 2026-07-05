@@ -7,8 +7,11 @@ break.
 ## [Unreleased]
 
 ### Added
+- Implemented the divergent-edit v2 strict gate for `base=<ref>`: JSON base output
+  now emits schema v8 tier/gate fields, SARIF uses tiered rule ids and levels, and
+  mixed/test-scope evidence is report-only instead of default-failing.
 - Documented the divergent-edit v2 gate contract: strict, review, report-only,
-  and suppressed tiers; stable false-fire taxonomy; planned query-JSON v8 base
+  and suppressed tiers; stable false-fire taxonomy; query-JSON v8 base
   fields; and SARIF rule/severity mapping.
 - Added a runtime-triage harness and maintainer runbook for classifying query-runtime
   regressions as noise, capability-growth cost, lower/front-end cost, value-graph cost,

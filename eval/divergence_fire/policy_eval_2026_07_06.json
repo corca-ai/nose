@@ -45,6 +45,13 @@
       "tp": 45,
       "fp": 49,
       "precision": 0.479
+    },
+    {
+      "policy": "V2 strict: tier=strict",
+      "fires": 80,
+      "tp": 45,
+      "fp": 35,
+      "precision": 0.562
     }
   ],
   "rows": [

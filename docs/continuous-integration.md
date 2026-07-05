@@ -178,12 +178,13 @@ were hidden, adds a `note` notification under `runs[].invocations[]`, so a trunc
 at least detectable; `top=0` avoids the cap entirely.
 
 `--format json` is the general machine-readable form for any other tooling. The forward
-versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v7).
+versioned contract is [query-json](query-json.md) (`nose query --format json`; schema v8
+for `base=<ref>`, schema v7 for the other query views).
 It is truncated by the active top limit in the same way.
 
 ## Divergent-edit v2 gate tiers
 
-The divergent-edit gate (`nose query . base=<ref>`) is moving to an explicit tiered
+The divergent-edit gate (`nose query . base=<ref>`) uses an explicit tiered
 contract so CI wrappers can distinguish blockers from review-only context without
 re-running nose internals:
 
@@ -194,7 +195,7 @@ re-running nose internals:
 | `report-only` | visible advisory, never default-failing | `nose.divergent.report-only` | `note` |
 | `suppressed` | omitted from active output and never failing | not emitted in normal SARIF | none |
 
-For v2 SARIF, each result's rule id and `properties.tier` must agree. Results also carry
+For v2 SARIF, each result's rule id and `properties.tier` agree. Results also carry
 `properties.tier_reasons`, `properties.taxonomy_hint`, `properties.gate`,
 `properties.policy`, `properties.lane`, `properties.family_id`, and optional
 `properties.base_family_id`. `properties.gate.fail_default` is the authoritative default
@@ -203,12 +204,12 @@ suppressed results; a future suppressed/debug SARIF surface must emit
 `properties.tier="suppressed"` and `properties.suppression` with the structured-ignore
 metadata.
 
-Until that implementation lands, the current v1 divergent gate uses `fire_eligible` as
-the serialized conservative gate verdict documented in [divergent edits](divergent-edits.md).
-In the current implementation it is computed from proven shared-logic touch and non-test
-scope. After v2, wrappers should read `tier` or `gate.fail_default` directly. They should
-not reconstruct gate behavior from raw fields such as `touches_shared`, `scope`,
-`witness_kind`, or `graded` when a `tier` is present.
+The legacy `fire_eligible` field remains in JSON as the serialized v1 conservative
+verdict. In the current implementation it is computed from proven shared-logic touch
+and not-all-test scope, so mixed-scope findings may still be `fire_eligible=true`.
+Wrappers should read `tier` or `gate.fail_default` directly. They should not reconstruct
+gate behavior from raw fields such as `touches_shared`, `scope`, `witness_kind`, or
+`graded` when a `tier` is present.
 
 Structured ignores apply before the gate: a suppressed divergent-edit family must not
 produce a `strict` failure, and report-only lanes such as newly added clone evidence

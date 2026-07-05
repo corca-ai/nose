@@ -98,6 +98,7 @@ pub(super) fn render_query_base(
 ) {
     let limit = query_row_limit(top);
     let fire_eligible = flagged.iter().filter(|d| d.fire_eligible).count();
+    let strict = flagged.iter().filter(|d| d.gate_fail_default()).count();
     if json {
         let items: Vec<_> = divergence::divergence_items_json(flagged)
             .into_iter()
@@ -112,7 +113,7 @@ pub(super) fn render_query_base(
             "{}",
             with_semantic_packs(
                 serde_json::json!({
-                    "schema_version": schema_versions::QUERY_JSON_SCHEMA_VERSION,
+                    "schema_version": schema_versions::QUERY_BASE_JSON_SCHEMA_VERSION,
                     "tool": "nose",
                     "view": "base",
                     "path": path,
@@ -123,6 +124,7 @@ pub(super) fn render_query_base(
                         "shown_divergences": items.len(),
                         "limit": limit_value,
                         "fire_eligible": fire_eligible,
+                        "strict": strict,
                     },
                     "items": items,
                     "next": [format!("nose query {path} base={base_ref} --fail-on any")],
@@ -141,7 +143,7 @@ pub(super) fn render_query_base(
         return;
     }
     println!(
-        "{} divergent {} vs `{base_ref}` ({changed_files} {} changed; {fire_eligible} touch shared logic):",
+        "{} divergent {} vs `{base_ref}` ({changed_files} {} changed; {strict} strict, {fire_eligible} legacy fire-eligible):",
         flagged.len(),
         plural(flagged.len(), "family", "families"),
         plural(changed_files, "file", "files"),
@@ -155,10 +157,11 @@ pub(super) fn render_query_base(
         format!("{}:{}-{}{name}", s.file, s.start_line, s.end_line)
     };
     for d in flagged.iter().take(limit) {
-        let propagation = if d.fire_eligible {
-            "shared-logic (likely missed propagation)"
-        } else {
-            "span-only (edit stayed in the varying spots)"
+        let tier = d.tier();
+        let propagation = match tier {
+            divergence::DivergenceTier::Strict => "strict (likely missed propagation)",
+            divergence::DivergenceTier::Review => "review (shared logic unproven)",
+            divergence::DivergenceTier::ReportOnly => "report-only (non-default gate)",
         };
         println!(
             "  {}  {} · {} · {propagation}",
@@ -174,9 +177,7 @@ pub(super) fn render_query_base(
         }
     }
     println!("\nnext:");
-    println!(
-        "  nose query {path} base={base_ref} --fail-on any   # fail CI on a proven divergence"
-    );
+    println!("  nose query {path} base={base_ref} --fail-on any   # fail CI on strict divergences");
 }
 
 /// The `reinvented` view: code that reimplements an existing helper's body (the `reinvented`
