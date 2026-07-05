@@ -58,6 +58,8 @@ thresholds (`cognitive-complexity-threshold`, `too-many-lines-threshold`,
 thresholds and the coverage floor start lenient and are **ratchets** — tighten
 them over time as the code is simplified and tests are added; never loosen them
 to make a red build pass.
+The coverage floor itself lives in `scripts/coverage-threshold.env` so local and
+GitHub CI cannot drift.
 
 The file-length gate is a design ratchet, not a formatter preference. New Rust
 files under `crates/` must stay below 600 lines (the enforced default max is 599).

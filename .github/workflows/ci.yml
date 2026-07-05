@@ -81,11 +81,12 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov
-      # Line-coverage ratchet. The bar starts lenient (current line coverage is
-      # ~83.7% after the query-only CLI deletion); raise --fail-under-lines over time as
-      # coverage improves. Keep it in sync with scripts/check-ci-local.sh.
-      - name: coverage gate (>= 83% lines)
-        run: cargo llvm-cov --workspace --summary-only --fail-under-lines 83
+      # Line-coverage ratchet. The bar starts lenient; raise the shared
+      # threshold over time as coverage improves.
+      - name: coverage gate
+        run: |
+          source scripts/coverage-threshold.env
+          cargo llvm-cov --workspace --summary-only --fail-under-lines "${NOSE_COVERAGE_FAIL_UNDER_LINES}"
 
   msrv:
     name: minimum supported rust version

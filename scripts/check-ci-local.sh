@@ -101,6 +101,7 @@ run_msrv_check() {
 }
 
 need_cmd cargo
+source scripts/coverage-threshold.env
 
 step "corpus prune self-test"
 need_cmd python3
@@ -146,9 +147,9 @@ cargo test --release
 
 # CI runs the same coverage ratchet before PR merge and before release publishing.
 # Keep it here so --full stays a complete local mirror.
-step "coverage gate (cargo-llvm-cov, >= 83% lines)"
+step "coverage gate (cargo-llvm-cov, >= ${NOSE_COVERAGE_FAIL_UNDER_LINES}% lines)"
 need_cmd cargo-llvm-cov "install it with: cargo install cargo-llvm-cov"
-cargo llvm-cov --workspace --summary-only --fail-under-lines 83
+cargo llvm-cov --workspace --summary-only --fail-under-lines "${NOSE_COVERAGE_FAIL_UNDER_LINES}"
 
 step "duplication gate (nose on itself)"
 ./scripts/check-duplication.sh
