@@ -24,8 +24,8 @@ nose query . base=origin/main
 ```
 
 ```
-1 divergent family vs `origin/main` (3 files changed; 1 strict):
-  9f2c1a  similar · prod · shared-logic (likely missed propagation)
+1 divergent family vs `origin/main` (3 files changed; 1 strict, 1 legacy fire-eligible):
+  9f2c1a  similar · prod · base-divergence · strict (likely missed propagation)
     changed:      src/fs.rs:88-95  normalize_path
     not updated:  src/router.py:212-220  clean_route
 
@@ -56,9 +56,10 @@ touched, not that the change definitely belongs there. Inspect each flagged sibl
 
 ## The gate (`--fail-on any`)
 
-The report and the gate are deliberately different surfaces. The report shows every
-inconsistently-changed family; on `nose query <path> base=<ref>`, **`--fail-on any` fires
-only on unsuppressed `strict` findings** ([experiments](experiments.md)). A `strict`
+The report and the gate are deliberately different surfaces. The report shows active
+base-tree divergence findings plus bounded advisory lanes; on
+`nose query <path> base=<ref>`, **`--fail-on any` fires only on unsuppressed `strict`
+findings** ([experiments](experiments.md)). A `strict`
 finding must satisfy the legacy conservative shared-logic proof and the v2 tier policy:
 
 - the diff **provably touches lines the changed copy shares with its un-updated
@@ -197,10 +198,10 @@ exact proof shape, not the broader family/actionability reasons (future work).
 
 Some clones are *meant* to diverge (a fast path vs a clear path, a sync vs async variant).
 So a true fork doesn't re-fail every PR, the `base=` view honors the same
-[structured ignores](structured-ignores.md) as the rest of `nose query`: copy a finding's
-`id` (from `--format json`) into the `family_id` of a `nose.ignore.json` entry, with a reason.
-nose auto-reads that file from the current working directory, and the suppressed family no
-longer trips `--fail-on any`.
+[structured ignores](structured-ignores.md) as the rest of `nose query`: copy
+`items[].family_id` from `--format json` into the `family_id` of a `nose.ignore.json`
+entry, with a reason. nose auto-reads that file from the current working directory,
+and the suppressed family no longer trips `--fail-on any`.
 
 ## In CI
 
@@ -208,20 +209,28 @@ Run it on a pull request and fail the build (or post SARIF annotations) when a c
 lands in one copy but not its clones:
 
 ```sh
-nose query . base="origin/${GITHUB_BASE_REF}" --fail-on any
+nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on any
 # or, for inline PR annotations on the un-updated copies:
-nose query . base="origin/${GITHUB_BASE_REF}" --format sarif > nose-divergence.sarif
+nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --format sarif top=0 > nose-divergence.sarif
 ```
 
-SARIF results are anchored on the **un-updated sibling** (where the fix may be missing),
-so a code-scanning annotation lands on the copy the change skipped.
+Pin `--mode` in CI even though the `base=` default is already conservative; it makes
+upgrade diffs explicit. `top=0` is the complete-upload spelling for SARIF. Report-only
+findings, including mixed/test scope and `new-copy` current-tree evidence, remain visible
+but do not fail the default gate.
 
-## Limits (v1)
+Base-divergence SARIF results are anchored on the **un-updated sibling** (where the fix
+may be missing), so a code-scanning annotation lands on the copy the change skipped. The
+rule id, level, message, and `properties.tier` identify whether a finding is `strict`,
+`review`, or `report-only`.
+
+## Limits
 
 - Checks a **single diff** (`base..worktree`). Mining a whole history for old, still-
   unreconciled divergences is future work.
-- Detection is at the base, so a clone whose copy is **newly added** in the change (it did
-  not exist at the base) is not yet considered.
+- The default base-divergence lane detects clone families at the base. A clone whose copy is
+  **newly added** in the change has no base member, so it is considered only by the bounded
+  `new-copy` report-only lane when the diff is small enough to keep runtime predictable.
 - The harm ordering is a structural heuristic (~0.6–0.65 on mined divergence labels; see
   [hazard-benchmark](hazard-benchmark.md)). It prioritizes candidates; it does not certify
   them.

@@ -167,7 +167,7 @@ selector semantics.
 findings as inline PR annotations:
 
 ```sh
-nose query src --format sarif top=0 > nose.sarif   # then upload via github/codeql-action/upload-sarif
+nose query src --mode syntax --format sarif top=0 > nose.sarif   # then upload via github/codeql-action/upload-sarif
 ```
 
 **Pass `top=0` for a complete upload.** Every output format truncates to the row limit —
@@ -187,6 +187,16 @@ It is truncated by the active top limit in the same way.
 The divergent-edit gate (`nose query . base=<ref>`) uses an explicit tiered
 contract so CI wrappers can distinguish blockers from review-only context without
 re-running nose internals:
+
+```sh
+nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on any
+nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --format sarif top=0 > nose-divergence.sarif
+```
+
+The `base=` default is already the conservative `syntax,semantic` mix, but pinning
+`--mode` keeps CI diffs explicit across upgrades. `top=0` should be used for SARIF
+uploads; otherwise only the active row limit is emitted, with a truncation note in
+the SARIF invocation.
 
 | tier | default CI effect | SARIF rule id | SARIF level |
 |---|---|---|---|
@@ -216,6 +226,11 @@ produce a `strict` failure, and report-only lanes such as newly added clone evid
 must not fail default CI. Newly added clone evidence appears as `lane="new-copy"`,
 `tier="report-only"`, `base_family_id=null`, and current-tree `current_only[]` sites;
 `properties.gate.fail_default` remains `false` in SARIF.
+
+Base-divergence SARIF locations point at the skipped sibling, where a propagated edit
+may be missing; changed copies are attached as related locations. `new-copy` report-only
+SARIF locations point at the current-tree added/copied/renamed copy and link its clone
+siblings as related locations.
 
 ## Fast re-runs: `--cache-dir`
 

@@ -29,6 +29,9 @@ break.
   versioned hooks plus `scripts/*.sh` in local and GitHub CI.
 
 ### Changed
+- Polished divergent-edit v2 CI documentation and output copy: SARIF messages now name
+  strict/review/report-only tiers directly, human `base=<ref>` output explains report-only
+  reasons more specifically, and CI examples pin detection modes plus `top=0` SARIF uploads.
 - Removed the retired `nose-cli` legacy prelude and tightened its ratchet into a
   zero-budget reintroduction guard.
 

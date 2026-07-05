@@ -132,6 +132,9 @@ Composition rules for v8:
 - `strict` requires `fire_eligible=true`, `taxonomy_hint="missed_propagation"`,
   `scope="prod"`, and no higher-priority suppression or report-only reason. Missing
   proof or mixed/test scope fails closed to `review` or `report-only`.
+- CI consumers should use each item's `gate.fail_default` as the authoritative
+  default pass/fail decision. `summary.strict` is a count, and `fire_eligible` is
+  retained compatibility evidence rather than the v2 gate.
 - `report-only` is for advisory lanes: `test_scaffolding`, `grouping_artifact`,
   `test_scope`, or `new_copy_no_base_member`.
 - `suppressed` wins over all other tiers and must never set `gate.fail_default=true`.

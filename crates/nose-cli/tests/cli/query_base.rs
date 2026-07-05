@@ -147,6 +147,18 @@ fn query_base_flags_divergent_edits() {
     let sarif_result = &sarif["runs"][0]["results"][0];
     assert_eq!(sarif_result["ruleId"], "nose.divergent.strict");
     assert_eq!(sarif_result["level"], "error");
+    assert!(
+        sarif_result["message"]["text"]
+            .as_str()
+            .is_some_and(|message| message.starts_with("Strict divergent edit:")),
+        "strict SARIF message names the tier: {sarif}"
+    );
+    assert!(
+        sarif_result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+            .as_str()
+            .is_some_and(|uri| uri.ends_with("b/f.py")),
+        "base-divergence SARIF anchors the skipped sibling: {sarif}"
+    );
     assert_eq!(sarif_result["properties"]["tier"], "strict");
     assert_eq!(sarif_result["properties"]["gate"]["fail_default"], true);
     let unsupported = nose_query_in(&dir, &["base=main", "path~a/f.py", "--min-size", "8"]);
@@ -582,6 +594,12 @@ fn query_base_added_clone_is_report_only_new_copy_lane() {
         .unwrap_or_else(|| panic!("new-copy SARIF result: {sarif_json}"));
     assert_eq!(result["ruleId"], "nose.divergent.report-only");
     assert_eq!(result["level"], "note");
+    assert!(
+        result["message"]["text"]
+            .as_str()
+            .is_some_and(|message| message.starts_with("Report-only new-copy evidence:")),
+        "new-copy SARIF message names the report-only lane: {sarif_json}"
+    );
     assert_eq!(result["properties"]["gate"]["fail_default"], false);
 
     let _ = fs::remove_dir_all(&dir);

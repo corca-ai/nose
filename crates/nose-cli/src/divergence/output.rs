@@ -131,15 +131,24 @@ pub(super) fn divergence_sarif(
             }
         })
     };
-    // The SARIF *location* is each un-updated sibling (where a fix may be missing), so a CI
-    // annotation lands on the copy the change skipped; the changed copies are related.
     let shown = shown_divergences(flagged, top);
     let results: Vec<_> = shown
         .iter()
         .map(|d| {
             let tier = d.tier();
+            let tier_label = match tier {
+                DivergenceTier::Strict => "Strict",
+                DivergenceTier::Review => "Review-only",
+                DivergenceTier::ReportOnly => "Report-only",
+            };
             let changed = d
                 .changed
+                .iter()
+                .map(site_label)
+                .collect::<Vec<_>>()
+                .join(", ");
+            let siblings = d
+                .not_updated
                 .iter()
                 .map(site_label)
                 .collect::<Vec<_>>()
@@ -147,16 +156,19 @@ pub(super) fn divergence_sarif(
             let (message, locations, related_locations) = match d.lane {
                 DivergenceLane::BaseDivergence => (
                     format!(
-                        "A clone of this code was changed ({changed}) but this copy was not — \
-                         inspect whether the change should propagate here."
+                        "{tier_label} divergent edit: a clone of this code was changed \
+                         ({changed}) but this copy was not; inspect whether the change \
+                         should propagate here."
                     ),
+                    // For base-divergence, SARIF locations are the un-updated siblings
+                    // so code scanning annotates the copy the change skipped.
                     d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
                     d.changed.iter().map(&phys).collect::<Vec<_>>(),
                 ),
                 DivergenceLane::NewCopy => (
                     format!(
-                        "This current-tree copy is newly connected to clone siblings ({changed}) — \
-                         report-only until the lane is measured."
+                        "Report-only new-copy evidence: this current-tree copy is newly \
+                         connected to clone siblings ({siblings}); it never fails default CI."
                     ),
                     d.changed.iter().map(&phys).collect::<Vec<_>>(),
                     d.not_updated.iter().map(&phys).collect::<Vec<_>>(),

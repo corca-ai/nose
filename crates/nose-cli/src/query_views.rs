@@ -158,10 +158,19 @@ pub(super) fn render_query_base(
     };
     for d in flagged.iter().take(limit) {
         let tier = d.tier();
-        let propagation = match tier {
-            divergence::DivergenceTier::Strict => "strict (likely missed propagation)",
-            divergence::DivergenceTier::Review => "review (shared logic unproven)",
-            divergence::DivergenceTier::ReportOnly => "report-only (non-default gate)",
+        let propagation = match (tier, d.lane, d.taxonomy_hint()) {
+            (divergence::DivergenceTier::Strict, _, _) => "strict (likely missed propagation)",
+            (divergence::DivergenceTier::Review, _, "no_propagation_needed") => {
+                "review (shared logic not touched)"
+            }
+            (divergence::DivergenceTier::Review, _, _) => "review (shared logic unproven)",
+            (divergence::DivergenceTier::ReportOnly, divergence::DivergenceLane::NewCopy, _) => {
+                "report-only (new current-tree copy)"
+            }
+            (divergence::DivergenceTier::ReportOnly, _, "test_scaffolding") => {
+                "report-only (test/mixed scope)"
+            }
+            (divergence::DivergenceTier::ReportOnly, _, _) => "report-only (advisory)",
         };
         let lane = d.lane.as_str();
         println!(

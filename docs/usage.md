@@ -284,7 +284,8 @@ and may change to improve readability. The stable contract is documented in
 
 - `nose query <paths> base=<ref>` — flags clones changed inconsistently in a diff
   (a copy edited, its siblings missed); use `base=HEAD` for uncommitted changes and
-  `base=origin/main` for a PR branch. Full guide in [divergent edits](divergent-edits.md).
+  `base=origin/main --mode syntax,semantic --fail-on any` for a PR gate; see
+  [divergent edits](divergent-edits.md) for the full guide.
 - `nose stats <paths…> [--top N] [--format human|json]` — per-language IL lowering coverage (the
   Raw-node ratio, split into by-design protocol boundaries vs genuine lowering gaps), with
   the top unhandled surface kinds (`--top`, default 30; `--format json` for machine output —
