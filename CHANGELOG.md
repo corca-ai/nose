@@ -11,6 +11,10 @@ break.
   regressions as noise, capability-growth cost, lower/front-end cost, value-graph cost,
   or mixed hot paths before optimizing. The runtime-triage and query-regression harnesses
   can now select every checked-out corpus repo with `--all-repos`.
+- Added a pre-push Cargo target prune step that removes stale
+  `target/debug/deps/*.rcgu.o` files before the fast local CI gate, avoiding
+  macOS dyld/code-signing stalls when local debug target directories grow very
+  large.
 
 ### Performance
 - Completed a 20-commit profile-guided runtime pass after the runtime-triage setup.

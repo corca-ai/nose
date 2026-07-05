@@ -115,13 +115,20 @@ Versioned hooks live in `.githooks`. Enable them once per clone:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook stays cheap: rustfmt plus docs wiki connectivity. The pre-push
-hook runs `./scripts/check-ci-local.sh --fast`, which catches clippy/test/doc issues
-before a branch reaches GitHub. Deliberately bypass it with:
+The pre-commit hook stays cheap: rustfmt plus docs wiki connectivity. The
+pre-push hook first runs [`scripts/prune-cargo-target.sh`](scripts/prune-cargo-target.sh)
+to remove stale `target/debug/deps/*.rcgu.o` files when the Cargo object
+directory has grown large, then runs `./scripts/check-ci-local.sh --fast`.
+That catches clippy/test/doc issues before a branch reaches GitHub and avoids
+macOS code-signing stalls from very large local Cargo target directories.
+Deliberately bypass it with:
 
 ```sh
 NOSE_SKIP_PRE_PUSH=1 git push
 ```
+
+Set `NOSE_PRUNE_CARGO_TARGET=0` to keep the pre-push quality gate but skip only
+the target prune step.
 
 ### The duplication gate (dogfooding)
 

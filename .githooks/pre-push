@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Push-time gate: run the fast local CI preflight before publishing a branch.
+# Push-time gate: prune stale Cargo target objects, then run the fast local CI
+# preflight before publishing a branch.
 #
 # Bypass deliberately with:
 #   NOSE_SKIP_PRE_PUSH=1 git push
@@ -11,4 +12,5 @@ if [[ "${NOSE_SKIP_PRE_PUSH:-}" == "1" ]]; then
     exit 0
 fi
 
+./scripts/prune-cargo-target.sh
 ./scripts/check-ci-local.sh --fast
