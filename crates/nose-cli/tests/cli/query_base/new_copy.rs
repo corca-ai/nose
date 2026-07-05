@@ -225,6 +225,53 @@ fn query_base_new_copy_pathspec_is_relative_from_subdir() {
 }
 
 #[test]
+fn query_base_new_copy_handles_paths_with_spaces() {
+    let dir = make_temp_dir("query_base_new_copy_spaces");
+    write_files(
+        &dir,
+        &[(
+            "src dir/original copy.py",
+            &added_clone_body("original", "total", "x"),
+        )],
+    );
+    init_git_repo(&dir);
+    write_files(
+        &dir,
+        &[(
+            "src dir/new copy.py",
+            &added_clone_body("new_copy", "acc", "v"),
+        )],
+    );
+    git_in(&dir, &["add", "src dir/new copy.py"]);
+
+    let out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    let finding = new_copy_finding(&json);
+    assert_eq!(
+        finding["lane"], "new-copy",
+        "space-containing source paths trigger the lane: {json}"
+    );
+    assert!(
+        finding.to_string().contains("src dir/new copy.py")
+            && finding.to_string().contains("src dir/original copy.py"),
+        "locations preserve path spaces: {json}"
+    );
+
+    let gated = nose_query_base(&dir, &["--fail"]);
+    assert!(
+        gated.status.success(),
+        "--fail must stay quiet for report-only new-copy evidence"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn query_base_new_copy_uses_supported_language_extensions() {
     let dir = make_temp_dir("query_base_new_copy_swift");
     let body = |name: &str, acc: &str, item: &str| {

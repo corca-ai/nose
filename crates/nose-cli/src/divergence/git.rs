@@ -229,16 +229,10 @@ fn parse_side_ranges(diff: &str, side: DiffRangeSide) -> HashMap<String, Vec<(u3
             new_file = None;
         } else if !in_hunks && line.starts_with("--- ") {
             // "--- a/path" → base-side path; "--- /dev/null" (added file) → no base member
-            old_file = line
-                .strip_prefix("--- ")
-                .and_then(|r| r.strip_prefix("a/"))
-                .map(|p| p.to_string());
+            old_file = parse_file_header_path(line, "--- ", "a/");
         } else if !in_hunks && line.starts_with("+++ ") {
             // "+++ b/path" → current-side path; "+++ /dev/null" (deleted file) → no current member
-            new_file = line
-                .strip_prefix("+++ ")
-                .and_then(|r| r.strip_prefix("b/"))
-                .map(|p| p.to_string());
+            new_file = parse_file_header_path(line, "+++ ", "b/");
         } else if line.starts_with("@@") {
             in_hunks = true;
             let (file, parsed) = match side {
@@ -311,15 +305,7 @@ pub(super) fn parse_patch_entries(diff: &str) -> Vec<DiffEntry> {
     for line in diff.lines() {
         if let Some(rest) = line.strip_prefix("diff --git ") {
             finish_patch_entry(&mut entries, &mut current);
-            let mut parts = rest.split_whitespace();
-            let old_path = parts
-                .next()
-                .and_then(|p| p.strip_prefix("a/"))
-                .map(ToOwned::to_owned);
-            let new_path = parts
-                .next()
-                .and_then(|p| p.strip_prefix("b/"))
-                .map(ToOwned::to_owned);
+            let (old_path, new_path) = parse_diff_git_paths(rest);
             current = Some(DiffEntry {
                 status: DiffStatus::Other,
                 old_path,
@@ -355,10 +341,41 @@ pub(super) fn parse_patch_entries(diff: &str) -> Vec<DiffEntry> {
                 entry.status = DiffStatus::Copied;
                 entry.new_path = Some(path.to_string());
             }
+        } else if line.starts_with("--- ") {
+            if let Some(entry) = &mut current {
+                entry.old_path = parse_file_header_path(line, "--- ", "a/");
+            }
+        } else if line.starts_with("+++ ") {
+            if let Some(entry) = &mut current {
+                entry.new_path = parse_file_header_path(line, "+++ ", "b/");
+            }
         }
     }
     finish_patch_entry(&mut entries, &mut current);
     entries
+}
+
+fn parse_file_header_path(line: &str, marker: &str, prefix: &str) -> Option<String> {
+    let path = line.strip_prefix(marker)?;
+    if path == "/dev/null" || path.starts_with("/dev/null\t") {
+        return None;
+    }
+    path.strip_prefix(prefix)
+        .map(trim_diff_path_metadata)
+        .map(ToOwned::to_owned)
+}
+
+fn trim_diff_path_metadata(path: &str) -> &str {
+    path.split_once('\t').map_or(path, |(path, _)| path)
+}
+
+fn parse_diff_git_paths(rest: &str) -> (Option<String>, Option<String>) {
+    let Some(rest) = rest.strip_prefix("a/") else {
+        return (None, None);
+    };
+    rest.split_once(" b/").map_or((None, None), |(old, new)| {
+        (Some(old.to_string()), Some(new.to_string()))
+    })
 }
 
 fn finish_patch_entry(entries: &mut Vec<DiffEntry>, current: &mut Option<DiffEntry>) {

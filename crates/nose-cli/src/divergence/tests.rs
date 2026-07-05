@@ -75,6 +75,31 @@ fn new_side_ranges_include_added_file_lines() {
 }
 
 #[test]
+fn side_ranges_trim_git_path_metadata_for_paths_with_spaces() {
+    let diff = "\
+diff --git a/src dir/old name.py b/src dir/old name.py
+index b859599..ea74361 100644
+--- a/src dir/old name.py\t
++++ b/src dir/old name.py\t
+@@ -2 +2 @@ def f():
+-    return 1
++    return 2
+";
+    let old = parse_old_side_ranges(diff);
+    assert_eq!(
+        old.get("src dir/old name.py"),
+        Some(&vec![(2, 2)]),
+        "base-side path should not retain git's tab separator: {old:?}"
+    );
+    let new = parse_new_side_ranges(diff);
+    assert_eq!(
+        new.get("src dir/old name.py"),
+        Some(&vec![(2, 2)]),
+        "current-side path should not retain git's tab separator: {new:?}"
+    );
+}
+
+#[test]
 fn name_status_tracks_current_paths_for_adds_and_renames() {
     let entries = parse_name_status("A\tnew.py\nR087\told.py\tmoved.py\nM\tsame.py\n");
     assert_eq!(entries[0].status, DiffStatus::Added);
@@ -111,6 +136,24 @@ rename to moved.py
     assert_eq!(entries[1].status, DiffStatus::Renamed);
     assert_eq!(entries[1].old_path.as_deref(), Some("old.py"));
     assert_eq!(entries[1].new_path.as_deref(), Some("moved.py"));
+}
+
+#[test]
+fn patch_entries_track_added_paths_with_spaces() {
+    let diff = "\
+diff --git a/src dir/new copy.py b/src dir/new copy.py
+new file mode 100644
+index 0000000..b859599
+--- /dev/null
++++ b/src dir/new copy.py\t
+@@ -0,0 +1,2 @@
++def f():
++    return 1
+";
+    let entries = parse_patch_entries(diff);
+    assert_eq!(entries[0].status, DiffStatus::Added);
+    assert_eq!(entries[0].old_path, None);
+    assert_eq!(entries[0].new_path.as_deref(), Some("src dir/new copy.py"));
 }
 
 fn fragment_loc(file: &str, start: u32, end: u32) -> Loc {

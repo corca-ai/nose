@@ -35,6 +35,11 @@ break.
 - Removed the retired `nose-cli` legacy prelude and tightened its ratchet into a
   zero-budget reintroduction guard.
 
+### Fixed
+- Fixed divergent-edit diff parsing for source paths containing spaces, so the
+  report-only `new-copy` lane preserves the full current-tree path instead of
+  splitting `diff --git` headers on whitespace.
+
 ### Performance
 - Closed the divergent-edit v2 epic with final replay and product-output evidence:
   the 560-record replay completed with 0 errors, v2 strict retained 45/45 confirmed
