@@ -1527,19 +1527,19 @@ contract is covered by the focused JSON/SARIF fixtures while the replay establis
 that the advisory lane does not introduce a runtime regression.
 
 #675 closeout repeated the full 560-record replay after the v2 strict gate,
-bounded `new-copy` lane, SARIF/output polish, and docs work. The closeout replay
-again had 0 errors. Default remained at a 31.8% fire rate with p50/p90
-2.16s/8.78s; `near` remained at a 39.6% fire rate with p50/p90 2.36s/10.69s.
-The checked policy simulation still gives the v2 strict gate 80 fires, 45 true
-positives, 35 false positives, and 0.562 precision, retaining all 45 confirmed
-v1 missed-propagation positives while cutting labeled default-failing findings
-from 94 to 80. A non-`base=` query regression over 10 corpus repos compared
-`origin/main` to the closeout binary and found identical product hashes, family
-counts, and output byte counts for every repo, with aggregate median
-5166.74ms -> 5209.02ms (+0.82%). No performance degradation was confirmed; the
-same-binary control measured +1.06% on the same slice, and the only increased
-replay cell was the `near` p90 tail, within the observed replay noise from the
-same-environment reruns.
+bounded `new-copy` lane, SARIF/output polish, and round-1 spaced-path fix. The
+clean `a38ecb8b` closeout replay again had 0 errors. Default remained at a
+31.8% fire rate with p50/p90 2.21s/8.97s; `near` remained at a 39.6% fire rate
+with p50/p90 2.40s/11.00s. The checked policy simulation still gives the v2
+strict gate 80 fires, 45 true positives, 35 false positives, and 0.562
+precision, retaining all 45 confirmed v1 missed-propagation positives while
+cutting labeled default-failing findings from 94 to 80. A non-`base=` query
+regression over 10 corpus repos compared `origin/main` to the closeout binary
+and found identical product hashes, family counts, and output byte counts for
+every repo, with aggregate median 5957.65ms -> 5930.96ms (-0.45%). No
+performance degradation was confirmed: the non-`base=` same-binary control
+measured +1.18%, and a same-binary replay control measured default p50/p90
+2.27s/9.00s and near p50/p90 2.32s/10.85s, covering the small p90-tail movement.
 
 ## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
 

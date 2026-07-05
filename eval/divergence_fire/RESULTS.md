@@ -121,20 +121,22 @@ cargo build --release -p nose-cli
 python3 eval/divergence_fire/replay.py replay \
   --repos git redis curl hugo minio cobra prometheus netty rxjava guava gson scrapy sympy black requests rubocop sidekiq devise clap tokio regex fd jest rxjs prettier axios date-fns execa \
   --per-repo 10 --jobs 6 --timeout 240 \
-  --out /tmp/nose-675/divfire-final-2026-07-06.raw.jsonl
+  --out /tmp/nose-675/divfire-final-head-a38ecb8b-2026-07-06.raw.jsonl
 python3 eval/divergence_fire/replay.py summarize \
-  --records /tmp/nose-675/divfire-final-2026-07-06.raw.jsonl \
-  --out /tmp/nose-675/replay_summary_final_2026_07_06.json
+  --records /tmp/nose-675/divfire-final-head-a38ecb8b-2026-07-06.raw.jsonl \
+  --out /tmp/nose-675/replay_summary_final_head_a38ecb8b_2026_07_06.json
 python3 eval/divergence_fire/replay.py policy-eval \
   --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl \
   --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl \
-  --out /tmp/nose-675/policy_eval_final_2026_07_06.json
+  --out /tmp/nose-675/policy_eval_final_head_a38ecb8b_2026_07_06.json
 ```
+
+The final replay summary records clean source commit `a38ecb8b`.
 
 | arm | replays | errors | fire rate | strict-firing changes | findings | tier counts | divergence s p50 | p90 |
 |---|---:|---:|---:|---:|---:|---|---:|---:|
-| default (`syntax,semantic`) | 280 | 0 | 31.8% | 32 | 209 | report-only 105, review 62, strict 42 | 2.16 | 8.78 |
-| near (`syntax,semantic,near`) | 280 | 0 | 39.6% | 43 | 274 | report-only 118, review 90, strict 66 | 2.36 | 10.69 |
+| default (`syntax,semantic`) | 280 | 0 | 31.8% | 32 | 209 | report-only 105, review 62, strict 42 | 2.21 | 8.97 |
+| near (`syntax,semantic,near`) | 280 | 0 | 39.6% | 43 | 274 | report-only 118, review 90, strict 66 | 2.40 | 11.00 |
 
 The checked policy inputs still reproduce the v2 strict result: 80 strict fires,
 45 true positives, 35 false positives, precision 0.562. That retains all 45/45
@@ -142,16 +144,17 @@ confirmed positives from the serialized v1 `fire_eligible` slice while reducing
 labeled default-failing findings from 94 to 80.
 
 Runtime did not show a confirmed degradation. Against the same-environment #672
-strict-gate replay, default p50/p90 moved 2.53s/9.52s -> 2.16s/8.78s and near
-p50/p90 moved 2.70s/10.66s -> 2.36s/10.69s. Against the durable #670 refresh
-summary, default p50/p90 moved 2.33s/8.84s -> 2.16s/8.78s and near p50/p90 moved
-2.45s/10.31s -> 2.36s/10.69s; the only increased replay cell is the near p90
-tail. A separate non-`base=` product-output regression over 10 corpus repos and
-5 iterations compared `origin/main` to the closeout worktree binary: aggregate
-median 5166.74ms -> 5209.02ms (+0.82%), with identical product hashes, family
-counts, and output byte counts for all 10 repos. A same-binary control over the
-same repos and iterations measured 5192.14ms -> 5247.17ms (+1.06%), so the
-observed before/after delta is below harness noise for this slice.
+strict-gate replay, default p50/p90 moved 2.53s/9.52s -> 2.21s/8.97s and near
+p50/p90 moved 2.70s/10.66s -> 2.40s/11.00s. Against the durable #670 refresh
+summary, default p50/p90 moved 2.33s/8.84s -> 2.21s/8.97s and near p50/p90 moved
+2.45s/10.31s -> 2.40s/11.00s. A same-binary replay control on the final binary
+measured default p50/p90 2.27s/9.00s and near p50/p90 2.32s/10.85s, so the
+small p90-tail increases are within replay noise. A separate non-`base=`
+product-output regression over 10 corpus repos and 5 iterations compared
+`origin/main` to the closeout binary: aggregate median 5957.65ms -> 5930.96ms
+(-0.45%), with identical product hashes, family counts, and output byte counts
+for all 10 repos. A same-binary control over the same repos and iterations
+measured 5943.05ms -> 6012.94ms (+1.18%).
 
 The remaining false-positive buckets under serialized `fire_eligible` are:
 

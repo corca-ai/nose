@@ -45,8 +45,8 @@ break.
   the 560-record replay completed with 0 errors, v2 strict retained 45/45 confirmed
   v1 missed-propagation positives while improving strict precision from 0.479 to
   0.562, and a 10-repo non-`base=` query regression kept identical product hashes,
-  family counts, and byte counts with aggregate median `5166.74ms -> 5209.02ms`
-  (`+0.82%`, below the same-binary control's `+1.06%`), so no performance
+  family counts, and byte counts with aggregate median `5957.65ms -> 5930.96ms`
+  (`-0.45%`, below the same-binary control's `+1.18%`), so no performance
   degradation was confirmed.
 - Completed a 20-commit profile-guided runtime pass after the runtime-triage setup.
   The final all-120-repo run compared `ca48518d` with `a0bfc252` and measured
