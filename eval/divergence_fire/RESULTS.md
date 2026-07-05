@@ -100,6 +100,17 @@ base-divergence lane) fires on 80 findings with the same 45 true positives and 3
 positives (precision 0.562), so it preserves every confirmed v1 missed-propagation catch
 while cutting labeled strict fires by 14.9%.
 
+#673 adds a bounded `new-copy` report-only lane for current-tree clone evidence from
+small added/copied/renamed source diffs. The lane is capped at two touched source
+files so broad PRs do not pay a second full current-tree detection pass. Focused
+fixtures cover added-copy and moved-copy positives plus an unrelated-added negative.
+For runtime, a same-environment #672 rerun on the 560-record replay measured
+default p50/p90 2.53s/9.52s and near p50/p90 2.70s/10.66s. The #673 budget=2
+replay measured default 2.38s/9.55s and near 2.43s/10.37s, also with 0 errors.
+The fixed replay sample had no budget-eligible real-world `new-copy` row after the
+cap; the lane's product contract is pinned by the focused JSON/SARIF fixtures while
+the replay checks the no-runtime-regression constraint.
+
 The remaining false-positive buckets under serialized `fire_eligible` are:
 
 | bucket | false positives | v2 implication |

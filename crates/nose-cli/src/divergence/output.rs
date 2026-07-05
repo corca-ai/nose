@@ -42,9 +42,9 @@ pub(super) fn fragment_context(s: &Site) -> Option<String> {
 /// The flagged divergences as JSON item objects inside query-JSON's `base` view.
 pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::Value> {
     use serde_json::json;
-    let site = |s: &Site| {
+    let site = |s: &Site, tree: &str| {
         json!({
-            "tree": "base",
+            "tree": tree,
             "file": s.file, "name": s.name,
             "start_line": s.start_line, "end_line": s.end_line, "lang": s.lang,
             "kind": s.kind,
@@ -61,10 +61,10 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
         .iter()
         .map(|d| {
             let tier = d.tier();
-            json!({
+            let mut item = json!({
                 "family_id": d.family_id,
-                "lane": "base-divergence",
-                "base_family_id": d.family_id,
+                "lane": d.lane.as_str(),
+                "base_family_id": d.lane.base_family_id(&d.family_id),
                 "similarity": d.similarity,
                 "complexity": d.complexity,
                 "scope": d.scope,
@@ -80,9 +80,28 @@ pub(crate) fn divergence_items_json(flagged: &[Divergence]) -> Vec<serde_json::V
                 },
                 "suppression": null,
                 "graded": d.graded,
-                "changed": d.changed.iter().map(&site).collect::<Vec<_>>(),
-                "not_updated": d.not_updated.iter().map(&site).collect::<Vec<_>>(),
-            })
+            });
+            match d.lane {
+                DivergenceLane::BaseDivergence => {
+                    item["changed"] = json!(d
+                        .changed
+                        .iter()
+                        .map(|s| site(s, d.lane.site_tree()))
+                        .collect::<Vec<_>>());
+                    item["not_updated"] = json!(d
+                        .not_updated
+                        .iter()
+                        .map(|s| site(s, d.lane.site_tree()))
+                        .collect::<Vec<_>>());
+                }
+                DivergenceLane::NewCopy => {
+                    let current_only = d.changed.iter().chain(&d.not_updated);
+                    item["current_only"] = json!(current_only
+                        .map(|s| site(s, d.lane.site_tree()))
+                        .collect::<Vec<_>>());
+                }
+            }
+            item
         })
         .collect()
 }
@@ -125,19 +144,34 @@ pub(super) fn divergence_sarif(
                 .map(site_label)
                 .collect::<Vec<_>>()
                 .join(", ");
+            let (message, locations, related_locations) = match d.lane {
+                DivergenceLane::BaseDivergence => (
+                    format!(
+                        "A clone of this code was changed ({changed}) but this copy was not — \
+                         inspect whether the change should propagate here."
+                    ),
+                    d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
+                    d.changed.iter().map(&phys).collect::<Vec<_>>(),
+                ),
+                DivergenceLane::NewCopy => (
+                    format!(
+                        "This current-tree copy is newly connected to clone siblings ({changed}) — \
+                         report-only until the lane is measured."
+                    ),
+                    d.changed.iter().map(&phys).collect::<Vec<_>>(),
+                    d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
+                ),
+            };
             json!({
                 "ruleId": tier.sarif_rule_id(),
                 "level": tier.sarif_level(),
-                "message": { "text": format!(
-                    "A clone of this code was changed ({changed}) but this copy was not — \
-                     inspect whether the change should propagate here."
-                ) },
-                "locations": d.not_updated.iter().map(&phys).collect::<Vec<_>>(),
-                "relatedLocations": d.changed.iter().map(&phys).collect::<Vec<_>>(),
+                "message": { "text": message },
+                "locations": locations,
+                "relatedLocations": related_locations,
                 "properties": {
                     "family_id": d.family_id,
-                    "base_family_id": d.family_id,
-                    "lane": "base-divergence",
+                    "base_family_id": d.lane.base_family_id(&d.family_id),
+                    "lane": d.lane.as_str(),
                     "tier": tier.as_str(),
                     "tier_reasons": d.tier_reasons(),
                     "taxonomy_hint": d.taxonomy_hint(),

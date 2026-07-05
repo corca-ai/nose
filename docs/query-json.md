@@ -90,8 +90,8 @@ omitted from `items[]` because production code should rehome/extract a helper be
 **`base`** (`base=<git-ref>`, schema v8) — the divergent-edit view. `base` (the ref), `summary` (`changed_files`, `divergences`,
 `shown_divergences`, `limit`, `fire_eligible`, `strict`), and `items[]` of `{family_id, lane,
 base_family_id, similarity, complexity, scope, witness_kind, fire_eligible, tier,
-tier_reasons[], taxonomy_hint, gate, suppression, graded, changed[], not_updated[]}` — each
-`changed`/`not_updated` site carries `{file, name, start_line, end_line, lang, kind,
+tier_reasons[], taxonomy_hint, gate, suppression, graded, changed[], not_updated[],
+current_only[]}` — each site carries `{file, name, start_line, end_line, lang, kind,
 span_lines, span_tokens, is_fragment, fragment_kind, reason_code, enclosing_unit,
 touches_shared, tree}`.
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
@@ -110,8 +110,8 @@ The v8 `base.items[]` object adds:
 
 | field | type | meaning |
 |---|---|---|
-| `lane` | string enum | `base-divergence` for the implemented base-tree propagation lane. `new-copy` is reserved for #673 current-tree clone evidence with no base member. |
-| `base_family_id` | string or null | The base-tree family id for `base-divergence`; `null` for future `new-copy`. |
+| `lane` | string enum | `base-divergence` for the base-tree propagation lane; `new-copy` for current-tree clone evidence introduced by an added/copied/renamed path in a small source diff and kept report-only. |
+| `base_family_id` | string or null | The base-tree family id for `base-divergence`; `null` for `new-copy`. |
 | `tier` | string enum | `strict`, `review`, `report-only`, or `suppressed`. `strict` is the only default CI-failing tier; `review` and `report-only` are visible but non-failing; `suppressed` is emitted only by an explicit future suppressed/debug surface. |
 | `tier_reasons[]` | array of strings | Closed reason-code enum: `shared_logic_touched`, `shared_logic_not_touched`, `shared_logic_unproven`, `non_test_scope`, `test_scope`, `variant_signal`, `test_scaffolding`, `grouping_artifact`, `new_copy_no_base_member`, `structured_ignore`, or `unclassified`. |
 | `taxonomy_hint` | string or null | Closed false-fire bucket for routing and UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This is evidence for consumers, not a correctness verdict. |
@@ -125,8 +125,10 @@ Composition rules for v8:
   the current-tree family id and `base_family_id` is `null`.
 - `changed[]` and `not_updated[]` remain base-tree coordinates for
   `base-divergence`; each site adds `tree: "base"` to make the coordinate origin
-  explicit. `new-copy` emits `current_only[]` sites with `tree: "current"` and
-  no `not_updated[]` sites.
+  explicit. `new-copy` emits `current_only[]` sites with `tree: "current"`:
+  the added/copied/renamed current member plus its current-tree clone siblings.
+  The `new-copy` pass is bounded to diffs touching at most two source files so
+  report-only evidence does not add broad-PR runtime cost.
 - `strict` requires `fire_eligible=true`, `taxonomy_hint="missed_propagation"`,
   `scope="prod"`, and no higher-priority suppression or report-only reason. Missing
   proof or mixed/test scope fails closed to `review` or `report-only`.

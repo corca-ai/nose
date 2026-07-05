@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the divergent-edit v2 `new-copy` report-only lane for `base=<ref>`:
+  added/copied/renamed current-tree clone relationships now appear in human,
+  JSON, and SARIF output with `base_family_id=null`, `current_only[]` current-tree
+  provenance, and a non-failing gate.
 - Implemented the divergent-edit v2 strict gate for `base=<ref>`: JSON base output
   now emits schema v8 tier/gate fields, SARIF uses tiered rule ids and levels, and
   mixed/test-scope evidence is report-only instead of default-failing.

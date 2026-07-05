@@ -137,7 +137,9 @@ should-propagate / intentional-divergence / not-a-clone using the changed member
 diff and the un-updated sibling's body. Most fires are not propagation hazards; the
 `strict` tier is the default-failing high-precision slice ([experiments](experiments.md)
 measured the base rates). Do not reconstruct the default gate from `fire_eligible`;
-use `gate.fail_default`.
+use `gate.fail_default`. Treat `lane="new-copy"` as report-only context: inspect
+its `current_only[]` current-tree sites when useful, but do not ask CI to fail on it
+unless a later measured policy explicitly promotes that lane.
 
 ## Validation
 

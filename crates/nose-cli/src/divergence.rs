@@ -19,7 +19,6 @@ mod output;
 mod tests;
 
 use anyhow::{Context, Result};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -55,6 +54,7 @@ pub(crate) struct DivergenceArgs {
 /// `nose query <paths> base=<ref>` view renders the same findings (the divergence/query
 /// unification): query reuses this exact detection, preserving §BV fire precision.
 pub(crate) struct Divergence {
+    pub(crate) lane: DivergenceLane,
     pub(crate) family_id: String,
     pub(crate) similarity: f64,
     pub(crate) hazard: f64,
@@ -79,6 +79,35 @@ pub(crate) struct Divergence {
     pub(crate) changed: Vec<Site>,
     /// Sibling members the change did *not* touch (where it may be missing).
     pub(crate) not_updated: Vec<Site>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DivergenceLane {
+    BaseDivergence,
+    NewCopy,
+}
+
+impl DivergenceLane {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::BaseDivergence => "base-divergence",
+            Self::NewCopy => "new-copy",
+        }
+    }
+
+    pub(crate) fn base_family_id(self, family_id: &str) -> Option<&str> {
+        match self {
+            Self::BaseDivergence => Some(family_id),
+            Self::NewCopy => None,
+        }
+    }
+
+    pub(crate) fn site_tree(self) -> &'static str {
+        match self {
+            Self::BaseDivergence => "base",
+            Self::NewCopy => "current",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -128,7 +157,7 @@ impl DivergenceTier {
 
 impl Divergence {
     pub(crate) fn tier(&self) -> DivergenceTier {
-        if self.scope != "prod" {
+        if self.lane == DivergenceLane::NewCopy || self.scope != "prod" {
             DivergenceTier::ReportOnly
         } else if self.fire_eligible {
             DivergenceTier::Strict
@@ -142,7 +171,9 @@ impl Divergence {
     }
 
     pub(crate) fn taxonomy_hint(&self) -> &'static str {
-        if self.scope != "prod" {
+        if self.lane == DivergenceLane::NewCopy {
+            "unclear"
+        } else if self.scope != "prod" {
             "test_scaffolding"
         } else if self.fire_eligible {
             "missed_propagation"
@@ -155,12 +186,16 @@ impl Divergence {
 
     pub(crate) fn tier_reasons(&self) -> Vec<&'static str> {
         let mut reasons = Vec::with_capacity(3);
-        if self.changed.iter().any(|s| s.touches_shared == Some(true)) {
-            reasons.push("shared_logic_touched");
-        } else if self.changed.iter().any(|s| s.touches_shared == Some(false)) {
-            reasons.push("shared_logic_not_touched");
+        if self.lane == DivergenceLane::NewCopy {
+            reasons.push("new_copy_no_base_member");
         } else {
-            reasons.push("shared_logic_unproven");
+            if self.changed.iter().any(|s| s.touches_shared == Some(true)) {
+                reasons.push("shared_logic_touched");
+            } else if self.changed.iter().any(|s| s.touches_shared == Some(false)) {
+                reasons.push("shared_logic_not_touched");
+            } else {
+                reasons.push("shared_logic_unproven");
+            }
         }
         if self.scope == "prod" {
             reasons.push("non_test_scope");

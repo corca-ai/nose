@@ -1,10 +1,14 @@
 use super::git::{
-    canonical, git_changed_ranges, git_repo_root, repo_relative_paths, reroot_paths, BaseWorktree,
+    canonical, git_changed_ranges_and_entries, git_repo_root, repo_relative_paths, reroot_paths,
+    BaseWorktree, DiffEntry,
 };
 use super::*;
 use crate::detect_pipeline::detect_divergence_base_families;
 use crate::query_witness::enrich_graded_witnesses;
 use crate::source_lines::{varying_spots_of, FileLineCache};
+use std::collections::{HashMap, HashSet};
+
+const NEW_COPY_SOURCE_FILE_BUDGET: usize = 2;
 
 /// The detection half for `nose query base=<ref>`. Returns the flagged divergences plus how
 /// many files changed; `None` when there is nothing comparable (an adds-only / empty diff).
@@ -17,8 +21,10 @@ pub(crate) fn detect_divergences(
         "nose needs a git repository to compare the working tree to a git ref (`base=`/`--base`)",
     )?;
     let divergence_paths = repo_relative_paths(&args.paths, &root);
-    let changed = git_changed_ranges(&root, &args.base, &divergence_paths)?;
-    if changed.is_empty() {
+    let (changed, current_changed, diff_entries) =
+        git_changed_ranges_and_entries(&root, &args.base, &divergence_paths)?;
+    let current_lane_requested = has_current_tree_new_copy_trigger(&diff_entries);
+    if changed.is_empty() && !current_lane_requested {
         return Ok(None);
     }
     // Detect clone families at the base, where every copy is still intact. A temporary
@@ -34,7 +40,7 @@ pub(crate) fn detect_divergences(
         &base_paths,
         &exclude,
         args.mode.clone(),
-        cfg.mode,
+        cfg.mode.clone(),
         min_tokens,
         min_lines,
     )?;
@@ -54,17 +60,42 @@ pub(crate) fn detect_divergences(
         min_tokens,
         ..Default::default()
     };
-    let flagged = flag_divergences(
+    let mut flagged = flag_divergences(
         &families,
         ignore_set.as_ref(),
         &changed,
         &base_tree.path,
         &enrich_opts,
     );
+    if current_lane_requested {
+        let current_paths = reroot_paths(&divergence_paths, &root);
+        let mut current_families = detect_divergence_base_families(
+            &current_paths,
+            &exclude,
+            args.mode.clone(),
+            cfg.mode,
+            min_tokens,
+            min_lines,
+        )?;
+        let current_prefix = canonical(&root);
+        for family in &mut current_families {
+            for loc in &mut family.locations {
+                repo_relative_loc(loc, &current_prefix);
+            }
+        }
+        flagged.extend(flag_new_copy_divergences(
+            &current_families,
+            &families,
+            ignore_set.as_ref(),
+            &current_changed,
+            &diff_entries,
+            &base_tree.path,
+        ));
+    }
 
     // base_tree is removed by Drop after we finish reading families.
     drop(base_tree);
-    Ok(Some((flagged, changed.len())))
+    Ok(Some((flagged, changed_file_count(&diff_entries))))
 }
 
 /// Whether a flagged set fires the v2 strict CI gate.
@@ -122,6 +153,7 @@ fn flag_divergences(
         // scope term doubled gate precision at zero true-positive cost.
         let fire_eligible = touches.contains(&Some(true)) && fam.scope != "test";
         flagged.push(Divergence {
+            lane: DivergenceLane::BaseDivergence,
             family_id: crate::baseline::family_id(&fam),
             similarity: fam.mean_score,
             hazard: fam.hazard(),
@@ -152,6 +184,187 @@ fn flag_divergences(
             .then(b.similarity.total_cmp(&a.similarity))
     });
     flagged
+}
+
+fn flag_new_copy_divergences(
+    current_families: &[RefactorFamily],
+    base_families: &[RefactorFamily],
+    ignore_set: Option<&crate::ignores::IgnoreSet>,
+    current_changed: &HashMap<String, Vec<(u32, u32)>>,
+    diff_entries: &[DiffEntry],
+    base_root: &Path,
+) -> Vec<Divergence> {
+    let current_to_base = current_to_base_paths(diff_entries);
+    let created_current_paths = created_current_paths(diff_entries);
+    let base_prefix = canonical(base_root);
+    let base_relative: Vec<RefactorFamily> = base_families
+        .iter()
+        .map(|fam| repo_relative(fam, &base_prefix))
+        .collect();
+    let base_signatures = family_signatures(&base_relative, &HashMap::new(), true);
+    let base_identity_signatures = family_signatures(&base_relative, &HashMap::new(), false);
+    let mut flagged = Vec::new();
+    for fam in current_families {
+        if ignore_set.is_some_and(|set| set.match_family(fam).is_some()) {
+            continue;
+        }
+        let (changed_members, untouched): (Vec<&Loc>, Vec<&Loc>) = fam
+            .locations
+            .iter()
+            .partition(|loc| site_touched_loc(loc, current_changed));
+        if changed_members.is_empty() || untouched.is_empty() {
+            continue;
+        }
+        if !changed_members
+            .iter()
+            .any(|loc| created_current_paths.contains(&loc.file))
+        {
+            continue;
+        }
+        let mapped_signature = family_signature(fam, &current_to_base, true);
+        let mapped_identity = family_signature(fam, &current_to_base, false);
+        if base_signatures.contains(&mapped_signature)
+            || base_identity_signatures.contains(&mapped_identity)
+        {
+            continue;
+        }
+        let witness_kind = fam.witness.as_ref().map(|w| w.kind);
+        flagged.push(Divergence {
+            lane: DivergenceLane::NewCopy,
+            family_id: crate::baseline::family_id(fam),
+            similarity: fam.mean_score,
+            hazard: fam.hazard(),
+            divergence_priority: divergence_priority(fam, &changed_members, &untouched),
+            complexity: changed_members.iter().map(|l| l.sem).max().unwrap_or(0),
+            scope: fam.scope,
+            witness_kind,
+            fire_eligible: false,
+            graded: None,
+            changed: changed_members.iter().map(|l| to_site(l)).collect(),
+            not_updated: untouched.iter().map(|l| to_site(l)).collect(),
+        });
+    }
+    flagged.sort_by(|a, b| {
+        b.divergence_priority
+            .cmp(&a.divergence_priority)
+            .then(b.hazard.total_cmp(&a.hazard))
+            .then(b.complexity.cmp(&a.complexity))
+            .then(b.similarity.total_cmp(&a.similarity))
+    });
+    flagged
+}
+
+fn has_current_tree_new_copy_trigger(entries: &[DiffEntry]) -> bool {
+    let source_entries = entries
+        .iter()
+        .filter(|entry| diff_entry_touches_source(entry));
+    let mut count = 0;
+    let mut has_created_source = false;
+    for entry in source_entries {
+        count += 1;
+        has_created_source |= entry.status.creates_current_path()
+            && entry.new_path.as_deref().is_some_and(source_like_path);
+        if count > NEW_COPY_SOURCE_FILE_BUDGET {
+            return false;
+        }
+    }
+    has_created_source
+}
+
+fn diff_entry_touches_source(entry: &DiffEntry) -> bool {
+    entry.new_path.as_deref().is_some_and(source_like_path)
+        || entry.old_path.as_deref().is_some_and(source_like_path)
+}
+
+fn created_current_paths(entries: &[DiffEntry]) -> HashSet<String> {
+    if !has_current_tree_new_copy_trigger(entries) {
+        return HashSet::new();
+    }
+    entries
+        .iter()
+        .filter(|entry| {
+            entry.status.creates_current_path()
+                && entry.new_path.as_deref().is_some_and(source_like_path)
+        })
+        .filter_map(|entry| entry.new_path.clone())
+        .collect()
+}
+
+fn changed_file_count(entries: &[DiffEntry]) -> usize {
+    entries
+        .iter()
+        .filter_map(|entry| entry.new_path.as_ref().or(entry.old_path.as_ref()))
+        .collect::<HashSet<_>>()
+        .len()
+}
+
+fn current_to_base_paths(entries: &[DiffEntry]) -> HashMap<String, Option<String>> {
+    entries
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .new_path
+                .as_ref()
+                .map(|new_path| (new_path.clone(), entry.old_path.clone()))
+        })
+        .collect()
+}
+
+fn source_like_path(path: &str) -> bool {
+    nose_il::Lang::from_path(path).is_some()
+}
+
+fn family_signatures(
+    families: &[RefactorFamily],
+    current_to_base: &HashMap<String, Option<String>>,
+    include_span: bool,
+) -> HashSet<Vec<String>> {
+    families
+        .iter()
+        .map(|fam| family_signature(fam, current_to_base, include_span))
+        .collect()
+}
+
+fn family_signature(
+    fam: &RefactorFamily,
+    current_to_base: &HashMap<String, Option<String>>,
+    include_span: bool,
+) -> Vec<String> {
+    let mut members: Vec<String> = fam
+        .locations
+        .iter()
+        .map(|loc| member_signature(loc, current_to_base, include_span))
+        .collect();
+    members.sort_unstable();
+    members
+}
+
+fn member_signature(
+    loc: &Loc,
+    current_to_base: &HashMap<String, Option<String>>,
+    include_span: bool,
+) -> String {
+    let mapped_file = match current_to_base.get(&loc.file) {
+        Some(Some(old)) => old.as_str(),
+        Some(None) => "<new-current-member>",
+        None => loc.file.as_str(),
+    };
+    let span = if include_span {
+        format!(":{}-{}", loc.start_line, loc.end_line)
+    } else {
+        String::new()
+    };
+    format!(
+        "{}|{}{}|{:?}|{}|{}|{:?}|{}",
+        mapped_file,
+        loc.lang,
+        span,
+        loc.kind,
+        loc.name.as_deref().unwrap_or_default(),
+        loc.is_fragment,
+        loc.fragment_kind,
+        loc.reason_code.unwrap_or_default(),
+    )
 }
 
 /// Clone the family with every member path made repo-relative (stripping the base-worktree

@@ -30,6 +30,7 @@ the summary, verdicts, and policy evaluation. Results: docs/experiments.md.
 """
 
 import argparse
+from collections import Counter
 import concurrent.futures
 import hashlib
 import json
@@ -309,12 +310,21 @@ def summarize_records(records, records_path=None):
         counts = sorted(len(r["findings"]) for r in fired)
         all_counts = sorted(len(r["findings"]) for r in rs)
         durs = sorted(r["duration_s"] for r in rs)
+        findings = [f for r in rs for f in r["findings"]]
+        lane_counts = Counter(f.get("lane", "base-divergence") for f in findings)
+        tier_counts = Counter(f.get("tier", "legacy") for f in findings)
 
         summary["per_arm"][arm] = {
             "replays": len(rs), "errors": len(errs),
             "fired": len(fired),
             "fire_rate": round(len(fired) / len(rs), 4) if rs else 0,
+            "strict_fired": sum(
+                1 for r in rs if any(f.get("tier") == "strict" for f in r["findings"])),
+            "new_copy_fired": sum(
+                1 for r in rs if any(f.get("lane") == "new-copy" for f in r["findings"])),
             "findings_total": sum(counts),
+            "lane_counts": dict(sorted(lane_counts.items())),
+            "tier_counts": dict(sorted(tier_counts.items())),
             "findings_per_replay_p50": percentile(all_counts, 0.5),
             "findings_per_replay_p90": percentile(all_counts, 0.9),
             "findings_per_fire_p50": percentile(counts, 0.5),
@@ -353,7 +363,11 @@ def cmd_summarize(args):
 
 
 def base_lines(repo, parent, file, start, end, pad=3, cap=80):
-    r = sh(["git", "-C", str(repo), "show", f"{parent}:{file}"])
+    return tree_lines(repo, parent, file, start, end, pad, cap)
+
+
+def tree_lines(repo, rev, file, start, end, pad=3, cap=80):
+    r = sh(["git", "-C", str(repo), "show", f"{rev}:{file}"])
     if r.returncode != 0:
         return None
     lines = r.stdout.splitlines()
@@ -413,7 +427,7 @@ def cmd_sample(args):
         sites = {}
         for role in ("changed", "not_updated"):
             sites[role] = []
-            for s in f[role][:3]:
+            for s in f.get(role, [])[:3]:
                 entry = {k: s.get(k) for k in
                          ("file", "name", "start_line", "end_line", "lang", "kind",
                           "is_fragment", "fragment_kind", "reason_code", "span_lines",
@@ -423,11 +437,22 @@ def cmd_sample(args):
                 if role == "changed":
                     entry["change_diff"] = file_diff(repo, r["parent"], r["commit"], s["file"])
                 sites[role].append(entry)
+        sites["current_only"] = []
+        for s in f.get("current_only", [])[:3]:
+            entry = {k: s.get(k) for k in
+                     ("file", "name", "start_line", "end_line", "lang", "kind",
+                      "is_fragment", "fragment_kind", "reason_code", "span_lines",
+                      "span_tokens", "touches_shared", "enclosing_unit", "tree")}
+            entry["current_code"] = tree_lines(
+                repo, r["commit"], s["file"], s["start_line"], s["end_line"])
+            entry["change_diff"] = file_diff(repo, r["parent"], r["commit"], s["file"])
+            sites["current_only"].append(entry)
         out.append({
             "sid": f"{args.sid_prefix}-{i:03d}", "repo": r["repo"], "arm": r["arm"],
             "commit": r["commit"], "parent": r["parent"], "subject": r["subject"],
             "rank": rank, "findings_in_change": len(r["findings"]),
             "family_id": f["family_id"],
+            "lane": f.get("lane"),
             "similarity": f.get("similarity"), "complexity": f.get("complexity"),
             "fire_eligible": f.get("fire_eligible"),
             "tier": f.get("tier"),
@@ -437,6 +462,7 @@ def cmd_sample(args):
             "witness_kind": f.get("witness_kind"),
             "scope": f.get("scope"),
             "changed": sites["changed"], "not_updated": sites["not_updated"],
+            "current_only": sites["current_only"],
         })
     with open(args.out, "w") as fh:
         for rec in out:
@@ -448,7 +474,7 @@ def redact_site(site):
     return {k: site.get(k) for k in
             ("file", "name", "start_line", "end_line", "lang", "kind",
              "is_fragment", "fragment_kind", "reason_code", "span_lines",
-             "span_tokens", "touches_shared", "enclosing_unit")}
+             "span_tokens", "touches_shared", "enclosing_unit", "tree")}
 
 
 def redact_sample_row(row):
@@ -462,6 +488,7 @@ def redact_sample_row(row):
         "rank": row.get("rank"),
         "findings_in_change": row.get("findings_in_change"),
         "family_id": row.get("family_id"),
+        "lane": row.get("lane"),
         "similarity": row.get("similarity"),
         "complexity": row.get("complexity"),
         "fire_eligible": row.get("fire_eligible"),
@@ -473,6 +500,7 @@ def redact_sample_row(row):
         "scope": row.get("scope"),
         "changed": [redact_site(s) for s in row.get("changed", [])],
         "not_updated": [redact_site(s) for s in row.get("not_updated", [])],
+        "current_only": [redact_site(s) for s in row.get("current_only", [])],
     }
 
 

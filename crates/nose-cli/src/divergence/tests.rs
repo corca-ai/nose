@@ -1,7 +1,10 @@
 use super::detect::{divergence_priority, ranges_touch, to_site};
-use super::git::parse_old_side_ranges;
+use super::git::{
+    parse_name_status, parse_new_side_ranges, parse_old_side_ranges, parse_patch_entries,
+    DiffStatus,
+};
 use super::output::fragment_context;
-use super::{Divergence, DivergenceTier, Site};
+use super::{Divergence, DivergenceLane, DivergenceTier, Site};
 
 use nose_detect::{EnclosingUnit, FragmentKind, LineSpan, Loc, LocInit, RefactorFamily};
 
@@ -53,6 +56,61 @@ fn pure_insertion_does_not_touch_a_member_ending_at_the_insertion_point() {
         ranges_touch(ranges, 1, 3),
         "a member straddling the insertion gap IS touched: {ranges:?}"
     );
+}
+
+#[test]
+fn new_side_ranges_include_added_file_lines() {
+    let diff = "diff --git a/new.py b/new.py\nnew file mode 100644\n--- /dev/null\n+++ b/new.py\n@@ -0,0 +1,3 @@\n+def f():\n+    return 1\n+\n";
+    let old = parse_old_side_ranges(diff);
+    assert!(
+        old.is_empty(),
+        "added files have no base-side changed range: {old:?}"
+    );
+    let new = parse_new_side_ranges(diff);
+    assert_eq!(
+        new.get("new.py"),
+        Some(&vec![(1, 3)]),
+        "current-side ranges cover the added member: {new:?}"
+    );
+}
+
+#[test]
+fn name_status_tracks_current_paths_for_adds_and_renames() {
+    let entries = parse_name_status("A\tnew.py\nR087\told.py\tmoved.py\nM\tsame.py\n");
+    assert_eq!(entries[0].status, DiffStatus::Added);
+    assert_eq!(entries[0].new_path.as_deref(), Some("new.py"));
+    assert_eq!(entries[1].status, DiffStatus::Renamed);
+    assert_eq!(entries[1].old_path.as_deref(), Some("old.py"));
+    assert_eq!(entries[1].new_path.as_deref(), Some("moved.py"));
+    assert_eq!(entries[2].status, DiffStatus::Modified);
+}
+
+#[test]
+fn patch_entries_track_added_and_renamed_current_paths() {
+    let diff = "\
+diff --git a/new.py b/new.py
+new file mode 100644
+--- /dev/null
++++ b/new.py
+@@ -0,0 +1 @@
++print('new')
+diff --git a/old.py b/moved.py
+similarity index 91%
+rename from old.py
+rename to moved.py
+--- a/old.py
++++ b/moved.py
+@@ -1 +1 @@
+-print('old')
++print('moved')
+";
+    let entries = parse_patch_entries(diff);
+    assert_eq!(entries[0].status, DiffStatus::Added);
+    assert_eq!(entries[0].old_path, None);
+    assert_eq!(entries[0].new_path.as_deref(), Some("new.py"));
+    assert_eq!(entries[1].status, DiffStatus::Renamed);
+    assert_eq!(entries[1].old_path.as_deref(), Some("old.py"));
+    assert_eq!(entries[1].new_path.as_deref(), Some("moved.py"));
 }
 
 fn fragment_loc(file: &str, start: u32, end: u32) -> Loc {
@@ -147,6 +205,7 @@ fn tier_site(file: &str, touches_shared: Option<bool>) -> Site {
 
 fn tier_divergence(scope: &'static str, fire_eligible: bool, touch: Option<bool>) -> Divergence {
     Divergence {
+        lane: DivergenceLane::BaseDivergence,
         family_id: "fam".into(),
         similarity: 1.0,
         hazard: 0.0,
@@ -159,6 +218,19 @@ fn tier_divergence(scope: &'static str, fire_eligible: bool, touch: Option<bool>
         changed: vec![tier_site("a.py", touch)],
         not_updated: vec![tier_site("b.py", None)],
     }
+}
+
+#[test]
+fn v2_tier_routes_new_copy_lane_to_report_only() {
+    let mut d = tier_divergence("prod", false, None);
+    d.lane = DivergenceLane::NewCopy;
+    assert_eq!(d.tier(), DivergenceTier::ReportOnly);
+    assert!(!d.gate_fail_default(), "new-copy lane is advisory");
+    assert_eq!(d.taxonomy_hint(), "unclear");
+    assert_eq!(
+        d.tier_reasons(),
+        vec!["new_copy_no_base_member", "non_test_scope"]
+    );
 }
 
 #[test]

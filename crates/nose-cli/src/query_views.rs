@@ -163,17 +163,30 @@ pub(super) fn render_query_base(
             divergence::DivergenceTier::Review => "review (shared logic unproven)",
             divergence::DivergenceTier::ReportOnly => "report-only (non-default gate)",
         };
+        let lane = d.lane.as_str();
         println!(
-            "  {}  {} · {} · {propagation}",
+            "  {}  {} · {} · {lane} · {propagation}",
             short_id(&d.family_id),
             witness_styled(d.witness_kind),
             d.scope,
         );
-        for s in &d.changed {
-            println!("    changed:      {}", site(s));
-        }
-        for s in &d.not_updated {
-            println!("    not updated:  {}", site(s));
+        match d.lane {
+            divergence::DivergenceLane::BaseDivergence => {
+                for s in &d.changed {
+                    println!("    changed:      {}", site(s));
+                }
+                for s in &d.not_updated {
+                    println!("    not updated:  {}", site(s));
+                }
+            }
+            divergence::DivergenceLane::NewCopy => {
+                for s in &d.changed {
+                    println!("    new/changed:  {}", site(s));
+                }
+                for s in &d.not_updated {
+                    println!("    sibling:      {}", site(s));
+                }
+            }
         }
     }
     println!("\nnext:");

@@ -139,9 +139,15 @@ The tier decision is deterministic. Apply these rules in order:
 4. Every other unsuppressed base-tree divergent-edit candidate routes to `review`.
 
 Newly added copy evidence is a separate report-only lane, not a base-tree
-propagation verdict. It is detected from the current tree, carries only
-current-tree sites, has no base member to mark as `not_updated`, and uses
-`new_copy_no_base_member` so CI wrappers never promote it to `strict`.
+propagation verdict. It is detected from the current tree when an added, copied,
+or renamed path becomes part of a current clone family with an untouched sibling.
+To avoid adding full current-tree detection cost to broad PRs, this advisory lane
+runs only when the diff touches at most two source files. It carries
+`lane="new-copy"`, `base_family_id=null`, `current_only[]` sites with
+`tree="current"`, and `new_copy_no_base_member` so CI wrappers never promote it
+to `strict`. Pure moves with no current-side changed range stay quiet; moved files
+are reported only when current clone evidence, not path similarity alone, supports
+the relationship.
 
 The v2 policy preserves the current fail-closed posture: if shared-line proof,
 source spans, graded witness data, or suppression data are unavailable, the finding

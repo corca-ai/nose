@@ -1515,6 +1515,17 @@ keeps **45/45** v1 confirmed missed-propagation positives, reduces strict fires 
 94 to 80, and improves precision from 0.479 to 0.562. The demoted bucket is mixed/test
 scope evidence, which remains visible as `report-only` instead of failing default CI.
 
+#673 added the bounded `new-copy` report-only lane for current-tree clone evidence from
+small added/copied/renamed source diffs. The lane is intentionally advisory and capped
+at two touched source files so broad PRs do not pay a second full current-tree detection
+pass. Focused fixtures pin added-copy and moved-copy positives plus an unrelated-added
+negative. On a same-environment replay rerun, #672 measured default p50/p90
+2.53s/9.52s and near p50/p90 2.70s/10.66s; #673 measured default 2.38s/9.55s and
+near 2.43s/10.37s, with 0 errors in both 560-run passes. The fixed replay sample did
+not include a budget-eligible real-world `new-copy` row after the cap; the product
+contract is covered by the focused JSON/SARIF fixtures while the replay establishes
+that the advisory lane does not introduce a runtime regression.
+
 ## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
 
 §BK's structural arm is blind below vj 0.8 by construction; #246 built the

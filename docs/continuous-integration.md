@@ -213,7 +213,9 @@ gate behavior from raw fields such as `touches_shared`, `scope`, `witness_kind`,
 
 Structured ignores apply before the gate: a suppressed divergent-edit family must not
 produce a `strict` failure, and report-only lanes such as newly added clone evidence
-must not fail default CI.
+must not fail default CI. Newly added clone evidence appears as `lane="new-copy"`,
+`tier="report-only"`, `base_family_id=null`, and current-tree `current_only[]` sites;
+`properties.gate.fail_default` remains `false` in SARIF.
 
 ## Fast re-runs: `--cache-dir`
 

@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 
 /// A git command rooted at `root`, with inherited git env vars cleared so it always
 /// operates on `root`'s repo — not on a `GIT_DIR`/`GIT_WORK_TREE` set by an outer hook.
@@ -120,16 +121,63 @@ pub(super) fn reroot_paths(paths: &[PathBuf], base: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Changed line ranges on the **base (old) side**, keyed by repo-relative path.
-pub(super) fn git_changed_ranges(
+/// Changed line ranges on both sides plus per-file diff entries, all from one
+/// `git diff --unified=0` invocation.
+pub(super) fn git_changed_ranges_and_entries(
     root: &Path,
     base: &str,
     paths: &[PathBuf],
-) -> Result<HashMap<String, Vec<(u32, u32)>>> {
-    let mut argv: Vec<String> = ["diff", "--unified=0", "--no-color", base]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+) -> Result<(
+    HashMap<String, Vec<(u32, u32)>>,
+    HashMap<String, Vec<(u32, u32)>>,
+    Vec<DiffEntry>,
+)> {
+    let out = git_diff(
+        root,
+        base,
+        paths,
+        &["--unified=0", "--no-color", "--find-renames=80%"],
+    )?;
+    let diff = String::from_utf8_lossy(&out.stdout);
+    Ok((
+        parse_old_side_ranges(&diff),
+        parse_new_side_ranges(&diff),
+        parse_patch_entries(&diff),
+    ))
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct DiffEntry {
+    pub(super) status: DiffStatus,
+    pub(super) old_path: Option<String>,
+    pub(super) new_path: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum DiffStatus {
+    Added,
+    Copied,
+    Deleted,
+    Modified,
+    Renamed,
+    Other,
+}
+
+impl DiffStatus {
+    pub(super) fn creates_current_path(self) -> bool {
+        matches!(self, Self::Added | Self::Copied | Self::Renamed)
+    }
+}
+
+fn git_diff(
+    root: &Path,
+    base: &str,
+    paths: &[PathBuf],
+    flags: &[&str],
+) -> Result<std::process::Output> {
+    let mut argv: Vec<String> = ["diff"].iter().map(|s| s.to_string()).collect();
+    argv.extend(flags.iter().map(|s| (*s).to_string()));
+    argv.push(base.to_string());
     if !paths.is_empty() {
         argv.push("--".into());
         for p in paths {
@@ -144,14 +192,32 @@ pub(super) fn git_changed_ranges(
             String::from_utf8_lossy(&out.stderr).trim()
         );
     }
-    Ok(parse_old_side_ranges(&String::from_utf8_lossy(&out.stdout)))
+    Ok(out)
 }
 
 /// Parse `git diff --unified=0` text into base-side changed line ranges per repo-relative
 /// path. Pure (no git) so it can be unit-tested against crafted diff output.
 pub(super) fn parse_old_side_ranges(diff: &str) -> HashMap<String, Vec<(u32, u32)>> {
+    parse_side_ranges(diff, DiffRangeSide::Old)
+}
+
+/// Parse `git diff --unified=0` text into current-side changed line ranges per
+/// repo-relative path. Added files therefore carry ranges in the current tree,
+/// while pure deletions do not.
+pub(super) fn parse_new_side_ranges(diff: &str) -> HashMap<String, Vec<(u32, u32)>> {
+    parse_side_ranges(diff, DiffRangeSide::New)
+}
+
+#[derive(Clone, Copy)]
+enum DiffRangeSide {
+    Old,
+    New,
+}
+
+fn parse_side_ranges(diff: &str, side: DiffRangeSide) -> HashMap<String, Vec<(u32, u32)>> {
     let mut map: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
-    let mut current: Option<String> = None;
+    let mut old_file: Option<String> = None;
+    let mut new_file: Option<String> = None;
     // `--- a/path` is the base-file header, but a *deleted* line whose content starts with
     // "-- " also renders as "--- …" in the hunk body. They're disambiguated structurally:
     // the file header sits in the per-file block before the first `@@`; once hunks begin a
@@ -160,16 +226,27 @@ pub(super) fn parse_old_side_ranges(diff: &str) -> HashMap<String, Vec<(u32, u32
     for line in diff.lines() {
         if line.starts_with("diff --git") {
             in_hunks = false;
-            current = None;
+            old_file = None;
+            new_file = None;
         } else if !in_hunks && line.starts_with("--- ") {
             // "--- a/path" → base-side path; "--- /dev/null" (added file) → no base member
-            current = line
+            old_file = line
                 .strip_prefix("--- ")
                 .and_then(|r| r.strip_prefix("a/"))
                 .map(|p| p.to_string());
+        } else if !in_hunks && line.starts_with("+++ ") {
+            // "+++ b/path" → current-side path; "+++ /dev/null" (deleted file) → no current member
+            new_file = line
+                .strip_prefix("+++ ")
+                .and_then(|r| r.strip_prefix("b/"))
+                .map(|p| p.to_string());
         } else if line.starts_with("@@") {
             in_hunks = true;
-            if let (Some(file), Some((start, count))) = (&current, parse_hunk_old(line)) {
+            let (file, parsed) = match side {
+                DiffRangeSide::Old => (old_file.as_ref(), parse_hunk_old(line)),
+                DiffRangeSide::New => (new_file.as_ref(), parse_hunk_new(line)),
+            };
+            if let (Some(file), Some((start, count))) = (file, parsed) {
                 // count == 0 is a pure insertion *after* base line `start` (no base line
                 // changed): encode the gap as `(start+1, start)` so it touches only members
                 // that straddle it, not one that merely ends at `start`.
@@ -185,11 +262,139 @@ pub(super) fn parse_old_side_ranges(diff: &str) -> HashMap<String, Vec<(u32, u32
     map
 }
 
+#[cfg(test)]
+pub(super) fn parse_name_status(status: &str) -> Vec<DiffEntry> {
+    status
+        .lines()
+        .filter_map(|line| {
+            let parts = line.split('\t').collect::<Vec<_>>();
+            let raw = parts.first().copied().unwrap_or_default();
+            let code = raw.chars().next()?;
+            match code {
+                'A' => Some(DiffEntry {
+                    status: DiffStatus::Added,
+                    old_path: None,
+                    new_path: parts.get(1).map(|p| (*p).to_string()),
+                }),
+                'C' => Some(DiffEntry {
+                    status: DiffStatus::Copied,
+                    old_path: parts.get(1).map(|p| (*p).to_string()),
+                    new_path: parts.get(2).map(|p| (*p).to_string()),
+                }),
+                'D' => Some(DiffEntry {
+                    status: DiffStatus::Deleted,
+                    old_path: parts.get(1).map(|p| (*p).to_string()),
+                    new_path: None,
+                }),
+                'M' => Some(DiffEntry {
+                    status: DiffStatus::Modified,
+                    old_path: parts.get(1).map(|p| (*p).to_string()),
+                    new_path: parts.get(1).map(|p| (*p).to_string()),
+                }),
+                'R' => Some(DiffEntry {
+                    status: DiffStatus::Renamed,
+                    old_path: parts.get(1).map(|p| (*p).to_string()),
+                    new_path: parts.get(2).map(|p| (*p).to_string()),
+                }),
+                _ => Some(DiffEntry {
+                    status: DiffStatus::Other,
+                    old_path: parts.get(1).map(|p| (*p).to_string()),
+                    new_path: parts.get(1).map(|p| (*p).to_string()),
+                }),
+            }
+        })
+        .collect()
+}
+
+pub(super) fn parse_patch_entries(diff: &str) -> Vec<DiffEntry> {
+    let mut entries = Vec::new();
+    let mut current: Option<DiffEntry> = None;
+    for line in diff.lines() {
+        if let Some(rest) = line.strip_prefix("diff --git ") {
+            finish_patch_entry(&mut entries, &mut current);
+            let mut parts = rest.split_whitespace();
+            let old_path = parts
+                .next()
+                .and_then(|p| p.strip_prefix("a/"))
+                .map(ToOwned::to_owned);
+            let new_path = parts
+                .next()
+                .and_then(|p| p.strip_prefix("b/"))
+                .map(ToOwned::to_owned);
+            current = Some(DiffEntry {
+                status: DiffStatus::Other,
+                old_path,
+                new_path,
+            });
+        } else if line.starts_with("new file mode") {
+            if let Some(entry) = &mut current {
+                entry.status = DiffStatus::Added;
+                entry.old_path = None;
+            }
+        } else if line.starts_with("deleted file mode") {
+            if let Some(entry) = &mut current {
+                entry.status = DiffStatus::Deleted;
+                entry.new_path = None;
+            }
+        } else if let Some(path) = line.strip_prefix("rename from ") {
+            if let Some(entry) = &mut current {
+                entry.status = DiffStatus::Renamed;
+                entry.old_path = Some(path.to_string());
+            }
+        } else if let Some(path) = line.strip_prefix("rename to ") {
+            if let Some(entry) = &mut current {
+                entry.status = DiffStatus::Renamed;
+                entry.new_path = Some(path.to_string());
+            }
+        } else if let Some(path) = line.strip_prefix("copy from ") {
+            if let Some(entry) = &mut current {
+                entry.status = DiffStatus::Copied;
+                entry.old_path = Some(path.to_string());
+            }
+        } else if let Some(path) = line.strip_prefix("copy to ") {
+            if let Some(entry) = &mut current {
+                entry.status = DiffStatus::Copied;
+                entry.new_path = Some(path.to_string());
+            }
+        }
+    }
+    finish_patch_entry(&mut entries, &mut current);
+    entries
+}
+
+fn finish_patch_entry(entries: &mut Vec<DiffEntry>, current: &mut Option<DiffEntry>) {
+    if let Some(mut entry) = current.take() {
+        if entry.status == DiffStatus::Other {
+            entry.status = match (&entry.old_path, &entry.new_path) {
+                (None, Some(_)) => DiffStatus::Added,
+                (Some(_), None) => DiffStatus::Deleted,
+                (Some(old), Some(new)) if old != new => DiffStatus::Renamed,
+                _ => DiffStatus::Modified,
+            };
+        }
+        entries.push(entry);
+    }
+}
+
 /// Parse the old-side range from a hunk header `@@ -a,b +c,d @@ ...` → `(a, b)`, where a
 /// missing `,b` means a count of 1.
 fn parse_hunk_old(line: &str) -> Option<(u32, u32)> {
     let after_minus = line.split('-').nth(1)?;
     let spec = after_minus.split([' ', '+']).next()?.trim();
+    let mut parts = spec.split(',');
+    let start: u32 = parts.next()?.parse().ok()?;
+    let count: u32 = match parts.next() {
+        Some(c) => c.parse().ok()?,
+        None => 1,
+    };
+    Some((start, count))
+}
+
+/// Parse the current-side range from a hunk header `@@ -a,b +c,d @@ ...` → `(c, d)`,
+/// where a missing `,d` means a count of 1.
+fn parse_hunk_new(line: &str) -> Option<(u32, u32)> {
+    let after_plus = line.split('+').nth(1)?;
+    let spec = after_plus.split(' ').next()?.trim();
     let mut parts = spec.split(',');
     let start: u32 = parts.next()?.parse().ok()?;
     let count: u32 = match parts.next() {
