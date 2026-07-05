@@ -1,4 +1,4 @@
-use crate::span::Span;
+use crate::{intern::stable_symbol_hash, span::Span};
 use serde::{Deserialize, Serialize};
 
 use super::{DomainEvidence, NodeKind, SourceFactKind};
@@ -76,6 +76,16 @@ pub struct EvidenceProvenance {
     pub emitter: EvidenceEmitter,
     pub pack_hash: Option<u64>,
     pub rule_hash: Option<u64>,
+}
+
+impl EvidenceProvenance {
+    pub fn builtin(pack_id: &str, rule: &str) -> Self {
+        Self {
+            emitter: EvidenceEmitter::Builtin,
+            pack_hash: Some(stable_symbol_hash(pack_id)),
+            rule_hash: Some(stable_symbol_hash(rule)),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -312,4 +322,43 @@ pub struct EvidenceRecord {
     pub provenance: EvidenceProvenance,
     pub dependencies: Vec<EvidenceId>,
     pub status: EvidenceStatus,
+}
+
+impl EvidenceRecord {
+    pub fn new(
+        id: EvidenceId,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        provenance: EvidenceProvenance,
+        dependencies: Vec<EvidenceId>,
+        status: EvidenceStatus,
+    ) -> Self {
+        Self {
+            id,
+            anchor,
+            kind,
+            provenance,
+            dependencies,
+            status,
+        }
+    }
+
+    pub fn builtin(
+        id: EvidenceId,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        pack_id: &str,
+        rule: &str,
+        dependencies: Vec<EvidenceId>,
+        status: EvidenceStatus,
+    ) -> Self {
+        Self::new(
+            id,
+            anchor,
+            kind,
+            EvidenceProvenance::builtin(pack_id, rule),
+            dependencies,
+            status,
+        )
+    }
 }

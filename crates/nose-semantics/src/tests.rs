@@ -1,4 +1,5 @@
 use super::*;
+use crate::test_support::compat_test_evidence_with_dependencies as evidence_with_dependencies;
 use nose_il::{
     CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
     EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind,
@@ -118,27 +119,6 @@ fn evidence(
     evidence_with_dependencies(id, anchor, kind, status, Vec::new())
 }
 
-fn evidence_with_dependencies(
-    id: u32,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    status: EvidenceStatus,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(BUILTIN_COMPAT_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash("test")),
-        },
-        dependencies,
-        status,
-    }
-}
-
 fn language_core_evidence(
     id: u32,
     anchor: EvidenceAnchor,
@@ -158,18 +138,15 @@ fn language_core_evidence_with_dependencies(
     lang: Lang,
 ) -> EvidenceRecord {
     let (pack_id, producer_id) = language_core_evidence_provenance(lang);
-    EvidenceRecord {
-        id: EvidenceId(id),
+    EvidenceRecord::builtin(
+        EvidenceId(id),
         anchor,
         kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(pack_id)),
-            rule_hash: Some(stable_symbol_hash(producer_id)),
-        },
+        pack_id,
+        producer_id,
         dependencies,
         status,
-    }
+    )
 }
 
 fn c_unsigned_32_source_cast_evidence(

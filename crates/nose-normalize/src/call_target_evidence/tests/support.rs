@@ -1,12 +1,13 @@
 pub(super) use super::super::*;
 pub(super) use nose_il::{
-    stable_symbol_hash, EvidenceEmitter, EvidenceProvenance, EvidenceRecord, FileId, FileMeta,
-    IlBuilder, Lang, Span, Unit,
+    stable_symbol_hash, EvidenceProvenance, EvidenceRecord, FileId, FileMeta, IlBuilder, Lang,
+    Span, Unit,
 };
 pub(super) use nose_semantics::{
     call_target_evidence_at_call, direct_function_call_target_at_call,
     imported_function_call_target_at_call, imported_member_call_target_at_call,
     language_core_evidence_provenance,
+    test_support::compat_test_evidence_with_dependencies as evidence_with_dependencies,
 };
 
 pub(super) fn sp(n: u32) -> Span {
@@ -19,32 +20,7 @@ pub(super) fn wide_sp(start: u32, end: u32) -> Span {
 
 pub(super) fn language_core_provenance(lang: Lang) -> EvidenceProvenance {
     let (pack_id, producer_id) = language_core_evidence_provenance(lang);
-    EvidenceProvenance {
-        emitter: EvidenceEmitter::Builtin,
-        pack_hash: Some(stable_symbol_hash(pack_id)),
-        rule_hash: Some(stable_symbol_hash(producer_id)),
-    }
-}
-
-fn evidence_with_dependencies(
-    id: u32,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    status: EvidenceStatus,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(BUILTIN_COMPAT_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash("test")),
-        },
-        dependencies,
-        status,
-    }
+    EvidenceProvenance::builtin(pack_id, producer_id)
 }
 
 pub(super) fn binding_symbol(

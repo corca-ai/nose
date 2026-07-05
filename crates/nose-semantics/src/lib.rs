@@ -42,6 +42,8 @@ mod packs;
 mod sequence_surface;
 mod stdlib_semantics;
 mod symbol_identity;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 mod type_domain;
 
 pub use api_guards::*;

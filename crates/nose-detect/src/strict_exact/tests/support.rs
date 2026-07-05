@@ -1,8 +1,8 @@
 use super::super::*;
 pub(super) use nose_il::{
-    stable_symbol_hash, CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
-    EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder,
-    Lang, LibraryApiEvidenceKind, Span, Unit, UnitKind,
+    stable_symbol_hash, CallTargetEvidenceKind, EvidenceAnchor, EvidenceId, EvidenceKind,
+    EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, Lang, LibraryApiEvidenceKind,
+    Span, Unit, UnitKind,
 };
 use nose_normalize::{normalize, NormalizeOptions};
 use nose_semantics::{
@@ -54,18 +54,15 @@ pub(super) fn evidence(
     kind: EvidenceKind,
     dependencies: Vec<EvidenceId>,
 ) -> EvidenceRecord {
-    EvidenceRecord {
-        id: EvidenceId(id),
+    EvidenceRecord::builtin(
+        EvidenceId(id),
         anchor,
         kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(BUILTIN_COMPAT_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash("strict-exact-test")),
-        },
+        BUILTIN_COMPAT_PACK_ID,
+        "strict-exact-test",
         dependencies,
-        status: EvidenceStatus::Asserted,
-    }
+        EvidenceStatus::Asserted,
+    )
 }
 
 pub(super) fn method_call_library_api_evidence(

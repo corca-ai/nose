@@ -873,3 +873,18 @@ inside `nose-semantics/src/evidence.rs`. Moving the common span-keyed
 provenance-specialized `source_cast_at_node` path separate while removing the
 repeated asserted-evidence lookup wrappers. No new family appears, so the
 baseline budget is tightened to 44.
+
+The cross-crate evidence-fixture cleanup tightens the count from 44 to 42. The
+self-query report flagged `52cb1ae313158c0c`, repeated compatibility-pack
+`EvidenceRecord` fixture construction across normalize, semantics, and detect
+tests. `EvidenceRecord::new`, `EvidenceRecord::builtin`, and the feature-gated
+`nose-semantics::test_support` fixture builders remove that repeated record
+literal shape while keeping crate-local fixture names stable. The cleanup also
+removes the already reviewed language-core evidence helper representatives
+`8fba27133717de21` and `99f8c8a9192a0930`. Three accepted test-scope
+representatives move with the line changes: `4f5e190b35a2dac2` becomes
+`8977e7bce9b8d9a5` for the `library_api_contract_evidence` fixture pair,
+`a72c9bc5138a4045` becomes `e5b8f23a075e9657` for the
+`method_call_library_api_evidence` fixture pair, and `eadc678efab56738` is the
+tiny `sp` helper representative. No production family appears, so the baseline
+budget is tightened to 42.

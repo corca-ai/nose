@@ -146,6 +146,9 @@ set -euo pipefail
 # 50 -> 49 (strict-exact HOF dogfood): factoring the tree/terminal-reduction/len HOF
 # admission variants into `StrictExactHofUse` removes `f010e9908081b902` with no
 # product query output drift.
+# 44 -> 42 (cross-crate evidence fixtures): shared `EvidenceRecord` constructors and
+# feature-gated `nose-semantics::test_support` helpers remove the repeated
+# compatibility-pack evidence fixture builders across normalize, semantics, and detect tests.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

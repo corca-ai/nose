@@ -1,30 +1,32 @@
 pub(super) use super::super::*;
 pub(super) use nose_il::{
-    Builtin, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter,
-    EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
-    GuardEvidenceKind, HoFKind, Il, IlBuilder, ImportEvidenceKind, Interner,
-    JsRecordGuardComparison, JsRecordGuardNullCheck, Lang, LibraryApiEvidenceKind, NodeId,
-    NodeKind, Op, ParamSemantic, Payload, PromiseSettledValueEvidenceKind,
-    PromiseSettlementChannel, SequenceSurfaceKind, SourceCallKind, SourceCastKind,
-    SourceComprehensionKind, SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol,
-    SymbolEvidenceKind, Unit, UnitKind,
+    Builtin, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor, EvidenceId, EvidenceKind,
+    EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, HoFKind, Il, IlBuilder,
+    ImportEvidenceKind, Interner, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
+    LibraryApiEvidenceKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
+    PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind, SourceCallKind,
+    SourceCastKind, SourceComprehensionKind, SourceFactKind, SourcePatternKind, SourceRangeKind,
+    Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+};
+pub(super) use nose_semantics::test_support::{
+    compat_test_asserted_evidence as evidence_with_dependencies,
+    language_core_test_asserted_evidence as language_core_evidence_with_dependencies,
 };
 pub(super) use nose_semantics::{
-    admitted_hof_demand_effect_profile_at_node, builtin_tag, language_core_evidence_provenance,
-    library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_free_function_builtin_contract, library_free_function_hof_contract,
-    library_free_name_collection_factory_contract, library_imported_collection_factory_contract,
-    library_java_collection_constructor_contract, library_java_collection_factory_contract,
-    library_java_map_factory_contract, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_method_call_contract,
-    library_promise_catch_contract, library_promise_finally_contract,
+    admitted_hof_demand_effect_profile_at_node, builtin_tag, library_api_callee_contract_hash,
+    library_api_contract_id_hash, library_free_function_builtin_contract,
+    library_free_function_hof_contract, library_free_name_collection_factory_contract,
+    library_imported_collection_factory_contract, library_java_collection_constructor_contract,
+    library_java_collection_factory_contract, library_java_map_factory_contract,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_method_call_contract, library_promise_catch_contract, library_promise_finally_contract,
     library_promise_resolve_contract, library_promise_then_contract,
     library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
     library_scalar_integer_method_contract, library_static_index_membership_contract,
     library_swift_map_factory_contract, DomainEvidence, LibraryApiCalleeContract,
     LibraryApiContractId, LibraryCollectionFactoryContract, LibraryFreeFunctionBuiltinContract,
     LibraryFreeFunctionHofContract, LibraryMapFactoryContract, LibraryMethodCallContract,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, BUILTIN_COMPAT_PACK_ID,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
     BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
     C_LANGUAGE_PACK_ID, C_UNSIGNED_32_CAST_SOURCE_PRODUCER_ID,
     FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
@@ -118,26 +120,6 @@ pub(super) fn evidence(id: u32, anchor: EvidenceAnchor, kind: EvidenceKind) -> E
     evidence_with_dependencies(id, anchor, kind, Vec::new())
 }
 
-pub(super) fn evidence_with_dependencies(
-    id: u32,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(BUILTIN_COMPAT_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash("test")),
-        },
-        dependencies,
-        status: EvidenceStatus::Asserted,
-    }
-}
-
 pub(super) fn language_core_evidence(
     id: u32,
     lang: Lang,
@@ -145,28 +127,6 @@ pub(super) fn language_core_evidence(
     kind: EvidenceKind,
 ) -> EvidenceRecord {
     language_core_evidence_with_dependencies(id, lang, anchor, kind, Vec::new())
-}
-
-pub(super) fn language_core_evidence_with_dependencies(
-    id: u32,
-    lang: Lang,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    let (pack_id, producer_id) = language_core_evidence_provenance(lang);
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(pack_id)),
-            rule_hash: Some(stable_symbol_hash(producer_id)),
-        },
-        dependencies,
-        status: EvidenceStatus::Asserted,
-    }
 }
 
 pub(super) fn language_core_symbol_evidence(

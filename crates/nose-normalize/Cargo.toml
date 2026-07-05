@@ -11,5 +11,8 @@ nose-semantics = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 
+[dev-dependencies]
+nose-semantics = { workspace = true, features = ["test-support"] }
+
 [lints]
 workspace = true

@@ -1,4 +1,4 @@
-use crate::intern::{stable_symbol_hash, Interner, Symbol};
+use crate::intern::{Interner, Symbol};
 use crate::node::{
     EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
     EvidenceStatus, Node, NodeId, NodeKind, Payload,
@@ -286,11 +286,7 @@ impl Il {
         rule: &str,
         dependencies: Vec<EvidenceId>,
     ) -> EvidenceId {
-        let provenance = EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(pack_id)),
-            rule_hash: Some(stable_symbol_hash(rule)),
-        };
+        let provenance = EvidenceProvenance::builtin(pack_id, rule);
         self.find_or_push_builtin_evidence_with_provenance(anchor, kind, provenance, dependencies)
     }
 
@@ -320,14 +316,14 @@ impl Il {
             return id;
         }
         let id = EvidenceId(self.evidence.len() as u32);
-        self.evidence.push(EvidenceRecord {
+        self.evidence.push(EvidenceRecord::new(
             id,
             anchor,
             kind,
             provenance,
             dependencies,
-            status: EvidenceStatus::Asserted,
-        });
+            EvidenceStatus::Asserted,
+        ));
         id
     }
 

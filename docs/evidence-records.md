@@ -55,6 +55,12 @@ An evidence record has:
 - `dependencies`: other evidence ids this fact depends on;
 - `status`: currently `Asserted` or `Ambiguous`.
 
+Construct records through `EvidenceRecord::new` or `EvidenceRecord::builtin`
+when code already has the anchor, kind, provenance, dependency ids, and status.
+`EvidenceProvenance::builtin` is the shared path for hashing builtin pack/rule
+ids, so production producers and test fixtures do not need to duplicate the
+record literal shape.
+
 The current implemented kinds are:
 
 | kind | purpose |

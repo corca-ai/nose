@@ -6,6 +6,10 @@ pub(super) use nose_il::{
     LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
     UnitKind,
 };
+pub(super) use nose_semantics::test_support::{
+    compat_test_evidence_with_dependencies as evidence_with_dependencies,
+    language_core_test_evidence as language_core_evidence,
+};
 pub(super) use nose_semantics::{
     language_core_evidence_provenance, library_free_function_builtin_contract,
     library_free_function_hof_contract, library_free_name_map_factory_contract,
@@ -29,49 +33,6 @@ pub(super) fn evidence(
     status: EvidenceStatus,
 ) -> EvidenceRecord {
     evidence_with_dependencies(id, anchor, kind, status, Vec::new())
-}
-
-pub(super) fn evidence_with_dependencies(
-    id: u32,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    status: EvidenceStatus,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(nose_semantics::BUILTIN_COMPAT_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash("test")),
-        },
-        dependencies,
-        status,
-    }
-}
-
-pub(super) fn language_core_evidence(
-    id: u32,
-    lang: Lang,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    status: EvidenceStatus,
-) -> EvidenceRecord {
-    let (pack_id, producer_id) = language_core_evidence_provenance(lang);
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(pack_id)),
-            rule_hash: Some(stable_symbol_hash(producer_id)),
-        },
-        dependencies: Vec::new(),
-        status,
-    }
 }
 
 pub(super) fn language_core_symbol_evidence(

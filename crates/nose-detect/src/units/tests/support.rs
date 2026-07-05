@@ -1,14 +1,16 @@
 use nose_il::{
-    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
-    EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, Il, IlBuilder, Interner,
-    Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Payload, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, Span, SymbolEvidenceKind,
+    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceRecord, FileId,
+    FileMeta, Il, IlBuilder, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Payload,
+    SequenceSurfaceKind, SourceCallKind, SourceFactKind, Span, SymbolEvidenceKind,
+};
+pub(super) use nose_semantics::test_support::{
+    compat_test_asserted_evidence as evidence,
+    language_core_test_asserted_evidence as language_core_evidence,
 };
 use nose_semantics::{
-    language_core_evidence_provenance, library_api_callee_contract_hash,
-    library_api_contract_id_hash, library_method_call_contract, LibraryApiCalleeContract,
-    LibraryApiContractId, LibraryCollectionFactoryContract, LibraryMapFactoryContract,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, BUILTIN_COMPAT_PACK_ID,
+    library_api_callee_contract_hash, library_api_contract_id_hash, library_method_call_contract,
+    LibraryApiCalleeContract, LibraryApiContractId, LibraryCollectionFactoryContract,
+    LibraryMapFactoryContract, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
     BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
     FREE_FUNCTION_BUILTIN_PROTOCOL_PACK_ID, FREE_FUNCTION_BUILTIN_PROTOCOL_PRODUCER_ID,
     JAVA_STDLIB_COLLECTION_FACTORY_PACK_ID, JAVA_STDLIB_COLLECTION_FACTORY_PRODUCER_ID,
@@ -22,48 +24,6 @@ use nose_semantics::{
 
 pub(super) fn sp(line: u32) -> Span {
     Span::new(FileId(0), line, line, line, line)
-}
-
-pub(super) fn evidence(
-    id: u32,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(BUILTIN_COMPAT_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash("test")),
-        },
-        dependencies,
-        status: EvidenceStatus::Asserted,
-    }
-}
-
-pub(super) fn language_core_evidence(
-    id: u32,
-    lang: Lang,
-    anchor: EvidenceAnchor,
-    kind: EvidenceKind,
-    dependencies: Vec<EvidenceId>,
-) -> EvidenceRecord {
-    let (pack_id, producer_id) = language_core_evidence_provenance(lang);
-    EvidenceRecord {
-        id: EvidenceId(id),
-        anchor,
-        kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::Builtin,
-            pack_hash: Some(stable_symbol_hash(pack_id)),
-            rule_hash: Some(stable_symbol_hash(producer_id)),
-        },
-        dependencies,
-        status: EvidenceStatus::Asserted,
-    }
 }
 
 pub(super) fn language_core_symbol_evidence(
