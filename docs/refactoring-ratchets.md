@@ -97,11 +97,12 @@ and behavior easier to reason about:
 - keep query option parsing and report model types outside the dispatcher; mode
   parsing, report formats, ranking keys, gate selectors, and scope summaries now
   live in `nose-cli/src/{query_options,query_model}.rs`;
-- keep query report rendering and gate output outside the dispatcher; the format
-  switch stays in `nose-cli/src/query_commands.rs`, while dashboard, family text,
+- keep query report rendering and gate output outside the dispatcher;
+  `query_commands.rs` delegates output selection and format dispatch to
+  `nose-cli/src/query_output.rs`, while dashboard, family text,
   JSON/markdown/SARIF renderers, opportunities, witness enrichment, and
   baseline/divergence gate output now live in
-  `nose-cli/src/query_{dashboard,views,markdown,sarif,family_text,opportunities,witness,baseline_gate}.rs`;
+  `nose-cli/src/query_{output,dashboard,views,markdown,sarif,family_text,opportunities,witness,baseline_gate}.rs`;
 - keep the query-facing Markdown prose domain adapter in `nose-cli/src/markdown.rs`;
   `query_dashboard` receives its report object and should not reach into
   `nose_markdown::Family` or duplicate Markdown JSON/rendering details;

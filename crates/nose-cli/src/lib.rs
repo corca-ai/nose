@@ -29,6 +29,7 @@ mod query_model;
 mod query_open;
 mod query_opportunities;
 mod query_options;
+mod query_output;
 mod query_sarif;
 mod query_semantic_packs;
 mod query_terms;
