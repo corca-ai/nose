@@ -209,7 +209,8 @@ and behavior easier to reason about:
   the oversized test body; shared exact-fragment test support now lives in
   `nose-cli/tests/cli/exact_fragments/support.rs`;
 - keep CLI integration-test temp-project setup shared; unique temp directories,
-  fixture file writing, and RAII cleanup live in `nose-cli/tests/cli/support.rs`,
+  fixture file writing, CLI failure diagnostics, and RAII cleanup live in
+  `nose-cli/tests/cli/support.rs`,
   while domain-specific query helpers stay under their suite module;
 - keep Java `this` field exact-fragment scenarios together in their own CLI
   test module; assignment, guarded branch, body, and fluent `return this`

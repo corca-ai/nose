@@ -3,6 +3,7 @@
 
 pub(crate) use std::fs;
 pub(crate) use std::path::{Path, PathBuf};
+use std::process::Output;
 pub(crate) use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -224,39 +225,92 @@ fn query_json_list_args(args: &[&str]) -> Vec<String> {
     normalized
 }
 
+fn owned_args(args: &[&str]) -> Vec<String> {
+    args.iter().map(|arg| (*arg).to_string()).collect()
+}
+
 pub(crate) fn run(args: &[&str]) -> String {
     let normalized = query_json_list_args(args);
-    let out = Command::new(bin())
-        .args(&normalized)
-        .output()
-        .expect("run nose");
-    assert!(
-        out.status.success(),
-        "nose exited non-zero: {:?}",
-        out.status
-    );
+    let out = nose_output(&normalized);
+    assert_success(&normalized, &out);
     String::from_utf8(out.stdout).unwrap()
 }
 
 pub(crate) fn run_raw(args: &[&str]) -> String {
-    let out = Command::new(bin()).args(args).output().expect("run nose");
-    assert!(
-        out.status.success(),
-        "nose exited non-zero: {:?}",
-        out.status
-    );
+    let args = owned_args(args);
+    let out = nose_output(&args);
+    assert_success(&args, &out);
     String::from_utf8(out.stdout).unwrap()
 }
 
 /// Like [`run`] but expects a non-zero exit; returns stderr (where errors print).
 #[allow(dead_code)]
 pub(crate) fn run_fail(args: &[&str]) -> String {
-    let out = Command::new(bin()).args(args).output().expect("run nose");
+    let args = owned_args(args);
+    let out = nose_output(&args);
     assert!(
         !out.status.success(),
-        "expected nose to fail, but it succeeded"
+        "{}",
+        cli_output_message_with_bin(
+            bin(),
+            "expected nose to fail, but it succeeded",
+            &args,
+            &format!("{:?}", out.status),
+            &out.stdout,
+            &out.stderr
+        )
     );
     String::from_utf8(out.stderr).unwrap()
+}
+
+fn nose_output(args: &[String]) -> Output {
+    Command::new(bin())
+        .args(args)
+        .output()
+        .unwrap_or_else(|err| {
+            panic!(
+                "failed to spawn nose\ncommand: {}\nerror: {err}",
+                command_line_for_message(bin(), args)
+            )
+        })
+}
+
+fn assert_success(args: &[String], out: &Output) {
+    assert!(
+        out.status.success(),
+        "{}",
+        cli_output_message_with_bin(
+            bin(),
+            "nose exited non-zero",
+            args,
+            &format!("{:?}", out.status),
+            &out.stdout,
+            &out.stderr
+        )
+    );
+}
+
+fn cli_output_message_with_bin(
+    bin: &str,
+    summary: &str,
+    args: &[String],
+    status: &str,
+    stdout: &[u8],
+    stderr: &[u8],
+) -> String {
+    format!(
+        "{summary}\nstatus: {status}\ncommand: {}\nstdout:\n{}\nstderr:\n{}",
+        command_line_for_message(bin, args),
+        String::from_utf8_lossy(stdout),
+        String::from_utf8_lossy(stderr)
+    )
+}
+
+fn command_line_for_message(bin: &str, args: &[String]) -> String {
+    let mut parts = Vec::with_capacity(args.len() + 1);
+    parts.push(bin.to_string());
+    parts.extend(args.iter().map(|arg| format!("{arg:?}")));
+    parts.join(" ")
 }
 
 /// `nose query <dir> --mode <mode> --format json --top 0` with the tiny-fixture
@@ -499,3 +553,7 @@ pub(crate) fn assert_query_json_reports_semantic_packs(json: &serde_json::Value)
         );
     }
 }
+
+#[cfg(test)]
+#[path = "support_tests.rs"]
+mod tests;
