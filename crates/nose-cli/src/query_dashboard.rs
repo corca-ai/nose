@@ -1,8 +1,17 @@
-use super::query_model::*;
+use super::query_model::{
+    family_dir, is_default_surface, query_family_json, short_id, witness_token,
+};
 use super::query_views::{loc_cell, metrics_cell};
+use crate::baseline;
 use crate::baseline_comparison::BaselineComparison;
-use crate::legacy_prelude::*;
+use crate::markdown;
+use crate::query_opportunities::{total_dup_lines_refs, OpportunityGroups};
+use crate::query_options::QueryScope;
 use crate::query_semantic_packs::with_semantic_packs;
+use crate::report_text::plural;
+use crate::schema_versions;
+use crate::style;
+use crate::surfaces::{surface_omission_note, SurfaceOverrides};
 
 /// Print a block of candidate rows in aligned columns (location · metrics · drill command),
 /// coloured. Widths are computed from each cell's visible length so the ANSI codes never

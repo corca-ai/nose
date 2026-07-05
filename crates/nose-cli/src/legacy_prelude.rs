@@ -16,12 +16,9 @@ pub(crate) use crate::query_options::*;
 pub(crate) use crate::query_sarif::*;
 pub(crate) use crate::query_terms::{family_at, parse_query, Query};
 pub(crate) use crate::query_witness::*;
-pub(crate) use crate::report_text::*;
-pub(crate) use crate::schema_versions;
 pub(crate) use crate::source_lines::*;
-pub(crate) use crate::style;
 pub(crate) use crate::surfaces::{
-    classify_surface_overrides, is_default_report_family, surface_omission_note, SurfaceOverrides,
+    classify_surface_overrides, is_default_report_family, SurfaceOverrides,
 };
 pub(crate) use crate::timing::*;
 pub(crate) use crate::verify_census;

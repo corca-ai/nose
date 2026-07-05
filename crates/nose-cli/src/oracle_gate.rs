@@ -1,4 +1,8 @@
-use crate::legacy_prelude::*;
+use crate::cli_args::BatteryKind;
+use crate::path_utils::{paths_as_refs, warn_if_empty};
+use anyhow::Result;
+use nose_il::{Corpus, Interner};
+use std::path::PathBuf;
 
 /// Deterministic input battery for an `arity`-parameter function. The parameters range
 /// over a fixed pool of small int-lists and scalars; for small arity the pool is
