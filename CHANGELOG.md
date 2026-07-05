@@ -15,6 +15,8 @@ break.
   `target/debug/deps/*.rcgu.o` files before the fast local CI gate, avoiding
   macOS dyld/code-signing stalls when local debug target directories grow very
   large.
+- Added a self-test for the Cargo target prune script and a shellcheck gate for
+  versioned hooks plus `scripts/*.sh` in local and GitHub CI.
 
 ### Performance
 - Completed a 20-commit profile-guided runtime pass after the runtime-triage setup.

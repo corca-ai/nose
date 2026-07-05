@@ -20,8 +20,8 @@ case "${1:-}" in
 usage: ./scripts/check-ci-local.sh [--fast|--full]
 
   --fast  corpus and semantic-pack self-tests, rustfmt, file-length and
-          legacy-prelude ratchets, clippy -D warnings, nose-cli tests,
-          docs wiki lint
+          legacy-prelude ratchets, shellcheck, clippy -D warnings,
+          nose-cli tests, docs wiki lint
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
           formal obligation lint, and Lean proofs
@@ -88,6 +88,11 @@ run_semantic_pack_pricing_selftest() {
     python3 bench/semantic_pack/pricing.py --check-artifacts
 }
 
+run_shell_script_lint() {
+    need_cmd shellcheck "install it with: brew install shellcheck"
+    shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh
+}
+
 run_msrv_check() {
     need_cmd rustup
     local msrv
@@ -112,6 +117,12 @@ step "corpus verify runner self-test"
 
 step "semantic-pack pricing self-test"
 run_semantic_pack_pricing_selftest
+
+step "Cargo target prune self-test"
+./scripts/prune-cargo-target.sh --self-test
+
+step "shell scripts (shellcheck)"
+run_shell_script_lint
 
 step "rustfmt (formatting)"
 cargo fmt --all --check

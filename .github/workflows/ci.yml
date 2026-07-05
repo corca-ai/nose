@@ -29,6 +29,15 @@ jobs:
         run: |
           python3 bench/semantic_pack/pricing.py --selftest
           python3 bench/semantic_pack/pricing.py --check-artifacts
+      - name: Cargo target prune self-test
+        run: ./scripts/prune-cargo-target.sh --self-test
+      - name: shell scripts
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y shellcheck
+          fi
+          shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh
       - name: format
         run: cargo fmt --all --check
       - name: file-length ratchet

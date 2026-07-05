@@ -6,11 +6,13 @@
 # code starts. The stale *.rcgu.o files are safe to remove: Cargo will rebuild
 # anything it still needs.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script_path="$script_dir/$(basename "${BASH_SOURCE[0]}")"
+cd "$script_dir/.."
 
 usage() {
     cat <<'EOF'
-usage: ./scripts/prune-cargo-target.sh [--dry-run]
+usage: ./scripts/prune-cargo-target.sh [--dry-run|--self-test]
 
 Prunes stale target/debug/deps/*.rcgu.o files when the object count is high.
 
@@ -25,12 +27,87 @@ Environment:
 EOF
 }
 
+run_self_test() {
+    local script="$1"
+    local temp_dir deps dry_output
+    temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/nose-prune-cargo-target-test.XXXXXX")"
+    deps="$temp_dir/target/debug/deps"
+    mkdir -p "$deps"
+
+    touch "$deps/recent.abc.rcgu.o" "$deps/keep.d" "$deps/keep.rlib" "$deps/test-bin"
+    touch -t 202001010000 "$deps/old.abc.rcgu.o"
+    chmod +x "$deps/test-bin"
+
+    dry_output="$(
+        NOSE_PRUNE_CARGO_TARGET=1 \
+        NOSE_CARGO_TARGET_PRUNE_SKIP_ACTIVE_CHECK=1 \
+            NOSE_CARGO_TARGET_PRUNE_DIR="$temp_dir/target" \
+            NOSE_CARGO_TARGET_PRUNE_MIN_OBJECTS=1 \
+            NOSE_CARGO_TARGET_PRUNE_DAYS=0 \
+            "$script" --dry-run
+    )"
+    if [[ "$dry_output" != *"would remove 1 stale .rcgu.o files"* ]]; then
+        echo "self-test failed: dry-run did not report one stale object" >&2
+        echo "$dry_output" >&2
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    if [[ ! -f "$deps/old.abc.rcgu.o" ]]; then
+        echo "self-test failed: dry-run removed a file" >&2
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    NOSE_PRUNE_CARGO_TARGET=1 \
+    NOSE_CARGO_TARGET_PRUNE_SKIP_ACTIVE_CHECK=1 \
+        NOSE_CARGO_TARGET_PRUNE_DIR="$temp_dir/target" \
+        NOSE_CARGO_TARGET_PRUNE_MIN_OBJECTS=1 \
+        NOSE_CARGO_TARGET_PRUNE_DAYS=0 \
+        "$script" >/dev/null
+    for expected in recent.abc.rcgu.o keep.d keep.rlib test-bin; do
+        if [[ ! -e "$deps/$expected" ]]; then
+            echo "self-test failed: removed non-stale file $expected" >&2
+            rm -rf "$temp_dir"
+            return 1
+        fi
+    done
+    if [[ -e "$deps/old.abc.rcgu.o" ]]; then
+        echo "self-test failed: stale object was not removed" >&2
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    rm -rf "$temp_dir"
+    temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/nose-prune-cargo-target-test.XXXXXX")"
+    deps="$temp_dir/target/debug/deps"
+    mkdir -p "$deps"
+    touch -t 202001010000 "$deps/old.abc.rcgu.o"
+    NOSE_PRUNE_CARGO_TARGET=1 \
+    NOSE_CARGO_TARGET_PRUNE_SKIP_ACTIVE_CHECK=1 \
+        NOSE_CARGO_TARGET_PRUNE_DIR="$temp_dir/target" \
+        NOSE_CARGO_TARGET_PRUNE_MIN_OBJECTS=10 \
+        NOSE_CARGO_TARGET_PRUNE_DAYS=0 \
+        "$script"
+    if [[ ! -e "$deps/old.abc.rcgu.o" ]]; then
+        echo "self-test failed: threshold guard deleted an object" >&2
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    rm -rf "$temp_dir"
+
+    echo "cargo target prune self-test passed"
+}
+
 dry_run=0
 case "${1:-}" in
     "")
         ;;
     --dry-run)
         dry_run=1
+        ;;
+    --self-test)
+        run_self_test "$script_path"
+        exit $?
         ;;
     -h | --help)
         usage
@@ -75,7 +152,8 @@ if [[ ! -d "$deps_dir" ]]; then
     exit 0
 fi
 
-if command -v pgrep >/dev/null 2>&1; then
+if [[ "${NOSE_CARGO_TARGET_PRUNE_SKIP_ACTIVE_CHECK:-0}" != "1" ]] &&
+    command -v pgrep >/dev/null 2>&1; then
     if pgrep -x cargo >/dev/null 2>&1 ||
         pgrep -x rustc >/dev/null 2>&1 ||
         pgrep -x rustdoc >/dev/null 2>&1 ||

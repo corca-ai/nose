@@ -14,10 +14,11 @@ Run the fast PR/push preflight locally before opening or updating a PR:
 ./scripts/check-ci-local.sh --fast
 ```
 
-That runs rustfmt, the Rust file-length and CLI legacy-prelude ratchets, clippy
-with warnings as errors, the `nose-cli` test suite, and the docs wiki lint. It
-also self-tests the nightly corpus-verify runner without checking out the full
-corpus. It is the gate meant to catch the common CI failures quickly.
+That runs rustfmt, shellcheck, the Rust file-length and CLI legacy-prelude
+ratchets, clippy with warnings as errors, the `nose-cli` test suite, and the
+docs wiki lint. It also self-tests the nightly corpus-verify runner without
+checking out the full corpus. It is the gate meant to catch the common CI
+failures quickly.
 
 Run everything CI runs, locally, with one command:
 
@@ -30,6 +31,7 @@ full run here is a green CI. The full gates are:
 
 | gate | command | what it enforces |
 |---|---|---|
+| **shell scripts** | `shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh` | hook and shell helper scripts stay lint-clean |
 | **format** | `cargo fmt --all --check` | canonical rustfmt formatting |
 | **file length** | `python3 scripts/check-file-lengths.py` | Rust files under `crates/` stay under the 600-line target unless they are existing ratcheted debt |
 | **CLI prelude** | `python3 scripts/check-legacy-prelude.py` | top-level `nose-cli` modules and the temporary legacy-prelude export surface do not grow |
@@ -94,14 +96,15 @@ can distinguish expected semantic expansion cost from accidental degradation.
 
 ### One-time tool install
 
-`cargo-machete`, `cargo-deny`, `cargo-llvm-cov`,
+`cargo-machete`, `cargo-deny`, `cargo-llvm-cov`, `shellcheck`,
 [`awiki`](https://github.com/corca-ai/awiki), `elan`, and the MSRV Rust
 toolchain are required for `--full`. `--fast` requires the Rust toolchain plus
-`awiki`. Install the local CI tools with:
+`awiki` and `shellcheck`. Install the local CI tools with:
 
 ```sh
 cargo install cargo-machete cargo-deny cargo-llvm-cov
 rustup component add llvm-tools-preview   # cargo-llvm-cov needs this
+brew install shellcheck
 brew install corca-ai/tap/awiki   # or: go install github.com/corca-ai/awiki/cmd/awiki@latest
 curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh
 rustup toolchain install 1.85
