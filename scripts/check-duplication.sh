@@ -151,6 +151,8 @@ set -euo pipefail
 # compatibility-pack evidence fixture builders across normalize, semantics, and detect tests.
 # 42 -> 39 (LibraryApi fixture builders): shared test-only LibraryApi record
 # pack/provenance builders remove the repeated contract id/callee/arity fixture wrappers.
+# 39 -> 37 (exact-fragment ordered branch fixtures): shared CLI exact-fragment query and
+# branch-pair assertion helpers remove the repeated ordered-branch fixture harness.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

@@ -198,13 +198,6 @@ fn semantic_query_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_ordered_mixed_effect_branch_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "mixed_loop_append_a.ts",
@@ -263,145 +256,87 @@ fn semantic_query_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
             "package p\nfunc mixedIndexLoopWrongReceiver(flag bool, ys []int, dst []int, base int) {\n  if flag {\n    for j, y := range ys {\n      dst[j] = y * y\n    }\n    ys[0] = 1 + base\n  }\n  trace(dst)\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let (out, families) = query_fragment_only_fixture_families(
+        "nose_ordered_mixed_effect_branch_fragments",
+        &fixtures,
+    );
 
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
-
-    let assert_branch_pair =
-        |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {
-            let family =
-                block_branch_pair_family(families, left, right, negative, start_line, end_line)
-                    .unwrap_or_else(|| {
-                        panic!("missing ordered mixed-effect branch family {left}/{right}: {out}")
-                    });
-            assert!(
-                family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .all(|loc| loc["kind"] == "Block"),
-                "ordered mixed-effect branch fragments should report as Block units: {family:?}"
-            );
-        };
-
-    let assert_no_branch_pair = |left: &str,
-                                 right: &str,
-                                 left_start: u64,
-                                 left_end: u64,
-                                 right_start: u64,
-                                 right_end: u64| {
-        assert!(
-            !families_pair_locations(
-                families,
-                (left, left_start, left_end),
-                (right, right_start, right_end),
+    assert_branch_pair_cases(
+        &families,
+        &out,
+        "ordered mixed-effect branch",
+        &[
+            branch_pair(
+                "mixed_loop_append_a.ts",
+                "mixed_loop_append_b.ts",
+                "mixed_loop_append_wrong_order.ts",
+                2,
+                7,
             ),
-            "ordered mixed-effect branch boundary must not merge {left}/{right}: {out}"
-        );
-    };
-
-    assert_branch_pair(
-        "mixed_loop_append_a.ts",
-        "mixed_loop_append_b.ts",
-        "mixed_loop_append_wrong_order.ts",
-        2,
-        7,
+            branch_pair(
+                "mixed_append_loop_a.py",
+                "mixed_append_loop_b.py",
+                "mixed_append_loop_wrong_temp.py",
+                2,
+                6,
+            ),
+            branch_pair(
+                "mixed_index_loop_a.go",
+                "mixed_index_loop_b.go",
+                "mixed_index_loop_wrong_index.go",
+                3,
+                8,
+            ),
+        ],
+        &[
+            branch_non_pair(
+                "mixed_loop_append_a.ts",
+                "mixed_loop_append_wrong_order.ts",
+                (2, 7),
+                (2, 7),
+            ),
+            branch_non_pair(
+                "mixed_loop_append_a.ts",
+                "mixed_loop_append_wrong_receiver.ts",
+                (2, 7),
+                (2, 7),
+            ),
+            branch_non_pair(
+                "mixed_loop_append_a.ts",
+                "mixed_loop_append_mutated.ts",
+                (2, 7),
+                (3, 8),
+            ),
+            branch_non_pair(
+                "mixed_loop_append_a.ts",
+                "mixed_loop_append_third_effect.ts",
+                (2, 7),
+                (2, 8),
+            ),
+            branch_non_pair(
+                "mixed_append_loop_a.py",
+                "mixed_append_loop_wrong_temp.py",
+                (2, 6),
+                (2, 6),
+            ),
+            branch_non_pair(
+                "mixed_append_loop_a.py",
+                "mixed_append_loop_wrong_order.py",
+                (2, 6),
+                (2, 6),
+            ),
+            branch_non_pair(
+                "mixed_index_loop_a.go",
+                "mixed_index_loop_wrong_index.go",
+                (3, 8),
+                (3, 8),
+            ),
+            branch_non_pair(
+                "mixed_index_loop_a.go",
+                "mixed_index_loop_wrong_receiver.go",
+                (3, 8),
+                (3, 8),
+            ),
+        ],
     );
-    assert_branch_pair(
-        "mixed_append_loop_a.py",
-        "mixed_append_loop_b.py",
-        "mixed_append_loop_wrong_temp.py",
-        2,
-        6,
-    );
-    assert_branch_pair(
-        "mixed_index_loop_a.go",
-        "mixed_index_loop_b.go",
-        "mixed_index_loop_wrong_index.go",
-        3,
-        8,
-    );
-
-    assert_no_branch_pair(
-        "mixed_loop_append_a.ts",
-        "mixed_loop_append_wrong_order.ts",
-        2,
-        7,
-        2,
-        7,
-    );
-    assert_no_branch_pair(
-        "mixed_loop_append_a.ts",
-        "mixed_loop_append_wrong_receiver.ts",
-        2,
-        7,
-        2,
-        7,
-    );
-    assert_no_branch_pair(
-        "mixed_loop_append_a.ts",
-        "mixed_loop_append_mutated.ts",
-        2,
-        7,
-        3,
-        8,
-    );
-    assert_no_branch_pair(
-        "mixed_loop_append_a.ts",
-        "mixed_loop_append_third_effect.ts",
-        2,
-        7,
-        2,
-        8,
-    );
-    assert_no_branch_pair(
-        "mixed_append_loop_a.py",
-        "mixed_append_loop_wrong_temp.py",
-        2,
-        6,
-        2,
-        6,
-    );
-    assert_no_branch_pair(
-        "mixed_append_loop_a.py",
-        "mixed_append_loop_wrong_order.py",
-        2,
-        6,
-        2,
-        6,
-    );
-    assert_no_branch_pair(
-        "mixed_index_loop_a.go",
-        "mixed_index_loop_wrong_index.go",
-        3,
-        8,
-        3,
-        8,
-    );
-    assert_no_branch_pair(
-        "mixed_index_loop_a.go",
-        "mixed_index_loop_wrong_receiver.go",
-        3,
-        8,
-        3,
-        8,
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }

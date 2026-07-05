@@ -5,13 +5,6 @@ use super::*;
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_ordered_conditional_effect_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_ordered_conditional_effect_branch_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "cond_pair_append_a.ts",
@@ -70,148 +63,89 @@ fn semantic_query_reports_exact_safe_ordered_conditional_effect_branch_fragments
             "package p\nfunc condPairIndexWrongReceiver(flag bool, a int, b int, dst []int, other []int) {\n  if flag {\n    if 0 < a {\n      dst[0] = 1 + a\n    }\n    if b > 0 {\n      other[1] = b * b\n    }\n  }\n  trace(dst)\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let (out, families) = query_fragment_only_fixture_families(
+        "nose_ordered_conditional_effect_branch_fragments",
+        &fixtures,
+    );
 
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
-
-    let assert_branch_pair =
-        |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {
-            let family = block_branch_pair_family(
-                families, left, right, negative, start_line, end_line,
-            )
-            .unwrap_or_else(|| {
-                panic!("missing ordered conditional-effect branch family {left}/{right}: {out}")
-            });
-            assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
-            "ordered conditional-effect branch fragments should report as Block units: {family:?}"
-        );
-        };
-
-    let assert_no_branch_pair = |left: &str,
-                                 right: &str,
-                                 left_start: u64,
-                                 left_end: u64,
-                                 right_start: u64,
-                                 right_end: u64| {
-        assert!(
-            !families_pair_locations(
-                families,
-                (left, left_start, left_end),
-                (right, right_start, right_end),
+    assert_branch_pair_cases(
+        &families,
+        &out,
+        "ordered conditional-effect branch",
+        &[
+            branch_pair(
+                "cond_pair_append_a.ts",
+                "cond_pair_append_b.ts",
+                "cond_pair_append_wrong_order.ts",
+                2,
+                9,
             ),
-            "ordered conditional-effect branch boundary must not merge {left}/{right}: {out}"
-        );
-    };
-
-    assert_branch_pair(
-        "cond_pair_append_a.ts",
-        "cond_pair_append_b.ts",
-        "cond_pair_append_wrong_order.ts",
-        2,
-        9,
+            branch_pair(
+                "cond_pair_append_a.py",
+                "cond_pair_append_b.py",
+                "cond_pair_append_wrong_guard.py",
+                2,
+                6,
+            ),
+            branch_pair(
+                "cond_pair_index_a.go",
+                "cond_pair_index_b.go",
+                "cond_pair_index_wrong_index.go",
+                3,
+                10,
+            ),
+        ],
+        &[
+            branch_non_pair(
+                "cond_pair_append_a.ts",
+                "cond_pair_append_wrong_order.ts",
+                (2, 9),
+                (2, 9),
+            ),
+            branch_non_pair(
+                "cond_pair_append_a.ts",
+                "cond_pair_append_wrong_receiver.ts",
+                (2, 9),
+                (2, 9),
+            ),
+            branch_non_pair(
+                "cond_pair_append_a.ts",
+                "cond_pair_append_mutated.ts",
+                (2, 9),
+                (3, 10),
+            ),
+            branch_non_pair(
+                "cond_pair_append_a.ts",
+                "cond_pair_append_third.ts",
+                (2, 9),
+                (2, 12),
+            ),
+            branch_non_pair(
+                "cond_pair_append_a.py",
+                "cond_pair_append_wrong_guard.py",
+                (2, 6),
+                (2, 6),
+            ),
+            branch_non_pair(
+                "cond_pair_append_a.py",
+                "cond_pair_append_wrong_order.py",
+                (2, 6),
+                (2, 6),
+            ),
+            branch_non_pair(
+                "cond_pair_index_a.go",
+                "cond_pair_index_wrong_index.go",
+                (3, 10),
+                (3, 10),
+            ),
+            branch_non_pair(
+                "cond_pair_index_a.go",
+                "cond_pair_index_wrong_receiver.go",
+                (3, 10),
+                (3, 10),
+            ),
+        ],
     );
-    assert_branch_pair(
-        "cond_pair_append_a.py",
-        "cond_pair_append_b.py",
-        "cond_pair_append_wrong_guard.py",
-        2,
-        6,
-    );
-    assert_branch_pair(
-        "cond_pair_index_a.go",
-        "cond_pair_index_b.go",
-        "cond_pair_index_wrong_index.go",
-        3,
-        10,
-    );
-
-    assert_no_branch_pair(
-        "cond_pair_append_a.ts",
-        "cond_pair_append_wrong_order.ts",
-        2,
-        9,
-        2,
-        9,
-    );
-    assert_no_branch_pair(
-        "cond_pair_append_a.ts",
-        "cond_pair_append_wrong_receiver.ts",
-        2,
-        9,
-        2,
-        9,
-    );
-    assert_no_branch_pair(
-        "cond_pair_append_a.ts",
-        "cond_pair_append_mutated.ts",
-        2,
-        9,
-        3,
-        10,
-    );
-    assert_no_branch_pair(
-        "cond_pair_append_a.ts",
-        "cond_pair_append_third.ts",
-        2,
-        9,
-        2,
-        12,
-    );
-    assert_no_branch_pair(
-        "cond_pair_append_a.py",
-        "cond_pair_append_wrong_guard.py",
-        2,
-        6,
-        2,
-        6,
-    );
-    assert_no_branch_pair(
-        "cond_pair_append_a.py",
-        "cond_pair_append_wrong_order.py",
-        2,
-        6,
-        2,
-        6,
-    );
-    assert_no_branch_pair(
-        "cond_pair_index_a.go",
-        "cond_pair_index_wrong_index.go",
-        3,
-        10,
-        3,
-        10,
-    );
-    assert_no_branch_pair(
-        "cond_pair_index_a.go",
-        "cond_pair_index_wrong_receiver.go",
-        3,
-        10,
-        3,
-        10,
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }
 
 // Broad fixture matrix for ordered conditional mixed-effect branch boundaries. The size is
@@ -219,13 +153,6 @@ fn semantic_query_reports_exact_safe_ordered_conditional_effect_branch_fragments
 #[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_query_reports_exact_safe_ordered_conditional_mixed_effect_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_ordered_conditional_mixed_effect_branch_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "cond_mixed_append_a.ts",
@@ -288,157 +215,93 @@ fn semantic_query_reports_exact_safe_ordered_conditional_mixed_effect_branch_fra
             "package p\nfunc condMixedIndexWrongReceiver(flag bool, a int, b int, dst []int, other []int) {\n  if flag {\n    if 0 < a {\n      dst[0] = 1 + a\n    }\n    other[1] = b * b\n  }\n  trace(dst)\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let (out, families) = query_fragment_only_fixture_families(
+        "nose_ordered_conditional_mixed_effect_branch_fragments",
+        &fixtures,
+    );
 
-    let out = run(&[
-        "query",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "top=0",
-    ]);
-    let json = query_json(&out);
-    let families = query_families(&json);
-
-    let assert_branch_pair = |left: &str,
-                              right: &str,
-                              negative: &str,
-                              start_line: u64,
-                              end_line: u64| {
-        let family = block_branch_pair_family(
-            families, left, right, negative, start_line, end_line,
-        )
-        .unwrap_or_else(|| {
-            panic!("missing ordered conditional mixed-effect branch family {left}/{right}: {out}")
-        });
-        assert!(
-                family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .all(|loc| loc["kind"] == "Block"),
-                "ordered conditional mixed-effect branch fragments should report as Block units: {family:?}"
-            );
-    };
-
-    let assert_no_branch_pair = |left: &str,
-                                 right: &str,
-                                 left_start: u64,
-                                 left_end: u64,
-                                 right_start: u64,
-                                 right_end: u64| {
-        assert!(
-            !families_pair_locations(
-                families,
-                (left, left_start, left_end),
-                (right, right_start, right_end),
+    assert_branch_pair_cases(
+        &families,
+        &out,
+        "ordered conditional mixed-effect branch",
+        &[
+            branch_pair(
+                "cond_mixed_append_a.ts",
+                "cond_mixed_append_b.ts",
+                "cond_mixed_append_wrong_order.ts",
+                2,
+                7,
             ),
-            "ordered conditional mixed-effect branch boundary must not merge {left}/{right}: {out}"
-        );
-    };
-
-    assert_branch_pair(
-        "cond_mixed_append_a.ts",
-        "cond_mixed_append_b.ts",
-        "cond_mixed_append_wrong_order.ts",
-        2,
-        7,
+            branch_pair(
+                "cond_mixed_append_a.py",
+                "cond_mixed_append_b.py",
+                "cond_mixed_append_wrong_guard.py",
+                2,
+                5,
+            ),
+            branch_pair(
+                "cond_mixed_index_a.go",
+                "cond_mixed_index_b.go",
+                "cond_mixed_index_wrong_index.go",
+                3,
+                8,
+            ),
+        ],
+        &[
+            branch_non_pair(
+                "cond_mixed_append_a.ts",
+                "cond_mixed_append_wrong_order.ts",
+                (2, 7),
+                (2, 7),
+            ),
+            branch_non_pair(
+                "cond_mixed_append_a.ts",
+                "cond_mixed_append_wrong_guard.ts",
+                (2, 7),
+                (2, 7),
+            ),
+            branch_non_pair(
+                "cond_mixed_append_a.ts",
+                "cond_mixed_append_wrong_receiver.ts",
+                (2, 7),
+                (2, 7),
+            ),
+            branch_non_pair(
+                "cond_mixed_append_a.ts",
+                "cond_mixed_append_mutated.ts",
+                (2, 7),
+                (3, 8),
+            ),
+            branch_non_pair(
+                "cond_mixed_append_a.ts",
+                "cond_mixed_append_third.ts",
+                (2, 7),
+                (2, 8),
+            ),
+            branch_non_pair(
+                "cond_mixed_append_a.py",
+                "cond_mixed_append_wrong_order.py",
+                (2, 5),
+                (2, 5),
+            ),
+            branch_non_pair(
+                "cond_mixed_append_a.py",
+                "cond_mixed_append_wrong_guard.py",
+                (2, 5),
+                (2, 5),
+            ),
+            branch_non_pair(
+                "cond_mixed_index_a.go",
+                "cond_mixed_index_wrong_index.go",
+                (3, 8),
+                (3, 8),
+            ),
+            branch_non_pair(
+                "cond_mixed_index_a.go",
+                "cond_mixed_index_wrong_receiver.go",
+                (3, 8),
+                (3, 8),
+            ),
+        ],
     );
-    assert_branch_pair(
-        "cond_mixed_append_a.py",
-        "cond_mixed_append_b.py",
-        "cond_mixed_append_wrong_guard.py",
-        2,
-        5,
-    );
-    assert_branch_pair(
-        "cond_mixed_index_a.go",
-        "cond_mixed_index_b.go",
-        "cond_mixed_index_wrong_index.go",
-        3,
-        8,
-    );
-
-    assert_no_branch_pair(
-        "cond_mixed_append_a.ts",
-        "cond_mixed_append_wrong_order.ts",
-        2,
-        7,
-        2,
-        7,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_append_a.ts",
-        "cond_mixed_append_wrong_guard.ts",
-        2,
-        7,
-        2,
-        7,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_append_a.ts",
-        "cond_mixed_append_wrong_receiver.ts",
-        2,
-        7,
-        2,
-        7,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_append_a.ts",
-        "cond_mixed_append_mutated.ts",
-        2,
-        7,
-        3,
-        8,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_append_a.ts",
-        "cond_mixed_append_third.ts",
-        2,
-        7,
-        2,
-        8,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_append_a.py",
-        "cond_mixed_append_wrong_order.py",
-        2,
-        5,
-        2,
-        5,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_append_a.py",
-        "cond_mixed_append_wrong_guard.py",
-        2,
-        5,
-        2,
-        5,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_index_a.go",
-        "cond_mixed_index_wrong_index.go",
-        3,
-        8,
-        3,
-        8,
-    );
-    assert_no_branch_pair(
-        "cond_mixed_index_a.go",
-        "cond_mixed_index_wrong_receiver.go",
-        3,
-        8,
-        3,
-        8,
-    );
-
-    let _ = fs::remove_dir_all(&dir);
 }

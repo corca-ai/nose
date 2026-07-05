@@ -898,3 +898,12 @@ the Python collection-factory fixture overlap between `nose-semantics` and
 records through `EvidenceRecord::builtin` removes the repeated contract
 id/callee/arity/provenance literal shape while preserving each fixture's named
 pack policy. No new family appears, so the baseline budget is tightened to 39.
+
+The exact-fragment ordered-branch fixture cleanup tightens the count from 39 to
+37. The self-query report flagged `4890b7227d416249` and `b527e97155167c1b`,
+the repeated temp-project/query/assertion skeleton across ordered conditional,
+ordered loop-conditional, and ordered effect branch CLI tests. Moving the
+fragment-only query path and branch positive/negative checks into
+`exact_fragments/support.rs` keeps each fixture matrix local while removing the
+duplicated harness. No new family appears, so the baseline budget is tightened
+to 37.
