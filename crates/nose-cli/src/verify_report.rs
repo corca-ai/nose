@@ -1,8 +1,12 @@
-use crate::legacy_prelude::*;
+use crate::falsify;
+use crate::oracle_gate::{behavior_hash, is_trivial_behavior, VERIFY_BATTERY_NODE_ROW_BUDGET};
+use crate::verify_collect::{VerifyExclusions, VerifyOracle, VerifyRec};
 use crate::verify_soundness::{
     classify_verify_soundness, hard_gate_equal_behavior_representative_pairs,
 };
+use anyhow::Result;
 use nose_detect::multiset_jaccard;
+use nose_il::Corpus;
 
 /// Behavioral ground truth for the value-add evaluator: each interpretable unit with
 /// a stable hash of its behavior battery (equal hash ⟺ behaviorally equal on the

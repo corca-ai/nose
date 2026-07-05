@@ -14,8 +14,8 @@ Run the fast PR/push preflight locally before opening or updating a PR:
 ./scripts/check-ci-local.sh --fast
 ```
 
-That runs rustfmt, shellcheck, the Rust file-length and CLI legacy-prelude
-ratchets, clippy with warnings as errors, the `nose-cli` test suite, and the
+That runs rustfmt, shellcheck, the Rust file-length ratchet, the CLI
+legacy-prelude guard, clippy with warnings as errors, the `nose-cli` test suite, and the
 docs wiki lint. It also self-tests the nightly corpus-verify runner without
 checking out the full corpus. It is the gate meant to catch the common CI
 failures quickly.
@@ -34,7 +34,7 @@ full run here is a green CI. The full gates are:
 | **shell scripts** | `shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh` | hook and shell helper scripts stay lint-clean |
 | **format** | `cargo fmt --all --check` | canonical rustfmt formatting |
 | **file length** | `python3 scripts/check-file-lengths.py` | Rust files under `crates/` stay under the 600-line target unless they are existing ratcheted debt |
-| **CLI prelude** | `python3 scripts/check-legacy-prelude.py` | top-level `nose-cli` modules and the temporary legacy-prelude export surface do not grow |
+| **CLI prelude** | `python3 scripts/check-legacy-prelude.py` | the retired `nose-cli` legacy prelude is not reintroduced |
 | **lints** | `cargo clippy --all-targets --all-features -- -D warnings` | clippy clean; warnings are errors |
 | **docs** | `RUSTDOCFLAGS=-D warnings cargo doc --no-deps --workspace` | no broken/private intra-doc links |
 | **build** | `cargo build --release` | the workspace compiles in release |

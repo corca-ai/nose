@@ -2,9 +2,12 @@ use super::query_dashboard::render_query_dashboard;
 use super::query_model::*;
 use super::query_open::render_query_family;
 use super::query_views::*;
+use crate::baseline;
 use crate::baseline_comparison::BaselineComparison;
+use crate::cli_args::{Cmd, QueryArgs, ScopeFilter};
 use crate::divergence;
-use crate::legacy_prelude::*;
+use crate::markdown;
+use crate::path_utils::{paths_as_refs, require_paths_exist, warn_no_files};
 use crate::query_baseline_gate::{
     apply_query_baseline, compare_since, enforce_query_fail_on_selection, partition_ignored,
     write_query_baseline,
@@ -12,7 +15,18 @@ use crate::query_baseline_gate::{
 use crate::query_dataset::{
     build_query_dataset, resolve_query_semantic_packs, QueryDataset, QuerySettings,
 };
+use crate::query_markdown;
+use crate::query_opportunities::OpportunityGroups;
+use crate::query_options::{FailOn, QueryScope, ReportFormat};
+use crate::query_sarif::refactor_sarif;
 use crate::query_semantic_packs::semantic_packs_json;
+use crate::query_terms::{family_at, parse_query, Query};
+use crate::query_witness::enrich_graded_witnesses;
+use crate::source_lines::family_anchor;
+use crate::surfaces::{classify_surface_overrides, is_default_report_family, SurfaceOverrides};
+use crate::timing::time_stage;
+use anyhow::Result;
+use std::path::PathBuf;
 
 /// The flat family set a report format (`--format markdown`/`sarif`) emits for a query: the
 /// single addressed family for `at=`/`id=`, otherwise the same default-surface (or `all`/
@@ -265,7 +279,7 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
         println!("{}", refactor_sarif(&shown, selected.len())?);
         return Ok(());
     }
-    print_refactor_markdown(
+    query_markdown::print_refactor_markdown(
         &selected,
         &shown,
         ctx.settings.channels,
@@ -281,9 +295,9 @@ fn render_query_report_format(ctx: &QueryOutput<'_>) -> Result<()> {
     if ctx.q.id.is_some() {
         for f in &shown {
             if f.locations.len() >= 2 {
-                markdown_member_proposal(&f.locations);
+                query_markdown::markdown_member_proposal(&f.locations);
                 if ctx.q.id_full {
-                    markdown_member_diff(&f.locations[0], &f.locations[1]);
+                    query_markdown::markdown_member_diff(&f.locations[0], &f.locations[1]);
                 }
             }
         }

@@ -18,6 +18,10 @@ break.
 - Added a self-test for the Cargo target prune script and a shellcheck gate for
   versioned hooks plus `scripts/*.sh` in local and GitHub CI.
 
+### Changed
+- Removed the retired `nose-cli` legacy prelude and tightened its ratchet into a
+  zero-budget reintroduction guard.
+
 ### Performance
 - Completed a 20-commit profile-guided runtime pass after the runtime-triage setup.
   The final all-120-repo run compared `ca48518d` with `a0bfc252` and measured

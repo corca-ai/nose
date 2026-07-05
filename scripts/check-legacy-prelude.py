@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Ratcheting guard for the temporary nose-cli legacy prelude.
+"""Guard against reintroducing the retired nose-cli legacy prelude.
 
-The legacy prelude is only a compatibility layer for modules not yet converted
-to explicit owner imports. This gate keeps that list from growing while the
-remaining modules are migrated.
+The compatibility prelude has been removed. This gate keeps top-level modules on
+explicit owner imports and fails if the prelude file or imports come back.
 """
 
 from __future__ import annotations
@@ -15,8 +14,8 @@ from pathlib import Path
 
 
 DEFAULT_ROOT = Path("crates/nose-cli/src")
-DEFAULT_MAX_USERS = 4
-DEFAULT_MAX_EXPORTS = 21
+DEFAULT_MAX_USERS = 0
+DEFAULT_MAX_EXPORTS = 0
 LEGACY_IMPORT_PREFIX = "use crate::legacy_prelude"
 LEGACY_EXPORT_PREFIX = "pub(crate) use "
 
@@ -37,10 +36,9 @@ def legacy_prelude_users(root: Path) -> list[tuple[Path, int]]:
 
 def legacy_prelude_exports(root: Path) -> list[tuple[Path, int]]:
     prelude = root / "legacy_prelude.rs"
-    try:
-        lines = prelude.read_text(encoding="utf-8").splitlines()
-    except FileNotFoundError:
-        raise SystemExit(f"missing legacy prelude: {prelude}") from None
+    if not prelude.exists():
+        return []
+    lines = prelude.read_text(encoding="utf-8").splitlines()
     return [
         (prelude, lineno)
         for lineno, line in enumerate(lines, start=1)
@@ -51,12 +49,15 @@ def legacy_prelude_exports(root: Path) -> list[tuple[Path, int]]:
 def check(root: Path, max_users: int, max_exports: int, *, quiet: bool = False) -> int:
     users = legacy_prelude_users(root)
     exports = legacy_prelude_exports(root)
+    prelude = root / "legacy_prelude.rs"
     failures: list[str] = []
     if len(users) > max_users:
         failures.append(
             f"{len(users)} top-level users exceeds user budget {max_users}"
         )
-    if len(exports) > max_exports:
+    if prelude.exists() and max_exports == 0:
+        failures.append(f"{prelude} exists after the legacy prelude was retired")
+    elif len(exports) > max_exports:
         failures.append(
             f"{len(exports)} prelude exports exceeds export budget {max_exports}"
         )
@@ -77,7 +78,7 @@ def check(root: Path, max_users: int, max_exports: int, *, quiet: bool = False) 
 
     if not quiet:
         print(
-            "legacy-prelude gate: "
+            "legacy-prelude guard: "
             f"{len(users)} top-level users / budget {max_users}; "
             f"{len(exports)} exports / budget {max_exports}"
         )
@@ -92,29 +93,38 @@ def self_test() -> int:
         second = root / "second.rs"
         prelude = root / "legacy_prelude.rs"
         nested = root / "nested" / "ignored.rs"
-        first.write_text(f"{LEGACY_IMPORT_PREFIX}::*;\nfn a() {{}}\n", encoding="utf-8")
+        first.write_text("fn a() {}\n", encoding="utf-8")
         second.write_text("fn b() {}\n", encoding="utf-8")
-        prelude.write_text(f"{LEGACY_EXPORT_PREFIX}crate::a;\n", encoding="utf-8")
         nested.write_text(f"{LEGACY_IMPORT_PREFIX}::*;\nfn c() {{}}\n", encoding="utf-8")
 
-        if check(root, 1, 1, quiet=True) != 0:
-            print("self-test failed: valid budget rejected", file=sys.stderr)
+        if check(root, 0, 0, quiet=True) != 0:
+            print("self-test failed: clean retired prelude rejected", file=sys.stderr)
             return 1
 
-        second.write_text(f"{LEGACY_IMPORT_PREFIX}::{{Result}};\nfn b() {{}}\n", encoding="utf-8")
-        if check(root, 1, 1, quiet=True) == 0:
-            print("self-test failed: budget growth accepted", file=sys.stderr)
+        first.write_text(f"{LEGACY_IMPORT_PREFIX}::*;\nfn a() {{}}\n", encoding="utf-8")
+        if check(root, 0, 0, quiet=True) == 0:
+            print("self-test failed: top-level import accepted", file=sys.stderr)
             return 1
-        second.write_text("fn b() {}\n", encoding="utf-8")
+        first.write_text("fn a() {}\n", encoding="utf-8")
+
+        prelude.write_text("// empty compatibility layer\n", encoding="utf-8")
+        if check(root, 0, 0, quiet=True) == 0:
+            print("self-test failed: retired prelude file accepted", file=sys.stderr)
+            return 1
+
+        prelude.write_text(f"{LEGACY_EXPORT_PREFIX}crate::a;\n", encoding="utf-8")
+        if check(root, 0, 1, quiet=True) != 0:
+            print("self-test failed: explicit export budget rejected", file=sys.stderr)
+            return 1
         prelude.write_text(
             f"{LEGACY_EXPORT_PREFIX}crate::a;\n{LEGACY_EXPORT_PREFIX}crate::b;\n",
             encoding="utf-8",
         )
-        if check(root, 1, 1, quiet=True) == 0:
+        if check(root, 0, 1, quiet=True) == 0:
             print("self-test failed: export growth accepted", file=sys.stderr)
             return 1
 
-    print("legacy-prelude gate self-test passed")
+    print("legacy-prelude guard self-test passed")
     return 0
 
 

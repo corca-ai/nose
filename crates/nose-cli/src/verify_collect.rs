@@ -1,8 +1,11 @@
-use crate::legacy_prelude::*;
+use crate::oracle_gate::{func_span_index, run_battery, verify_battery_over_budget};
 use crate::verify_admission::{
     exact_admission_rejection_with_context, runtime_boundary_rejection_diagnostic_with_context,
     AdmissionContext, ExactAdmissionRejectionDiagnostic,
 };
+use crate::verify_census;
+use nose_il::{Corpus, Interner, Lang};
+use rayon::prelude::*;
 
 /// One record per interpretable unit.
 pub(super) struct VerifyRec {

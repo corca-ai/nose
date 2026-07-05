@@ -36,19 +36,16 @@ keep looking for a sharper boundary.
 
 ## CLI legacy prelude
 
-Run the temporary prelude gate directly with:
+Run the retired prelude guard directly with:
 
 ```sh
 python3 scripts/check-legacy-prelude.py
 ```
 
-`nose-cli/src/legacy_prelude.rs` exists only to keep older CLI modules compiling
-while they move to explicit owner imports. The gate counts top-level
-`nose-cli/src/*.rs` modules that still import from `crate::legacy_prelude` and
-the number of `pub(crate) use` exports inside the prelude itself. The current
-budget is 4 users and 21 exports; future refactors should lower those budgets
-when they remove users or exports, and new users should import from the owning
-`crate::<module>` instead.
+`nose-cli/src/legacy_prelude.rs` has been removed. The guard fails if a
+top-level `nose-cli/src/*.rs` module imports from `crate::legacy_prelude`, or if
+the prelude file is recreated under the default zero-export budget. New code
+should import from the owning `crate::<module>` instead.
 
 ## Refactoring direction
 
@@ -67,10 +64,9 @@ and behavior easier to reason about:
   detect/query divergence setup, path diagnostics, terminal styling, runtime
   setup, shared report text, and CLI-root tests now live in
   `nose-cli/src/{command_dispatch,detect_pipeline,path_utils,style,runtime,report_text,main_tests/*}.rs`;
-- keep the `nose-cli` crate root free of ambient helper imports. Remaining
-  compatibility imports are isolated in `nose-cli/src/legacy_prelude.rs`; do not
-  add new module dependencies there when a module can name its actual owner with
-  `crate::<module>::...`, and shrink the prelude as files move to explicit imports;
+- keep the `nose-cli` crate root free of ambient helper imports. The legacy
+  compatibility prelude has been retired; new module dependencies should name
+  their actual owner with `crate::<module>::...`;
 - keep divergent-edit review split by adapter boundary; detection policy,
   git/worktree diff plumbing, output formats, and tests now live under
   `nose-cli/src/divergence/`, with the `base=<ref>` query adapter in

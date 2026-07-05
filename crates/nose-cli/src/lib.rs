@@ -14,7 +14,6 @@ mod family_display;
 mod fnv;
 mod ignores;
 mod il_command;
-mod legacy_prelude;
 #[cfg(test)]
 mod main_tests;
 mod markdown;
