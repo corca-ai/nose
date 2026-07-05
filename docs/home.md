@@ -65,6 +65,10 @@ fundamentals; the rest is grouped by area.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
 - [refactoring-ratchets](refactoring-ratchets.md) — repository quality ratchets for incremental design cleanup, including Rust file-length and CLI prelude budgets.
 
+### Repository workflow
+
+- [agent-instructions](agent-instructions.md) — repository-specific instructions for coding agents, including documentation workflow and docs checks.
+
 ### Channels, witnesses & proofs
 
 - [graded-witness](graded-witness.md) — the anti-unification grade for near families: "equal except *k* holes", each hole a candidate parameter, with the soundness-relevant referent check.
