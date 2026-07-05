@@ -181,6 +181,39 @@ at least detectable; `top=0` avoids the cap entirely.
 versioned contract is [query-json](query-json.md) (`nose query --format json`, schema v7).
 It is truncated by the active top limit in the same way.
 
+## Divergent-edit v2 gate tiers
+
+The divergent-edit gate (`nose query . base=<ref>`) is moving to an explicit tiered
+contract so CI wrappers can distinguish blockers from review-only context without
+re-running nose internals:
+
+| tier | default CI effect | SARIF rule id | SARIF level |
+|---|---|---|---|
+| `strict` | fails `base=<ref> --fail-on any` | `nose.divergent.strict` | `error` |
+| `review` | visible, non-failing by default | `nose.divergent.review` | `warning` |
+| `report-only` | visible advisory, never default-failing | `nose.divergent.report-only` | `note` |
+| `suppressed` | omitted from active output and never failing | not emitted in normal SARIF | none |
+
+For v2 SARIF, each result's rule id and `properties.tier` must agree. Results also carry
+`properties.tier_reasons`, `properties.taxonomy_hint`, `properties.gate`,
+`properties.policy`, `properties.lane`, `properties.family_id`, and optional
+`properties.base_family_id`. `properties.gate.fail_default` is the authoritative default
+CI decision: it is true only for unsuppressed `strict` results. Normal SARIF omits
+suppressed results; a future suppressed/debug SARIF surface must emit
+`properties.tier="suppressed"` and `properties.suppression` with the structured-ignore
+metadata.
+
+Until that implementation lands, the current v1 divergent gate uses `fire_eligible` as
+the serialized conservative gate verdict documented in [divergent edits](divergent-edits.md).
+In the current implementation it is computed from proven shared-logic touch and non-test
+scope. After v2, wrappers should read `tier` or `gate.fail_default` directly. They should
+not reconstruct gate behavior from raw fields such as `touches_shared`, `scope`,
+`witness_kind`, or `graded` when a `tier` is present.
+
+Structured ignores apply before the gate: a suppressed divergent-edit family must not
+produce a `strict` failure, and report-only lanes such as newly added clone evidence
+must not fail default CI.
+
 ## Fast re-runs: `--cache-dir`
 
 `--cache-dir <dir>` caches each file's analysis keyed by content hash. Unchanged

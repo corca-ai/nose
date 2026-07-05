@@ -88,6 +88,61 @@ so suppressing on it would risk the keep-every-propagation property the shared-l
 is measured against. The fire decision stays the shared-logic proof; the witness only
 makes a borderline fire explainable.
 
+## V2 gate tiers (design contract)
+
+#670 refreshed the replay measurement and changed the next implementation target:
+the useful signal is not only the top-ranked finding. The v2 contract therefore
+separates **what nose reports** from **what may fail CI** with an explicit tier on
+each divergent-edit finding. This section is the design contract for the follow-up
+implementation issues; the current released binary still emits the v1 fields described
+above.
+
+| tier | CI behavior | evidence requirement | intended reader action |
+|---|---|---|---|
+| `strict` | `base=<ref> --fail-on any` exits non-zero when at least one unsuppressed `strict` finding is shown | `fire_eligible=true`, `taxonomy_hint="missed_propagation"`, and no higher-priority report-only or suppression reason | treat as a likely missed sibling edit; block or require an explicit suppression |
+| `review` | reported in human/JSON/SARIF, does not fail by default | base-tree divergent-edit candidate that is not suppressed, not report-only, and not strict | inspect during review; optionally fail in a custom wrapper |
+| `report-only` | reported only as advisory evidence, never fails default CI | useful context outside the default gate: test-only scaffolding, grouping artifacts, or newly added current-tree copies with no base member | use as reviewer/agent context; do not treat as a blocker |
+| `suppressed` | omitted from active human/SARIF gate output and never fails | matched by a structured ignore or accepted suppression | audit through the ignore file, not through repeated PR noise |
+
+The v2 enums are closed for schema v8. Adding, renaming, or removing one requires a
+schema bump. `taxonomy_hint` is an evidence label for routing and UI copy, not a
+claim that the code is correct or incorrect:
+
+| taxonomy bucket | product meaning | v2 routing |
+|---|---|---|
+| `missed_propagation` | the changed logic likely belongs in an un-updated sibling | `strict` when the evidence is proven and unsuppressed; otherwise `review` |
+| `no_propagation_needed` | the span overlaps a clone member, but the edit does not touch the shared logic that should propagate | `review` |
+| `intentional_variant` | copies are deliberately specialized, such as sync/async, platform, protocol, or shell variants | `review` unless explicitly ignored; `suppressed` after a committed structured ignore |
+| `test_scaffolding` | the candidate is test fixture/setup/expectation churn rather than product logic | `report-only` |
+| `grouping_artifact` | the family is too broad or not actually the same logic | `report-only` |
+| `unclear` | evidence is insufficient for a stable product decision | `review` |
+
+`tier_reasons[]` is also closed for schema v8. The allowed reason codes are
+`shared_logic_touched`, `shared_logic_not_touched`, `shared_logic_unproven`,
+`non_test_scope`, `test_scope`, `variant_signal`, `test_scaffolding`,
+`grouping_artifact`, `new_copy_no_base_member`, `structured_ignore`, and
+`unclassified`.
+
+The tier decision is deterministic. Apply these rules in order:
+
+1. A finding matched by a structured ignore is `suppressed`; active human, JSON, and
+   SARIF output omit it, and it never fails a gate. A partial path/language ignore
+   still obeys the existing all-members selector semantics.
+2. `test_scaffolding`, `grouping_artifact`, `test_scope`, and
+   `new_copy_no_base_member` route to `report-only`.
+3. An unsuppressed finding with `fire_eligible=true` and
+   `taxonomy_hint="missed_propagation"` routes to `strict`.
+4. Every other unsuppressed base-tree divergent-edit candidate routes to `review`.
+
+Newly added copy evidence is a separate report-only lane, not a base-tree
+propagation verdict. It is detected from the current tree, carries only
+current-tree sites, has no base member to mark as `not_updated`, and uses
+`new_copy_no_base_member` so CI wrappers never promote it to `strict`.
+
+The v2 policy preserves the current fail-closed posture: if shared-line proof,
+source spans, graded witness data, or suppression data are unavailable, the finding
+can be reported for review, but it must not be promoted to `strict`.
+
 ## Flags and terms
 
 The `base=` view shares [`nose query`](usage.md#nose-query)'s detection flags — `--mode`

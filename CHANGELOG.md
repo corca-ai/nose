@@ -7,6 +7,9 @@ break.
 ## [Unreleased]
 
 ### Added
+- Documented the divergent-edit v2 gate contract: strict, review, report-only,
+  and suppressed tiers; stable false-fire taxonomy; planned query-JSON v8 base
+  fields; and SARIF rule/severity mapping.
 - Added a runtime-triage harness and maintainer runbook for classifying query-runtime
   regressions as noise, capability-growth cost, lower/front-end cost, value-graph cost,
   or mixed hot paths before optimizing. The runtime-triage and query-regression harnesses

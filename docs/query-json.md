@@ -93,8 +93,48 @@ complexity, scope, witness_kind, fire_eligible, graded, changed[], not_updated[]
 span_lines, span_tokens, is_fragment, fragment_kind, reason_code, enclosing_unit,
 touches_shared}`.
 `divergences` is the total before `top=N` truncation; `shown_divergences` is `items.length`;
-`limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the conservative
-proven-shared-logic verdict the gate fires on.
+`limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the legacy v1
+conservative gate verdict. In the current implementation it means the diff provably touches
+shared logic and the family is not all-test scaffolding.
+
+Planned v8 base-view additions for divergent-edit v2 are intentionally schema-breaking
+instead of silent v7 additions: CI wrappers and agents need stable enums for gate behavior.
+The current v7 evidence fields remain available, but `fire_eligible` stays a compatibility
+verdict rather than a raw input. The raw inputs are `scope`, `witness_kind`, `graded`, and
+per-site `touches_shared`.
+
+The planned v8 `base.items[]` object adds:
+
+| field | type | meaning |
+|---|---|---|
+| `lane` | string enum | `base-divergence` for the existing base-tree propagation lane, or `new-copy` for current-tree clone evidence with no base member. |
+| `base_family_id` | string or null | The base-tree family id for `base-divergence`; `null` for `new-copy`. |
+| `tier` | string enum | `strict`, `review`, `report-only`, or `suppressed`. `strict` is the only default CI-failing tier; `review` and `report-only` are visible but non-failing; `suppressed` is emitted only by an explicit future suppressed/debug surface. |
+| `tier_reasons[]` | array of strings | Closed reason-code enum: `shared_logic_touched`, `shared_logic_not_touched`, `shared_logic_unproven`, `non_test_scope`, `test_scope`, `variant_signal`, `test_scaffolding`, `grouping_artifact`, `new_copy_no_base_member`, `structured_ignore`, or `unclassified`. |
+| `taxonomy_hint` | string or null | Closed false-fire bucket for routing and UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This is evidence for consumers, not a correctness verdict. |
+| `gate` | object | `{eligible, fail_default, policy}` where `eligible` is true for `strict` and `review`, false for `report-only` and `suppressed`, `fail_default` is true only for unsuppressed `strict`, and `policy` names the policy version such as `divergent-edit-v2-strict`. |
+| `suppression` | object or null | Structured-ignore match metadata when a future suppressed/debug view asks for it: `{kind, reason, owner, expires_at}`. `kind` is the closed enum `structured-ignore` for v8. Active human/SARIF output omits suppressed findings by default. |
+
+Composition rules for v8:
+
+- `family_id` keeps identifying the emitted finding's family. For `base-divergence`
+  it is the base-tree family id and equals `base_family_id`; for `new-copy` it is
+  the current-tree family id and `base_family_id` is `null`.
+- `changed[]` and `not_updated[]` remain base-tree coordinates for
+  `base-divergence`; each site adds `tree: "base"` to make the coordinate origin
+  explicit. `new-copy` emits `current_only[]` sites with `tree: "current"` and
+  no `not_updated[]` sites.
+- `strict` requires `fire_eligible=true`, `taxonomy_hint="missed_propagation"`,
+  and no higher-priority suppression or report-only reason. Missing proof fails
+  closed to `review` or `report-only`.
+- `report-only` is for advisory lanes: `test_scaffolding`, `grouping_artifact`,
+  `test_scope`, or `new_copy_no_base_member`.
+- `suppressed` wins over all other tiers and must never set `gate.fail_default=true`.
+- Active v8 output counts only unsuppressed items: `summary.divergences` is the
+  unsuppressed total before `top=N`, and `summary.shown_divergences` is
+  `items.length`. A future suppressed/debug surface must expose suppressed rows
+  with `tier="suppressed"`, `tier_reasons[]` containing `structured_ignore`, a
+  non-null `suppression`, and a separate `summary.suppressed_divergences` count.
 
 ## The family object
 
