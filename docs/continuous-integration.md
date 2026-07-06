@@ -170,6 +170,13 @@ findings as inline PR annotations:
 nose query src --mode syntax --format sarif top=0 > nose.sarif   # then upload via github/codeql-action/upload-sarif
 ```
 
+For GitHub Actions, upload third-party SARIF with
+`github/codeql-action/upload-sarif@v4`. The job needs `security-events: write`,
+`contents: read`, and, for private repositories, `actions: read`; private and internal
+repositories also need GitHub Code Security enabled. Public fork pull requests usually do
+not receive a token that can write code-scanning results, so PR workflows should not use
+`pull_request_target` as a workaround for untrusted code.
+
 **Pass `top=0` for a complete upload.** Every output format truncates to the row limit —
 `top=N` (default 30); `top=0` means *all*.
 Without it a repo with more than 30 families uploads only the first 30. The SARIF run records
@@ -245,6 +252,31 @@ Base-divergence SARIF locations point at the skipped sibling, where a propagated
 may be missing; changed copies are attached as related locations. `new-copy` report-only
 SARIF locations point at the current-tree added/copied/renamed copy and link its clone
 siblings as related locations.
+
+### GitHub Actions rollout examples
+
+Copy one of these PR workflows into `.github/workflows/` and pin `NOSE_VERSION` to a
+reviewed release:
+
+- [docs/examples/ci/divergent-edit-observe-only.yml](examples/ci/divergent-edit-observe-only.yml) writes JSON/SARIF, uploads SARIF when the token can do so, and adds a step summary without failing on findings.
+- [docs/examples/ci/divergent-edit-enforcing.yml](examples/ci/divergent-edit-enforcing.yml) does the same, then fails only when `items[].gate.fail_default == true`.
+
+Both examples use `on: pull_request`, `actions/checkout@v7` with `fetch-depth: 0`,
+`persist-credentials: false`, a `nose capabilities` preflight, an explicit fetch and
+`git rev-parse --verify --quiet "${BASE_REF}^{commit}"` base-ref check, pinned
+`--mode syntax,semantic`, and complete JSON/SARIF output with `top=0`.
+
+The enforcing workflow uploads SARIF before its final failing step so code-scanning
+results are available when GitHub accepts the upload. It still treats the step summary as
+the reliable PR surface: GitHub only displays inline code-scanning annotations for alerts
+whose locations are in the pull request diff, while a divergent-edit SARIF result often
+anchors on the skipped sibling. Fork PRs may skip SARIF upload because the token is
+read-only; do not switch to `pull_request_target` for untrusted PR code.
+
+The examples intentionally run JSON and SARIF without `--fail-on any` and make the final
+decision themselves from `gate.fail_default`. That preserves upload-before-fail ordering
+and avoids accidental failures from `fire_eligible`, SARIF severity, human output,
+`summary.strict`, `scope`, `touches_shared`, or `tier` alone.
 
 ## Fast re-runs: `--cache-dir`
 

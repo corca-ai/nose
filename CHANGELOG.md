@@ -7,6 +7,9 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added #686 GitHub Actions divergent-edit rollout examples for observe-only
+  SARIF reporting and enforcing strict failures, with step-summary counts and
+  docs-example validation.
 - Added #685 divergent-edit gate hardening fixtures for report-only and suppression
   edges: `base=` now honors config-relative `ignore-file`, malformed ignores fail
   before empty-diff short-circuiting, path/language suppressions keep all-members

@@ -149,7 +149,8 @@ fn query_base_missing_base_ref_fails_clearly() {
     assert!(!out.status.success(), "missing base ref should fail");
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(
-        stderr.contains("`git diff HEAD~1` failed") || stderr.contains("unknown revision"),
+        stderr.contains("base ref `HEAD~1` is not available locally")
+            && stderr.contains("fetch it before running nose"),
         "missing base-ref error should be actionable: {stderr}"
     );
 
