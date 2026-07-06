@@ -15,6 +15,120 @@ fn new_copy_finding(json: &serde_json::Value) -> &serde_json::Value {
         .unwrap_or_else(|| panic!("expected new-copy finding: {json}"))
 }
 
+fn assert_new_copy_json_contract(json: &serde_json::Value) {
+    let finding = new_copy_finding(json);
+    assert_eq!(
+        finding["tier"], "report-only",
+        "new-copy is advisory: {json}"
+    );
+    assert_eq!(finding["lane"], "new-copy", "new-copy lane: {json}");
+    assert_eq!(
+        finding["taxonomy_hint"], "unclear",
+        "new-copy taxonomy is advisory evidence: {json}"
+    );
+    assert_eq!(
+        finding["base_family_id"],
+        serde_json::Value::Null,
+        "new-copy has no base family id: {json}"
+    );
+    assert_eq!(
+        finding["fire_eligible"], false,
+        "new-copy does not reuse the legacy fire gate: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["fail_default"], false,
+        "new-copy must not fail default CI: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["eligible"], false,
+        "new-copy is not default-gate eligible: {json}"
+    );
+    assert_eq!(
+        finding["gate"]["policy"], "divergent-edit-v2-strict",
+        "new-copy still names the v2 policy: {json}"
+    );
+    assert!(
+        finding["tier_reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| reason == "new_copy_no_base_member"),
+        "new-copy explains the non-fire reason: {json}"
+    );
+    let current_only = finding["current_only"]
+        .as_array()
+        .expect("new-copy current_only sites");
+    assert!(
+        current_only
+            .iter()
+            .all(|site| site["tree"].as_str() == Some("current")),
+        "new-copy sites are current-tree coordinates: {json}"
+    );
+    assert!(
+        finding.to_string().contains("src/new_copy.py")
+            && finding.to_string().contains("src/original.py"),
+        "new-copy includes the added copy and sibling: {json}"
+    );
+}
+
+fn new_copy_sarif_result(sarif_json: &serde_json::Value) -> &serde_json::Value {
+    sarif_json["runs"][0]["results"]
+        .as_array()
+        .and_then(|results| {
+            results
+                .iter()
+                .find(|result| result["properties"]["lane"] == "new-copy")
+        })
+        .unwrap_or_else(|| panic!("new-copy SARIF result: {sarif_json}"))
+}
+
+fn assert_new_copy_sarif_contract(sarif_json: &serde_json::Value) {
+    let result = new_copy_sarif_result(sarif_json);
+    assert_eq!(result["ruleId"], "nose.divergent.report-only");
+    assert_eq!(result["level"], "note");
+    assert!(
+        result["message"]["text"]
+            .as_str()
+            .is_some_and(|message| message.starts_with("Report-only new-copy evidence:")),
+        "new-copy SARIF message names the report-only lane: {sarif_json}"
+    );
+    assert_eq!(result["properties"]["lane"], "new-copy");
+    assert_eq!(result["properties"]["tier"], "report-only");
+    assert_eq!(result["properties"]["taxonomy_hint"], "unclear");
+    assert_eq!(
+        result["properties"]["base_family_id"],
+        serde_json::Value::Null
+    );
+    assert_eq!(result["properties"]["gate"]["eligible"], false);
+    assert_eq!(result["properties"]["gate"]["fail_default"], false);
+    assert_eq!(
+        result["properties"]["gate"]["policy"],
+        "divergent-edit-v2-strict"
+    );
+    assert_eq!(result["properties"]["policy"], "divergent-edit-v2-strict");
+    assert_eq!(result["properties"]["fire_eligible"], false);
+    assert!(
+        result["properties"]["tier_reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| reason == "new_copy_no_base_member"),
+        "new-copy SARIF explains the report-only reason: {sarif_json}"
+    );
+    assert!(
+        result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+            .as_str()
+            .is_some_and(|uri| uri.ends_with("src/new_copy.py")),
+        "new-copy SARIF location points at the added current-tree copy: {sarif_json}"
+    );
+    assert!(
+        result["relatedLocations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+            .as_str()
+            .is_some_and(|uri| uri.ends_with("src/original.py")),
+        "new-copy SARIF relates the current-tree sibling: {sarif_json}"
+    );
+}
+
 #[test]
 fn query_base_added_clone_is_report_only_new_copy_lane() {
     let dir = make_temp_dir("query_base_added_clone");
@@ -40,46 +154,7 @@ fn query_base_added_clone_is_report_only_new_copy_lane() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = new_copy_finding(&json);
-    assert_eq!(
-        finding["tier"], "report-only",
-        "new-copy is advisory: {json}"
-    );
-    assert_eq!(
-        finding["base_family_id"],
-        serde_json::Value::Null,
-        "new-copy has no base family id: {json}"
-    );
-    assert_eq!(
-        finding["fire_eligible"], false,
-        "new-copy does not reuse the legacy fire gate: {json}"
-    );
-    assert_eq!(
-        finding["gate"]["fail_default"], false,
-        "new-copy must not fail default CI: {json}"
-    );
-    assert!(
-        finding["tier_reasons"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|reason| reason == "new_copy_no_base_member"),
-        "new-copy explains the non-fire reason: {json}"
-    );
-    let current_only = finding["current_only"]
-        .as_array()
-        .expect("new-copy current_only sites");
-    assert!(
-        current_only
-            .iter()
-            .all(|site| site["tree"].as_str() == Some("current")),
-        "new-copy sites are current-tree coordinates: {json}"
-    );
-    assert!(
-        finding.to_string().contains("src/new_copy.py")
-            && finding.to_string().contains("src/original.py"),
-        "new-copy includes the added copy and sibling: {json}"
-    );
+    assert_new_copy_json_contract(&json);
 
     let gated = nose_query_base(&dir, &["--fail"]);
     assert!(
@@ -95,23 +170,7 @@ fn query_base_added_clone_is_report_only_new_copy_lane() {
     );
     let sarif_json: serde_json::Value =
         serde_json::from_slice(&sarif.stdout).expect("query base SARIF");
-    let result = sarif_json["runs"][0]["results"]
-        .as_array()
-        .and_then(|results| {
-            results
-                .iter()
-                .find(|result| result["properties"]["lane"] == "new-copy")
-        })
-        .unwrap_or_else(|| panic!("new-copy SARIF result: {sarif_json}"));
-    assert_eq!(result["ruleId"], "nose.divergent.report-only");
-    assert_eq!(result["level"], "note");
-    assert!(
-        result["message"]["text"]
-            .as_str()
-            .is_some_and(|message| message.starts_with("Report-only new-copy evidence:")),
-        "new-copy SARIF message names the report-only lane: {sarif_json}"
-    );
-    assert_eq!(result["properties"]["gate"]["fail_default"], false);
+    assert_new_copy_sarif_contract(&sarif_json);
 
     let _ = fs::remove_dir_all(&dir);
 }

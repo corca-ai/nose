@@ -29,6 +29,36 @@ pub(crate) use detect::{detect_divergences, divergences_fire};
 pub(crate) use output::divergence_items_json;
 
 pub(crate) const DIVERGENT_EDIT_V2_POLICY: &str = "divergent-edit-v2-strict";
+#[cfg(test)]
+pub(crate) const DIVERGENCE_LANE_VALUES: &[&str] = &["base-divergence", "new-copy"];
+#[cfg(test)]
+pub(crate) const DIVERGENCE_TIER_VALUES: &[&str] =
+    &["strict", "review", "report-only", "suppressed"];
+#[cfg(test)]
+pub(crate) const DIVERGENCE_TIER_REASON_VALUES: &[&str] = &[
+    "shared_logic_touched",
+    "shared_logic_not_touched",
+    "shared_logic_unproven",
+    "non_test_scope",
+    "test_scope",
+    "variant_signal",
+    "test_scaffolding",
+    "grouping_artifact",
+    "new_copy_no_base_member",
+    "structured_ignore",
+    "unclassified",
+];
+#[cfg(test)]
+pub(crate) const DIVERGENCE_TAXONOMY_HINT_VALUES: &[&str] = &[
+    "missed_propagation",
+    "no_propagation_needed",
+    "intentional_variant",
+    "test_scaffolding",
+    "grouping_artifact",
+    "unclear",
+];
+#[cfg(test)]
+pub(crate) const DIVERGENCE_SUPPRESSION_KIND_VALUES: &[&str] = &["structured-ignore"];
 
 pub(crate) fn divergence_sarif(
     flagged: &[Divergence],

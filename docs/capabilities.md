@@ -80,6 +80,10 @@ nose capabilities
       "family_drilldown": true,
       "inline_suppression": true,
       "multi_root": true,
+      "query_base_gate_fail_default": true,
+      "query_base_json_v8": true,
+      "query_base_sarif": true,
+      "query_base_structured_ignores": true,
       "reinvented_view": true,
       "semantic_pack_loading": true,
       "structured_ignores": true
@@ -210,6 +214,10 @@ Version 4 defines these `query.capabilities` keys:
 | `family_drilldown` | Opening a family with `id=<fam>` / `at=FILE:LINE` is supported. |
 | `inline_suppression` | Source-level `nose-ignore` markers are supported. |
 | `multi_root` | `nose query --root <path>` / `-r <path>` repeatable root analysis is supported. |
+| `query_base_gate_fail_default` | `base=<ref>` emits `gate.fail_default` and uses it for the default divergent-edit CI gate. |
+| `query_base_json_v8` | `base=<ref> --format json` emits schema v8. Wrappers should also verify `schemas.query_json` contains `8`. |
+| `query_base_sarif` | `base=<ref> --format sarif` emits divergent-edit SARIF results. Wrappers should also verify `query.output_formats` contains `sarif`. |
+| `query_base_structured_ignores` | Structured ignores are applied before the `base=<ref>` divergent-edit gate. |
 | `reinvented_view` | The `reinvented` query view is supported. |
 | `semantic_pack_loading` | local semantic-pack v0 manifest files/directories can be loaded for metadata validation. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |

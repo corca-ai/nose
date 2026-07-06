@@ -70,6 +70,34 @@ fn assert_json_contract(dir: &Path) {
         item["changed"][0]["tree"], "base",
         "site coordinate origin: {json}"
     );
+    assert_eq!(
+        item["not_updated"][0]["tree"], "base",
+        "skipped sibling coordinate origin: {json}"
+    );
+    for site in item["changed"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .chain(item["not_updated"].as_array().unwrap())
+    {
+        for key in [
+            "tree",
+            "file",
+            "start_line",
+            "end_line",
+            "lang",
+            "kind",
+            "span_lines",
+            "span_tokens",
+            "is_fragment",
+            "touches_shared",
+        ] {
+            assert!(
+                site.get(key).is_some(),
+                "base v8 site carries required `{key}` coordinate field: {json}"
+            );
+        }
+    }
 }
 
 fn assert_sarif_contract(dir: &Path) {
@@ -102,7 +130,67 @@ fn assert_sarif_contract(dir: &Path) {
         "base-divergence SARIF anchors the skipped sibling: {sarif}"
     );
     assert_eq!(result["properties"]["tier"], "strict");
+    assert_eq!(result["properties"]["lane"], "base-divergence");
+    assert_eq!(
+        result["properties"]["base_family_id"],
+        result["properties"]["family_id"]
+    );
+    assert_eq!(result["properties"]["taxonomy_hint"], "missed_propagation");
+    assert!(
+        result["properties"]["tier_reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| reason == "shared_logic_touched"),
+        "strict SARIF carries tier reasons: {sarif}"
+    );
+    assert_eq!(result["properties"]["gate"]["eligible"], true);
     assert_eq!(result["properties"]["gate"]["fail_default"], true);
+    assert_eq!(
+        result["properties"]["gate"]["policy"],
+        "divergent-edit-v2-strict"
+    );
+    assert_eq!(result["properties"]["policy"], "divergent-edit-v2-strict");
+    assert_eq!(result["properties"]["fire_eligible"], true);
+    assert_eq!(
+        result["locations"][0]["physicalLocation"]["region"]["startLine"], 1,
+        "SARIF skipped-sibling location carries a region: {sarif}"
+    );
+    assert!(
+        result["relatedLocations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+            .as_str()
+            .is_some_and(|uri| uri.ends_with("a/f.py")),
+        "base-divergence SARIF relates the changed copy: {sarif}"
+    );
+}
+
+#[test]
+fn query_base_v8_docs_cover_wrapper_fields() {
+    let docs_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root")
+        .join("docs/query-json.md");
+    let markdown = fs::read_to_string(&docs_path)
+        .unwrap_or_else(|err| panic!("read {}: {err}", docs_path.display()));
+    let section = markdown
+        .split_once("**`base`**")
+        .and_then(|(_, rest)| rest.split_once("## The family object").map(|(s, _)| s))
+        .unwrap_or_else(|| panic!("docs/query-json.md missing base view section"));
+    for key in [
+        "lane",
+        "tier",
+        "tier_reasons",
+        "taxonomy_hint",
+        "gate.fail_default",
+        "gate.policy",
+        "suppression.kind",
+    ] {
+        assert!(
+            section.contains(&format!("`{key}`")) || section.contains(&format!("`{key}[]`")),
+            "docs/query-json.md base section should document `{key}`"
+        );
+    }
 }
 
 fn assert_unsupported_terms_are_rejected(dir: &Path) {

@@ -3,8 +3,12 @@ use super::git::{
     parse_name_status, parse_new_side_ranges, parse_old_side_ranges, parse_patch_entries,
     DiffStatus,
 };
-use super::output::fragment_context;
-use super::{Divergence, DivergenceLane, DivergenceTier, Site};
+use super::output::{divergence_items_json, divergence_sarif, fragment_context};
+use super::{
+    Divergence, DivergenceLane, DivergenceTier, Site, DIVERGENCE_LANE_VALUES,
+    DIVERGENCE_SUPPRESSION_KIND_VALUES, DIVERGENCE_TAXONOMY_HINT_VALUES,
+    DIVERGENCE_TIER_REASON_VALUES, DIVERGENCE_TIER_VALUES, DIVERGENT_EDIT_V2_POLICY,
+};
 
 use nose_detect::{EnclosingUnit, FragmentKind, LineSpan, Loc, LocInit, RefactorFamily};
 
@@ -298,4 +302,106 @@ fn v2_tier_routes_mixed_scope_to_report_only_even_when_legacy_fire_eligible() {
         d.tier_reasons(),
         vec!["shared_logic_touched", "test_scope", "test_scaffolding"]
     );
+}
+
+#[test]
+fn v8_contract_closed_enum_values_are_pinned() {
+    assert_eq!(
+        DIVERGENCE_LANE_VALUES,
+        &["base-divergence", "new-copy"],
+        "lane is a closed schema v8 enum; changing it requires a schema bump"
+    );
+    assert_eq!(
+        DIVERGENCE_TIER_VALUES,
+        &["strict", "review", "report-only", "suppressed"],
+        "tier is a closed schema v8 enum; changing it requires a schema bump"
+    );
+    assert_eq!(
+        DIVERGENCE_TIER_REASON_VALUES,
+        &[
+            "shared_logic_touched",
+            "shared_logic_not_touched",
+            "shared_logic_unproven",
+            "non_test_scope",
+            "test_scope",
+            "variant_signal",
+            "test_scaffolding",
+            "grouping_artifact",
+            "new_copy_no_base_member",
+            "structured_ignore",
+            "unclassified"
+        ],
+        "tier_reasons is a closed schema v8 enum; changing it requires a schema bump"
+    );
+    assert_eq!(
+        DIVERGENCE_TAXONOMY_HINT_VALUES,
+        &[
+            "missed_propagation",
+            "no_propagation_needed",
+            "intentional_variant",
+            "test_scaffolding",
+            "grouping_artifact",
+            "unclear"
+        ],
+        "taxonomy_hint is a closed schema v8 enum; changing it requires a schema bump"
+    );
+    assert_eq!(
+        DIVERGENCE_SUPPRESSION_KIND_VALUES,
+        &["structured-ignore"],
+        "suppression.kind is a closed schema v8 enum; changing it requires a schema bump"
+    );
+}
+
+#[test]
+fn v8_json_and_sarif_share_policy_fields() {
+    let mut new_copy = tier_divergence("prod", false, None);
+    new_copy.lane = DivergenceLane::NewCopy;
+    let cases = vec![
+        tier_divergence("prod", true, Some(true)),
+        tier_divergence("prod", false, Some(false)),
+        tier_divergence("mixed", true, Some(true)),
+        new_copy,
+    ];
+    let json_items = divergence_items_json(&cases);
+    let sarif_doc: serde_json::Value =
+        serde_json::from_str(&divergence_sarif(&cases, Some(0), "top=0").unwrap())
+            .expect("divergence SARIF");
+    let sarif_results = sarif_doc["runs"][0]["results"]
+        .as_array()
+        .expect("SARIF results");
+    assert_eq!(json_items.len(), sarif_results.len());
+
+    for (item, result) in json_items.iter().zip(sarif_results) {
+        assert!(
+            DIVERGENCE_LANE_VALUES.contains(&item["lane"].as_str().unwrap()),
+            "JSON lane is in the v8 closed enum: {item}"
+        );
+        assert!(
+            DIVERGENCE_TIER_VALUES.contains(&item["tier"].as_str().unwrap()),
+            "JSON tier is in the v8 closed enum: {item}"
+        );
+        assert!(
+            DIVERGENCE_TAXONOMY_HINT_VALUES.contains(&item["taxonomy_hint"].as_str().unwrap()),
+            "JSON taxonomy_hint is in the v8 closed enum: {item}"
+        );
+        for reason in item["tier_reasons"].as_array().unwrap() {
+            assert!(
+                DIVERGENCE_TIER_REASON_VALUES.contains(&reason.as_str().unwrap()),
+                "JSON tier_reason is in the v8 closed enum: {item}"
+            );
+        }
+
+        assert_eq!(item["lane"], result["properties"]["lane"]);
+        assert_eq!(item["tier"], result["properties"]["tier"]);
+        assert_eq!(item["tier_reasons"], result["properties"]["tier_reasons"]);
+        assert_eq!(item["taxonomy_hint"], result["properties"]["taxonomy_hint"]);
+        assert_eq!(item["gate"], result["properties"]["gate"]);
+        assert_eq!(item["fire_eligible"], result["properties"]["fire_eligible"]);
+        assert_eq!(item["gate"]["policy"], DIVERGENT_EDIT_V2_POLICY);
+        assert_eq!(result["properties"]["policy"], DIVERGENT_EDIT_V2_POLICY);
+        assert!(
+            item["suppression"].is_null(),
+            "active v8 output omits suppressed rows by default: {item}"
+        );
+    }
 }
