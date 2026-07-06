@@ -278,6 +278,21 @@ decision themselves from `gate.fail_default`. That preserves upload-before-fail 
 and avoids accidental failures from `fire_eligible`, SARIF severity, human output,
 `summary.strict`, `scope`, `touches_shared`, or `tier` alone.
 
+### Maintainer observe-only pilot
+
+For an adoption pilot, start with the observe-only workflow as a non-required PR
+check. Record the number of scanned PRs, PRs with findings, findings reviewed,
+strict/default-failing findings, report-only findings, structured ignores added,
+and maintainer disposition buckets such as `should-propagate`,
+`intentional-variant`, `no-propagation-needed`, `test-scaffolding`, and
+`unclear`.
+
+Keep the pilot language narrow: a strict finding "would fail under the opt-in
+enforcing workflow"; it is not a default-on readiness claim. History mining is a
+separate offline maintainer tool and should not be added to PR-time CI. See the
+checked #687 nose-on-nose [divergent history pilot](divergent-history-mining-pilot-687.md)
+for the recorded artifact and disposition shape.
+
 ## Fast re-runs: `--cache-dir`
 
 `--cache-dir <dir>` caches each file's analysis keyed by content hash. Unchanged
