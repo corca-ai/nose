@@ -113,8 +113,13 @@ the replay checks the no-runtime-regression constraint.
 
 The #675 closeout replay reran the same 28-repo, 560-record replay after the
 v2 strict gate, bounded `new-copy` lane, SARIF/output polish, and docs updates.
-It completed with 0 errors. Scratch raw records are intentionally not checked in
-because they contain source excerpts; the closeout summary and policy commands were:
+It completed with 0 errors. The durable closeout summary is
+[`replay_summary_final_head_a38ecb8b_2026_07_06.json`](replay_summary_final_head_a38ecb8b_2026_07_06.json),
+and the final policy reproduction is
+[`policy_eval_final_head_a38ecb8b_2026_07_06.json`](policy_eval_final_head_a38ecb8b_2026_07_06.json).
+Scratch raw records are intentionally not checked in because they contain source
+excerpts; the closeout summary records the raw path and sha. The closeout
+commands were:
 
 ```sh
 cargo build --release -p nose-cli

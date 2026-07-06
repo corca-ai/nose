@@ -87,6 +87,13 @@ REFRESH_ARTIFACTS = {
     "policy": ROOT / "eval" / "divergence_fire" / "policy_eval_2026_07_06.json",
 }
 
+FINAL_ARTIFACTS = {
+    "summary": ROOT / "eval" / "divergence_fire"
+    / "replay_summary_final_head_a38ecb8b_2026_07_06.json",
+    "policy": ROOT / "eval" / "divergence_fire"
+    / "policy_eval_final_head_a38ecb8b_2026_07_06.json",
+}
+
 
 def sh(args, cwd=None, timeout=None):
     return subprocess.run(
@@ -785,6 +792,35 @@ def cmd_check_artifacts(_args):
     require({tuple(r.get("identity") or []) for r in refresh_policy.get("rows", [])}
             == {identity_key(v) for v in refresh_verdicts},
             "refresh policy rows do not cover verdict identities")
+
+    missing_final = [str(p) for p in FINAL_ARTIFACTS.values() if not p.exists()]
+    require(not missing_final, f"missing final artifacts: {missing_final}")
+    final_summary = json.loads(FINAL_ARTIFACTS["summary"].read_text())
+    require(final_summary.get("schema_version") == 2, "final summary schema")
+    final_meta = final_summary.get("metadata", {})
+    require(final_meta.get("source_commit") == "a38ecb8bec6164c091e10b7b970e7c6ff47d3746",
+            "final summary source commit")
+    require(final_meta.get("source_dirty") is False, "final summary must be clean")
+    require(final_meta.get("raw_records", {}).get("sha256"),
+            "final summary raw sha")
+    for arm in ("default", "near"):
+        row = final_summary.get("per_arm", {}).get(arm, {})
+        require(row.get("replays") == 280, f"final {arm} replay count")
+        require(row.get("errors") == 0, f"final {arm} replay errors")
+        require(row.get("tier_counts", {}).get("strict") is not None,
+                f"final {arm} strict tier count")
+        require(row.get("tier_counts", {}).get("report-only") is not None,
+                f"final {arm} report-only tier count")
+    final_policy = json.loads(FINAL_ARTIFACTS["policy"].read_text())
+    require(final_policy.get("schema_version") == 2, "final policy schema")
+    require(final_policy.get("labeled") == len(refresh_verdicts),
+            "final policy labeled count")
+    require(final_policy.get("positives") == refresh_policy.get("positives"),
+            "final policy positives")
+    require(final_policy.get("finding_level") == expected_policy["finding_level"],
+            "final policy finding_level is stale")
+    require(final_policy.get("rows") == expected_policy["rows"],
+            "final policy rows are stale")
     print("artifact check OK")
 
 
