@@ -298,6 +298,25 @@ python3 bench/type4/frontier_platform.py --repos-root /path/to/bench/repos \
 See [`docs/frontier-platform.md`](../../docs/frontier-platform.md) for the two-layer model,
 the new-axis/packet workflow, `owner_route`, and the audit template.
 
+## Proof-carrying frontier admission
+
+`proof_carrying_frontier.py` is the admission layer above target packets. It validates that
+each packet still matches its linked `real_frontier.v1.json` evidence, requires proof
+invariants and hard-negative siblings, summarizes the co-evolution guardrail ledger, and
+records whether any packet is ready to open exact semantic behavior.
+
+```sh
+python3 bench/type4/proof_carrying_frontier.py
+python3 bench/type4/proof_carrying_frontier.py --check
+python3 bench/type4/proof_carrying_frontier.py --selftest
+```
+
+The committed artifacts are `proof_carrying_frontier.v1.json` and
+`proof_carrying_frontier.md`. A target packet can be valid while still blocked on proof;
+the current numeric-clamp packet is the example. It remains routed as a proof prerequisite
+until a real-corpus bound-order fact can prove `lo <= hi` without opening the float-NaN
+boundary.
+
 ## CI smoke
 
 Run the Type-4 smoke gate locally:

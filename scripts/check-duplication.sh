@@ -180,6 +180,10 @@ set -euo pipefail
 # 29 -> 26 (admission resolver dogfood): shared admission-provenance helpers remove the reviewed
 # `f88aeebdec4f2c68`, `e6d039006310127f`, and `7c1aef5590dfeefc` test fixture families. The
 # remaining admission-resolver representative moves from `e3fa2e4c707e342a` to `eb2f9fe7da72f8dd`.
+# 26 -> 26 (proof-carrying frontier gate): adding the frontier admission script moves the
+# reviewed Markdown/code candidate-pair enumeration representative from `cc48beefc6a85976`
+# to `ec66a9b9f2569018`. The members are still `fingerprint.rs::candidate_pairs` and
+# `candidates.rs::anchor_candidates`; no new budget is accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

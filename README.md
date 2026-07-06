@@ -17,23 +17,20 @@ does not look copied:
 
 ```python
 def a(xs):
-    total = 0
-    for x in xs:
-        if x > 0:
-            total += x
-    return total
+    return all(x != 0 and x != 1 for x in xs)
 
 def b(xs):
-    return sum(x for x in xs if x > 0)
+    for x in xs:
+        if x == 0 or x == 1:
+            return False
+    return True
 ```
 
-```python
-def a(p, q, r, s):
-    return not ((p or q) and (r or s))
-
-def b(p, q, r, s):
-    return (not s and not r) or (not q and not p)
-```
+These functions are the same computation. `b` searches for a counterexample: if any
+element is `0` or `1`, the answer is false; otherwise true. That is exactly
+`all(not (x == 0 or x == 1) for x in xs)`, and De Morgan reduces the predicate to
+`x != 0 and x != 1`. `nose` normalizes both the early-return loop and the boolean
+logic before comparing the semantic fingerprint.
 
 ## Install
 

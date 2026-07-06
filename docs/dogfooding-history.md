@@ -1007,3 +1007,13 @@ reviewed Java collection factory call/span scaffold remains visible but moves
 from `e3fa2e4c707e342a` to `eb2f9fe7da72f8dd` because line movement changed the
 representative span; its members and judgment are unchanged. No production code
 or query hot path changed, so no runtime degradation is accepted.
+
+The proof-carrying frontier gate keeps the count at 26. Adding
+`bench/type4/proof_carrying_frontier.py` shifts the reviewed cross-engine
+candidate-pair enumeration representative from `cc48beefc6a85976` to
+`ec66a9b9f2569018`. The current family is still
+`crates/nose-markdown/src/fingerprint.rs::candidate_pairs` paired with
+`crates/nose-detect/src/candidates.rs::anchor_candidates`, with the same
+judgment as the post-0.17.0 runtime pass: visible cross-engine algorithm debt,
+not a reason to introduce a lower-layer utility dependency for one helper. No
+new budget is accepted.

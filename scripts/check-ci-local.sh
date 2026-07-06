@@ -88,6 +88,13 @@ run_semantic_pack_pricing_selftest() {
     python3 bench/semantic_pack/pricing.py --check-artifacts
 }
 
+run_type4_frontier_evidence_checks() {
+    need_cmd python3
+    python3 bench/type4/frontier_platform.py --selftest
+    python3 bench/type4/proof_carrying_frontier.py --selftest
+    python3 bench/type4/proof_carrying_frontier.py --check
+}
+
 run_regression_checker_selftests() {
     need_cmd python3
     python3 scripts/query-regression-harness.py --self-test
@@ -125,6 +132,9 @@ step "corpus verify runner self-test"
 
 step "semantic-pack pricing self-test"
 run_semantic_pack_pricing_selftest
+
+step "Type-4 frontier evidence checks"
+run_type4_frontier_evidence_checks
 
 step "regression checker self-tests"
 run_regression_checker_selftests
