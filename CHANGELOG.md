@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added #687 divergent gate productization evidence: history-mining artifacts now
+  have a validator, hardened provenance/counts, and checked nose-on-nose
+  maintainer-pilot summaries that keep history mining offline and the PR gate
+  observe-only unless explicitly enforced.
 - Added #686 GitHub Actions divergent-edit rollout examples for observe-only
   SARIF reporting and enforcing strict failures, with step-summary counts and
   docs-example validation.

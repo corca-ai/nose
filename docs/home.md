@@ -148,6 +148,7 @@ fundamentals; the rest is grouped by area.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
 - [dogfooding](dogfooding.md) — the current nose-on-nose duplication gate and baseline workflow.
 - [dogfooding history](dogfooding-history.md) — detailed nose-on-nose review log and accepted-family decisions.
+- [divergent-history-mining-pilot-687](divergent-history-mining-pilot-687.md) — checked #687 evidence for bounded divergent history mining and a non-required observe-only pilot.
 - [reinvented-helper-audit-2026-06-13](reinvented-helper-audit-2026-06-13.md) — the hand-labeled field audit that promoted the reinvented-helper channel to the default surface.
 - [query-json-agent-audit-2026-06-10](query-json-agent-audit-2026-06-10.md) — machine-contract audit for consumer 1's evidence surface.
 - [query-json-agent-audit-2026-06-13](query-json-agent-audit-2026-06-13.md) — re-validation after the gap fixes (incl. the graded witness): all five gaps closed, 8/8 decidable from JSON alone.

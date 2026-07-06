@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
+from datetime import datetime, timezone
 import hashlib
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -14,7 +17,18 @@ from typing import Any
 
 
 SCHEMA = "nose.divergent_history.v1"
+SCHEMA_REVISION = 2
 DEFAULT_MAX_COMMITS = 25
+SOURCE_BEARING_KEYS = {
+    "base_code",
+    "change_diff",
+    "current_code",
+    "diff",
+    "patch",
+    "snippet",
+    "snippets",
+    "source_text",
+}
 
 
 def run(
@@ -55,12 +69,43 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
 def repository_root(path: Path) -> Path:
     root = run(
         ["git", "-C", path.as_posix(), "rev-parse", "--show-toplevel"],
         check=True,
     ).stdout.strip()
     return Path(root)
+
+
+def display_path(path: Path, repo: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(repo).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def git_status_lines(repo: Path) -> list[str]:
+    return [
+        line
+        for line in git_output(repo, ["status", "--short", "--untracked-files=no"]).splitlines()
+        if line
+    ]
+
+
+def binary_version(binary: Path) -> dict[str, Any]:
+    result = run([binary.as_posix(), "--version"], check=False)
+    if result.returncode != 0:
+        return {
+            "status": "error",
+            "stderr": result.stderr.strip(),
+            "stdout": result.stdout.strip(),
+        }
+    return {"status": "ok", "text": result.stdout.strip()}
 
 
 def rev_list(
@@ -245,6 +290,70 @@ def group_findings(commits: list[dict[str, Any]]) -> list[dict[str, Any]]:
     )
 
 
+def sorted_counts(values: list[str | None]) -> dict[str, int]:
+    counter = Counter(value or "none" for value in values)
+    return {key: counter[key] for key in sorted(counter)}
+
+
+def history_summary(
+    commit_rows: list[dict[str, Any]],
+    skipped: list[dict[str, Any]],
+    groups: list[dict[str, Any]],
+) -> dict[str, Any]:
+    ok_rows = [row for row in commit_rows if row.get("status") == "ok"]
+    non_ok_rows = [row for row in commit_rows if row.get("status") != "ok"]
+    items = [item for row in ok_rows for item in row.get("items", [])]
+    gate_fail_default_findings = sum(
+        1 for item in items if (item.get("gate") or {}).get("fail_default")
+    )
+    tier_counts = sorted_counts([item.get("tier") for item in items])
+    lane_counts = sorted_counts([item.get("lane") for item in items])
+    taxonomy_hint_counts = sorted_counts([item.get("taxonomy_hint") for item in items])
+    return {
+        "commits_considered": len(commit_rows) + len(skipped),
+        "commits_analyzed": len(ok_rows),
+        "commits_skipped": len(skipped) + len(non_ok_rows),
+        "findings": len(items),
+        "strict_findings": gate_fail_default_findings,
+        "review_findings": tier_counts.get("review", 0),
+        "report_only_findings": tier_counts.get("report-only", 0),
+        "gate_fail_default_findings": gate_fail_default_findings,
+        "groups": len(groups),
+        "strict_groups": sum(1 for group in groups if group["gate_fail_default"]),
+        "gate_fail_default_groups": sum(
+            1 for group in groups if group["gate_fail_default"]
+        ),
+        "query_failed_commits": sum(
+            1 for row in commit_rows if row.get("status") == "query-failed"
+        ),
+        "tier_counts": tier_counts,
+        "lane_counts": lane_counts,
+        "taxonomy_hint_counts": taxonomy_hint_counts,
+    }
+
+
+def suppression_behavior(ignore_file: Path | None) -> dict[str, Any]:
+    return {
+        "applied_before_grouping": True,
+        "active_output_omits_suppressed": True,
+        "source": (
+            "The underlying base=<parent> query applies nose.ignore.json, "
+            "--ignore-file, and configured ignore-file rules before this harness groups findings."
+        ),
+        "ignore_file": ignore_file.as_posix() if ignore_file else None,
+    }
+
+
+def redaction_policy() -> dict[str, Any]:
+    return {
+        "source_snippets": "omitted",
+        "diffs": "omitted",
+        "paths": "public-repository-relative",
+        "symbols": "public-repository-symbol-names",
+        "source_bearing_keys_forbidden": sorted(SOURCE_BEARING_KEYS),
+    }
+
+
 def query_args(args: argparse.Namespace, parent: str) -> list[str]:
     command = ["query", args.path, f"base={parent}", "--format", "json", "top=0"]
     if args.mode:
@@ -285,7 +394,7 @@ def analyze_commit(
         **commit_metadata(worktree, commit),
         "parent": parent,
         "status": "ok" if result.returncode == 0 else "query-failed",
-        "command": " ".join(command_for_output),
+        "command": shlex.join(command_for_output),
         "items": [],
         "summary": {},
     }
@@ -330,6 +439,8 @@ def mine_history(args: argparse.Namespace) -> dict[str, Any]:
     nose = args.nose.resolve()
     if not nose.exists():
         raise SystemExit(f"missing nose binary: {nose}")
+    script = Path(__file__).resolve()
+    source_status = git_status_lines(repo)
     commits = rev_list(
         repo,
         args.rev_range,
@@ -381,25 +492,41 @@ def mine_history(args: argparse.Namespace) -> dict[str, Any]:
                 git(repo, ["worktree", "prune"], check=False)
 
     groups = group_findings([row for row in commit_rows if row.get("status") == "ok"])
-    ok_rows = [row for row in commit_rows if row.get("status") == "ok"]
-    findings = sum(len(row.get("items", [])) for row in ok_rows)
-    strict_findings = sum(
-        1
-        for row in ok_rows
-        for item in row.get("items", [])
-        if (item.get("gate") or {}).get("fail_default")
-    )
     return {
         "schema": SCHEMA,
+        "schema_revision": SCHEMA_REVISION,
+        "artifact_kind": "divergent-history-mining-run",
+        "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "bounds": {
+            "offline_only": True,
+            "pr_ci": False,
+            "max_commits": args.max_commits,
+        },
         "provenance": {
             "repo": args.repo.as_posix(),
+            "repo_root": repo.as_posix(),
             "range": args.rev_range,
             "current_head": git_output(repo, ["rev-parse", "HEAD"]),
+            "current_branch": git_output(repo, ["rev-parse", "--abbrev-ref", "HEAD"]),
+            "source_dirty": bool(source_status),
+            "source_status": source_status,
             "range_first_commit": commits[0],
             "range_last_commit": commits[-1],
             "nose_binary": args.nose.as_posix(),
             "nose_binary_sha256": sha256_file(nose),
-            "script": "scripts/divergent-history-mining.py",
+            "nose_version": binary_version(nose),
+            "script": display_path(script, repo),
+            "script_sha256": sha256_file(script),
+            "argv": sys.argv,
+            "command": shlex.join(sys.argv),
+        },
+        "target": {
+            "repo": args.repo.as_posix(),
+            "resolved_range": args.rev_range,
+            "first_commit": commits[0],
+            "last_commit": commits[-1],
+            "commit_count": len(commits),
+            "commit_list_sha256": sha256_text("\n".join(commits) + "\n"),
         },
         "parameters": {
             "path": args.path,
@@ -408,24 +535,197 @@ def mine_history(args: argparse.Namespace) -> dict[str, Any]:
             "min_lines": args.min_lines,
             "exclude": args.exclude,
             "ignore_file": args.ignore_file.as_posix() if args.ignore_file else None,
+            "ignore_file_sha256": (
+                sha256_file(args.ignore_file)
+                if args.ignore_file and args.ignore_file.exists()
+                else None
+            ),
             "max_commits": args.max_commits,
             "first_parent": args.first_parent,
             "merge_policy": args.merge_policy,
         },
-        "summary": {
-            "commits_considered": len(commits),
-            "commits_analyzed": len(ok_rows),
-            "commits_skipped": len(skipped)
-            + len([row for row in commit_rows if row.get("status") != "ok"]),
-            "findings": findings,
-            "strict_findings": strict_findings,
-            "groups": len(groups),
-            "strict_groups": sum(1 for group in groups if group["gate_fail_default"]),
-        },
+        "summary": history_summary(commit_rows, skipped, groups),
+        "suppression_behavior": suppression_behavior(args.ignore_file),
+        "redaction": redaction_policy(),
+        "raw_records": None,
         "commits": commit_rows,
         "skipped_commits": skipped,
         "groups": groups,
     }
+
+
+def find_source_bearing_keys(value: Any, path: str = "$") -> list[str]:
+    matches: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            next_path = f"{path}.{key}"
+            if key in SOURCE_BEARING_KEYS:
+                matches.append(next_path)
+            matches.extend(find_source_bearing_keys(nested, next_path))
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            matches.extend(find_source_bearing_keys(nested, f"{path}[{index}]"))
+    return matches
+
+
+def require(errors: list[str], condition: bool, message: str) -> None:
+    if not condition:
+        errors.append(message)
+
+
+def validate_history_artifact(data: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    require(errors, data.get("schema") == SCHEMA, f"schema must be {SCHEMA!r}")
+    revision = data.get("schema_revision", 1)
+    require(errors, isinstance(revision, int), "schema_revision must be an integer")
+
+    for key in ("provenance", "parameters", "summary", "commits", "skipped_commits", "groups"):
+        require(errors, key in data, f"missing top-level {key}")
+    if errors:
+        return errors
+
+    commits = data["commits"]
+    skipped = data["skipped_commits"]
+    groups = data["groups"]
+    require(errors, isinstance(commits, list), "commits must be a list")
+    require(errors, isinstance(skipped, list), "skipped_commits must be a list")
+    require(errors, isinstance(groups, list), "groups must be a list")
+    if errors:
+        return errors
+
+    ok_rows = [row for row in commits if row.get("status") == "ok"]
+    recomputed_groups = group_findings(ok_rows)
+    expected_summary = history_summary(commits, skipped, recomputed_groups)
+    summary = data["summary"]
+    legacy_summary_keys = (
+        "commits_considered",
+        "commits_analyzed",
+        "commits_skipped",
+        "findings",
+        "strict_findings",
+        "groups",
+        "strict_groups",
+    )
+    revision2_summary_keys = (
+        "review_findings",
+        "report_only_findings",
+        "gate_fail_default_findings",
+        "gate_fail_default_groups",
+        "query_failed_commits",
+        "tier_counts",
+        "lane_counts",
+        "taxonomy_hint_counts",
+    )
+    for key in legacy_summary_keys:
+        require(errors, key in summary, f"summary missing {key}")
+        if key in summary:
+            require(
+                errors,
+                summary[key] == expected_summary[key],
+                f"summary.{key} is stale: expected {expected_summary[key]!r}, got {summary[key]!r}",
+            )
+    for key in revision2_summary_keys:
+        if revision >= 2:
+            require(errors, key in summary, f"summary missing {key}")
+        if key in summary:
+            require(
+                errors,
+                summary[key] == expected_summary[key],
+                f"summary.{key} is stale: expected {expected_summary[key]!r}, got {summary[key]!r}",
+            )
+
+    existing_by_key = {group.get("key"): group for group in groups}
+    recomputed_by_key = {group["key"]: group for group in recomputed_groups}
+    require(errors, len(existing_by_key) == len(groups), "groups contain duplicate or missing keys")
+    require(errors, set(existing_by_key) == set(recomputed_by_key), "groups do not match recomputed keys")
+    for key, expected in recomputed_by_key.items():
+        existing = existing_by_key.get(key)
+        if not existing:
+            continue
+        for field in ("occurrence_count", "gate_fail_default", "first_commit", "last_commit"):
+            require(
+                errors,
+                existing.get(field) == expected.get(field),
+                f"group {key}.{field} is stale",
+            )
+
+    parameters = data["parameters"]
+    max_commits = parameters.get("max_commits")
+    require(errors, isinstance(max_commits, int), "parameters.max_commits must be an integer")
+    if isinstance(max_commits, int):
+        require(
+            errors,
+            expected_summary["commits_considered"] <= max_commits,
+            "commits_considered exceeds parameters.max_commits",
+        )
+
+    if revision >= 2:
+        for key in (
+            "artifact_kind",
+            "bounds",
+            "provenance",
+            "target",
+            "suppression_behavior",
+            "redaction",
+            "raw_records",
+        ):
+            require(errors, key in data, f"revision 2 artifact missing {key}")
+        provenance = data["provenance"]
+        for key in (
+            "repo_root",
+            "current_branch",
+            "source_dirty",
+            "source_status",
+            "nose_version",
+            "script_sha256",
+            "argv",
+            "command",
+        ):
+            require(errors, key in provenance, f"provenance missing {key}")
+        bounds = data.get("bounds") or {}
+        require(errors, bounds.get("offline_only") is True, "bounds.offline_only must be true")
+        require(errors, bounds.get("pr_ci") is False, "bounds.pr_ci must be false")
+        require(errors, bounds.get("max_commits") == max_commits, "bounds.max_commits mismatch")
+        suppression = data.get("suppression_behavior") or {}
+        require(
+            errors,
+            suppression.get("applied_before_grouping") is True,
+            "suppression_behavior.applied_before_grouping must be true",
+        )
+        require(
+            errors,
+            suppression.get("active_output_omits_suppressed") is True,
+            "suppression_behavior.active_output_omits_suppressed must be true",
+        )
+
+    source_bearing = find_source_bearing_keys(data)
+    require(
+        errors,
+        not source_bearing,
+        f"artifact contains source-bearing keys: {', '.join(source_bearing)}",
+    )
+    return errors
+
+
+def check_artifact(path: Path) -> None:
+    data = json.loads(path.read_text())
+    errors = validate_history_artifact(data)
+    if errors:
+        raise SystemExit(
+            "divergent history artifact check failed:\n"
+            + "\n".join(f"- {error}" for error in errors)
+        )
+    summary = data["summary"]
+    default_failing = summary.get(
+        "gate_fail_default_findings",
+        summary.get("strict_findings", 0),
+    )
+    print(
+        "divergent history artifact OK: "
+        f"{path} ({summary['commits_analyzed']} commits, "
+        f"{summary['groups']} groups, "
+        f"{default_failing} default-failing findings)"
+    )
 
 
 def run_self_test() -> None:
@@ -503,11 +803,66 @@ def run_self_test() -> None:
             ],
         },
     ]
+    for row in sample_commits:
+        row["status"] = "ok"
     groups = group_findings(sample_commits)
     assert len(groups) == 1
     assert groups[0]["occurrence_count"] == 2
     assert groups[0]["gate_fail_default"] is True
     assert groups[0]["commits"] == ["c1", "c2"]
+    sample_artifact = {
+        "schema": SCHEMA,
+        "schema_revision": SCHEMA_REVISION,
+        "artifact_kind": "divergent-history-mining-run",
+        "bounds": {"offline_only": True, "pr_ci": False, "max_commits": 2},
+        "provenance": {
+            "repo": ".",
+            "repo_root": ".",
+            "range": "p1..c2",
+            "current_head": "c2",
+            "current_branch": "main",
+            "source_dirty": False,
+            "source_status": [],
+            "range_first_commit": "c1",
+            "range_last_commit": "c2",
+            "nose_binary": "target/release/nose",
+            "nose_binary_sha256": "x",
+            "nose_version": {"status": "ok", "text": "nose 0.0.0"},
+            "script": "scripts/divergent-history-mining.py",
+            "script_sha256": "y",
+            "argv": ["scripts/divergent-history-mining.py"],
+            "command": "scripts/divergent-history-mining.py",
+        },
+        "target": {
+            "repo": ".",
+            "resolved_range": "p1..c2",
+            "first_commit": "c1",
+            "last_commit": "c2",
+            "commit_count": 2,
+            "commit_list_sha256": "z",
+        },
+        "parameters": {
+            "path": ".",
+            "mode": "syntax,semantic",
+            "min_size": 8,
+            "min_lines": None,
+            "exclude": [],
+            "ignore_file": None,
+            "ignore_file_sha256": None,
+            "max_commits": 2,
+            "first_parent": True,
+            "merge_policy": "skip",
+        },
+        "summary": history_summary(sample_commits, [], groups),
+        "suppression_behavior": suppression_behavior(None),
+        "redaction": redaction_policy(),
+        "raw_records": None,
+        "commits": sample_commits,
+        "skipped_commits": [],
+        "groups": groups,
+    }
+    errors = validate_history_artifact(sample_artifact)
+    assert not errors, errors
     print("divergent history mining self-test passed")
 
 
@@ -531,8 +886,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fail-fast", action="store_true")
     parser.add_argument("--keep-worktree", action="store_true")
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--check-artifact", type=Path)
     args = parser.parse_args()
-    if args.self_test:
+    if args.self_test or args.check_artifact:
         return args
     if not args.rev_range:
         if not args.base:
@@ -549,6 +905,9 @@ def main() -> int:
     args = parse_args()
     if args.self_test:
         run_self_test()
+        return 0
+    if args.check_artifact:
+        check_artifact(args.check_artifact)
         return 0
     output = mine_history(args)
     text = json.dumps(output, indent=2, sort_keys=True) + "\n"
