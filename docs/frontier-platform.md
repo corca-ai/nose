@@ -137,6 +137,23 @@ python3 bench/type4/frontier_platform.py --repos-root /path/to/bench/repos \
   --packets-md-out bench/type4/frontier_target_packets.md
 ```
 
+## Proof-carrying admission
+
+Target packets are necessary but not sufficient to open exact semantic behavior.
+The [proof-carrying frontier](proof-carrying-frontier.md) report reads
+`frontier_target_packets.v1.json`, `real_frontier.v1.json`, and the co-evolution
+packet ledger, then answers whether any packet is ready for exact admission.
+
+The report fails if a packet's copied semantic claim, proof invariant, hard negatives,
+or detector result drift from the linked `real_frontier` record. It also makes blockers
+explicit: the current `numeric-clamp-2026-06-06` packet is still
+`blocked-on-proof`, because the real-corpus pair lacks a reusable bound-order fact and
+the float-NaN boundary remains closed.
+
+```sh
+python3 bench/type4/proof_carrying_frontier.py --check
+```
+
 ## Reproducibility
 
 Each run records its identity: a corpus **commit digest** (computed from `corpus.json`'s

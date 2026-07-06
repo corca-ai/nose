@@ -133,6 +133,7 @@ fundamentals; the rest is grouped by area.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — focused Type-4 cases, target-packet task cards, and verifier-lead draft workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.
+- [proof-carrying frontier](proof-carrying-frontier.md) — target-packet admission report that requires linked evidence, proof invariants, hard negatives, blockers, and co-evolution guardrail context before exact Type-4 admission opens.
 - [adversarial-coevolution](adversarial-coevolution.md) — the cross-axis campaign runbook: a white-box attacker derives structurally-missed patterns, an assessor prices them, a defender ships the largest sound generalization.
 - [hazard-ranking](hazard-ranking.md) — the evidence base for the experimental `sort=hazard` (a divergence-*propensity* signal; **not** a validated harm ranker — it ranks actual harm near chance) and the honest evaluation trail.
 - [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset hazard is measured against (repo selection, graded labels, quantitative sufficiency).

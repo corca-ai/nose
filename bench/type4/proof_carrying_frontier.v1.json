@@ -1,0 +1,169 @@
+{
+  "admission_policy": {
+    "co_evolution_role": "adversarial packets price and defend claims; they are guardrails, not a substitute for proof-carrying target packets",
+    "exact_admission_requires": [
+      "linked real_frontier real-miss evidence",
+      "proof invariant narrow enough to defend",
+      "adjacent hard-negative siblings",
+      "current detector result showing the present boundary",
+      "no unresolved proof or soundness blockers",
+      "product-output and runtime evidence before merge"
+    ]
+  },
+  "coevolution_guardrails": {
+    "by_mode": {
+      "authored": 6,
+      "blind": 33,
+      "blind-executable": 16,
+      "boundary-reattack": 1,
+      "escalation": 1,
+      "informed": 4,
+      "measured": 1,
+      "measurement": 1,
+      "mechanical": 1,
+      "meta": 1,
+      "re-price": 2
+    },
+    "by_persona": {
+      "adversarial-reviewer": 2,
+      "assessor": 2,
+      "assessor-corpus-reprice": 1,
+      "author": 7,
+      "baseline-attacker": 3,
+      "binding-lawyer": 2,
+      "boundary-skeptic": 2,
+      "cache-skeptic": 1,
+      "ci-gate-skeptic": 1,
+      "claims-auditor": 4,
+      "container-attacker": 1,
+      "convergence-skeptic": 1,
+      "coverage-auditor": 4,
+      "defender": 1,
+      "docs-vs-code-auditor": 1,
+      "evidence-skeptic": 1,
+      "gate-skeptic": 1,
+      "grammar-lawyer": 6,
+      "interaction-hunter": 1,
+      "language-specialist": 2,
+      "meta": 1,
+      "numeric-skeptic": 2,
+      "oracle-attacker": 3,
+      "oracle-bail-skeptic": 1,
+      "oracle-skeptic": 1,
+      "perf-determinism": 1,
+      "py-arg-specialist": 1,
+      "py-scoping-lawyer": 2,
+      "robustness-attacker": 1,
+      "soundness-skeptic": 7,
+      "user-question": 1,
+      "value-model-skeptic": 2
+    },
+    "by_surface": {
+      "baseline-ignores": 3,
+      "canonicalizer": 6,
+      "content-keyed-callee-identity": 3,
+      "decidability-filters": 12,
+      "embedded-containers": 1,
+      "exact-channel-gates": 3,
+      "global-rebind": 2,
+      "grammar-parsing": 1,
+      "keyword-arg-identity": 2,
+      "oracle": 4,
+      "performance-determinism": 7,
+      "query-json-contract": 1,
+      "ranking-grouping-hints": 6,
+      "reinvented-helpers": 4,
+      "review-gate": 1,
+      "runbook": 1,
+      "value-model": 7,
+      "value-model-collections": 2,
+      "value-model-rust-patterns": 1
+    },
+    "by_verdict": {
+      "deferred-issue": 12,
+      "green-confirmed": 10,
+      "recorded-low-prevalence": 6,
+      "refuted": 4,
+      "violation-fixed": 35
+    },
+    "executable_or_measurement_packets": 17,
+    "guardrail_interpretation": "The co-evolution ledger is active guardrail evidence. It does not by itself open exact admission; target packets still need proof invariants and hard negatives.",
+    "latest_series": 10,
+    "packet_count": 67
+  },
+  "identity": {
+    "artifacts": {
+      "coevo_ledger": {
+        "path": "bench/coevo/packets.v1.json",
+        "sha256": "50be3cc9ae19aa4966cf0787e9801d641060769c7da4f2218773331610c42dc1",
+        "size_bytes": 47916
+      },
+      "real_frontier": {
+        "path": "bench/type4/real_frontier.v1.json",
+        "sha256": "2d47c5561de4928bc9c0bbc3bc0637dfb948c47ce5ff7b64381cd83feea7a572",
+        "size_bytes": 66710
+      },
+      "target_packets": {
+        "path": "bench/type4/frontier_target_packets.v1.json",
+        "sha256": "3fefdea12f9337281065978143eea4170cc49d48a1a5bf70deff671ecb4fcef7",
+        "size_bytes": 6744
+      }
+    },
+    "target_packet_identity": {
+      "build_ref": null,
+      "corpus": {
+        "commit_digest": "2bf0b8c147be66b73439013ab275053b96640c21b20c48ff1e4dc8ef209cef15",
+        "corpus_path": "bench/goldens/corpus.json",
+        "corpus_schema_version": "0.1.0",
+        "repo_count": 120
+      },
+      "real_frontier": "bench/type4/real_frontier.v1.json",
+      "union_signature": "90ea2da63d26f788af8f54728b0cbcdeba5c0c6ee9ba687f4aded2710e3dcea5"
+    }
+  },
+  "schema_version": 1,
+  "target_packets": {
+    "evidence_links": [
+      {
+        "candidate_axis": "numeric_clamp / clamp_surface_bridge",
+        "case_id": "numeric-clamp-minmax-ternary-real-miss",
+        "packet_id": "numeric-clamp-2026-06-06",
+        "status": "real-miss"
+      }
+    ],
+    "packets": [
+      {
+        "candidate_axis": "numeric_clamp",
+        "evidence_case_ids": [
+          "numeric-clamp-minmax-ternary-real-miss"
+        ],
+        "evidence_tier": "frontier-recorded",
+        "hard_negative_count": 4,
+        "owner_route": "proof-fact-prerequisite",
+        "packet_id": "numeric-clamp-2026-06-06",
+        "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
+        "readiness": {
+          "blocking_items": [
+            "real-corpus bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves the precondition is required; the current proof-backed slice handles literal bounds and exiting inverse guards, but parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
+            "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on NaN, by language)"
+          ],
+          "can_open_exact_admission": false,
+          "reason": "packet still requires a reusable proof fact before detector work",
+          "status": "blocked-on-proof"
+        }
+      }
+    ],
+    "summary": {
+      "by_owner_route": {
+        "proof-fact-prerequisite": 1
+      },
+      "by_readiness": {
+        "blocked-on-proof": 1
+      },
+      "packet_count": 1,
+      "ready_packet_count": 0
+    }
+  },
+  "tool_version": "proof-carrying-frontier/1",
+  "verdict": "no-exact-admission-ready-packets"
+}

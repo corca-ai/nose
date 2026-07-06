@@ -12,6 +12,7 @@ The active Type-4 planning path is now:
 frontier_platform.py
   -> real_frontier.v1.json evidence
   -> frontier_target_packets.v1.json implementation-ready target packets
+  -> proof_carrying_frontier.v1.json admission readiness
   -> scripts/type4-smoke.sh / nose verify / focused tests
 ```
 
@@ -51,6 +52,17 @@ or from the retired ledger:
 bench/type4/adversarial/scripts/type4-next
 bench/type4/adversarial/scripts/type4-next --route proof-fact-prerequisite --json
 ```
+
+Before opening exact semantic behavior from a target packet, check the
+[proof-carrying frontier](proof-carrying-frontier.md) report:
+
+```sh
+python3 bench/type4/proof_carrying_frontier.py --check
+```
+
+That report keeps target-packet routing separate from admission readiness. For example, the
+current numeric-clamp packet remains a valid next-work packet but is still blocked on a
+bound-order proof fact.
 
 ## Focused cases
 
