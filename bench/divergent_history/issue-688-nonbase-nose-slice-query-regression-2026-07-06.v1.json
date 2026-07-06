@@ -1,0 +1,409 @@
+{
+  "command": "nose query <repo> all top=0 --mode semantic --format json",
+  "provenance": {
+    "baseline_binary": "/private/tmp/nose-688/nose-551758d5",
+    "baseline_binary_sha256": "83496fbef04f123569bc6f8b36be957b634a3f8a2ad1514dd70df819ba12f39b",
+    "baseline_source_ref": "551758d5",
+    "baseline_source_sha": "551758d5139372a58645f411ac3b887d679c755a",
+    "current_binary": "/private/tmp/nose-688/nose-08052e90",
+    "current_binary_sha256": "460162e8f0ae8c132b976e94a32918aae87348166299b2eefa8786a2cf4039ac",
+    "current_source_ref": "08052e90",
+    "current_source_sha": "08052e90e060e16b42f274c65cf1c5da30542757",
+    "harness": "scripts/query-regression-harness.py",
+    "harness_command": "scripts/query-regression-harness.py --baseline-binary /tmp/nose-688/nose-551758d5 --current-binary /tmp/nose-688/nose-08052e90 --baseline-source-ref 551758d5 --baseline-source-sha 551758d5139372a58645f411ac3b887d679c755a --current-source-ref 08052e90 --current-source-sha 08052e90e060e16b42f274c65cf1c5da30542757 --repos-root . --repo crates/nose-cli/src --repo crates/nose-cli/tests/cli --iterations 9 --warmups 1 --output bench/divergent_history/issue-688-nonbase-nose-slice-query-regression-2026-07-06.v1.json",
+    "working_tree_status_before_measurement": "?? bench/divergent_history/issue-688-nonbase-allrepos-query-regression-2026-07-06.v1.json\n?? bench/divergent_history/issue-688-nonbase-same-binary-control-2026-07-06.v1.json"
+  },
+  "repos": [
+    "crates/nose-cli/src",
+    "crates/nose-cli/tests/cli"
+  ],
+  "runs": [
+    {
+      "bytes": 27838,
+      "elapsed_ms": 80.94512484967709,
+      "families": 2,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 43.26308285817504,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 83.47820909693837,
+      "families": 2,
+      "iteration": 1,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 43.75070845708251,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 81.87095820903778,
+      "families": 2,
+      "iteration": 2,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 45.7503329962492,
+      "families": 0,
+      "iteration": 2,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 71.61733321845531,
+      "families": 2,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 33.731999807059765,
+      "families": 0,
+      "iteration": 2,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 67.2470424324274,
+      "families": 2,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 36.145334132015705,
+      "families": 0,
+      "iteration": 3,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 67.13137496262789,
+      "families": 2,
+      "iteration": 3,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 36.04479227215052,
+      "families": 0,
+      "iteration": 3,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 67.12929205968976,
+      "families": 2,
+      "iteration": 4,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 37.10737498477101,
+      "families": 0,
+      "iteration": 4,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 108.46983408555388,
+      "families": 2,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 47.12162492796779,
+      "families": 0,
+      "iteration": 4,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 76.48966694250703,
+      "families": 2,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 49.59387518465519,
+      "families": 0,
+      "iteration": 5,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 80.97400004044175,
+      "families": 2,
+      "iteration": 5,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 44.40041584894061,
+      "families": 0,
+      "iteration": 5,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 87.86220801994205,
+      "families": 2,
+      "iteration": 6,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 47.94537462294102,
+      "families": 0,
+      "iteration": 6,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 94.21599982306361,
+      "families": 2,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 38.81479101255536,
+      "families": 0,
+      "iteration": 6,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 71.14608306437731,
+      "families": 2,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 37.1378343552351,
+      "families": 0,
+      "iteration": 7,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 74.06475022435188,
+      "families": 2,
+      "iteration": 7,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 39.59533292800188,
+      "families": 0,
+      "iteration": 7,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 72.1200411207974,
+      "families": 2,
+      "iteration": 8,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 78.01704201847315,
+      "families": 0,
+      "iteration": 8,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 87.56291680037975,
+      "families": 2,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 51.41004081815481,
+      "families": 0,
+      "iteration": 8,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 95.34800006076694,
+      "families": 2,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 44.523708056658506,
+      "families": 0,
+      "iteration": 9,
+      "label": "baseline",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    },
+    {
+      "bytes": 27838,
+      "elapsed_ms": 92.11387485265732,
+      "families": 2,
+      "iteration": 9,
+      "label": "current",
+      "repo": "crates/nose-cli/src",
+      "sha256": "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+    },
+    {
+      "bytes": 25984,
+      "elapsed_ms": 46.814917121082544,
+      "families": 0,
+      "iteration": 9,
+      "label": "current",
+      "repo": "crates/nose-cli/tests/cli",
+      "sha256": "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+    }
+  ],
+  "summary": {
+    "aggregate_baseline_median_ms": 124.20820770785213,
+    "aggregate_current_median_ms": 125.37441588938236,
+    "aggregate_delta_pct": 0.9389139438138053,
+    "by_repo": {
+      "crates/nose-cli/src": {
+        "baseline": {
+          "bytes": [
+            27838
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+          ],
+          "median_ms": 80.94512484967709
+        },
+        "current": {
+          "bytes": [
+            27838
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "ed629c4cf604772a671356343eb459a41f4ced1d040378ee51b82e339911f843"
+          ],
+          "median_ms": 80.97400004044175
+        }
+      },
+      "crates/nose-cli/tests/cli": {
+        "baseline": {
+          "bytes": [
+            25984
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+          ],
+          "median_ms": 43.26308285817504
+        },
+        "current": {
+          "bytes": [
+            25984
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "a012645aac2b3a4bbcdc81a8d7028bfe84a29e9fb121bb6ebf12c3c84e0d6782"
+          ],
+          "median_ms": 44.40041584894061
+        }
+      }
+    },
+    "hashes_identical_by_repo": {
+      "crates/nose-cli/src": true,
+      "crates/nose-cli/tests/cli": true
+    }
+  }
+}

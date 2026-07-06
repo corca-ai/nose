@@ -82,6 +82,11 @@ break.
   splitting `diff --git` headers on whitespace.
 
 ### Performance
+- Recorded #688 divergent-gate product-output and runtime evidence: all 120
+  non-`base=` corpus queries kept identical hashes, byte counts, and family
+  counts across the #681 productization range, the focused nose slice stayed
+  stable, and bounded `base=` replay counts/timings stayed below the runtime
+  investigation threshold.
 - Verified the #677 Rust `block_on` residual closeout with no product-output
   drift or reproduced runtime degradation: the focused Rust query-regression
   slice kept identical hashes and family counts across `hyperfine`, `nushell`,
