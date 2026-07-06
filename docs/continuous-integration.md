@@ -235,6 +235,12 @@ must not fail default CI. Newly added clone evidence appears as `lane="new-copy"
 `tier="report-only"`, `base_family_id=null`, and current-tree `current_only[]` sites;
 `properties.gate.fail_default` remains `false` in SARIF.
 
+When a strict divergent-edit finding is accepted as intentional, commit a structured
+ignore with a reason/owner/expiry instead of teaching the wrapper to reinterpret the
+finding. The `base=` view auto-reads `nose.ignore.json`, accepts `--ignore-file`, and
+honors `[query] ignore-file = "..."` from `nose.toml`; path and language selectors must
+cover every member of the reported family before they suppress it.
+
 Base-divergence SARIF locations point at the skipped sibling, where a propagated edit
 may be missing; changed copies are attached as related locations. `new-copy` report-only
 SARIF locations point at the current-tree added/copied/renamed copy and link its clone

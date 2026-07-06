@@ -176,6 +176,43 @@ fn query_base_added_clone_is_report_only_new_copy_lane() {
 }
 
 #[test]
+fn query_base_copied_clone_is_report_only_new_copy_lane() {
+    let dir = make_temp_dir("query_base_copied_clone");
+    write_files(
+        &dir,
+        &[(
+            "src/original.py",
+            &added_clone_body("original", "total", "x"),
+        )],
+    );
+    init_git_repo(&dir);
+
+    fs::copy(dir.join("src/original.py"), dir.join("src/new_copy.py")).unwrap();
+    git_in(&dir, &["add", "src/new_copy.py"]);
+
+    let out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    assert_new_copy_json_contract(&json);
+
+    let sarif = nose_query_base(&dir, &["--format", "sarif"]);
+    assert!(
+        sarif.status.success(),
+        "query base SARIF should succeed: {}",
+        String::from_utf8_lossy(&sarif.stderr)
+    );
+    let sarif_json: serde_json::Value =
+        serde_json::from_slice(&sarif.stdout).expect("query base SARIF");
+    assert_new_copy_sarif_contract(&sarif_json);
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn query_base_moved_clone_is_report_only_new_copy_lane() {
     let dir = make_temp_dir("query_base_moved_clone");
     write_files(
@@ -407,6 +444,107 @@ fn query_base_unrelated_added_code_does_not_emit_new_copy_lane() {
     assert!(
         gated.status.success(),
         "--fail must stay quiet with no new-copy finding"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_new_copy_full_path_ignore_suppresses_advisory_lane() {
+    let dir = make_temp_dir("query_base_new_copy_ignore");
+    write_files(
+        &dir,
+        &[(
+            "src/original.py",
+            &added_clone_body("original", "total", "x"),
+        )],
+    );
+    init_git_repo(&dir);
+    write_files(
+        &dir,
+        &[("src/new_copy.py", &added_clone_body("new_copy", "acc", "v"))],
+    );
+    git_in(&dir, &["add", "src/new_copy.py"]);
+    fs::write(
+        dir.join("nose.ignore.json"),
+        "{\"ignores\":[{\"paths\":[\"src/**\"],\"reason\":\"accepted-generated-copy\"}]}\n",
+    )
+    .unwrap();
+
+    let out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    assert_eq!(
+        json["items"].as_array().expect("items").len(),
+        0,
+        "all-member path ignore suppresses new-copy evidence: {json}"
+    );
+
+    let sarif = nose_query_base(&dir, &["--format", "sarif"]);
+    assert!(
+        sarif.status.success(),
+        "query base SARIF should succeed: {}",
+        String::from_utf8_lossy(&sarif.stderr)
+    );
+    let sarif_json: serde_json::Value =
+        serde_json::from_slice(&sarif.stdout).expect("query base SARIF");
+    assert_eq!(
+        sarif_json["runs"][0]["results"]
+            .as_array()
+            .expect("SARIF results")
+            .len(),
+        0,
+        "all-member path ignore suppresses new-copy SARIF: {sarif_json}"
+    );
+
+    let gated = nose_query_base(&dir, &["--fail"]);
+    assert!(
+        gated.status.success(),
+        "suppressed new-copy evidence never trips default CI"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_base_new_copy_partial_path_ignore_keeps_advisory_lane_visible() {
+    let dir = make_temp_dir("query_base_new_copy_partial_ignore");
+    write_files(
+        &dir,
+        &[(
+            "src/original.py",
+            &added_clone_body("original", "total", "x"),
+        )],
+    );
+    init_git_repo(&dir);
+    write_files(
+        &dir,
+        &[("src/new_copy.py", &added_clone_body("new_copy", "acc", "v"))],
+    );
+    git_in(&dir, &["add", "src/new_copy.py"]);
+    fs::write(
+        dir.join("nose.ignore.json"),
+        "{\"ignores\":[{\"paths\":[\"src/new_copy.py\"],\"reason\":\"partial-copy\"}]}\n",
+    )
+    .unwrap();
+
+    let out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    assert_new_copy_json_contract(&json);
+
+    let gated = nose_query_base(&dir, &["--fail"]);
+    assert!(
+        gated.status.success(),
+        "visible new-copy evidence is still report-only"
     );
 
     let _ = fs::remove_dir_all(&dir);

@@ -20,6 +20,17 @@ pub(crate) fn detect_divergences(
     let root = git_repo_root().context(
         "nose needs a git repository to compare the working tree to a git ref (`base=`/`--base`)",
     )?;
+    let cfg = crate::config::load_query(args.config.as_deref())?;
+    let ignore_file = args.ignore_file.clone().or_else(|| cfg.ignore_file.clone());
+
+    // Structured ignores suppress accepted divergences, so an intentional fork doesn't
+    // re-fail every PR. Load them before diff short-circuiting so malformed ignore files
+    // fail consistently even on empty diffs.
+    let ignore_set = crate::ignores::load_for_query(ignore_file.as_deref())?;
+    if let Some(set) = &ignore_set {
+        set.warn_expired();
+    }
+
     let divergence_paths = repo_relative_paths(&args.paths, &root);
     let (changed, current_changed, diff_entries) =
         git_changed_ranges_and_entries(&root, &args.base, &divergence_paths)?;
@@ -30,7 +41,6 @@ pub(crate) fn detect_divergences(
     // Detect clone families at the base, where every copy is still intact. A temporary
     // worktree gives the base tree on disk without disturbing the user's working tree.
     let base_tree = BaseWorktree::create(&root, &args.base)?;
-    let cfg = crate::config::load_query(args.config.as_deref())?;
     let mut exclude = cfg.exclude.clone();
     exclude.extend(args.exclude.iter().cloned());
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
@@ -44,13 +54,6 @@ pub(crate) fn detect_divergences(
         min_tokens,
         min_lines,
     )?;
-
-    // Structured ignores suppress accepted divergences, so an intentional fork doesn't
-    // re-fail every PR.
-    let ignore_set = crate::ignores::load_for_query(args.ignore_file.as_deref())?;
-    if let Some(set) = &ignore_set {
-        set.warn_expired();
-    }
 
     // Normalization knobs for the per-flagged-family graded-witness enrichment; must
     // match how `detect_divergence_base_families` lowered (cfg_norm/dce/block_units default), so the

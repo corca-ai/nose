@@ -485,3 +485,92 @@ mod parse_id_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod match_tests {
+    use super::load;
+    use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
+
+    fn loc(file: &str, lang: &str) -> Loc {
+        Loc::new(LocInit {
+            file: file.into(),
+            source_span: LineSpan::new(1, 8),
+            lang: lang.into(),
+            kind: nose_il::UnitKind::Function,
+            origin: Default::default(),
+            name: Some("f".into()),
+            sem: 24,
+            span_tokens: 24,
+        })
+    }
+
+    fn family(langs: &[&str]) -> RefactorFamily {
+        RefactorFamily {
+            value: 1.0,
+            members: langs.len(),
+            files: langs.len(),
+            modules: 1,
+            languages: langs.len(),
+            mean_score: 1.0,
+            mean_lines: 8,
+            dup_lines: 8,
+            shared_lines: 8,
+            params: 0,
+            shared_weight: 8.0,
+            locations: langs
+                .iter()
+                .enumerate()
+                .map(|(index, lang)| loc(&format!("{lang}/{index}.txt"), lang))
+                .collect(),
+            mean_sem: 24.0,
+            scope: "prod",
+            discount: 1.0,
+            abstraction_witness: None,
+            witness: None,
+            varying_spots: Vec::new(),
+            semantic_laws: Vec::new(),
+        }
+    }
+
+    fn ignore_set(tag: &str, body: &str) -> super::IgnoreSet {
+        let thread_name = std::thread::current()
+            .name()
+            .unwrap_or("test")
+            .chars()
+            .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '_' })
+            .collect::<String>();
+        let path = std::env::temp_dir().join(format!(
+            "nose_ignore_match_{tag}_{}_{}.json",
+            std::process::id(),
+            thread_name
+        ));
+        std::fs::write(&path, body).unwrap();
+        let set = load(&path).expect("ignore file should load");
+        let _ = std::fs::remove_file(path);
+        set
+    }
+
+    #[test]
+    fn language_ignore_requires_every_family_member_to_match() {
+        let set = ignore_set(
+            "partial_language",
+            "{\"ignores\":[{\"languages\":[\"python\"],\"reason\":\"accepted-python\"}]}\n",
+        );
+        assert!(
+            set.match_family(&family(&["python", "rust"])).is_none(),
+            "a language selector covering only one member must not hide the family"
+        );
+    }
+
+    #[test]
+    fn language_ignore_matches_when_all_members_match_case_insensitively() {
+        let set = ignore_set(
+            "all_language",
+            "{\"ignores\":[{\"languages\":[\"Python\"],\"reason\":\"accepted-python\"}]}\n",
+        );
+        let matched = set
+            .match_family(&family(&["python", "python"]))
+            .expect("all-python family should be ignored");
+        assert_eq!(matched.matched_languages, vec!["python"]);
+    }
+}
