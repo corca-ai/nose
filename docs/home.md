@@ -148,6 +148,7 @@ fundamentals; the rest is grouped by area.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
 - [dogfooding](dogfooding.md) — the current nose-on-nose duplication gate and baseline workflow.
 - [dogfooding history](dogfooding-history.md) — detailed nose-on-nose review log and accepted-family decisions.
+- [divergent fire-precision results](../eval/divergence_fire/RESULTS.md) — final #681 replay/policy closeout for the opt-in divergent-edit gate, including the checked strict precision baseline and retention evidence.
 - [divergent-history-mining-pilot-687](divergent-history-mining-pilot-687.md) — checked #687 evidence for bounded divergent history mining and a non-required observe-only pilot.
 - [divergent-gate-product-runtime-688](divergent-gate-product-runtime-688.md) — checked #688 product-output and runtime evidence for the opt-in divergent gate.
 - [reinvented-helper-audit-2026-06-13](reinvented-helper-audit-2026-06-13.md) — the hand-labeled field audit that promoted the reinvented-helper channel to the default surface.

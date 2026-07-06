@@ -65,9 +65,9 @@ For a broader exact gate, pin both exact channels and keep only substantial find
 nose query src --mode syntax,semantic --min-value 300 --min-members 3 --fail-on any
 ```
 
-To include Type-3 near-duplicates in an audit ratchet, add `near` and tune the fuzzy
-threshold. This is usually better as a report or ratchet with `--min-value` than as a
-bare "any finding fails" gate:
+To include Type-3 near-duplicates, make that an explicit audit or ratchet opt-in:
+add `near` and tune the fuzzy threshold. This is usually better as a report or ratchet
+with `--min-value` than as a bare "any finding fails" gate:
 
 ```sh
 nose query src --mode syntax,semantic,near:0.70 --min-value 300 --min-members 3 --fail-on any
@@ -191,9 +191,9 @@ It is truncated by the active top limit in the same way.
 
 ## Divergent-edit v2 gate tiers
 
-The divergent-edit gate (`nose query . base=<ref>`) uses an explicit tiered
-contract so CI wrappers can distinguish blockers from review-only context without
-re-running nose internals:
+The divergent-edit gate (`nose query . base=<ref>`) is an opt-in PR review gate.
+It uses an explicit tiered contract so CI wrappers can distinguish default-failing
+items from review-only context without re-running nose internals:
 
 ```sh
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on any
@@ -215,7 +215,7 @@ the SARIF invocation.
 
 | tier | default CI effect | SARIF rule id | SARIF level |
 |---|---|---|---|
-| `strict` | fails `base=<ref> --fail-on any` | `nose.divergent.strict` | `error` |
+| `strict` | fails only when `properties.gate.fail_default == true` | `nose.divergent.strict` | `error` |
 | `review` | visible, non-failing by default | `nose.divergent.review` | `warning` |
 | `report-only` | visible advisory, never default-failing | `nose.divergent.report-only` | `note` |
 | `suppressed` | omitted from active output and never failing | not emitted in normal SARIF | none |
@@ -232,15 +232,25 @@ metadata.
 The legacy `fire_eligible` field remains in JSON as the serialized v1 conservative
 verdict. In the current implementation it is computed from proven shared-logic touch
 and not-all-test scope, so mixed-scope findings may still be `fire_eligible=true`.
-Wrappers should read `tier` or `gate.fail_default` directly. They should not reconstruct
-gate behavior from raw fields such as `touches_shared`, `scope`, `witness_kind`, or
-`graded` when a `tier` is present.
+Wrappers should display `tier`, but decide pass/fail only from `gate.fail_default`.
+They should not reconstruct gate behavior from raw fields such as `touches_shared`,
+`scope`, `witness_kind`, or `graded` when a `tier` is present.
 
 Structured ignores apply before the gate: a suppressed divergent-edit family must not
 produce a `strict` failure, and report-only lanes such as newly added clone evidence
 must not fail default CI. Newly added clone evidence appears as `lane="new-copy"`,
 `tier="report-only"`, `base_family_id=null`, and current-tree `current_only[]` sites;
 `properties.gate.fail_default` remains `false` in SARIF.
+
+Checked closeout evidence supports opt-in enforcement, not default-on blocking. The
+final replay/policy artifacts record 560 replay records with 0 errors and v2 strict
+precision 0.562 while retaining 45/45 confirmed v1 missed-propagation positives
+([results](../eval/divergence_fire/RESULTS.md), [policy artifact](../eval/divergence_fire/policy_eval_final_head_a38ecb8b_2026_07_06.json)).
+The [CI examples](examples/ci/divergent-edit-observe-only.yml) and
+[enforcing workflow](examples/ci/divergent-edit-enforcing.yml) show the recommended
+observe-only-to-enforcing rollout, the [#687 pilot](divergent-history-mining-pilot-687.md)
+keeps history mining offline, and the [#688 evidence](divergent-gate-product-runtime-688.md)
+records non-`base=` product-output stability plus runtime checks.
 
 When a strict divergent-edit finding is accepted as intentional, commit a structured
 ignore with a reason/owner/expiry instead of teaching the wrapper to reinterpret the

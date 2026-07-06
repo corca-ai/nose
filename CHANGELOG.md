@@ -70,6 +70,9 @@ break.
   default-surface families by sharing admission-resolver provenance test
   helpers for Rust `HashMap::from`, Java `Map.of`, and JavaScript `Set`/`Map`
   constructor scenarios.
+- Clarified the #681 divergent-edit opt-in gate closeout docs: `gate.fail_default`
+  remains the sole default CI authority, the checked strict precision baseline is
+  0.562, and non-strict tiers remain advisory.
 - Polished divergent-edit v2 CI documentation and output copy: SARIF messages now name
   strict/review/report-only tiers directly, human `base=<ref>` output explains report-only
   reasons more specifically, and CI examples pin detection modes plus `top=0` SARIF uploads.
