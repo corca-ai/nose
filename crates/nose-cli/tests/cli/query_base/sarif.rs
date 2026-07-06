@@ -42,6 +42,8 @@ fn query_base_sarif_top_records_truncation() {
         &dir,
         &["base=main", "--format", "json", "top=1"],
     ));
+    assert_sarif_complete(nose_query_base(&dir, &["--format", "sarif", "top=0"]));
+    assert_query_base_json_complete(nose_query_base(&dir, &["--format", "json", "top=0"]));
 
     let _ = fs::remove_dir_all(&dir);
 }
@@ -92,4 +94,45 @@ fn assert_query_base_json_truncated(out: std::process::Output) {
     );
     assert_eq!(doc["summary"]["shown_divergences"], 1);
     assert_eq!(doc["summary"]["limit"], 1);
+}
+
+fn assert_sarif_complete(out: std::process::Output) {
+    assert!(
+        out.status.success(),
+        "query base complete SARIF should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let doc: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("query base SARIF JSON");
+    let run = &doc["runs"][0];
+    let results = run["results"].as_array().expect("SARIF results");
+    let total = run["properties"]["total_families"].as_u64().unwrap();
+    assert!(
+        total >= 2,
+        "fixture should have multiple divergences: {doc}"
+    );
+    assert_eq!(results.len() as u64, total, "top=0 emits all results");
+    assert_eq!(run["properties"]["shown_families"], total);
+    assert!(
+        run["invocations"].is_null(),
+        "top=0 complete SARIF should not include truncation note: {doc}"
+    );
+}
+
+fn assert_query_base_json_complete(out: std::process::Output) {
+    assert!(
+        out.status.success(),
+        "query base complete JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let doc: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
+    let items = doc["items"].as_array().expect("query base items");
+    let total = doc["summary"]["divergences"].as_u64().unwrap();
+    assert!(
+        total >= 2,
+        "fixture should have multiple divergences: {doc}"
+    );
+    assert_eq!(items.len() as u64, total, "top=0 emits all JSON items");
+    assert_eq!(doc["summary"]["shown_divergences"], total);
+    assert_eq!(doc["summary"]["limit"], serde_json::Value::Null);
 }

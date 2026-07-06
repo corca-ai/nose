@@ -103,6 +103,17 @@ fn capabilities_command_reports_query_surface() {
         true
     );
     assert_eq!(json["query"]["capabilities"]["multi_root"], true);
+    assert_eq!(json["query"]["capabilities"]["base_divergence"], true);
+    assert_eq!(json["query"]["capabilities"]["query_base_json_v8"], true);
+    assert_eq!(
+        json["query"]["capabilities"]["query_base_gate_fail_default"],
+        true
+    );
+    assert_eq!(json["query"]["capabilities"]["query_base_sarif"], true);
+    assert_eq!(
+        json["query"]["capabilities"]["query_base_structured_ignores"],
+        true
+    );
     assert_eq!(json["query"]["capabilities"]["semantic_pack_loading"], true);
     assert_eq!(json["query"]["capabilities"]["structured_ignores"], true);
 }

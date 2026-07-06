@@ -8,7 +8,10 @@ For multi-root analysis, use repeated roots:
 `nose query --root <path> --root <path> [terms…] --format json`.
 
 Discover support with [`nose capabilities`](capabilities.md): `schemas.query_json` lists the
-versions the installed binary emits (currently `[7, 8]`).
+versions the installed binary emits (currently `[7, 8]`). CI wrappers for the
+divergent-edit gate should also require `query.capabilities.query_base_json_v8`,
+`query.capabilities.query_base_gate_fail_default`, and, for SARIF uploads,
+`query.capabilities.query_base_sarif`.
 
 ## Envelope
 
@@ -133,8 +136,9 @@ Composition rules for v8:
   `scope="prod"`, and no higher-priority suppression or report-only reason. Missing
   proof or mixed/test scope fails closed to `review` or `report-only`.
 - CI consumers should use each item's `gate.fail_default` as the authoritative
-  default pass/fail decision. `summary.strict` is a count, and `fire_eligible` is
-  retained compatibility evidence rather than the v2 gate.
+  default pass/fail decision. `summary.strict` is a count, `gate.policy` names
+  the policy that produced the decision, and `fire_eligible` is retained
+  compatibility evidence rather than the v2 gate.
 - `report-only` is for advisory lanes: `test_scaffolding`, `grouping_artifact`,
   `test_scope`, or `new_copy_no_base_member`.
 - `suppressed` wins over all other tiers and must never set `gate.fail_default=true`.
@@ -142,7 +146,8 @@ Composition rules for v8:
   unsuppressed total before `top=N`, and `summary.shown_divergences` is
   `items.length`. A future suppressed/debug surface must expose suppressed rows
   with `tier="suppressed"`, `tier_reasons[]` containing `structured_ignore`, a
-  non-null `suppression`, and a separate `summary.suppressed_divergences` count.
+  non-null `suppression` whose `suppression.kind` is `structured-ignore`, and a
+  separate `summary.suppressed_divergences` count.
 
 ## The family object
 

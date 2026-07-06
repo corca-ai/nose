@@ -193,6 +193,14 @@ nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on a
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --format sarif top=0 > nose-divergence.sarif
 ```
 
+Wrappers should preflight the installed binary with `nose capabilities` before
+running this gate. Require `schemas.query_json` to contain `8`,
+`query.output_formats` to contain `sarif` when uploading SARIF, and these
+query capability flags to be true: `base_divergence`, `query_base_json_v8`,
+`query_base_gate_fail_default`, `query_base_sarif`, `structured_ignores`, and
+`query_base_structured_ignores`. Reject older binaries instead of inferring
+support from `nose --help` or from the package version alone.
+
 The `base=` default is already the conservative `syntax,semantic` mix, but pinning
 `--mode` keeps CI diffs explicit across upgrades. `top=0` should be used for SARIF
 uploads; otherwise only the active row limit is emitted, with a truncation note in

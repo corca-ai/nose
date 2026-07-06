@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added query-base wrapper compatibility guardrails: `nose capabilities` now
+  advertises divergent-edit JSON v8, SARIF, `gate.fail_default`, and structured
+  ignore support as explicit query capability flags, with tests pinning v8 closed
+  enum values and JSON/SARIF policy-field parity.
 - Added the #678 semantic-pack default-promotion audit: a checked
   `bench/semantic_pack/default_promotion_audit_678.v1.json` artifact and docs
   page now record the current builtin lane state, row-level coverage refs,

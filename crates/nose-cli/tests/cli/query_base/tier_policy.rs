@@ -54,6 +54,17 @@ fn query_base_mixed_scope_is_report_only_not_strict() {
             .any(|r| r == "test_scope"),
         "report-only finding explains the test-scope reason: {json}"
     );
+    let sarif = first_query_base_sarif_result(&dir);
+    assert_base_sarif_policy(
+        &sarif,
+        "nose.divergent.report-only",
+        "note",
+        "report-only",
+        "test_scaffolding",
+        false,
+        false,
+        true,
+    );
 
     let gated = nose_query_base(&dir, &["--fail"]);
     assert!(
@@ -118,6 +129,17 @@ fn query_base_all_test_scope_is_report_only_not_strict() {
     assert_eq!(
         finding["gate"]["fail_default"], false,
         "all-test report-only finding does not fail: {json}"
+    );
+    let sarif = first_query_base_sarif_result(&dir);
+    assert_base_sarif_policy(
+        &sarif,
+        "nose.divergent.report-only",
+        "note",
+        "report-only",
+        "test_scaffolding",
+        false,
+        false,
+        false,
     );
 
     let gated = nose_query_base(&dir, &["--fail"]);
@@ -238,6 +260,17 @@ fn assert_varying_spot_is_review(dir: &Path) {
         gated.status.success(),
         "--fail must not fire on a varying-spot-only change"
     );
+    let sarif = first_fire_policy_sarif_result(dir);
+    assert_base_sarif_policy(
+        &sarif,
+        "nose.divergent.review",
+        "warning",
+        "review",
+        "no_propagation_needed",
+        true,
+        false,
+        false,
+    );
 }
 
 fn assert_shared_logic_is_strict(dir: &Path) {
@@ -266,6 +299,83 @@ fn assert_shared_logic_is_strict(dir: &Path) {
     assert!(
         !gated.status.success(),
         "--fail fires when the change touches shared lines"
+    );
+}
+
+fn first_query_base_sarif_result(dir: &Path) -> serde_json::Value {
+    let out = nose_query_base(dir, &["--format", "sarif"]);
+    assert!(
+        out.status.success(),
+        "query base SARIF should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    first_sarif_result(out)
+}
+
+fn first_fire_policy_sarif_result(dir: &Path) -> serde_json::Value {
+    let out = fire_policy_query_base(dir, &["--format", "sarif"]);
+    assert!(
+        out.status.success(),
+        "fire-policy query base SARIF should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    first_sarif_result(out)
+}
+
+fn first_sarif_result(out: std::process::Output) -> serde_json::Value {
+    let doc: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base SARIF");
+    doc["runs"][0]["results"]
+        .as_array()
+        .and_then(|results| results.first())
+        .unwrap_or_else(|| panic!("expected at least one SARIF result: {doc}"))
+        .clone()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn assert_base_sarif_policy(
+    result: &serde_json::Value,
+    rule_id: &str,
+    level: &str,
+    tier: &str,
+    taxonomy_hint: &str,
+    gate_eligible: bool,
+    fail_default: bool,
+    fire_eligible: bool,
+) {
+    assert_eq!(result["ruleId"], rule_id, "SARIF rule id: {result}");
+    assert_eq!(result["level"], level, "SARIF level: {result}");
+    assert_eq!(result["properties"]["lane"], "base-divergence");
+    assert_eq!(result["properties"]["tier"], tier);
+    assert_eq!(result["properties"]["taxonomy_hint"], taxonomy_hint);
+    let tier_reasons = result["properties"]["tier_reasons"]
+        .as_array()
+        .unwrap_or_else(|| panic!("SARIF tier_reasons should be an array: {result}"));
+    assert!(!tier_reasons.is_empty(), "SARIF tier reasons: {result}");
+    if tier == "review" {
+        assert!(
+            tier_reasons
+                .iter()
+                .any(|reason| reason == "shared_logic_not_touched"),
+            "review SARIF carries shared-logic reason: {result}"
+        );
+    }
+    if taxonomy_hint == "test_scaffolding" {
+        assert!(
+            tier_reasons.iter().any(|reason| reason == "test_scope"),
+            "test-scope SARIF carries report-only reason: {result}"
+        );
+    }
+    assert_eq!(result["properties"]["gate"]["eligible"], gate_eligible);
+    assert_eq!(result["properties"]["gate"]["fail_default"], fail_default);
+    assert_eq!(
+        result["properties"]["gate"]["policy"],
+        "divergent-edit-v2-strict"
+    );
+    assert_eq!(result["properties"]["policy"], "divergent-edit-v2-strict");
+    assert_eq!(result["properties"]["fire_eligible"], fire_eligible);
+    assert_eq!(
+        result["properties"]["base_family_id"], result["properties"]["family_id"],
+        "base-divergence SARIF keeps the base family id: {result}"
     );
 }
 

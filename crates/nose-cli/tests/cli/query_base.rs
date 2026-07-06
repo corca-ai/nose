@@ -416,5 +416,27 @@ fn query_base_machine_formats_emit_json_when_no_changes_exist() {
     let doc: serde_json::Value = serde_json::from_slice(&sarif.stdout)
         .expect("--format sarif must emit JSON even with no actionable changes");
     assert!(doc["runs"].is_array(), "sarif keeps its runs envelope");
+    assert_eq!(doc["version"], "2.1.0", "SARIF version: {doc}");
+    assert_eq!(
+        doc["runs"][0]["results"].as_array().map(Vec::len),
+        Some(0),
+        "empty diff emits no SARIF results: {doc}"
+    );
+    assert_eq!(
+        doc["runs"][0]["properties"]["inconsistent_families"], 0,
+        "empty diff records total divergent families: {doc}"
+    );
+    assert_eq!(
+        doc["runs"][0]["properties"]["total_families"], 0,
+        "empty diff records total families: {doc}"
+    );
+    assert_eq!(
+        doc["runs"][0]["properties"]["shown_families"], 0,
+        "empty diff records shown families: {doc}"
+    );
+    assert!(
+        doc["runs"][0]["invocations"].is_null(),
+        "empty diff should not emit truncation notifications: {doc}"
+    );
     let _ = fs::remove_dir_all(&dir);
 }
