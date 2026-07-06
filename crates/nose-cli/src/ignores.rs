@@ -84,6 +84,7 @@ struct Entry {
     index: usize,
     family_id: Option<u64>,
     path_matcher: Option<Override>,
+    path_base: PathBuf,
     language_set: BTreeSet<String>,
     selectors: IgnoreSelectors,
     reason: String,
@@ -141,10 +142,11 @@ pub(crate) fn load(path: &Path) -> Result<IgnoreSet> {
     };
 
     let today = Date::today();
+    let path_base = ignore_path_base(path);
     let mut entries = Vec::new();
     let mut expired = Vec::new();
     for (index, raw) in raw_entries.into_iter().enumerate() {
-        let entry = Entry::from_raw(index, raw)
+        let entry = Entry::from_raw(index, raw, &path_base)
             .with_context(|| format!("validating ignore file {}", path.display()))?;
         if entry.is_expired(today) {
             expired.push(ExpiredEntry {
@@ -195,7 +197,7 @@ impl IgnoreSet {
 }
 
 impl Entry {
-    fn from_raw(index: usize, raw: RawEntry) -> Result<Self> {
+    fn from_raw(index: usize, raw: RawEntry, path_base: &Path) -> Result<Self> {
         if raw.reason.trim().is_empty() {
             anyhow::bail!("ignores[{index}].reason must be a non-empty string");
         }
@@ -233,6 +235,7 @@ impl Entry {
             index,
             family_id,
             path_matcher,
+            path_base: path_base.to_path_buf(),
             language_set,
             selectors: IgnoreSelectors {
                 family_id: raw.family_id,
@@ -272,7 +275,7 @@ impl Entry {
                 if !family
                     .locations
                     .iter()
-                    .all(|location| matcher.matched(&location.file, false).is_whitelist())
+                    .all(|location| path_matches(matcher, &self.path_base, &location.file))
                 {
                     return None;
                 }
@@ -315,6 +318,49 @@ impl Entry {
             matched_paths,
             matched_languages,
         })
+    }
+}
+
+fn ignore_path_base(path: &Path) -> PathBuf {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf()
+}
+
+fn path_matches(matcher: &Override, base: &Path, file: &str) -> bool {
+    path_match_inputs(base, file)
+        .iter()
+        .any(|candidate| matcher.matched(candidate, false).is_whitelist())
+}
+
+fn path_match_inputs(base: &Path, file: &str) -> Vec<String> {
+    let path = Path::new(file);
+    let mut inputs = Vec::new();
+    push_match_input(&mut inputs, file);
+    if let Ok(relative) = path.strip_prefix(base) {
+        push_match_path(&mut inputs, relative);
+    }
+    if path.is_absolute() {
+        if let (Ok(canonical_file), Ok(canonical_base)) = (path.canonicalize(), base.canonicalize())
+        {
+            if let Ok(relative) = canonical_file.strip_prefix(canonical_base) {
+                push_match_path(&mut inputs, relative);
+            }
+        }
+    }
+    inputs
+}
+
+fn push_match_path(inputs: &mut Vec<String>, path: &Path) {
+    push_match_input(inputs, &path.to_string_lossy());
+}
+
+fn push_match_input(inputs: &mut Vec<String>, raw: &str) {
+    let normalized = raw.replace(std::path::MAIN_SEPARATOR, "/");
+    let normalized = normalized.strip_prefix("./").unwrap_or(&normalized);
+    if !inputs.iter().any(|input| input == normalized) {
+        inputs.push(normalized.to_string());
     }
 }
 
@@ -457,120 +503,7 @@ fn civil_from_days(days_since_epoch: i64) -> Date {
 }
 
 #[cfg(test)]
-mod parse_id_tests {
-    use super::parse_family_id;
-
-    #[test]
-    fn rejects_non_hex_sign_prefix() {
-        // '+' + 15 hex digits = 16 chars; u64::from_str_radix would accept the '+'.
-        assert!(parse_family_id("+aaaaaaaaaaaaaaa").is_err());
-        assert!(parse_family_id("-aaaaaaaaaaaaaaa").is_err());
-    }
-
-    #[test]
-    fn accepts_uppercase_0x_prefix() {
-        let v = parse_family_id("0XAAAAAAAAAAAAAAAA").expect("uppercase 0X prefix is valid");
-        assert_eq!(v, 0xAAAA_AAAA_AAAA_AAAA);
-    }
-
-    #[test]
-    fn accepts_plain_and_lowercase_prefixed_ids() {
-        assert_eq!(
-            parse_family_id("aaaaaaaaaaaaaaaa").unwrap(),
-            0xAAAA_AAAA_AAAA_AAAA
-        );
-        assert_eq!(
-            parse_family_id("0xaaaaaaaaaaaaaaaa").unwrap(),
-            0xAAAA_AAAA_AAAA_AAAA
-        );
-    }
-}
+mod parse_id_tests;
 
 #[cfg(test)]
-mod match_tests {
-    use super::load;
-    use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
-
-    fn loc(file: &str, lang: &str) -> Loc {
-        Loc::new(LocInit {
-            file: file.into(),
-            source_span: LineSpan::new(1, 8),
-            lang: lang.into(),
-            kind: nose_il::UnitKind::Function,
-            origin: Default::default(),
-            name: Some("f".into()),
-            sem: 24,
-            span_tokens: 24,
-        })
-    }
-
-    fn family(langs: &[&str]) -> RefactorFamily {
-        RefactorFamily {
-            value: 1.0,
-            members: langs.len(),
-            files: langs.len(),
-            modules: 1,
-            languages: langs.len(),
-            mean_score: 1.0,
-            mean_lines: 8,
-            dup_lines: 8,
-            shared_lines: 8,
-            params: 0,
-            shared_weight: 8.0,
-            locations: langs
-                .iter()
-                .enumerate()
-                .map(|(index, lang)| loc(&format!("{lang}/{index}.txt"), lang))
-                .collect(),
-            mean_sem: 24.0,
-            scope: "prod",
-            discount: 1.0,
-            abstraction_witness: None,
-            witness: None,
-            varying_spots: Vec::new(),
-            semantic_laws: Vec::new(),
-        }
-    }
-
-    fn ignore_set(tag: &str, body: &str) -> super::IgnoreSet {
-        let thread_name = std::thread::current()
-            .name()
-            .unwrap_or("test")
-            .chars()
-            .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '_' })
-            .collect::<String>();
-        let path = std::env::temp_dir().join(format!(
-            "nose_ignore_match_{tag}_{}_{}.json",
-            std::process::id(),
-            thread_name
-        ));
-        std::fs::write(&path, body).unwrap();
-        let set = load(&path).expect("ignore file should load");
-        let _ = std::fs::remove_file(path);
-        set
-    }
-
-    #[test]
-    fn language_ignore_requires_every_family_member_to_match() {
-        let set = ignore_set(
-            "partial_language",
-            "{\"ignores\":[{\"languages\":[\"python\"],\"reason\":\"accepted-python\"}]}\n",
-        );
-        assert!(
-            set.match_family(&family(&["python", "rust"])).is_none(),
-            "a language selector covering only one member must not hide the family"
-        );
-    }
-
-    #[test]
-    fn language_ignore_matches_when_all_members_match_case_insensitively() {
-        let set = ignore_set(
-            "all_language",
-            "{\"ignores\":[{\"languages\":[\"Python\"],\"reason\":\"accepted-python\"}]}\n",
-        );
-        let matched = set
-            .match_family(&family(&["python", "python"]))
-            .expect("all-python family should be ignored");
-        assert_eq!(matched.matched_languages, vec!["python"]);
-    }
-}
+mod match_tests;

@@ -358,7 +358,7 @@ impl SemanticPackSummary {
     }
 
     fn from_manifest(path: PathBuf, manifest: SemanticPackManifest) -> Result<Self, String> {
-        validate_manifest(&manifest)?;
+        validate_manifest(&manifest).map_err(|err| err.to_string())?;
         let id = manifest.pack.id;
         let supported_languages = manifest
             .supported_languages

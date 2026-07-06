@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Docs quality gate. The semantic-pack example check keeps checked-in v0
-# manifests and fixture paths structurally honest; awiki checks the docs/ wiki is a single
-# connected graph with no orphan pages or disconnected islands. Mirrors the
-# `docs` job in .github/workflows/ci.yml.
+# manifests and fixture paths structurally honest. Set NOSE_BIN to run the
+# product CLI conformance check from this script; CI and `check-ci-local --full`
+# run that check after a fresh release build. awiki checks the docs/ wiki is a
+# single connected graph with no orphan pages or disconnected islands.
 #
 #   ./scripts/check-docs.sh
 #
@@ -13,12 +14,24 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+semantic_pack_examples=(docs/examples/semantic-packs/v0)
+
 if command -v python3 >/dev/null 2>&1; then
     python3 scripts/check-semantic-pack-examples.py
     python3 scripts/check-ci-examples.py
     python3 scripts/check-divergent-history-artifacts.py
 else
     echo "skipped semantic-pack example check — python3 not installed"
+fi
+
+if [ -n "${NOSE_BIN:-}" ]; then
+    if [ ! -x "${NOSE_BIN}" ]; then
+        echo "NOSE_BIN is set but not executable: ${NOSE_BIN}" >&2
+        exit 127
+    fi
+    "${NOSE_BIN}" semantic-pack check "${semantic_pack_examples[@]}" --format json >/dev/null
+else
+    echo "skipped semantic-pack CLI conformance — set NOSE_BIN or run ./scripts/check-ci-local.sh --full"
 fi
 
 if ! command -v awiki >/dev/null 2>&1; then

@@ -112,10 +112,7 @@ fn query_base_partial_path_ignore_does_not_hide_uncovered_members() {
         "partial ignore query should succeed: {}",
         String::from_utf8_lossy(&out.stderr)
     );
-    let item = json["items"]
-        .as_array()
-        .and_then(|items| items.first())
-        .unwrap_or_else(|| panic!("partial ignore must leave a finding: {json}"));
+    let item = first_query_base_item(&json);
     assert_eq!(item["tier"], "strict", "uncovered member remains strict");
     assert_eq!(item["gate"]["fail_default"], true);
 

@@ -29,6 +29,12 @@ jobs:
         run: |
           python3 bench/semantic_pack/pricing.py --selftest
           python3 bench/semantic_pack/pricing.py --check-artifacts
+      - name: regression checker self-tests
+        run: |
+          python3 scripts/query-regression-harness.py --self-test
+          python3 scripts/recall-loss-diff.py --self-test
+          python3 scripts/check-query-regression.py --self-test
+          python3 scripts/check-recall-loss-baselines.py --self-test
       - name: Cargo target prune self-test
         run: ./scripts/prune-cargo-target.sh --self-test
       - name: shell scripts
@@ -69,6 +75,8 @@ jobs:
           RUSTDOCFLAGS: -D warnings
       - name: build
         run: cargo build --release
+      - name: semantic-pack example conformance
+        run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
       - name: test
         run: cargo test --release
       - name: duplication gate (nose on itself)

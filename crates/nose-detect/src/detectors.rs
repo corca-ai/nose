@@ -1,4 +1,10 @@
-use crate::{align, candidates::shared_anchor_weight, strict_exact, units::UnitFeat};
+use crate::{
+    align,
+    candidates::shared_anchor_weight,
+    exact_policy::{candidate_value_floor_met, exact_value_match_eligible},
+    strict_exact,
+    units::UnitFeat,
+};
 use nose_il::{Il, Interner, NodeId};
 use std::collections::HashMap;
 
@@ -26,23 +32,6 @@ impl Detector for CopyPasteDetector {
 /// This gives the `semantic` channel a high-confidence Type-4 surface without fuzzy
 /// structural similarity.
 pub struct ExactBehaviorDetector;
-
-pub(crate) const EXACT_VALUE_MIN: usize = 4;
-
-/// Can this unit ever participate in the exact `semantic` channel's merge claim?
-/// The product asserts behavioral equality only for strict-exact-safe units whose
-/// value fingerprint clears the degenerate-size floor — the same two gates
-/// `ExactBehaviorDetector` and the candidate value-accept apply. The verify
-/// oracle's HARD soundness gate is scoped to exactly this surface; collisions
-/// between lossy fingerprints are diagnostics, not product false merges (#210).
-pub fn exact_claim_eligible(u: &UnitFeat) -> bool {
-    exact_claim_eligible_parts(u.exact_safe, u.value.len())
-}
-
-/// The exact-claim gate when the caller already has the two relevant facts.
-pub fn exact_claim_eligible_parts(exact_safe: bool, value_len: usize) -> bool {
-    exact_safe && value_len >= EXACT_VALUE_MIN
-}
 
 /// Strict exact-safety by source-line span for known roots.
 ///
@@ -74,7 +63,7 @@ impl Detector for ExactBehaviorDetector {
     }
 
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
-        if a.exact_safe && b.exact_safe && a.value.len() >= EXACT_VALUE_MIN && a.value == b.value {
+        if exact_value_match_eligible(a, b) {
             1.0
         } else {
             0.0
@@ -155,12 +144,7 @@ impl Detector for StructuralDetector {
         // Type-4 clone (loop ≡ reduce ≡ comprehension) be detected even though its
         // shapes differ. Guarded by a minimum fingerprint size so trivial units don't
         // collapse. The size gate (min_tokens) already excludes tiny units upstream.
-        if self.exact_behavior
-            && a.exact_safe
-            && b.exact_safe
-            && a.value.len() >= EXACT_VALUE_MIN
-            && a.value == b.value
-        {
+        if self.exact_behavior && exact_value_match_eligible(a, b) {
             return 1.0;
         }
         // Score = wv·vj + ws·sj + wr·ransac (defaults reproduce the prior
@@ -181,10 +165,7 @@ impl Detector for StructuralDetector {
         // calls). The shape-dominant blend below would miss these, so accept a very-high `vj`
         // directly. Impure units never reach the exact channel, so this is the only place such
         // behaviorally-convergent pairs can surface. Tight threshold + size floor keep it precise.
-        if self.candidate_mode
-            && a.value.len() >= EXACT_VALUE_MIN
-            && b.value.len() >= EXACT_VALUE_MIN
-            && vj >= candidate_value_accept()
+        if self.candidate_mode && candidate_value_floor_met(a, b) && vj >= candidate_value_accept()
         {
             return vj;
         }

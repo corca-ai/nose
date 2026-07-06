@@ -10,6 +10,9 @@ mod model;
 mod timing;
 mod tree;
 
+use crate::exact_policy::dense_unit_admitted;
+#[cfg(test)]
+pub(crate) use crate::exact_policy::EXACT_VALUE_MIN;
 use crate::fragment::{FragmentKind, ProofFacts};
 use crate::strict_exact::{strict_exact_safe_tree, StrictFacts};
 use features::{unit_minhash, unit_shape_features};
@@ -27,8 +30,6 @@ use std::time::Instant;
 use timing::{UnitTimer, UnitTimingSample, UnitTimingSkipSample};
 use tree::collect_pre;
 pub(crate) use tree::{build_parent_index, subtree_spans_within};
-
-const EXACT_VALUE_MIN: usize = 4;
 
 #[derive(Clone, Copy)]
 struct UnitRoot {
@@ -403,12 +404,8 @@ fn gate_unit(
     // fingerprint floor prove that the fragment itself is a usable semantic unit.
     // A declarative unit is admitted on the same `value.len() >= EXACT_VALUE_MIN` floor
     // as a dense functional one-liner (a 1-declaration rule stays below it — intended).
-    let dense_exact_unit = if exact_fragment {
-        exact_safe && value.len() >= EXACT_VALUE_MIN
-    } else {
-        (declarative || matches!(kind, UnitKind::Function | UnitKind::Method))
-            && value.len() >= EXACT_VALUE_MIN
-    };
+    let dense_exact_unit =
+        dense_unit_admitted(kind, exact_fragment, declarative, exact_safe, value.len());
     if (syntactically_small || exact_fragment) && !dense_exact_unit {
         skip(unit_timer, safe_ms, value_ms);
         return None;

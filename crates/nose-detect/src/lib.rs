@@ -12,6 +12,7 @@ mod candidates;
 mod cluster;
 mod contiguous;
 mod detectors;
+mod exact_policy;
 mod fragment;
 mod il_utils;
 mod locations;
@@ -31,9 +32,10 @@ pub use align::multiset_jaccard;
 pub use contiguous::Stream;
 pub(crate) use detectors::env_or;
 pub use detectors::{
-    exact_claim_eligible, exact_claim_eligible_parts, exact_safe_roots_by_span, CopyPasteDetector,
-    Detector, ExactBehaviorDetector, StructuralDetector,
+    exact_safe_roots_by_span, CopyPasteDetector, Detector, ExactBehaviorDetector,
+    StructuralDetector,
 };
+pub use exact_policy::{exact_claim_eligible, exact_claim_eligible_parts};
 pub use fragment::{
     fragment_behavior, free_input_cids, synthesize_wrapper, Effect, EffectSite, Exit,
     FragmentContract, FragmentKind, Place, ProofFacts,

@@ -10,10 +10,14 @@ Run this process when a PR, release candidate, or post-release follow-up changes
 admission, lowering, normalization, query ranking/filtering, or corpus-scale analysis
 behavior and the broad query-regression run reports a meaningful runtime increase.
 
-The broad gate answers whether runtime moved. Runtime triage answers why it moved. Do
-not skip the classification step just because a repo looks slow: capability-growth cost,
-measurement noise, lower/front-end cost, and value-graph hot paths call for different
-actions.
+The broad gate answers whether product output or runtime moved. Run
+`scripts/check-query-regression.py` on that artifact to make the no-behavior-change
+decision mechanical: hashes, byte counts, and family counts must stay identical, while
+runtime is compared against a configured percentage threshold after subtracting any
+same-binary control. Runtime triage answers why a remaining measured slowdown moved.
+Do not skip the classification step just because a repo looks slow: capability-growth
+cost, measurement noise, lower/front-end cost, and value-graph hot paths call for
+different actions.
 
 ## Harness
 
@@ -40,6 +44,15 @@ Run the built-in parser/classifier self-test after changing the script:
 
 ```sh
 python3 scripts/runtime-triage-harness.py --self-test
+```
+
+For no-behavior-change work, run the query-regression checker on the broad artifact:
+
+```sh
+python3 scripts/check-query-regression.py \
+  target/query-regression.json \
+  --same-binary-control target/same-binary-control.json \
+  --max-runtime-delta-pct 5
 ```
 
 ## Classifications
@@ -80,10 +93,11 @@ Use the timing knobs in increasing order of verbosity:
 ## Process
 
 1. Run `scripts/query-regression-harness.py` for broad product-level elapsed timing.
-2. Run `scripts/runtime-triage-harness.py` on the largest regressions.
-3. Optimize only `no-family-growth-*` cases with clear stage attribution.
-4. For `capability-growth`, report cost per newly surfaced family before changing code.
-5. Record the artifact under `bench/recall_loss/` or `target/` and link the summary doc.
+2. Run `scripts/check-query-regression.py` to fail any unexpected product-output drift.
+3. Run `scripts/runtime-triage-harness.py` on the largest remaining runtime regressions.
+4. Optimize only `no-family-growth-*` cases with clear stage attribution.
+5. For `capability-growth`, report cost per newly surfaced family before changing code.
+6. Record the artifact under `bench/recall_loss/` or `target/` and link the summary doc.
 
 The triage is complete when every selected repo has a recorded classification, any
 code change names the stage it is intended to improve, and the follow-up document

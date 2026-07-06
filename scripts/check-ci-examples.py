@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,7 @@ EXAMPLE_DIR = ROOT / "docs" / "examples" / "ci"
 OBSERVE = EXAMPLE_DIR / "divergent-edit-observe-only.yml"
 ENFORCE = EXAMPLE_DIR / "divergent-edit-enforcing.yml"
 CI_DOC = ROOT / "docs" / "continuous-integration.md"
+CHANGELOG = ROOT / "CHANGELOG.md"
 
 
 def require(condition: bool, message: str) -> None:
@@ -29,6 +31,26 @@ def read(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError as err:
         raise SystemExit(f"ci example check failed: read {path}: {err}") from err
+
+
+def latest_changelog_release() -> str:
+    text = read(CHANGELOG)
+    match = re.search(
+        r"^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$",
+        text,
+        re.MULTILINE,
+    )
+    require(match is not None, f"{CHANGELOG} must contain a dated latest release heading")
+    return f"v{match.group(1)}"
+
+
+def check_nose_version_pin(path: Path, text: str, latest_release: str) -> None:
+    matches = re.findall(r"^\s+NOSE_VERSION:\s*(v\d+\.\d+\.\d+)\s*$", text, re.MULTILINE)
+    require(len(matches) == 1, f"{path} must pin exactly one concrete NOSE_VERSION")
+    require(
+        matches[0] == latest_release,
+        f"{path} pins NOSE_VERSION {matches[0]}, expected latest release {latest_release}",
+    )
 
 
 def check_workflow(path: Path, *, enforcing: bool) -> None:
@@ -167,6 +189,9 @@ def check_docs_link_examples() -> None:
 
 
 def main() -> None:
+    latest_release = latest_changelog_release()
+    for path in [OBSERVE, ENFORCE]:
+        check_nose_version_pin(path, read(path), latest_release)
     check_workflow(OBSERVE, enforcing=False)
     check_workflow(ENFORCE, enforcing=True)
     check_summary_block(OBSERVE)

@@ -6,17 +6,15 @@ fn added_clone_body(name: &str, acc: &str, it: &str) -> String {
     )
 }
 
-fn new_copy_finding(json: &serde_json::Value) -> &serde_json::Value {
-    json["items"]
-        .as_array()
-        .unwrap_or_else(|| panic!("items should be an array: {json}"))
-        .iter()
-        .find(|item| item["lane"] == "new-copy")
-        .unwrap_or_else(|| panic!("expected new-copy finding: {json}"))
+fn new_copy_finding<'a>(
+    json: &'a serde_json::Value,
+    expected_current_files: &[&str],
+) -> &'a serde_json::Value {
+    find_item_by_lane_and_files(json, "new-copy", "current_only", expected_current_files)
 }
 
-fn assert_new_copy_json_contract(json: &serde_json::Value) {
-    let finding = new_copy_finding(json);
+fn assert_new_copy_json_contract(json: &serde_json::Value, expected_current_files: &[&str]) {
+    let finding = new_copy_finding(json, expected_current_files);
     assert_eq!(
         finding["tier"], "report-only",
         "new-copy is advisory: {json}"
@@ -55,19 +53,11 @@ fn assert_new_copy_json_contract(json: &serde_json::Value) {
             .any(|reason| reason == "new_copy_no_base_member"),
         "new-copy explains the non-fire reason: {json}"
     );
-    let current_only = finding["current_only"]
-        .as_array()
-        .expect("new-copy current_only sites");
-    assert!(
-        current_only
-            .iter()
-            .all(|site| site["tree"].as_str() == Some("current")),
+    assert_site_files(finding, "current_only", expected_current_files);
+    assert_eq!(
+        site_trees(finding, "current_only"),
+        vec!["current"; expected_current_files.len()],
         "new-copy sites are current-tree coordinates: {json}"
-    );
-    assert!(
-        finding.to_string().contains("src/new_copy.py")
-            && finding.to_string().contains("src/original.py"),
-        "new-copy includes the added copy and sibling: {json}"
     );
 }
 
@@ -154,7 +144,7 @@ fn query_base_added_clone_is_report_only_new_copy_lane() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    assert_new_copy_json_contract(&json);
+    assert_new_copy_json_contract(&json, &["src/new_copy.py", "src/original.py"]);
 
     let gated = nose_query_base(&dir, &["--fail"]);
     assert!(
@@ -197,7 +187,7 @@ fn query_base_copied_clone_is_report_only_new_copy_lane() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    assert_new_copy_json_contract(&json);
+    assert_new_copy_json_contract(&json, &["src/new_copy.py", "src/original.py"]);
 
     let sarif = nose_query_base(&dir, &["--format", "sarif"]);
     assert!(
@@ -242,15 +232,15 @@ fn query_base_moved_clone_is_report_only_new_copy_lane() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = new_copy_finding(&json);
+    let finding = new_copy_finding(&json, &["src/moved_clone.py", "src/original.py"]);
     assert_eq!(
         finding["tier"], "report-only",
         "moved current-tree copy is advisory: {json}"
     );
-    assert!(
-        finding.to_string().contains("src/moved_clone.py")
-            && finding.to_string().contains("src/original.py"),
-        "moved-copy report uses clone evidence, not path similarity alone: {json}"
+    assert_site_files(
+        finding,
+        "current_only",
+        &["src/moved_clone.py", "src/original.py"],
     );
 
     let gated = nose_query_base(&dir, &["--fail"]);
@@ -306,15 +296,15 @@ fn query_base_new_copy_pathspec_is_relative_from_subdir() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = new_copy_finding(&json);
+    let finding = new_copy_finding(&json, &["sub/src/new_copy.py", "sub/src/original.py"]);
     assert_eq!(
         finding["lane"], "new-copy",
         "subdir pathspec should still find current-tree copies: {json}"
     );
-    assert!(
-        finding.to_string().contains("sub/src/new_copy.py")
-            && finding.to_string().contains("sub/src/original.py"),
-        "locations stay repo-relative from nested cwd: {json}"
+    assert_site_files(
+        finding,
+        "current_only",
+        &["sub/src/new_copy.py", "sub/src/original.py"],
     );
 
     let _ = fs::remove_dir_all(&root);
@@ -347,15 +337,15 @@ fn query_base_new_copy_handles_paths_with_spaces() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = new_copy_finding(&json);
+    let finding = new_copy_finding(&json, &["src dir/new copy.py", "src dir/original copy.py"]);
     assert_eq!(
         finding["lane"], "new-copy",
         "space-containing source paths trigger the lane: {json}"
     );
-    assert!(
-        finding.to_string().contains("src dir/new copy.py")
-            && finding.to_string().contains("src dir/original copy.py"),
-        "locations preserve path spaces: {json}"
+    assert_site_files(
+        finding,
+        "current_only",
+        &["src dir/new copy.py", "src dir/original copy.py"],
     );
 
     let gated = nose_query_base(&dir, &["--fail"]);
@@ -393,15 +383,15 @@ fn query_base_new_copy_uses_supported_language_extensions() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = new_copy_finding(&json);
+    let finding = new_copy_finding(&json, &["src/new_copy.swift", "src/original.swift"]);
     assert_eq!(
         finding["lane"], "new-copy",
         "supported non-Python extensions trigger the lane: {json}"
     );
-    assert!(
-        finding.to_string().contains("src/new_copy.swift")
-            && finding.to_string().contains("src/original.swift"),
-        "Swift clone sites are reported: {json}"
+    assert_site_files(
+        finding,
+        "current_only",
+        &["src/new_copy.swift", "src/original.swift"],
     );
 
     let _ = fs::remove_dir_all(&dir);
@@ -539,7 +529,7 @@ fn query_base_new_copy_partial_path_ignore_keeps_advisory_lane_visible() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    assert_new_copy_json_contract(&json);
+    assert_new_copy_json_contract(&json, &["src/new_copy.py", "src/original.py"]);
 
     let gated = nose_query_base(&dir, &["--fail"]);
     assert!(

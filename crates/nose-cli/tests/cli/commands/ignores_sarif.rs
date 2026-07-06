@@ -4,9 +4,50 @@ use super::*;
 fn inline_nose_ignore_suppresses_a_site() {
     // A `nose-ignore` marker above a function drops that site; with only one copy
     // left there's no family.
-    let dir = std::env::temp_dir().join(format!("nose_sup_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
+    let dir = make_temp_dir("inline_suppression");
     let body = "def f(items):\n    t = 0\n    for x in items:\n        if x > 0:\n            t = t + x * x\n    return t\n";
+    fs::create_dir_all(dir.join("a")).unwrap();
+    fs::create_dir_all(dir.join("b")).unwrap();
+    fs::write(dir.join("a/f.py"), body).unwrap();
+    fs::write(dir.join("b/f.py"), format!("# NOSE-IGNORE\n{body}")).unwrap();
+    let p = dir.to_str().unwrap();
+    assert!(
+        run(&["query", p, "--min-size", "12"]).contains("0 duplicated-code families"),
+        "the marked copy must be suppressed, leaving no family"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn inline_nose_ignore_only_applies_to_adjacent_unit_line() {
+    let dir = make_temp_dir("inline_suppression_adjacent_only");
+    let body = "def f(items):\n    t = 0\n    for x in items:\n        if x > 0:\n            t = t + x * x\n    return t\n";
+    fs::create_dir_all(dir.join("a")).unwrap();
+    fs::create_dir_all(dir.join("b")).unwrap();
+    fs::write(dir.join("a/f.py"), body).unwrap();
+    fs::write(dir.join("b/f.py"), format!("# nose-ignore\n\n{body}")).unwrap();
+
+    let out = run(&[
+        "query",
+        dir.to_str().unwrap(),
+        "--min-size",
+        "12",
+        "--format",
+        "json",
+        "top=0",
+    ]);
+    let json = query_json(&out);
+    assert!(
+        !query_families(&json).is_empty(),
+        "a non-adjacent marker must not suppress the family: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn inline_nose_ignore_above_decorator_suppresses_a_site() {
+    let dir = make_temp_dir("inline_suppression_decorator");
+    let body = "@memoize\ndef f(items):\n    t = 0\n    for x in items:\n        if x > 0:\n            t = t + x * x\n    return t\n";
     fs::create_dir_all(dir.join("a")).unwrap();
     fs::create_dir_all(dir.join("b")).unwrap();
     fs::write(dir.join("a/f.py"), body).unwrap();
@@ -14,7 +55,7 @@ fn inline_nose_ignore_suppresses_a_site() {
     let p = dir.to_str().unwrap();
     assert!(
         run(&["query", p, "--min-size", "12"]).contains("0 duplicated-code families"),
-        "the marked copy must be suppressed, leaving no family"
+        "the marker above a decorator should suppress the decorated unit"
     );
     let _ = fs::remove_dir_all(&dir);
 }
@@ -148,6 +189,45 @@ fn default_structured_ignore_file_matches_paths() {
     assert!(
         query_families(&json).is_empty(),
         "path ignore should suppress the family: {stdout}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn explicit_structured_ignore_file_matches_project_relative_paths_from_other_cwd() {
+    let dir = make_project("structured_ignore_absolute_invocation");
+    let ignore_file = dir.join("nose.ignore.json");
+    fs::write(
+        &ignore_file,
+        "{\"ignores\":[{\"paths\":[\"a/**\",\"b/**\",\"tests/**\"],\"reason\":\"template-copy\"}]}\n",
+    )
+    .unwrap();
+    let out = Command::new(bin())
+        .args([
+            "query",
+            dir.to_str().unwrap(),
+            "--mode",
+            "semantic",
+            "--min-size",
+            "12",
+            "--format",
+            "json",
+            "top=0",
+            "--ignore-file",
+            ignore_file.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run");
+    assert!(
+        out.status.success(),
+        "query should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json = query_json(&stdout);
+    assert!(
+        query_families(&json).is_empty(),
+        "path ignore should suppress the family even when locations are absolute: {stdout}"
     );
     let _ = fs::remove_dir_all(&dir);
 }

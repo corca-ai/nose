@@ -630,6 +630,10 @@ fields in prose:
 
 Use `scripts/recall-loss-diff.py before.json after.json` for the before/after
 table when both full local reports are available.
+Use `scripts/check-recall-loss-baselines.py` when the report is acting as a gate:
+it fails on non-zero false merges, non-zero canon-preservation violations, and
+growth in the `unattributed-strict-exact-unsafe` bucket when a baseline/current
+pair is provided.
 
 Hard gate:
 

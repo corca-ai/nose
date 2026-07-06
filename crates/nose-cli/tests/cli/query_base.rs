@@ -42,6 +42,30 @@ fn init_git_repo(dir: &Path) {
     git_in(dir, &["commit", "-q", "-m", "init"]);
 }
 
+struct GitProject {
+    project: TempProject,
+}
+
+impl GitProject {
+    fn new(tag: &str) -> Self {
+        Self {
+            project: TempProject::new(tag),
+        }
+    }
+
+    fn path(&self) -> &Path {
+        self.project.path()
+    }
+
+    fn write(&self, name: &str, src: &str) {
+        self.project.write(name, src);
+    }
+
+    fn init(&self) {
+        init_git_repo(self.path());
+    }
+}
+
 fn nose_query_in(dir: &Path, extra: &[&str]) -> std::process::Output {
     let mut args = vec!["query", "."];
     args.extend_from_slice(extra);
@@ -63,6 +87,101 @@ fn run_nose_query(dir: &Path, args: &[&str], context: &str) -> std::process::Out
 
 fn nose_query_base(dir: &Path, extra: &[&str]) -> std::process::Output {
     nose_query_base_with_mode(dir, None, extra)
+}
+
+fn query_base_json_value(dir: &Path, extra: &[&str]) -> serde_json::Value {
+    let mut args = vec!["--format", "json"];
+    args.extend_from_slice(extra);
+    let out = nose_query_base(dir, &args);
+    assert!(
+        out.status.success(),
+        "query base JSON should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    serde_json::from_slice(&out.stdout).unwrap_or_else(|err| {
+        panic!(
+            "query base JSON parse failed: {err}\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        )
+    })
+}
+
+fn query_base_items(json: &serde_json::Value) -> &[serde_json::Value] {
+    json["items"]
+        .as_array()
+        .unwrap_or_else(|| panic!("items should be an array: {json}"))
+}
+
+fn first_query_base_item(json: &serde_json::Value) -> &serde_json::Value {
+    query_base_items(json)
+        .first()
+        .unwrap_or_else(|| panic!("expected at least one query-base item: {json}"))
+}
+
+fn site_files(item: &serde_json::Value, key: &str) -> Vec<String> {
+    let mut files = item[key]
+        .as_array()
+        .unwrap_or_else(|| panic!("{key} should be a site array: {item}"))
+        .iter()
+        .map(|site| {
+            site["file"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{key} site should carry file: {site}"))
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    files.sort();
+    files
+}
+
+fn site_trees(item: &serde_json::Value, key: &str) -> Vec<String> {
+    let mut trees = item[key]
+        .as_array()
+        .unwrap_or_else(|| panic!("{key} should be a site array: {item}"))
+        .iter()
+        .map(|site| {
+            site["tree"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{key} site should carry tree: {site}"))
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    trees.sort();
+    trees
+}
+
+fn assert_site_files(item: &serde_json::Value, key: &str, expected: &[&str]) {
+    let mut expected = expected
+        .iter()
+        .map(|path| (*path).to_string())
+        .collect::<Vec<_>>();
+    expected.sort();
+    assert_eq!(site_files(item, key), expected, "{key} files: {item}");
+}
+
+fn find_item_by_lane_and_files<'a>(
+    json: &'a serde_json::Value,
+    lane: &str,
+    site_key: &str,
+    expected_files: &[&str],
+) -> &'a serde_json::Value {
+    query_base_items(json)
+        .iter()
+        .find(|item| {
+            item["lane"] == lane
+                && site_files(item, site_key) == {
+                    let mut expected = expected_files
+                        .iter()
+                        .map(|path| (*path).to_string())
+                        .collect::<Vec<_>>();
+                    expected.sort();
+                    expected
+                }
+        })
+        .unwrap_or_else(|| {
+            panic!("expected {lane} item with {site_key} files {expected_files:?}: {json}")
+        })
 }
 
 fn nose_query_base_with_mode(
@@ -253,10 +372,7 @@ fn query_base_json_includes_fragment_context() {
         String::from_utf8_lossy(&out.stderr)
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = json["items"]
-        .as_array()
-        .and_then(|findings| findings.first())
-        .expect("one fragment query base finding");
+    let finding = first_query_base_item(&json);
     for key in ["changed", "not_updated"] {
         let site = finding[key]
             .as_array()
@@ -347,9 +463,9 @@ fn query_base_respects_structured_ignores() {
     let json_out = nose_query_base(&dir, &["--format", "json"]);
     let json: serde_json::Value =
         serde_json::from_slice(&json_out.stdout).expect("query base JSON");
-    let findings = json["items"].as_array().expect("items");
-    assert!(!findings.is_empty(), "expected a flagged family first");
-    let fid = findings[0]["family_id"].as_str().unwrap();
+    let fid = first_query_base_item(&json)["family_id"]
+        .as_str()
+        .expect("family_id should be exposed");
 
     let ignore = dir.join("nose.ignore.json");
     fs::write(

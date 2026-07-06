@@ -1,7 +1,8 @@
 use crate::{
     align,
     cluster::UnionFind,
-    detectors::{env_or, exact_claim_eligible, EXACT_VALUE_MIN},
+    detectors::env_or,
+    exact_policy::exact_claim_eligible,
     locations::loc_of,
     lsh,
     model::{EnclosingUnit, EquivalenceWitness, Group, Loc},
@@ -156,7 +157,7 @@ fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<Value
 fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
     let mut buckets: FxHashMap<&[u64], Vec<usize>> = FxHashMap::default();
     for (idx, unit) in units.iter().enumerate() {
-        if unit.exact_safe && unit.value.len() >= EXACT_VALUE_MIN {
+        if exact_claim_eligible(unit) {
             buckets.entry(unit.value.as_slice()).or_default().push(idx);
         }
     }

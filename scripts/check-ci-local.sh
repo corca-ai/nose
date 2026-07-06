@@ -88,6 +88,14 @@ run_semantic_pack_pricing_selftest() {
     python3 bench/semantic_pack/pricing.py --check-artifacts
 }
 
+run_regression_checker_selftests() {
+    need_cmd python3
+    python3 scripts/query-regression-harness.py --self-test
+    python3 scripts/recall-loss-diff.py --self-test
+    python3 scripts/check-query-regression.py --self-test
+    python3 scripts/check-recall-loss-baselines.py --self-test
+}
+
 run_shell_script_lint() {
     need_cmd shellcheck "install it with: brew install shellcheck"
     shellcheck -x .githooks/pre-commit .githooks/pre-push scripts/*.sh
@@ -117,6 +125,9 @@ step "corpus verify runner self-test"
 
 step "semantic-pack pricing self-test"
 run_semantic_pack_pricing_selftest
+
+step "regression checker self-tests"
+run_regression_checker_selftests
 
 step "Cargo target prune self-test"
 ./scripts/prune-cargo-target.sh --self-test
@@ -152,6 +163,9 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace --quiet
 
 step "build (release)"
 cargo build --release
+
+step "semantic-pack example conformance"
+target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
 
 step "test (release)"
 cargo test --release

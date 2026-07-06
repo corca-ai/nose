@@ -15,17 +15,8 @@ fn query_base_mixed_scope_is_report_only_not_strict() {
     )
     .unwrap();
 
-    let out = nose_query_base(&dir, &["--format", "json"]);
-    assert!(
-        out.status.success(),
-        "query base JSON should succeed: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = json["items"]
-        .as_array()
-        .and_then(|items| items.first())
-        .expect("mixed-scope divergent finding");
+    let json = query_base_json_value(&dir, &[]);
+    let finding = first_query_base_item(&json);
     assert_eq!(
         finding["scope"], "mixed",
         "fixture should be mixed-scope: {json}"
@@ -103,17 +94,8 @@ fn query_base_all_test_scope_is_report_only_not_strict() {
     )
     .unwrap();
 
-    let out = nose_query_base(&dir, &["--format", "json"]);
-    assert!(
-        out.status.success(),
-        "query base JSON should succeed: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = json["items"]
-        .as_array()
-        .and_then(|items| items.first())
-        .expect("all-test divergent finding");
+    let json = query_base_json_value(&dir, &[]);
+    let finding = first_query_base_item(&json);
     assert_eq!(
         finding["scope"], "test",
         "fixture should be all-test: {json}"
@@ -167,22 +149,10 @@ fn query_base_exact_renamed_twin_remains_strict() {
     )
     .unwrap();
 
-    let out = nose_query_base(&dir, &["--mode", "semantic", "--format", "json"]);
-    assert!(
-        out.status.success(),
-        "query base JSON should succeed: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    let finding = json["items"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|item| {
-            item["changed"].to_string().contains("renamed_a.py")
-                && item["not_updated"].to_string().contains("renamed_b.py")
-        })
-        .unwrap_or_else(|| panic!("expected renamed-twin divergence: {json}"));
+    let json = query_base_json_value(&dir, &["--mode", "semantic"]);
+    let finding =
+        find_item_by_lane_and_files(&json, "base-divergence", "changed", &["renamed_a.py"]);
+    assert_site_files(finding, "not_updated", &["renamed_b.py"]);
     assert_eq!(
         finding["witness_kind"], "exact-value-graph",
         "exact witness: {json}"
@@ -212,15 +182,12 @@ fn fire_policy_body(tag: &str) -> String {
     )
 }
 
-fn make_fire_policy_project() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("nose_fire_policy_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(dir.join("a")).unwrap();
-    fs::create_dir_all(dir.join("b")).unwrap();
-    fs::write(dir.join("a/f.py"), fire_policy_body("alpha")).unwrap();
-    fs::write(dir.join("b/f.py"), fire_policy_body("beta")).unwrap();
-    init_git_repo(&dir);
-    dir
+fn make_fire_policy_project() -> GitProject {
+    let project = GitProject::new("query_base_fire_policy");
+    project.write("a/f.py", &fire_policy_body("alpha"));
+    project.write("b/f.py", &fire_policy_body("beta"));
+    project.init();
+    project
 }
 
 fn fire_policy_query_base(dir: &Path, extra: &[&str]) -> std::process::Output {
@@ -230,11 +197,7 @@ fn fire_policy_query_base(dir: &Path, extra: &[&str]) -> std::process::Output {
 fn first_fire_policy_finding(dir: &Path) -> serde_json::Value {
     let out = fire_policy_query_base(dir, &["--format", "json"]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("query base JSON");
-    json["items"]
-        .as_array()
-        .and_then(|f| f.first())
-        .expect("the divergence is flagged for query base")
-        .clone()
+    first_query_base_item(&json).clone()
 }
 
 fn assert_varying_spot_is_review(dir: &Path) {
@@ -383,17 +346,16 @@ fn assert_base_sarif_policy(
 /// while shared-line edits become strict.
 #[test]
 fn query_base_fail_fires_on_shared_logic_only() {
-    let dir = make_fire_policy_project();
+    let project = make_fire_policy_project();
+    let dir = project.path();
 
     fs::write(dir.join("a/f.py"), fire_policy_body("gamma")).unwrap();
-    assert_varying_spot_is_review(&dir);
+    assert_varying_spot_is_review(dir);
 
     fs::write(
         dir.join("a/f.py"),
         fire_policy_body("alpha").replace("item * 2 + 1", "item * 2 + 3"),
     )
     .unwrap();
-    assert_shared_logic_is_strict(&dir);
-
-    let _ = fs::remove_dir_all(&dir);
+    assert_shared_logic_is_strict(dir);
 }

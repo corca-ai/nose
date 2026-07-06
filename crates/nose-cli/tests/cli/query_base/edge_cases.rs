@@ -54,18 +54,12 @@ fn query_base_deleted_copy_is_strict_base_divergence() {
     fs::remove_file(dir.join("a/f.py")).unwrap();
 
     let json = query_base_json(&dir);
-    let item = json["items"]
-        .as_array()
-        .and_then(|items| items.first())
-        .unwrap_or_else(|| panic!("deleted copy should leave a base divergence: {json}"));
+    let item = find_item_by_lane_and_files(&json, "base-divergence", "changed", &["a/f.py"]);
     assert_eq!(item["lane"], "base-divergence");
     assert_eq!(item["tier"], "strict");
     assert_eq!(item["gate"]["fail_default"], true);
-    assert!(
-        item["changed"].to_string().contains("a/f.py")
-            && item["not_updated"].to_string().contains("b/f.py"),
-        "deleted member is the changed side and sibling remains not-updated: {json}"
-    );
+    assert_site_files(item, "changed", &["a/f.py"]);
+    assert_site_files(item, "not_updated", &["b/f.py"]);
 
     let gated = nose_query_base(&dir, &["--fail"]);
     assert!(
@@ -108,10 +102,7 @@ fn query_base_pure_insertion_inside_shared_logic_is_strict() {
     .unwrap();
 
     let json = query_base_json(&dir);
-    let item = json["items"]
-        .as_array()
-        .and_then(|items| items.first())
-        .unwrap_or_else(|| panic!("inner insertion should be a divergence: {json}"));
+    let item = first_query_base_item(&json);
     assert_eq!(item["tier"], "strict");
     assert_eq!(item["changed"][0]["touches_shared"], true);
     assert_eq!(item["gate"]["fail_default"], true);
