@@ -3,6 +3,13 @@
   "method": "policy simulation from sampled findings joined to verdict labels by stable finding identity, with sid fallback for legacy verdict drafts",
   "labeled": 179,
   "positives": 49,
+  "verdict_counts": {
+    "intentional_divergence": 26,
+    "no_propagation_needed": 40,
+    "not_a_clone": 18,
+    "should_propagate": 49,
+    "test_scaffolding": 46
+  },
   "finding_level": [
     {
       "policy": "any sampled finding",
@@ -47,13 +54,200 @@
       "precision": 0.479
     },
     {
-      "policy": "V2 strict: tier=strict",
+      "policy": "V2 strict: gate.fail_default",
       "fires": 80,
       "tp": 45,
       "fp": 35,
       "precision": 0.562
     }
   ],
+  "policy_audit": {
+    "strict_precision_floor": 0.562,
+    "strict_policy": "gate.fail_default",
+    "strict_positive_retention": {
+      "serialized_fire_eligible_tp": 45,
+      "strict_tp": 45,
+      "lost_serialized_fire_eligible_positive_sids": [],
+      "non_strict_positive_sids": [
+        "rv2t1-013",
+        "rv2t1-050",
+        "rv2t1-087",
+        "rv2t1-118"
+      ]
+    },
+    "strict_false_positives_by_verdict": {
+      "intentional_divergence": 13,
+      "no_propagation_needed": 17,
+      "not_a_clone": 5
+    }
+  },
+  "confusion": {
+    "tier_by_verdict": {
+      "report-only": {
+        "no_propagation_needed": 4,
+        "not_a_clone": 5,
+        "should_propagate": 1,
+        "test_scaffolding": 46
+      },
+      "review": {
+        "intentional_divergence": 13,
+        "no_propagation_needed": 19,
+        "not_a_clone": 8,
+        "should_propagate": 3
+      },
+      "strict": {
+        "intentional_divergence": 13,
+        "no_propagation_needed": 17,
+        "not_a_clone": 5,
+        "should_propagate": 45
+      }
+    },
+    "taxonomy_by_verdict": {
+      "missed_propagation": {
+        "intentional_divergence": 13,
+        "no_propagation_needed": 17,
+        "not_a_clone": 5,
+        "should_propagate": 45
+      },
+      "no_propagation_needed": {
+        "intentional_divergence": 6,
+        "no_propagation_needed": 13,
+        "not_a_clone": 6,
+        "should_propagate": 2
+      },
+      "test_scaffolding": {
+        "no_propagation_needed": 4,
+        "not_a_clone": 5,
+        "should_propagate": 1,
+        "test_scaffolding": 46
+      },
+      "unclear": {
+        "intentional_divergence": 7,
+        "no_propagation_needed": 6,
+        "not_a_clone": 2,
+        "should_propagate": 1
+      }
+    }
+  },
+  "slices": {
+    "arm_by_verdict": {
+      "default": {
+        "intentional_divergence": 13,
+        "no_propagation_needed": 20,
+        "not_a_clone": 5,
+        "should_propagate": 23,
+        "test_scaffolding": 27
+      },
+      "near": {
+        "intentional_divergence": 13,
+        "no_propagation_needed": 20,
+        "not_a_clone": 13,
+        "should_propagate": 26,
+        "test_scaffolding": 19
+      }
+    },
+    "witness_by_verdict": {
+      "copy-paste-run": {
+        "intentional_divergence": 21,
+        "no_propagation_needed": 32,
+        "not_a_clone": 8,
+        "should_propagate": 41,
+        "test_scaffolding": 41
+      },
+      "exact-value-graph": {
+        "should_propagate": 2,
+        "test_scaffolding": 1
+      },
+      "shared-sub-dag": {
+        "intentional_divergence": 2,
+        "no_propagation_needed": 2,
+        "not_a_clone": 4,
+        "should_propagate": 3,
+        "test_scaffolding": 2
+      },
+      "structural-similarity": {
+        "intentional_divergence": 3,
+        "no_propagation_needed": 6,
+        "not_a_clone": 6,
+        "should_propagate": 3,
+        "test_scaffolding": 2
+      }
+    },
+    "scope_by_verdict": {
+      "mixed": {
+        "no_propagation_needed": 1,
+        "not_a_clone": 4,
+        "test_scaffolding": 12
+      },
+      "prod": {
+        "intentional_divergence": 26,
+        "no_propagation_needed": 36,
+        "not_a_clone": 13,
+        "should_propagate": 48
+      },
+      "test": {
+        "no_propagation_needed": 3,
+        "not_a_clone": 1,
+        "should_propagate": 1,
+        "test_scaffolding": 34
+      }
+    },
+    "rank_by_verdict": {
+      "0": {
+        "intentional_divergence": 19,
+        "no_propagation_needed": 29,
+        "not_a_clone": 17,
+        "should_propagate": 21,
+        "test_scaffolding": 34
+      },
+      "1": {
+        "intentional_divergence": 2,
+        "no_propagation_needed": 2,
+        "not_a_clone": 1,
+        "should_propagate": 4,
+        "test_scaffolding": 4
+      },
+      "10": {
+        "intentional_divergence": 1
+      },
+      "2": {
+        "intentional_divergence": 3,
+        "no_propagation_needed": 2,
+        "should_propagate": 7,
+        "test_scaffolding": 2
+      },
+      "3": {
+        "intentional_divergence": 1,
+        "no_propagation_needed": 2,
+        "should_propagate": 6,
+        "test_scaffolding": 2
+      },
+      "4": {
+        "no_propagation_needed": 1,
+        "should_propagate": 3,
+        "test_scaffolding": 2
+      },
+      "5": {
+        "no_propagation_needed": 1,
+        "should_propagate": 2,
+        "test_scaffolding": 2
+      },
+      "6": {
+        "no_propagation_needed": 1
+      },
+      "7": {
+        "no_propagation_needed": 1,
+        "should_propagate": 2
+      },
+      "8": {
+        "no_propagation_needed": 1,
+        "should_propagate": 3
+      },
+      "9": {
+        "should_propagate": 1
+      }
+    }
+  },
   "rows": [
     {
       "sid": "rv2-161",
@@ -70,7 +264,26 @@
         1,
         "3af19e8c03a61614"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-175",
@@ -87,7 +300,26 @@
         1,
         "4c67f4fe9a76d1af"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-186",
@@ -104,7 +336,26 @@
         1,
         "81fbe4bda0d48513"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-193",
@@ -121,7 +372,27 @@
         1,
         "b3ae65fc72ba3fbe"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-199",
@@ -138,7 +409,26 @@
         2,
         "e8c9fdc458f16229"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-202",
@@ -155,7 +445,26 @@
         2,
         "81fbe4bda0d48513"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-207",
@@ -172,7 +481,27 @@
         1,
         "b3ae65fc72ba3fbe"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-218",
@@ -189,7 +518,26 @@
         1,
         "3af19e8c03a61614"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-225",
@@ -206,7 +554,26 @@
         2,
         "2b76f1567078cd34"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-228",
@@ -223,7 +590,26 @@
         1,
         "9909bf6de30ed915"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-231",
@@ -240,7 +626,26 @@
         2,
         "0f0187d5838e086a"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-233",
@@ -257,7 +662,26 @@
         3,
         "1537a49a7ba64705"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-241",
@@ -274,7 +698,26 @@
         1,
         "9909bf6de30ed915"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-242",
@@ -291,7 +734,27 @@
         1,
         "8023b2c5a20b31fc"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-247",
@@ -308,7 +771,27 @@
         1,
         "94a3b3c35babbd08"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-249",
@@ -325,7 +808,26 @@
         1,
         "51193811c8f4c18e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-250",
@@ -342,7 +844,26 @@
         2,
         "e8c9fdc458f16229"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-255",
@@ -359,7 +880,26 @@
         3,
         "35cc025093a95365"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-262",
@@ -376,7 +916,26 @@
         4,
         "6399b89bb6c8d4e1"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-265",
@@ -393,7 +952,26 @@
         3,
         "2b76f1567078cd34"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-266",
@@ -410,7 +988,26 @@
         1,
         "6d3463a8de185758"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-273",
@@ -427,7 +1024,26 @@
         2,
         "55494f8814975a1e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-274",
@@ -444,7 +1060,26 @@
         1,
         "0444fc9cfda8811d"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-276",
@@ -461,7 +1096,26 @@
         3,
         "1537a49a7ba64705"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-280",
@@ -478,7 +1132,26 @@
         3,
         "764464c902d6b50c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-283",
@@ -495,7 +1168,27 @@
         2,
         "63af31f2d21a125c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-289",
@@ -512,7 +1205,26 @@
         4,
         "35cc025093a95365"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-292",
@@ -529,7 +1241,27 @@
         2,
         "63af31f2d21a125c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-298",
@@ -546,7 +1278,26 @@
         4,
         "6399b89bb6c8d4e1"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-303",
@@ -563,7 +1314,26 @@
         5,
         "646f5dd927c55426"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-310",
@@ -580,7 +1350,26 @@
         5,
         "351d82017160c1af"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-312",
@@ -597,7 +1386,26 @@
         2,
         "f4d52786fb21aa6b"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-316",
@@ -614,7 +1422,26 @@
         2,
         "0f0187d5838e086a"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-318",
@@ -631,7 +1458,26 @@
         5,
         "d9f01ddbce44379a"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-321",
@@ -648,7 +1494,27 @@
         3,
         "fa2baaf41db30f36"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-328",
@@ -665,7 +1531,26 @@
         3,
         "ebd2a82f4dce10bc"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-332",
@@ -682,7 +1567,26 @@
         6,
         "7dc93c7618d585d9"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-335",
@@ -699,7 +1603,27 @@
         4,
         "d1f500db47a3b62c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-340",
@@ -716,7 +1640,26 @@
         7,
         "646f5dd927c55426"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-341",
@@ -733,7 +1676,27 @@
         3,
         "fa2baaf41db30f36"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-345",
@@ -750,7 +1713,26 @@
         7,
         "83f914705c219bfc"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-348",
@@ -767,7 +1749,27 @@
         5,
         "385b993f8dfe1446"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-353",
@@ -784,7 +1786,26 @@
         8,
         "5da9e6aab2696a17"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-358",
@@ -801,7 +1822,26 @@
         8,
         "38522f3ac2e01d1c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-362",
@@ -818,7 +1858,26 @@
         2,
         "fef570c239a70b07"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-366",
@@ -835,7 +1894,27 @@
         4,
         "d1f500db47a3b62c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-374",
@@ -852,7 +1931,27 @@
         5,
         "385b993f8dfe1446"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-375",
@@ -869,7 +1968,26 @@
         2,
         "fef570c239a70b07"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-399",
@@ -886,7 +2004,26 @@
         2,
         "76e7cb0c4da9a25d"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-406",
@@ -903,7 +2040,26 @@
         2,
         "26414e2521981e40"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-409",
@@ -920,7 +2076,26 @@
         3,
         "4e6164edcf389091"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-414",
@@ -937,7 +2112,26 @@
         3,
         "26414e2521981e40"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-426",
@@ -954,7 +2148,26 @@
         3,
         "4e6164edcf389091"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-438",
@@ -971,7 +2184,26 @@
         4,
         "f1ed7fabaae184de"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-444",
@@ -988,7 +2220,26 @@
         8,
         "9fbd1134afd80126"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-448",
@@ -1005,7 +2256,26 @@
         9,
         "d98080227c3e13f7"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-465",
@@ -1022,7 +2292,26 @@
         7,
         "9fbd1134afd80126"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-471",
@@ -1039,7 +2328,26 @@
         8,
         "d98080227c3e13f7"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2-477",
@@ -1056,7 +2364,26 @@
         10,
         "b1cd5c8e4b59707a"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-000",
@@ -1073,7 +2400,27 @@
         0,
         "6d55b9d43d50c9d8"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-001",
@@ -1090,7 +2437,27 @@
         0,
         "e2aa061e88d579ec"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-002",
@@ -1107,7 +2474,26 @@
         0,
         "f77cd3a808fa30b0"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-003",
@@ -1124,7 +2510,26 @@
         0,
         "f95dc2639b8ed55e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-004",
@@ -1141,7 +2546,26 @@
         0,
         "0881a9f140b6c5ae"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-005",
@@ -1158,7 +2582,26 @@
         0,
         "e1055d67519b267d"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-006",
@@ -1175,7 +2618,27 @@
         0,
         "444d4d05e9d72412"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-007",
@@ -1192,7 +2655,27 @@
         0,
         "5923505cb090dc39"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-008",
@@ -1209,7 +2692,26 @@
         0,
         "8f665eb5ed8fed5d"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-009",
@@ -1226,7 +2728,26 @@
         0,
         "7acf774a8f6f17b1"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-010",
@@ -1243,7 +2764,27 @@
         0,
         "f54c34ae2d4cc45a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-011",
@@ -1260,7 +2801,27 @@
         0,
         "7cfde85affab5b30"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-012",
@@ -1277,7 +2838,26 @@
         0,
         "a2dfd7316219374a"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-013",
@@ -1294,7 +2874,26 @@
         0,
         "4c411ea8a84677e4"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-014",
@@ -1311,7 +2910,27 @@
         0,
         "cfb62e54f8c090be"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-015",
@@ -1328,7 +2947,27 @@
         0,
         "ab730258cbd4f24a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-016",
@@ -1345,7 +2984,26 @@
         0,
         "7b4a35232f868c45"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-017",
@@ -1362,7 +3020,26 @@
         0,
         "9fea3c9dfa97af89"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-018",
@@ -1379,7 +3056,26 @@
         0,
         "bafb63371b1ac831"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-019",
@@ -1396,7 +3092,26 @@
         0,
         "90204190d02da592"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-020",
@@ -1413,7 +3128,26 @@
         0,
         "7826a084cf5b0114"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-021",
@@ -1430,7 +3164,26 @@
         0,
         "176e35e3b383d94a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-022",
@@ -1447,7 +3200,26 @@
         0,
         "c00c1b2224f30ec5"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-023",
@@ -1464,7 +3236,27 @@
         0,
         "02fc231661f34cd2"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-024",
@@ -1481,7 +3273,27 @@
         0,
         "967e344a57dadfeb"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-025",
@@ -1498,7 +3310,27 @@
         0,
         "00426d1c6220ef19"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-026",
@@ -1515,7 +3347,27 @@
         0,
         "a934c7e8e07e1ed4"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-027",
@@ -1532,7 +3384,27 @@
         0,
         "6d55b9d43d50c9d8"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-028",
@@ -1549,7 +3421,27 @@
         0,
         "e2aa061e88d579ec"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-029",
@@ -1566,7 +3458,26 @@
         0,
         "f77cd3a808fa30b0"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-030",
@@ -1583,7 +3494,26 @@
         0,
         "f95dc2639b8ed55e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-031",
@@ -1600,7 +3530,26 @@
         0,
         "0881a9f140b6c5ae"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-032",
@@ -1617,7 +3566,26 @@
         0,
         "e1055d67519b267d"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-033",
@@ -1634,7 +3602,27 @@
         0,
         "fd02b483fd96d3d7"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-034",
@@ -1651,7 +3639,27 @@
         0,
         "5923505cb090dc39"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-035",
@@ -1668,7 +3676,26 @@
         0,
         "78c036fc8eafb21c"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-036",
@@ -1685,7 +3712,26 @@
         0,
         "7acf774a8f6f17b1"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-037",
@@ -1702,7 +3748,26 @@
         0,
         "8bde2cb6be45e98c"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-038",
@@ -1719,7 +3784,27 @@
         0,
         "7cfde85affab5b30"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-039",
@@ -1736,7 +3821,26 @@
         0,
         "74c4e5df47326ae9"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-040",
@@ -1753,7 +3857,26 @@
         0,
         "b2eb2875c88b8945"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-041",
@@ -1770,7 +3893,26 @@
         0,
         "8dc8e481ce2c5c25"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-042",
@@ -1787,7 +3929,26 @@
         0,
         "7e11d92206724dca"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-043",
@@ -1804,7 +3965,26 @@
         0,
         "57a797104d814ef9"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-044",
@@ -1821,7 +4001,26 @@
         0,
         "9fea3c9dfa97af89"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-045",
@@ -1838,7 +4037,26 @@
         0,
         "bafb63371b1ac831"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-046",
@@ -1855,7 +4073,26 @@
         0,
         "90204190d02da592"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-047",
@@ -1872,7 +4109,26 @@
         0,
         "9c267e7df2ff7cd9"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-048",
@@ -1889,7 +4145,26 @@
         0,
         "176e35e3b383d94a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-049",
@@ -1906,7 +4181,26 @@
         0,
         "c00c1b2224f30ec5"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-050",
@@ -1923,7 +4217,27 @@
         0,
         "02fc231661f34cd2"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-051",
@@ -1940,7 +4254,27 @@
         0,
         "967e344a57dadfeb"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-052",
@@ -1957,7 +4291,26 @@
         0,
         "c60b70d2f2d57c8c"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-053",
@@ -1974,7 +4327,26 @@
         0,
         "e436520bac1048d6"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-054",
@@ -1991,7 +4363,27 @@
         0,
         "8b3aac7554b962b8"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-055",
@@ -2008,7 +4400,27 @@
         0,
         "394dddbdb4df8fa1"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-056",
@@ -2025,7 +4437,26 @@
         0,
         "29f8477180e87aff"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-057",
@@ -2042,7 +4473,26 @@
         0,
         "10d0f21c246ed350"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-058",
@@ -2059,7 +4509,27 @@
         0,
         "e702046b12e9e62f"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-059",
@@ -2076,7 +4546,27 @@
         0,
         "114a0205a92a136a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-060",
@@ -2093,7 +4583,26 @@
         0,
         "047fa46bc1125932"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-061",
@@ -2110,7 +4619,26 @@
         0,
         "0bf7e955b03667a4"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-062",
@@ -2127,7 +4655,27 @@
         0,
         "72fe9586b829e2b3"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-063",
@@ -2144,7 +4692,27 @@
         0,
         "9de9f9878bb31eb0"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-064",
@@ -2161,7 +4729,27 @@
         0,
         "2ced35c726e98309"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-065",
@@ -2178,7 +4766,27 @@
         0,
         "df41b0bc4624cd19"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-066",
@@ -2195,7 +4803,26 @@
         0,
         "55494f8814975a1e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-067",
@@ -2212,7 +4839,26 @@
         0,
         "ed30e15aedd79c0e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-068",
@@ -2229,7 +4875,26 @@
         0,
         "2c70801cd6494a7b"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-069",
@@ -2246,7 +4911,26 @@
         0,
         "3ac5bcfe7df738a8"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-070",
@@ -2263,7 +4947,26 @@
         0,
         "7f52f8c386f9e1b1"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-071",
@@ -2280,7 +4983,26 @@
         0,
         "e2b0ee1f8eb91c42"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-072",
@@ -2297,7 +5019,27 @@
         0,
         "23233f89a12b1f24"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-073",
@@ -2314,7 +5056,26 @@
         0,
         "cd0f5df5ccbb10bc"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-074",
@@ -2331,7 +5092,26 @@
         0,
         "48cda45e1998896d"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-075",
@@ -2348,7 +5128,26 @@
         0,
         "d39cd9c2b993ab26"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-076",
@@ -2365,7 +5164,27 @@
         0,
         "8b3aac7554b962b8"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-077",
@@ -2382,7 +5201,27 @@
         0,
         "394dddbdb4df8fa1"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-078",
@@ -2399,7 +5238,26 @@
         0,
         "29f8477180e87aff"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-079",
@@ -2416,7 +5274,26 @@
         0,
         "74fa4c94cf13dca6"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-080",
@@ -2433,7 +5310,27 @@
         0,
         "e702046b12e9e62f"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-081",
@@ -2450,7 +5347,26 @@
         0,
         "b3d89f92967a8151"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-082",
@@ -2467,7 +5383,26 @@
         0,
         "8f665eb5ed8fed5d"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-083",
@@ -2484,7 +5419,26 @@
         0,
         "0bf7e955b03667a4"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-084",
@@ -2501,7 +5455,26 @@
         0,
         "0244410cb771fb3c"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-085",
@@ -2518,7 +5491,27 @@
         0,
         "9de9f9878bb31eb0"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-086",
@@ -2535,7 +5528,26 @@
         0,
         "a2dfd7316219374a"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-087",
@@ -2552,7 +5564,26 @@
         0,
         "4c411ea8a84677e4"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-088",
@@ -2569,7 +5600,27 @@
         0,
         "cfb62e54f8c090be"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-089",
@@ -2586,7 +5637,27 @@
         0,
         "ab730258cbd4f24a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-090",
@@ -2603,7 +5674,26 @@
         0,
         "ed30e15aedd79c0e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-091",
@@ -2620,7 +5710,26 @@
         0,
         "2c70801cd6494a7b"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-092",
@@ -2637,7 +5746,26 @@
         0,
         "3ac5bcfe7df738a8"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-093",
@@ -2654,7 +5782,27 @@
         0,
         "03251b05f55b70bd"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-094",
@@ -2671,7 +5819,26 @@
         0,
         "7f52f8c386f9e1b1"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-095",
@@ -2688,7 +5855,26 @@
         0,
         "e2b0ee1f8eb91c42"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-096",
@@ -2705,7 +5891,27 @@
         0,
         "bd070a6a94ac9986"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-097",
@@ -2722,7 +5928,26 @@
         0,
         "9942caad471e7961"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-098",
@@ -2739,7 +5964,27 @@
         0,
         "00426d1c6220ef19"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-099",
@@ -2756,7 +6001,27 @@
         0,
         "a934c7e8e07e1ed4"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "near",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-100",
@@ -2773,7 +6038,26 @@
         0,
         "f4d34596275dc2a1"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-101",
@@ -2790,7 +6074,26 @@
         0,
         "6d3463a8de185758"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-102",
@@ -2807,7 +6110,26 @@
         0,
         "bf4ba04fb58e73c9"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-103",
@@ -2824,7 +6146,27 @@
         0,
         "91b3cabcb9f7d9b9"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-104",
@@ -2841,7 +6183,26 @@
         0,
         "43167911032f4202"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-105",
@@ -2858,7 +6219,26 @@
         0,
         "e68b6b2c8b7fd55a"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-106",
@@ -2875,7 +6255,27 @@
         0,
         "054831e18eacc760"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-107",
@@ -2892,7 +6292,26 @@
         0,
         "b3b67ea6a571f471"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-108",
@@ -2909,7 +6328,27 @@
         0,
         "af6d9e104d44f5c5"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-109",
@@ -2926,7 +6365,26 @@
         0,
         "3a6965e1a2de44d3"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-110",
@@ -2943,7 +6401,27 @@
         0,
         "9ddbb33cf25d20d3"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-111",
@@ -2960,7 +6438,26 @@
         0,
         "6cf51cc5fe89fc58"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-112",
@@ -2977,7 +6474,26 @@
         0,
         "b79cd1255dc83337"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "no_propagation_needed",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-113",
@@ -2994,7 +6510,26 @@
         0,
         "073d581029d5429e"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-114",
@@ -3011,7 +6546,26 @@
         0,
         "fa3436db13a37201"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-115",
@@ -3028,7 +6582,27 @@
         0,
         "c7b700bc437bd80d"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-116",
@@ -3045,7 +6619,26 @@
         0,
         "f257ddbbffdb009c"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "default",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-117",
@@ -3062,7 +6655,27 @@
         0,
         "2e675af38ed1ddaf"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "report-only",
+      "tier_reasons": [
+        "shared_logic_not_touched",
+        "test_scope",
+        "test_scaffolding"
+      ],
+      "taxonomy_hint": "test_scaffolding",
+      "gate": {
+        "eligible": false,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-118",
@@ -3079,7 +6692,26 @@
         0,
         "e8466308aaa66399"
       ],
-      "fire_eligible": false
+      "fire_eligible": false,
+      "arm": "default",
+      "tier": "review",
+      "tier_reasons": [
+        "shared_logic_unproven",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "unclear",
+      "gate": {
+        "eligible": true,
+        "fail_default": false,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     },
     {
       "sid": "rv2t1-119",
@@ -3096,12 +6728,31 @@
         0,
         "f4d34596275dc2a1"
       ],
-      "fire_eligible": true
+      "fire_eligible": true,
+      "arm": "near",
+      "tier": "strict",
+      "tier_reasons": [
+        "shared_logic_touched",
+        "non_test_scope"
+      ],
+      "taxonomy_hint": "missed_propagation",
+      "gate": {
+        "eligible": true,
+        "fail_default": true,
+        "policy": "divergent-edit-v2-strict"
+      },
+      "policy_evidence_source": "derived-v2-from-redacted-sample",
+      "policy_evidence_sources": {
+        "tier": "derived-v2-from-redacted-sample",
+        "tier_reasons": "derived-v2-from-redacted-sample",
+        "taxonomy_hint": "derived-v2-from-redacted-sample",
+        "gate": "derived-v2-from-redacted-sample"
+      }
     }
   ],
   "inputs": {
     "samples": "eval/divergence_fire/sampled_findings_2026_07_06.jsonl",
     "verdicts": "eval/divergence_fire/verdicts_2026_07_06.jsonl"
   },
-  "command": "eval/divergence_fire/replay.py policy-eval --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl --out /tmp/nose-675/policy_eval_final_head_a38ecb8b_2026_07_06.json"
+  "command": "eval/divergence_fire/replay.py policy-eval --samples eval/divergence_fire/sampled_findings_2026_07_06.jsonl --verdicts eval/divergence_fire/verdicts_2026_07_06.jsonl --out eval/divergence_fire/policy_eval_final_head_a38ecb8b_2026_07_06.json"
 }
