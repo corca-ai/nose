@@ -1,6 +1,6 @@
 use super::git::{
-    canonical, git_changed_ranges_and_entries, git_repo_root, repo_relative_paths, reroot_paths,
-    BaseWorktree, DiffEntry,
+    canonical, ensure_base_ref_available, git_changed_ranges_and_entries, git_repo_root,
+    repo_relative_paths, reroot_paths, BaseWorktree, DiffEntry,
 };
 use super::*;
 use crate::detect_pipeline::detect_divergence_base_families;
@@ -32,6 +32,7 @@ pub(crate) fn detect_divergences(
     }
 
     let divergence_paths = repo_relative_paths(&args.paths, &root);
+    ensure_base_ref_available(&root, &args.base)?;
     let (changed, current_changed, diff_entries) =
         git_changed_ranges_and_entries(&root, &args.base, &divergence_paths)?;
     let current_lane_requested = has_current_tree_new_copy_trigger(&diff_entries);

@@ -236,7 +236,7 @@ lands in one copy but not its clones:
 
 ```sh
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on any
-# or, for inline PR annotations on the un-updated copies:
+# or, for code-scanning results:
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --format sarif top=0 > nose-divergence.sarif
 ```
 
@@ -246,9 +246,12 @@ findings, including mixed/test scope and `new-copy` current-tree evidence, remai
 but do not fail the default gate.
 
 Base-divergence SARIF results are anchored on the **un-updated sibling** (where the fix
-may be missing), so a code-scanning annotation lands on the copy the change skipped. The
-rule id, level, message, and `properties.tier` identify whether a finding is `strict`,
-`review`, or `report-only`.
+may be missing). GitHub can show inline code-scanning annotations only when the reported
+location is in the pull request diff, so a skipped-sibling result may be visible in code
+scanning without appearing inline on the Conversation or Files changed tabs. Use the
+GitHub Actions examples in [continuous integration](continuous-integration.md#github-actions-rollout-examples)
+for a step summary that always reports strict/review/report-only counts and fails only
+from `gate.fail_default`.
 
 ## History Mining
 

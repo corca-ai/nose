@@ -15,6 +15,7 @@ cd "$(dirname "$0")/.."
 
 if command -v python3 >/dev/null 2>&1; then
     python3 scripts/check-semantic-pack-examples.py
+    python3 scripts/check-ci-examples.py
 else
     echo "skipped semantic-pack example check — python3 not installed"
 fi

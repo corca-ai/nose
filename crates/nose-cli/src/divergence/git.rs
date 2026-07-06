@@ -38,6 +38,15 @@ pub(super) fn git_repo_root() -> Result<PathBuf> {
     ))
 }
 
+pub(super) fn ensure_base_ref_available(root: &Path, base: &str) -> Result<()> {
+    let commit_ref = format!("{base}^{{commit}}");
+    let out = git(root, &["rev-parse", "--verify", "--quiet", &commit_ref])?;
+    if !out.status.success() {
+        anyhow::bail!("base ref `{base}` is not available locally; fetch it before running nose");
+    }
+    Ok(())
+}
+
 /// A throwaway worktree checked out at `base`, removed on drop.
 pub(super) struct BaseWorktree {
     root: PathBuf,
