@@ -11,6 +11,7 @@ nose-semantics = { workspace = true }
 rustc-hash = { workspace = true }
 rayon = { workspace = true }
 ignore = { workspace = true }
+memchr = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
 

@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-07-06
+
 ### Added
 - Added #687 divergent gate productization evidence: history-mining artifacts now
   have a validator, hardened provenance/counts, and checked nose-on-nose
@@ -85,6 +87,14 @@ break.
   splitting `diff --git` headers on whitespace.
 
 ### Performance
+- Completed the 0.18.0 pre-release performance pass without changing product output:
+  inline `nose-ignore` suppression now prescreens candidate marker starts with
+  `memchr`, the immediate all-120-repo query regression kept 120/120 hashes,
+  family counts, and byte counts identical while measuring `58,555.18ms ->
+  57,323.32ms` (`-2.10%`), and the release-candidate `v0.17.0` comparison
+  measured `60,162.97ms -> 56,068.77ms` (`-6.81%`) with the `crates`
+  recall-loss gate at 0 false merges and 0 canon-preservation violations. See
+  the [0.18.0 release evidence](docs/release-evidence-0.18.0.md).
 - Recorded #688 divergent-gate product-output and runtime evidence: all 120
   non-`base=` corpus queries kept identical hashes, byte counts, and family
   counts across the #681 productization range, the focused nose slice stayed

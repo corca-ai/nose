@@ -138,6 +138,7 @@ fundamentals; the rest is grouped by area.
 - [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset hazard is measured against (repo selection, graded labels, quantitative sufficiency).
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for the hazard ranking on every new nose release (one-page runbook: refresh the dataset, re-tune, re-validate).
 - [runtime triage](runtime-triage.md) — reproducible query-runtime regression triage: harness, classification policy, timing knobs, and when not to optimize.
+- [0.18.0 release evidence](release-evidence-0.18.0.md) — the pre-release performance pass, all-corpus query-regression, and recall-loss gate for the 0.18.0 release candidate.
 - [0.17.0 release evidence](release-evidence-0.17.0.md) — the hazard refresh, all-corpus query-regression, recall-loss gate, and profiling notes for the 0.17.0 release candidate.
 - [0.17.0 post-release runtime triage](runtime-triage-0.17.0.md) — focused follow-up on the largest release-candidate query-runtime regressions, including the `arrow` hot-path fix and remaining no-family-growth follow-ups.
 - [20-optimization runtime pass](runtime-performance-20-optimizations-2026-07-02.md) — the post-0.17.0 profile-guided optimization sequence, all-120-repo before/after run, focused recheck, and noise-aware interpretation.

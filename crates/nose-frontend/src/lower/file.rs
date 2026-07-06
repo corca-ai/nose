@@ -92,8 +92,17 @@ const SUPPRESS_MARKER: &str = "nose-ignore";
 
 fn contains_marker(src: &[u8]) -> bool {
     // cheap whole-file prescreen so the per-unit work only runs when relevant
-    src.windows(SUPPRESS_MARKER.len())
-        .any(|w| w.eq_ignore_ascii_case(SUPPRESS_MARKER.as_bytes()))
+    let marker = SUPPRESS_MARKER.as_bytes();
+    if src.len() < marker.len() {
+        return false;
+    }
+
+    for i in memchr::memchr2_iter(b'n', b'N', src) {
+        if i + marker.len() <= src.len() && src[i..i + marker.len()].eq_ignore_ascii_case(marker) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Is the unit starting at `start_byte` suppressed — i.e. does its first line or the
@@ -119,4 +128,24 @@ fn unit_suppressed(src: &[u8], start_byte: usize) -> bool {
         .map_or(src.len(), |p| start + p);
     let window = String::from_utf8_lossy(&src[prev_begin..cur_end]);
     window.contains(SUPPRESS_MARKER)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::contains_marker;
+
+    #[test]
+    fn contains_marker_matches_ascii_case_insensitively() {
+        assert!(contains_marker(b"// nose-ignore\nfn clone() {}"));
+        assert!(contains_marker(b"# NOSE-IGNORE\ndef clone(): pass"));
+        assert!(contains_marker(b"prefix NoSe-IgNoRe suffix"));
+    }
+
+    #[test]
+    fn contains_marker_requires_exact_marker() {
+        assert!(!contains_marker(b""));
+        assert!(!contains_marker(b"nose-ignor"));
+        assert!(!contains_marker(b"noise-ignore"));
+        assert!(!contains_marker(b"nose_ignore"));
+    }
 }
