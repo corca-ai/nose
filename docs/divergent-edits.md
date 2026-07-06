@@ -58,9 +58,10 @@ touched, not that the change definitely belongs there. Inspect each flagged sibl
 
 The report and the gate are deliberately different surfaces. The report shows active
 base-tree divergence findings plus bounded advisory lanes; on
-`nose query <path> base=<ref>`, **`--fail-on any` fires only on unsuppressed `strict`
-findings** ([experiments](experiments.md)). A `strict`
-finding must satisfy the legacy conservative shared-logic proof and the v2 tier policy:
+`nose query <path> base=<ref>`, **`--fail-on any` fires only when an emitted item has
+`gate.fail_default=true`**. Today that means an unsuppressed `strict` finding
+([experiments](experiments.md)). A default-failing finding must satisfy the legacy
+conservative shared-logic proof and the v2 tier policy:
 
 - the diff **provably touches lines the changed copy shares with its un-updated
   sibling** — by the family's own equivalence proof for `exact-value-graph` families
@@ -71,21 +72,23 @@ finding must satisfy the legacy conservative shared-logic proof and the v2 tier 
 - the family is production scope (`scope="prod"`). Mixed and all-test findings remain
   visible, but they are `report-only` by default.
 
-Measured on replayed merged PRs against judge-labeled findings: the v1 conservative
-`fire_eligible` policy kept every genuine missed propagation while firing 73% less
-often than span-overlap firing (change-level: 15% of merged changes vs 33%), at 3.7×
-the precision. The #672 v2 strict policy keeps the same confirmed positives on the
-checked #670 labelset while demoting mixed/test evidence from default-failing output.
+Measured on replayed merged PRs against judge-labeled findings: the final checked v2
+strict baseline fires on 80 findings, with 45 true positives and 35 false positives,
+for strict precision 0.562. It retains 45/45 confirmed v1 missed-propagation
+positives while demoting mixed/test evidence from default-failing output. The
+remaining strict false positives split into 17 `no_propagation_needed`, 13
+`intentional_divergence`, and 5 `not_a_clone` findings. This supports an opt-in
+review gate; it is not a default-on blocking readiness claim.
 Each JSON finding carries legacy `fire_eligible`, the v2 `tier` and `gate.fail_default`,
 `witness_kind`, `scope`, per-changed-site `touches_shared`, and — for near families —
 the family's [graded witness](graded-witness.md) (`graded`: `equal_modulo_holes`,
 `holes`, `patterns`, `referent_mismatches`, `caveat_names`), so a CI wrapper can use
-the emitted tier without re-deriving the analysis.
+the emitted `gate.fail_default` value without re-deriving the analysis.
 
 The graded witness is **evidence for the consumer, not a fire gate**: a clean
 `equal_modulo_holes` family is a strong missed-propagation candidate, while a
-`referent-mismatch` / `decorator-differs` family is one whose copies are not really
-the same logic (a likely false fire the consumer can down-rank). It deliberately does
+`referent-mismatch` / `decorator-differs` family is evidence that the copies may have
+different roles or referents. It deliberately does
 **not** gate legacy `fire_eligible` — a decorator or a same-named-but-different-referent
 difference does not stop a shared-*body* fix from being a genuine missed propagation,
 so suppressing on it would risk the keep-every-propagation property the shared-logic policy
@@ -98,18 +101,19 @@ presentation evidence; the v2 tier decides whether that proof is default-failing
 the useful signal is not only the top-ranked finding. The v2 contract therefore
 separates **what nose reports** from **what may fail CI** with an explicit tier on
 each divergent-edit finding. The v1 `fire_eligible` field remains as compatibility
-evidence, but default CI uses the v2 `strict` tier.
+evidence, but default CI uses `gate.fail_default`; the current policy sets it only for
+unsuppressed `strict` findings.
 
 | tier | CI behavior | evidence requirement | intended reader action |
 |---|---|---|---|
-| `strict` | `base=<ref> --fail-on any` exits non-zero when at least one unsuppressed `strict` finding is shown | `fire_eligible=true`, `scope="prod"`, `taxonomy_hint="missed_propagation"`, and no higher-priority report-only or suppression reason | treat as a likely missed sibling edit; block or require an explicit suppression |
-| `review` | reported in human/JSON/SARIF, does not fail by default | base-tree divergent-edit candidate that is not suppressed, not report-only, and not strict | inspect during review; optionally fail in a custom wrapper |
+| `strict` | `base=<ref> --fail-on any` exits non-zero only when the item has `gate.fail_default=true` | `fire_eligible=true`, `scope="prod"`, `taxonomy_hint="missed_propagation"`, and no higher-priority report-only or suppression reason | treat as a likely missed sibling edit; propagate it or require an explicit suppression |
+| `review` | reported in human/JSON/SARIF, does not fail by default | base-tree divergent-edit candidate that is not suppressed, not report-only, and not strict | inspect during review; keep advisory unless a later measured policy changes it |
 | `report-only` | reported only as advisory evidence, never fails default CI | useful context outside the default gate: test-only scaffolding, grouping artifacts, or newly added current-tree copies with no base member | use as reviewer/agent context; do not treat as a blocker |
 | `suppressed` | omitted from active human/SARIF gate output and never fails | matched by a structured ignore or accepted suppression | audit through the ignore file, not through repeated PR noise |
 
 The v2 enums are closed for schema v8. Adding, renaming, or removing one requires a
 schema bump. `taxonomy_hint` is an evidence label for routing and UI copy, not a
-claim that the code is correct or incorrect:
+claim that the code is harmful, correct, intentional, or not a clone:
 
 | taxonomy bucket | product meaning | v2 routing |
 |---|---|---|
@@ -162,7 +166,8 @@ The `base=` view shares [`nose query`](usage.md#nose-query)'s detection flags �
 difference from a plain `nose query`: when `--mode` is omitted the `base=` view defaults to
 the conservative `syntax,semantic` mix (a plain `nose query` also runs `near`) — it feeds a
 gate, where a false fire costs more than a missed candidate. Add `--mode syntax,semantic,near`
-to include the fuzzy channel. `base=` is a diff view, not a family list view, so ordinary
+only for an explicit audit that opts into the fuzzy channel; the documented enforcing mode is
+`syntax,semantic`. `base=` is a diff view, not a family list view, so ordinary
 query filters (`path~`, `witness=`, `group=`, `since=`, `id=`) are rejected instead of ignored.
 
 | flag / term | effect |
@@ -231,8 +236,8 @@ divergence:
 
 ## In CI
 
-Run it on a pull request and fail the build (or post SARIF annotations) when a change
-lands in one copy but not its clones:
+Run it on a pull request as an opt-in review gate, or first post SARIF annotations without
+failing, when a change lands in one copy but not its clones:
 
 ```sh
 nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --fail-on any
@@ -243,7 +248,7 @@ nose query . base="origin/${GITHUB_BASE_REF}" --mode syntax,semantic --format sa
 Pin `--mode` in CI even though the `base=` default is already conservative; it makes
 upgrade diffs explicit. `top=0` is the complete-upload spelling for SARIF. Report-only
 findings, including mixed/test scope and `new-copy` current-tree evidence, remain visible
-but do not fail the default gate.
+but do not fail the default gate; only `gate.fail_default=true` does.
 
 Base-divergence SARIF results are anchored on the **un-updated sibling** (where the fix
 may be missing). GitHub can show inline code-scanning annotations only when the reported
@@ -269,6 +274,6 @@ schema.
 - The default base-divergence lane detects clone families at the base. A clone whose copy is
   **newly added** in the change has no base member, so it is considered only by the bounded
   `new-copy` report-only lane when the diff is small enough to keep runtime predictable.
-- The harm ordering is a structural heuristic (~0.6–0.65 on mined divergence labels; see
+- The hazard ordering is a structural heuristic (~0.6–0.65 on mined divergence labels; see
   [hazard-benchmark](hazard-benchmark.md)). It prioritizes candidates; it does not certify
   them.

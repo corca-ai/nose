@@ -101,7 +101,8 @@ touches_shared, tree}`.
 `limit` is the numeric row limit or `null` for `top=0`. `fire_eligible` is the legacy v1
 conservative gate verdict. In the current implementation it means the diff provably touches
 shared logic and the family is not all-test scaffolding. `strict` counts the v2 default-failing
-items.
+items, but it is only a summary count; CI decisions should read each emitted item's
+`gate.fail_default`, ideally from a `top=0` run.
 
 The v8 base-view additions for divergent-edit v2 are intentionally schema-breaking
 instead of silent v7 additions: CI wrappers and agents need stable enums for gate behavior.
@@ -117,8 +118,8 @@ The v8 `base.items[]` object adds:
 | `base_family_id` | string or null | The base-tree family id for `base-divergence`; `null` for `new-copy`. |
 | `tier` | string enum | `strict`, `review`, `report-only`, or `suppressed`. `strict` is the only default CI-failing tier; `review` and `report-only` are visible but non-failing; `suppressed` is emitted only by an explicit future suppressed/debug surface. |
 | `tier_reasons[]` | array of strings | Closed reason-code enum: `shared_logic_touched`, `shared_logic_not_touched`, `shared_logic_unproven`, `non_test_scope`, `test_scope`, `variant_signal`, `test_scaffolding`, `grouping_artifact`, `new_copy_no_base_member`, `structured_ignore`, or `unclassified`. |
-| `taxonomy_hint` | string or null | Closed false-fire bucket for routing and UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This is evidence for consumers, not a correctness verdict. |
-| `gate` | object | `{eligible, fail_default, policy}` where `eligible` is true for `strict` and `review`, false for `report-only` and `suppressed`, `fail_default` is true only for unsuppressed `strict`, and `policy` names the policy version such as `divergent-edit-v2-strict`. |
+| `taxonomy_hint` | string or null | Closed evidence/routing bucket for UI copy: `missed_propagation`, `no_propagation_needed`, `intentional_variant`, `test_scaffolding`, `grouping_artifact`, or `unclear`. This guides inspection; it is not a harm or correctness verdict. |
+| `gate` | object | `{eligible, fail_default, policy}` where `eligible` is informational (`true` for `strict` and `review`, false for `report-only` and `suppressed`), `fail_default` is the authoritative default CI decision and is true only for unsuppressed `strict`, and `policy` names the policy version such as `divergent-edit-v2-strict`. |
 | `suppression` | object or null | Structured-ignore match metadata when a future suppressed/debug view asks for it: `{kind, reason, owner, expires_at}`. `kind` is the closed enum `structured-ignore` for v8. Active human/SARIF output omits suppressed findings by default. |
 
 Composition rules for v8:
@@ -137,11 +138,14 @@ Composition rules for v8:
   proof or mixed/test scope fails closed to `review` or `report-only`.
 - CI consumers should use each item's `gate.fail_default` as the authoritative
   default pass/fail decision. `summary.strict` is a count, `gate.policy` names
-  the policy that produced the decision, and `fire_eligible` is retained
-  compatibility evidence rather than the v2 gate.
+  the policy that produced the decision, `gate.eligible` is informational, and
+  `fire_eligible` is retained compatibility evidence rather than the v2 gate.
 - `report-only` is for advisory lanes: `test_scaffolding`, `grouping_artifact`,
   `test_scope`, or `new_copy_no_base_member`.
 - `suppressed` wins over all other tiers and must never set `gate.fail_default=true`.
+- The current policy emits `gate.fail_default=true` only for unsuppressed production
+  `strict` findings. Mixed/test, `new-copy`, `review`, `report-only`, and `suppressed`
+  findings remain non-failing advisory evidence.
 - Active v8 output counts only unsuppressed items: `summary.divergences` is the
   unsuppressed total before `top=N`, and `summary.shown_divergences` is
   `items.length`. A future suppressed/debug surface must expose suppressed rows

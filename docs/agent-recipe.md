@@ -44,10 +44,11 @@ nose query <path> --format json                    # the ranked triage surface (
 nose query <path> base=origin/main --format json   # PR-time divergence (the base view)
 ```
 
-Parse the family objects — `families[]` in the dashboard or list view
-(dashboard also keeps `top_candidates[]` as a compatibility alias), `items[]` in the `base` view
-([query JSON](query-json.md)). Do not scrape human output. The per-family decision procedure
-below applies to both a `nose query` row and a JSON family — they carry the same evidence fields.
+Parse `families[]` in the dashboard or list view (dashboard also keeps
+`top_candidates[]` as a compatibility alias). The per-family decision procedure below applies
+to normal `nose query` rows and JSON families — they carry the same evidence fields.
+The PR-time `base` view emits `items[]`; use the divergent-edit procedure below for those
+records instead. Do not scrape human output.
 
 ## Per-family decision procedure
 
@@ -131,15 +132,19 @@ Read the fields in this order — each step either decides or narrows:
 `nose query <path> base=<ref> --format json` (the `base` view) emits one `items[]`
 finding per divergence, each carrying the v2 gate fields: `tier`, `tier_reasons[]`,
 `taxonomy_hint`, and `gate.fail_default`, plus legacy `fire_eligible` compatibility
-evidence, `witness_kind`, `scope`, and per-changed-site `touches_shared`. For a harm pass over the top
-findings, judge each as
+evidence, `witness_kind`, `scope`, and per-changed-site `touches_shared`. For propagation
+triage over the top findings, judge each as
 should-propagate / intentional-divergence / not-a-clone using the changed member's
 diff and the un-updated sibling's body. Most fires are not propagation hazards; the
-`strict` tier is the default-failing high-precision slice ([experiments](experiments.md)
-measured the base rates). Do not reconstruct the default gate from `fire_eligible`;
-use `gate.fail_default`. Treat `lane="new-copy"` as report-only context: inspect
-its `current_only[]` current-tree sites when useful, but do not ask CI to fail on it
-unless a later measured policy explicitly promotes that lane.
+current checked strict baseline has precision 0.562 ([experiments](experiments.md)
+measured the base rates), so treat it as opt-in review-gate evidence, not a
+default-on blocking claim. Do not reconstruct the default gate from `fire_eligible`;
+only `gate.fail_default=true` blocks in the opt-in enforcing workflow. `review`,
+`report-only`, `suppressed`, mixed/test findings, and `lane="new-copy"` are advisory:
+inspect their evidence when useful, but do not ask CI to fail on them unless a later
+measured policy explicitly promotes a lane. `taxonomy_hint` guides inspection; it does
+not declare correctness or harm. Adding `near` to PR-time `base=` is an explicit audit
+opt-in, not the default recommendation.
 
 ## Validation
 
