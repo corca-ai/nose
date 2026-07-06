@@ -266,7 +266,8 @@ keeps exact admission closed while following receiver-preserving Tokio Builder
 configuration methods through `build`; representative Tokio spot checks move
 future-drive evidence units from `6` to `8` with `0` false merges. Builder
 callback hooks, `thread_name_fn`, constructor-assigned fields, and block_on/await
-convergence remain closed.
+convergence remain closed; the exact-recovery prerequisites are tracked by
+[#680](https://github.com/corca-ai/nose/issues/680).
 The follow-up [Go channel protocol pricing artifact](../bench/recall_loss/scheduling-lifecycle-boundary-audit-go-channel-protocol-2026-06-30.v1.json)
 keeps exact admission closed while pricing `4,294` channel receives, `1,525`
 sends, `155` comma-ok receives, `1,920` select parents, `3,590` select cases,

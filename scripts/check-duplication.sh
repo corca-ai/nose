@@ -177,6 +177,9 @@ set -euo pipefail
 # 29 -> 29 (callee dependency matcher policy helpers): named-callee and static-receiver proof
 # helpers reduce the reviewed callee-dependency matcher family without making it a clearer shared
 # abstraction. The representative moves from `dbbb03b3c0fa93e8` to `95e83331abfa623f`.
+# 29 -> 26 (admission resolver dogfood): shared admission-provenance helpers remove the reviewed
+# `f88aeebdec4f2c68`, `e6d039006310127f`, and `7c1aef5590dfeefc` test fixture families. The
+# remaining admission-resolver representative moves from `e3fa2e4c707e342a` to `eb2f9fe7da72f8dd`.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

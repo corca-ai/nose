@@ -1,0 +1,436 @@
+{
+  "commits": [
+    {
+      "author_time": 1783291472,
+      "command": "target/release/nose query crates/nose-cli/tests/cli base=cadd6c8343c4ac5d9029c547d9f85b0a6c191eb5 --format json top=0 --mode syntax,semantic --min-size 8",
+      "commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+      "items": [
+        {
+          "base_family_id": "2b8cb9f34c7d1e08",
+          "changed": [
+            {
+              "enclosing_unit": {
+                "end_line": 54,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "nose_query_in",
+                "start_line": 41,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:41-54:nose_query_in"
+              },
+              "end_line": 53,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "fragment_kind": null,
+              "is_fragment": false,
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "reason_code": null,
+              "span_lines": 10,
+              "span_tokens": 30,
+              "start_line": 44,
+              "touches_shared": false,
+              "tree": "base"
+            },
+            {
+              "enclosing_unit": {
+                "end_line": 75,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "nose_query_base",
+                "start_line": 56,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:56-75:nose_query_base"
+              },
+              "end_line": 74,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "fragment_kind": null,
+              "is_fragment": false,
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "reason_code": null,
+              "span_lines": 10,
+              "span_tokens": 30,
+              "start_line": 65,
+              "touches_shared": true,
+              "tree": "base"
+            }
+          ],
+          "complexity": 30,
+          "family_id": "2b8cb9f34c7d1e08",
+          "fire_eligible": false,
+          "gate": {
+            "eligible": false,
+            "fail_default": false,
+            "policy": "divergent-edit-v2-strict"
+          },
+          "graded": null,
+          "lane": "base-divergence",
+          "not_updated": [
+            {
+              "enclosing_unit": {
+                "end_line": 185,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "query_base_pathspec_is_relative_to_invocation_dir",
+                "start_line": 129,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:129-185:query_base_pathspec_is_relative_to_invocation_dir"
+              },
+              "end_line": 167,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "fragment_kind": null,
+              "is_fragment": false,
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "reason_code": null,
+              "span_lines": 18,
+              "span_tokens": 22,
+              "start_line": 150,
+              "touches_shared": null,
+              "tree": "base"
+            },
+            {
+              "enclosing_unit": {
+                "end_line": 225,
+                "file": "crates/nose-cli/tests/cli/query_base/new_copy.rs",
+                "kind": "Function",
+                "name": "query_base_new_copy_pathspec_is_relative_from_subdir",
+                "start_line": 170,
+                "unit_key": "crates/nose-cli/tests/cli/query_base/new_copy.rs:Function:170-225:query_base_new_copy_pathspec_is_relative_from_subdir"
+              },
+              "end_line": 206,
+              "file": "crates/nose-cli/tests/cli/query_base/new_copy.rs",
+              "fragment_kind": null,
+              "is_fragment": false,
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "reason_code": null,
+              "span_lines": 18,
+              "span_tokens": 24,
+              "start_line": 189,
+              "touches_shared": null,
+              "tree": "base"
+            },
+            {
+              "enclosing_unit": {
+                "end_line": 317,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "query_base_needs_a_git_repository",
+                "start_line": 295,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:295-317:query_base_needs_a_git_repository"
+              },
+              "end_line": 306,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "fragment_kind": null,
+              "is_fragment": false,
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "reason_code": null,
+              "span_lines": 10,
+              "span_tokens": 24,
+              "start_line": 297,
+              "touches_shared": null,
+              "tree": "base"
+            }
+          ],
+          "scope": "test",
+          "similarity": 1.0,
+          "suppression": null,
+          "taxonomy_hint": "test_scaffolding",
+          "tier": "report-only",
+          "tier_reasons": [
+            "shared_logic_touched",
+            "test_scope",
+            "test_scaffolding"
+          ],
+          "witness_kind": "copy-paste-run"
+        }
+      ],
+      "parent": "cadd6c8343c4ac5d9029c547d9f85b0a6c191eb5",
+      "parents": [
+        "cadd6c8343c4ac5d9029c547d9f85b0a6c191eb5"
+      ],
+      "query_base": "cadd6c8343c4ac5d9029c547d9f85b0a6c191eb5",
+      "query_path": "crates/nose-cli/tests/cli",
+      "query_schema_version": 8,
+      "query_tool": "nose",
+      "query_view": "base",
+      "status": "ok",
+      "subject": "Deduplicate query-base test helpers",
+      "summary": {
+        "changed_files": 2,
+        "divergences": 1,
+        "fire_eligible": 0,
+        "limit": null,
+        "shown_divergences": 1,
+        "strict": 0
+      }
+    }
+  ],
+  "groups": [
+    {
+      "base_family_ids": [
+        "2b8cb9f34c7d1e08"
+      ],
+      "commits": [
+        "4283439e8e6209c8e8bb600d8a142e9963f27b32"
+      ],
+      "family_ids": [
+        "2b8cb9f34c7d1e08"
+      ],
+      "first_commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+      "gate_fail_default": false,
+      "key": "08e68ff404a20040",
+      "lanes": [
+        "base-divergence"
+      ],
+      "last_commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+      "occurrence_count": 1,
+      "occurrences": [
+        {
+          "base_family_id": "2b8cb9f34c7d1e08",
+          "commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+          "family_id": "2b8cb9f34c7d1e08",
+          "gate_fail_default": false,
+          "lane": "base-divergence",
+          "parent": "cadd6c8343c4ac5d9029c547d9f85b0a6c191eb5",
+          "sites": {
+            "changed": [
+              {
+                "enclosing_unit": {
+                  "end_line": 54,
+                  "file": "crates/nose-cli/tests/cli/query_base.rs",
+                  "kind": "Function",
+                  "name": "nose_query_in",
+                  "start_line": 41,
+                  "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:41-54:nose_query_in"
+                },
+                "end_line": 53,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Block",
+                "lang": "rust",
+                "name": null,
+                "start_line": 44,
+                "tree": "base"
+              },
+              {
+                "enclosing_unit": {
+                  "end_line": 75,
+                  "file": "crates/nose-cli/tests/cli/query_base.rs",
+                  "kind": "Function",
+                  "name": "nose_query_base",
+                  "start_line": 56,
+                  "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:56-75:nose_query_base"
+                },
+                "end_line": 74,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Block",
+                "lang": "rust",
+                "name": null,
+                "start_line": 65,
+                "tree": "base"
+              }
+            ],
+            "not_updated": [
+              {
+                "enclosing_unit": {
+                  "end_line": 185,
+                  "file": "crates/nose-cli/tests/cli/query_base.rs",
+                  "kind": "Function",
+                  "name": "query_base_pathspec_is_relative_to_invocation_dir",
+                  "start_line": 129,
+                  "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:129-185:query_base_pathspec_is_relative_to_invocation_dir"
+                },
+                "end_line": 167,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Block",
+                "lang": "rust",
+                "name": null,
+                "start_line": 150,
+                "tree": "base"
+              },
+              {
+                "enclosing_unit": {
+                  "end_line": 317,
+                  "file": "crates/nose-cli/tests/cli/query_base.rs",
+                  "kind": "Function",
+                  "name": "query_base_needs_a_git_repository",
+                  "start_line": 295,
+                  "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:295-317:query_base_needs_a_git_repository"
+                },
+                "end_line": 306,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Block",
+                "lang": "rust",
+                "name": null,
+                "start_line": 297,
+                "tree": "base"
+              },
+              {
+                "enclosing_unit": {
+                  "end_line": 225,
+                  "file": "crates/nose-cli/tests/cli/query_base/new_copy.rs",
+                  "kind": "Function",
+                  "name": "query_base_new_copy_pathspec_is_relative_from_subdir",
+                  "start_line": 170,
+                  "unit_key": "crates/nose-cli/tests/cli/query_base/new_copy.rs:Function:170-225:query_base_new_copy_pathspec_is_relative_from_subdir"
+                },
+                "end_line": 206,
+                "file": "crates/nose-cli/tests/cli/query_base/new_copy.rs",
+                "kind": "Block",
+                "lang": "rust",
+                "name": null,
+                "start_line": 189,
+                "tree": "base"
+              }
+            ]
+          },
+          "taxonomy_hint": "test_scaffolding",
+          "tier": "report-only"
+        }
+      ],
+      "representative": {
+        "base_family_id": "2b8cb9f34c7d1e08",
+        "commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+        "family_id": "2b8cb9f34c7d1e08",
+        "gate_fail_default": false,
+        "lane": "base-divergence",
+        "parent": "cadd6c8343c4ac5d9029c547d9f85b0a6c191eb5",
+        "sites": {
+          "changed": [
+            {
+              "enclosing_unit": {
+                "end_line": 54,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "nose_query_in",
+                "start_line": 41,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:41-54:nose_query_in"
+              },
+              "end_line": 53,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "start_line": 44,
+              "tree": "base"
+            },
+            {
+              "enclosing_unit": {
+                "end_line": 75,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "nose_query_base",
+                "start_line": 56,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:56-75:nose_query_base"
+              },
+              "end_line": 74,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "start_line": 65,
+              "tree": "base"
+            }
+          ],
+          "not_updated": [
+            {
+              "enclosing_unit": {
+                "end_line": 185,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "query_base_pathspec_is_relative_to_invocation_dir",
+                "start_line": 129,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:129-185:query_base_pathspec_is_relative_to_invocation_dir"
+              },
+              "end_line": 167,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "start_line": 150,
+              "tree": "base"
+            },
+            {
+              "enclosing_unit": {
+                "end_line": 317,
+                "file": "crates/nose-cli/tests/cli/query_base.rs",
+                "kind": "Function",
+                "name": "query_base_needs_a_git_repository",
+                "start_line": 295,
+                "unit_key": "crates/nose-cli/tests/cli/query_base.rs:Function:295-317:query_base_needs_a_git_repository"
+              },
+              "end_line": 306,
+              "file": "crates/nose-cli/tests/cli/query_base.rs",
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "start_line": 297,
+              "tree": "base"
+            },
+            {
+              "enclosing_unit": {
+                "end_line": 225,
+                "file": "crates/nose-cli/tests/cli/query_base/new_copy.rs",
+                "kind": "Function",
+                "name": "query_base_new_copy_pathspec_is_relative_from_subdir",
+                "start_line": 170,
+                "unit_key": "crates/nose-cli/tests/cli/query_base/new_copy.rs:Function:170-225:query_base_new_copy_pathspec_is_relative_from_subdir"
+              },
+              "end_line": 206,
+              "file": "crates/nose-cli/tests/cli/query_base/new_copy.rs",
+              "kind": "Block",
+              "lang": "rust",
+              "name": null,
+              "start_line": 189,
+              "tree": "base"
+            }
+          ]
+        },
+        "taxonomy_hint": "test_scaffolding",
+        "tier": "report-only"
+      },
+      "taxonomy_hints": [
+        "test_scaffolding"
+      ],
+      "tiers": [
+        "report-only"
+      ]
+    }
+  ],
+  "parameters": {
+    "exclude": [],
+    "first_parent": false,
+    "ignore_file": null,
+    "max_commits": 1,
+    "merge_policy": "skip",
+    "min_lines": null,
+    "min_size": 8,
+    "mode": "syntax,semantic",
+    "path": "crates/nose-cli/tests/cli"
+  },
+  "provenance": {
+    "current_head": "de33d34ea731ca8efbad0e3289077de50247da10",
+    "nose_binary": "target/release/nose",
+    "nose_binary_sha256": "78b5eedeaaced187f2566e860561c36b77fdf3d3164b10daeb602fda0a2c109f",
+    "range": "4283439e~1..4283439e",
+    "range_first_commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+    "range_last_commit": "4283439e8e6209c8e8bb600d8a142e9963f27b32",
+    "repo": ".",
+    "script": "scripts/divergent-history-mining.py"
+  },
+  "schema": "nose.divergent_history.v1",
+  "skipped_commits": [],
+  "summary": {
+    "commits_analyzed": 1,
+    "commits_considered": 1,
+    "commits_skipped": 0,
+    "findings": 1,
+    "groups": 1,
+    "strict_findings": 0,
+    "strict_groups": 0
+  }
+}
