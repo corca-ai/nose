@@ -43,6 +43,10 @@ break.
   versioned hooks plus `scripts/*.sh` in local and GitHub CI.
 
 ### Changed
+- Tightened the dogfooding duplication ratchet from 29 to 26 reviewed
+  default-surface families by sharing admission-resolver provenance test
+  helpers for Rust `HashMap::from`, Java `Map.of`, and JavaScript `Set`/`Map`
+  constructor scenarios.
 - Polished divergent-edit v2 CI documentation and output copy: SARIF messages now name
   strict/review/report-only tiers directly, human `base=<ref>` output explains report-only
   reasons more specifically, and CI examples pin detection modes plus `top=0` SARIF uploads.

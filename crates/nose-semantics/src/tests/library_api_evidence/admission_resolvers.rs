@@ -20,6 +20,8 @@ mod support_core;
 mod support_factories;
 pub(super) use support_core::*;
 pub(super) use support_factories::*;
+mod support_provenance;
+pub(super) use support_provenance::*;
 mod pack_resolvers_0;
 mod pack_resolvers_1;
 mod pack_resolvers_2;

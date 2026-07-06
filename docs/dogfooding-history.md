@@ -994,3 +994,16 @@ moves from `dbbb03b3c0fa93e8` to `95e83331abfa623f`, with the shared body reduce
 from 21 to 18 lines and varying spots from 9 to 7. It is still same-file
 policy-shape similarity rather than a clearer shared abstraction, so no new
 budget is accepted.
+
+The admission-resolver dogfooding debt burn-down (#679) tightens the count from
+29 to 26. The self-query no longer reports three avoidable test-fixture
+families: `f88aeebdec4f2c68`, the Rust `HashMap::from` call/span pack-provenance
+pair; `e6d039006310127f`, the Java `Map.of` call/span pack-provenance pair; and
+`7c1aef5590dfeefc`, the JavaScript `Set`/`Map` constructor pack-provenance pair.
+Those tests now share narrow admission-provenance helpers that preserve the
+raw-shape, missing-dependency, wrong-pack, wrong-producer, external-emitter, and
+admitted-case assertions with resolver-specific failure labels. The already
+reviewed Java collection factory call/span scaffold remains visible but moves
+from `e3fa2e4c707e342a` to `eb2f9fe7da72f8dd` because line movement changed the
+representative span; its members and judgment are unchanged. No production code
+or query hot path changed, so no runtime degradation is accepted.
