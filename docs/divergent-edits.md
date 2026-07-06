@@ -201,7 +201,33 @@ So a true fork doesn't re-fail every PR, the `base=` view honors the same
 [structured ignores](structured-ignores.md) as the rest of `nose query`: copy
 `items[].family_id` from `--format json` into the `family_id` of a `nose.ignore.json`
 entry, with a reason. nose auto-reads that file from the current working directory,
-and the suppressed family no longer trips `--fail-on any`.
+or from `[query] ignore-file = "..."` in `nose.toml`; the suppressed family no
+longer appears in active human/JSON/SARIF output and no longer trips
+`--fail-on any`.
+
+For a strict finding (`gate.fail_default=true`), use one of two outcomes:
+
+1. propagate the edit to the skipped sibling, or otherwise change the code so the
+   family is no longer divergent;
+2. commit an audited structured ignore when the divergence is intentional.
+
+Keep ignores narrow. A `paths` or `languages` selector applies only when every
+member of the reported family matches it; an entry covering just the changed copy
+does not hide the un-updated sibling. Prefer `family_id` for a one-off accepted
+divergence:
+
+```json
+{
+  "ignores": [
+    {
+      "family_id": "479389f590c1234a",
+      "reason": "intentional-variant",
+      "owner": "runtime",
+      "expires_at": "2026-12-31"
+    }
+  ]
+}
+```
 
 ## In CI
 

@@ -2,12 +2,16 @@ use super::*;
 
 #[path = "query_base/core_contract.rs"]
 mod core_contract;
+#[path = "query_base/edge_cases.rs"]
+mod edge_cases;
 #[path = "query_base/new_copy.rs"]
 mod new_copy;
 #[path = "query_base/sarif.rs"]
 mod sarif;
 #[path = "query_base/semantic_packs.rs"]
 mod semantic_packs;
+#[path = "query_base/suppression_edges.rs"]
+mod suppression_edges;
 #[path = "query_base/tier_policy.rs"]
 mod tier_policy;
 

@@ -143,6 +143,31 @@ rename to moved.py
 }
 
 #[test]
+fn patch_entries_track_copied_and_deleted_paths() {
+    let diff = "\
+diff --git a/template.py b/copied.py
+similarity index 100%
+copy from template.py
+copy to copied.py
+--- a/template.py
++++ b/copied.py
+diff --git a/old.py b/old.py
+deleted file mode 100644
+--- a/old.py
++++ /dev/null
+@@ -1 +0,0 @@
+-print('old')
+";
+    let entries = parse_patch_entries(diff);
+    assert_eq!(entries[0].status, DiffStatus::Copied);
+    assert_eq!(entries[0].old_path.as_deref(), Some("template.py"));
+    assert_eq!(entries[0].new_path.as_deref(), Some("copied.py"));
+    assert_eq!(entries[1].status, DiffStatus::Deleted);
+    assert_eq!(entries[1].old_path.as_deref(), Some("old.py"));
+    assert_eq!(entries[1].new_path, None);
+}
+
+#[test]
 fn patch_entries_track_added_paths_with_spaces() {
     let diff = "\
 diff --git a/src dir/new copy.py b/src dir/new copy.py

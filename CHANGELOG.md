@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added #685 divergent-edit gate hardening fixtures for report-only and suppression
+  edges: `base=` now honors config-relative `ignore-file`, malformed ignores fail
+  before empty-diff short-circuiting, path/language suppressions keep all-members
+  semantics, and copied/new-copy plus deletion/insertion/rename edge cases are pinned.
 - Added the #684 divergent-edit strict-policy taxonomy audit: checked policy
   artifacts now record `gate.fail_default`-based tier/taxonomy confusion counts,
   strict false-positive buckets, and strict-positive retention against the
