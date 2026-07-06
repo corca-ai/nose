@@ -7,6 +7,10 @@ break.
 ## [Unreleased]
 
 ### Added
+- Added the #684 divergent-edit strict-policy taxonomy audit: checked policy
+  artifacts now record `gate.fail_default`-based tier/taxonomy confusion counts,
+  strict false-positive buckets, and strict-positive retention against the
+  2026-07-06 labelset, while preserving the runtime v2 strict gate unchanged.
 - Added query-base wrapper compatibility guardrails: `nose capabilities` now
   advertises divergent-edit JSON v8, SARIF, `gate.fail_default`, and structured
   ignore support as explicit query capability flags, with tests pinning v8 closed

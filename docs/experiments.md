@@ -1541,6 +1541,18 @@ performance degradation was confirmed: the non-`base=` same-binary control
 measured +1.18%, and a same-binary replay control measured default p50/p90
 2.27s/9.00s and near p50/p90 2.32s/10.85s, covering the small p90-tail movement.
 
+#684 audited the remaining false-fire taxonomy before tightening strict policy
+again. The checked policy artifacts now record `gate.fail_default`-based tier
+confusion and taxonomy confusion against the 179 labeled rows. The strict bucket
+still retains all 45/45 serialized-fire-eligible positives; its 35 false
+positives split into 17 `no_propagation_needed`, 13 `intentional_divergence`, and
+5 `not_a_clone`. Straightforward cuts were rejected because they lose positives:
+for example, excluding structural-similarity rows would reduce false positives
+but also drop 3 confirmed positives, and requiring `similarity == 1.0` would drop
+5 confirmed positives. So #684 leaves runtime policy unchanged and records the
+next boundary: further demotion needs deterministic machine evidence, not a broad
+rank/witness/similarity heuristic.
+
 ## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
 
 §BK's structural arm is blind below vj 0.8 by construction; #246 built the

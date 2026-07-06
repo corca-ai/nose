@@ -365,6 +365,37 @@ fn query_base_respects_structured_ignores() {
         "a fully-suppressed query base must not trip --fail"
     );
 
+    let ignored_json_out = nose_query_base(&dir, &["--format", "json"]);
+    assert!(
+        ignored_json_out.status.success(),
+        "suppressed JSON query should succeed: {}",
+        String::from_utf8_lossy(&ignored_json_out.stderr)
+    );
+    let ignored_json: serde_json::Value =
+        serde_json::from_slice(&ignored_json_out.stdout).expect("suppressed query base JSON");
+    assert_eq!(
+        ignored_json["items"].as_array().expect("items").len(),
+        0,
+        "structured ignores suppress JSON findings: {ignored_json}"
+    );
+
+    let ignored_sarif_out = nose_query_base(&dir, &["--format", "sarif"]);
+    assert!(
+        ignored_sarif_out.status.success(),
+        "suppressed SARIF query should succeed: {}",
+        String::from_utf8_lossy(&ignored_sarif_out.stderr)
+    );
+    let ignored_sarif: serde_json::Value =
+        serde_json::from_slice(&ignored_sarif_out.stdout).expect("suppressed query base SARIF");
+    assert_eq!(
+        ignored_sarif["runs"][0]["results"]
+            .as_array()
+            .expect("SARIF results")
+            .len(),
+        0,
+        "structured ignores suppress SARIF findings: {ignored_sarif}"
+    );
+
     let _ = fs::remove_dir_all(&dir);
 }
 

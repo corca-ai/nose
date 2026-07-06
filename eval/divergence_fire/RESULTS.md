@@ -95,10 +95,10 @@ The lower-ranked fire-eligible slice remains materially richer than top-1
 (28/59 vs 21/120), so policy work must not optimize only for rank 0. On this
 complete labeled set, the serialized `fire_eligible` policy fires on 94 findings
 with 45 true positives and 49 false positives (precision 0.479). The #672 v2 strict
-policy (`tier=strict`, implemented as `fire_eligible && scope == "prod"` for the
-base-divergence lane) fires on 80 findings with the same 45 true positives and 35 false
-positives (precision 0.562), so it preserves every confirmed v1 missed-propagation catch
-while cutting labeled strict fires by 14.9%.
+policy (`gate.fail_default=true`, equivalent to `tier=strict`) fires on 80 findings
+with the same 45 true positives and 35 false positives (precision 0.562), so it
+preserves every confirmed v1 missed-propagation catch while cutting labeled strict
+fires by 14.9%.
 
 #673 adds a bounded `new-copy` report-only lane for current-tree clone evidence from
 small added/copied/renamed source diffs. The lane is capped at two touched source
@@ -147,6 +147,17 @@ The checked policy inputs still reproduce the v2 strict result: 80 strict fires,
 45 true positives, 35 false positives, precision 0.562. That retains all 45/45
 confirmed positives from the serialized v1 `fire_eligible` slice while reducing
 labeled default-failing findings from 94 to 80.
+
+#684 audited the checked labelset before any further strict-policy tightening.
+The policy artifact now records derived v2 `gate.fail_default` evidence, tier and
+taxonomy confusion counts, and the strict precision floor. The audit found no
+safe no-tradeoff policy cut: simple filters such as dropping structural-similarity,
+requiring `similarity == 1.0`, or limiting to copy-paste witnesses all improve
+precision but lose confirmed positives. The retained strict false positives are
+17 `no_propagation_needed`, 13 `intentional_divergence`, and 5 `not_a_clone`.
+Because the checked evidence does not identify a deterministic classifier that
+removes those rows while retaining all 45 serialized-fire-eligible positives, the
+runtime strict gate remains unchanged.
 
 Runtime did not show a confirmed degradation. Against the same-environment #672
 strict-gate replay, default p50/p90 moved 2.53s/9.52s -> 2.21s/8.97s and near

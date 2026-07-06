@@ -74,6 +74,10 @@ VERDICT_CLASSES = {
     "unclear",
 }
 
+DIVERGENT_EDIT_V2_POLICY = "divergent-edit-v2-strict"
+DERIVED_POLICY_EVIDENCE_SOURCE = "derived-v2-from-redacted-sample"
+STRICT_PRECISION_FLOOR = 0.562
+
 CHECKED_ARTIFACTS = {
     "summary": ROOT / "eval" / "divergence_fire" / "replay_summary_2026_06_11.json",
     "verdicts": ROOT / "eval" / "divergence_fire" / "verdicts_2026_06_11.jsonl",
@@ -527,6 +531,10 @@ def changed_touches_shared(sample):
     return any(site.get("touches_shared") is True for site in sample.get("changed", []))
 
 
+def changed_touches_not_shared(sample):
+    return any(site.get("touches_shared") is False for site in sample.get("changed", []))
+
+
 def identity_key(row):
     keys = ("repo", "commit", "arm", "rank", "family_id")
     if not all(k in row and row[k] is not None for k in keys):
@@ -547,10 +555,100 @@ def policy_row(name, rows, predicate):
     }
 
 
-def v2_strict(row):
+def derived_tier(sample):
+    emitted = sample.get("tier")
+    if emitted is not None:
+        return emitted, "emitted"
+    if sample.get("lane") == "new-copy" or sample.get("scope") != "prod":
+        return "report-only", DERIVED_POLICY_EVIDENCE_SOURCE
+    if sample.get("fire_eligible") is True:
+        return "strict", DERIVED_POLICY_EVIDENCE_SOURCE
+    return "review", DERIVED_POLICY_EVIDENCE_SOURCE
+
+
+def derived_tier_reasons(sample):
+    emitted = sample.get("tier_reasons")
+    if emitted is not None:
+        return emitted, "emitted"
+    reasons = []
+    if sample.get("lane") == "new-copy":
+        reasons.append("new_copy_no_base_member")
+    elif changed_touches_shared(sample):
+        reasons.append("shared_logic_touched")
+    elif changed_touches_not_shared(sample):
+        reasons.append("shared_logic_not_touched")
+    else:
+        reasons.append("shared_logic_unproven")
+    if sample.get("scope") == "prod":
+        reasons.append("non_test_scope")
+    else:
+        reasons.extend(["test_scope", "test_scaffolding"])
+    return reasons, DERIVED_POLICY_EVIDENCE_SOURCE
+
+
+def derived_taxonomy_hint(sample):
+    emitted = sample.get("taxonomy_hint")
+    if emitted is not None:
+        return emitted, "emitted"
+    if sample.get("lane") == "new-copy":
+        return "unclear", DERIVED_POLICY_EVIDENCE_SOURCE
+    if sample.get("scope") != "prod":
+        return "test_scaffolding", DERIVED_POLICY_EVIDENCE_SOURCE
+    if sample.get("fire_eligible") is True:
+        return "missed_propagation", DERIVED_POLICY_EVIDENCE_SOURCE
+    if changed_touches_not_shared(sample):
+        return "no_propagation_needed", DERIVED_POLICY_EVIDENCE_SOURCE
+    return "unclear", DERIVED_POLICY_EVIDENCE_SOURCE
+
+
+def derived_gate(sample, tier):
+    emitted = sample.get("gate")
+    if emitted is not None:
+        return emitted, "emitted"
+    return {
+        "eligible": tier in ("strict", "review"),
+        "fail_default": tier == "strict",
+        "policy": DIVERGENT_EDIT_V2_POLICY,
+    }, DERIVED_POLICY_EVIDENCE_SOURCE
+
+
+def policy_evidence(sample):
+    tier, tier_source = derived_tier(sample)
+    tier_reasons, reasons_source = derived_tier_reasons(sample)
+    taxonomy_hint, taxonomy_source = derived_taxonomy_hint(sample)
+    gate, gate_source = derived_gate(sample, tier)
+    sources = {
+        "tier": tier_source,
+        "tier_reasons": reasons_source,
+        "taxonomy_hint": taxonomy_source,
+        "gate": gate_source,
+    }
+    evidence_source = (
+        "emitted"
+        if all(source == "emitted" for source in sources.values())
+        else DERIVED_POLICY_EVIDENCE_SOURCE
+    )
+    return {
+        "tier": tier,
+        "tier_reasons": tier_reasons,
+        "taxonomy_hint": taxonomy_hint,
+        "gate": gate,
+        "policy_evidence_source": evidence_source,
+        "policy_evidence_sources": sources,
+    }
+
+
+def gate_fail_default(row):
+    gate = row.get("gate") or {}
+    if "fail_default" in gate:
+        return gate.get("fail_default") is True
     if row.get("tier") is not None:
         return row.get("tier") == "strict"
     return row.get("fire_eligible") is True and row.get("scope") == "prod"
+
+
+def v2_strict(row):
+    return gate_fail_default(row)
 
 
 def policy_rows_from_labeled_rows(rows, name_prefix=""):
@@ -566,8 +664,85 @@ def policy_rows_from_labeled_rows(rows, name_prefix=""):
                    and r["scope"] != "test"),
         policy_row(f"{name_prefix}serialized fire_eligible", rows,
                    lambda r: r.get("fire_eligible") is True),
-        policy_row(f"{name_prefix}V2 strict: tier=strict", rows, v2_strict),
+        policy_row(f"{name_prefix}V2 strict: gate.fail_default", rows, v2_strict),
     ]
+
+
+def sorted_counts(values):
+    return dict(sorted(Counter(values).items()))
+
+
+def nested_counts(rows, outer, inner):
+    buckets = {}
+    for row in rows:
+        outer_key = str(outer(row))
+        inner_key = str(inner(row))
+        buckets.setdefault(outer_key, Counter())[inner_key] += 1
+    return {
+        key: dict(sorted(counter.items()))
+        for key, counter in sorted(buckets.items())
+    }
+
+
+def policy_row_by_name(finding_level, policy):
+    for row in finding_level:
+        if row.get("policy") == policy:
+            return row
+    raise KeyError(policy)
+
+
+def policy_audit(rows, finding_level):
+    strict = [row for row in rows if v2_strict(row)]
+    strict_positive_sids = {row["sid"] for row in strict if row["pos"]}
+    fire_positive_sids = {
+        row["sid"] for row in rows if row.get("fire_eligible") is True and row["pos"]
+    }
+    all_positive_sids = {row["sid"] for row in rows if row["pos"]}
+    serialized = policy_row_by_name(finding_level, "serialized fire_eligible")
+    strict_row = policy_row_by_name(finding_level, "V2 strict: gate.fail_default")
+    return {
+        "strict_precision_floor": STRICT_PRECISION_FLOOR,
+        "strict_policy": "gate.fail_default",
+        "strict_positive_retention": {
+            "serialized_fire_eligible_tp": serialized["tp"],
+            "strict_tp": strict_row["tp"],
+            "lost_serialized_fire_eligible_positive_sids": sorted(
+                fire_positive_sids - strict_positive_sids
+            ),
+            "non_strict_positive_sids": sorted(all_positive_sids - strict_positive_sids),
+        },
+        "strict_false_positives_by_verdict": sorted_counts(
+            row["verdict"] for row in strict if not row["pos"]
+        ),
+    }
+
+
+def policy_confusion(rows):
+    return {
+        "tier_by_verdict": nested_counts(
+            rows, lambda row: row.get("tier"), lambda row: row["verdict"]
+        ),
+        "taxonomy_by_verdict": nested_counts(
+            rows, lambda row: row.get("taxonomy_hint"), lambda row: row["verdict"]
+        ),
+    }
+
+
+def policy_slices(rows):
+    return {
+        "arm_by_verdict": nested_counts(
+            rows, lambda row: row.get("arm"), lambda row: row["verdict"]
+        ),
+        "witness_by_verdict": nested_counts(
+            rows, lambda row: row.get("witness"), lambda row: row["verdict"]
+        ),
+        "scope_by_verdict": nested_counts(
+            rows, lambda row: row.get("scope"), lambda row: row["verdict"]
+        ),
+        "rank_by_verdict": nested_counts(
+            rows, lambda row: row.get("rank"), lambda row: row["verdict"]
+        ),
+    }
 
 
 def compute_policy_eval(samples, verdicts):
@@ -593,6 +768,7 @@ def compute_policy_eval(samples, verdicts):
         witness = sample.get("witness_kind")
         line = changed_touches_shared(sample)
         scope = sample.get("scope")
+        evidence = policy_evidence(sample)
         row = {
             "sid": sample["sid"],
             "pos": verdict["verdict"] == "should_propagate",
@@ -603,16 +779,21 @@ def compute_policy_eval(samples, verdicts):
             "rank": sample.get("rank"),
             "identity": list(key) if key is not None else None,
             "fire_eligible": sample.get("fire_eligible"),
+            "arm": sample.get("arm"),
+            **evidence,
         }
-        if sample.get("tier") is not None:
-            row["tier"] = sample.get("tier")
         rows.append(row)
+    finding_level = policy_rows_from_labeled_rows(rows)
     return {
         "schema_version": 2,
         "method": "policy simulation from sampled findings joined to verdict labels by stable finding identity, with sid fallback for legacy verdict drafts",
         "labeled": len(rows),
         "positives": sum(1 for r in rows if r["pos"]),
-        "finding_level": policy_rows_from_labeled_rows(rows),
+        "verdict_counts": sorted_counts(row["verdict"] for row in rows),
+        "finding_level": finding_level,
+        "policy_audit": policy_audit(rows, finding_level),
+        "confusion": policy_confusion(rows),
+        "slices": policy_slices(rows),
         "rows": rows,
     }
 
@@ -653,6 +834,32 @@ def require(cond, msg):
         raise AssertionError(msg)
 
 
+def require_policy_report_matches(actual, expected, label):
+    for key in (
+        "finding_level",
+        "verdict_counts",
+        "policy_audit",
+        "confusion",
+        "slices",
+        "rows",
+    ):
+        require(actual.get(key) == expected.get(key), f"{label} policy {key} is stale")
+    strict_row = policy_row_by_name(actual.get("finding_level") or [],
+                                   "V2 strict: gate.fail_default")
+    audit = actual.get("policy_audit") or {}
+    retention = audit.get("strict_positive_retention") or {}
+    lost = retention.get("lost_serialized_fire_eligible_positive_sids") or []
+    tradeoff = actual.get("reviewed_tradeoff")
+    require(
+        strict_row.get("precision", 0) >= STRICT_PRECISION_FLOOR or tradeoff,
+        f"{label} strict precision below {STRICT_PRECISION_FLOOR} without tradeoff",
+    )
+    require(
+        not lost or tradeoff,
+        f"{label} strict lost serialized fire-eligible positives without tradeoff: {lost}",
+    )
+
+
 def cmd_selftest(_args):
     records = [
         {
@@ -688,6 +895,11 @@ def cmd_selftest(_args):
     )
     require(policy["finding_level"][0]["tp"] == 1, "policy tp")
     require(policy["finding_level"][-1]["precision"] == 1.0, "fire_eligible policy")
+    require(policy["policy_audit"]["strict_positive_retention"]
+            ["lost_serialized_fire_eligible_positive_sids"] == [],
+            "policy positive retention")
+    require(policy["confusion"]["tier_by_verdict"]["strict"]["should_propagate"] == 1,
+            "policy tier confusion")
     print("selftest OK")
 
 
@@ -785,10 +997,7 @@ def cmd_check_artifacts(_args):
         require("base_code" not in json.dumps(sample), "refresh sample leaks base_code")
         require("change_diff" not in json.dumps(sample), "refresh sample leaks change_diff")
     expected_policy = compute_policy_eval(refresh_samples, refresh_verdicts)
-    require(refresh_policy.get("finding_level") == expected_policy["finding_level"],
-            "refresh policy finding_level is stale")
-    require(refresh_policy.get("rows") == expected_policy["rows"],
-            "refresh policy rows are stale")
+    require_policy_report_matches(refresh_policy, expected_policy, "refresh")
     require({tuple(r.get("identity") or []) for r in refresh_policy.get("rows", [])}
             == {identity_key(v) for v in refresh_verdicts},
             "refresh policy rows do not cover verdict identities")
@@ -817,10 +1026,7 @@ def cmd_check_artifacts(_args):
             "final policy labeled count")
     require(final_policy.get("positives") == refresh_policy.get("positives"),
             "final policy positives")
-    require(final_policy.get("finding_level") == expected_policy["finding_level"],
-            "final policy finding_level is stale")
-    require(final_policy.get("rows") == expected_policy["rows"],
-            "final policy rows are stale")
+    require_policy_report_matches(final_policy, expected_policy, "final")
     print("artifact check OK")
 
 
