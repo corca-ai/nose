@@ -12,6 +12,10 @@ break.
   page now record the current builtin lane state, row-level coverage refs,
   promotion-candidate decision, rollback requirements, and external
   metadata-only policy.
+- Added checked divergent-edit v2 final closeout artifacts for the clean
+  `a38ecb8b` replay summary and policy reproduction, and extended
+  `eval/divergence_fire/replay.py check-artifacts` to validate that final
+  replay evidence instead of relying only on `/tmp` scratch summaries.
 - Added the #677 Rust `block_on` residual closeout: the async scheduling
   hard-negative suite now covers nested runtime drive, wrapper-returned
   `Runtime` values, and constructor-assigned runtime fields, with a checked
