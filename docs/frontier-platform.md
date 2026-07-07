@@ -87,8 +87,8 @@ conclusion cannot silently drift when an axis is added or removed.
 The first extra axis is `numeric_clamp` — `min(max(x, lo), hi)` clamp composition, a real
 frontier packet whose identity and hard negatives are machine-checked in [formal/obligations/normalize/value_graph/clamp/Proof.lean](../formal/obligations/normalize/value_graph/clamp/Proof.lean).
 The proof-backed integer min/max composition slice now canonicalizes when `lo <= hi` is
-established by literal bounds, an exiting inverse guard, or a branch-local positive
-guard. The surface bridge also covers
+established by literal bounds or by asserted `Guard(BoundOrder)` evidence for an exiting
+inverse guard or branch-local positive guard. The surface bridge also covers
 two-comparison ternary clamps and proven numeric Rust `.clamp` forms while keeping unproven
 bounds, custom method names, and float domains outside the shared Clamp value.
 
@@ -147,8 +147,9 @@ packet ledger, then answers whether any packet is ready for exact admission.
 The report fails if a packet's copied semantic claim, proof invariant, hard negatives,
 or detector result drift from the linked `real_frontier` record. It also makes blockers
 explicit: the current `numeric-clamp-2026-06-06` packet is still
-`blocked-on-proof`, because the real-corpus pair lacks a reusable bound-order fact and
-the float-NaN boundary remains closed.
+`blocked-on-proof`, because the modeled proof facts are not satisfied by the real
+boltons/fzf pair: fzf has no bound-order evidence, neither side has shared integer-domain
+evidence, and the float-NaN boundary remains closed.
 
 ```sh
 python3 bench/type4/proof_carrying_frontier.py --check

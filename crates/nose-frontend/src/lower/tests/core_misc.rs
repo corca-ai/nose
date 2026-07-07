@@ -109,6 +109,89 @@ fn collection_literal_assignments_emit_binding_domain_evidence() {
 }
 
 #[test]
+fn integer_comparisons_emit_bound_order_guard_evidence() {
+    let interner = Interner::new();
+    let il = lower_fixture(
+        "clamp.py",
+        b"def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return min(max(x, lo), hi)\n",
+        Lang::Python,
+        &interner,
+    );
+    let guards: Vec<&EvidenceRecord> = il
+        .evidence
+        .iter()
+        .filter(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Guard(GuardEvidenceKind::BoundOrder { .. })
+            )
+        })
+        .collect();
+    assert_eq!(
+        guards.len(),
+        2,
+        "integer comparison should emit true/false bound-order guard facts"
+    );
+    assert!(guards.iter().any(|record| matches!(
+        record.kind,
+        EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+            activation: BoundOrderGuardActivation::WhenFalse,
+            ..
+        })
+    )));
+    assert!(guards.iter().all(|record| {
+        record.dependencies.len() == 2
+            && record.dependencies.iter().all(|id| {
+                il.evidence_record_by_id(*id).is_some_and(|dependency| {
+                    dependency.kind == EvidenceKind::Domain(DomainEvidence::Integer)
+                })
+            })
+    }));
+
+    let float_il = lower_fixture(
+        "float_clamp.py",
+        b"def f(x: float, lo: float, hi: float):\n    if hi < lo:\n        raise 0\n    return min(max(x, lo), hi)\n",
+        Lang::Python,
+        &interner,
+    );
+    assert!(
+        float_il.evidence.iter().all(|record| !matches!(
+            record.kind,
+            EvidenceKind::Guard(GuardEvidenceKind::BoundOrder { .. })
+        )),
+        "float/NaN-sensitive domains must not emit integer bound-order evidence"
+    );
+
+    let name_only = lower_fixture(
+        "name_only.py",
+        b"def f(x, minimum, maximum):\n    return max(min(x, maximum), minimum)\n",
+        Lang::Python,
+        &interner,
+    );
+    assert!(
+        name_only.evidence.iter().all(|record| !matches!(
+            record.kind,
+            EvidenceKind::Guard(GuardEvidenceKind::BoundOrder { .. })
+        )),
+        "parameter names alone are not bound-order evidence"
+    );
+
+    let reassigned = lower_fixture(
+        "reassigned_bound.py",
+        b"def f(x: int, lo: int, hi: int):\n    lo = float('nan')\n    if hi < lo:\n        raise 0\n    return min(max(x, lo), hi)\n",
+        Lang::Python,
+        &interner,
+    );
+    assert!(
+        reassigned.evidence.iter().all(|record| !matches!(
+            record.kind,
+            EvidenceKind::Guard(GuardEvidenceKind::BoundOrder { .. })
+        )),
+        "a reassigned parameter must not inherit integer-domain bound-order evidence"
+    );
+}
+
+#[test]
 fn core_lowering_emits_java_and_regex_library_api_occurrences() {
     let interner = Interner::new();
     let mut lo = Lowering::new(FileId(0), b"", Lang::Java, &interner);

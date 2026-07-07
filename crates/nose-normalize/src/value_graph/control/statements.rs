@@ -203,7 +203,11 @@ impl<'a> Builder<'a> {
         let then_effect_slot = if kids.len() >= 2 {
             self.effect_slot = effect_slot_base;
             let bound_order_base = self.bound_order_facts.len();
-            self.record_bound_order_fact(cond);
+            self.record_bound_order_fact_for_condition(
+                kids[0],
+                BoundOrderGuardActivation::WhenTrue,
+                env,
+            );
             self.path.push(cond);
             self.process_stmt(kids[1], &mut env_then);
             self.path.pop();
@@ -217,7 +221,11 @@ impl<'a> Builder<'a> {
             self.effect_slot = effect_slot_base;
             let ncond = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
             let bound_order_base = self.bound_order_facts.len();
-            self.record_bound_order_fact(ncond);
+            self.record_bound_order_fact_for_condition(
+                kids[0],
+                BoundOrderGuardActivation::WhenFalse,
+                env,
+            );
             self.path.push(ncond);
             self.process_stmt(kids[2], &mut env_else);
             self.path.pop();

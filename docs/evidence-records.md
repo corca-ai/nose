@@ -70,7 +70,7 @@ The current implemented kinds are:
 | `Import` | static import binding/namespace proof, Python wildcard-import ambiguity proof, Java wildcard import proof, C quote-include proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Type` | type alias or type-to-domain proof, currently exact-spelling C aliases to unsigned 8-bit and supported unsigned 32-bit integer forms plus nominal type-domain rows |
-| `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
+| `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts, plus numeric bound-order guard facts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
 | `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, Node `timers/promises` imported Promise factories, selected Python/Rust/Ruby/Java/Swift/regex APIs, pack-proven Python/Go/Swift free-function builtins, pack-proven Python iterator builtins, pack-proven generic builtin method calls, and selected receiver-method families |
@@ -86,6 +86,17 @@ evidence-only binding proofs so the import syntax remains a low-signal token
 sequence while call-target and library-api consumers can still depend on a
 precise local binding. Wildcard imports and `self`/`super`-relative brace
 prefixes stay closed until a producer can prove a non-ambiguous coordinate.
+
+`Guard(BoundOrder)` evidence is the first reusable numeric clamp proof fact. It
+is anchored to the exact comparison `BinOp`, carries the source spans of the
+lower and upper operands, and records whether the order is proven on the true or
+false branch. The semantic resolver admits only asserted, dependency-live,
+unambiguous builtin language-core records whose operand spans match the current
+comparison. Parameter names such as `lower`/`upper` or `minimum`/`maximum` are
+not evidence. Parameter references must still satisfy the integer receiver-domain
+resolver at the comparison site, so reassigned or shadowed bounds fail closed.
+Float/NaN-sensitive domains still cannot enter the integer clamp law without
+separate domain proof.
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
 the contract id, callee coordinate, arity, and dependencies for a specific

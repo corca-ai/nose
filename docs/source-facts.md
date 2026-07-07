@@ -81,6 +81,7 @@ The pack-facing vocabulary should cover at least these classes.
 | Call/protocol shape | constructor call, ordinary function call, method call, property access, macro-like call, async function boundary, async `await` boundary, async block boundary, async iteration/context boundary, generator `yield` boundary, Rust `?` error propagation, Swift `try` propagation, Go goroutine/defer/channel/select boundaries |
 | Comprehension surface | Python list comprehension, set comprehension, dict comprehension, generator expression |
 | Sequence and aggregate | collection surface, map-entry surface, iterator surface, exported literal surface |
+| Guard proof | JS/TS record-shape and own-property guards, numeric `lo <= hi` bound-order guards |
 | Place and mutation | receiver field, index assignment, builder append, immutable binding, direct write, opaque escape |
 | Module export | exported binding, import dependency, provider mutation proof, importer mutation proof |
 
@@ -168,6 +169,13 @@ fall back to a side-table mirror when source evidence is missing.
   dependencies, and exact-safe provider argument checks before copying provider
   evidence into importers. Missing API proof, shadows, mutation facts, and
   ambiguous factory result shapes stay closed.
+- Numeric clamp bound-order uses `Guard(BoundOrder)` evidence, not source
+  spelling. A comparison such as `lo <= hi` or the fallthrough of
+  `if hi < lo { throw ... }` can establish the order only when an asserted
+  language-core guard record names the exact comparison operand spans and the
+  active branch direction. Parameter names and non-exiting guards stay closed;
+  float/NaN-sensitive `Number`/`Float`/generic ordered domains still need a
+  separate domain proof before they can share the integer clamp law.
 - JS/TS regex literal `.test(value)` can enter exact matching only when the
   receiver is proven to be a regex literal. Ordinary string `.test(...)` stays
   closed.

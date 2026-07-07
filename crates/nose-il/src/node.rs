@@ -13,11 +13,12 @@ mod source;
 pub use self::core::{Node, NodeId, NodeKind, Payload};
 pub use self::domains::{DomainEvidence, ParamSemantic};
 pub use self::evidence::{
-    CTypeTarget, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter,
-    EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
-    GuardEvidenceKind, ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck,
-    LibraryApiEvidenceKind, PlaceEvidenceKind, PromiseSettledValueEvidenceKind,
-    PromiseSettlementChannel, SequenceSurfaceKind, SymbolEvidenceKind, TypeEvidenceKind,
+    BoundOrderGuardActivation, CTypeTarget, CallTargetEvidenceKind, EffectEvidenceKind,
+    EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
+    EvidenceStatus, GuardEvidenceKind, ImportEvidenceKind, JsRecordGuardComparison,
+    JsRecordGuardNullCheck, LibraryApiEvidenceKind, PlaceEvidenceKind,
+    PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
+    SymbolEvidenceKind, TypeEvidenceKind,
 };
 pub use self::ops::{Builtin, HoFKind, LitClass, LoopKind, Op};
 pub use self::source::{

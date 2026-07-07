@@ -77,9 +77,10 @@ use model::{
     Sink, SinkKind, ValNode, ValOp, ValueId,
 };
 use nose_il::{
-    stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor, EvidenceKind, EvidenceStatus,
-    HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind,
-    SourceComprehensionKind, SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol,
+    stable_symbol_hash, BoundOrderGuardActivation, Builtin, EffectEvidenceKind, EvidenceAnchor,
+    EvidenceKind, EvidenceStatus, HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId,
+    NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind, SourceFactKind,
+    SourcePatternKind, SourceRangeKind, Span, Symbol,
 };
 use nose_semantics::{
     admitted_builder_append_method_call_args, admitted_builtin_semantics_at_call_with_interner,
@@ -104,8 +105,8 @@ use nose_semantics::{
     admitted_scalar_integer_method_at_call, admitted_static_index_membership_at_call,
     admitted_swift_collection_factory_at_call, admitted_swift_map_factory_at_call,
     admitted_terminal_count_reduction_at_call, asserted_unshadowed_global_symbol,
-    binding_write_target, builder_append_call_args, builtin_tag, construct_syntax_proof,
-    domain_evidence_for_param as semantic_domain_evidence_for_param,
+    binding_write_target, bound_order_guard_for_node, builder_append_call_args, builtin_tag,
+    construct_syntax_proof, domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,

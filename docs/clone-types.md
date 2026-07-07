@@ -140,6 +140,8 @@ core canonicalizations, but not a per-run or whole-pipeline proof. See
   stay closed until element-domain facts are modeled. Negated order comparisons
   such as `!(a < b)` and branch-swapped order conditionals lower to the apparent
   dual (`a >= b`) only with integer-domain proof, because `NaN` makes the two differ.
+  Numeric clamp bound-order facts additionally require asserted `Guard(BoundOrder)`
+  evidence anchored to the active comparison; parameter names are not proof.
 - **Float-sensitive min/max APIs stay exact-closed**: the modeled Min/Max value
   nodes represent integer/ternary selection idioms. JS-family `Math.min`/`Math.max`
   and Go `math.Min`/`math.Max` return `NaN` if any argument is `NaN`; Java

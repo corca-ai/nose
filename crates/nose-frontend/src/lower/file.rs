@@ -1,4 +1,5 @@
 use super::library_api_post_lower::record_post_lower_library_api_evidence;
+use super::post_lower_evidence::record_post_lower_bound_order_guard_evidence;
 use super::*;
 
 /// The shared parse → lower-root → finish pipeline every frontend's `lower` entry
@@ -60,6 +61,7 @@ pub(crate) fn lower_file_with_setup(
     let evidence = std::mem::take(&mut lo.evidence);
     let mut il = lo.b.finish(module, meta, units, Vec::new());
     il.evidence = evidence;
+    record_post_lower_bound_order_guard_evidence(&mut il, interner);
     record_post_lower_library_api_evidence(&mut il, interner);
     drop_suppressed_units(&mut il, src);
     Ok(il)

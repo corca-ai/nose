@@ -818,18 +818,58 @@ TARGET_PACKETS = [
         "bridge slices are implemented; the remaining value is identifying the next "
         "real-corpus bound-order proof "
         "without weakening the hard-negative boundary.",
+        "proof_fact_model": {
+            "model_status": "modeled-for-controlled-evidence",
+            "facts": [
+                {
+                    "fact_id": "numeric-clamp.integer-domain",
+                    "description": "Clamp canonicalization is restricted to integer-domain operands so float/NaN-sensitive min/max and comparison-chain forms stay closed.",
+                    "accepted_evidence": [
+                        "integer literals",
+                        "asserted integer parameter/domain evidence on each clamp operand",
+                    ],
+                    "rejected_evidence": [
+                        "Python dynamic numeric parameters without integer-domain evidence",
+                        "TypeScript/JavaScript number domains",
+                        "Go cmp.Ordered or other generic ordered domains that can include floats",
+                    ],
+                    "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
+                },
+                {
+                    "fact_id": "numeric-clamp.bound-order",
+                    "description": "The lower bound must be proven <= the upper bound before min(max(x, lo), hi), max(min(x, hi), lo), and ternary clamp forms can share a Clamp value.",
+                    "accepted_evidence": [
+                        "ordered integer literal bounds",
+                        "asserted Guard(BoundOrder) evidence on a dominating exiting inverse guard, e.g. if hi < lo then raise/return/throw before the clamp",
+                        "asserted Guard(BoundOrder) evidence on a positive branch guard, e.g. if lo <= hi then evaluate the clamp and the other branch exits",
+                    ],
+                    "rejected_evidence": [
+                        "parameter names such as lower/upper or minimum/maximum",
+                        "non-exiting guard expressions",
+                        "swapped bounds or wrong min/max nesting",
+                    ],
+                    "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
+                },
+            ],
+            "focused_tests": [
+                "crates/nose-normalize/src/value_graph/tests/clamp.rs::literal_bound_order_is_proof_backed_only_when_ordered",
+                "crates/nose-normalize/src/value_graph/tests/clamp.rs::guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence",
+                "crates/nose-normalize/src/value_graph/tests/clamp.rs::positive_branch_bound_order_is_proof_backed_inside_branch",
+                "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+            ],
+        },
         "blocked_by": [
-            "real-corpus bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves "
-            "the precondition is required; the current proof-backed slice handles literal bounds "
-            "and exiting inverse guards, but parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
-            "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on "
-            "NaN, by language)",
+            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries",
         ],
         "notes": "The proof-backed integer Clamp canon now covers min/max composition plus "
         "controlled two-comparison and library method bridge surfaces when literal or "
-        "exiting-guard evidence proves lo<=hi. The remaining packet is still routed "
-        "proof-fact-prerequisite: parameter naming such as fzf "
-        "`Constrain(val, minimum, maximum)` is not a proof.",
+        "asserted Guard(BoundOrder) evidence proves lo<=hi and integer-domain evidence excludes "
+        "float/NaN behavior. The remaining packet is still routed "
+        "proof-fact-prerequisite because the real fzf member lacks modeled order evidence "
+        "and the cross-language pair lacks a shared integer-only domain proof.",
         # Representative corpus locations (repo-explicit; split/primary-language enriched below).
         "locations": [
             {"repo": "boltons", "path": "boltons/mathutils.py", "span": "40-69",
@@ -899,6 +939,7 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
                 "owner_issue": spec["owner_issue"],
                 "evidence_case_ids": spec["evidence_case_ids"],
                 "why_now": spec["why_now"],
+                "proof_fact_model": spec["proof_fact_model"],
                 "blocked_by": spec["blocked_by"],
                 "notes": spec["notes"],
                 # Platform context.
@@ -927,7 +968,7 @@ REQUIRED_PACKET_FIELDS = (
     "packet_id", "candidate_axis", "semantic_claim", "locations",
     "current_detector_result", "proof_invariant", "hard_negative_siblings",
     "owner_route", "owner_issue", "evidence_case_ids", "breadth", "evidence_tier",
-    "curated", "why_now", "blocked_by", "notes",
+    "curated", "why_now", "proof_fact_model", "blocked_by", "notes",
 )
 
 
@@ -938,6 +979,7 @@ def validate_packets(packets: list[dict]) -> None:
         assert not missing, f"packet {p.get('packet_id')} missing fields: {missing}"
         assert p["owner_route"] in OWNER_ROUTE
         assert isinstance(p["evidence_case_ids"], list) and p["evidence_case_ids"]
+        assert isinstance(p["proof_fact_model"], dict) and p["proof_fact_model"].get("facts")
         for loc in p["locations"]:
             for f in ("repo", "split", "primary_language", "path", "span", "snippet"):
                 assert f in loc, f"packet {p['packet_id']} location missing {f}"
@@ -1204,6 +1246,7 @@ def selftest() -> int:
     good = {f: "x" for f in REQUIRED_PACKET_FIELDS}
     good["owner_route"] = "team-a-detector"
     good["evidence_case_ids"] = ["c"]
+    good["proof_fact_model"] = {"facts": ["modeled"]}
     good["locations"] = [{"repo": "r", "split": "dev", "primary_language": "go",
                           "path": "p", "span": "1-2", "snippet": "s"}]
     validate_packets([good])

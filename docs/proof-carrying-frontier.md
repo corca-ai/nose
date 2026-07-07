@@ -47,10 +47,11 @@ that the packet's claim surface has been attacked.
 The current generated verdict is `no-exact-admission-ready-packets`.
 
 The active packet, `numeric-clamp-2026-06-06`, is correctly blocked on proof:
-the real-corpus pair still lacks a reusable bound-order fact proving `lo <= hi`,
-and float NaN remains a closed domain boundary. This is the intended outcome.
-The report makes that boundary explicit so the next worker starts from the proof
-fact instead of adding a selector-shaped detector shortcut.
+the structured bound-order proof fact exists for controlled evidence, but the
+real-corpus pair still lacks fzf-side order evidence and shared integer-domain
+evidence. Float NaN remains a closed domain boundary. This is the intended
+outcome. The report makes that boundary explicit so the next worker extends
+proof evidence instead of adding a selector-shaped detector shortcut.
 
 ## Commands
 

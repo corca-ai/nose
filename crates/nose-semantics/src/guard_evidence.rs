@@ -42,6 +42,11 @@ pub(super) fn guard_evidence_dependencies_valid(
         GuardEvidenceKind::JsOwnProperty { api_path_hash } => {
             js_own_property_guard_dependencies_valid(il, record, api_path_hash, span)
         }
+        GuardEvidenceKind::BoundOrder { .. } => {
+            record.status == EvidenceStatus::Asserted
+                && language_core_record_has_provenance(il, record)
+                && il.evidence_dependencies_asserted(record)
+        }
     }
 }
 
@@ -243,6 +248,111 @@ pub fn own_property_guard_evidence_at_span(il: &Il, span: Span) -> bool {
         guard_evidence_at_sequence_span(il, span),
         EvidenceResolution::Found(GuardEvidenceKind::JsOwnProperty { .. })
     )
+}
+
+fn bound_order_guard_evidence_at_node(
+    il: &Il,
+    node: NodeId,
+    activation: BoundOrderGuardActivation,
+) -> EvidenceResolution<GuardEvidenceKind> {
+    if il.kind(node) != NodeKind::BinOp {
+        return EvidenceResolution::Missing;
+    }
+    let span = il.node(node).span;
+    let mut found = None;
+    for record in il.evidence_anchored_at(span) {
+        if !matches!(
+            record.anchor,
+            EvidenceAnchor::Node {
+                span: anchor_span,
+                kind: NodeKind::BinOp,
+            } if anchor_span == span
+        ) {
+            continue;
+        }
+        let EvidenceKind::Guard(
+            evidence @ GuardEvidenceKind::BoundOrder {
+                activation: evidence_activation,
+                ..
+            },
+        ) = record.kind
+        else {
+            continue;
+        };
+        if evidence_activation != activation {
+            continue;
+        }
+        if !guard_evidence_dependencies_valid(il, record, evidence, span) {
+            return EvidenceResolution::Ambiguous;
+        }
+        match found {
+            None => found = Some(evidence),
+            Some(existing) if existing == evidence => {}
+            Some(_) => return EvidenceResolution::Ambiguous,
+        }
+    }
+    found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+/// Prove that the branch selected by `activation` establishes a non-strict
+/// lower-before-upper ordering. The evidence must be an asserted language-core
+/// guard record anchored on the exact comparison node and must name the exact
+/// operand spans; parameter names and unrelated guards are not proof.
+pub fn bound_order_guard_for_node(
+    il: &Il,
+    node: NodeId,
+    activation: BoundOrderGuardActivation,
+) -> Option<(NodeId, NodeId)> {
+    let (lower, upper) = bound_order_operands_from_condition(il, node, activation)?;
+    if !bound_order_operand_admitted(il, lower) || !bound_order_operand_admitted(il, upper) {
+        return None;
+    }
+    match bound_order_guard_evidence_at_node(il, node, activation) {
+        EvidenceResolution::Found(GuardEvidenceKind::BoundOrder {
+            lower_span,
+            upper_span,
+            activation: evidence_activation,
+        }) if evidence_activation == activation
+            && il.node(lower).span == lower_span
+            && il.node(upper).span == upper_span =>
+        {
+            Some((lower, upper))
+        }
+        EvidenceResolution::Found(_)
+        | EvidenceResolution::Ambiguous
+        | EvidenceResolution::Missing => None,
+    }
+}
+
+fn bound_order_operands_from_condition(
+    il: &Il,
+    node: NodeId,
+    activation: BoundOrderGuardActivation,
+) -> Option<(NodeId, NodeId)> {
+    if il.kind(node) != NodeKind::BinOp {
+        return None;
+    }
+    let Payload::Op(op) = il.node(node).payload else {
+        return None;
+    };
+    let [left, right] = il.children(node) else {
+        return None;
+    };
+    match (activation, op) {
+        (BoundOrderGuardActivation::WhenTrue, Op::Lt | Op::Le)
+        | (BoundOrderGuardActivation::WhenFalse, Op::Gt | Op::Ge) => Some((*left, *right)),
+        (BoundOrderGuardActivation::WhenTrue, Op::Gt | Op::Ge)
+        | (BoundOrderGuardActivation::WhenFalse, Op::Lt | Op::Le) => Some((*right, *left)),
+        _ => None,
+    }
+}
+
+fn bound_order_operand_admitted(il: &Il, node: NodeId) -> bool {
+    matches!(il.kind(node), NodeKind::Var)
+        || matches!(
+            (il.kind(node), il.node(node).payload),
+            (NodeKind::Lit, Payload::LitInt(_))
+        )
 }
 
 pub(super) fn own_property_guard_sequence_matches(

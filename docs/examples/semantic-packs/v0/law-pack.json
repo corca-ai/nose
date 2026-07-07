@@ -106,7 +106,7 @@
           },
           {
             "ref": "Guard.BoundOrder",
-            "subject": "lo-before-hi",
+            "subject": "exact comparison operand spans and activation prove lo-before-hi",
             "required": true
           },
           {
@@ -149,7 +149,7 @@
       },
       {
         "id": "clamp-ordered-minmax-positive",
-        "description": "Integer min(max(x, lo), hi) can enter the clamp law only when lo <= hi is proven by literal or source facts.",
+        "description": "Integer min(max(x, lo), hi) can enter the clamp law only when lo <= hi is proven by literal bounds or Guard.BoundOrder evidence.",
         "path": "fixtures/rust/clamp_ordered_minmax.rs",
         "expectation": "internal-law-unit-positive"
       }

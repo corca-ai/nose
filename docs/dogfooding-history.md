@@ -1017,3 +1017,14 @@ candidate-pair enumeration representative from `cc48beefc6a85976` to
 judgment as the post-0.17.0 runtime pass: visible cross-engine algorithm debt,
 not a reason to introduce a lower-layer utility dependency for one helper. No
 new budget is accepted.
+
+The numeric-clamp proof-facts slice moves the reviewed default-surface count
+from 26 to 27 after deduping the avoidable test-helper family
+`b1d3bffa405a6386` in the new clamp proof fixtures. The remaining new family
+`d9eaf862103c02a7` is a production whole-impl span between
+`interp/exec.rs` and `value_graph/control/statements.rs`: the drilldown reports
+only 16 shared lines across roughly 270-line `NodeKind` dispatchers, with 14
+varying spots. This is detector span noise from two intentionally independent
+statement walkers, not a useful base class/helper extraction; coupling the
+interpreter to the value-graph builder would make the boundary worse. The
+budget is raised to 27 for this reviewed span-noise family.
