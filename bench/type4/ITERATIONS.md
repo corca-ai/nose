@@ -281,6 +281,16 @@ narrower:
 The packet stays routed to `proof-fact-prerequisite`, but no longer lists controlled
 two-comparison/library surface bridging as open work.
 
+### 2026-07-07 detector admission status
+
+After the proof-fact implementation landed, the target packet records
+`detector_admission.status = controlled-slice-admitted`. The proof-carrying report now
+classifies it as `detector-admitted-controlled`: min/max compositions, two-comparison
+ternary clamps, and supported Rust integer `.clamp` forms are admitted only under literal
+or `Guard(BoundOrder)` evidence plus integer-domain evidence. The real boltons/fzf pair
+remains a `proof-fact-prerequisite` because fzf still supplies names, not an order proof,
+and the cross-language integer-only domain proof is still absent.
+
 ## Contract-Migration Expansion (issue #55)
 
 The first detector-expanding step after `LoopEffect`, `SelfFieldBody`, and

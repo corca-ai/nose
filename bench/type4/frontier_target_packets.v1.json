@@ -74,6 +74,31 @@
         "nose_version": "nose 0.5.0",
         "semantic_query_result": "nose query boltons/boltons/mathutils.py fzf/src/util/util.go --mode semantic top=0 --format json --min-size 1 --min-lines 1: the clamp pair is not merged across files."
       },
+      "detector_admission": {
+        "capabilities": [
+          "proven min(max(x, lo), hi) and max(min(x, hi), lo) min/max compositions",
+          "proof-backed two-comparison ternary clamp",
+          "literal ordered and Guard(BoundOrder)-backed Rust scalar integer .clamp"
+        ],
+        "hard_negative_gates": [
+          "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+          "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary"
+        ],
+        "positive_gates": [
+          "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+          "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge"
+        ],
+        "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
+        "scope": "proof-backed controlled integer clamp surfaces",
+        "status": "controlled-slice-admitted"
+      },
       "evidence_case_ids": [
         "numeric-clamp-minmax-ternary-real-miss"
       ],
