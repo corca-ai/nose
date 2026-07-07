@@ -12,6 +12,7 @@ The active Type-4 planning path is now:
 frontier_platform.py
   -> real_frontier.v1.json evidence
   -> frontier_target_packets.v1.json implementation-ready target packets
+  -> semantic_pattern_cards.v1.json reusable semantic pattern catalog
   -> executable_expectations.v1.json focused witness replay
   -> proof_carrying_frontier.v1.json admission readiness
   -> frontier_readiness.md roadmap triage
