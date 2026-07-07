@@ -35,6 +35,7 @@ TOOL_VERSION = "proof-carrying-frontier/1"
 DEFAULT_TARGET_PACKETS = HERE / "frontier_target_packets.v1.json"
 DEFAULT_REAL_FRONTIER = HERE / "real_frontier.v1.json"
 DEFAULT_COEVO_LEDGER = ROOT / "bench" / "coevo" / "packets.v1.json"
+DEFAULT_FOCUSED_CASES = HERE / "adversarial" / "cases" / "cases.v1.json"
 DEFAULT_JSON_OUT = HERE / "proof_carrying_frontier.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "proof_carrying_frontier.md"
 DEFAULT_READINESS_JSON_OUT = HERE / "frontier_readiness.v1.json"
@@ -51,6 +52,7 @@ REQUIRED_PACKET_FIELDS = {
     "owner_route",
     "owner_issue",
     "evidence_case_ids",
+    "hard_negative_group_ids",
     "breadth",
     "evidence_tier",
     "curated",
@@ -80,6 +82,15 @@ COEVO_VERDICTS = {
     "recorded-low-prevalence",
     "deferred-issue",
     "green-confirmed",
+}
+
+HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
+HARD_NEGATIVE_CONVENTION_CATEGORIES = {
+    "numeric",
+    "boolean",
+    "loop",
+    "collection",
+    "protocol-boundary",
 }
 
 READINESS_GROUPS = {
@@ -318,6 +329,195 @@ def validate_evidence_links(
     return link_rows
 
 
+def case_ref_id(ref: str) -> str | None:
+    if ref.startswith(HARD_NEGATIVE_CASE_REF_PREFIX):
+        return ref.removeprefix(HARD_NEGATIVE_CASE_REF_PREFIX)
+    return None
+
+
+def case_refs(values: list[str]) -> set[str]:
+    return {case_id for ref in values if (case_id := case_ref_id(ref))}
+
+
+def validate_focused_cases_doc(focused_cases: dict[str, Any]) -> tuple[
+    dict[str, dict[str, Any]], dict[str, dict[str, Any]], set[str]
+]:
+    if focused_cases.get("schema_version") != SCHEMA_VERSION:
+        raise FrontierError("cases.v1.json schema_version must be 1")
+    cases = focused_cases.get("cases")
+    if not isinstance(cases, list):
+        raise FrontierError("cases.v1.json must contain a cases list")
+    case_by_id: dict[str, dict[str, Any]] = {}
+    for case in cases:
+        case_id = case.get("id")
+        if not case_id:
+            raise FrontierError("focused case missing id")
+        if case_id in case_by_id:
+            raise FrontierError(f"duplicate focused case id: {case_id}")
+        case_by_id[case_id] = case
+        for field in ("kind", "semantic_family", "claim"):
+            if not case.get(field):
+                raise FrontierError(f"focused case {case_id} missing {field}")
+
+    conventions = focused_cases.get("hard_negative_conventions")
+    if not isinstance(conventions, dict) or not conventions:
+        raise FrontierError("cases.v1.json must define hard_negative_conventions")
+    if set(conventions) != HARD_NEGATIVE_CONVENTION_CATEGORIES:
+        missing = sorted(HARD_NEGATIVE_CONVENTION_CATEGORIES - set(conventions))
+        extra = sorted(set(conventions) - HARD_NEGATIVE_CONVENTION_CATEGORIES)
+        raise FrontierError(
+            "hard_negative_conventions must define exactly "
+            f"{sorted(HARD_NEGATIVE_CONVENTION_CATEGORIES)}; missing={missing}, extra={extra}"
+        )
+    convention_ids: set[str] = set()
+    for category, ids in conventions.items():
+        if category not in HARD_NEGATIVE_CONVENTION_CATEGORIES:
+            raise FrontierError(f"unknown hard-negative convention category: {category}")
+        if not isinstance(ids, list) or not ids:
+            raise FrontierError(f"hard-negative convention category {category} is empty")
+        for convention_id in ids:
+            if not isinstance(convention_id, str) or not convention_id.startswith(f"{category}."):
+                raise FrontierError(
+                    f"hard-negative convention {convention_id!r} must start with {category}."
+                )
+            convention_ids.add(convention_id)
+
+    groups = focused_cases.get("hard_negative_groups")
+    if not isinstance(groups, list) or not groups:
+        raise FrontierError("cases.v1.json must define hard_negative_groups")
+    group_by_id: dict[str, dict[str, Any]] = {}
+    for group in groups:
+        group_id = group.get("id")
+        if not group_id:
+            raise FrontierError("hard-negative group missing id")
+        if group_id in group_by_id:
+            raise FrontierError(f"duplicate hard-negative group id: {group_id}")
+        group_by_id[group_id] = group
+        for field in (
+            "semantic_family",
+            "packet_ids",
+            "conventions",
+            "positive_cases",
+            "hard_negative_cases",
+            "regression_gates",
+            "claim",
+        ):
+            if not group.get(field):
+                raise FrontierError(f"hard-negative group {group_id} missing {field}")
+        for convention_id in group["conventions"]:
+            if convention_id not in convention_ids:
+                raise FrontierError(
+                    f"hard-negative group {group_id} references unknown convention {convention_id}"
+                )
+        for case_id in group["positive_cases"]:
+            case = case_by_id.get(case_id)
+            if case is None or case.get("kind") != "positive":
+                raise FrontierError(
+                    f"hard-negative group {group_id} positive case {case_id} "
+                    "is missing or not positive"
+                )
+        for case_id in group["hard_negative_cases"]:
+            case = case_by_id.get(case_id)
+            if case is None or case.get("kind") != "hard-negative":
+                raise FrontierError(
+                    f"hard-negative group {group_id} hard-negative case {case_id} "
+                    "is missing or not hard-negative"
+                )
+        expected_case_gates = {
+            f"{HARD_NEGATIVE_CASE_REF_PREFIX}{case_id}"
+            for case_id in group["positive_cases"] + group["hard_negative_cases"]
+        }
+        missing_case_gates = sorted(expected_case_gates - set(group["regression_gates"]))
+        if missing_case_gates:
+            raise FrontierError(
+                f"hard-negative group {group_id} regression_gates missing case refs: "
+                f"{missing_case_gates}"
+            )
+    return case_by_id, group_by_id, convention_ids
+
+
+def validate_hard_negative_linkage(
+    packets: list[dict[str, Any]], focused_cases: dict[str, Any]
+) -> list[dict[str, Any]]:
+    case_by_id, group_by_id, _convention_ids = validate_focused_cases_doc(focused_cases)
+    packet_ids = {packet["packet_id"] for packet in packets}
+    for group_id, group in group_by_id.items():
+        for packet_id in group["packet_ids"]:
+            if packet_id not in packet_ids:
+                raise FrontierError(
+                    f"hard-negative group {group_id} references unknown packet {packet_id}"
+                )
+
+    rows = []
+    for packet in packets:
+        packet_id = packet["packet_id"]
+        group_ids = packet.get("hard_negative_group_ids")
+        if not isinstance(group_ids, list) or not group_ids:
+            raise FrontierError(f"packet {packet_id} must cite hard_negative_group_ids")
+        admission = packet["detector_admission"]
+        positive_refs = case_refs(admission["positive_gates"])
+        hard_negative_refs = case_refs(admission["hard_negative_gates"])
+        if not positive_refs:
+            raise FrontierError(f"packet {packet_id} must cite at least one focused positive gate")
+        if not hard_negative_refs:
+            raise FrontierError(
+                f"packet {packet_id} must cite at least one focused hard-negative gate"
+            )
+
+        for group_id in group_ids:
+            group = group_by_id.get(group_id)
+            if group is None:
+                raise FrontierError(
+                    f"packet {packet_id} cites unknown hard-negative group {group_id}"
+                )
+            if packet_id not in group["packet_ids"]:
+                raise FrontierError(
+                    f"packet {packet_id} cites hard-negative group {group_id} "
+                    "that does not list the packet"
+                )
+            missing_positive = sorted(set(group["positive_cases"]) - positive_refs)
+            missing_negative = sorted(set(group["hard_negative_cases"]) - hard_negative_refs)
+            gate_set = set(admission["positive_gates"]) | set(admission["hard_negative_gates"])
+            missing_gates = sorted(set(group["regression_gates"]) - gate_set)
+            if missing_positive:
+                raise FrontierError(
+                    f"packet {packet_id} hard-negative group {group_id} missing "
+                    f"positive gates: {missing_positive}"
+                )
+            if missing_negative:
+                raise FrontierError(
+                    f"packet {packet_id} hard-negative group {group_id} missing "
+                    f"hard-negative gates: {missing_negative}"
+                )
+            if missing_gates:
+                raise FrontierError(
+                    f"packet {packet_id} hard-negative group {group_id} missing "
+                    f"regression gates: {missing_gates}"
+                )
+            for case_id in group["positive_cases"]:
+                if case_by_id[case_id]["semantic_family"] != group["semantic_family"]:
+                    raise FrontierError(
+                        f"group {group_id} positive case {case_id} semantic family drifted"
+                    )
+            for case_id in group["hard_negative_cases"]:
+                if case_by_id[case_id]["semantic_family"] != group["semantic_family"]:
+                    raise FrontierError(
+                        f"group {group_id} hard-negative case {case_id} semantic family drifted"
+                    )
+            rows.append(
+                {
+                    "packet_id": packet_id,
+                    "group_id": group_id,
+                    "semantic_family": group["semantic_family"],
+                    "conventions": list(group["conventions"]),
+                    "positive_cases": list(group["positive_cases"]),
+                    "hard_negative_cases": list(group["hard_negative_cases"]),
+                    "regression_gates": list(group["regression_gates"]),
+                }
+            )
+    return rows
+
+
 def readiness_for(packet: dict[str, Any]) -> dict[str, Any]:
     blockers = list(packet.get("blocked_by") or [])
     admission = packet.get("detector_admission") or {}
@@ -379,6 +579,7 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
                 "owner_route": packet["owner_route"],
                 "owner_issue": packet["owner_issue"],
                 "evidence_case_ids": packet["evidence_case_ids"],
+                "hard_negative_group_ids": packet["hard_negative_group_ids"],
                 "evidence_tier": packet["evidence_tier"],
                 "proof_invariant": packet["proof_invariant"],
                 "hard_negative_count": len(packet["hard_negative_siblings"]),
@@ -465,12 +666,15 @@ def build_report(
     target_packets_path: Path,
     real_frontier_path: Path,
     coevo_ledger_path: Path,
+    focused_cases_path: Path,
 ) -> dict[str, Any]:
     packet_doc = load_json(target_packets_path)
     real_frontier = load_json(real_frontier_path)
     coevo = load_json(coevo_ledger_path)
+    focused_cases = load_json(focused_cases_path)
     packets = validate_packet_doc(packet_doc)
     evidence_links = validate_evidence_links(packets, real_frontier)
+    hard_negative_linkage = validate_hard_negative_linkage(packets, focused_cases)
     packet_rows, packet_summary = summarize_packets(packets)
     coevo_summary = summarize_coevo(coevo)
     verdict = admission_verdict(packet_summary["ready_packet_count"])
@@ -482,6 +686,7 @@ def build_report(
                 "target_packets": artifact_ref(target_packets_path),
                 "real_frontier": artifact_ref(real_frontier_path),
                 "coevo_ledger": artifact_ref(coevo_ledger_path),
+                "focused_cases": artifact_ref(focused_cases_path),
             },
             "target_packet_identity": packet_doc.get("identity", {}),
         },
@@ -490,6 +695,7 @@ def build_report(
                 "linked real_frontier real-miss evidence",
                 "proof invariant narrow enough to defend",
                 "adjacent hard-negative siblings",
+                "packet-level hard-negative group linkage",
                 "current detector result showing the present boundary",
                 "no unresolved proof or soundness blockers",
                 "product-output and runtime evidence before merge",
@@ -504,6 +710,7 @@ def build_report(
             "summary": packet_summary,
             "packets": packet_rows,
             "evidence_links": evidence_links,
+            "hard_negative_linkage": hard_negative_linkage,
         },
         "coevolution_guardrails": coevo_summary,
     }
@@ -545,8 +752,8 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Target Packets",
         "",
-        "| packet | axis | route | readiness | proof facts | hard negatives |",
-        "|---|---|---|---|---:|---:|",
+        "| packet | axis | route | readiness | proof facts | hard negatives | groups |",
+        "|---|---|---|---|---:|---:|---:|",
     ]
     for packet in report["target_packets"]["packets"]:
         readiness = packet["readiness"]
@@ -554,7 +761,8 @@ def markdown_report(report: dict[str, Any]) -> str:
             f"| `{packet['packet_id']}` | `{packet['candidate_axis']}` | "
             f"`{packet['owner_route']}` | `{readiness['status']}` | "
             f"{packet['proof_fact_model']['fact_count']} | "
-            f"{packet['hard_negative_count']} |"
+            f"{packet['hard_negative_count']} | "
+            f"{len(packet['hard_negative_group_ids'])} |"
         )
     lines += ["", "## Packet Details", ""]
     for packet in report["target_packets"]["packets"]:
@@ -577,6 +785,21 @@ def markdown_report(report: dict[str, Any]) -> str:
             lines.append(f"- proof fact model: `{model_status}`; facts: {facts}")
             lines.append("- blocked by:")
             lines.extend(f"  - {item}" for item in readiness["blocking_items"])
+        groups = ", ".join(f"`{group}`" for group in packet["hard_negative_group_ids"])
+        lines.append(f"- hard-negative groups: {groups}")
+        lines.append("")
+    lines += ["## Hard-Negative Linkage", ""]
+    for row in report["target_packets"]["hard_negative_linkage"]:
+        conventions = ", ".join(f"`{item}`" for item in row["conventions"])
+        lines.append(f"### `{row['packet_id']}` / `{row['group_id']}`")
+        lines.append("")
+        lines.append(f"- semantic family: `{row['semantic_family']}`")
+        lines.append(f"- conventions: {conventions}")
+        lines.append(
+            f"- cases: {len(row['positive_cases'])} positive, "
+            f"{len(row['hard_negative_cases'])} hard-negative"
+        )
+        lines.append(f"- regression gates: {len(row['regression_gates'])}")
         lines.append("")
     lines += [
         "## Co-Evolution Guardrails",
@@ -678,6 +901,7 @@ def readiness_packet_view(packet: dict[str, Any]) -> dict[str, Any]:
         "owner_route": packet["owner_route"],
         "owner_issue": packet["owner_issue"],
         "evidence_case_ids": packet["evidence_case_ids"],
+        "hard_negative_group_ids": packet["hard_negative_group_ids"],
         "evidence_tier": packet["evidence_tier"],
         "proof_fact_model_status": packet["proof_fact_model"]["model_status"],
         "proof_fact_ids": packet["proof_fact_model"]["fact_ids"],
@@ -803,15 +1027,19 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
             lines += ["_None._", ""]
             continue
         lines += [
-            "| packet | axis | readiness | detector admission | action |",
-            "|---|---|---|---|---|",
+            "| packet | axis | readiness | detector admission | hard-negative groups | action |",
+            "|---|---|---|---|---|---|",
         ]
         for packet in data["packets"]:
+            groups = ", ".join(
+                f"`{markdown_cell(group)}`" for group in packet["hard_negative_group_ids"]
+            )
             lines.append(
                 f"| `{markdown_cell(packet['packet_id'])}` | "
                 f"`{markdown_cell(packet['candidate_axis'])}` | "
                 f"`{markdown_cell(packet['readiness_status'])}` | "
                 f"`{markdown_cell(packet['detector_admission_status'])}` | "
+                f"{groups} | "
                 f"{markdown_cell(packet['planning_summary'])} |"
             )
         lines += ["", "Release-note wording:", ""]
@@ -894,6 +1122,7 @@ def selftest() -> None:
         "owner_route": "proof-fact-prerequisite",
         "owner_issue": None,
         "evidence_case_ids": ["c"],
+        "hard_negative_group_ids": ["g"],
         "breadth": {},
         "evidence_tier": "frontier-recorded",
         "curated": {},
@@ -914,8 +1143,8 @@ def selftest() -> None:
             "status": "not-admitted",
             "scope": "none",
             "capabilities": ["none"],
-            "positive_gates": ["not yet"],
-            "hard_negative_gates": ["not yet"],
+            "positive_gates": [f"{HARD_NEGATIVE_CASE_REF_PREFIX}positive"],
+            "hard_negative_gates": [f"{HARD_NEGATIVE_CASE_REF_PREFIX}negative"],
             "remaining_real_pair_gap": "missing proof",
         },
         "blocked_by": ["missing proof"],
@@ -924,6 +1153,45 @@ def selftest() -> None:
     packet_doc = {"schema_version": 1, "packet_count": 1, "packets": [packet]}
     packets = validate_packet_doc(packet_doc)
     assert readiness_for(packet)["status"] == "blocked-on-proof"
+    focused_cases = {
+        "schema_version": 1,
+        "hard_negative_conventions": {
+            "numeric": ["numeric.precondition"],
+            "boolean": ["boolean.truth-table"],
+            "loop": ["loop.short-circuit"],
+            "collection": ["collection.cardinality"],
+            "protocol-boundary": ["protocol-boundary.api-identity"],
+        },
+        "hard_negative_groups": [
+            {
+                "id": "g",
+                "semantic_family": "axis.family",
+                "packet_ids": ["p"],
+                "conventions": ["numeric.precondition"],
+                "positive_cases": ["positive"],
+                "hard_negative_cases": ["negative"],
+                "regression_gates": [
+                    f"{HARD_NEGATIVE_CASE_REF_PREFIX}positive",
+                    f"{HARD_NEGATIVE_CASE_REF_PREFIX}negative",
+                ],
+                "claim": "positive and hard-negative gates move together",
+            }
+        ],
+        "cases": [
+            {
+                "id": "positive",
+                "kind": "positive",
+                "semantic_family": "axis.family",
+                "claim": "positive",
+            },
+            {
+                "id": "negative",
+                "kind": "hard-negative",
+                "semantic_family": "axis.family",
+                "claim": "negative",
+            },
+        ],
+    }
     real_frontier = {
         "items": [
             {
@@ -946,6 +1214,8 @@ def selftest() -> None:
             "candidate_axis": "axis",
         }
     ]
+    linkage = validate_hard_negative_linkage(packets, focused_cases)
+    assert linkage[0]["group_id"] == "g"
     drifted = json.loads(json.dumps(packet_doc))
     drifted["packets"][0]["proof_invariant"] = "changed"
     try:
@@ -1010,6 +1280,26 @@ def selftest() -> None:
         raise AssertionError("missing hard negative was not detected")
     except FrontierError:
         pass
+    try:
+        bad = json.loads(json.dumps(packet))
+        bad["detector_admission"]["hard_negative_gates"] = []
+        validate_hard_negative_linkage(
+            validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [bad]}),
+            focused_cases,
+        )
+        raise AssertionError("missing focused hard-negative gate was not detected")
+    except FrontierError:
+        pass
+    try:
+        bad = json.loads(json.dumps(packet))
+        bad["hard_negative_group_ids"] = ["unknown"]
+        validate_hard_negative_linkage(
+            validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [bad]}),
+            focused_cases,
+        )
+        raise AssertionError("unknown hard-negative group was not detected")
+    except FrontierError:
+        pass
     no_model = dict(packet)
     no_model["proof_fact_model"] = {}
     try:
@@ -1058,6 +1348,7 @@ def main() -> int:
     parser.add_argument("--target-packets", type=Path, default=DEFAULT_TARGET_PACKETS)
     parser.add_argument("--real-frontier", type=Path, default=DEFAULT_REAL_FRONTIER)
     parser.add_argument("--coevo-ledger", type=Path, default=DEFAULT_COEVO_LEDGER)
+    parser.add_argument("--focused-cases", type=Path, default=DEFAULT_FOCUSED_CASES)
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
     parser.add_argument("--readiness-json-out", type=Path, default=DEFAULT_READINESS_JSON_OUT)
@@ -1074,7 +1365,12 @@ def main() -> int:
         if args.selftest:
             selftest()
             return 0
-        report = build_report(args.target_packets, args.real_frontier, args.coevo_ledger)
+        report = build_report(
+            args.target_packets,
+            args.real_frontier,
+            args.coevo_ledger,
+            args.focused_cases,
+        )
         if args.check:
             check_artifacts(
                 report,

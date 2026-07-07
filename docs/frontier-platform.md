@@ -131,9 +131,9 @@ team needs:
   `proof-fact-prerequisite` means "a proof fact is needed first" — **not** something Team A
   can implement now.
 - the assembled schema (`packet_id`, `semantic_claim`, `locations` with repo/split/primary
-  language, `current_detector_result`, `proof_invariant`, `hard_negative_siblings`, breadth,
-  `evidence_tier`, `curated`, `why_now`, `proof_fact_model`, `detector_admission`,
-  `blocked_by`, `notes`) is validated on emit.
+  language, `current_detector_result`, `proof_invariant`, `hard_negative_siblings`,
+  `hard_negative_group_ids`, breadth, `evidence_tier`, `curated`, `why_now`,
+  `proof_fact_model`, `detector_admission`, `blocked_by`, `notes`) is validated on emit.
 
 A packet's contract ends at the proof invariant and target evidence; it never writes a
 detector implementation plan for Team A/C. Generate alongside the platform run:

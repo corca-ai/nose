@@ -5,6 +5,7 @@
       "linked real_frontier real-miss evidence",
       "proof invariant narrow enough to defend",
       "adjacent hard-negative siblings",
+      "packet-level hard-negative group linkage",
       "current detector result showing the present boundary",
       "no unresolved proof or soundness blockers",
       "product-output and runtime evidence before merge"
@@ -98,15 +99,20 @@
         "sha256": "50be3cc9ae19aa4966cf0787e9801d641060769c7da4f2218773331610c42dc1",
         "size_bytes": 47916
       },
+      "focused_cases": {
+        "path": "bench/type4/adversarial/cases/cases.v1.json",
+        "sha256": "3c5cb511c601ae30086c7dea69c5a0fdb4d55c535a1a5ffe80e1adbca56e248c",
+        "size_bytes": 33315
+      },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "d216ab1cdc2051eae20c64eff8d7eaf375679bc7878bd075ca865a53d16014eb",
-        "size_bytes": 70393
+        "sha256": "dd612ae7fa6ef206d39c2eacc9fb35db41c5651c5174091d3c94533e07bcf6da",
+        "size_bytes": 70496
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "7e1b180497e0c1a2528ef284be1b24190fd939c5ede253aa4ee454590fc7cf76",
-        "size_bytes": 21509
+        "sha256": "f33caeb443546480806389e9929ce55827f0992cf46af5756d726d9c1c2fbcd8",
+        "size_bytes": 22007
       }
     },
     "target_packet_identity": {
@@ -137,6 +143,69 @@
         "status": "real-miss"
       }
     ],
+    "hard_negative_linkage": [
+      {
+        "conventions": [
+          "numeric.domain",
+          "numeric.precondition",
+          "numeric.shape",
+          "protocol-boundary.api-identity"
+        ],
+        "group_id": "numeric-clamp-proof-perimeter",
+        "hard_negative_cases": [
+          "clamp_unordered_bounds",
+          "clamp_float_nan_boundary",
+          "clamp_method_name_only_boundary"
+        ],
+        "packet_id": "numeric-clamp-2026-06-06",
+        "positive_cases": [
+          "clamp_ternary_minmax_bridge",
+          "clamp_library_method_bridge"
+        ],
+        "regression_gates": [
+          "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+          "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary"
+        ],
+        "semantic_family": "numeric.clamp"
+      },
+      {
+        "conventions": [
+          "boolean.truth-table",
+          "boolean.value-context",
+          "boolean.effect-safety",
+          "loop.empty-input",
+          "loop.short-circuit",
+          "loop.iterator-identity"
+        ],
+        "group_id": "python-loop-demorgan-all-proof-perimeter",
+        "hard_negative_cases": [
+          "python_loop_demorgan_vacuous_truth_boundary",
+          "python_loop_demorgan_side_effect_boundary",
+          "python_loop_demorgan_value_return_boundary",
+          "python_loop_demorgan_changed_predicate_boundary",
+          "python_loop_demorgan_iterator_identity_boundary"
+        ],
+        "packet_id": "python-loop-demorgan-all-2026-07-07",
+        "positive_cases": [
+          "python_loop_demorgan_all_readme"
+        ],
+        "regression_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
+        ],
+        "semantic_family": "python.loop_demorgan_all"
+      }
+    ],
     "packets": [
       {
         "candidate_axis": "numeric_clamp",
@@ -157,6 +226,9 @@
         ],
         "evidence_tier": "frontier-recorded",
         "hard_negative_count": 4,
+        "hard_negative_group_ids": [
+          "numeric-clamp-proof-perimeter"
+        ],
         "owner_issue": null,
         "owner_route": "proof-fact-prerequisite",
         "packet_id": "numeric-clamp-2026-06-06",
@@ -187,7 +259,7 @@
           "capabilities": [
             "no detector slice admitted for loop/all plus De Morgan yet"
           ],
-          "hard_negative_gate_count": 4,
+          "hard_negative_gate_count": 5,
           "positive_gate_count": 1,
           "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
           "scope": "none; tracked proof packet only",
@@ -197,7 +269,10 @@
           "python-loop-demorgan-all-readme-real-miss"
         ],
         "evidence_tier": "frontier-recorded",
-        "hard_negative_count": 4,
+        "hard_negative_count": 5,
+        "hard_negative_group_ids": [
+          "python-loop-demorgan-all-proof-perimeter"
+        ],
         "owner_issue": null,
         "owner_route": "proof-fact-prerequisite",
         "packet_id": "python-loop-demorgan-all-2026-07-07",

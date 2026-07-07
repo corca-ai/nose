@@ -8,12 +8,13 @@ generated benchmark gates.
 What remains here is deliberately small:
 
 - `cases/cases.v1.json` records focused positive, hard-negative, oracle-gap, and perf case
-  handles used by tests, `nose verify`, `type4-smoke`, query regression, or target packets.
+  handles used by tests, `nose verify`, `type4-smoke`, query regression, or target packets,
+  plus hard-negative groups that bind packet positives, hard negatives, and gates together.
 - `cases/**` stores the small focused fixture corpora referenced by those handles.
 - `scripts/type4-next` prints task cards from `../frontier_target_packets.v1.json`.
-- `scripts/type4-check` validates target packets, real-frontier evidence links, and focused
-  case fixture paths.
-- `scripts/type4-report` summarizes target packets and focused cases.
+- `scripts/type4-check` validates target packets, real-frontier evidence links, focused
+  case fixture paths, and hard-negative group references.
+- `scripts/type4-report` summarizes target packets, focused cases, and hard-negative groups.
 - `scripts/type4-ingest-leads` summarizes `nose verify --leads` JSON and emits draft target
   packet skeletons for manual curation.
 

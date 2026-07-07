@@ -1,6 +1,98 @@
 {
   "schema_version": 1,
   "description": "Focused Type-4 positive and hard-negative case handles used by target packets, smoke gates, verifier runs, and regression tests.",
+  "hard_negative_conventions": {
+    "numeric": [
+      "numeric.domain",
+      "numeric.precondition",
+      "numeric.shape"
+    ],
+    "boolean": [
+      "boolean.truth-table",
+      "boolean.value-context",
+      "boolean.effect-safety"
+    ],
+    "loop": [
+      "loop.empty-input",
+      "loop.short-circuit",
+      "loop.iterator-identity"
+    ],
+    "collection": [
+      "collection.cardinality",
+      "collection.absence-vs-value",
+      "collection.receiver-provenance"
+    ],
+    "protocol-boundary": [
+      "protocol-boundary.api-identity",
+      "protocol-boundary.lifecycle",
+      "protocol-boundary.callback-effect"
+    ]
+  },
+  "hard_negative_groups": [
+    {
+      "id": "numeric-clamp-proof-perimeter",
+      "semantic_family": "numeric.clamp",
+      "packet_ids": ["numeric-clamp-2026-06-06"],
+      "conventions": [
+        "numeric.domain",
+        "numeric.precondition",
+        "numeric.shape",
+        "protocol-boundary.api-identity"
+      ],
+      "positive_cases": [
+        "clamp_ternary_minmax_bridge",
+        "clamp_library_method_bridge"
+      ],
+      "hard_negative_cases": [
+        "clamp_unordered_bounds",
+        "clamp_float_nan_boundary",
+        "clamp_method_name_only_boundary"
+      ],
+      "regression_gates": [
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+        "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary"
+      ],
+      "claim": "Numeric clamp admission must keep bound-order, numeric-domain, shape, and library/API identity hard negatives beside every positive bridge."
+    },
+    {
+      "id": "python-loop-demorgan-all-proof-perimeter",
+      "semantic_family": "python.loop_demorgan_all",
+      "packet_ids": ["python-loop-demorgan-all-2026-07-07"],
+      "conventions": [
+        "boolean.truth-table",
+        "boolean.value-context",
+        "boolean.effect-safety",
+        "loop.empty-input",
+        "loop.short-circuit",
+        "loop.iterator-identity"
+      ],
+      "positive_cases": [
+        "python_loop_demorgan_all_readme"
+      ],
+      "hard_negative_cases": [
+        "python_loop_demorgan_vacuous_truth_boundary",
+        "python_loop_demorgan_side_effect_boundary",
+        "python_loop_demorgan_value_return_boundary",
+        "python_loop_demorgan_changed_predicate_boundary",
+        "python_loop_demorgan_iterator_identity_boundary"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
+      ],
+      "claim": "Python loop/all plus De Morgan admission must keep vacuous truth, short-circuit timing, iterator identity, boolean value-context, predicate-coordinate, and effect-safety hard negatives beside the positive packet."
+    }
+  ],
   "cases": [
     {
       "id": "flat_map_py_loop_js",
@@ -341,6 +433,15 @@
       "mutation": "`x != 0 and x != 1` -> `x != 0 or x != 1`",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py"],
       "evidence": "The hard-negative fixture includes all_changed_predicate, which is true for every scalar except impossible simultaneous 0 and 1."
+    },
+    {
+      "id": "python_loop_demorgan_iterator_identity_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "The loop and all(...) must consume the same iterable; changing the iterated receiver changes behavior.",
+      "mutation": "loop iterates ys while all(...) iterates xs",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py"],
+      "evidence": "The hard-negative fixture uses the same `(xs, ys)` signature on both functions but drives the loop from ys, so future admission must prove same-iterator identity instead of matching only predicate shape."
     },
     {
       "id": "map_default_imported_literal",

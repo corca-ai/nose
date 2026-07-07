@@ -42,6 +42,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - predicate side effects or iterator mutation before returning, where short-circuit timing is observable
   - Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test
   - changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1
+  - different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys
 - **evidence**: `python-loop-demorgan-all-readme-real-miss` (`real_frontier.v1.json`)
 - **representative locations**:
   - `nose` (docs, Python) `README.md:15-33`

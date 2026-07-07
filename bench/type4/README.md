@@ -249,9 +249,10 @@ bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
 
-`type4-check` validates target packets, real-frontier evidence links, and focused fixture
-paths. `type4-report` summarizes packet and focused-case coverage. `type4-next` prints task
-cards directly from `frontier_target_packets.v1.json`.
+`type4-check` validates target packets, real-frontier evidence links, focused fixture
+paths, and packet-level hard-negative groups. `type4-report` summarizes packet,
+focused-case, and hard-negative group coverage. `type4-next` prints task cards directly
+from `frontier_target_packets.v1.json`.
 
 When `nose verify --leads` has produced a leads JSON file, use
 `bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --axis <axis> --draft-json`
@@ -302,8 +303,9 @@ the new-axis/packet workflow, `owner_route`, and the audit template.
 
 `proof_carrying_frontier.py` is the admission layer above target packets. It validates that
 each packet still matches its linked `real_frontier.v1.json` evidence, requires proof
-invariants and hard-negative siblings, summarizes the co-evolution guardrail ledger, and
-records whether any packet is ready to open exact semantic behavior.
+invariants, hard-negative siblings, and hard-negative group linkage, summarizes the
+co-evolution guardrail ledger, and records whether any packet is ready to open exact
+semantic behavior.
 
 ```sh
 python3 bench/type4/proof_carrying_frontier.py

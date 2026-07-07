@@ -27,8 +27,11 @@
           ],
           "evidence_tier": "frontier-recorded",
           "group": "blocked-on-proof",
-          "hard_negative_count": 4,
-          "hard_negative_gate_count": 4,
+          "hard_negative_count": 5,
+          "hard_negative_gate_count": 5,
+          "hard_negative_group_ids": [
+            "python-loop-demorgan-all-proof-perimeter"
+          ],
           "owner_issue": null,
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "python-loop-demorgan-all-2026-07-07",
@@ -78,6 +81,9 @@
           "group": "admitted/resolved",
           "hard_negative_count": 4,
           "hard_negative_gate_count": 6,
+          "hard_negative_group_ids": [
+            "numeric-clamp-proof-perimeter"
+          ],
           "owner_issue": null,
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "numeric-clamp-2026-06-06",
@@ -126,6 +132,9 @@
           "group": "admitted/resolved",
           "hard_negative_count": 4,
           "hard_negative_gate_count": 6,
+          "hard_negative_group_ids": [
+            "numeric-clamp-proof-perimeter"
+          ],
           "owner_issue": null,
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "numeric-clamp-2026-06-06",
@@ -171,8 +180,11 @@
           ],
           "evidence_tier": "frontier-recorded",
           "group": "blocked-on-proof",
-          "hard_negative_count": 4,
-          "hard_negative_gate_count": 4,
+          "hard_negative_count": 5,
+          "hard_negative_gate_count": 5,
+          "hard_negative_group_ids": [
+            "python-loop-demorgan-all-proof-perimeter"
+          ],
           "owner_issue": null,
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "python-loop-demorgan-all-2026-07-07",
@@ -219,15 +231,20 @@
       "sha256": "50be3cc9ae19aa4966cf0787e9801d641060769c7da4f2218773331610c42dc1",
       "size_bytes": 47916
     },
+    "focused_cases": {
+      "path": "bench/type4/adversarial/cases/cases.v1.json",
+      "sha256": "3c5cb511c601ae30086c7dea69c5a0fdb4d55c535a1a5ffe80e1adbca56e248c",
+      "size_bytes": 33315
+    },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "d216ab1cdc2051eae20c64eff8d7eaf375679bc7878bd075ca865a53d16014eb",
-      "size_bytes": 70393
+      "sha256": "dd612ae7fa6ef206d39c2eacc9fb35db41c5651c5174091d3c94533e07bcf6da",
+      "size_bytes": 70496
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "7e1b180497e0c1a2528ef284be1b24190fd939c5ede253aa4ee454590fc7cf76",
-      "size_bytes": 21509
+      "sha256": "f33caeb443546480806389e9929ce55827f0992cf46af5756d726d9c1c2fbcd8",
+      "size_bytes": 22007
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",

@@ -819,6 +819,7 @@ TARGET_PACKETS = [
         "packet_id": "numeric-clamp-2026-06-06",
         "candidate_axis": "numeric_clamp",
         "evidence_case_ids": ["numeric-clamp-minmax-ternary-real-miss"],
+        "hard_negative_group_ids": ["numeric-clamp-proof-perimeter"],
         "owner_route": "proof-fact-prerequisite",
         "owner_issue": None,
         "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is "
@@ -920,6 +921,7 @@ TARGET_PACKETS = [
         "packet_id": "python-loop-demorgan-all-2026-07-07",
         "candidate_axis": "python_loop_demorgan_all",
         "evidence_case_ids": ["python-loop-demorgan-all-readme-real-miss"],
+        "hard_negative_group_ids": ["python-loop-demorgan-all-proof-perimeter"],
         "owner_route": "proof-fact-prerequisite",
         "owner_issue": None,
         "why_now": "The front-page README uses this same-language Type-4 example to explain "
@@ -981,6 +983,7 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
             ],
         },
         "detector_admission": {
@@ -997,6 +1000,7 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
             ],
             "remaining_real_pair_gap": (
                 "the README/focused Python pair is still a detector miss; exact admission "
@@ -1096,6 +1100,7 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
                 "owner_route": spec["owner_route"],
                 "owner_issue": spec["owner_issue"],
                 "evidence_case_ids": spec["evidence_case_ids"],
+                "hard_negative_group_ids": spec["hard_negative_group_ids"],
                 "why_now": spec["why_now"],
                 "proof_fact_model": spec["proof_fact_model"],
                 "detector_admission": spec["detector_admission"],
@@ -1126,8 +1131,9 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
 REQUIRED_PACKET_FIELDS = (
     "packet_id", "candidate_axis", "semantic_claim", "locations",
     "current_detector_result", "proof_invariant", "hard_negative_siblings",
-    "owner_route", "owner_issue", "evidence_case_ids", "breadth", "evidence_tier",
-    "curated", "why_now", "proof_fact_model", "detector_admission", "blocked_by", "notes",
+    "owner_route", "owner_issue", "evidence_case_ids", "hard_negative_group_ids",
+    "breadth", "evidence_tier", "curated", "why_now", "proof_fact_model",
+    "detector_admission", "blocked_by", "notes",
 )
 
 
@@ -1138,6 +1144,8 @@ def validate_packets(packets: list[dict]) -> None:
         assert not missing, f"packet {p.get('packet_id')} missing fields: {missing}"
         assert p["owner_route"] in OWNER_ROUTE
         assert isinstance(p["evidence_case_ids"], list) and p["evidence_case_ids"]
+        assert isinstance(p["hard_negative_siblings"], list) and p["hard_negative_siblings"]
+        assert isinstance(p["hard_negative_group_ids"], list) and p["hard_negative_group_ids"]
         assert isinstance(p["proof_fact_model"], dict) and p["proof_fact_model"].get("facts")
         validate_detector_admission(p)
         for loc in p["locations"]:
@@ -1454,12 +1462,15 @@ def selftest() -> int:
         assert spec["owner_route"] in OWNER_ROUTE, spec["packet_id"]
         assert spec["candidate_axis"] in EXPECTED_UNION_AXES, spec["candidate_axis"]
         assert spec["evidence_case_ids"], spec["packet_id"]
+        assert spec["hard_negative_group_ids"], spec["packet_id"]
         for loc in spec["locations"]:
             assert {"repo", "path", "span", "snippet"} <= set(loc), spec["packet_id"]
     # The packet output schema validator rejects a missing field.
     good = {f: "x" for f in REQUIRED_PACKET_FIELDS}
     good["owner_route"] = "team-a-detector"
     good["evidence_case_ids"] = ["c"]
+    good["hard_negative_siblings"] = ["negative"]
+    good["hard_negative_group_ids"] = ["g"]
     good["proof_fact_model"] = {"facts": ["modeled"]}
     good["detector_admission"] = {
         "status": "controlled-slice-admitted",

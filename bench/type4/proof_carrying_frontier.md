@@ -23,16 +23,17 @@ report keeps the fuller evidence and admission boundary.
 - linked real_frontier real-miss evidence
 - proof invariant narrow enough to defend
 - adjacent hard-negative siblings
+- packet-level hard-negative group linkage
 - current detector result showing the present boundary
 - no unresolved proof or soundness blockers
 - product-output and runtime evidence before merge
 
 ## Target Packets
 
-| packet | axis | route | readiness | proof facts | hard negatives |
-|---|---|---|---|---:|---:|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | 2 | 4 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | 3 | 4 |
+| packet | axis | route | readiness | proof facts | hard negatives | groups |
+|---|---|---|---|---:|---:|---:|
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | 2 | 4 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | 3 | 5 | 1 |
 
 ## Packet Details
 
@@ -45,17 +46,35 @@ report keeps the fuller evidence and admission boundary.
 - blocked by:
   - the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
   - the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries
+- hard-negative groups: `numeric-clamp-proof-perimeter`
 
 ### `python-loop-demorgan-all-2026-07-07`
 
 - detector admission: `not-admitted` over none; tracked proof packet only
 - remaining real-pair gap: the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts
-- gates: 1 positive, 4 hard-negative
+- gates: 1 positive, 5 hard-negative
 - proof fact model: `specified-not-modeled`; facts: `python-loop-demorgan.universal-short-circuit`, `python-loop-demorgan.boolean-demorgan`, `python-loop-demorgan.effect-safety`
 - blocked by:
   - no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form
   - De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects
   - effect-safety and same-iterator proof are not yet modeled for this fragment shape
+- hard-negative groups: `python-loop-demorgan-all-proof-perimeter`
+
+## Hard-Negative Linkage
+
+### `numeric-clamp-2026-06-06` / `numeric-clamp-proof-perimeter`
+
+- semantic family: `numeric.clamp`
+- conventions: `numeric.domain`, `numeric.precondition`, `numeric.shape`, `protocol-boundary.api-identity`
+- cases: 2 positive, 3 hard-negative
+- regression gates: 8
+
+### `python-loop-demorgan-all-2026-07-07` / `python-loop-demorgan-all-proof-perimeter`
+
+- semantic family: `python.loop_demorgan_all`
+- conventions: `boolean.truth-table`, `boolean.value-context`, `boolean.effect-safety`, `loop.empty-input`, `loop.short-circuit`, `loop.iterator-identity`
+- cases: 1 positive, 5 hard-negative
+- regression gates: 6
 
 ## Co-Evolution Guardrails
 

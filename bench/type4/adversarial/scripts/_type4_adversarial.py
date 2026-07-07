@@ -15,6 +15,14 @@ REPO_ROOT = ROOT.parents[2]
 PACKETS_PATH = TYPE4_ROOT / "frontier_target_packets.v1.json"
 REAL_FRONTIER_PATH = TYPE4_ROOT / "real_frontier.v1.json"
 CASES_PATH = ROOT / "cases" / "cases.v1.json"
+CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
+HARD_NEGATIVE_CONVENTION_CATEGORIES = {
+    "numeric",
+    "boolean",
+    "loop",
+    "collection",
+    "protocol-boundary",
+}
 
 ROUTE_WEIGHT = {
     "team-a-detector": 300,
@@ -43,6 +51,21 @@ def packet_items(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
 
 def case_items(cases: dict[str, Any]) -> list[dict[str, Any]]:
     return list(cases.get("cases", []))
+
+
+def hard_negative_groups(cases: dict[str, Any]) -> list[dict[str, Any]]:
+    return list(cases.get("hard_negative_groups", []))
+
+
+def hard_negative_convention_ids(cases: dict[str, Any]) -> set[str]:
+    conventions = cases.get("hard_negative_conventions", {})
+    if not isinstance(conventions, dict):
+        return set()
+    result: set[str] = set()
+    for values in conventions.values():
+        if isinstance(values, list):
+            result.update(item for item in values if isinstance(item, str))
+    return result
 
 
 def case_index(cases: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -85,9 +108,14 @@ def validate_all(
 
     _check_unique("target packet", packets, "packet_id", errors)
     _check_unique("focused case", case_items(cases), "id", errors)
+    _check_unique("hard-negative group", hard_negative_groups(cases), "id", errors)
 
     route_vocabulary = set(packet_doc.get("owner_route_vocabulary", []))
     evidence_ids = real_frontier_case_ids(real_frontier)
+    packet_ids = {packet.get("packet_id") for packet in packets}
+    case_by_id = case_index(cases)
+    group_by_id = {group.get("id"): group for group in hard_negative_groups(cases)}
+    convention_ids = hard_negative_convention_ids(cases)
 
     for packet in packets:
         packet_id = packet.get("packet_id", "?")
@@ -100,6 +128,7 @@ def validate_all(
             "semantic_claim",
             "proof_invariant",
             "hard_negative_siblings",
+            "hard_negative_group_ids",
             "current_detector_result",
             "why_now",
             "locations",
@@ -111,6 +140,15 @@ def validate_all(
         for case_id in packet.get("evidence_case_ids", []):
             if case_id not in evidence_ids:
                 errors.append(f"target packet {packet_id} references unknown real_frontier case {case_id}")
+        for group_id in packet.get("hard_negative_group_ids", []):
+            group = group_by_id.get(group_id)
+            if group is None:
+                errors.append(f"target packet {packet_id} references unknown hard-negative group {group_id}")
+            elif packet_id not in group.get("packet_ids", []):
+                errors.append(
+                    f"target packet {packet_id} references hard-negative group {group_id} "
+                    "that does not list the packet"
+                )
         for idx, loc in enumerate(packet.get("locations", []), start=1):
             for field in ("repo", "path", "span", "primary_language", "split"):
                 _require(loc, field, f"target packet {packet_id} location {idx}", errors)
@@ -124,6 +162,71 @@ def validate_all(
         for fixture in case.get("fixtures", []):
             if not (REPO_ROOT / fixture).exists():
                 errors.append(f"focused case {case_id} fixture does not exist: {fixture}")
+
+    if not convention_ids:
+        errors.append("cases.v1.json must define hard_negative_conventions")
+    conventions = cases.get("hard_negative_conventions", {})
+    if isinstance(conventions, dict) and set(conventions) != HARD_NEGATIVE_CONVENTION_CATEGORIES:
+        missing = sorted(HARD_NEGATIVE_CONVENTION_CATEGORIES - set(conventions))
+        extra = sorted(set(conventions) - HARD_NEGATIVE_CONVENTION_CATEGORIES)
+        errors.append(
+            "hard_negative_conventions must define exactly "
+            f"{sorted(HARD_NEGATIVE_CONVENTION_CATEGORIES)}; missing={missing}, extra={extra}"
+        )
+    for group in hard_negative_groups(cases):
+        group_id = group.get("id", "?")
+        for field in (
+            "id",
+            "semantic_family",
+            "packet_ids",
+            "conventions",
+            "positive_cases",
+            "hard_negative_cases",
+            "regression_gates",
+            "claim",
+        ):
+            _require(group, field, f"hard-negative group {group_id}", errors)
+        for packet_id in group.get("packet_ids", []):
+            if packet_id not in packet_ids:
+                errors.append(
+                    f"hard-negative group {group_id} references unknown packet {packet_id}"
+                )
+        for convention in group.get("conventions", []):
+            if convention not in convention_ids:
+                errors.append(
+                    f"hard-negative group {group_id} references unknown convention {convention}"
+                )
+        for case_id in group.get("positive_cases", []):
+            case = case_by_id.get(case_id)
+            if case is None:
+                errors.append(
+                    f"hard-negative group {group_id} references unknown positive case {case_id}"
+                )
+            elif case.get("kind") != "positive":
+                errors.append(
+                    f"hard-negative group {group_id} positive case {case_id} is "
+                    f"{case.get('kind')}"
+                )
+        for case_id in group.get("hard_negative_cases", []):
+            case = case_by_id.get(case_id)
+            if case is None:
+                errors.append(
+                    f"hard-negative group {group_id} references unknown hard-negative case {case_id}"
+                )
+            elif case.get("kind") != "hard-negative":
+                errors.append(
+                    f"hard-negative group {group_id} hard-negative case {case_id} is {case.get('kind')}"
+                )
+        expected_case_gates = {
+            f"{CASE_REF_PREFIX}{case_id}"
+            for case_id in group.get("positive_cases", []) + group.get("hard_negative_cases", [])
+        }
+        missing_case_gates = sorted(expected_case_gates - set(group.get("regression_gates", [])))
+        if missing_case_gates:
+            errors.append(
+                f"hard-negative group {group_id} regression_gates missing case refs: "
+                f"{missing_case_gates}"
+            )
 
     return errors
 
