@@ -485,6 +485,99 @@
     },
     {
       "accepted_evidence": [
+        "sum, reduce, any, all, or equivalent loop terminals with the same initial value or empty-input result",
+        "loop accumulators whose seed matches the aggregate terminal identity",
+        "focused hard negatives where changed seeds or empty-input behavior remain split"
+      ],
+      "detector_admission_implication": "Does not admit aggregate convergence by itself; it only closes seed and empty-input behavior for separately proven source, step, and effect facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "reduction.identity-empty-behavior",
+      "hard_negative_conventions": [
+        "loop.empty-input",
+        "collection.cardinality"
+      ],
+      "implementation_guidance": [
+        "Track aggregate identities such as additive 0, any false, all true, and explicit reduce seeds.",
+        "Reject selection reductions whose loop seed clamps behavior differently from the terminal API.",
+        "Keep terminal APIs that can throw on empty input outside this fact unless matching empty-input behavior is proven."
+      ],
+      "rejected_evidence": [
+        "wrong additive or multiplicative seed",
+        "zero-seeded max/min loops compared with unseeded terminal max/min",
+        "early-return loops with a mismatched fallthrough value"
+      ],
+      "semantic_family": "reduction.identity",
+      "status": "specified-not-modeled",
+      "summary": "Aggregate rewrites must preserve the terminal identity, explicit seed, and empty-input behavior before loop and higher-order reductions may converge.",
+      "title": "Reduction identity and empty-input behavior"
+    },
+    {
+      "accepted_evidence": [
+        "the aggregate step combines the accumulator with the same flattened element value",
+        "any/all predicates observe the same flattened element coordinate as the explicit early-return loop",
+        "focused hard negatives where changed terminal predicates or contribution expressions remain split"
+      ],
+      "detector_admission_implication": "Does not admit aggregate convergence by itself; source identity, flattening, identity/empty behavior, and effect facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "reduction.step-coordinate-identity",
+      "hard_negative_conventions": [
+        "value.coordinate",
+        "boolean.predicate-coordinate"
+      ],
+      "implementation_guidance": [
+        "Compare reduction step expressions after the flattened element coordinate is established.",
+        "For any/all terminals, compare the terminal predicate independently from upstream filters.",
+        "Reject aggregate terminals that observe the outer coordinate, nested row, or a changed predicate without a separate value proof."
+      ],
+      "rejected_evidence": [
+        "terminal any/all predicate changed while traversal is unchanged",
+        "reduction contribution changed from the flattened emitted value",
+        "aggregate over nested rows instead of flattened elements"
+      ],
+      "semantic_family": "reduction.step",
+      "status": "specified-not-modeled",
+      "summary": "Aggregate rewrites must preserve the reduction step, terminal predicate, or contribution expression for every proven flattened element coordinate.",
+      "title": "Reduction step coordinate identity"
+    },
+    {
+      "accepted_evidence": [
+        "outer and inner filters in a flat-map aggregate guard the same matched traversal coordinates",
+        "nested guarded loops and flat-map/filter chains preserve the same guard placement before aggregation",
+        "focused hard negatives where outer, inner, or terminal predicates are changed remain split"
+      ],
+      "detector_admission_implication": "Does not admit aggregate convergence by itself; it only closes guard placement after nested traversal and terminal step facts are proven.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "hof.flat-map.aggregate-guard-coordinate",
+      "hard_negative_conventions": [
+        "loop.iterator-identity",
+        "boolean.predicate-coordinate"
+      ],
+      "implementation_guidance": [
+        "Track whether a predicate guards the outer traversal, inner traversal, or terminal aggregate.",
+        "Reject predicates moved across coordinates unless a separate equivalence proof preserves cardinality and short-circuit behavior.",
+        "Keep numeric or ordering predicates closed when their domain proof is missing."
+      ],
+      "rejected_evidence": [
+        "outer guard changed while inner and terminal expressions remain unchanged",
+        "inner guard changed while outer and terminal expressions remain unchanged",
+        "terminal predicate substituted for an upstream filter or vice versa"
+      ],
+      "semantic_family": "hof.flat_map",
+      "status": "specified-not-modeled",
+      "summary": "Filtered flat-map aggregate rewrites must preserve whether each guard belongs to the outer traversal, inner traversal, or terminal aggregate coordinate.",
+      "title": "Flat-map aggregate guard coordinate"
+    },
+    {
+      "accepted_evidence": [
         "map get/index lookup paired with an explicit fallback only for absent keys",
         "membership guard plus lookup returning the same fallback for absence",
         "language API evidence that separates absent-key fallback from present key with null/nil/None payload"
