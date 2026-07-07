@@ -137,7 +137,7 @@
           "hard_negative_group_ids": [
             "python-loop-demorgan-all-proof-perimeter"
           ],
-          "owner_issue": null,
+          "owner_issue": "#734",
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "python-loop-demorgan-all-2026-07-07",
           "planning_summary": "Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety, python-loop-demorgan.iterator-identity) before opening detector admission.",
@@ -765,7 +765,7 @@
           "hard_negative_group_ids": [
             "python-loop-demorgan-all-proof-perimeter"
           ],
-          "owner_issue": null,
+          "owner_issue": "#734",
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "python-loop-demorgan-all-2026-07-07",
           "planning_summary": "Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety, python-loop-demorgan.iterator-identity) before opening detector admission.",
@@ -935,13 +935,13 @@
     },
     "real_frontier_replay_status": {
       "path": "bench/type4/real_frontier_replay_status.v1.json",
-      "sha256": "c2546f00b9676452960b6c07822e57804d42918c56aa7ba23ae9c795d850fdb9",
+      "sha256": "4f7df46e5488fea86b9aa9df47e8f7e76b98a489a208a598d4779e3b206a7bad",
       "size_bytes": 1618
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "5a72521521422282ef103539e41cc5903b8c5628c97b83260536eb12d02266f9",
-      "size_bytes": 18809
+      "sha256": "eb44b817fa6fed74f63eb313948090a8a0383f33742c603965e2e3dfaa56527c",
+      "size_bytes": 18811
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",

@@ -34,7 +34,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 
 ## `python-loop-demorgan-all-2026-07-07` — axis `python_loop_demorgan_all`
 
-- **owner route**: `proof-fact-prerequisite` (no team yet) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `fragment-contract`
+- **owner route**: `proof-fact-prerequisite` (#734) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `fragment-contract`
 - **breadth**: repo 7% · primary-language 25% (2/8) · dev 4 · held-out 4 · both-splits
 - **semantic claim**: Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.
 - **proof invariant**: Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.
