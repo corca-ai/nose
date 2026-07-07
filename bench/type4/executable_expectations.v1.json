@@ -1,9 +1,9 @@
 {
-  "expectation_count": 14,
+  "expectation_count": 15,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 14,
-  "query_count": 9,
+  "passed": 15,
+  "query_count": 10,
   "results": [
     {
       "case_id": "clamp_unordered_bounds",
@@ -151,6 +151,15 @@
       "expect": "split",
       "expectation_id": "python_loop_demorgan_side_effect_stays_split",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_helper_call_boundary",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_helper_call_stays_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
       "matching_family": null,
       "observed": "split",
       "ok": true

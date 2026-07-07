@@ -30,7 +30,7 @@ packet-specific current status locally.
 | `numeric-clamp.bound-order` | `modeled-controlled` | `formal-or-mechanized`, `focused-executable`, `source-evidence` | Requires `numeric-clamp.integer-domain`; does not admit a real pair by itself. |
 | `numeric-clamp.integer-domain` | `modeled-controlled` | `formal-or-mechanized`, `focused-executable`, `source-evidence` | Requires `numeric-clamp.bound-order`; does not admit a real pair by itself. |
 | `python-loop-demorgan.boolean-demorgan` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Requires universal short-circuit, effect safety, and iterator identity. |
-| `python-loop-demorgan.effect-safety` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only permits comparing short-circuit boundaries after effects are closed. |
+| `python-loop-demorgan.effect-safety` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only permits comparing short-circuit boundaries after effects are closed. |
 | `python-loop-demorgan.iterator-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only rules out different receiver/iterator inputs. |
 | `python-loop-demorgan.universal-short-circuit` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Requires boolean De Morgan, effect safety, and iterator identity. |
 

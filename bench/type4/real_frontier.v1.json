@@ -40,7 +40,7 @@
     }
    ],
    "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
-   "evidence": "Manual source audit plus local detector check on the README-shaped fixture: `target/debug/nose query <fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1` reports zero semantic families at build 2a478b76e25a. Focused positive and hard-negative fixtures are recorded in `bench/type4/adversarial/cases/cases.v1.json` so the example is now tracked by the frontier rather than prose alone.",
+      "evidence": "Manual source audit plus local detector check on the README-shaped fixture: `target/debug/nose query <fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1` reports zero semantic families at build 2a478b76e25a. Focused positive, helper-call, and hard-negative fixtures are recorded in `bench/type4/adversarial/cases/cases.v1.json` so the example is now tracked by the frontier rather than prose alone.",
    "detector": {
     "current_detector_miss": true,
     "binary_path": "target/debug/nose",
@@ -51,16 +51,17 @@
     "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports no family containing both functions.",
     "default_query_result": "Default query likewise reports no exact semantic family for the pair."
    },
-   "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+      "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
    "hard_negative_siblings": [
-    "vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)",
-    "predicate side effects or iterator mutation before returning, where short-circuit timing is observable",
-    "Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test",
-    "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1",
-    "different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys"
+        "vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)",
+        "predicate side effects or iterator mutation before returning, where short-circuit timing is observable",
+        "predicate helper calls without a separate purity proof, where effects can be hidden behind a name",
+        "Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test",
+        "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1",
+        "different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys"
    ],
    "batch": "2026-07-07-readme-loop-demorgan-frontier",
-   "notes": "Issue #717 tracking record. This is a same-language, README-facing proof target, not a detector admission. The packet remains proof-fact-prerequisite until loop universal quantifier, boolean-only De Morgan, and effect-safety facts are modeled."
+      "notes": "Issue #717 tracking record. This is a same-language, README-facing proof target, not a detector admission. The packet remains proof-fact-prerequisite until loop universal quantifier and boolean-only De Morgan facts are modeled."
   },
   {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",

@@ -3,10 +3,13 @@
 
 The README-facing Python loop plus De Morgan packet is intentionally closed
 until reusable proof facts exist. This tool supplies a small, source-level
-controlled model for the iterator-identity fact: it proves that an ``all(...)``
-generator and an explicit ``for`` loop consume the same local iterable binding,
-and it rejects the adjacent hard-negative where the loop consumes a different
-binding.
+controlled model for two facts:
+
+* iterator identity: an ``all(...)`` generator and an explicit ``for`` loop
+  consume the same local iterable binding;
+* effect safety: the supported predicate/loop fragment has no calls,
+  assignments, mutation, logging, ``yield``, ``await``, or other observable
+  effects before the short-circuit decision.
 """
 
 from __future__ import annotations
@@ -26,9 +29,16 @@ ROOT = HERE.parents[1]
 SCHEMA_VERSION = 1
 TOOL_VERSION = "python-loop-demorgan-proof-facts/1"
 FACT_ID_ITERATOR_IDENTITY = "python-loop-demorgan.iterator-identity"
+FACT_ID_EFFECT_SAFETY = "python-loop-demorgan.effect-safety"
 DEFAULT_JSON_OUT = HERE / "python_loop_demorgan_proof_facts.v1.json"
 
-OBSERVATIONS = {"same-iterator", "different-iterator", "unsupported-iterator"}
+ITERATOR_OBSERVATIONS = {"same-iterator", "different-iterator", "unsupported-iterator"}
+EFFECT_OBSERVATIONS = {
+    "effect-safe",
+    "effectful",
+    "unsupported-effect-safety",
+}
+OBSERVATIONS = ITERATOR_OBSERVATIONS | EFFECT_OBSERVATIONS
 MUTATING_METHODS = {
     "add",
     "append",
@@ -45,6 +55,7 @@ MUTATING_METHODS = {
 
 CONTROLLED_EVIDENCE = [
     {
+        "check": "iterator-identity",
         "evidence_id": "python-loop-demorgan-iterator-positive-same-binding",
         "fact_id": FACT_ID_ITERATOR_IDENTITY,
         "case_id": "python_loop_demorgan_all_readme",
@@ -55,6 +66,7 @@ CONTROLLED_EVIDENCE = [
         "expect": "same-iterator",
     },
     {
+        "check": "iterator-identity",
         "evidence_id": "python-loop-demorgan-iterator-negative-different-binding",
         "fact_id": FACT_ID_ITERATOR_IDENTITY,
         "case_id": "python_loop_demorgan_iterator_identity_boundary",
@@ -63,6 +75,39 @@ CONTROLLED_EVIDENCE = [
         "all_function": "all_not_zero_or_one",
         "loop_function": "loop_different_iterable",
         "expect": "different-iterator",
+    },
+    {
+        "check": "effect-safety",
+        "evidence_id": "python-loop-demorgan-effect-positive-pure-local-comparisons",
+        "fact_id": FACT_ID_EFFECT_SAFETY,
+        "case_id": "python_loop_demorgan_all_readme",
+        "expectation_id": "python_loop_demorgan_positive_currently_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_no_zero_or_one",
+        "expect": "effect-safe",
+    },
+    {
+        "check": "effect-safety",
+        "evidence_id": "python-loop-demorgan-effect-negative-observed-loop-effect",
+        "fact_id": FACT_ID_EFFECT_SAFETY,
+        "case_id": "python_loop_demorgan_side_effect_boundary",
+        "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_with_observed_effect",
+        "expect": "effectful",
+    },
+    {
+        "check": "effect-safety",
+        "evidence_id": "python-loop-demorgan-effect-negative-helper-call",
+        "fact_id": FACT_ID_EFFECT_SAFETY,
+        "case_id": "python_loop_demorgan_helper_call_boundary",
+        "expectation_id": "python_loop_demorgan_helper_call_stays_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
+        "all_function": "all_with_helper_call",
+        "loop_function": "loop_no_zero_or_one",
+        "expect": "effectful",
     },
 ]
 
@@ -103,6 +148,26 @@ class IteratorShape:
         }
 
 
+@dataclass(frozen=True)
+class EffectShape:
+    function: str
+    kind: str
+    supported: bool
+    effect_safe: bool
+    diagnostics: tuple[str, ...]
+    effects: tuple[str, ...]
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "diagnostics": list(self.diagnostics),
+            "effect_safe": self.effect_safe,
+            "effects": list(self.effects),
+            "function": self.function,
+            "kind": self.kind,
+            "supported": self.supported,
+        }
+
+
 def repo_rel(path: Path) -> str:
     try:
         return str(path.resolve().relative_to(ROOT))
@@ -131,6 +196,105 @@ def node_text(node: ast.AST) -> str:
         return ast.unparse(node)
     except Exception:
         return node.__class__.__name__
+
+
+def dedupe(values: list[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(values))
+
+
+def effect_label(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Call):
+        return f"call:{node_text(node.func)}"
+    if isinstance(node, ast.Await):
+        return "await"
+    if isinstance(node, ast.Yield):
+        return "yield"
+    if isinstance(node, ast.YieldFrom):
+        return "yield-from"
+    if isinstance(node, ast.NamedExpr):
+        return "assignment-expression"
+    return None
+
+
+def expression_effects(node: ast.AST | None) -> tuple[str, ...]:
+    if node is None:
+        return ()
+    effects: list[str] = []
+    for child in ast.walk(node):
+        label = effect_label(child)
+        if label is not None:
+            effects.append(label)
+    return dedupe(effects)
+
+
+def statement_effects(stmt: ast.stmt) -> tuple[str, ...]:
+    if isinstance(stmt, ast.Assign):
+        return ("assignment",)
+    if isinstance(stmt, ast.AnnAssign):
+        return ("annotated-assignment",)
+    if isinstance(stmt, ast.AugAssign):
+        return ("augmented-assignment",)
+    if isinstance(stmt, ast.Delete):
+        return ("delete",)
+    if isinstance(stmt, (ast.Import, ast.ImportFrom)):
+        return ("import",)
+    if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return ("local-definition",)
+    if isinstance(stmt, ast.Return):
+        return expression_effects(stmt.value)
+    if isinstance(stmt, ast.Expr):
+        return expression_effects(stmt.value)
+    if isinstance(stmt, ast.If):
+        effects = list(expression_effects(stmt.test))
+        for nested in [*stmt.body, *stmt.orelse]:
+            effects.extend(statement_effects(nested))
+        return dedupe(effects)
+    if isinstance(stmt, (ast.For, ast.AsyncFor, ast.While, ast.With, ast.AsyncWith, ast.Try)):
+        return (f"control:{stmt.__class__.__name__}",)
+    if isinstance(stmt, (ast.Raise, ast.Assert, ast.Global, ast.Nonlocal)):
+        return (stmt.__class__.__name__.lower(),)
+    return dedupe([label for child in ast.walk(stmt) if (label := effect_label(child))])
+
+
+def is_literal(node: ast.AST) -> bool:
+    if isinstance(node, ast.Constant):
+        return True
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        return isinstance(node.operand, ast.Constant) and isinstance(
+            node.operand.value, (int, float, complex)
+        )
+    return False
+
+
+def is_local_operand(node: ast.AST, allowed_names: set[str]) -> bool:
+    return (
+        isinstance(node, ast.Name)
+        and node.id in allowed_names
+        or is_literal(node)
+    )
+
+
+def is_bool_literal_return(stmt: ast.stmt) -> bool:
+    return (
+        isinstance(stmt, ast.Return)
+        and isinstance(stmt.value, ast.Constant)
+        and isinstance(stmt.value.value, bool)
+    )
+
+
+def is_pure_local_comparison(node: ast.AST, allowed_names: set[str]) -> bool:
+    if isinstance(node, ast.BoolOp):
+        return all(is_pure_local_comparison(value, allowed_names) for value in node.values)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return is_pure_local_comparison(node.operand, allowed_names)
+    if isinstance(node, ast.Compare):
+        operands = [node.left, *node.comparators]
+        pure_ops = all(
+            isinstance(op, (ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE))
+            for op in node.ops
+        )
+        return pure_ops and all(is_local_operand(operand, allowed_names) for operand in operands)
+    return False
 
 
 def non_docstring_body(fn: ast.FunctionDef) -> list[ast.stmt]:
@@ -305,6 +469,121 @@ def observation(all_shape: IteratorShape, loop_shape: IteratorShape) -> str:
     return "different-iterator"
 
 
+def extract_all_effect_shape(fn: ast.FunctionDef) -> EffectShape:
+    iterator_shape = extract_all_generator_shape(fn)
+    diagnostics = list(iterator_shape.diagnostics)
+    effects: list[str] = []
+    if not iterator_shape.iterable.supported or not iterator_shape.element.supported:
+        return EffectShape(
+            function=fn.name,
+            kind="all-generator-effect",
+            supported=False,
+            effect_safe=False,
+            diagnostics=tuple(diagnostics),
+            effects=(),
+        )
+
+    body = non_docstring_body(fn)
+    gen = body[0].value.args[0]
+    comp = gen.generators[0]
+    allowed_names = {comp.target.id}
+    effects.extend(expression_effects(gen.elt))
+    if not is_pure_local_comparison(gen.elt, allowed_names):
+        diagnostics.append(
+            "all predicate must be local comparisons over the element and literals"
+        )
+    supported = not diagnostics
+    return EffectShape(
+        function=fn.name,
+        kind="all-generator-effect",
+        supported=supported,
+        effect_safe=supported and not effects,
+        diagnostics=tuple(diagnostics),
+        effects=dedupe(effects),
+    )
+
+
+def analyze_loop_effect_statement(
+    stmt: ast.stmt, allowed_names: set[str]
+) -> tuple[list[str], list[str]]:
+    diagnostics: list[str] = []
+    effects = list(statement_effects(stmt))
+    if isinstance(stmt, ast.If):
+        if not is_pure_local_comparison(stmt.test, allowed_names):
+            diagnostics.append(
+                "loop if test must be local comparisons over the element and literals"
+            )
+        for nested in [*stmt.body, *stmt.orelse]:
+            nested_diagnostics, nested_effects = analyze_loop_effect_statement(
+                nested, allowed_names
+            )
+            diagnostics.extend(nested_diagnostics)
+            effects.extend(nested_effects)
+    elif isinstance(stmt, ast.Return):
+        if not is_bool_literal_return(stmt):
+            diagnostics.append("loop returns inside the fact must be literal booleans")
+    elif effects:
+        pass
+    else:
+        diagnostics.append(f"loop statement is outside this effect fact: {node_text(stmt)}")
+    return diagnostics, effects
+
+
+def extract_loop_effect_shape(fn: ast.FunctionDef) -> EffectShape:
+    iterator_shape = extract_loop_shape(fn)
+    diagnostics = list(iterator_shape.diagnostics)
+    effects: list[str] = []
+    if not iterator_shape.iterable.supported or not iterator_shape.element.supported:
+        return EffectShape(
+            function=fn.name,
+            kind="for-loop-effect",
+            supported=False,
+            effect_safe=False,
+            diagnostics=tuple(diagnostics),
+            effects=(),
+        )
+
+    body = non_docstring_body(fn)
+    loop = next(stmt for stmt in body if isinstance(stmt, ast.For))
+    allowed_names = {loop.target.id}
+    for stmt in body:
+        if stmt is loop:
+            for nested in loop.body:
+                nested_diagnostics, nested_effects = analyze_loop_effect_statement(
+                    nested, allowed_names
+                )
+                diagnostics.extend(nested_diagnostics)
+                effects.extend(nested_effects)
+            continue
+        if is_bool_literal_return(stmt):
+            continue
+        effects.extend(statement_effects(stmt))
+        diagnostics.append(
+            f"top-level statement outside the loop is outside this effect fact: "
+            f"{node_text(stmt)}"
+        )
+
+    supported = not diagnostics
+    return EffectShape(
+        function=fn.name,
+        kind="for-loop-effect",
+        supported=supported,
+        effect_safe=supported and not effects,
+        diagnostics=tuple(diagnostics),
+        effects=dedupe(effects),
+    )
+
+
+def effect_observation(all_shape: EffectShape, loop_shape: EffectShape) -> str:
+    if all_shape.effects or loop_shape.effects:
+        return "effectful"
+    if not all_shape.supported or not loop_shape.supported:
+        return "unsupported-effect-safety"
+    if all_shape.effect_safe and loop_shape.effect_safe:
+        return "effect-safe"
+    return "unsupported-effect-safety"
+
+
 def result_for(entry: dict[str, str]) -> dict[str, Any]:
     fixture = ROOT / entry["fixture"]
     try:
@@ -321,14 +600,23 @@ def result_for(entry: dict[str, str]) -> dict[str, Any]:
         raise ProofFactError(
             f"fixture {entry['fixture']} missing functions: {', '.join(missing)}"
         )
-    all_shape = extract_all_generator_shape(functions[entry["all_function"]])
-    loop_shape = extract_loop_shape(functions[entry["loop_function"]])
-    observed = observation(all_shape, loop_shape)
+    check = entry["check"]
+    if check == "iterator-identity":
+        all_shape = extract_all_generator_shape(functions[entry["all_function"]])
+        loop_shape = extract_loop_shape(functions[entry["loop_function"]])
+        observed = observation(all_shape, loop_shape)
+    elif check == "effect-safety":
+        all_shape = extract_all_effect_shape(functions[entry["all_function"]])
+        loop_shape = extract_loop_effect_shape(functions[entry["loop_function"]])
+        observed = effect_observation(all_shape, loop_shape)
+    else:
+        raise ProofFactError(f"unknown proof-fact check for {entry['evidence_id']}: {check}")
     expect = entry["expect"]
     if expect not in OBSERVATIONS:
         raise ProofFactError(f"unknown expectation for {entry['evidence_id']}: {expect}")
     return {
         "case_id": entry["case_id"],
+        "check": check,
         "evidence_id": entry["evidence_id"],
         "expect": expect,
         "expectation_id": entry["expectation_id"],
@@ -378,7 +666,9 @@ def print_human(report: dict[str, Any]) -> None:
 
 def check_report(report: dict[str, Any], json_out: Path) -> None:
     if report["failed"]:
-        failed = ", ".join(result["evidence_id"] for result in report["results"] if not result["ok"])
+        failed = ", ".join(
+            result["evidence_id"] for result in report["results"] if not result["ok"]
+        )
         raise ProofFactError(f"proof-fact evidence failed: {failed}")
     expected = canonical_json(report)
     if not json_out.exists() or json_out.read_text() != expected:
@@ -458,6 +748,70 @@ def loop_form(xs):
         extract_all_generator_shape(mutated["all_form"]),
         extract_loop_shape(mutated["loop_form"]),
     ) == "unsupported-iterator"
+
+    assert effect_observation(
+        extract_all_effect_shape(good["all_form"]),
+        extract_loop_effect_shape(good["loop_form"]),
+    ) == "effect-safe"
+
+    effectful_loop_tree = ast.parse(
+        """
+def all_form(xs, seen):
+    return all(x != 0 for x in xs)
+
+def loop_form(xs, seen):
+    for x in xs:
+        seen.append(x)
+        if x == 0:
+            return False
+    return True
+"""
+    )
+    effectful_loop = function_map(effectful_loop_tree)
+    assert effect_observation(
+        extract_all_effect_shape(effectful_loop["all_form"]),
+        extract_loop_effect_shape(effectful_loop["loop_form"]),
+    ) == "effectful"
+
+    helper_call_tree = ast.parse(
+        """
+def all_form(xs, seen):
+    return all(allowed(x, seen) for x in xs)
+
+def loop_form(xs, seen):
+    for x in xs:
+        if x == 0:
+            return False
+    return True
+
+def allowed(x, seen):
+    seen.append(x)
+    return x != 0
+"""
+    )
+    helper_call = function_map(helper_call_tree)
+    assert effect_observation(
+        extract_all_effect_shape(helper_call["all_form"]),
+        extract_loop_effect_shape(helper_call["loop_form"]),
+    ) == "effectful"
+
+    unsupported_effect_tree = ast.parse(
+        """
+def all_form(xs):
+    return all(x + 1 != 0 for x in xs)
+
+def loop_form(xs):
+    for x in xs:
+        if x == 0:
+            return False
+    return True
+"""
+    )
+    unsupported_effect = function_map(unsupported_effect_tree)
+    assert effect_observation(
+        extract_all_effect_shape(unsupported_effect["all_form"]),
+        extract_loop_effect_shape(unsupported_effect["loop_form"]),
+    ) == "unsupported-effect-safety"
     print("selftest OK")
 
 

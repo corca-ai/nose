@@ -107,6 +107,9 @@ PROOF_FACT_EVIDENCE_OBSERVATIONS = {
     "same-iterator",
     "different-iterator",
     "unsupported-iterator",
+    "effect-safe",
+    "effectful",
+    "unsupported-effect-safety",
 }
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
