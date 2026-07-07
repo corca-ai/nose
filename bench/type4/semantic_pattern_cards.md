@@ -13,6 +13,7 @@ proof-carrying frontier gates required by the linked pattern.
 | pattern | status | proof facts | surfaces |
 |---|---|---:|---:|
 | `numeric.clamp.proven-integer-bounds` | `controlled-slice-admitted` | 2 | 4 |
+| `quantifier.universal.counterexample-loop` | `real-pair-admitted` | 5 | 4 |
 | `map.default.absence-lookup` | `pattern-carded` | 4 | 5 |
 | `hof.filter-map.option-emission` | `pattern-carded` | 5 | 4 |
 | `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 5 |
@@ -37,6 +38,26 @@ Integer clamp surfaces are equivalent only when they compute the same bounded va
 | Rust | integer .clamp(lo, hi) when literal or guard evidence proves lo <= hi | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge |
 | Go | generic min/max Constrain-style helpers after integer-domain and bound-order proof | `open` | bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06 |
 | JS/TS | number-domain min/max clamp forms until float/NaN boundaries are excluded | `closed` |  |
+
+## `quantifier.universal.counterexample-loop`
+
+**Universal counterexample loop**
+
+Universal quantifier surfaces are equivalent to explicit counterexample loops only when both forms traverse the same source, return true on empty input, stop at the same first counterexample, evaluate a pure boolean predicate, and any boolean rewrites are proven boolean-only over non-overloaded scalar comparison complements.
+
+- status: `real-pair-admitted`
+- rationale: The Python loop/De Morgan packet already admits the README-shaped real pair and keeps vacuous-truth, source-identity, effect, helper-call, value-returning boolean, and changed-predicate negatives executable; carding the pattern makes future Ruby/Rust/JS/TS all/every work attach to the same neutral proof facts instead of cloning Python-specific detector logic.
+- required facts: `quantifier.universal.counterexample-loop`, `quantifier.vacuous-truth`, `iteration.same-source-identity`, `effect.pure-predicate`, `boolean.demorgan.proven-bool-operands`
+- hard-negative templates: `loop.changed-empty-result`, `loop.iterator-identity`, `loop.short-circuit`, `effect.observed-predicate-effect`, `effect.helper-call-without-purity-proof`, `boolean.value-context`, `boolean.comparison-complement`, `boolean.changed-predicate`
+- boundaries: empty inputs must preserve vacuous truth; the quantifier and explicit loop must traverse the same source; both forms must preserve the same short-circuit/control shape and first-counterexample stop point; predicate effects, helper-call effects, and loop-body effects are behavior-defining; De Morgan rewrites require proven boolean operands, not value-returning boolean payloads; comparison complements such as == and != must be proven non-overloaded scalar comparisons before De Morgan evidence is reusable; changed predicate coordinates remain split even when the surface still looks like a quantifier
+- evidence: `bench/type4/frontier_target_packets.v1.json::python-loop-demorgan-all-2026-07-07`, `bench/type4/adversarial/cases/cases.v1.json::python-loop-demorgan-all-proof-perimeter`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary`, `bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary`, `bench/type4/proof_fact_registry.v1.json::quantifier.universal.counterexample-loop`, `bench/type4/proof_fact_registry.v1.json::quantifier.vacuous-truth`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-predicate`, `bench/type4/proof_fact_registry.v1.json::boolean.demorgan.proven-bool-operands`
+
+| language | surface | status | evidence |
+|---|---|---|---|
+| Python | controlled scalar/literal-comparison all(...) generator and pure early-return counterexample loop over the same iterable | `admitted` | bench/type4/frontier_target_packets.v1.json::python-loop-demorgan-all-2026-07-07 |
+| Ruby | Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence | `open` |  |
+| Rust | Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence | `open` |  |
+| JS/TS | Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed | `open` |  |
 
 ## `map.default.absence-lookup`
 
