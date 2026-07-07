@@ -265,6 +265,132 @@
     },
     {
       "accepted_evidence": [
+        "callback bodies made only of local value construction, comparisons, field reads, and pure arithmetic over the current element",
+        "no logging, mutation, assignment, yield, await, throw, or helper call with unknown effects inside the callback",
+        "focused hard negatives that keep observed callback effects behavior-defining"
+      ],
+      "detector_admission_implication": "Does not admit HoF convergence by itself; receiver/source identity, callback meaning, and output-channel facts remain separate requirements.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "effect.pure-callback",
+      "hard_negative_conventions": [
+        "boolean.effect-safety",
+        "loop.short-circuit",
+        "protocol-boundary.callback-effect"
+      ],
+      "implementation_guidance": [
+        "Use this for map/filter/filter_map/flat_map callbacks, not just boolean predicates.",
+        "Treat helper calls, mutation, logging, yield, await, throw, and assignment as closed without separate effect evidence.",
+        "Keep evaluation timing and observed callback effects out of value-only HoF facts."
+      ],
+      "rejected_evidence": [
+        "callbacks that print, log, mutate, assign, yield, await, throw, or call unproven helpers",
+        "callbacks whose laziness or evaluation timing is observable",
+        "receiver or captured-state mutation during callback execution"
+      ],
+      "semantic_family": "effect.purity",
+      "status": "specified-not-modeled",
+      "summary": "Higher-order callback rewrites may compare value outputs only after callback effects and evaluation timing are proven unobservable for the admitted surface.",
+      "title": "Pure callback/effect safety"
+    },
+    {
+      "accepted_evidence": [
+        "filter_map, compactMap, or equivalent callback forms whose absence branch drops exactly the same elements as the explicit filter predicate",
+        "guarded builders that push only on the same drop-condition complement",
+        "match, if-let, and and_then-style option forms that expose the same absence condition"
+      ],
+      "detector_admission_implication": "Does not admit filter-map convergence by itself; emitted value, source identity, option channel, and callback purity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "hof.filter-map.drop-condition-coordinate",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "boolean.changed-predicate"
+      ],
+      "implementation_guidance": [
+        "Treat the drop condition as a first-class coordinate distinct from the emitted value expression.",
+        "Reject changed predicates, inverted predicates, extra filters, and post-filter drops unless a separate proof connects them.",
+        "Keep explicit filter+map chains and option-producing callbacks connected through this fact, not through API spelling."
+      ],
+      "rejected_evidence": [
+        "same emitted value with a changed filter/drop predicate",
+        "extra post-filter conditions that can remove emitted values",
+        "truthiness checks that decide dropping from the emitted payload instead of the option channel"
+      ],
+      "semantic_family": "hof.filter_map",
+      "status": "specified-not-modeled",
+      "summary": "Filter-map convergence requires proof that both surfaces drop exactly the same source elements before emitted values are compared.",
+      "title": "Filter-map drop-condition coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "the Some/Just/present branch emits the same value coordinate as the explicit map expression",
+        "guarded builders push the same value expression as the option-producing callback emits",
+        "literal, parameter, field, or arithmetic coordinates are preserved through lowering"
+      ],
+      "detector_admission_implication": "Does not admit filter-map convergence by itself; drop condition, source identity, option channel, and callback purity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "hof.filter-map.emitted-value-coordinate",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "value.coordinate"
+      ],
+      "implementation_guidance": [
+        "Compare emitted values independently from the condition that decides whether a value is emitted.",
+        "Reject Some/Just payload changes, derived payloads, and wrong pushed values unless a separate value proof connects them.",
+        "Keep wrapped absence payloads as emitted values when the option channel says they are present."
+      ],
+      "rejected_evidence": [
+        "same drop condition with a changed emitted value",
+        "mapping Option/Maybe values as payloads instead of emitting their inner present values",
+        "derived emitted values without a value-equivalence proof"
+      ],
+      "semantic_family": "hof.filter_map",
+      "status": "specified-not-modeled",
+      "summary": "Filter-map convergence requires the present branch, explicit map expression, or guarded push to emit the same value coordinate.",
+      "title": "Filter-map emitted value coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "language API evidence that distinguishes the option/nullable absence channel from present payload values",
+        "falsey payloads such as 0, false, or empty strings that remain emitted when wrapped as present values",
+        "wrapped absence payloads such as Some(None) that remain present values in nested option domains"
+      ],
+      "detector_admission_implication": "Does not admit optional-emission convergence by itself; it only closes the absence-vs-payload channel boundary.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "option.absence-channel.identity",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "boolean.value-context",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Model absence by the option/nullable channel, not by payload truthiness.",
+        "Preserve falsey present payloads and nested absence payloads as emitted values.",
+        "Require API identity evidence for language-specific helpers such as Rust Option, Swift Optional, Kotlin nullable values, or JS nullish protocols."
+      ],
+      "rejected_evidence": [
+        "truthy filters that drop falsey present payloads",
+        "nullish/defaulting idioms that erase present null payload distinctions",
+        "custom option-like helpers without API identity evidence"
+      ],
+      "semantic_family": "option.absence_channel",
+      "status": "specified-not-modeled",
+      "summary": "Optional-emission rewrites may drop only the proven absence channel; falsey and nested present payloads remain behavior-defining values.",
+      "title": "Option absence channel identity"
+    },
+    {
+      "accepted_evidence": [
         "map get/index lookup paired with an explicit fallback only for absent keys",
         "membership guard plus lookup returning the same fallback for absence",
         "language API evidence that separates absent-key fallback from present key with null/nil/None payload"
