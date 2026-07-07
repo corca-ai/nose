@@ -15,6 +15,7 @@ proof-carrying frontier gates required by the linked pattern.
 | `numeric.clamp.proven-integer-bounds` | `controlled-slice-admitted` | 2 | 4 |
 | `map.default.absence-lookup` | `pattern-carded` | 4 | 5 |
 | `hof.filter-map.option-emission` | `pattern-carded` | 5 | 4 |
+| `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 5 |
 
 ## `numeric.clamp.proven-integer-bounds`
 
@@ -76,3 +77,24 @@ Filter-map style surfaces are equivalent to explicit filter+map or guarded build
 | JS/TS | filter().map() chains with the same predicate and mapped value coordinates | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::filter_map_match_option_equiv |
 | Rust | Iterator::filter_map with Some/None, match guards, and pure Option::and_then callbacks | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::filter_map_match_option_equiv |
 | Swift | Sequence.compactMap after optional-result channel and callback-effect proof | `open` |  |
+
+## `hof.flat-map.one-level-flatten`
+
+**One-level flat-map**
+
+One-level flat-map surfaces are equivalent to multi-clause comprehensions or nested builders only when they traverse the same outer and inner sources in order, emit the same inner value, flatten exactly one layer, and callback effects are closed.
+
+- status: `pattern-carded`
+- rationale: The flat_map focused corpus already proves Python comprehension, nested builder, JS flatMap/map, and Java Stream.flatMap positives while keeping nested-list, map-returning-stream, scalar callback, and effectful callback boundaries adjacent; carding it prevents future surfaces from treating flat-map as a spelling-only map variant.
+- required facts: `iteration.same-source-identity`, `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`
+- hard-negative templates: `hof.flat-map.nested-list-shape`, `hof.flat-map.map-returning-collection`, `hof.flat-map.changed-inner-source`, `hof.flat-map.changed-emitted-value`, `hof.flat-map.scalar-callback-result`, `effect.observed-callback-effect`
+- boundaries: flat-map flattens exactly one collection layer, not zero layers or recursive depth; map-returning-collection surfaces remain nested unless one-level flattening is proven; outer and inner traversal coordinates must be preserved independently; scalar callback results and effectful callbacks stay outside pure one-level flat-map admission
+- evidence: `bench/type4/adversarial/cases/cases.v1.json::flat_map_py_loop_js`, `bench/type4/adversarial/cases/cases.v1.json::flat_map_vs_nested_list`, `bench/type4/adversarial/cases/cases.v1.json::flat_map_vs_map`, `bench/type4/adversarial/cases/cases.v1.json::java_stream_flat_map_py_comp`, `bench/type4/adversarial/cases/cases.v1.json::java_stream_map_not_flat_map`, `bench/type4/adversarial/cases/cases.v1.json::java_stream_effectful_lambda`, `bench/type4/adversarial/cases/cases.v1.json::hof_non_list_flat_map`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-callback`, `bench/type4/proof_fact_registry.v1.json::hof.flat-map.nested-iteration-order`, `bench/type4/proof_fact_registry.v1.json::hof.flat-map.emitted-value-coordinate`, `bench/type4/proof_fact_registry.v1.json::collection.flatten-depth.one-level`
+
+| language | surface | status | evidence |
+|---|---|---|---|
+| Python | multi-clause comprehensions and nested append builders | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::flat_map_py_loop_js |
+| JS/TS | Array.flatMap callback returning a mapped inner collection | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::flat_map_py_loop_js |
+| Java | Stream.flatMap over a proven inner stream plus pure map callback | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::java_stream_flat_map_py_comp |
+| Swift | Sequence.flatMap after focused one-level flatten and callback-effect evidence | `open` |  |
+| Rust | Iterator::flat_map remains closed for nested element collections until inner-source proof is attached | `closed` |  |
