@@ -357,10 +357,11 @@
           "planning_summary": "No follow-up is queued from the readiness artifact.",
           "positive_gate_count": 1,
           "proof_fact_ids": [
-            "python-loop-demorgan.universal-short-circuit",
-            "python-loop-demorgan.boolean-demorgan",
-            "python-loop-demorgan.effect-safety",
-            "python-loop-demorgan.iterator-identity"
+            "quantifier.universal.counterexample-loop",
+            "quantifier.vacuous-truth",
+            "boolean.demorgan.proven-bool-operands",
+            "effect.pure-predicate",
+            "iteration.same-source-identity"
           ],
           "proof_fact_model_status": "modeled-controlled",
           "proof_facts": [
@@ -368,27 +369,49 @@
               "controlled_evidence": {
                 "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
                 "evidence_ids": [
-                  "python-loop-demorgan-universal-negative-empty-truth",
                   "python-loop-demorgan-universal-negative-extra-loop-effect",
                   "python-loop-demorgan-universal-positive-counterexample-loop"
                 ],
                 "observations": {
-                  "python-loop-demorgan-universal-negative-empty-truth": "wrong-empty-truth",
                   "python-loop-demorgan-universal-negative-extra-loop-effect": "unsupported-universal-loop",
                   "python-loop-demorgan-universal-positive-counterexample-loop": "universal-loop"
                 },
-                "passed": 3,
+                "passed": 2,
                 "tool_version": "python-loop-demorgan-proof-facts/1"
               },
-              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop, wrong empty-truth boundary, and extra loop-effect closure",
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop and extra loop-effect closure",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.universal-short-circuit",
+              "fact_id": "quantifier.universal.counterexample-loop",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Universal loop short-circuit and vacuous truth"
+              "semantic_family": "quantifier.universal",
+              "title": "Universal quantifier as counterexample loop"
+            },
+            {
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-universal-negative-empty-truth",
+                  "python-loop-demorgan-vacuous-positive-fallthrough-true"
+                ],
+                "observations": {
+                  "python-loop-demorgan-universal-negative-empty-truth": "wrong-empty-truth",
+                  "python-loop-demorgan-vacuous-positive-fallthrough-true": "vacuous-truth"
+                },
+                "passed": 2,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates fallthrough True on exhaustion and the wrong empty-truth boundary",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "quantifier.vacuous-truth",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "quantifier.universal",
+              "title": "Universal quantifier vacuous truth"
             },
             {
               "controlled_evidence": {
@@ -411,10 +434,10 @@
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.boolean-demorgan",
+              "fact_id": "boolean.demorgan.proven-bool-operands",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Boolean-only De Morgan"
+              "semantic_family": "boolean.demorgan",
+              "title": "De Morgan over proven boolean operands"
             },
             {
               "controlled_evidence": {
@@ -437,10 +460,10 @@
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.effect-safety",
+              "fact_id": "effect.pure-predicate",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Loop/all effect safety"
+              "semantic_family": "effect.purity",
+              "title": "Pure predicate/effect safety"
             },
             {
               "controlled_evidence": {
@@ -461,10 +484,10 @@
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.iterator-identity",
+              "fact_id": "iteration.same-source-identity",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Loop/all iterator identity"
+              "semantic_family": "iteration.source_identity",
+              "title": "Iteration same-source identity"
             }
           ],
           "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
@@ -828,10 +851,11 @@
           "planning_summary": "No follow-up is queued from the readiness artifact.",
           "positive_gate_count": 1,
           "proof_fact_ids": [
-            "python-loop-demorgan.universal-short-circuit",
-            "python-loop-demorgan.boolean-demorgan",
-            "python-loop-demorgan.effect-safety",
-            "python-loop-demorgan.iterator-identity"
+            "quantifier.universal.counterexample-loop",
+            "quantifier.vacuous-truth",
+            "boolean.demorgan.proven-bool-operands",
+            "effect.pure-predicate",
+            "iteration.same-source-identity"
           ],
           "proof_fact_model_status": "modeled-controlled",
           "proof_facts": [
@@ -839,27 +863,49 @@
               "controlled_evidence": {
                 "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
                 "evidence_ids": [
-                  "python-loop-demorgan-universal-negative-empty-truth",
                   "python-loop-demorgan-universal-negative-extra-loop-effect",
                   "python-loop-demorgan-universal-positive-counterexample-loop"
                 ],
                 "observations": {
-                  "python-loop-demorgan-universal-negative-empty-truth": "wrong-empty-truth",
                   "python-loop-demorgan-universal-negative-extra-loop-effect": "unsupported-universal-loop",
                   "python-loop-demorgan-universal-positive-counterexample-loop": "universal-loop"
                 },
-                "passed": 3,
+                "passed": 2,
                 "tool_version": "python-loop-demorgan-proof-facts/1"
               },
-              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop, wrong empty-truth boundary, and extra loop-effect closure",
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop and extra loop-effect closure",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.universal-short-circuit",
+              "fact_id": "quantifier.universal.counterexample-loop",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Universal loop short-circuit and vacuous truth"
+              "semantic_family": "quantifier.universal",
+              "title": "Universal quantifier as counterexample loop"
+            },
+            {
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-universal-negative-empty-truth",
+                  "python-loop-demorgan-vacuous-positive-fallthrough-true"
+                ],
+                "observations": {
+                  "python-loop-demorgan-universal-negative-empty-truth": "wrong-empty-truth",
+                  "python-loop-demorgan-vacuous-positive-fallthrough-true": "vacuous-truth"
+                },
+                "passed": 2,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates fallthrough True on exhaustion and the wrong empty-truth boundary",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "quantifier.vacuous-truth",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "quantifier.universal",
+              "title": "Universal quantifier vacuous truth"
             },
             {
               "controlled_evidence": {
@@ -882,10 +928,10 @@
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.boolean-demorgan",
+              "fact_id": "boolean.demorgan.proven-bool-operands",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Boolean-only De Morgan"
+              "semantic_family": "boolean.demorgan",
+              "title": "De Morgan over proven boolean operands"
             },
             {
               "controlled_evidence": {
@@ -908,10 +954,10 @@
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.effect-safety",
+              "fact_id": "effect.pure-predicate",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Loop/all effect safety"
+              "semantic_family": "effect.purity",
+              "title": "Pure predicate/effect safety"
             },
             {
               "controlled_evidence": {
@@ -932,10 +978,10 @@
                 "focused-executable",
                 "source-evidence"
               ],
-              "fact_id": "python-loop-demorgan.iterator-identity",
+              "fact_id": "iteration.same-source-identity",
               "registry_status": "modeled-controlled",
-              "semantic_family": "python.loop_demorgan_all",
-              "title": "Loop/all iterator identity"
+              "semantic_family": "iteration.source_identity",
+              "title": "Iteration same-source identity"
             }
           ],
           "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
@@ -1044,33 +1090,33 @@
     },
     "proof_fact_registry": {
       "path": "bench/type4/proof_fact_registry.v1.json",
-      "sha256": "9772a9cf45c6cd9f79b87b98aef1a10a635d492f684cc9e524689484067b91f5",
-      "size_bytes": 11784
+      "sha256": "d1bcb9ff2100c84cc90d6c9ca63da0485ab9ce4d5fe03f5bb9788ffa5588159d",
+      "size_bytes": 21039
     },
     "python_loop_demorgan_proof_facts": {
       "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
-      "sha256": "ec9860242e6c1a4b95301f1c47d6d50c31aaef885224c5caa17363a7f664aeaa",
-      "size_bytes": 16544
+      "sha256": "2e539c5e73d31618c0b7fe9835458a5eb476900876258b8d81477a27d83d6323",
+      "size_bytes": 17639
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "529b331b135082cd2b2105a2b98829be251fadac6d8b8517de08af000d4e3000",
-      "size_bytes": 70707
+      "sha256": "22cbe37c2a42bcd22f9b5a9e28fda6cff01d5d44c0f284237ee4b5e40b09a35f",
+      "size_bytes": 70731
     },
     "real_frontier_replay": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "771b16c0131f37576608910f059b4543f553f730cbd6edbd14627bed0bf2d9f3",
-      "size_bytes": 2635
+      "sha256": "9b3e4d7a812cd2cf370bb4a29ae48fc69b226ecb795783c1cc7032f98e057399",
+      "size_bytes": 2655
     },
     "real_frontier_replay_status": {
       "path": "bench/type4/real_frontier_replay_status.v1.json",
-      "sha256": "64e8262819393740c33e7b223778885058ffcf5a03ef9d83874f66249321c3cd",
+      "sha256": "6cd3a2a4ad7b8f9afc83092e1e9e645cc3904f62e7754cd26684729742be1ae4",
       "size_bytes": 2115
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "a48b0b773f8c9002bcc60cb1b568894f659aedc29d37c73701eb3722f09d7944",
-      "size_bytes": 19194
+      "sha256": "4daf5d6672f011e871a0aaed47d1e499e434a03590b0cd66ce2fe3d7a0338a81",
+      "size_bytes": 19417
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",

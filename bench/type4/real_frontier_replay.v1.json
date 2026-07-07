@@ -74,7 +74,7 @@
           "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py"
         }
       ],
-      "why_expected": "The README-facing same-language positive is admitted after modeling the loop/all universal, boolean De Morgan, effect-safety, and iterator-identity proof facts."
+      "why_expected": "The README-facing same-language positive is admitted after modeling the counterexample-loop, vacuous-truth, same-source identity, pure-predicate, and boolean De Morgan proof facts."
     }
   ],
   "schema_version": 1,

@@ -111,6 +111,8 @@ PROOF_FACT_EVIDENCE_OBSERVATIONS = {
     "universal-loop",
     "wrong-empty-truth",
     "unsupported-universal-loop",
+    "vacuous-truth",
+    "unsupported-vacuous-truth",
     "effect-safe",
     "effectful",
     "unsupported-effect-safety",
@@ -331,10 +333,10 @@ def validate_python_loop_demorgan_proof_facts(
                 expected_refs[evidence_id] = fact_id
 
     if not expected_refs:
-        iterator_fact = proof_fact_registry.get("python-loop-demorgan.iterator-identity")
+        iterator_fact = proof_fact_registry.get("iteration.same-source-identity")
         if iterator_fact and iterator_fact["status"] == "modeled-controlled":
             raise FrontierError(
-                "python-loop-demorgan.iterator-identity is modeled-controlled but "
+                "iteration.same-source-identity is modeled-controlled but "
                 f"does not cite {evidence_artifact} controlled evidence"
             )
         return {}
@@ -2237,8 +2239,8 @@ def selftest() -> None:
         f"{repo_rel(DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS)}::iterator-selftest"
     )
     evidence_registry_doc = json.loads(json.dumps(registry_doc))
-    evidence_registry_doc["facts"][0]["fact_id"] = "python-loop-demorgan.iterator-identity"
-    evidence_registry_doc["facts"][0]["semantic_family"] = "python.loop_demorgan_all"
+    evidence_registry_doc["facts"][0]["fact_id"] = "iteration.same-source-identity"
+    evidence_registry_doc["facts"][0]["semantic_family"] = "iteration.source_identity"
     evidence_registry_doc["facts"][0]["controlled_evidence"] = [evidence_ref]
     evidence_registry = validate_proof_fact_registry(evidence_registry_doc)
     proof_evidence = {
@@ -2250,7 +2252,7 @@ def selftest() -> None:
         "results": [
             {
                 "evidence_id": "iterator-selftest",
-                "fact_id": "python-loop-demorgan.iterator-identity",
+                "fact_id": "iteration.same-source-identity",
                 "expect": "same-iterator",
                 "observed": "same-iterator",
                 "ok": True,
@@ -2262,7 +2264,7 @@ def selftest() -> None:
         DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
         evidence_registry,
     )
-    assert proof_evidence_by_fact["python-loop-demorgan.iterator-identity"]["passed"] == 1
+    assert proof_evidence_by_fact["iteration.same-source-identity"]["passed"] == 1
     missing_evidence = json.loads(json.dumps(proof_evidence))
     missing_evidence["results"][0]["evidence_id"] = "wrong-id"
     try:

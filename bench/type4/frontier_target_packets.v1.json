@@ -264,20 +264,24 @@
       "proof_fact_model": {
         "facts": [
           {
-            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop, wrong empty-truth boundary, and extra loop-effect closure",
-            "fact_id": "python-loop-demorgan.universal-short-circuit"
+            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop and extra loop-effect closure",
+            "fact_id": "quantifier.universal.counterexample-loop"
+          },
+          {
+            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates fallthrough True on exhaustion and the wrong empty-truth boundary",
+            "fact_id": "quantifier.vacuous-truth"
           },
           {
             "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates comparison-only De Morgan, changed-predicate closure, and value-returning operand closure",
-            "fact_id": "python-loop-demorgan.boolean-demorgan"
+            "fact_id": "boolean.demorgan.proven-bool-operands"
           },
           {
             "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates pure local comparisons, observed loop effects, and helper-call closure",
-            "fact_id": "python-loop-demorgan.effect-safety"
+            "fact_id": "effect.pure-predicate"
           },
           {
             "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates that the positive pair consumes arg[0]:xs on both sides and that the ys hard negative stays outside the fact",
-            "fact_id": "python-loop-demorgan.iterator-identity"
+            "fact_id": "iteration.same-source-identity"
           }
         ],
         "focused_tests": [

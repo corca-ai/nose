@@ -3,15 +3,16 @@
 
 The README-facing Python loop plus De Morgan packet is intentionally closed
 until reusable proof facts exist. This tool supplies a small, source-level
-controlled model for four facts:
+controlled model for five language-neutral facts:
 
-* iterator identity: an ``all(...)`` generator and an explicit ``for`` loop
+* same-source identity: an ``all(...)`` generator and an explicit ``for`` loop
   consume the same local iterable binding;
-* effect safety: the supported predicate/loop fragment has no calls,
+* pure predicate: the supported predicate/loop fragment has no calls,
   assignments, mutation, logging, ``yield``, ``await``, or other observable
   effects before the short-circuit decision.
-* universal short-circuit: the loop returns literal ``False`` on the first
-  counterexample and literal ``True`` after exhaustion;
+* counterexample-loop universal quantification: the loop returns literal
+  ``False`` on the first counterexample;
+* vacuous truth: the loop returns literal ``True`` after exhaustion;
 * boolean-only De Morgan: the predicate relation is the boolean comparison
   rewrite ``not (x == a or x == b)`` to ``x != a and x != b``.
 """
@@ -32,10 +33,11 @@ ROOT = HERE.parents[1]
 
 SCHEMA_VERSION = 1
 TOOL_VERSION = "python-loop-demorgan-proof-facts/1"
-FACT_ID_ITERATOR_IDENTITY = "python-loop-demorgan.iterator-identity"
-FACT_ID_EFFECT_SAFETY = "python-loop-demorgan.effect-safety"
-FACT_ID_UNIVERSAL_SHORT_CIRCUIT = "python-loop-demorgan.universal-short-circuit"
-FACT_ID_BOOLEAN_DEMORGAN = "python-loop-demorgan.boolean-demorgan"
+FACT_ID_ITERATION_SAME_SOURCE_IDENTITY = "iteration.same-source-identity"
+FACT_ID_EFFECT_PURE_PREDICATE = "effect.pure-predicate"
+FACT_ID_UNIVERSAL_COUNTEREXAMPLE_LOOP = "quantifier.universal.counterexample-loop"
+FACT_ID_VACUOUS_TRUTH = "quantifier.vacuous-truth"
+FACT_ID_BOOLEAN_DEMORGAN = "boolean.demorgan.proven-bool-operands"
 DEFAULT_JSON_OUT = HERE / "python_loop_demorgan_proof_facts.v1.json"
 
 ITERATOR_OBSERVATIONS = {"same-iterator", "different-iterator", "unsupported-iterator"}
@@ -43,6 +45,11 @@ UNIVERSAL_OBSERVATIONS = {
     "universal-loop",
     "wrong-empty-truth",
     "unsupported-universal-loop",
+}
+VACUOUS_TRUTH_OBSERVATIONS = {
+    "vacuous-truth",
+    "wrong-empty-truth",
+    "unsupported-vacuous-truth",
 }
 EFFECT_OBSERVATIONS = {
     "effect-safe",
@@ -58,6 +65,7 @@ BOOLEAN_OBSERVATIONS = {
 OBSERVATIONS = (
     ITERATOR_OBSERVATIONS
     | UNIVERSAL_OBSERVATIONS
+    | VACUOUS_TRUTH_OBSERVATIONS
     | EFFECT_OBSERVATIONS
     | BOOLEAN_OBSERVATIONS
 )
@@ -79,7 +87,7 @@ CONTROLLED_EVIDENCE = [
     {
         "check": "iterator-identity",
         "evidence_id": "python-loop-demorgan-iterator-positive-same-binding",
-        "fact_id": FACT_ID_ITERATOR_IDENTITY,
+        "fact_id": FACT_ID_ITERATION_SAME_SOURCE_IDENTITY,
         "case_id": "python_loop_demorgan_all_readme",
         "expectation_id": "python_loop_demorgan_positive_matches_loop",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
@@ -90,7 +98,7 @@ CONTROLLED_EVIDENCE = [
     {
         "check": "iterator-identity",
         "evidence_id": "python-loop-demorgan-iterator-negative-different-binding",
-        "fact_id": FACT_ID_ITERATOR_IDENTITY,
+        "fact_id": FACT_ID_ITERATION_SAME_SOURCE_IDENTITY,
         "case_id": "python_loop_demorgan_iterator_identity_boundary",
         "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
@@ -101,7 +109,7 @@ CONTROLLED_EVIDENCE = [
     {
         "check": "effect-safety",
         "evidence_id": "python-loop-demorgan-effect-positive-pure-local-comparisons",
-        "fact_id": FACT_ID_EFFECT_SAFETY,
+        "fact_id": FACT_ID_EFFECT_PURE_PREDICATE,
         "case_id": "python_loop_demorgan_all_readme",
         "expectation_id": "python_loop_demorgan_positive_matches_loop",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
@@ -112,7 +120,7 @@ CONTROLLED_EVIDENCE = [
     {
         "check": "effect-safety",
         "evidence_id": "python-loop-demorgan-effect-negative-observed-loop-effect",
-        "fact_id": FACT_ID_EFFECT_SAFETY,
+        "fact_id": FACT_ID_EFFECT_PURE_PREDICATE,
         "case_id": "python_loop_demorgan_side_effect_boundary",
         "expectation_id": "python_loop_demorgan_side_effect_stays_split",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
@@ -123,7 +131,7 @@ CONTROLLED_EVIDENCE = [
     {
         "check": "effect-safety",
         "evidence_id": "python-loop-demorgan-effect-negative-helper-call",
-        "fact_id": FACT_ID_EFFECT_SAFETY,
+        "fact_id": FACT_ID_EFFECT_PURE_PREDICATE,
         "case_id": "python_loop_demorgan_helper_call_boundary",
         "expectation_id": "python_loop_demorgan_helper_call_stays_split",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
@@ -132,9 +140,9 @@ CONTROLLED_EVIDENCE = [
         "expect": "effectful",
     },
     {
-        "check": "universal-short-circuit",
+        "check": "universal-counterexample-loop",
         "evidence_id": "python-loop-demorgan-universal-positive-counterexample-loop",
-        "fact_id": FACT_ID_UNIVERSAL_SHORT_CIRCUIT,
+        "fact_id": FACT_ID_UNIVERSAL_COUNTEREXAMPLE_LOOP,
         "case_id": "python_loop_demorgan_all_readme",
         "expectation_id": "python_loop_demorgan_positive_matches_loop",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
@@ -143,9 +151,20 @@ CONTROLLED_EVIDENCE = [
         "expect": "universal-loop",
     },
     {
-        "check": "universal-short-circuit",
+        "check": "vacuous-truth",
+        "evidence_id": "python-loop-demorgan-vacuous-positive-fallthrough-true",
+        "fact_id": FACT_ID_VACUOUS_TRUTH,
+        "case_id": "python_loop_demorgan_all_readme",
+        "expectation_id": "python_loop_demorgan_positive_matches_loop",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_no_zero_or_one",
+        "expect": "vacuous-truth",
+    },
+    {
+        "check": "vacuous-truth",
         "evidence_id": "python-loop-demorgan-universal-negative-empty-truth",
-        "fact_id": FACT_ID_UNIVERSAL_SHORT_CIRCUIT,
+        "fact_id": FACT_ID_VACUOUS_TRUTH,
         "case_id": "python_loop_demorgan_vacuous_truth_boundary",
         "expectation_id": "python_loop_demorgan_vacuous_truth_stays_split",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py",
@@ -154,9 +173,9 @@ CONTROLLED_EVIDENCE = [
         "expect": "wrong-empty-truth",
     },
     {
-        "check": "universal-short-circuit",
+        "check": "universal-counterexample-loop",
         "evidence_id": "python-loop-demorgan-universal-negative-extra-loop-effect",
-        "fact_id": FACT_ID_UNIVERSAL_SHORT_CIRCUIT,
+        "fact_id": FACT_ID_UNIVERSAL_COUNTEREXAMPLE_LOOP,
         "case_id": "python_loop_demorgan_side_effect_boundary",
         "expectation_id": "python_loop_demorgan_side_effect_stays_split",
         "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
@@ -850,6 +869,18 @@ def universal_observation(
     return "unsupported-universal-loop"
 
 
+def vacuous_truth_observation(
+    all_shape: IteratorShape, loop_shape: UniversalShape
+) -> str:
+    if not all_shape.iterable.supported:
+        return "unsupported-vacuous-truth"
+    if loop_shape.early_false and loop_shape.fallthrough_true:
+        return "vacuous-truth"
+    if loop_shape.early_false and not loop_shape.fallthrough_true:
+        return "wrong-empty-truth"
+    return "unsupported-vacuous-truth"
+
+
 def extract_all_boolean_shape(fn: ast.FunctionDef) -> BooleanShape:
     iterator_shape = extract_all_generator_shape(fn)
     diagnostics = list(iterator_shape.diagnostics)
@@ -1044,10 +1075,14 @@ def result_for(entry: dict[str, str]) -> dict[str, Any]:
         all_shape = extract_all_effect_shape(functions[entry["all_function"]])
         loop_shape = extract_loop_effect_shape(functions[entry["loop_function"]])
         observed = effect_observation(all_shape, loop_shape)
-    elif check == "universal-short-circuit":
+    elif check == "universal-counterexample-loop":
         all_shape = extract_all_generator_shape(functions[entry["all_function"]])
         loop_shape = extract_universal_loop_shape(functions[entry["loop_function"]])
         observed = universal_observation(all_shape, loop_shape)
+    elif check == "vacuous-truth":
+        all_shape = extract_all_generator_shape(functions[entry["all_function"]])
+        loop_shape = extract_universal_loop_shape(functions[entry["loop_function"]])
+        observed = vacuous_truth_observation(all_shape, loop_shape)
     elif check == "boolean-demorgan":
         all_shape, loop_shape = boolean_shape_for_entry(entry, functions)
         observed = boolean_observation(all_shape, loop_shape)
@@ -1259,6 +1294,10 @@ def loop_form(xs):
         extract_all_generator_shape(good["all_form"]),
         extract_universal_loop_shape(good["loop_form"]),
     ) == "universal-loop"
+    assert vacuous_truth_observation(
+        extract_all_generator_shape(good["all_form"]),
+        extract_universal_loop_shape(good["loop_form"]),
+    ) == "vacuous-truth"
 
     wrong_empty_tree = ast.parse(
         """
@@ -1274,6 +1313,10 @@ def loop_form(xs):
     )
     wrong_empty = function_map(wrong_empty_tree)
     assert universal_observation(
+        extract_all_generator_shape(wrong_empty["all_form"]),
+        extract_universal_loop_shape(wrong_empty["loop_form"]),
+    ) == "wrong-empty-truth"
+    assert vacuous_truth_observation(
         extract_all_generator_shape(wrong_empty["all_form"]),
         extract_universal_loop_shape(wrong_empty["loop_form"]),
     ) == "wrong-empty-truth"
