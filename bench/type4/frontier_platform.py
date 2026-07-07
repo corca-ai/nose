@@ -904,7 +904,7 @@ TARGET_PACKETS = [
         "real_frontier_replay_ids": ["python-loop-demorgan-readme-focused-real-pair"],
         "hard_negative_group_ids": ["python-loop-demorgan-all-proof-perimeter"],
         "owner_route": "proof-fact-prerequisite",
-        "owner_issue": None,
+        "owner_issue": "#734",
         "why_now": "The front-page README uses this same-language Type-4 example to explain "
         "semantic duplication, but the current detector still reports no semantic family for "
         "the two Python functions. Turning it into a proof-carrying packet makes the public "

@@ -259,7 +259,7 @@
         }
       ],
       "notes": "This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. It is not an exact-admission request yet: the current detector returns no semantic family for the positive fixture, and the hard negatives document the proof perimeter.",
-      "owner_issue": null,
+      "owner_issue": "#734",
       "owner_route": "proof-fact-prerequisite",
       "packet_id": "python-loop-demorgan-all-2026-07-07",
       "proof_fact_model": {
