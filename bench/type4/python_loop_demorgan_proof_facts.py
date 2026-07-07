@@ -3,13 +3,17 @@
 
 The README-facing Python loop plus De Morgan packet is intentionally closed
 until reusable proof facts exist. This tool supplies a small, source-level
-controlled model for two facts:
+controlled model for four facts:
 
 * iterator identity: an ``all(...)`` generator and an explicit ``for`` loop
   consume the same local iterable binding;
 * effect safety: the supported predicate/loop fragment has no calls,
   assignments, mutation, logging, ``yield``, ``await``, or other observable
   effects before the short-circuit decision.
+* universal short-circuit: the loop returns literal ``False`` on the first
+  counterexample and literal ``True`` after exhaustion;
+* boolean-only De Morgan: the predicate relation is the boolean comparison
+  rewrite ``not (x == a or x == b)`` to ``x != a and x != b``.
 """
 
 from __future__ import annotations
@@ -30,15 +34,33 @@ SCHEMA_VERSION = 1
 TOOL_VERSION = "python-loop-demorgan-proof-facts/1"
 FACT_ID_ITERATOR_IDENTITY = "python-loop-demorgan.iterator-identity"
 FACT_ID_EFFECT_SAFETY = "python-loop-demorgan.effect-safety"
+FACT_ID_UNIVERSAL_SHORT_CIRCUIT = "python-loop-demorgan.universal-short-circuit"
+FACT_ID_BOOLEAN_DEMORGAN = "python-loop-demorgan.boolean-demorgan"
 DEFAULT_JSON_OUT = HERE / "python_loop_demorgan_proof_facts.v1.json"
 
 ITERATOR_OBSERVATIONS = {"same-iterator", "different-iterator", "unsupported-iterator"}
+UNIVERSAL_OBSERVATIONS = {
+    "universal-loop",
+    "wrong-empty-truth",
+    "unsupported-universal-loop",
+}
 EFFECT_OBSERVATIONS = {
     "effect-safe",
     "effectful",
     "unsupported-effect-safety",
 }
-OBSERVATIONS = ITERATOR_OBSERVATIONS | EFFECT_OBSERVATIONS
+BOOLEAN_OBSERVATIONS = {
+    "boolean-demorgan",
+    "changed-predicate",
+    "value-returning-operand",
+    "unsupported-boolean-demorgan",
+}
+OBSERVATIONS = (
+    ITERATOR_OBSERVATIONS
+    | UNIVERSAL_OBSERVATIONS
+    | EFFECT_OBSERVATIONS
+    | BOOLEAN_OBSERVATIONS
+)
 MUTATING_METHODS = {
     "add",
     "append",
@@ -109,6 +131,72 @@ CONTROLLED_EVIDENCE = [
         "loop_function": "loop_no_zero_or_one",
         "expect": "effectful",
     },
+    {
+        "check": "universal-short-circuit",
+        "evidence_id": "python-loop-demorgan-universal-positive-counterexample-loop",
+        "fact_id": FACT_ID_UNIVERSAL_SHORT_CIRCUIT,
+        "case_id": "python_loop_demorgan_all_readme",
+        "expectation_id": "python_loop_demorgan_positive_currently_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_no_zero_or_one",
+        "expect": "universal-loop",
+    },
+    {
+        "check": "universal-short-circuit",
+        "evidence_id": "python-loop-demorgan-universal-negative-empty-truth",
+        "fact_id": FACT_ID_UNIVERSAL_SHORT_CIRCUIT,
+        "case_id": "python_loop_demorgan_vacuous_truth_boundary",
+        "expectation_id": "python_loop_demorgan_vacuous_truth_stays_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_wrong_empty_truth",
+        "expect": "wrong-empty-truth",
+    },
+    {
+        "check": "universal-short-circuit",
+        "evidence_id": "python-loop-demorgan-universal-negative-extra-loop-effect",
+        "fact_id": FACT_ID_UNIVERSAL_SHORT_CIRCUIT,
+        "case_id": "python_loop_demorgan_side_effect_boundary",
+        "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_with_observed_effect",
+        "expect": "unsupported-universal-loop",
+    },
+    {
+        "check": "boolean-demorgan",
+        "evidence_id": "python-loop-demorgan-boolean-positive-comparison-demorgan",
+        "fact_id": FACT_ID_BOOLEAN_DEMORGAN,
+        "case_id": "python_loop_demorgan_all_readme",
+        "expectation_id": "python_loop_demorgan_positive_currently_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+        "all_function": "all_not_zero_or_one",
+        "loop_function": "loop_no_zero_or_one",
+        "expect": "boolean-demorgan",
+    },
+    {
+        "check": "boolean-demorgan",
+        "evidence_id": "python-loop-demorgan-boolean-negative-changed-predicate",
+        "fact_id": FACT_ID_BOOLEAN_DEMORGAN,
+        "case_id": "python_loop_demorgan_changed_predicate_boundary",
+        "expectation_id": "python_loop_demorgan_changed_predicate_stays_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py",
+        "left_function": "all_not_zero_or_one",
+        "right_function": "all_changed_predicate",
+        "expect": "changed-predicate",
+    },
+    {
+        "check": "boolean-demorgan",
+        "evidence_id": "python-loop-demorgan-boolean-negative-value-returning-operand",
+        "fact_id": FACT_ID_BOOLEAN_DEMORGAN,
+        "case_id": "python_loop_demorgan_value_return_boundary",
+        "expectation_id": "python_loop_demorgan_value_return_stays_split",
+        "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py",
+        "left_function": "boolean_demorgan_predicate",
+        "right_function": "value_returning_operand",
+        "expect": "value-returning-operand",
+    },
 ]
 
 
@@ -165,6 +253,66 @@ class EffectShape:
             "function": self.function,
             "kind": self.kind,
             "supported": self.supported,
+        }
+
+
+@dataclass(frozen=True)
+class UniversalShape:
+    function: str
+    kind: str
+    supported: bool
+    early_false: bool
+    fallthrough_true: bool
+    diagnostics: tuple[str, ...]
+    counterexample: str | None
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "counterexample": self.counterexample,
+            "diagnostics": list(self.diagnostics),
+            "early_false": self.early_false,
+            "fallthrough_true": self.fallthrough_true,
+            "function": self.function,
+            "kind": self.kind,
+            "supported": self.supported,
+        }
+
+
+@dataclass(frozen=True)
+class BooleanTerm:
+    variable: str
+    operator: str
+    literal: str
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "literal": self.literal,
+            "operator": self.operator,
+            "variable": self.variable,
+        }
+
+
+@dataclass(frozen=True)
+class BooleanShape:
+    function: str
+    kind: str
+    expression: str
+    connector: str | None
+    terms: tuple[BooleanTerm, ...]
+    supported: bool
+    value_returning: bool
+    diagnostics: tuple[str, ...]
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "connector": self.connector,
+            "diagnostics": list(self.diagnostics),
+            "expression": self.expression,
+            "function": self.function,
+            "kind": self.kind,
+            "supported": self.supported,
+            "terms": [term.to_json() for term in self.terms],
+            "value_returning": self.value_returning,
         }
 
 
@@ -294,6 +442,50 @@ def is_pure_local_comparison(node: ast.AST, allowed_names: set[str]) -> bool:
             for op in node.ops
         )
         return pure_ops and all(is_local_operand(operand, allowed_names) for operand in operands)
+    return False
+
+
+def bool_connector(node: ast.AST) -> str | None:
+    if isinstance(node, ast.BoolOp):
+        if isinstance(node.op, ast.And):
+            return "and"
+        if isinstance(node.op, ast.Or):
+            return "or"
+    return None
+
+
+def bool_terms(node: ast.AST) -> list[ast.AST]:
+    if isinstance(node, ast.BoolOp):
+        return list(node.values)
+    return [node]
+
+
+def comparison_term(node: ast.AST, allowed_names: set[str]) -> BooleanTerm | None:
+    if not (
+        isinstance(node, ast.Compare)
+        and len(node.ops) == 1
+        and len(node.comparators) == 1
+    ):
+        return None
+    op = node.ops[0]
+    if isinstance(op, ast.Eq):
+        operator = "=="
+    elif isinstance(op, ast.NotEq):
+        operator = "!="
+    else:
+        return None
+    left = node.left
+    right = node.comparators[0]
+    if isinstance(left, ast.Name) and left.id in allowed_names and is_literal(right):
+        return BooleanTerm(left.id, operator, node_text(right))
+    if isinstance(right, ast.Name) and right.id in allowed_names and is_literal(left):
+        return BooleanTerm(right.id, operator, node_text(left))
+    return None
+
+
+def has_value_returning_bool_operand(node: ast.AST, allowed_names: set[str]) -> bool:
+    if isinstance(node, ast.BoolOp):
+        return any(comparison_term(value, allowed_names) is None for value in node.values)
     return False
 
 
@@ -584,6 +776,249 @@ def effect_observation(all_shape: EffectShape, loop_shape: EffectShape) -> str:
     return "unsupported-effect-safety"
 
 
+def extract_universal_loop_shape(fn: ast.FunctionDef) -> UniversalShape:
+    iterator_shape = extract_loop_shape(fn)
+    diagnostics = list(iterator_shape.diagnostics)
+    if not iterator_shape.iterable.supported or not iterator_shape.element.supported:
+        return UniversalShape(
+            function=fn.name,
+            kind="for-loop-universal",
+            supported=False,
+            early_false=False,
+            fallthrough_true=False,
+            diagnostics=tuple(diagnostics),
+            counterexample=None,
+        )
+
+    body = non_docstring_body(fn)
+    loop = next(stmt for stmt in body if isinstance(stmt, ast.For))
+    if body != [loop, body[-1]]:
+        diagnostics.append("universal loop must be followed only by the fallthrough return")
+    if len(body) != 2 or not isinstance(body[1], ast.Return):
+        diagnostics.append("universal loop must have one top-level fallthrough return")
+    if len(loop.body) != 1 or not isinstance(loop.body[0], ast.If):
+        diagnostics.append("loop body must contain only the counterexample if")
+        return UniversalShape(
+            function=fn.name,
+            kind="for-loop-universal",
+            supported=False,
+            early_false=False,
+            fallthrough_true=False,
+            diagnostics=tuple(diagnostics),
+            counterexample=None,
+        )
+    counterexample = loop.body[0]
+    early_false = (
+        not counterexample.orelse
+        and len(counterexample.body) == 1
+        and isinstance(counterexample.body[0], ast.Return)
+        and isinstance(counterexample.body[0].value, ast.Constant)
+        and counterexample.body[0].value.value is False
+    )
+    if not early_false:
+        diagnostics.append("counterexample branch must return literal False")
+    fallthrough_true = (
+        len(body) == 2
+        and isinstance(body[1], ast.Return)
+        and isinstance(body[1].value, ast.Constant)
+        and body[1].value.value is True
+    )
+    if len(body) == 2 and isinstance(body[1], ast.Return) and not fallthrough_true:
+        diagnostics.append("fallthrough return must be literal True")
+    return UniversalShape(
+        function=fn.name,
+        kind="for-loop-universal",
+        supported=early_false and (fallthrough_true or len(body) == 2),
+        early_false=early_false,
+        fallthrough_true=fallthrough_true,
+        diagnostics=tuple(diagnostics),
+        counterexample=node_text(counterexample.test),
+    )
+
+
+def universal_observation(
+    all_shape: IteratorShape, loop_shape: UniversalShape
+) -> str:
+    if not all_shape.iterable.supported or not loop_shape.supported:
+        if loop_shape.early_false and not loop_shape.fallthrough_true:
+            return "wrong-empty-truth"
+        return "unsupported-universal-loop"
+    if loop_shape.early_false and loop_shape.fallthrough_true:
+        return "universal-loop"
+    if loop_shape.early_false and not loop_shape.fallthrough_true:
+        return "wrong-empty-truth"
+    return "unsupported-universal-loop"
+
+
+def extract_all_boolean_shape(fn: ast.FunctionDef) -> BooleanShape:
+    iterator_shape = extract_all_generator_shape(fn)
+    diagnostics = list(iterator_shape.diagnostics)
+    if not iterator_shape.iterable.supported or not iterator_shape.element.supported:
+        return unsupported_boolean_shape(fn, "all-predicate", diagnostics)
+    body = non_docstring_body(fn)
+    gen = body[0].value.args[0]
+    comp = gen.generators[0]
+    return boolean_shape_from_expr(
+        fn,
+        "all-predicate",
+        gen.elt,
+        {comp.target.id},
+        diagnostics,
+    )
+
+
+def extract_loop_boolean_shape(fn: ast.FunctionDef) -> BooleanShape:
+    loop_shape = extract_universal_loop_shape(fn)
+    diagnostics = list(loop_shape.diagnostics)
+    if not loop_shape.counterexample:
+        return unsupported_boolean_shape(fn, "loop-counterexample", diagnostics)
+    body = non_docstring_body(fn)
+    loop = next(stmt for stmt in body if isinstance(stmt, ast.For))
+    counterexample = loop.body[0]
+    return boolean_shape_from_expr(
+        fn,
+        "loop-counterexample",
+        counterexample.test,
+        {loop.target.id},
+        diagnostics,
+    )
+
+
+def extract_return_boolean_shape(fn: ast.FunctionDef) -> BooleanShape:
+    diagnostics: list[str] = []
+    body = non_docstring_body(fn)
+    if len(body) != 1 or not isinstance(body[0], ast.Return):
+        diagnostics.append("boolean predicate function must be a single return")
+        return unsupported_boolean_shape(fn, "return-predicate", diagnostics)
+    return boolean_shape_from_expr(
+        fn,
+        "return-predicate",
+        body[0].value,
+        set(arg_map(fn)),
+        diagnostics,
+    )
+
+
+def boolean_shape_from_expr(
+    fn: ast.FunctionDef,
+    kind: str,
+    expr: ast.AST,
+    allowed_names: set[str],
+    diagnostics: list[str],
+) -> BooleanShape:
+    effects = expression_effects(expr)
+    if effects:
+        diagnostics.extend(f"predicate contains {effect}" for effect in effects)
+    connector = bool_connector(expr)
+    terms = [comparison_term(term, allowed_names) for term in bool_terms(expr)]
+    supported_terms = tuple(term for term in terms if term is not None)
+    value_returning = has_value_returning_bool_operand(expr, allowed_names)
+    if len(supported_terms) != len(terms):
+        diagnostics.append("predicate must contain only local comparison operands")
+    return BooleanShape(
+        function=fn.name,
+        kind=kind,
+        expression=node_text(expr),
+        connector=connector,
+        terms=supported_terms,
+        supported=not diagnostics,
+        value_returning=value_returning,
+        diagnostics=tuple(diagnostics),
+    )
+
+
+def unsupported_boolean_shape(
+    fn: ast.FunctionDef, kind: str, diagnostics: list[str]
+) -> BooleanShape:
+    return BooleanShape(
+        function=fn.name,
+        kind=kind,
+        expression="<unsupported>",
+        connector=None,
+        terms=(),
+        supported=False,
+        value_returning=False,
+        diagnostics=tuple(diagnostics),
+    )
+
+
+def boolean_shape_for_entry(
+    entry: dict[str, str], functions: dict[str, ast.FunctionDef]
+) -> tuple[BooleanShape, BooleanShape]:
+    if "all_function" in entry and "loop_function" in entry:
+        return (
+            extract_all_boolean_shape(functions[entry["all_function"]]),
+            extract_loop_boolean_shape(functions[entry["loop_function"]]),
+        )
+    return (
+        extract_return_or_all_boolean_shape(functions[entry["left_function"]]),
+        extract_return_or_all_boolean_shape(functions[entry["right_function"]]),
+    )
+
+
+def extract_return_or_all_boolean_shape(fn: ast.FunctionDef) -> BooleanShape:
+    body = non_docstring_body(fn)
+    if (
+        len(body) == 1
+        and isinstance(body[0], ast.Return)
+        and isinstance(body[0].value, ast.Call)
+        and isinstance(body[0].value.func, ast.Name)
+        and body[0].value.func.id == "all"
+    ):
+        return extract_all_boolean_shape(fn)
+    return extract_return_boolean_shape(fn)
+
+
+def term_key(term: BooleanTerm, operator: str) -> tuple[str, str, str]:
+    return (term.variable, operator, term.literal)
+
+
+def demorgan_match(left: BooleanShape, right: BooleanShape) -> bool:
+    if not (left.supported and right.supported):
+        return False
+    left_is_positive = left.connector == "and" and all(
+        term.operator == "!=" for term in left.terms
+    )
+    right_is_counter = right.connector == "or" and all(
+        term.operator == "==" for term in right.terms
+    )
+    if left_is_positive and right_is_counter:
+        return {
+            term_key(term, "==") for term in left.terms
+        } == {
+            term_key(term, term.operator) for term in right.terms
+        }
+    right_is_positive = right.connector == "and" and all(
+        term.operator == "!=" for term in right.terms
+    )
+    left_is_counter = left.connector == "or" and all(
+        term.operator == "==" for term in left.terms
+    )
+    if right_is_positive and left_is_counter:
+        return {
+            term_key(term, "==") for term in right.terms
+        } == {
+            term_key(term, term.operator) for term in left.terms
+        }
+    return False
+
+
+def boolean_observation(left: BooleanShape, right: BooleanShape) -> str:
+    if left.value_returning or right.value_returning:
+        return "value-returning-operand"
+    if demorgan_match(left, right):
+        return "boolean-demorgan"
+    if left.terms and right.terms:
+        return "changed-predicate"
+    return "unsupported-boolean-demorgan"
+
+
+def function_names_for_entry(entry: dict[str, str]) -> tuple[str, str]:
+    if "all_function" in entry and "loop_function" in entry:
+        return (entry["all_function"], entry["loop_function"])
+    return (entry["left_function"], entry["right_function"])
+
+
 def result_for(entry: dict[str, str]) -> dict[str, Any]:
     fixture = ROOT / entry["fixture"]
     try:
@@ -593,7 +1028,7 @@ def result_for(entry: dict[str, str]) -> dict[str, Any]:
     functions = function_map(tree)
     missing = [
         name
-        for name in (entry["all_function"], entry["loop_function"])
+        for name in function_names_for_entry(entry)
         if name not in functions
     ]
     if missing:
@@ -609,6 +1044,13 @@ def result_for(entry: dict[str, str]) -> dict[str, Any]:
         all_shape = extract_all_effect_shape(functions[entry["all_function"]])
         loop_shape = extract_loop_effect_shape(functions[entry["loop_function"]])
         observed = effect_observation(all_shape, loop_shape)
+    elif check == "universal-short-circuit":
+        all_shape = extract_all_generator_shape(functions[entry["all_function"]])
+        loop_shape = extract_universal_loop_shape(functions[entry["loop_function"]])
+        observed = universal_observation(all_shape, loop_shape)
+    elif check == "boolean-demorgan":
+        all_shape, loop_shape = boolean_shape_for_entry(entry, functions)
+        observed = boolean_observation(all_shape, loop_shape)
     else:
         raise ProofFactError(f"unknown proof-fact check for {entry['evidence_id']}: {check}")
     expect = entry["expect"]
@@ -812,6 +1254,77 @@ def loop_form(xs):
         extract_all_effect_shape(unsupported_effect["all_form"]),
         extract_loop_effect_shape(unsupported_effect["loop_form"]),
     ) == "unsupported-effect-safety"
+
+    assert universal_observation(
+        extract_all_generator_shape(good["all_form"]),
+        extract_universal_loop_shape(good["loop_form"]),
+    ) == "universal-loop"
+
+    wrong_empty_tree = ast.parse(
+        """
+def all_form(xs):
+    return all(x != 0 for x in xs)
+
+def loop_form(xs):
+    for x in xs:
+        if x == 0:
+            return False
+    return False
+"""
+    )
+    wrong_empty = function_map(wrong_empty_tree)
+    assert universal_observation(
+        extract_all_generator_shape(wrong_empty["all_form"]),
+        extract_universal_loop_shape(wrong_empty["loop_form"]),
+    ) == "wrong-empty-truth"
+
+    demorgan_tree = ast.parse(
+        """
+def all_form(xs):
+    return all(x != 0 and x != 1 for x in xs)
+
+def loop_form(xs):
+    for x in xs:
+        if x == 0 or x == 1:
+            return False
+    return True
+"""
+    )
+    demorgan = function_map(demorgan_tree)
+    assert boolean_observation(
+        extract_all_boolean_shape(demorgan["all_form"]),
+        extract_loop_boolean_shape(demorgan["loop_form"]),
+    ) == "boolean-demorgan"
+
+    changed_predicate_tree = ast.parse(
+        """
+def left(xs):
+    return all(x != 0 and x != 1 for x in xs)
+
+def right(xs):
+    return all(x != 0 or x != 1 for x in xs)
+"""
+    )
+    changed_predicate = function_map(changed_predicate_tree)
+    assert boolean_observation(
+        extract_all_boolean_shape(changed_predicate["left"]),
+        extract_all_boolean_shape(changed_predicate["right"]),
+    ) == "changed-predicate"
+
+    value_return_tree = ast.parse(
+        """
+def left(x):
+    return x != 0 and x != 1
+
+def right(x):
+    return x != 0 and marker(x)
+"""
+    )
+    value_return = function_map(value_return_tree)
+    assert boolean_observation(
+        extract_return_boolean_shape(value_return["left"]),
+        extract_return_boolean_shape(value_return["right"]),
+    ) == "value-returning-operand"
     print("selftest OK")
 
 

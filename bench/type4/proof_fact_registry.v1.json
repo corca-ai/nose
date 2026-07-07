@@ -74,6 +74,11 @@
         "the same element variable and the same literal/value coordinates on both sides",
         "a boolean context where operand values are not observed"
       ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-boolean-positive-comparison-demorgan",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-boolean-negative-changed-predicate",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-boolean-negative-value-returning-operand"
+      ],
       "detector_admission_implication": "Does not admit loop/all convergence by itself; universal short-circuit, effect safety, and iterator identity are separate facts.",
       "evidence_requirements": [
         "focused-executable",
@@ -95,7 +100,7 @@
         "changed predicates such as x != 0 or x != 1"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "The counterexample guard not P may normalize through De Morgan only for proven boolean operands, for example not (x == 0 or x == 1) == (x != 0 and x != 1).",
       "title": "Boolean-only De Morgan"
     },
@@ -174,6 +179,11 @@
         "fallthrough return is literal True",
         "empty iterables return True in both forms"
       ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-positive-counterexample-loop",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-negative-empty-truth",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-negative-extra-loop-effect"
+      ],
       "detector_admission_implication": "Does not admit loop/all convergence by itself; boolean De Morgan, effect safety, and iterator identity remain separate facts.",
       "evidence_requirements": [
         "focused-executable",
@@ -194,7 +204,7 @@
         "the loop consumes a different iterable or mutates the iterable"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "A Python early-return loop that returns False on the first counterexample and True after exhaustion is equivalent to all(P(x) for x in xs) only with vacuous truth and matching short-circuit behavior.",
       "title": "Universal loop short-circuit and vacuous truth"
     }

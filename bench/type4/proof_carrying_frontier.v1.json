@@ -114,13 +114,13 @@
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "9ecd4d8f2282068b86e80af25df357fbad49299cae257c4ef3b46ba4035c98cb",
-        "size_bytes": 10976
+        "sha256": "9772a9cf45c6cd9f79b87b98aef1a10a635d492f684cc9e524689484067b91f5",
+        "size_bytes": 11784
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
-        "sha256": "d5751be1908d50a8e37780a39a091b7e611ef060c455ba7fbe8974d047fcc1b6",
-        "size_bytes": 7051
+        "sha256": "a388ec822286600084237d5449e248fafbd2ef69b203fb54f10afa4599e4f76c",
+        "size_bytes": 16556
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
@@ -134,13 +134,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "c64caf39ca84008428ef8fe1590041fb78b23ebafac51b9c213cd62fda086815",
+        "sha256": "09dae3556a4948ef1110b72ee3a11b50d63ba452288aa11f0d8e96aca4400897",
         "size_bytes": 1618
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "d557cad351b34c89febfd9439705c38b15816d8de565ba9dad71cad56776fc68",
-        "size_bytes": 19416
+        "sha256": "9b6659a13b703d0eba81a1a6d7721d58a470685e45d135635d2846c68ea0f865",
+        "size_bytes": 19190
       }
     },
     "target_packet_identity": {
@@ -670,7 +670,7 @@
           ],
           "hard_negative_gate_count": 6,
           "positive_gate_count": 1,
-          "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier and boolean-only De Morgan proof facts",
+          "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; all required proof facts are modeled-controlled, so #739 can open a detector-admission PR that flips the positive expectation while preserving hard negatives",
           "scope": "none; tracked proof packet only",
           "status": "not-admitted"
         },
@@ -777,8 +777,8 @@
         "hard_negative_group_ids": [
           "python-loop-demorgan-all-proof-perimeter"
         ],
-        "owner_issue": "#734",
-        "owner_route": "proof-fact-prerequisite",
+        "owner_issue": "#739",
+        "owner_route": "team-a-detector",
         "packet_id": "python-loop-demorgan-all-2026-07-07",
         "proof_fact_model": {
           "fact_count": 4,
@@ -790,26 +790,54 @@
           ],
           "facts": [
             {
-              "controlled_evidence": null,
-              "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-universal-negative-empty-truth",
+                  "python-loop-demorgan-universal-negative-extra-loop-effect",
+                  "python-loop-demorgan-universal-positive-counterexample-loop"
+                ],
+                "observations": {
+                  "python-loop-demorgan-universal-negative-empty-truth": "wrong-empty-truth",
+                  "python-loop-demorgan-universal-negative-extra-loop-effect": "unsupported-universal-loop",
+                  "python-loop-demorgan-universal-positive-counterexample-loop": "universal-loop"
+                },
+                "passed": 3,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop, wrong empty-truth boundary, and extra loop-effect closure",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
               ],
               "fact_id": "python-loop-demorgan.universal-short-circuit",
-              "registry_status": "specified-not-modeled",
+              "registry_status": "modeled-controlled",
               "semantic_family": "python.loop_demorgan_all",
               "title": "Universal loop short-circuit and vacuous truth"
             },
             {
-              "controlled_evidence": null,
-              "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-boolean-negative-changed-predicate",
+                  "python-loop-demorgan-boolean-negative-value-returning-operand",
+                  "python-loop-demorgan-boolean-positive-comparison-demorgan"
+                ],
+                "observations": {
+                  "python-loop-demorgan-boolean-negative-changed-predicate": "changed-predicate",
+                  "python-loop-demorgan-boolean-negative-value-returning-operand": "value-returning-operand",
+                  "python-loop-demorgan-boolean-positive-comparison-demorgan": "boolean-demorgan"
+                },
+                "passed": 3,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates comparison-only De Morgan, changed-predicate closure, and value-returning operand closure",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
               ],
               "fact_id": "python-loop-demorgan.boolean-demorgan",
-              "registry_status": "specified-not-modeled",
+              "registry_status": "modeled-controlled",
               "semantic_family": "python.loop_demorgan_all",
               "title": "Boolean-only De Morgan"
             },
@@ -864,18 +892,14 @@
               "title": "Loop/all iterator identity"
             }
           ],
-          "model_status": "partially-modeled-controlled"
+          "model_status": "modeled-controlled"
         },
         "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
         "readiness": {
-          "blocking_items": [
-            "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
-            "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-            "effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves"
-          ],
-          "can_open_exact_admission": false,
-          "reason": "packet still requires reusable proof evidence before detector work",
-          "status": "blocked-on-proof"
+          "blocking_items": [],
+          "can_open_exact_admission": true,
+          "reason": "packet has linked evidence, proof invariant, hard negatives, and no blockers",
+          "status": "ready-for-defender"
         },
         "real_frontier_replay": {
           "by_replay": [
@@ -1007,20 +1031,21 @@
         "covered": 2
       },
       "by_owner_route": {
-        "proof-fact-prerequisite": 2
+        "proof-fact-prerequisite": 1,
+        "team-a-detector": 1
       },
       "by_readiness": {
-        "blocked-on-proof": 1,
-        "detector-admitted-controlled": 1
+        "detector-admitted-controlled": 1,
+        "ready-for-defender": 1
       },
       "by_real_frontier_replay": {
         "passed": 2
       },
       "detector_admitted_packet_count": 1,
       "packet_count": 2,
-      "ready_packet_count": 0
+      "ready_packet_count": 1
     }
   },
   "tool_version": "proof-carrying-frontier/1",
-  "verdict": "no-exact-admission-ready-packets"
+  "verdict": "exact-admission-ready"
 }

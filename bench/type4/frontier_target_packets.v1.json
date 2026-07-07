@@ -163,11 +163,7 @@
       "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
     },
     {
-      "blocked_by": [
-        "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
-        "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-        "effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves"
-      ],
+      "blocked_by": [],
       "breadth": {
         "dev_breadth": 0.0606,
         "dev_presence": 4,
@@ -223,7 +219,7 @@
         "positive_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme"
         ],
-        "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier and boolean-only De Morgan proof facts",
+        "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; all required proof facts are modeled-controlled, so #739 can open a detector-admission PR that flips the positive expectation while preserving hard negatives",
         "scope": "none; tracked proof packet only",
         "status": "not-admitted"
       },
@@ -261,17 +257,17 @@
         }
       ],
       "notes": "This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. It is not an exact-admission request yet: the current detector returns no semantic family for the positive fixture, and the hard negatives document the proof perimeter.",
-      "owner_issue": "#734",
-      "owner_route": "proof-fact-prerequisite",
+      "owner_issue": "#739",
+      "owner_route": "team-a-detector",
       "packet_id": "python-loop-demorgan-all-2026-07-07",
       "proof_fact_model": {
         "facts": [
           {
-            "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
+            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop, wrong empty-truth boundary, and extra loop-effect closure",
             "fact_id": "python-loop-demorgan.universal-short-circuit"
           },
           {
-            "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
+            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates comparison-only De Morgan, changed-predicate closure, and value-returning operand closure",
             "fact_id": "python-loop-demorgan.boolean-demorgan"
           },
           {
@@ -292,7 +288,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
         ],
-        "model_status": "partially-modeled-controlled"
+        "model_status": "modeled-controlled"
       },
       "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
       "real_frontier_replay_ids": [
