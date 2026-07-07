@@ -53,6 +53,10 @@ import frontier_axes as fa  # noqa: E402  (Team B extra axes, kept out of the fr
 
 TOOL_VERSION = "frontier-platform/1"
 SCHEMA_VERSION = 1
+DEFAULT_JSON_OUT = HERE / "frontier_platform.v1.json"
+DEFAULT_MARKDOWN_OUT = HERE / "frontier_platform.md"
+DEFAULT_PACKETS_JSON_OUT = HERE / "frontier_target_packets.v1.json"
+DEFAULT_PACKETS_MD_OUT = HERE / "frontier_target_packets.md"
 
 # The union of the frozen prioritizer axes and the Team B extra axes (issue #50 decision 1).
 # `prioritize_frontier.py` stays byte-stable; new axes live in `frontier_axes.py`.
@@ -800,6 +804,11 @@ def build(
 # evidence store (decision 2). owner_route is team-based, never an issue number (decision 3).
 # ---------------------------------------------------------------------------
 OWNER_ROUTE = {"team-a-detector", "team-c-product", "proof-fact-prerequisite"}
+DETECTOR_ADMISSION_STATUS = {
+    "not-admitted",
+    "controlled-slice-admitted",
+    "real-pair-admitted",
+}
 
 # Curated routing/selection only (the human judgment). Evidence fields (semantic_claim,
 # proof_invariant, hard_negative_siblings, detector result) are PULLED from the linked
@@ -859,6 +868,34 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
             ],
+        },
+        "detector_admission": {
+            "status": "controlled-slice-admitted",
+            "scope": "proof-backed controlled integer clamp surfaces",
+            "capabilities": [
+                "proven min(max(x, lo), hi) and max(min(x, hi), lo) min/max compositions",
+                "proof-backed two-comparison ternary clamp",
+                "literal ordered and Guard(BoundOrder)-backed Rust scalar integer .clamp",
+            ],
+            "positive_gates": [
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+                "crates/nose-normalize/src/value_graph/tests/clamp.rs::guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+            ],
+            "hard_negative_gates": [
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+                "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary",
+            ],
+            "remaining_real_pair_gap": (
+                "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence "
+                "and shared integer-only domain evidence, so it remains a real miss"
+            ),
         },
         "blocked_by": [
             "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
@@ -940,6 +977,7 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
                 "evidence_case_ids": spec["evidence_case_ids"],
                 "why_now": spec["why_now"],
                 "proof_fact_model": spec["proof_fact_model"],
+                "detector_admission": spec["detector_admission"],
                 "blocked_by": spec["blocked_by"],
                 "notes": spec["notes"],
                 # Platform context.
@@ -968,7 +1006,7 @@ REQUIRED_PACKET_FIELDS = (
     "packet_id", "candidate_axis", "semantic_claim", "locations",
     "current_detector_result", "proof_invariant", "hard_negative_siblings",
     "owner_route", "owner_issue", "evidence_case_ids", "breadth", "evidence_tier",
-    "curated", "why_now", "proof_fact_model", "blocked_by", "notes",
+    "curated", "why_now", "proof_fact_model", "detector_admission", "blocked_by", "notes",
 )
 
 
@@ -980,9 +1018,61 @@ def validate_packets(packets: list[dict]) -> None:
         assert p["owner_route"] in OWNER_ROUTE
         assert isinstance(p["evidence_case_ids"], list) and p["evidence_case_ids"]
         assert isinstance(p["proof_fact_model"], dict) and p["proof_fact_model"].get("facts")
+        validate_detector_admission(p)
         for loc in p["locations"]:
             for f in ("repo", "split", "primary_language", "path", "span", "snippet"):
                 assert f in loc, f"packet {p['packet_id']} location missing {f}"
+
+
+def validate_detector_admission(packet: dict) -> None:
+    admission = packet["detector_admission"]
+    assert isinstance(admission, dict), f"packet {packet['packet_id']} detector_admission"
+    status = admission.get("status")
+    assert status in DETECTOR_ADMISSION_STATUS, packet["packet_id"]
+    for field in ("scope", "capabilities", "positive_gates", "hard_negative_gates"):
+        value = admission.get(field)
+        assert value, f"packet {packet['packet_id']} detector_admission missing {field}"
+        if field in ("capabilities", "positive_gates", "hard_negative_gates"):
+            assert isinstance(value, list) and all(isinstance(item, str) for item in value), (
+                f"packet {packet['packet_id']} detector_admission {field} must be list[str]"
+            )
+    if status != "real-pair-admitted":
+        assert admission.get("remaining_real_pair_gap"), (
+            f"packet {packet['packet_id']} needs remaining_real_pair_gap"
+        )
+
+
+def frontier_repos_available(corpus_path: Path, repos_root: Path) -> bool:
+    return bool(pf.load_repos(corpus_path, repos_root))
+
+
+def check_artifact(path: Path, expected: str, mismatches: list[str]) -> None:
+    if not path.exists() or path.read_text() != expected:
+        mismatches.append(repo_rel(path))
+
+
+def check_artifacts(
+    platform_result: dict,
+    packet_doc: dict,
+    json_out: Path,
+    markdown_out: Path,
+    packets_json_out: Path,
+    packets_md_out: Path,
+) -> None:
+    mismatches: list[str] = []
+    check_artifact(
+        json_out,
+        json.dumps(platform_result, indent=2, sort_keys=True) + "\n",
+        mismatches,
+    )
+    check_artifact(markdown_out, markdown_report(platform_result), mismatches)
+    check_artifact(
+        packets_json_out,
+        json.dumps(packet_doc, indent=2, sort_keys=True) + "\n",
+        mismatches,
+    )
+    check_artifact(packets_md_out, packets_markdown(packet_doc), mismatches)
+    assert not mismatches, f"frontier platform artifacts are stale: {', '.join(mismatches)}"
 
 
 def packets_markdown(packet_doc: dict) -> str:
@@ -1035,10 +1125,13 @@ def packets_markdown(packet_doc: dict) -> str:
             for loc in p["locations"]
         ]
         det = p["current_detector_result"]
+        admission = p["detector_admission"]
         lines += [
             f"- **current detector result**: miss={det.get('current_detector_miss')} · "
             f"`{det.get('nose_version')}` @ `{(det.get('build_ref') or '')[:12]}` — "
             f"{det.get('baseline_result', '')}",
+            f"- **detector admission**: `{admission['status']}` · {admission['scope']}",
+            f"- **remaining real-pair gap**: {admission.get('remaining_real_pair_gap', 'none')}",
             f"- **why now**: {p['why_now']}",
             f"- **blocked by**: {', '.join(p['blocked_by']) if p['blocked_by'] else 'nothing'}",
             f"- **notes**: {p['notes']}",
@@ -1247,9 +1340,31 @@ def selftest() -> int:
     good["owner_route"] = "team-a-detector"
     good["evidence_case_ids"] = ["c"]
     good["proof_fact_model"] = {"facts": ["modeled"]}
+    good["detector_admission"] = {
+        "status": "controlled-slice-admitted",
+        "scope": "synthetic",
+        "capabilities": ["capability"],
+        "positive_gates": ["positive"],
+        "hard_negative_gates": ["negative"],
+        "remaining_real_pair_gap": "still open",
+    }
     good["locations"] = [{"repo": "r", "split": "dev", "primary_language": "go",
                           "path": "p", "span": "1-2", "snippet": "s"}]
     validate_packets([good])
+    bad_admission = json.loads(json.dumps(good))
+    bad_admission["detector_admission"]["positive_gates"] = "positive"
+    try:
+        validate_packets([bad_admission])
+        raise SystemExit("validate_packets failed to catch scalar detector_admission gate")
+    except AssertionError:
+        pass
+    bad_admission = json.loads(json.dumps(good))
+    bad_admission["detector_admission"]["capabilities"] = [1]
+    try:
+        validate_packets([bad_admission])
+        raise SystemExit("validate_packets failed to catch non-string detector_admission item")
+    except AssertionError:
+        pass
     try:
         validate_packets([{k: v for k, v in good.items() if k != "proof_invariant"}])
         raise SystemExit("validate_packets failed to catch a missing field")
@@ -1262,6 +1377,7 @@ def selftest() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--selftest", action="store_true", help="run corpus-free correctness checks")
+    ap.add_argument("--check", action="store_true", help="fail if committed platform/packet artifacts are stale; skips when bench/repos is absent")
     ap.add_argument("--corpus", type=Path, default=pf.DEFAULT_CORPUS)
     ap.add_argument("--repos-root", type=Path, default=pf.DEFAULT_REPOS_ROOT)
     ap.add_argument("--max-bytes", type=int, default=512_000)
@@ -1286,6 +1402,10 @@ def main() -> int:
     if args.selftest:
         return selftest()
 
+    if args.check and not frontier_repos_available(args.corpus, args.repos_root):
+        print("skipped frontier platform artifact check — bench/repos corpus is not available")
+        return 0
+
     nose_binary = None
     if args.with_detector_probe:
         if args.nose_binary is None:
@@ -1304,6 +1424,18 @@ def main() -> int:
     )
 
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    if args.check:
+        packet_doc = build_packets(result, args.real_frontier, args.corpus)
+        check_artifacts(
+            result,
+            packet_doc,
+            args.json_out or DEFAULT_JSON_OUT,
+            args.markdown_out or DEFAULT_MARKDOWN_OUT,
+            args.packets_json_out or DEFAULT_PACKETS_JSON_OUT,
+            args.packets_md_out or DEFAULT_PACKETS_MD_OUT,
+        )
+        return 0
+
     if args.json_out:
         args.json_out.write_text(text)
     elif not args.packets_json_out:

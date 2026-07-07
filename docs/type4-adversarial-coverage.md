@@ -61,10 +61,10 @@ python3 bench/type4/proof_carrying_frontier.py --check
 ```
 
 That report keeps target-packet routing separate from admission readiness. For example, the
-current numeric-clamp packet remains a valid next-work packet but is still blocked on a
-real-corpus proof gap: the bound-order proof fact is modeled for controlled evidence, but
-the current cross-language pair still lacks fzf-side bound-order evidence and shared
-integer-domain evidence.
+current numeric-clamp packet is `detector-admitted-controlled`: controlled proof-backed
+integer clamp surfaces have landed, but the current cross-language pair still lacks
+fzf-side bound-order evidence and shared integer-domain evidence, so the real-corpus proof
+gap remains open.
 
 ## Focused cases
 

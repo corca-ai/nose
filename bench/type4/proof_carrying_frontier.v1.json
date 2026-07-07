@@ -105,8 +105,8 @@
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "f48ff2e54e7454e44c15b53d8228363058b4d1d0033baf7c38ac3071a45d8535",
-        "size_bytes": 9470
+        "sha256": "85d15d5174db55541fae1a04d7ab77656afe2aa4ff4c01988c5449638e62d61e",
+        "size_bytes": 11296
       }
     },
     "target_packet_identity": {
@@ -134,6 +134,18 @@
     "packets": [
       {
         "candidate_axis": "numeric_clamp",
+        "detector_admission": {
+          "capabilities": [
+            "proven min(max(x, lo), hi) and max(min(x, hi), lo) min/max compositions",
+            "proof-backed two-comparison ternary clamp",
+            "literal ordered and Guard(BoundOrder)-backed Rust scalar integer .clamp"
+          ],
+          "hard_negative_gate_count": 6,
+          "positive_gate_count": 5,
+          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
+          "scope": "proof-backed controlled integer clamp surfaces",
+          "status": "controlled-slice-admitted"
+        },
         "evidence_case_ids": [
           "numeric-clamp-minmax-ternary-real-miss"
         ],
@@ -156,18 +168,22 @@
             "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
           ],
           "can_open_exact_admission": false,
-          "reason": "packet still requires reusable proof evidence before detector work",
-          "status": "blocked-on-proof"
+          "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
+          "status": "detector-admitted-controlled"
         }
       }
     ],
     "summary": {
+      "by_detector_admission": {
+        "controlled-slice-admitted": 1
+      },
       "by_owner_route": {
         "proof-fact-prerequisite": 1
       },
       "by_readiness": {
-        "blocked-on-proof": 1
+        "detector-admitted-controlled": 1
       },
+      "detector_admitted_packet_count": 1,
       "packet_count": 1,
       "ready_packet_count": 0
     }

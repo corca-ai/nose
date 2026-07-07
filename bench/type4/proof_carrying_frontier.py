@@ -54,6 +54,7 @@ REQUIRED_PACKET_FIELDS = {
     "curated",
     "why_now",
     "proof_fact_model",
+    "detector_admission",
     "blocked_by",
     "notes",
 }
@@ -65,6 +66,11 @@ REQUIRED_DETECTOR_FIELDS = {
 }
 
 OWNER_ROUTE = {"proof-fact-prerequisite", "team-a-detector", "team-c-product"}
+DETECTOR_ADMISSION_STATUS = {
+    "not-admitted",
+    "controlled-slice-admitted",
+    "real-pair-admitted",
+}
 FRONTIER_STATUSES = {"real-miss", "already-covered", "hard-negative", "unsupported", "closed"}
 COEVO_VERDICTS = {
     "violation-fixed",
@@ -153,6 +159,7 @@ def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
         if not packet["hard_negative_siblings"]:
             raise FrontierError(f"packet {packet_id} must name hard negatives")
         validate_proof_fact_model(packet_id, packet["proof_fact_model"])
+        validate_detector_admission(packet_id, packet["detector_admission"])
         detector_missing = sorted(REQUIRED_DETECTOR_FIELDS - set(packet["current_detector_result"]))
         if detector_missing:
             raise FrontierError(
@@ -163,6 +170,31 @@ def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
                 f"packet {packet_id} routes to proof-fact-prerequisite but has no blockers"
             )
     return packets
+
+
+def validate_detector_admission(packet_id: str, admission: Any) -> None:
+    if not isinstance(admission, dict):
+        raise FrontierError(f"packet {packet_id} detector_admission must be an object")
+    status = admission.get("status")
+    if status not in DETECTOR_ADMISSION_STATUS:
+        raise FrontierError(f"packet {packet_id} has unknown detector admission status: {status}")
+    for field in ("scope", "capabilities", "positive_gates", "hard_negative_gates"):
+        if field not in admission:
+            raise FrontierError(f"packet {packet_id} detector_admission missing {field}")
+        if not admission[field]:
+            raise FrontierError(f"packet {packet_id} detector_admission {field} is empty")
+        if field in ("capabilities", "positive_gates", "hard_negative_gates"):
+            value = admission[field]
+            if not isinstance(value, list) or not all(
+                isinstance(item, str) for item in value
+            ):
+                raise FrontierError(
+                    f"packet {packet_id} detector_admission {field} must be list[str]"
+                )
+    if status != "real-pair-admitted" and not admission.get("remaining_real_pair_gap"):
+        raise FrontierError(
+            f"packet {packet_id} detector_admission needs remaining_real_pair_gap"
+        )
 
 
 def validate_proof_fact_model(packet_id: str, model: Any) -> None:
@@ -244,6 +276,24 @@ def validate_evidence_links(
 
 def readiness_for(packet: dict[str, Any]) -> dict[str, Any]:
     blockers = list(packet.get("blocked_by") or [])
+    admission = packet.get("detector_admission") or {}
+    if admission.get("status") == "controlled-slice-admitted":
+        return {
+            "status": "detector-admitted-controlled",
+            "can_open_exact_admission": False,
+            "reason": (
+                "proof-backed controlled detector slice is admitted; real-corpus exact "
+                "admission still needs the remaining proof evidence"
+            ),
+            "blocking_items": blockers,
+        }
+    if admission.get("status") == "real-pair-admitted":
+        return {
+            "status": "detector-admitted",
+            "can_open_exact_admission": False,
+            "reason": "linked real-corpus packet has already been admitted",
+            "blocking_items": blockers,
+        }
     if packet["owner_route"] == "proof-fact-prerequisite":
         return {
             "status": "blocked-on-proof",
@@ -270,10 +320,13 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
     rows = []
     by_status: Counter[str] = Counter()
     by_route: Counter[str] = Counter()
+    by_detector_admission: Counter[str] = Counter()
     for packet in packets:
         readiness = readiness_for(packet)
         by_status[readiness["status"]] += 1
         by_route[packet["owner_route"]] += 1
+        admission = packet["detector_admission"]
+        by_detector_admission[admission["status"]] += 1
         rows.append(
             {
                 "packet_id": packet["packet_id"],
@@ -290,6 +343,14 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
                     ],
                     "fact_count": len(packet["proof_fact_model"]["facts"]),
                 },
+                "detector_admission": {
+                    "status": admission["status"],
+                    "scope": admission["scope"],
+                    "capabilities": list(admission["capabilities"]),
+                    "positive_gate_count": len(admission["positive_gates"]),
+                    "hard_negative_gate_count": len(admission["hard_negative_gates"]),
+                    "remaining_real_pair_gap": admission.get("remaining_real_pair_gap"),
+                },
                 "readiness": readiness,
             }
         )
@@ -297,8 +358,15 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
         "packet_count": len(packets),
         "by_readiness": dict(sorted(by_status.items())),
         "by_owner_route": dict(sorted(by_route.items())),
+        "by_detector_admission": dict(sorted(by_detector_admission.items())),
         "ready_packet_count": sum(
             1 for row in rows if row["readiness"]["can_open_exact_admission"]
+        ),
+        "detector_admitted_packet_count": sum(
+            1
+            for row in rows
+            if row["detector_admission"]["status"]
+            in {"controlled-slice-admitted", "real-pair-admitted"}
         ),
     }
     return rows, summary
@@ -342,6 +410,10 @@ def summarize_coevo(coevo: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def admission_verdict(ready_count: int) -> str:
+    return "exact-admission-ready" if ready_count else "no-exact-admission-ready-packets"
+
+
 def build_report(
     target_packets_path: Path,
     real_frontier_path: Path,
@@ -354,12 +426,7 @@ def build_report(
     evidence_links = validate_evidence_links(packets, real_frontier)
     packet_rows, packet_summary = summarize_packets(packets)
     coevo_summary = summarize_coevo(coevo)
-    ready_count = packet_summary["ready_packet_count"]
-    verdict = (
-        "exact-admission-ready"
-        if ready_count
-        else "no-exact-admission-ready-packets"
-    )
+    verdict = admission_verdict(packet_summary["ready_packet_count"])
     return {
         "schema_version": SCHEMA_VERSION,
         "tool_version": TOOL_VERSION,
@@ -400,6 +467,7 @@ def markdown_report(report: dict[str, Any]) -> str:
     coevo = report["coevolution_guardrails"]
     by_readiness = json.dumps(target["by_readiness"], sort_keys=True)
     by_owner_route = json.dumps(target["by_owner_route"], sort_keys=True)
+    by_detector_admission = json.dumps(target["by_detector_admission"], sort_keys=True)
     by_verdict = json.dumps(coevo["by_verdict"], sort_keys=True)
     lines = [
         "# Proof-carrying Type-4 frontier",
@@ -414,8 +482,10 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         f"- target packets: {target['packet_count']}",
         f"- ready for exact admission: {target['ready_packet_count']}",
+        f"- detector admitted packets: {target['detector_admitted_packet_count']}",
         f"- by readiness: `{by_readiness}`",
         f"- by owner route: `{by_owner_route}`",
+        f"- by detector admission: `{by_detector_admission}`",
         "",
         "## Admission Policy",
         "",
@@ -430,12 +500,25 @@ def markdown_report(report: dict[str, Any]) -> str:
     ]
     for packet in report["target_packets"]["packets"]:
         readiness = packet["readiness"]
+        admission = packet["detector_admission"]
         lines.append(
             f"| `{packet['packet_id']}` | `{packet['candidate_axis']}` | "
             f"`{packet['owner_route']}` | `{readiness['status']}` | "
             f"{packet['proof_fact_model']['fact_count']} | "
             f"{packet['hard_negative_count']} |"
         )
+        if admission["status"] != "not-admitted":
+            lines.append("")
+            lines.append(
+                f"Detector admission for `{packet['packet_id']}`: "
+                f"`{admission['status']}` over {admission['scope']}."
+            )
+            if admission.get("remaining_real_pair_gap"):
+                lines.append(f"Remaining real-pair gap: {admission['remaining_real_pair_gap']}")
+            lines.append(
+                f"Gates: {admission['positive_gate_count']} positive, "
+                f"{admission['hard_negative_gate_count']} hard-negative."
+            )
         if readiness["blocking_items"]:
             lines.append("")
             facts = ", ".join(f"`{fact}`" for fact in packet["proof_fact_model"]["fact_ids"])
@@ -511,6 +594,14 @@ def selftest() -> None:
                 }
             ],
         },
+        "detector_admission": {
+            "status": "not-admitted",
+            "scope": "none",
+            "capabilities": ["none"],
+            "positive_gates": ["not yet"],
+            "hard_negative_gates": ["not yet"],
+            "remaining_real_pair_gap": "missing proof",
+        },
         "blocked_by": ["missing proof"],
         "notes": "n/a",
     }
@@ -550,6 +641,26 @@ def selftest() -> None:
     ready["owner_route"] = "team-a-detector"
     ready["blocked_by"] = []
     assert readiness_for(ready)["can_open_exact_admission"]
+    admitted = dict(packet)
+    admitted["detector_admission"] = {
+        "status": "controlled-slice-admitted",
+        "scope": "controlled",
+        "capabilities": ["cap"],
+        "positive_gates": ["positive"],
+        "hard_negative_gates": ["negative"],
+        "remaining_real_pair_gap": "still open",
+    }
+    admitted_readiness = readiness_for(admitted)
+    assert admitted_readiness["status"] == "detector-admitted-controlled"
+    assert not admitted_readiness["can_open_exact_admission"]
+    admitted_doc = {"schema_version": 1, "packet_count": 1, "packets": [admitted]}
+    admitted_rows, admitted_summary = summarize_packets(validate_packet_doc(admitted_doc))
+    assert admitted_summary["ready_packet_count"] == 0
+    assert admitted_summary["detector_admitted_packet_count"] == 1
+    assert admitted_rows[0]["readiness"]["status"] == "detector-admitted-controlled"
+    assert admission_verdict(admitted_summary["ready_packet_count"]) == (
+        "no-exact-admission-ready-packets"
+    )
     try:
         bad = dict(packet)
         bad["hard_negative_siblings"] = []
@@ -562,6 +673,24 @@ def selftest() -> None:
     try:
         validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [no_model]})
         raise AssertionError("missing proof fact model was not detected")
+    except FrontierError:
+        pass
+    malformed_admission = json.loads(json.dumps(packet))
+    malformed_admission["detector_admission"]["positive_gates"] = "positive"
+    try:
+        validate_packet_doc(
+            {"schema_version": 1, "packet_count": 1, "packets": [malformed_admission]}
+        )
+        raise AssertionError("scalar detector admission gate was not detected")
+    except FrontierError:
+        pass
+    malformed_admission = json.loads(json.dumps(packet))
+    malformed_admission["detector_admission"]["capabilities"] = [1]
+    try:
+        validate_packet_doc(
+            {"schema_version": 1, "packet_count": 1, "packets": [malformed_admission]}
+        )
+        raise AssertionError("non-string detector admission item was not detected")
     except FrontierError:
         pass
     coevo = {

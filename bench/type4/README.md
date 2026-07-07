@@ -312,10 +312,10 @@ python3 bench/type4/proof_carrying_frontier.py --selftest
 ```
 
 The committed artifacts are `proof_carrying_frontier.v1.json` and
-`proof_carrying_frontier.md`. A target packet can be valid while still blocked on proof;
-the current numeric-clamp packet is the example. It remains routed as a proof prerequisite
-until a real-corpus bound-order fact can prove `lo <= hi` without opening the float-NaN
-boundary.
+`proof_carrying_frontier.md`. A target packet can have a controlled detector slice admitted
+while the linked real-corpus proof gap stays open; the current numeric-clamp packet is the
+example. It remains routed as a proof prerequisite until a real-corpus bound-order fact can
+prove `lo <= hi` without opening the float-NaN boundary.
 
 ## CI smoke
 

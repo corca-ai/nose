@@ -126,7 +126,8 @@ team needs:
   can implement now.
 - the assembled schema (`packet_id`, `semantic_claim`, `locations` with repo/split/primary
   language, `current_detector_result`, `proof_invariant`, `hard_negative_siblings`, breadth,
-  `evidence_tier`, `curated`, `why_now`, `blocked_by`, `notes`) is validated on emit.
+  `evidence_tier`, `curated`, `why_now`, `proof_fact_model`, `detector_admission`,
+  `blocked_by`, `notes`) is validated on emit.
 
 A packet's contract ends at the proof invariant and target evidence; it never writes a
 detector implementation plan for Team A/C. Generate alongside the platform run:
@@ -137,6 +138,13 @@ python3 bench/type4/frontier_platform.py --repos-root /path/to/bench/repos \
   --packets-md-out bench/type4/frontier_target_packets.md
 ```
 
+When the pinned `bench/repos` corpus is available, stale platform or packet artifacts
+can be checked without rewriting them:
+
+```sh
+python3 bench/type4/frontier_platform.py --check
+```
+
 ## Proof-carrying admission
 
 Target packets are necessary but not sufficient to open exact semantic behavior.
@@ -145,11 +153,12 @@ The [proof-carrying frontier](proof-carrying-frontier.md) report reads
 packet ledger, then answers whether any packet is ready for exact admission.
 
 The report fails if a packet's copied semantic claim, proof invariant, hard negatives,
-or detector result drift from the linked `real_frontier` record. It also makes blockers
-explicit: the current `numeric-clamp-2026-06-06` packet is still
-`blocked-on-proof`, because the modeled proof facts are not satisfied by the real
-boltons/fzf pair: fzf has no bound-order evidence, neither side has shared integer-domain
-evidence, and the float-NaN boundary remains closed.
+or detector result drift from the linked `real_frontier` record. It also makes staged
+detector admission explicit: the current `numeric-clamp-2026-06-06` packet is
+`detector-admitted-controlled` because proof-backed controlled integer clamp surfaces
+have landed, but the linked boltons/fzf real-corpus pair remains blocked: fzf has no
+bound-order evidence, neither side has shared integer-domain evidence, and the
+float-NaN boundary remains closed.
 
 ```sh
 python3 bench/type4/proof_carrying_frontier.py --check

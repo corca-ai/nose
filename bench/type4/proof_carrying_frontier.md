@@ -10,8 +10,10 @@ evidence, and the co-evolution packet ledger.
 
 - target packets: 1
 - ready for exact admission: 0
-- by readiness: `{"blocked-on-proof": 1}`
+- detector admitted packets: 1
+- by readiness: `{"detector-admitted-controlled": 1}`
 - by owner route: `{"proof-fact-prerequisite": 1}`
+- by detector admission: `{"controlled-slice-admitted": 1}`
 
 ## Admission Policy
 
@@ -26,7 +28,11 @@ evidence, and the co-evolution packet ledger.
 
 | packet | axis | route | readiness | proof facts | hard negatives |
 |---|---|---|---|---:|---:|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `blocked-on-proof` | 2 | 4 |
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | 2 | 4 |
+
+Detector admission for `numeric-clamp-2026-06-06`: `controlled-slice-admitted` over proof-backed controlled integer clamp surfaces.
+Remaining real-pair gap: the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss
+Gates: 5 positive, 6 hard-negative.
 
 Proof facts modeled for `numeric-clamp-2026-06-06`: `numeric-clamp.integer-domain`, `numeric-clamp.bound-order`
 
