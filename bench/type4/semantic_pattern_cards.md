@@ -16,6 +16,7 @@ proof-carrying frontier gates required by the linked pattern.
 | `map.default.absence-lookup` | `pattern-carded` | 4 | 5 |
 | `hof.filter-map.option-emission` | `pattern-carded` | 5 | 4 |
 | `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 5 |
+| `hof.flat-map.aggregate-reduction` | `pattern-carded` | 9 | 5 |
 
 ## `numeric.clamp.proven-integer-bounds`
 
@@ -98,3 +99,24 @@ One-level flat-map surfaces are equivalent to multi-clause comprehensions or nes
 | Java | Stream.flatMap over a proven inner stream plus pure map callback | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::java_stream_flat_map_py_comp |
 | Swift | Sequence.flatMap after focused one-level flatten and callback-effect evidence | `open` |  |
 | Rust | Iterator::flat_map remains closed for nested element collections until inner-source proof is attached | `closed` |  |
+
+## `hof.flat-map.aggregate-reduction`
+
+**Flat-map aggregate reduction**
+
+Flat-map aggregate surfaces are equivalent to nested reductions only when the flattened stream is already proven, the aggregate identity and empty-input behavior match, and every terminal step, predicate, and guard observes the same coordinate.
+
+- status: `pattern-carded`
+- rationale: The flat_map_aggregate corpus links flat-map streams to sum and any/all nested loops while preserving adjacent hard negatives for wrong seeds, seeded max, nested rows, changed predicates, filter-coordinate changes, and outer-cardinality erasure; carding the aggregate layer keeps future detector work from collapsing terminal semantics into flat-map spelling.
+- required facts: `iteration.same-source-identity`, `effect.pure-callback`, `effect.pure-predicate`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `reduction.identity-empty-behavior`, `reduction.step-coordinate-identity`, `hof.flat-map.aggregate-guard-coordinate`
+- hard-negative templates: `reduction.changed-seed`, `reduction.changed-terminal-predicate`, `reduction.changed-empty-input-behavior`, `hof.flat-map.nested-row-aggregation`, `hof.flat-map.outer-cardinality-erasure`, `hof.flat-map.changed-outer-guard`, `hof.flat-map.changed-inner-guard`
+- boundaries: aggregate identity, explicit seed, and empty-input behavior must match; the terminal step or predicate must observe the same flattened element coordinate; outer, inner, and terminal guard predicates are separate coordinates; outer-cardinality effects remain behavior-defining even when the emitted value ignores the outer element; nested-row aggregation is distinct from aggregation over the flattened stream; JS/TS filtered relational terminals need independent numeric-predicate proof before cross-language admission
+- evidence: `bench/type4/adversarial/cases/cases.v1.json::sum_flat_map_nested_loop`, `bench/type4/adversarial/cases/cases.v1.json::any_flat_map_nested_loop`, `bench/type4/adversarial/cases/cases.v1.json::sum_filtered_flat_map_nested_loop`, `bench/type4/adversarial/cases/cases.v1.json::any_filtered_flat_map_early_return_loop`, `bench/type4/adversarial/cases/cases.v1.json::max_flat_map_nested_loop`, `bench/type4/adversarial/cases/cases.v1.json::sum_flat_map_wrong_seed`, `bench/type4/adversarial/cases/cases.v1.json::sum_flat_map_nested_list`, `bench/type4/adversarial/cases/cases.v1.json::any_flat_map_wrong_predicate`, `bench/type4/adversarial/cases/cases.v1.json::flat_map_aggregate_outer_cardinality_boundary`, `bench/type4/adversarial/cases/cases.v1.json::flat_map_aggregate_filter_predicate_change`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-callback`, `bench/type4/proof_fact_registry.v1.json::effect.pure-predicate`, `bench/type4/proof_fact_registry.v1.json::hof.flat-map.nested-iteration-order`, `bench/type4/proof_fact_registry.v1.json::hof.flat-map.emitted-value-coordinate`, `bench/type4/proof_fact_registry.v1.json::collection.flatten-depth.one-level`, `bench/type4/proof_fact_registry.v1.json::reduction.identity-empty-behavior`, `bench/type4/proof_fact_registry.v1.json::reduction.step-coordinate-identity`, `bench/type4/proof_fact_registry.v1.json::hof.flat-map.aggregate-guard-coordinate`
+
+| language | surface | status | evidence |
+|---|---|---|---|
+| Python | sum, any, and all over multi-clause generators with equivalent nested reduction or early-return loops | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::sum_flat_map_nested_loop |
+| JS/TS | Array.flatMap().reduce() over a proven flattened element stream with matching seed and contribution | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::sum_flat_map_nested_loop |
+| Java | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts | `open` |  |
+| Swift | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence | `open` |  |
+| Rust | Iterator::flat_map aggregate surfaces remain closed until nested source and terminal identity proofs are attached | `closed` |  |

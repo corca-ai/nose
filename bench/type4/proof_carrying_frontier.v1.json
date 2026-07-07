@@ -114,8 +114,8 @@
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "76e750af2beabb9dd4c43a8cef023a2431f44bfd59e1db58fc9cc92238ad6ac9",
-        "size_bytes": 39761
+        "sha256": "c6067a1ee223d297b1b1243e49302ce17c36e4c2312149a3151c4c4915c6c2ef",
+        "size_bytes": 45022
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",

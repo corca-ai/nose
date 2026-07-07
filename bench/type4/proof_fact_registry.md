@@ -41,6 +41,9 @@ packet-specific current status locally.
 | `hof.flat-map.nested-iteration-order` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves matching outer/inner traversal coordinates. |
 | `hof.flat-map.emitted-value-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves each matched nested coordinate emits the same value. |
 | `collection.flatten-depth.one-level` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes flattened-vs-nested output shape boundaries. |
+| `reduction.identity-empty-behavior` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes seed and empty-input behavior for separately proven aggregate facts. |
+| `reduction.step-coordinate-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves the terminal step, predicate, or contribution observes the same flattened element coordinate. |
+| `hof.flat-map.aggregate-guard-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves outer, inner, and terminal guard placement for flat-map aggregates. |
 | `map.default.absence-fallback` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Requires receiver identity, key/default coordinates, and mutation closure. |
 | `map.receiver.source-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both sides query the same map value source. |
 | `map.default.key-fallback-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes the key/default coordinate boundary. |
