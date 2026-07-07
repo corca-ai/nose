@@ -301,12 +301,12 @@ predicate identity:
 - an early-return loop that returns `False` on `x == 0 or x == 1` and `True` after
   exhaustion
 
-The packet is deliberately `not-admitted`. Local focused queries still report no semantic
-family for the positive fixture, so this is a proof target rather than a detector behavior
-claim. The proof perimeter is now explicit: preserve vacuous truth for empty iterables,
-same-iterator short-circuit order, pure boolean predicates, and boolean-only De Morgan.
-Focused hard negatives cover changed empty-result behavior, observed effects, Python
-value-returning boolean operands, and changed predicates.
+The packet was promoted with an explicit proof perimeter: preserve vacuous truth for
+empty iterables, same-iterator short-circuit order, pure boolean predicates, and
+boolean-only De Morgan. The detector now admits the README-shaped positive fixture as a
+single semantic family. Focused hard negatives still cover changed empty-result behavior,
+observed effects, helper-call purity, Python value-returning boolean operands, changed
+predicates, and different iterable identity.
 
 ## Contract-Migration Expansion (issue #55)
 

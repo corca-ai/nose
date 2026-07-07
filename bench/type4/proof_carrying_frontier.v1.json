@@ -104,13 +104,13 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "9ab7eca6db5237e3714dc968b6cecb34be56fe36c6f8af3047de8387d191514b",
-        "size_bytes": 6510
+        "sha256": "b3d9280c0c8e01725272f6db2a3fc29d7713f00e2a8fb5b78ca29171b6c60e1c",
+        "size_bytes": 7004
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "2d74f2326741e31ea6d327be80296ba57add3aff954aa3bb1d9ce444f6f40dba",
-        "size_bytes": 42163
+        "sha256": "60faab8f7cfe967a8b0067a3233320443b3b1715c8f5735c701b72c996259851",
+        "size_bytes": 42221
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
@@ -119,28 +119,28 @@
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
-        "sha256": "a388ec822286600084237d5449e248fafbd2ef69b203fb54f10afa4599e4f76c",
-        "size_bytes": 16556
+        "sha256": "ec9860242e6c1a4b95301f1c47d6d50c31aaef885224c5caa17363a7f664aeaa",
+        "size_bytes": 16544
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "511f69e24ac3c110aa6cc589d5037b06ef234b548307b81dc2e471150c34976b",
-        "size_bytes": 70678
+        "sha256": "529b331b135082cd2b2105a2b98829be251fadac6d8b8517de08af000d4e3000",
+        "size_bytes": 70707
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "67ddd052b1ab742ec130a5b41dad099ee36a9fae158e56fc0ede9c335bb5ff46",
-        "size_bytes": 2795
+        "sha256": "771b16c0131f37576608910f059b4543f553f730cbd6edbd14627bed0bf2d9f3",
+        "size_bytes": 2635
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "09dae3556a4948ef1110b72ee3a11b50d63ba452288aa11f0d8e96aca4400897",
-        "size_bytes": 1618
+        "sha256": "64e8262819393740c33e7b223778885058ffcf5a03ef9d83874f66249321c3cd",
+        "size_bytes": 2115
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "9b6659a13b703d0eba81a1a6d7721d58a470685e45d135635d2846c68ea0f865",
-        "size_bytes": 19190
+        "sha256": "a48b0b773f8c9002bcc60cb1b568894f659aedc29d37c73701eb3722f09d7944",
+        "size_bytes": 19194
       }
     },
     "target_packet_identity": {
@@ -168,7 +168,7 @@
         "candidate_axis": "python_loop_demorgan_all / early_return_universal",
         "case_id": "python-loop-demorgan-all-readme-real-miss",
         "packet_id": "python-loop-demorgan-all-2026-07-07",
-        "status": "real-miss"
+        "status": "already-covered"
       }
     ],
     "executable_witness_coverage": {
@@ -294,8 +294,8 @@
             },
             {
               "case_id": "python_loop_demorgan_all_readme",
-              "expect": "split",
-              "expectation_id": "python_loop_demorgan_positive_currently_split",
+              "expect": "same-family",
+              "expectation_id": "python_loop_demorgan_positive_matches_loop",
               "status": "passed"
             },
             {
@@ -323,7 +323,7 @@
             "python_loop_demorgan_changed_predicate_stays_split",
             "python_loop_demorgan_helper_call_stays_split",
             "python_loop_demorgan_iterator_identity_stays_split",
-            "python_loop_demorgan_positive_currently_split",
+            "python_loop_demorgan_positive_matches_loop",
             "python_loop_demorgan_side_effect_stays_split",
             "python_loop_demorgan_vacuous_truth_stays_split",
             "python_loop_demorgan_value_return_stays_split"
@@ -359,7 +359,7 @@
             "python_loop_demorgan_changed_predicate_stays_split",
             "python_loop_demorgan_helper_call_stays_split",
             "python_loop_demorgan_iterator_identity_stays_split",
-            "python_loop_demorgan_positive_currently_split",
+            "python_loop_demorgan_positive_matches_loop",
             "python_loop_demorgan_side_effect_stays_split",
             "python_loop_demorgan_vacuous_truth_stays_split",
             "python_loop_demorgan_value_return_stays_split"
@@ -666,13 +666,15 @@
         "candidate_axis": "python_loop_demorgan_all",
         "detector_admission": {
           "capabilities": [
-            "no detector slice admitted for loop/all plus De Morgan yet"
+            "admits all(x != literal and x != literal for x in xs) as a universal predicate",
+            "admits the pure early-return counterexample loop over the same iterable",
+            "normalizes the loop guard's literal equality disjunction and the all(...) predicate's literal inequality conjunction to the same absence predicate"
           ],
           "hard_negative_gate_count": 6,
           "positive_gate_count": 1,
-          "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; all required proof facts are modeled-controlled, so #739 can open a detector-admission PR that flips the positive expectation while preserving hard negatives",
-          "scope": "none; tracked proof packet only",
-          "status": "not-admitted"
+          "remaining_real_pair_gap": null,
+          "scope": "README/focused Python all(generator) universal predicate versus counterexample early-return loop with boolean-only literal comparison De Morgan",
+          "status": "real-pair-admitted"
         },
         "evidence_case_ids": [
           "python-loop-demorgan-all-readme-real-miss"
@@ -700,8 +702,8 @@
             },
             {
               "case_id": "python_loop_demorgan_all_readme",
-              "expect": "split",
-              "expectation_id": "python_loop_demorgan_positive_currently_split",
+              "expect": "same-family",
+              "expectation_id": "python_loop_demorgan_positive_matches_loop",
               "status": "passed"
             },
             {
@@ -729,7 +731,7 @@
             "python_loop_demorgan_changed_predicate_stays_split",
             "python_loop_demorgan_helper_call_stays_split",
             "python_loop_demorgan_iterator_identity_stays_split",
-            "python_loop_demorgan_positive_currently_split",
+            "python_loop_demorgan_positive_matches_loop",
             "python_loop_demorgan_side_effect_stays_split",
             "python_loop_demorgan_vacuous_truth_stays_split",
             "python_loop_demorgan_value_return_stays_split"
@@ -765,7 +767,7 @@
             "python_loop_demorgan_changed_predicate_stays_split",
             "python_loop_demorgan_helper_call_stays_split",
             "python_loop_demorgan_iterator_identity_stays_split",
-            "python_loop_demorgan_positive_currently_split",
+            "python_loop_demorgan_positive_matches_loop",
             "python_loop_demorgan_side_effect_stays_split",
             "python_loop_demorgan_vacuous_truth_stays_split",
             "python_loop_demorgan_value_return_stays_split"
@@ -897,20 +899,17 @@
         "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
         "readiness": {
           "blocking_items": [],
-          "can_open_exact_admission": true,
-          "reason": "packet has linked evidence, proof invariant, hard negatives, and no blockers",
-          "status": "ready-for-defender"
+          "can_open_exact_admission": false,
+          "reason": "linked real-corpus packet has already been admitted",
+          "status": "detector-admitted"
         },
         "real_frontier_replay": {
           "by_replay": [
             {
               "case_id": "python-loop-demorgan-all-readme-real-miss",
-              "expect": "split",
-              "observed": "split",
-              "proof_gap": [
-                "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
-                "boolean-only De Morgan and effect-safety proof facts are not modeled"
-              ],
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
               "replay_id": "python-loop-demorgan-readme-focused-real-pair",
               "status": "passed"
             }
@@ -936,7 +935,7 @@
           "python-loop-demorgan-readme-focused-real-pair"
         ],
         "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
-        "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary."
+        "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication. The proof facts are now modeled-controlled, and the detector admits the README/focused positive while the adjacent hard-negative boundary remains executable."
       }
     ],
     "real_frontier_replay": {
@@ -976,12 +975,9 @@
           "by_replay": [
             {
               "case_id": "python-loop-demorgan-all-readme-real-miss",
-              "expect": "split",
-              "observed": "split",
-              "proof_gap": [
-                "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
-                "boolean-only De Morgan and effect-safety proof facts are not modeled"
-              ],
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
               "replay_id": "python-loop-demorgan-readme-focused-real-pair",
               "status": "passed"
             }
@@ -1025,7 +1021,7 @@
     "summary": {
       "by_detector_admission": {
         "controlled-slice-admitted": 1,
-        "not-admitted": 1
+        "real-pair-admitted": 1
       },
       "by_executable_witness_coverage": {
         "covered": 2
@@ -1035,17 +1031,17 @@
         "team-a-detector": 1
       },
       "by_readiness": {
-        "detector-admitted-controlled": 1,
-        "ready-for-defender": 1
+        "detector-admitted": 1,
+        "detector-admitted-controlled": 1
       },
       "by_real_frontier_replay": {
         "passed": 2
       },
-      "detector_admitted_packet_count": 1,
+      "detector_admitted_packet_count": 2,
       "packet_count": 2,
-      "ready_packet_count": 1
+      "ready_packet_count": 0
     }
   },
   "tool_version": "proof-carrying-frontier/1",
-  "verdict": "exact-admission-ready"
+  "verdict": "no-exact-admission-ready-packets"
 }

@@ -35,6 +35,7 @@ DEFAULT_REPOS_ROOT = ROOT / "bench" / "repos"
 
 EXPECTED_OBSERVATIONS = {"same-family", "split"}
 REPLAY_STATUSES = {"passed", "failed", "unavailable"}
+REPLAYABLE_FRONTIER_STATUSES = {"real-miss", "already-covered"}
 
 
 class ReplayError(RuntimeError):
@@ -196,8 +197,10 @@ def validate_manifest(
             raise ReplayError(
                 f"replay {replay_id} is not listed in packet {packet_id} real_frontier_replay_ids"
             )
-        if cases[case_id].get("status") != "real-miss":
-            raise ReplayError(f"replay {replay_id} must link a real-miss case")
+        if cases[case_id].get("status") not in REPLAYABLE_FRONTIER_STATUSES:
+            raise ReplayError(
+                f"replay {replay_id} must link a replayable frontier case"
+            )
         if entry.get("expect") not in EXPECTED_OBSERVATIONS:
             raise ReplayError(f"replay {replay_id} has unknown expect: {entry.get('expect')}")
         if not isinstance(entry.get("sources"), list) or not entry["sources"]:

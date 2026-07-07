@@ -51,7 +51,8 @@ fresh coverage for every declared expectation in the packet perimeter.
 
 An exact-admission packet is ready only when it has all of:
 
-- linked `real_frontier` evidence whose primary status is `real-miss`;
+- linked `real_frontier` evidence whose primary status is `real-miss` for new
+  admission work, or `already-covered` only after the linked real pair is admitted;
 - a narrow proof invariant;
 - adjacent hard-negative siblings;
 - packet-level hard-negative group linkage;
@@ -68,10 +69,10 @@ that the packet's claim surface has been attacked.
 
 The current generated verdict is `no-exact-admission-ready-packets`.
 
-The active packets are intentionally not exact-admission ready. The compact
-readiness artifact answers "what should we work on next?" without requiring raw
-JSON review, and exact detector admission may only open from `ready-for-defender`
-rows.
+The active packets are not exact-admission queue items. The compact readiness artifact
+answers "what should we work on next?" without requiring raw JSON review, and exact
+detector admission may only open from `ready-for-defender` rows. When all rows are
+already admitted or otherwise resolved, the next-work group is `admitted/resolved`.
 
 `numeric-clamp-2026-06-06` is
 `detector-admitted-controlled`: the proof-backed controlled integer clamp slice
@@ -79,13 +80,12 @@ has landed, with positive and hard-negative gates and 8/8 executable focused
 expectations covered, but the real-corpus pair still lacks fzf-side order evidence
 and shared integer-domain evidence. Float NaN remains a closed domain boundary.
 
-`python-loop-demorgan-all-2026-07-07` is `ready-for-defender`: the README-facing
-Python `all(...)` plus early-return loop example is linked to frontier evidence, has
-7/7 executable focused expectations covered, and now has controlled source evidence for
-all four required proof facts. No detector slice is admitted yet; the next PR may flip
-the positive gate only inside the packet's proof invariant while preserving the
+`python-loop-demorgan-all-2026-07-07` is `detector-admitted`: the README-facing
+Python `all(...)` plus early-return loop example now replays as `same-family`, has 7/7
+executable focused expectations covered, and keeps controlled source evidence for all
+four required proof facts. The admission is limited to the packet's proof invariant:
 vacuous-truth, observed-effect, helper-call, value-return, changed-predicate, and
-iterator-identity hard negatives.
+iterator-identity hard negatives remain split.
 
 This is the intended outcome. The report makes those boundaries explicit so the next
 worker extends proof evidence instead of adding selector-shaped detector shortcuts.

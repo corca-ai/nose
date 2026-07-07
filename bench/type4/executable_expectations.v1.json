@@ -130,11 +130,28 @@
     },
     {
       "case_id": "python_loop_demorgan_all_readme",
-      "expect": "split",
-      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "expect": "same-family",
+      "expectation_id": "python_loop_demorgan_positive_matches_loop",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
-      "matching_family": null,
-      "observed": "split",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+            "name": "loop_no_zero_or_one",
+            "start": 5
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+            "name": "all_not_zero_or_one",
+            "start": 1
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
       "ok": true
     },
     {

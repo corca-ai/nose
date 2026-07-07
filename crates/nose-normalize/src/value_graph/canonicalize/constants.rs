@@ -59,6 +59,24 @@ impl<'a> Builder<'a> {
         let collection = self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items);
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![element?, collection]))
     }
+    pub(super) fn literal_inequality_conjunction(
+        &mut self,
+        left: ValueId,
+        right: ValueId,
+    ) -> Option<ValueId> {
+        let mut element = None;
+        let mut items = Vec::new();
+        self.collect_literal_absence_terms(left, &mut element, &mut items)?;
+        self.collect_literal_absence_terms(right, &mut element, &mut items)?;
+        if items.len() < 2 {
+            return None;
+        }
+        items.sort_by_key(|&v| (self.vhash[v as usize], v));
+        items.dedup();
+        let collection = self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items);
+        let membership = self.mk(ValOp::Bin(Op::In as u32), vec![element?, collection]);
+        Some(self.mk(ValOp::Un(Op::Not as u32), vec![membership]))
+    }
     fn collect_literal_membership_terms(
         &self,
         value: ValueId,
@@ -106,6 +124,33 @@ impl<'a> Builder<'a> {
                         Some(())
                     }
                 }
+            }
+            _ => None,
+        }
+    }
+    fn collect_literal_absence_terms(
+        &self,
+        value: ValueId,
+        element: &mut Option<ValueId>,
+        items: &mut Vec<ValueId>,
+    ) -> Option<()> {
+        let node = &self.nodes[value as usize];
+        match node.op {
+            ValOp::Bin(op) if op == Op::And as u32 && node.args.len() == 2 => {
+                self.collect_literal_absence_terms(node.args[0], element, items)?;
+                self.collect_literal_absence_terms(node.args[1], element, items)
+            }
+            ValOp::Bin(op) if op == Op::Ne as u32 && node.args.len() == 2 => {
+                let a = node.args[0];
+                let b = node.args[1];
+                let (candidate, literal) = if self.static_membership_literal_value(a) {
+                    (b, a)
+                } else if self.static_membership_literal_value(b) {
+                    (a, b)
+                } else {
+                    return None;
+                };
+                self.record_literal_membership_term(candidate, literal, element, items)
             }
             _ => None,
         }

@@ -906,10 +906,9 @@ TARGET_PACKETS = [
         "owner_route": "team-a-detector",
         "owner_issue": "#739",
         "why_now": "The front-page README uses this same-language Type-4 example to explain "
-        "semantic duplication, but the current detector still reports no semantic family for "
-        "the two Python functions. Turning it into a proof-carrying packet makes the public "
-        "claim auditable and gives the next defender a concrete positive plus adjacent "
-        "hard-negative boundary.",
+        "semantic duplication. The proof facts are now modeled-controlled, and the detector "
+        "admits the README/focused positive while the adjacent hard-negative boundary remains "
+        "executable.",
         "proof_fact_model": {
             "model_status": "modeled-controlled",
             "facts": [
@@ -941,10 +940,13 @@ TARGET_PACKETS = [
             ],
         },
         "detector_admission": {
-            "status": "not-admitted",
-            "scope": "none; tracked proof packet only",
+            "status": "real-pair-admitted",
+            "scope": "README/focused Python all(generator) universal predicate versus "
+            "counterexample early-return loop with boolean-only literal comparison De Morgan",
             "capabilities": [
-                "no detector slice admitted for loop/all plus De Morgan yet"
+                "admits all(x != literal and x != literal for x in xs) as a universal predicate",
+                "admits the pure early-return counterexample loop over the same iterable",
+                "normalizes the loop guard's literal equality disjunction and the all(...) predicate's literal inequality conjunction to the same absence predicate",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme"
@@ -957,17 +959,11 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
             ],
-            "remaining_real_pair_gap": (
-                "the README/focused Python pair is still a detector miss; all required "
-                "proof facts are modeled-controlled, so #739 can open a detector-admission "
-                "PR that flips the positive expectation while preserving hard negatives"
-            ),
         },
         "blocked_by": [],
         "notes": "This packet deliberately corrects the README-facing example from prose-only "
-        "claim to auditable frontier evidence. It is not an exact-admission request yet: "
-        "the current detector returns no semantic family for the positive fixture, and the "
-        "hard negatives document the proof perimeter.",
+        "claim to auditable frontier evidence. The exact-admission request is now fulfilled "
+        "for the README/focused pair, and the hard negatives document the proof perimeter.",
         "locations": [
             {
                 "repo": "nose",

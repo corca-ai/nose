@@ -84,6 +84,7 @@ DETECTOR_ADMISSION_STATUS = {
     "real-pair-admitted",
 }
 FRONTIER_STATUSES = {"real-miss", "already-covered", "hard-negative", "unsupported", "closed"}
+REPLAYABLE_FRONTIER_STATUSES = {"real-miss", "already-covered"}
 COEVO_VERDICTS = {
     "violation-fixed",
     "refuted",
@@ -546,9 +547,15 @@ def validate_evidence_links(
                     f"packet {packet_id} field {field} drifted from real frontier case "
                     f"{primary['case_id']}"
                 )
-        if primary["status"] != "real-miss":
+        admission_status = packet.get("detector_admission", {}).get("status")
+        admitted_primary_status = (
+            admission_status == "real-pair-admitted"
+            and primary["status"] == "already-covered"
+        )
+        if primary["status"] != "real-miss" and not admitted_primary_status:
             raise FrontierError(
-                f"packet {packet_id} primary evidence must be real-miss, got {primary['status']}"
+                f"packet {packet_id} primary evidence must be real-miss or "
+                f"already-covered after real-pair admission, got {primary['status']}"
             )
     return link_rows
 
@@ -1027,8 +1034,10 @@ def validate_real_frontier_replay_manifest(
         case = cases.get(case_id)
         if case is None:
             raise FrontierError(f"real frontier replay {replay_id} references unknown case")
-        if case.get("status") != "real-miss":
-            raise FrontierError(f"real frontier replay {replay_id} must link a real-miss")
+        if case.get("status") not in REPLAYABLE_FRONTIER_STATUSES:
+            raise FrontierError(
+                f"real frontier replay {replay_id} must link a replayable frontier case"
+            )
     return entries
 
 

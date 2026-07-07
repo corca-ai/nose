@@ -46,7 +46,7 @@
     },
     {
       "case_id": "python-loop-demorgan-all-readme-real-miss",
-      "expect": "split",
+      "expect": "same-family",
       "members": [
         {
           "file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
@@ -60,10 +60,7 @@
         }
       ],
       "packet_id": "python-loop-demorgan-all-2026-07-07",
-      "proof_gap": [
-        "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
-        "boolean-only De Morgan and effect-safety proof facts are not modeled"
-      ],
+      "proof_gap": [],
       "query": {
         "min_lines": 1,
         "min_size": 1,
@@ -77,7 +74,7 @@
           "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py"
         }
       ],
-      "why_expected": "The README-facing same-language positive remains a detector miss until reusable loop/all, boolean De Morgan, and effect-safety proof facts are available."
+      "why_expected": "The README-facing same-language positive is admitted after modeling the loop/all universal, boolean De Morgan, effect-safety, and iterator-identity proof facts."
     }
   ],
   "schema_version": 1,

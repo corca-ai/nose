@@ -12,13 +12,11 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        // BITWISE DE MORGAN: `~(a & b) → ~a | ~b`, `~(a | b) → ~a & ~b` (#284).
+        // BITWISE DE MORGAN: `~(a & b) -> ~a | ~b`, `~(a | b) -> ~a & ~b` (#284).
         // Two's-complement identity for all integers; on a non-integer operand
         // `~`/`&`/`|` Err on both the original and the distributed form, so it is
         // sound for ALL inputs. Pushing `~` inward gives a canonical form that
-        // converges `~(a&b)` with an explicit `~a | ~b`. (The LOGICAL De Morgan,
-        // over `Not`/`And`/`Or`, is handled by the `algebra` IL pass; this is its
-        // bitwise twin, which that pass never reaches.)
+        // converges `~(a&b)` with an explicit `~a | ~b`.
         if o == Op::BitNot as u32 && !args.is_empty() {
             if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
                 let flip = if bo == Op::BitAnd as u32 {
@@ -38,6 +36,14 @@ impl<'a> Builder<'a> {
                         return Some(self.mk(ValOp::Bin(out_op), negated));
                     }
                 }
+            }
+        }
+        // LOGICAL DE MORGAN for value-graph-synthesized `Not`, such as the `all`
+        // predicate produced by early-return loop recognition. Source-level logical
+        // negation usually reaches the IL algebra pass first; synthesized values do not.
+        if o == Op::Not as u32 && !args.is_empty() {
+            if let Some(v) = self.logical_demorgan(args[0]) {
+                return Some(v);
             }
         }
         // Boolean double negation: unlike truthiness `!!x`, `!!b == b` when the
@@ -98,6 +104,30 @@ impl<'a> Builder<'a> {
             }
         }
         None
+    }
+    fn logical_demorgan(&mut self, value: ValueId) -> Option<ValueId> {
+        let ValOp::Bin(op) = self.nodes[value as usize].op else {
+            return None;
+        };
+        let out_op = if op == Op::And as u32 {
+            Op::Or as u32
+        } else if op == Op::Or as u32 {
+            Op::And as u32
+        } else {
+            return None;
+        };
+        let inner = self.nodes[value as usize].args.clone();
+        if inner.len() != 2 || !self.value_law_satisfied(ValueLaw::BooleanCommutativity, &inner) {
+            return None;
+        }
+        if !inner.iter().copied().all(|arg| self.reorder_safe(arg)) {
+            return None;
+        }
+        let negated = inner
+            .into_iter()
+            .map(|arg| self.mk(ValOp::Un(Op::Not as u32), vec![arg]))
+            .collect();
+        Some(self.mk(ValOp::Bin(out_op), negated))
     }
     fn boolean_double_negation(&self, value: ValueId) -> Option<ValueId> {
         let ValOp::Un(op) = self.nodes[value as usize].op else {

@@ -90,11 +90,10 @@ separate from admission readiness, names the next work item, and repeats stable 
 release notes. For example, numeric clamp is `admitted/resolved` only for its controlled
 detector slice; the current cross-language pair still lacks fzf-side bound-order evidence
 and shared integer-domain evidence, even though its focused executable perimeter is covered.
-The Python loop plus De Morgan packet is `ready-for-defender`: universal-loop,
+The Python loop plus De Morgan packet is now `detector-admitted`: universal-loop,
 boolean-only De Morgan, iterator-identity, and effect-safety facts are all modeled for
-controlled evidence. Its current executable report still makes the positive miss and
-adjacent split boundaries explicit so the detector-admission PR can flip only the
-positive gate.
+controlled evidence, the README-shaped positive replay is `same-family`, and the
+adjacent hard-negative boundaries remain explicit split gates.
 
 ## Focused cases
 

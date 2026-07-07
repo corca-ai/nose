@@ -4,18 +4,18 @@
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "67ddd052b1ab742ec130a5b41dad099ee36a9fae158e56fc0ede9c335bb5ff46",
-      "size_bytes": 2795
+      "sha256": "771b16c0131f37576608910f059b4543f553f730cbd6edbd14627bed0bf2d9f3",
+      "size_bytes": 2635
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "511f69e24ac3c110aa6cc589d5037b06ef234b548307b81dc2e471150c34976b",
-      "size_bytes": 70678
+      "sha256": "529b331b135082cd2b2105a2b98829be251fadac6d8b8517de08af000d4e3000",
+      "size_bytes": 70707
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "9b6659a13b703d0eba81a1a6d7721d58a470685e45d135635d2846c68ea0f865",
-      "size_bytes": 19190
+      "sha256": "a48b0b773f8c9002bcc60cb1b568894f659aedc29d37c73701eb3722f09d7944",
+      "size_bytes": 19194
     }
   },
   "nose_binary": "nose",
@@ -42,9 +42,26 @@
         "status": "available"
       },
       "case_id": "python-loop-demorgan-all-readme-real-miss",
-      "expect": "split",
-      "matching_family": null,
-      "observed": "split",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+            "name": "loop_no_zero_or_one",
+            "start": 5
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+            "name": "all_not_zero_or_one",
+            "start": 1
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
       "ok": true,
       "packet_id": "python-loop-demorgan-all-2026-07-07",
       "replay_id": "python-loop-demorgan-readme-focused-real-pair",

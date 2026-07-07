@@ -47,7 +47,7 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 | 7 | `own_property_guard` | language-family | pattern-signal | 22% (26) | 88% (7) | 24% (16) | 19% (10) | both-splits | low | medium | none | — | 819 |
 | 8 | `property_type_guard` | language-family | pattern-signal | 18% (22) | 88% (7) | 20% (13) | 17% (9) | both-splits | low | medium | none | — | 450 |
 | 9 | `numeric_minmax_abs` | all-language | pattern-signal | 12% (15) | 12% (1) | 12% (8) | 13% (7) | both-splits | low | low | none | — | 425 |
-| 10 | `python_loop_demorgan_all` | single-language | frontier-recorded | 7% (8) | 25% (2) | 6% (4) | 7% (4) | both-splits | medium | medium | fragment-contract | 1 (real-miss) | 60 |
+| 10 | `python_loop_demorgan_all` | single-language | frontier-recorded | 7% (8) | 25% (2) | 6% (4) | 7% (4) | both-splits | medium | medium | fragment-contract | 1 (already-covered) | 60 |
 
 ## Per-axis detail
 
@@ -125,4 +125,4 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 - presence: 8 repos / 2 primary langs (Java, Python) · source langs python · dev 4 · heldout 4 · both-splits
 - curated: cost `medium` · risk `medium` · substrate `fragment-contract`
   - rationale: The semantic identity needs a small function/loop fragment proof: universal `all` over a pure boolean predicate equals a counterexample early-return loop with the same iteration order and vacuous truth, plus a boolean-only De Morgan normalization. Python `and`/`or` value-returning semantics, predicate effects, and changed empty-iterable behavior are the soundness boundaries.
-  - human evidence: `python-loop-demorgan-all-readme-real-miss` → **real-miss** (python_loop_demorgan_all / early_return_universal)
+  - human evidence: `python-loop-demorgan-all-readme-real-miss` → **already-covered** (python_loop_demorgan_all / early_return_universal)
