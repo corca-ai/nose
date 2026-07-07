@@ -13,6 +13,7 @@ frontier_platform.py
   -> real_frontier.v1.json evidence
   -> frontier_target_packets.v1.json implementation-ready target packets
   -> proof_carrying_frontier.v1.json admission readiness
+  -> frontier_readiness.md roadmap triage
   -> scripts/type4-smoke.sh / nose verify / focused tests
 ```
 
@@ -54,16 +55,18 @@ bench/type4/adversarial/scripts/type4-next --route proof-fact-prerequisite --jso
 ```
 
 Before opening exact semantic behavior from a target packet, check the
+[frontier readiness artifact](../bench/type4/frontier_readiness.md) and the
 [proof-carrying frontier](proof-carrying-frontier.md) report:
 
 ```sh
 python3 bench/type4/proof_carrying_frontier.py --check
 ```
 
-That report keeps target-packet routing separate from admission readiness. For example,
-numeric clamp is `detector-admitted-controlled`: controlled proof-backed integer clamp
-surfaces have landed, but the current cross-language pair still lacks fzf-side bound-order
-evidence and shared integer-domain evidence. The Python loop plus De Morgan packet is
+The readiness artifact is the compact roadmap view. It keeps target-packet routing
+separate from admission readiness, names the next work item, and repeats stable wording for
+release notes. For example, numeric clamp is `admitted/resolved` only for its controlled
+detector slice; the current cross-language pair still lacks fzf-side bound-order evidence
+and shared integer-domain evidence. The Python loop plus De Morgan packet is
 `blocked-on-proof` until its universal-loop, boolean-only De Morgan, and effect-safety
 facts exist.
 

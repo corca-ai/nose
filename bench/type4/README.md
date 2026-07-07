@@ -311,15 +311,21 @@ python3 bench/type4/proof_carrying_frontier.py --check
 python3 bench/type4/proof_carrying_frontier.py --selftest
 ```
 
-The committed artifacts are `proof_carrying_frontier.v1.json` and
-`proof_carrying_frontier.md`. A target packet can have a controlled detector slice admitted
-while the linked real-corpus proof gap stays open; the current numeric-clamp packet is the
-example. It remains routed as a proof prerequisite until a real-corpus bound-order fact can
-prove `lo <= hi` without opening the float-NaN boundary.
+The committed artifacts are `proof_carrying_frontier.v1.json`,
+`proof_carrying_frontier.md`, `frontier_readiness.v1.json`, and
+`frontier_readiness.md`. Use `frontier_readiness.md` first for release and roadmap triage:
+it groups packets into `ready-for-defender`, `blocked-on-proof`, `blocked-on-product`, and
+`admitted/resolved`, and it names the next non-admitted work item.
+
+A target packet can have a controlled detector slice admitted while the linked
+real-corpus proof gap stays open; the current numeric-clamp packet is the example. It
+remains routed as a proof prerequisite until a real-corpus bound-order fact can prove
+`lo <= hi` without opening the float-NaN boundary.
 
 The README-facing Python loop plus De Morgan example is also a target packet now. It is a
 current detector miss and remains `not-admitted` until the universal-loop, boolean-only
-De Morgan, and effect-safety proof facts exist.
+De Morgan, and effect-safety proof facts exist. The readiness artifact names it as the
+current `blocked-on-proof` next-work packet.
 
 ## CI smoke
 

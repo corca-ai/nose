@@ -1,0 +1,235 @@
+{
+  "group_list": [
+    {
+      "count": 0,
+      "description": "Packets with linked evidence, proof invariant, hard negatives, and no unresolved blockers. Only rows in this group may start an exact detector admission PR.",
+      "group": "ready-for-defender",
+      "packets": [],
+      "title": "Ready For Defender"
+    },
+    {
+      "count": 1,
+      "description": "Packets where the next useful work is reusable proof evidence. Detector admission remains closed until the listed proof facts and hard-negative perimeter are satisfied.",
+      "group": "blocked-on-proof",
+      "packets": [
+        {
+          "blockers": [
+            "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
+            "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
+            "effect-safety and same-iterator proof are not yet modeled for this fragment shape"
+          ],
+          "can_open_exact_admission": false,
+          "candidate_axis": "python_loop_demorgan_all",
+          "detector_admission_status": "not-admitted",
+          "detector_scope": "none; tracked proof packet only",
+          "evidence_case_ids": [
+            "python-loop-demorgan-all-readme-real-miss"
+          ],
+          "evidence_tier": "frontier-recorded",
+          "group": "blocked-on-proof",
+          "hard_negative_count": 4,
+          "hard_negative_gate_count": 4,
+          "owner_issue": null,
+          "owner_route": "proof-fact-prerequisite",
+          "packet_id": "python-loop-demorgan-all-2026-07-07",
+          "planning_summary": "Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety) before opening detector admission.",
+          "positive_gate_count": 1,
+          "proof_fact_ids": [
+            "python-loop-demorgan.universal-short-circuit",
+            "python-loop-demorgan.boolean-demorgan",
+            "python-loop-demorgan.effect-safety"
+          ],
+          "proof_fact_model_status": "specified-not-modeled",
+          "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+          "readiness_status": "blocked-on-proof",
+          "release_note": "python-loop-demorgan-all-2026-07-07: blocked on proof evidence for python_loop_demorgan_all; no detector admission is claimed until these facts are satisfied: python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety.",
+          "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
+          "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
+          "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary."
+        }
+      ],
+      "title": "Blocked On Proof"
+    },
+    {
+      "count": 0,
+      "description": "Packets where proof evidence is not the current bottleneck but product output, runtime, or ownership blockers still prevent exact admission.",
+      "group": "blocked-on-product",
+      "packets": [],
+      "title": "Blocked On Product"
+    },
+    {
+      "count": 1,
+      "description": "Packets with an admitted detector scope or already-resolved current scope. Controlled rows can still list broader real-corpus gaps.",
+      "group": "admitted/resolved",
+      "packets": [
+        {
+          "blockers": [
+            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
+          ],
+          "can_open_exact_admission": false,
+          "candidate_axis": "numeric_clamp",
+          "detector_admission_status": "controlled-slice-admitted",
+          "detector_scope": "proof-backed controlled integer clamp surfaces",
+          "evidence_case_ids": [
+            "numeric-clamp-minmax-ternary-real-miss"
+          ],
+          "evidence_tier": "frontier-recorded",
+          "group": "admitted/resolved",
+          "hard_negative_count": 4,
+          "hard_negative_gate_count": 6,
+          "owner_issue": null,
+          "owner_route": "proof-fact-prerequisite",
+          "packet_id": "numeric-clamp-2026-06-06",
+          "planning_summary": "Do not widen this detector row from the readiness queue; use the remaining real-pair gap as proof follow-up.",
+          "positive_gate_count": 5,
+          "proof_fact_ids": [
+            "numeric-clamp.integer-domain",
+            "numeric-clamp.bound-order"
+          ],
+          "proof_fact_model_status": "modeled-for-controlled-evidence",
+          "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
+          "readiness_status": "detector-admitted-controlled",
+          "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss.",
+          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
+          "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
+          "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
+        }
+      ],
+      "title": "Admitted Or Resolved"
+    }
+  ],
+  "group_order": [
+    "ready-for-defender",
+    "blocked-on-proof",
+    "blocked-on-product",
+    "admitted/resolved"
+  ],
+  "groups": {
+    "admitted/resolved": {
+      "count": 1,
+      "description": "Packets with an admitted detector scope or already-resolved current scope. Controlled rows can still list broader real-corpus gaps.",
+      "packets": [
+        {
+          "blockers": [
+            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
+          ],
+          "can_open_exact_admission": false,
+          "candidate_axis": "numeric_clamp",
+          "detector_admission_status": "controlled-slice-admitted",
+          "detector_scope": "proof-backed controlled integer clamp surfaces",
+          "evidence_case_ids": [
+            "numeric-clamp-minmax-ternary-real-miss"
+          ],
+          "evidence_tier": "frontier-recorded",
+          "group": "admitted/resolved",
+          "hard_negative_count": 4,
+          "hard_negative_gate_count": 6,
+          "owner_issue": null,
+          "owner_route": "proof-fact-prerequisite",
+          "packet_id": "numeric-clamp-2026-06-06",
+          "planning_summary": "Do not widen this detector row from the readiness queue; use the remaining real-pair gap as proof follow-up.",
+          "positive_gate_count": 5,
+          "proof_fact_ids": [
+            "numeric-clamp.integer-domain",
+            "numeric-clamp.bound-order"
+          ],
+          "proof_fact_model_status": "modeled-for-controlled-evidence",
+          "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
+          "readiness_status": "detector-admitted-controlled",
+          "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss.",
+          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
+          "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
+          "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
+        }
+      ],
+      "title": "Admitted Or Resolved"
+    },
+    "blocked-on-product": {
+      "count": 0,
+      "description": "Packets where proof evidence is not the current bottleneck but product output, runtime, or ownership blockers still prevent exact admission.",
+      "packets": [],
+      "title": "Blocked On Product"
+    },
+    "blocked-on-proof": {
+      "count": 1,
+      "description": "Packets where the next useful work is reusable proof evidence. Detector admission remains closed until the listed proof facts and hard-negative perimeter are satisfied.",
+      "packets": [
+        {
+          "blockers": [
+            "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
+            "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
+            "effect-safety and same-iterator proof are not yet modeled for this fragment shape"
+          ],
+          "can_open_exact_admission": false,
+          "candidate_axis": "python_loop_demorgan_all",
+          "detector_admission_status": "not-admitted",
+          "detector_scope": "none; tracked proof packet only",
+          "evidence_case_ids": [
+            "python-loop-demorgan-all-readme-real-miss"
+          ],
+          "evidence_tier": "frontier-recorded",
+          "group": "blocked-on-proof",
+          "hard_negative_count": 4,
+          "hard_negative_gate_count": 4,
+          "owner_issue": null,
+          "owner_route": "proof-fact-prerequisite",
+          "packet_id": "python-loop-demorgan-all-2026-07-07",
+          "planning_summary": "Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety) before opening detector admission.",
+          "positive_gate_count": 1,
+          "proof_fact_ids": [
+            "python-loop-demorgan.universal-short-circuit",
+            "python-loop-demorgan.boolean-demorgan",
+            "python-loop-demorgan.effect-safety"
+          ],
+          "proof_fact_model_status": "specified-not-modeled",
+          "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+          "readiness_status": "blocked-on-proof",
+          "release_note": "python-loop-demorgan-all-2026-07-07: blocked on proof evidence for python_loop_demorgan_all; no detector admission is claimed until these facts are satisfied: python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety.",
+          "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
+          "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
+          "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary."
+        }
+      ],
+      "title": "Blocked On Proof"
+    },
+    "ready-for-defender": {
+      "count": 0,
+      "description": "Packets with linked evidence, proof invariant, hard negatives, and no unresolved blockers. Only rows in this group may start an exact detector admission PR.",
+      "packets": [],
+      "title": "Ready For Defender"
+    }
+  },
+  "next_work": {
+    "candidate_axis": "python_loop_demorgan_all",
+    "group": "blocked-on-proof",
+    "packet_id": "python-loop-demorgan-all-2026-07-07",
+    "why": "Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety) before opening detector admission."
+  },
+  "policy": {
+    "detector_admitted_controlled_is_not_real_pair_admission": true,
+    "exact_detector_admission_opens_only_from": "ready-for-defender",
+    "non_ready_rows_do_not_claim_exact_real_pair_admission": true
+  },
+  "schema_version": 1,
+  "source_artifacts": {
+    "coevo_ledger": {
+      "path": "bench/coevo/packets.v1.json",
+      "sha256": "50be3cc9ae19aa4966cf0787e9801d641060769c7da4f2218773331610c42dc1",
+      "size_bytes": 47916
+    },
+    "real_frontier": {
+      "path": "bench/type4/real_frontier.v1.json",
+      "sha256": "d216ab1cdc2051eae20c64eff8d7eaf375679bc7878bd075ca865a53d16014eb",
+      "size_bytes": 70393
+    },
+    "target_packets": {
+      "path": "bench/type4/frontier_target_packets.v1.json",
+      "sha256": "7e1b180497e0c1a2528ef284be1b24190fd939c5ede253aa4ee454590fc7cf76",
+      "size_bytes": 21509
+    }
+  },
+  "source_report_verdict": "no-exact-admission-ready-packets",
+  "tool_version": "proof-carrying-frontier/1"
+}

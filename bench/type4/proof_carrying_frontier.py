@@ -37,6 +37,8 @@ DEFAULT_REAL_FRONTIER = HERE / "real_frontier.v1.json"
 DEFAULT_COEVO_LEDGER = ROOT / "bench" / "coevo" / "packets.v1.json"
 DEFAULT_JSON_OUT = HERE / "proof_carrying_frontier.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "proof_carrying_frontier.md"
+DEFAULT_READINESS_JSON_OUT = HERE / "frontier_readiness.v1.json"
+DEFAULT_READINESS_MARKDOWN_OUT = HERE / "frontier_readiness.md"
 
 REQUIRED_PACKET_FIELDS = {
     "packet_id",
@@ -79,6 +81,48 @@ COEVO_VERDICTS = {
     "deferred-issue",
     "green-confirmed",
 }
+
+READINESS_GROUPS = {
+    "ready-for-defender": {
+        "rank": 0,
+        "title": "Ready For Defender",
+        "description": (
+            "Packets with linked evidence, proof invariant, hard negatives, and no "
+            "unresolved blockers. Only rows in this group may start an exact detector "
+            "admission PR."
+        ),
+    },
+    "blocked-on-proof": {
+        "rank": 1,
+        "title": "Blocked On Proof",
+        "description": (
+            "Packets where the next useful work is reusable proof evidence. Detector "
+            "admission remains closed until the listed proof facts and hard-negative "
+            "perimeter are satisfied."
+        ),
+    },
+    "blocked-on-product": {
+        "rank": 2,
+        "title": "Blocked On Product",
+        "description": (
+            "Packets where proof evidence is not the current bottleneck but product "
+            "output, runtime, or ownership blockers still prevent exact admission."
+        ),
+    },
+    "admitted/resolved": {
+        "rank": 3,
+        "title": "Admitted Or Resolved",
+        "description": (
+            "Packets with an admitted detector scope or already-resolved current "
+            "scope. Controlled rows can still list broader real-corpus gaps."
+        ),
+    },
+}
+
+READINESS_GROUP_ORDER = tuple(
+    group
+    for group, _meta in sorted(READINESS_GROUPS.items(), key=lambda item: item[1]["rank"])
+)
 
 
 class FrontierError(RuntimeError):
@@ -331,11 +375,14 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
             {
                 "packet_id": packet["packet_id"],
                 "candidate_axis": packet["candidate_axis"],
+                "semantic_claim": packet["semantic_claim"],
                 "owner_route": packet["owner_route"],
+                "owner_issue": packet["owner_issue"],
                 "evidence_case_ids": packet["evidence_case_ids"],
                 "evidence_tier": packet["evidence_tier"],
                 "proof_invariant": packet["proof_invariant"],
                 "hard_negative_count": len(packet["hard_negative_siblings"]),
+                "why_now": packet["why_now"],
                 "proof_fact_model": {
                     "model_status": packet["proof_fact_model"].get("model_status", "unknown"),
                     "fact_ids": [
@@ -476,6 +523,9 @@ def markdown_report(report: dict[str, Any]) -> str:
         "`bench/type4/proof_carrying_frontier.py` from target packets, real-frontier",
         "evidence, and the co-evolution packet ledger.",
         "",
+        "For release and roadmap triage, start with `frontier_readiness.md`; this",
+        "report keeps the fuller evidence and admission boundary.",
+        "",
         "## Verdict",
         "",
         f"**{report['verdict']}**",
@@ -541,26 +591,291 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def readiness_group_for(packet: dict[str, Any]) -> str:
+    status = packet["readiness"]["status"]
+    if status == "ready-for-defender":
+        return "ready-for-defender"
+    if status in {"detector-admitted-controlled", "detector-admitted"}:
+        return "admitted/resolved"
+    if status == "blocked-on-proof":
+        return "blocked-on-proof"
+    return "blocked-on-product"
+
+
+def readiness_sort_key(packet: dict[str, Any]) -> tuple[int, str, str]:
+    group = readiness_group_for(packet)
+    admission = packet["detector_admission"]["status"]
+    return (READINESS_GROUPS[group]["rank"], admission, packet["packet_id"])
+
+
+def release_note_for(packet: dict[str, Any], group: str) -> str:
+    packet_id = packet["packet_id"]
+    axis = packet["candidate_axis"]
+    admission = packet["detector_admission"]
+    facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
+    if group == "ready-for-defender":
+        return (
+            f"{packet_id}: ready to open exact detector admission for {axis}; "
+            f"the packet has linked real-frontier evidence, a proof invariant, and "
+            f"{packet['hard_negative_count']} hard-negative siblings."
+        )
+    if group == "blocked-on-proof":
+        return (
+            f"{packet_id}: blocked on proof evidence for {axis}; no detector admission "
+            f"is claimed until these facts are satisfied: {facts}."
+        )
+    if group == "blocked-on-product":
+        return (
+            f"{packet_id}: exact admission for {axis} remains closed until the listed "
+            f"product, runtime, or ownership blockers are resolved."
+        )
+    if admission["status"] == "controlled-slice-admitted":
+        return (
+            f"{packet_id}: a controlled detector slice is admitted for {axis} "
+            f"({admission['scope']}); linked real-corpus exact admission remains closed "
+            f"because {admission['remaining_real_pair_gap']}."
+        )
+    return (
+        f"{packet_id}: the linked real-corpus detector scope for {axis} is already "
+        "admitted or resolved; no new detector behavior is opened from this row."
+    )
+
+
+def next_action_for(packet: dict[str, Any], group: str) -> str:
+    admission = packet["detector_admission"]
+    facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
+    blockers = packet["readiness"]["blocking_items"]
+    if group == "ready-for-defender":
+        return (
+            "Open a defender PR scoped to this packet's proof invariant, positive "
+            "gates, and hard-negative gates."
+        )
+    if group == "blocked-on-proof":
+        return (
+            f"Model or cite reusable proof facts ({facts}) before opening detector "
+            "admission."
+        )
+    if group == "blocked-on-product":
+        first = blockers[0] if blockers else "resolve the packet's product blockers"
+        return f"Resolve blocker first: {first}"
+    if admission["status"] == "controlled-slice-admitted":
+        return (
+            "Do not widen this detector row from the readiness queue; use the remaining "
+            "real-pair gap as proof follow-up."
+        )
+    return "No follow-up is queued from the readiness artifact."
+
+
+def readiness_packet_view(packet: dict[str, Any]) -> dict[str, Any]:
+    group = readiness_group_for(packet)
+    return {
+        "packet_id": packet["packet_id"],
+        "candidate_axis": packet["candidate_axis"],
+        "group": group,
+        "readiness_status": packet["readiness"]["status"],
+        "detector_admission_status": packet["detector_admission"]["status"],
+        "can_open_exact_admission": packet["readiness"]["can_open_exact_admission"],
+        "owner_route": packet["owner_route"],
+        "owner_issue": packet["owner_issue"],
+        "evidence_case_ids": packet["evidence_case_ids"],
+        "evidence_tier": packet["evidence_tier"],
+        "proof_fact_model_status": packet["proof_fact_model"]["model_status"],
+        "proof_fact_ids": packet["proof_fact_model"]["fact_ids"],
+        "hard_negative_count": packet["hard_negative_count"],
+        "positive_gate_count": packet["detector_admission"]["positive_gate_count"],
+        "hard_negative_gate_count": packet["detector_admission"]["hard_negative_gate_count"],
+        "detector_scope": packet["detector_admission"]["scope"],
+        "remaining_real_pair_gap": packet["detector_admission"]["remaining_real_pair_gap"],
+        "blockers": packet["readiness"]["blocking_items"],
+        "semantic_claim": packet["semantic_claim"],
+        "proof_invariant": packet["proof_invariant"],
+        "why_now": packet["why_now"],
+        "planning_summary": next_action_for(packet, group),
+        "release_note": release_note_for(packet, group),
+    }
+
+
+def build_readiness_summary(report: dict[str, Any]) -> dict[str, Any]:
+    grouped: dict[str, dict[str, Any]] = {
+        group: {
+            "title": READINESS_GROUPS[group]["title"],
+            "description": READINESS_GROUPS[group]["description"],
+            "count": 0,
+            "packets": [],
+        }
+        for group in READINESS_GROUP_ORDER
+    }
+    packets = sorted(report["target_packets"]["packets"], key=readiness_sort_key)
+    for packet in packets:
+        view = readiness_packet_view(packet)
+        group = view["group"]
+        grouped[group]["packets"].append(view)
+        grouped[group]["count"] += 1
+
+    next_work = next_work_from_groups(grouped)
+    group_list = [
+        {"group": group, **grouped[group]}
+        for group in READINESS_GROUP_ORDER
+    ]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "tool_version": TOOL_VERSION,
+        "source_report_verdict": report["verdict"],
+        "source_artifacts": report["identity"]["artifacts"],
+        "group_order": list(READINESS_GROUP_ORDER),
+        "group_list": group_list,
+        "policy": {
+            "exact_detector_admission_opens_only_from": "ready-for-defender",
+            "non_ready_rows_do_not_claim_exact_real_pair_admission": True,
+            "detector_admitted_controlled_is_not_real_pair_admission": True,
+        },
+        "next_work": next_work,
+        "groups": grouped,
+    }
+
+
+def next_work_from_groups(groups: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    for group in ("ready-for-defender", "blocked-on-proof", "blocked-on-product"):
+        packets = groups[group]["packets"]
+        if packets:
+            packet = packets[0]
+            return {
+                "group": group,
+                "packet_id": packet["packet_id"],
+                "candidate_axis": packet["candidate_axis"],
+                "why": packet["planning_summary"],
+            }
+    packets = groups["admitted/resolved"]["packets"]
+    if packets:
+        return {
+            "group": "admitted/resolved",
+            "packet_id": None,
+            "candidate_axis": None,
+            "why": (
+                "No non-admitted frontier packet is queued; admitted/resolved rows "
+                "list only follow-up gaps."
+            ),
+        }
+    return {
+        "group": "none",
+        "packet_id": None,
+        "candidate_axis": None,
+        "why": "No target packets are present.",
+    }
+
+
+def markdown_cell(value: Any) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+def markdown_readiness(summary: dict[str, Any]) -> str:
+    next_work = summary["next_work"]
+    lines = [
+        "# Type-4 frontier readiness",
+        "",
+        "Compact roadmap view for proof-carrying Type-4 packets. Generated by",
+        "`bench/type4/proof_carrying_frontier.py` from the same checked inputs as",
+        "`proof_carrying_frontier.v1.json`.",
+        "",
+        "## Next Work",
+        "",
+        f"- source verdict: `{summary['source_report_verdict']}`",
+        f"- next group: `{next_work['group']}`",
+        f"- next packet: `{next_work['packet_id'] or 'none'}`",
+        f"- next axis: `{next_work['candidate_axis'] or 'none'}`",
+        f"- action: {next_work['why']}",
+        "",
+        "Exact detector admission may only open from `ready-for-defender` rows. Rows",
+        "in other groups are planning evidence and do not open exact real-pair admission.",
+        "",
+    ]
+    for group in READINESS_GROUP_ORDER:
+        data = summary["groups"][group]
+        lines += [
+            f"## {data['title']}",
+            "",
+            data["description"],
+            "",
+            f"Count: {data['count']}",
+            "",
+        ]
+        if not data["packets"]:
+            lines += ["_None._", ""]
+            continue
+        lines += [
+            "| packet | axis | readiness | detector admission | action |",
+            "|---|---|---|---|---|",
+        ]
+        for packet in data["packets"]:
+            lines.append(
+                f"| `{markdown_cell(packet['packet_id'])}` | "
+                f"`{markdown_cell(packet['candidate_axis'])}` | "
+                f"`{markdown_cell(packet['readiness_status'])}` | "
+                f"`{markdown_cell(packet['detector_admission_status'])}` | "
+                f"{markdown_cell(packet['planning_summary'])} |"
+            )
+        lines += ["", "Release-note wording:", ""]
+        for packet in data["packets"]:
+            lines.append(f"- {packet['release_note']}")
+        lines.append("")
+        blocked_packets = [packet for packet in data["packets"] if packet["blockers"]]
+        if blocked_packets:
+            lines += ["Blockers:", ""]
+            for packet in blocked_packets:
+                lines.append(f"- `{packet['packet_id']}`")
+                lines.extend(f"  - {item}" for item in packet["blockers"])
+            lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def canonical_json(doc: dict[str, Any]) -> str:
     return json.dumps(doc, indent=2, sort_keys=True) + "\n"
 
 
-def check_artifacts(report: dict[str, Any], json_out: Path, markdown_out: Path) -> None:
+def check_artifacts(
+    report: dict[str, Any],
+    json_out: Path,
+    markdown_out: Path,
+    readiness_json_out: Path,
+    readiness_markdown_out: Path,
+) -> None:
     expected_json = canonical_json(report)
     expected_md = markdown_report(report)
+    readiness = build_readiness_summary(report)
+    expected_readiness_json = canonical_json(readiness)
+    expected_readiness_md = markdown_readiness(readiness)
     mismatches = []
     if not json_out.exists() or json_out.read_text() != expected_json:
         mismatches.append(repo_rel(json_out))
     if not markdown_out.exists() or markdown_out.read_text() != expected_md:
         mismatches.append(repo_rel(markdown_out))
+    if (
+        not readiness_json_out.exists()
+        or readiness_json_out.read_text() != expected_readiness_json
+    ):
+        mismatches.append(repo_rel(readiness_json_out))
+    if (
+        not readiness_markdown_out.exists()
+        or readiness_markdown_out.read_text() != expected_readiness_md
+    ):
+        mismatches.append(repo_rel(readiness_markdown_out))
     if mismatches:
         joined = ", ".join(mismatches)
         raise FrontierError(f"proof-carrying frontier artifacts are stale: {joined}")
 
 
-def write_artifacts(report: dict[str, Any], json_out: Path, markdown_out: Path) -> None:
+def write_artifacts(
+    report: dict[str, Any],
+    json_out: Path,
+    markdown_out: Path,
+    readiness_json_out: Path,
+    readiness_markdown_out: Path,
+) -> None:
+    readiness = build_readiness_summary(report)
     json_out.write_text(canonical_json(report))
     markdown_out.write_text(markdown_report(report))
+    readiness_json_out.write_text(canonical_json(readiness))
+    readiness_markdown_out.write_text(markdown_readiness(readiness))
 
 
 def selftest() -> None:
@@ -659,9 +974,35 @@ def selftest() -> None:
     assert admitted_summary["ready_packet_count"] == 0
     assert admitted_summary["detector_admitted_packet_count"] == 1
     assert admitted_rows[0]["readiness"]["status"] == "detector-admitted-controlled"
+    assert readiness_group_for(admitted_rows[0]) == "admitted/resolved"
     assert admission_verdict(admitted_summary["ready_packet_count"]) == (
         "no-exact-admission-ready-packets"
     )
+    ready_rows, _ready_summary = summarize_packets(
+        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [ready]})
+    )
+    report = {
+        "schema_version": 1,
+        "tool_version": TOOL_VERSION,
+        "identity": {"artifacts": {}},
+        "verdict": "exact-admission-ready",
+        "target_packets": {"summary": {}, "packets": ready_rows, "evidence_links": []},
+    }
+    readiness_summary = build_readiness_summary(report)
+    assert readiness_summary["next_work"]["group"] == "ready-for-defender"
+    assert readiness_summary["group_order"] == list(READINESS_GROUP_ORDER)
+    assert [group["group"] for group in readiness_summary["group_list"]] == list(
+        READINESS_GROUP_ORDER
+    )
+    assert readiness_summary["groups"]["ready-for-defender"]["count"] == 1
+    blocked_rows, _blocked_summary = summarize_packets(
+        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [packet]})
+    )
+    report["verdict"] = "no-exact-admission-ready-packets"
+    report["target_packets"]["packets"] = blocked_rows
+    readiness_summary = build_readiness_summary(report)
+    assert readiness_summary["next_work"]["group"] == "blocked-on-proof"
+    assert readiness_summary["groups"]["blocked-on-proof"]["count"] == 1
     try:
         bad = dict(packet)
         bad["hard_negative_siblings"] = []
@@ -719,6 +1060,12 @@ def main() -> int:
     parser.add_argument("--coevo-ledger", type=Path, default=DEFAULT_COEVO_LEDGER)
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
+    parser.add_argument("--readiness-json-out", type=Path, default=DEFAULT_READINESS_JSON_OUT)
+    parser.add_argument(
+        "--readiness-markdown-out",
+        type=Path,
+        default=DEFAULT_READINESS_MARKDOWN_OUT,
+    )
     parser.add_argument("--check", action="store_true", help="fail if committed artifacts are stale")
     parser.add_argument("--selftest", action="store_true", help="run corpus-free checks")
     args = parser.parse_args()
@@ -729,9 +1076,21 @@ def main() -> int:
             return 0
         report = build_report(args.target_packets, args.real_frontier, args.coevo_ledger)
         if args.check:
-            check_artifacts(report, args.json_out, args.markdown_out)
+            check_artifacts(
+                report,
+                args.json_out,
+                args.markdown_out,
+                args.readiness_json_out,
+                args.readiness_markdown_out,
+            )
         else:
-            write_artifacts(report, args.json_out, args.markdown_out)
+            write_artifacts(
+                report,
+                args.json_out,
+                args.markdown_out,
+                args.readiness_json_out,
+                args.readiness_markdown_out,
+            )
     except FrontierError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
