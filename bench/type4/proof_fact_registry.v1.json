@@ -72,14 +72,204 @@
       "accepted_evidence": [
         "comparison predicates whose results are booleans",
         "the same element variable and the same literal/value coordinates on both sides",
-        "a boolean context where operand values are not observed"
+        "a boolean context where operand values are not observed",
+        "language or source evidence that excludes overloaded, value-returning, or effectful boolean operands"
+      ],
+      "compatibility_aliases": [
+        "python-loop-demorgan.boolean-demorgan"
       ],
       "controlled_evidence": [
         "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-boolean-positive-comparison-demorgan",
         "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-boolean-negative-changed-predicate",
         "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-boolean-negative-value-returning-operand"
       ],
-      "detector_admission_implication": "Does not admit loop/all convergence by itself; universal short-circuit, effect safety, and iterator identity are separate facts.",
+      "detector_admission_implication": "Does not admit a quantifier/loop convergence by itself; source identity, purity, counterexample-loop, and vacuous-truth facts are separate requirements.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "boolean.demorgan.proven-bool-operands",
+      "hard_negative_conventions": [
+        "boolean.truth-table",
+        "boolean.value-context",
+        "boolean.effect-safety"
+      ],
+      "implementation_guidance": [
+        "Normalize De Morgan only when operands are proven boolean values.",
+        "Reject value-returning boolean contexts, overloaded comparison semantics, and predicate calls unless separate effect/purity evidence exists.",
+        "Attach new language surfaces by emitting boolean-operand evidence, not by adding language-specific detector branches."
+      ],
+      "rejected_evidence": [
+        "value-returning and/or operands whose value, not only truthiness, is observed",
+        "overloaded comparison or predicate calls with effects",
+        "changed predicates such as x != 0 or x != 1"
+      ],
+      "semantic_family": "boolean.demorgan",
+      "status": "modeled-controlled",
+      "summary": "A De Morgan rewrite may be used only when both sides operate on proven boolean operands, not on language-specific value-returning boolean expressions.",
+      "title": "De Morgan over proven boolean operands"
+    },
+    {
+      "accepted_evidence": [
+        "a universal quantifier/all/every surface over a single element predicate",
+        "an explicit loop whose only counterexample branch returns literal false",
+        "matching predicate coordinates between the quantifier and the loop counterexample",
+        "short-circuit order that stops at the first counterexample"
+      ],
+      "compatibility_aliases": [
+        "python-loop-demorgan.universal-short-circuit"
+      ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-positive-counterexample-loop",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-negative-extra-loop-effect"
+      ],
+      "detector_admission_implication": "Does not admit a loop/quantifier convergence by itself; vacuous truth, source identity, predicate purity, and any boolean rewrite facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "quantifier.universal.counterexample-loop",
+      "hard_negative_conventions": [
+        "loop.short-circuit",
+        "loop.empty-input",
+        "boolean.effect-safety"
+      ],
+      "implementation_guidance": [
+        "Model only loops where the counterexample branch is the sole early false exit.",
+        "Keep extra loop control, observed loop effects, and unsupported body shapes closed until separate evidence exists.",
+        "Pair this fact with quantifier.vacuous-truth before admitting an all/every-style surface."
+      ],
+      "rejected_evidence": [
+        "counterexample branches that return non-false payloads",
+        "loop bodies with extra observed effects, break, continue, else effects, or unsupported control",
+        "predicate-coordinate changes between the quantifier and the loop"
+      ],
+      "semantic_family": "quantifier.universal",
+      "status": "modeled-controlled",
+      "summary": "A universal quantifier can match an early-return loop only when the loop is a pure counterexample scan that returns false at the first not-P element.",
+      "title": "Universal quantifier as counterexample loop"
+    },
+    {
+      "accepted_evidence": [
+        "the quantifier surface returns true for an empty input",
+        "the explicit loop falls through to literal true after exhausting the same input",
+        "no loop else block, final payload, or post-loop effect changes the empty-input result"
+      ],
+      "compatibility_aliases": [
+        "python-loop-demorgan.universal-short-circuit"
+      ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-vacuous-positive-fallthrough-true",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-negative-empty-truth"
+      ],
+      "detector_admission_implication": "Does not admit a quantifier/loop convergence by itself; it only closes the empty-input boundary for a separately proven counterexample loop.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "quantifier.vacuous-truth",
+      "hard_negative_conventions": [
+        "loop.empty-input",
+        "loop.short-circuit"
+      ],
+      "implementation_guidance": [
+        "Treat empty-input behavior as a first-class proof fact, not as a side effect of loop-shape matching.",
+        "Keep loops that return false or a payload after exhaustion outside all/every admission.",
+        "Require this fact whenever a universal quantifier surface is matched to an explicit loop."
+      ],
+      "rejected_evidence": [
+        "fallthrough returns false or a non-boolean payload",
+        "post-loop code changes the empty-input result",
+        "collection APIs with non-vacuous empty behavior"
+      ],
+      "semantic_family": "quantifier.universal",
+      "status": "modeled-controlled",
+      "summary": "Universal quantifier rewrites must preserve the empty-input result: no counterexamples means true.",
+      "title": "Universal quantifier vacuous truth"
+    },
+    {
+      "accepted_evidence": [
+        "the quantifier and explicit loop consume the same local iterable binding or receiver place",
+        "no reassignment or mutation changes the source between the two forms",
+        "the quantifier element and loop element refer to the same traversal coordinate"
+      ],
+      "compatibility_aliases": [
+        "python-loop-demorgan.iterator-identity"
+      ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-iterator-positive-same-binding",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-iterator-negative-different-binding"
+      ],
+      "detector_admission_implication": "Does not admit a quantifier/loop convergence by itself; it only rules out different receivers, iterators, or traversal sources.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "iteration.same-source-identity",
+      "hard_negative_conventions": [
+        "loop.iterator-identity"
+      ],
+      "implementation_guidance": [
+        "Require same-source provenance for the quantifier and loop traversal.",
+        "Reject different iterable bindings, mutated receivers, and derived iterables whose order/cardinality relation is not proven.",
+        "Let each frontend emit receiver/place evidence for its language surface."
+      ],
+      "rejected_evidence": [
+        "different iterable bindings or receiver places",
+        "receiver or iterator mutation during traversal",
+        "derived iterables whose cardinality/order relationship is not proven"
+      ],
+      "semantic_family": "iteration.source_identity",
+      "status": "modeled-controlled",
+      "summary": "The quantifier and explicit loop must traverse the same source in the same order before their predicates can be compared.",
+      "title": "Iteration same-source identity"
+    },
+    {
+      "accepted_evidence": [
+        "local comparisons over the loop or quantifier element and literals",
+        "no calls, assignments, yields, awaits, mutations, or logging inside the predicate or loop body",
+        "no observed state before the early return or inside the quantifier predicate"
+      ],
+      "compatibility_aliases": [
+        "python-loop-demorgan.effect-safety"
+      ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-positive-pure-local-comparisons",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-negative-observed-loop-effect",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-negative-helper-call"
+      ],
+      "detector_admission_implication": "Does not admit a quantifier/loop convergence by itself; it only permits comparing short-circuit boundaries after predicate effects are closed.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "effect.pure-predicate",
+      "hard_negative_conventions": [
+        "boolean.effect-safety",
+        "loop.short-circuit"
+      ],
+      "implementation_guidance": [
+        "Treat helper calls, mutation, logging, yield, await, and assignment as closed unless separate purity/effect evidence exists.",
+        "Keep short-circuit timing as behavior-defining when side effects can be observed.",
+        "Attach language surfaces through effect evidence producers or admitted purity resolvers."
+      ],
+      "rejected_evidence": [
+        "predicate helper calls unless callee purity is proven",
+        "observed counters or logging before return",
+        "iterator, receiver, or captured-state mutation during traversal"
+      ],
+      "semantic_family": "effect.purity",
+      "status": "modeled-controlled",
+      "summary": "The predicate must be pure enough that quantifier and loop short-circuiting observe the same effects and stop at the same first counterexample.",
+      "title": "Pure predicate/effect safety"
+    },
+    {
+      "accepted_evidence": [
+        "comparison predicates whose results are booleans",
+        "the same element variable and the same literal/value coordinates on both sides",
+        "a boolean context where operand values are not observed"
+      ],
+      "detector_admission_implication": "Retired compatibility alias; new packets must cite boolean.demorgan.proven-bool-operands.",
       "evidence_requirements": [
         "focused-executable",
         "source-evidence"
@@ -100,8 +290,11 @@
         "changed predicates such as x != 0 or x != 1"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "modeled-controlled",
+      "status": "retired",
       "summary": "The counterexample guard not P may normalize through De Morgan only for proven boolean operands, for example not (x == 0 or x == 1) == (x != 0 and x != 1).",
+      "superseded_by": [
+        "boolean.demorgan.proven-bool-operands"
+      ],
       "title": "Boolean-only De Morgan"
     },
     {
@@ -110,12 +303,7 @@
         "no calls, assignments, yields, awaits, or mutations inside the predicate or loop body",
         "no observed state before the early return or inside the all(...) predicate"
       ],
-      "controlled_evidence": [
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-positive-pure-local-comparisons",
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-negative-observed-loop-effect",
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-negative-helper-call"
-      ],
-      "detector_admission_implication": "Does not admit loop/all convergence by itself; it only permits comparing short-circuit boundaries after the predicate is effect-safe.",
+      "detector_admission_implication": "Retired compatibility alias; new packets must cite effect.pure-predicate.",
       "evidence_requirements": [
         "focused-executable",
         "source-evidence"
@@ -135,8 +323,11 @@
         "iterator or receiver mutation during traversal"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "modeled-controlled",
+      "status": "retired",
       "summary": "The predicate must be pure and exact-safe so all(...) short-circuit and the early-return loop observe the same effects and stop at the same first counterexample.",
+      "superseded_by": [
+        "effect.pure-predicate"
+      ],
       "title": "Loop/all effect safety"
     },
     {
@@ -145,11 +336,7 @@
         "no reassignment or mutation changes the iterable between the two forms",
         "the generator and loop use the same element variable coordinate"
       ],
-      "controlled_evidence": [
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-iterator-positive-same-binding",
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-iterator-negative-different-binding"
-      ],
-      "detector_admission_implication": "Does not admit loop/all convergence by itself; it only rules out different receiver/iterator inputs.",
+      "detector_admission_implication": "Retired compatibility alias; new packets must cite iteration.same-source-identity.",
       "evidence_requirements": [
         "focused-executable",
         "source-evidence"
@@ -168,8 +355,11 @@
         "derived iterables whose cardinality/order relationship is not proven"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "modeled-controlled",
+      "status": "retired",
       "summary": "The generator consumed by all(...) and the explicit loop must traverse the same iterable in the same order.",
+      "superseded_by": [
+        "iteration.same-source-identity"
+      ],
       "title": "Loop/all iterator identity"
     },
     {
@@ -179,12 +369,7 @@
         "fallthrough return is literal True",
         "empty iterables return True in both forms"
       ],
-      "controlled_evidence": [
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-positive-counterexample-loop",
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-negative-empty-truth",
-        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-universal-negative-extra-loop-effect"
-      ],
-      "detector_admission_implication": "Does not admit loop/all convergence by itself; boolean De Morgan, effect safety, and iterator identity remain separate facts.",
+      "detector_admission_implication": "Retired compatibility alias; new packets must cite quantifier.universal.counterexample-loop and quantifier.vacuous-truth.",
       "evidence_requirements": [
         "focused-executable",
         "source-evidence"
@@ -204,8 +389,12 @@
         "the loop consumes a different iterable or mutates the iterable"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "modeled-controlled",
+      "status": "retired",
       "summary": "A Python early-return loop that returns False on the first counterexample and True after exhaustion is equivalent to all(P(x) for x in xs) only with vacuous truth and matching short-circuit behavior.",
+      "superseded_by": [
+        "quantifier.universal.counterexample-loop",
+        "quantifier.vacuous-truth"
+      ],
       "title": "Universal loop short-circuit and vacuous truth"
     }
   ],

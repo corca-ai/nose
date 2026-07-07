@@ -40,7 +40,7 @@ report keeps the fuller evidence and admission boundary.
 | packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |
 |---|---|---|---|---|---|---:|---:|---:|
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 4 | 6 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 5 | 6 | 1 |
 
 ## Packet Details
 

@@ -61,7 +61,7 @@
         "different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys"
    ],
    "batch": "2026-07-07-readme-loop-demorgan-frontier",
-      "notes": "Issue #739 detector admission record. The same-language README-facing proof target is now covered by the detector under modeled-controlled loop universal, boolean De Morgan, effect-safety, and iterator-identity proof facts."
+      "notes": "Issue #739 detector admission record. The same-language README-facing proof target is now covered by the detector under modeled-controlled counterexample-loop, vacuous-truth, same-source identity, pure-predicate, and boolean De Morgan proof facts."
   },
   {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",

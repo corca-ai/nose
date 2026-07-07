@@ -29,9 +29,39 @@ packet-specific current status locally.
 |---|---|---|---|
 | `numeric-clamp.bound-order` | `modeled-controlled` | `formal-or-mechanized`, `focused-executable`, `source-evidence` | Requires `numeric-clamp.integer-domain`; does not admit a real pair by itself. |
 | `numeric-clamp.integer-domain` | `modeled-controlled` | `formal-or-mechanized`, `focused-executable`, `source-evidence` | Requires `numeric-clamp.bound-order`; does not admit a real pair by itself. |
-| `python-loop-demorgan.boolean-demorgan` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires universal short-circuit, effect safety, and iterator identity. |
-| `python-loop-demorgan.effect-safety` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only permits comparing short-circuit boundaries after effects are closed. |
-| `python-loop-demorgan.iterator-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only rules out different receiver/iterator inputs. |
-| `python-loop-demorgan.universal-short-circuit` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires boolean De Morgan, effect safety, and iterator identity. |
+| `boolean.demorgan.proven-bool-operands` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires source identity, purity, counterexample-loop, and vacuous-truth facts. |
+| `quantifier.universal.counterexample-loop` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires vacuous truth, source identity, predicate purity, and any boolean rewrite facts. |
+| `quantifier.vacuous-truth` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes the empty-input boundary for a separately proven counterexample loop. |
+| `iteration.same-source-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only rules out different receivers, iterators, or traversal sources. |
+| `effect.pure-predicate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only permits comparing short-circuit boundaries after predicate effects are closed. |
+
+## Compatibility Aliases
+
+The Python loop/De Morgan packet first landed with packet-local fact IDs. New
+packets must cite the neutral IDs above; the old IDs are retained as `retired`
+aliases so historical artifacts remain understandable and validators can reject
+new packet-local citations.
+
+| retired alias | neutral fact |
+|---|---|
+| `python-loop-demorgan.boolean-demorgan` | `boolean.demorgan.proven-bool-operands` |
+| `python-loop-demorgan.effect-safety` | `effect.pure-predicate` |
+| `python-loop-demorgan.iterator-identity` | `iteration.same-source-identity` |
+| `python-loop-demorgan.universal-short-circuit` | `quantifier.universal.counterexample-loop`, `quantifier.vacuous-truth` |
+
+## Universal Quantifier Pattern Matrix
+
+This matrix records capability by language surface. Python is the first admitted
+surface through `python-loop-demorgan-all-2026-07-07`; the other columns are open
+candidates until they have their own evidence producer, focused replay, hard
+negatives, and PCF/readiness admission.
+
+| fact | Python `all(...)` + loop | Ruby `Enumerable#all?` | Rust `Iterator::all` | JS/TS `every` |
+|---|---|---|---|---|
+| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | open | open | open |
+| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | open | open | open |
+| `iteration.same-source-identity` | modeled-controlled; packet admitted | open | open | open |
+| `effect.pure-predicate` | modeled-controlled; packet admitted | open | open | open |
+| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | open | open | open |
 
 Registry entries guide implementation work; they are not detector admission.

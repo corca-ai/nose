@@ -82,10 +82,11 @@ and shared integer-domain evidence. Float NaN remains a closed domain boundary.
 
 `python-loop-demorgan-all-2026-07-07` is `detector-admitted`: the README-facing
 Python `all(...)` plus early-return loop example now replays as `same-family`, has 7/7
-executable focused expectations covered, and keeps controlled source evidence for all
-four required proof facts. The admission is limited to the packet's proof invariant:
-vacuous-truth, observed-effect, helper-call, value-return, changed-predicate, and
-iterator-identity hard negatives remain split.
+executable focused expectations covered, and keeps controlled source evidence for the
+five neutral proof facts: counterexample loop, vacuous truth, same-source identity,
+pure predicate, and boolean-only De Morgan. The admission is limited to the packet's
+proof invariant: vacuous-truth, observed-effect, helper-call, value-return,
+changed-predicate, and iterator-identity hard negatives remain split.
 
 This is the intended outcome. The report makes those boundaries explicit so the next
 worker extends proof evidence instead of adding selector-shaped detector shortcuts.
@@ -126,6 +127,9 @@ and readiness artifacts fail before merge.
   proof-sensitive semantic rewrites.
 - [Type-4 focused cases](type4-adversarial-coverage.md) maintain focused
   positive and hard-negative fixtures around target packets.
+- [Type-4 semantic pattern loop](type4-semantic-pattern-loop.md) explains how an
+  admitted packet graduates into reusable, language-neutral proof facts before
+  adding more language surfaces.
 
 The proof-carrying frontier report is the admission summary above those layers:
 it does not find new candidates, and it does not certify a proof. It tells the

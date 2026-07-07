@@ -173,6 +173,11 @@ float-NaN boundary remains closed. The current `python-loop-demorgan-all-2026-07
 packet is `detector-admitted` for the README/focused real pair and therefore appears
 under `admitted/resolved`, not as queued defender work.
 
+After a packet is admitted, use the
+[Type-4 semantic pattern loop](type4-semantic-pattern-loop.md) before repeating
+the work for another language. The repeat unit should be the semantic law and
+neutral proof facts, not the first language's syntax.
+
 ```sh
 python3 bench/type4/proof_carrying_frontier.py --check
 ```
