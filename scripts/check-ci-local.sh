@@ -98,7 +98,10 @@ run_type4_frontier_evidence_checks() {
 
 run_type4_executable_expectations() {
     need_cmd python3
-    NOSE_BIN="${1}" bench/type4/adversarial/scripts/type4-exec-check
+    NOSE_BIN="${1}" bench/type4/adversarial/scripts/type4-exec-check \
+        --stable-report \
+        --json-out bench/type4/executable_expectations.v1.json
+    python3 bench/type4/proof_carrying_frontier.py --check
 }
 
 run_regression_checker_selftests() {

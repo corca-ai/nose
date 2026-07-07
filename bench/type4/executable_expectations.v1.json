@@ -1,0 +1,188 @@
+{
+  "expectation_count": 14,
+  "failed": 0,
+  "nose_binary": "nose",
+  "passed": 14,
+  "query_count": 9,
+  "results": [
+    {
+      "case_id": "clamp_unordered_bounds",
+      "expect": "split",
+      "expectation_id": "clamp_unproven_ternary_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_unordered_bounds",
+      "expect": "split",
+      "expectation_id": "clamp_swapped_ternary_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_float_nan_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_float_ternary_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_ternary_minmax_bridge",
+      "expect": "same-family",
+      "expectation_id": "clamp_python_guarded_ternary_matches_minmax",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 4,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+            "name": "clamp_minmax_guarded",
+            "start": 1
+          },
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+            "name": "clamp_ternary_guarded",
+            "start": 7
+          }
+        ],
+        "value": 4.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_library_method_bridge",
+      "expect": "same-family",
+      "expectation_id": "clamp_rust_literal_method_matches_literal_minmax",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs",
+            "name": "clamp_literal_method",
+            "start": 1
+          },
+          {
+            "end": 36,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+            "name": "clamp_literal_minmax",
+            "start": 35
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_library_method_bridge",
+      "expect": "same-family",
+      "expectation_id": "clamp_rust_guarded_method_matches_guarded_minmax",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs",
+            "name": null,
+            "start": 6
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs",
+            "name": null,
+            "start": 13
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_method_name_only_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_rust_unproven_method_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_method_name_only_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_rust_custom_method_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_all_readme",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_vacuous_truth_boundary",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_vacuous_truth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_side_effect_boundary",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_value_return_boundary",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_value_return_stays_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_changed_predicate_boundary",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_changed_predicate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "python_loop_demorgan_iterator_identity_boundary",
+      "expect": "split",
+      "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    }
+  ],
+  "schema_version": 1,
+  "tool_version": "type4-exec-check/1"
+}

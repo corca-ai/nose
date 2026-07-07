@@ -12,6 +12,7 @@ The active Type-4 planning path is now:
 frontier_platform.py
   -> real_frontier.v1.json evidence
   -> frontier_target_packets.v1.json implementation-ready target packets
+  -> executable_expectations.v1.json focused witness replay
   -> proof_carrying_frontier.v1.json admission readiness
   -> frontier_readiness.md roadmap triage
   -> scripts/type4-smoke.sh / nose verify / focused tests
@@ -50,6 +51,18 @@ split, or when a pair expected to stay `split` is merged. CI runs this gate with
 release binary after build, so packet perimeters can no longer drift as manifest-only
 strings.
 
+The stable JSON form is committed as `bench/type4/executable_expectations.v1.json`:
+
+```sh
+NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check \
+  --stable-report \
+  --json-out bench/type4/executable_expectations.v1.json
+```
+
+`proof_carrying_frontier.py` reads that report and shows packet-level executable witness
+coverage in `frontier_readiness.md`. Missing, stale, or failing executable expectations are
+readiness blockers; they are not hidden behind the focused-case manifest linkage.
+
 ## Target packets
 
 The next-work queue is `bench/type4/frontier_target_packets.v1.json`, not a separate
@@ -76,9 +89,10 @@ The readiness artifact is the compact roadmap view. It keeps target-packet routi
 separate from admission readiness, names the next work item, and repeats stable wording for
 release notes. For example, numeric clamp is `admitted/resolved` only for its controlled
 detector slice; the current cross-language pair still lacks fzf-side bound-order evidence
-and shared integer-domain evidence. The Python loop plus De Morgan packet is
-`blocked-on-proof` until its universal-loop, boolean-only De Morgan, and effect-safety
-facts exist.
+and shared integer-domain evidence, even though its focused executable perimeter is covered.
+The Python loop plus De Morgan packet is `blocked-on-proof` until its universal-loop,
+boolean-only De Morgan, and effect-safety facts exist; its current executable report makes
+the positive miss and adjacent split boundaries explicit.
 
 ## Focused cases
 

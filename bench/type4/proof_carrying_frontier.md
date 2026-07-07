@@ -17,6 +17,8 @@ report keeps the fuller evidence and admission boundary.
 - by readiness: `{"blocked-on-proof": 1, "detector-admitted-controlled": 1}`
 - by owner route: `{"proof-fact-prerequisite": 2}`
 - by detector admission: `{"controlled-slice-admitted": 1, "not-admitted": 1}`
+- by executable witness coverage: `{"covered": 2}`
+- executable expectations: 14/14 passed
 
 ## Admission Policy
 
@@ -24,16 +26,17 @@ report keeps the fuller evidence and admission boundary.
 - proof invariant narrow enough to defend
 - adjacent hard-negative siblings
 - packet-level hard-negative group linkage
+- fresh executable focused-case witness coverage for declared expectations
 - current detector result showing the present boundary
 - no unresolved proof or soundness blockers
 - product-output and runtime evidence before merge
 
 ## Target Packets
 
-| packet | axis | route | readiness | proof facts | hard negatives | groups |
-|---|---|---|---|---:|---:|---:|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | 2 | 4 | 1 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | 3 | 5 | 1 |
+| packet | axis | route | readiness | exec witnesses | proof facts | hard negatives | groups |
+|---|---|---|---|---|---:|---:|---:|
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | 2 | 4 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | `covered (6/6)` | 3 | 5 | 1 |
 
 ## Packet Details
 
@@ -42,6 +45,7 @@ report keeps the fuller evidence and admission boundary.
 - detector admission: `controlled-slice-admitted` over proof-backed controlled integer clamp surfaces
 - remaining real-pair gap: the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss
 - gates: 5 positive, 6 hard-negative
+- executable witness coverage: `covered` (8/8 passed)
 - proof fact model: `modeled-for-controlled-evidence`; facts: `numeric-clamp.integer-domain`, `numeric-clamp.bound-order`
 - blocked by:
   - the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
@@ -53,6 +57,7 @@ report keeps the fuller evidence and admission boundary.
 - detector admission: `not-admitted` over none; tracked proof packet only
 - remaining real-pair gap: the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts
 - gates: 1 positive, 5 hard-negative
+- executable witness coverage: `covered` (6/6 passed)
 - proof fact model: `specified-not-modeled`; facts: `python-loop-demorgan.universal-short-circuit`, `python-loop-demorgan.boolean-demorgan`, `python-loop-demorgan.effect-safety`
 - blocked by:
   - no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form

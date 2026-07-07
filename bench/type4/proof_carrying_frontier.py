@@ -36,6 +36,7 @@ DEFAULT_TARGET_PACKETS = HERE / "frontier_target_packets.v1.json"
 DEFAULT_REAL_FRONTIER = HERE / "real_frontier.v1.json"
 DEFAULT_COEVO_LEDGER = ROOT / "bench" / "coevo" / "packets.v1.json"
 DEFAULT_FOCUSED_CASES = HERE / "adversarial" / "cases" / "cases.v1.json"
+DEFAULT_EXECUTABLE_EXPECTATIONS = HERE / "executable_expectations.v1.json"
 DEFAULT_JSON_OUT = HERE / "proof_carrying_frontier.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "proof_carrying_frontier.md"
 DEFAULT_READINESS_JSON_OUT = HERE / "frontier_readiness.v1.json"
@@ -83,6 +84,8 @@ COEVO_VERDICTS = {
     "deferred-issue",
     "green-confirmed",
 }
+EXECUTABLE_EXPECTATION_STATUS = {"same-family", "split"}
+EXECUTABLE_REPORT_TOOL_VERSION = "type4-exec-check/1"
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
 REGRESSION_GATE_SEPARATOR = "::"
@@ -474,6 +477,270 @@ def validate_focused_cases_doc(focused_cases: dict[str, Any]) -> tuple[
     return case_by_id, group_by_id, convention_ids
 
 
+def focused_executable_expectations(
+    focused_cases: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    expected: dict[str, dict[str, Any]] = {}
+    for case in focused_cases.get("cases", []):
+        case_id = case.get("id")
+        for expectation in case.get("executable_expectations") or []:
+            expectation_id = expectation.get("id")
+            if not expectation_id:
+                raise FrontierError(
+                    f"focused case {case_id} has executable expectation without id"
+                )
+            if expectation_id in expected:
+                raise FrontierError(f"duplicate executable expectation id: {expectation_id}")
+            expect = expectation.get("expect")
+            if expect not in EXECUTABLE_EXPECTATION_STATUS:
+                raise FrontierError(
+                    f"executable expectation {expectation_id} has unknown expect: {expect}"
+                )
+            fixture = expectation.get("fixture")
+            if not isinstance(fixture, str) or not fixture:
+                raise FrontierError(f"executable expectation {expectation_id} needs fixture")
+            expected[expectation_id] = {
+                "case_id": case_id,
+                "expectation_id": expectation_id,
+                "expect": expect,
+                "fixture": fixture,
+            }
+    return expected
+
+
+def validate_executable_report(
+    report: dict[str, Any], focused_cases: dict[str, Any]
+) -> dict[str, Any]:
+    if report.get("schema_version") != SCHEMA_VERSION:
+        raise FrontierError("executable expectations report schema_version must be 1")
+    if report.get("tool_version") != EXECUTABLE_REPORT_TOOL_VERSION:
+        raise FrontierError(
+            "executable expectations report tool_version must be "
+            f"{EXECUTABLE_REPORT_TOOL_VERSION}"
+        )
+    results = report.get("results")
+    if not isinstance(results, list):
+        raise FrontierError("executable expectations report must contain results list")
+    expected_by_id = focused_executable_expectations(focused_cases)
+    if report.get("expectation_count") != len(results):
+        raise FrontierError("executable expectations report count does not match results")
+
+    seen: set[str] = set()
+    results_by_id: dict[str, dict[str, Any]] = {}
+    stale_ids: list[str] = []
+    failed_ids: list[str] = []
+    extra_ids: list[str] = []
+    for result in results:
+        if not isinstance(result, dict):
+            raise FrontierError("executable expectations report results must be objects")
+        expectation_id = result.get("expectation_id")
+        if not expectation_id:
+            raise FrontierError("executable expectations report result missing expectation_id")
+        if expectation_id in seen:
+            raise FrontierError(f"duplicate executable result id: {expectation_id}")
+        seen.add(expectation_id)
+        results_by_id[expectation_id] = result
+        expected = expected_by_id.get(expectation_id)
+        if expected is None:
+            extra_ids.append(expectation_id)
+            continue
+        for field in ("case_id", "expect", "fixture"):
+            if result.get(field) != expected[field]:
+                stale_ids.append(expectation_id)
+                break
+        observed = result.get("observed")
+        if observed not in EXECUTABLE_EXPECTATION_STATUS:
+            stale_ids.append(expectation_id)
+            continue
+        if bool(result.get("ok")) != (observed == result.get("expect")):
+            stale_ids.append(expectation_id)
+            continue
+        if not result.get("ok"):
+            failed_ids.append(expectation_id)
+
+    missing_ids = sorted(set(expected_by_id) - set(results_by_id))
+    passed_ids = sorted(
+        expectation_id
+        for expectation_id, result in results_by_id.items()
+        if (
+            expectation_id in expected_by_id
+            and result.get("ok")
+            and expectation_id not in stale_ids
+        )
+    )
+    declared_by_case: dict[str, list[str]] = {}
+    for expectation in expected_by_id.values():
+        declared_by_case.setdefault(expectation["case_id"], []).append(
+            expectation["expectation_id"]
+        )
+    for ids in declared_by_case.values():
+        ids.sort()
+
+    passed_count = sum(1 for result in results if result.get("ok"))
+    failed_count = len(results) - passed_count
+    if report.get("passed") != passed_count or report.get("failed") != failed_count:
+        raise FrontierError("executable expectations report pass/fail counts are stale")
+
+    return {
+        "expected_by_id": expected_by_id,
+        "results_by_id": results_by_id,
+        "declared_by_case": declared_by_case,
+        "missing_ids": sorted(missing_ids),
+        "stale_ids": sorted(set(stale_ids)),
+        "failed_ids": sorted(set(failed_ids)),
+        "extra_ids": sorted(extra_ids),
+        "passed_ids": passed_ids,
+        "report_summary": {
+            "nose_binary": report.get("nose_binary"),
+            "declared_expectation_count": len(expected_by_id),
+            "result_count": len(results),
+            "query_count": report.get("query_count"),
+            "passed": passed_count,
+            "failed": failed_count,
+            "missing": len(missing_ids),
+            "stale": len(set(stale_ids)),
+            "extra": len(extra_ids),
+        },
+    }
+
+
+def executable_coverage_blockers(coverage: dict[str, Any] | None) -> list[str]:
+    if coverage is None:
+        return ["executable focused-case coverage was not evaluated for this packet"]
+    status = coverage.get("coverage_status")
+    if status == "covered":
+        return []
+    if status == "manifest-only":
+        return ["no executable focused-case expectations are declared for this packet"]
+    blockers = []
+    if coverage.get("missing_expectation_ids"):
+        blockers.append(
+            "missing executable focused-case results: "
+            + ", ".join(coverage["missing_expectation_ids"])
+        )
+    if coverage.get("stale_expectation_ids"):
+        blockers.append(
+            "stale executable focused-case results: "
+            + ", ".join(coverage["stale_expectation_ids"])
+        )
+    if coverage.get("failed_expectation_ids"):
+        blockers.append(
+            "failing executable focused-case results: "
+            + ", ".join(coverage["failed_expectation_ids"])
+        )
+    return blockers or [f"executable focused-case coverage is {status}"]
+
+
+def summarize_executable_witness_coverage(
+    packets: list[dict[str, Any]],
+    hard_negative_linkage: list[dict[str, Any]],
+    focused_cases: dict[str, Any],
+    executable_report: dict[str, Any],
+) -> dict[str, Any]:
+    validated = validate_executable_report(executable_report, focused_cases)
+    declared_by_case = validated["declared_by_case"]
+    expected_by_id = validated["expected_by_id"]
+    report_missing = set(validated["missing_ids"])
+    report_stale = set(validated["stale_ids"])
+    report_failed = set(validated["failed_ids"])
+    report_passed = set(validated["passed_ids"])
+
+    case_ids_by_packet: dict[str, set[str]] = {
+        packet["packet_id"]: set() for packet in packets
+    }
+    positive_case_ids_by_packet: dict[str, set[str]] = {
+        packet["packet_id"]: set() for packet in packets
+    }
+    hard_negative_case_ids_by_packet: dict[str, set[str]] = {
+        packet["packet_id"]: set() for packet in packets
+    }
+    for row in hard_negative_linkage:
+        packet_id = row["packet_id"]
+        positive = set(row["positive_cases"])
+        hard_negative = set(row["hard_negative_cases"])
+        positive_case_ids_by_packet[packet_id].update(positive)
+        hard_negative_case_ids_by_packet[packet_id].update(hard_negative)
+        case_ids_by_packet[packet_id].update(positive | hard_negative)
+
+    by_packet: dict[str, dict[str, Any]] = {}
+    by_status: Counter[str] = Counter()
+    for packet in packets:
+        packet_id = packet["packet_id"]
+        case_ids = sorted(case_ids_by_packet.get(packet_id, set()))
+        declared_ids = sorted(
+            expectation_id
+            for case_id in case_ids
+            for expectation_id in declared_by_case.get(case_id, [])
+        )
+        missing_ids = sorted(set(declared_ids) & report_missing)
+        stale_ids = sorted(set(declared_ids) & report_stale)
+        failed_ids = sorted(set(declared_ids) & report_failed)
+        passed_ids = sorted(set(declared_ids) & report_passed)
+        manifest_only_case_ids = sorted(
+            case_id for case_id in case_ids if not declared_by_case.get(case_id)
+        )
+        if not declared_ids:
+            coverage_status = "manifest-only"
+        elif missing_ids or stale_ids or failed_ids:
+            coverage_status = "blocked"
+        else:
+            coverage_status = "covered"
+        by_status[coverage_status] += 1
+        by_expectation = [
+            {
+                "expectation_id": expectation_id,
+                "case_id": expected_by_id[expectation_id]["case_id"],
+                "expect": expected_by_id[expectation_id]["expect"],
+                "status": (
+                    "missing"
+                    if expectation_id in missing_ids
+                    else "stale"
+                    if expectation_id in stale_ids
+                    else "failed"
+                    if expectation_id in failed_ids
+                    else "passed"
+                ),
+            }
+            for expectation_id in declared_ids
+        ]
+        by_packet[packet_id] = {
+            "packet_id": packet_id,
+            "coverage_status": coverage_status,
+            "manifest_case_ids": case_ids,
+            "manifest_positive_case_ids": sorted(positive_case_ids_by_packet[packet_id]),
+            "manifest_hard_negative_case_ids": sorted(
+                hard_negative_case_ids_by_packet[packet_id]
+            ),
+            "manifest_only_case_ids": manifest_only_case_ids,
+            "declared_expectation_ids": declared_ids,
+            "passed_expectation_ids": passed_ids,
+            "missing_expectation_ids": missing_ids,
+            "stale_expectation_ids": stale_ids,
+            "failed_expectation_ids": failed_ids,
+            "declared_expectation_count": len(declared_ids),
+            "passed_expectation_count": len(passed_ids),
+            "missing_expectation_count": len(missing_ids),
+            "stale_expectation_count": len(stale_ids),
+            "failed_expectation_count": len(failed_ids),
+            "by_expectation": by_expectation,
+        }
+
+    return {
+        "summary": {
+            **validated["report_summary"],
+            "packet_count": len(packets),
+            "packet_count_by_coverage": dict(sorted(by_status.items())),
+            "fully_covered_packet_count": by_status.get("covered", 0),
+            "report_missing_expectation_ids": validated["missing_ids"],
+            "report_stale_expectation_ids": validated["stale_ids"],
+            "report_failed_expectation_ids": validated["failed_ids"],
+            "report_extra_expectation_ids": validated["extra_ids"],
+        },
+        "packets": [by_packet[packet["packet_id"]] for packet in packets],
+        "by_packet": by_packet,
+    }
+
+
 def validate_hard_negative_linkage(
     packets: list[dict[str, Any]], focused_cases: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -556,9 +823,21 @@ def validate_hard_negative_linkage(
     return rows
 
 
-def readiness_for(packet: dict[str, Any]) -> dict[str, Any]:
+def readiness_for(
+    packet: dict[str, Any],
+    executable_coverage: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     blockers = list(packet.get("blocked_by") or [])
+    coverage_blockers = executable_coverage_blockers(executable_coverage)
+    blockers.extend(coverage_blockers)
     admission = packet.get("detector_admission") or {}
+    if coverage_blockers:
+        return {
+            "status": "blocked",
+            "can_open_exact_admission": False,
+            "reason": "packet lacks fresh executable focused-case witness coverage",
+            "blocking_items": blockers,
+        }
     if admission.get("status") == "controlled-slice-admitted":
         return {
             "status": "detector-admitted-controlled",
@@ -598,17 +877,25 @@ def readiness_for(packet: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def summarize_packets(
+    packets: list[dict[str, Any]],
+    executable_coverage_by_packet: dict[str, dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows = []
     by_status: Counter[str] = Counter()
     by_route: Counter[str] = Counter()
     by_detector_admission: Counter[str] = Counter()
+    by_executable_coverage: Counter[str] = Counter()
+    executable_coverage_by_packet = executable_coverage_by_packet or {}
     for packet in packets:
-        readiness = readiness_for(packet)
+        executable_coverage = executable_coverage_by_packet.get(packet["packet_id"])
+        readiness = readiness_for(packet, executable_coverage)
         by_status[readiness["status"]] += 1
         by_route[packet["owner_route"]] += 1
         admission = packet["detector_admission"]
         by_detector_admission[admission["status"]] += 1
+        if executable_coverage:
+            by_executable_coverage[executable_coverage["coverage_status"]] += 1
         rows.append(
             {
                 "packet_id": packet["packet_id"],
@@ -637,6 +924,7 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
                     "hard_negative_gate_count": len(admission["hard_negative_gates"]),
                     "remaining_real_pair_gap": admission.get("remaining_real_pair_gap"),
                 },
+                "executable_witness_coverage": executable_coverage,
                 "readiness": readiness,
             }
         )
@@ -645,6 +933,7 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
         "by_readiness": dict(sorted(by_status.items())),
         "by_owner_route": dict(sorted(by_route.items())),
         "by_detector_admission": dict(sorted(by_detector_admission.items())),
+        "by_executable_witness_coverage": dict(sorted(by_executable_coverage.items())),
         "ready_packet_count": sum(
             1 for row in rows if row["readiness"]["can_open_exact_admission"]
         ),
@@ -705,15 +994,30 @@ def build_report(
     real_frontier_path: Path,
     coevo_ledger_path: Path,
     focused_cases_path: Path,
+    executable_expectations_path: Path,
 ) -> dict[str, Any]:
     packet_doc = load_json(target_packets_path)
     real_frontier = load_json(real_frontier_path)
     coevo = load_json(coevo_ledger_path)
     focused_cases = load_json(focused_cases_path)
+    executable_report = load_json(executable_expectations_path)
     packets = validate_packet_doc(packet_doc)
     evidence_links = validate_evidence_links(packets, real_frontier)
     hard_negative_linkage = validate_hard_negative_linkage(packets, focused_cases)
-    packet_rows, packet_summary = summarize_packets(packets)
+    executable_coverage = summarize_executable_witness_coverage(
+        packets,
+        hard_negative_linkage,
+        focused_cases,
+        executable_report,
+    )
+    packet_rows, packet_summary = summarize_packets(
+        packets,
+        executable_coverage["by_packet"],
+    )
+    public_executable_coverage = {
+        "summary": executable_coverage["summary"],
+        "packets": executable_coverage["packets"],
+    }
     coevo_summary = summarize_coevo(coevo)
     verdict = admission_verdict(packet_summary["ready_packet_count"])
     return {
@@ -725,6 +1029,7 @@ def build_report(
                 "real_frontier": artifact_ref(real_frontier_path),
                 "coevo_ledger": artifact_ref(coevo_ledger_path),
                 "focused_cases": artifact_ref(focused_cases_path),
+                "executable_expectations": artifact_ref(executable_expectations_path),
             },
             "target_packet_identity": packet_doc.get("identity", {}),
         },
@@ -734,6 +1039,7 @@ def build_report(
                 "proof invariant narrow enough to defend",
                 "adjacent hard-negative siblings",
                 "packet-level hard-negative group linkage",
+                "fresh executable focused-case witness coverage for declared expectations",
                 "current detector result showing the present boundary",
                 "no unresolved proof or soundness blockers",
                 "product-output and runtime evidence before merge",
@@ -749,6 +1055,7 @@ def build_report(
             "packets": packet_rows,
             "evidence_links": evidence_links,
             "hard_negative_linkage": hard_negative_linkage,
+            "executable_witness_coverage": public_executable_coverage,
         },
         "coevolution_guardrails": coevo_summary,
     }
@@ -760,7 +1067,11 @@ def markdown_report(report: dict[str, Any]) -> str:
     by_readiness = json.dumps(target["by_readiness"], sort_keys=True)
     by_owner_route = json.dumps(target["by_owner_route"], sort_keys=True)
     by_detector_admission = json.dumps(target["by_detector_admission"], sort_keys=True)
+    by_executable_coverage = json.dumps(
+        target["by_executable_witness_coverage"], sort_keys=True
+    )
     by_verdict = json.dumps(coevo["by_verdict"], sort_keys=True)
+    executable_summary = report["target_packets"]["executable_witness_coverage"]["summary"]
     lines = [
         "# Proof-carrying Type-4 frontier",
         "",
@@ -781,6 +1092,12 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- by readiness: `{by_readiness}`",
         f"- by owner route: `{by_owner_route}`",
         f"- by detector admission: `{by_detector_admission}`",
+        f"- by executable witness coverage: `{by_executable_coverage}`",
+        (
+            "- executable expectations: "
+            f"{executable_summary['passed']}/{executable_summary['declared_expectation_count']} "
+            "passed"
+        ),
         "",
         "## Admission Policy",
         "",
@@ -790,14 +1107,21 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Target Packets",
         "",
-        "| packet | axis | route | readiness | proof facts | hard negatives | groups |",
-        "|---|---|---|---|---:|---:|---:|",
+        "| packet | axis | route | readiness | exec witnesses | proof facts | hard negatives | groups |",
+        "|---|---|---|---|---|---:|---:|---:|",
     ]
     for packet in report["target_packets"]["packets"]:
         readiness = packet["readiness"]
+        coverage = packet["executable_witness_coverage"]
+        exec_cell = (
+            f"{coverage['coverage_status']} "
+            f"({coverage['passed_expectation_count']}/"
+            f"{coverage['declared_expectation_count']})"
+        )
         lines.append(
             f"| `{packet['packet_id']}` | `{packet['candidate_axis']}` | "
             f"`{packet['owner_route']}` | `{readiness['status']}` | "
+            f"`{exec_cell}` | "
             f"{packet['proof_fact_model']['fact_count']} | "
             f"{packet['hard_negative_count']} | "
             f"{len(packet['hard_negative_group_ids'])} |"
@@ -817,6 +1141,16 @@ def markdown_report(report: dict[str, Any]) -> str:
             f"- gates: {admission['positive_gate_count']} positive, "
             f"{admission['hard_negative_gate_count']} hard-negative"
         )
+        coverage = packet["executable_witness_coverage"]
+        lines.append(
+            "- executable witness coverage: "
+            f"`{coverage['coverage_status']}` "
+            f"({coverage['passed_expectation_count']}/"
+            f"{coverage['declared_expectation_count']} passed)"
+        )
+        if coverage["manifest_only_case_ids"]:
+            cases = ", ".join(f"`{case_id}`" for case_id in coverage["manifest_only_case_ids"])
+            lines.append(f"- manifest-only cases: {cases}")
         if readiness["blocking_items"]:
             model_status = packet["proof_fact_model"]["model_status"]
             facts = ", ".join(f"`{fact}`" for fact in packet["proof_fact_model"]["fact_ids"])
@@ -874,6 +1208,12 @@ def release_note_for(packet: dict[str, Any], group: str) -> str:
     axis = packet["candidate_axis"]
     admission = packet["detector_admission"]
     facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
+    coverage = packet.get("executable_witness_coverage") or {}
+    if executable_coverage_blockers(coverage):
+        return (
+            f"{packet_id}: exact admission for {axis} remains closed because executable "
+            f"focused-case witness coverage is {coverage.get('coverage_status', 'missing')}."
+        )
     if group == "ready-for-defender":
         return (
             f"{packet_id}: ready to open exact detector admission for {axis}; "
@@ -906,6 +1246,12 @@ def next_action_for(packet: dict[str, Any], group: str) -> str:
     admission = packet["detector_admission"]
     facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
     blockers = packet["readiness"]["blocking_items"]
+    coverage = packet.get("executable_witness_coverage") or {}
+    if executable_coverage_blockers(coverage):
+        return (
+            "Refresh executable focused-case witness coverage before changing detector "
+            "admission status."
+        )
     if group == "ready-for-defender":
         return (
             "Open a defender PR scoped to this packet's proof invariant, positive "
@@ -946,6 +1292,7 @@ def readiness_packet_view(packet: dict[str, Any]) -> dict[str, Any]:
         "hard_negative_count": packet["hard_negative_count"],
         "positive_gate_count": packet["detector_admission"]["positive_gate_count"],
         "hard_negative_gate_count": packet["detector_admission"]["hard_negative_gate_count"],
+        "executable_witness_coverage": packet["executable_witness_coverage"],
         "detector_scope": packet["detector_admission"]["scope"],
         "remaining_real_pair_gap": packet["detector_admission"]["remaining_real_pair_gap"],
         "blockers": packet["readiness"]["blocking_items"],
@@ -990,7 +1337,11 @@ def build_readiness_summary(report: dict[str, Any]) -> dict[str, Any]:
             "exact_detector_admission_opens_only_from": "ready-for-defender",
             "non_ready_rows_do_not_claim_exact_real_pair_admission": True,
             "detector_admitted_controlled_is_not_real_pair_admission": True,
+            "fresh_executable_witness_coverage_required_for_ready_rows": True,
         },
+        "executable_witness_coverage": report["target_packets"][
+            "executable_witness_coverage"
+        ]["summary"],
         "next_work": next_work,
         "groups": grouped,
     }
@@ -1032,6 +1383,8 @@ def markdown_cell(value: Any) -> str:
 
 def markdown_readiness(summary: dict[str, Any]) -> str:
     next_work = summary["next_work"]
+    coverage = summary["executable_witness_coverage"]
+    by_coverage = json.dumps(coverage["packet_count_by_coverage"], sort_keys=True)
     lines = [
         "# Type-4 frontier readiness",
         "",
@@ -1046,6 +1399,11 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
         f"- next packet: `{next_work['packet_id'] or 'none'}`",
         f"- next axis: `{next_work['candidate_axis'] or 'none'}`",
         f"- action: {next_work['why']}",
+        f"- executable witness coverage: `{by_coverage}`",
+        (
+            "- executable expectations: "
+            f"{coverage['passed']}/{coverage['declared_expectation_count']} passed"
+        ),
         "",
         "Exact detector admission may only open from `ready-for-defender` rows. Rows",
         "in other groups are planning evidence and do not open exact real-pair admission.",
@@ -1065,17 +1423,24 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
             lines += ["_None._", ""]
             continue
         lines += [
-            "| packet | axis | readiness | detector admission | hard-negative groups | action |",
-            "|---|---|---|---|---|---|",
+            "| packet | axis | readiness | exec coverage | detector admission | hard-negative groups | action |",
+            "|---|---|---|---|---|---|---|",
         ]
         for packet in data["packets"]:
             groups = ", ".join(
                 f"`{markdown_cell(group)}`" for group in packet["hard_negative_group_ids"]
             )
+            exec_coverage = packet["executable_witness_coverage"]
+            exec_cell = (
+                f"{exec_coverage['coverage_status']} "
+                f"({exec_coverage['passed_expectation_count']}/"
+                f"{exec_coverage['declared_expectation_count']})"
+            )
             lines.append(
                 f"| `{markdown_cell(packet['packet_id'])}` | "
                 f"`{markdown_cell(packet['candidate_axis'])}` | "
                 f"`{markdown_cell(packet['readiness_status'])}` | "
+                f"`{markdown_cell(exec_cell)}` | "
                 f"`{markdown_cell(packet['detector_admission_status'])}` | "
                 f"{groups} | "
                 f"{markdown_cell(packet['planning_summary'])} |"
@@ -1191,7 +1556,6 @@ def selftest() -> None:
     }
     packet_doc = {"schema_version": 1, "packet_count": 1, "packets": [packet]}
     packets = validate_packet_doc(packet_doc)
-    assert readiness_for(packet)["status"] == "blocked-on-proof"
     focused_cases = {
         "schema_version": 1,
         "hard_negative_conventions": {
@@ -1223,12 +1587,26 @@ def selftest() -> None:
                 "kind": "positive",
                 "semantic_family": "axis.family",
                 "claim": "positive",
+                "executable_expectations": [
+                    {
+                        "id": "positive_exec",
+                        "fixture": "bench/type4/adversarial/cases/selftest.py",
+                        "expect": "same-family",
+                    }
+                ],
             },
             {
                 "id": "negative",
                 "kind": "hard-negative",
                 "semantic_family": "axis.family",
                 "claim": "negative",
+                "executable_expectations": [
+                    {
+                        "id": "negative_exec",
+                        "fixture": "bench/type4/adversarial/cases/selftest.py",
+                        "expect": "split",
+                    }
+                ],
             },
         ],
     }
@@ -1256,6 +1634,43 @@ def selftest() -> None:
     ]
     linkage = validate_hard_negative_linkage(packets, focused_cases)
     assert linkage[0]["group_id"] == "g"
+    executable_report = {
+        "schema_version": 1,
+        "tool_version": EXECUTABLE_REPORT_TOOL_VERSION,
+        "nose_binary": "nose",
+        "expectation_count": 2,
+        "query_count": 1,
+        "passed": 2,
+        "failed": 0,
+        "results": [
+            {
+                "case_id": "positive",
+                "expectation_id": "positive_exec",
+                "fixture": "bench/type4/adversarial/cases/selftest.py",
+                "expect": "same-family",
+                "observed": "same-family",
+                "ok": True,
+            },
+            {
+                "case_id": "negative",
+                "expectation_id": "negative_exec",
+                "fixture": "bench/type4/adversarial/cases/selftest.py",
+                "expect": "split",
+                "observed": "split",
+                "ok": True,
+            },
+        ],
+    }
+    executable_coverage = summarize_executable_witness_coverage(
+        packets,
+        linkage,
+        focused_cases,
+        executable_report,
+    )
+    assert executable_coverage["by_packet"]["p"]["coverage_status"] == "covered"
+    assert readiness_for(packet, executable_coverage["by_packet"]["p"])["status"] == (
+        "blocked-on-proof"
+    )
     drifted = json.loads(json.dumps(packet_doc))
     drifted["packets"][0]["proof_invariant"] = "changed"
     try:
@@ -1266,7 +1681,23 @@ def selftest() -> None:
     ready = dict(packet)
     ready["owner_route"] = "team-a-detector"
     ready["blocked_by"] = []
-    assert readiness_for(ready)["can_open_exact_admission"]
+    assert readiness_for(ready, executable_coverage["by_packet"]["p"])[
+        "can_open_exact_admission"
+    ]
+    missing_executable_report = json.loads(json.dumps(executable_report))
+    missing_executable_report["results"] = missing_executable_report["results"][:1]
+    missing_executable_report["expectation_count"] = 1
+    missing_executable_report["passed"] = 1
+    missing_coverage = summarize_executable_witness_coverage(
+        packets,
+        linkage,
+        focused_cases,
+        missing_executable_report,
+    )
+    assert missing_coverage["by_packet"]["p"]["coverage_status"] == "blocked"
+    assert not readiness_for(ready, missing_coverage["by_packet"]["p"])[
+        "can_open_exact_admission"
+    ]
     admitted = dict(packet)
     admitted["detector_admission"] = {
         "status": "controlled-slice-admitted",
@@ -1276,11 +1707,14 @@ def selftest() -> None:
         "hard_negative_gates": ["negative"],
         "remaining_real_pair_gap": "still open",
     }
-    admitted_readiness = readiness_for(admitted)
+    admitted_readiness = readiness_for(admitted, executable_coverage["by_packet"]["p"])
     assert admitted_readiness["status"] == "detector-admitted-controlled"
     assert not admitted_readiness["can_open_exact_admission"]
     admitted_doc = {"schema_version": 1, "packet_count": 1, "packets": [admitted]}
-    admitted_rows, admitted_summary = summarize_packets(validate_packet_doc(admitted_doc))
+    admitted_rows, admitted_summary = summarize_packets(
+        validate_packet_doc(admitted_doc),
+        executable_coverage["by_packet"],
+    )
     assert admitted_summary["ready_packet_count"] == 0
     assert admitted_summary["detector_admitted_packet_count"] == 1
     assert admitted_rows[0]["readiness"]["status"] == "detector-admitted-controlled"
@@ -1289,14 +1723,20 @@ def selftest() -> None:
         "no-exact-admission-ready-packets"
     )
     ready_rows, _ready_summary = summarize_packets(
-        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [ready]})
+        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [ready]}),
+        executable_coverage["by_packet"],
     )
     report = {
         "schema_version": 1,
         "tool_version": TOOL_VERSION,
         "identity": {"artifacts": {}},
         "verdict": "exact-admission-ready",
-        "target_packets": {"summary": {}, "packets": ready_rows, "evidence_links": []},
+        "target_packets": {
+            "summary": {},
+            "packets": ready_rows,
+            "evidence_links": [],
+            "executable_witness_coverage": executable_coverage,
+        },
     }
     readiness_summary = build_readiness_summary(report)
     assert readiness_summary["next_work"]["group"] == "ready-for-defender"
@@ -1306,7 +1746,8 @@ def selftest() -> None:
     )
     assert readiness_summary["groups"]["ready-for-defender"]["count"] == 1
     blocked_rows, _blocked_summary = summarize_packets(
-        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [packet]})
+        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [packet]}),
+        executable_coverage["by_packet"],
     )
     report["verdict"] = "no-exact-admission-ready-packets"
     report["target_packets"]["packets"] = blocked_rows
@@ -1400,6 +1841,11 @@ def main() -> int:
     parser.add_argument("--real-frontier", type=Path, default=DEFAULT_REAL_FRONTIER)
     parser.add_argument("--coevo-ledger", type=Path, default=DEFAULT_COEVO_LEDGER)
     parser.add_argument("--focused-cases", type=Path, default=DEFAULT_FOCUSED_CASES)
+    parser.add_argument(
+        "--executable-expectations",
+        type=Path,
+        default=DEFAULT_EXECUTABLE_EXPECTATIONS,
+    )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
     parser.add_argument("--readiness-json-out", type=Path, default=DEFAULT_READINESS_JSON_OUT)
@@ -1421,6 +1867,7 @@ def main() -> int:
             args.real_frontier,
             args.coevo_ledger,
             args.focused_cases,
+            args.executable_expectations,
         )
         if args.check:
             check_artifacts(

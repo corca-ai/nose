@@ -1,4 +1,24 @@
 {
+  "executable_witness_coverage": {
+    "declared_expectation_count": 14,
+    "extra": 0,
+    "failed": 0,
+    "fully_covered_packet_count": 2,
+    "missing": 0,
+    "nose_binary": "nose",
+    "packet_count": 2,
+    "packet_count_by_coverage": {
+      "covered": 2
+    },
+    "passed": 14,
+    "query_count": 9,
+    "report_extra_expectation_ids": [],
+    "report_failed_expectation_ids": [],
+    "report_missing_expectation_ids": [],
+    "report_stale_expectation_ids": [],
+    "result_count": 14,
+    "stale": 0
+  },
   "group_list": [
     {
       "count": 0,
@@ -26,6 +46,91 @@
             "python-loop-demorgan-all-readme-real-miss"
           ],
           "evidence_tier": "frontier-recorded",
+          "executable_witness_coverage": {
+            "by_expectation": [
+              {
+                "case_id": "python_loop_demorgan_changed_predicate_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_changed_predicate_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_iterator_identity_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_all_readme",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_positive_currently_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_side_effect_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_vacuous_truth_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_vacuous_truth_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_value_return_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_value_return_stays_split",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "covered",
+            "declared_expectation_count": 6,
+            "declared_expectation_ids": [
+              "python_loop_demorgan_changed_predicate_stays_split",
+              "python_loop_demorgan_iterator_identity_stays_split",
+              "python_loop_demorgan_positive_currently_split",
+              "python_loop_demorgan_side_effect_stays_split",
+              "python_loop_demorgan_vacuous_truth_stays_split",
+              "python_loop_demorgan_value_return_stays_split"
+            ],
+            "failed_expectation_count": 0,
+            "failed_expectation_ids": [],
+            "manifest_case_ids": [
+              "python_loop_demorgan_all_readme",
+              "python_loop_demorgan_changed_predicate_boundary",
+              "python_loop_demorgan_iterator_identity_boundary",
+              "python_loop_demorgan_side_effect_boundary",
+              "python_loop_demorgan_vacuous_truth_boundary",
+              "python_loop_demorgan_value_return_boundary"
+            ],
+            "manifest_hard_negative_case_ids": [
+              "python_loop_demorgan_changed_predicate_boundary",
+              "python_loop_demorgan_iterator_identity_boundary",
+              "python_loop_demorgan_side_effect_boundary",
+              "python_loop_demorgan_vacuous_truth_boundary",
+              "python_loop_demorgan_value_return_boundary"
+            ],
+            "manifest_only_case_ids": [],
+            "manifest_positive_case_ids": [
+              "python_loop_demorgan_all_readme"
+            ],
+            "missing_expectation_count": 0,
+            "missing_expectation_ids": [],
+            "packet_id": "python-loop-demorgan-all-2026-07-07",
+            "passed_expectation_count": 6,
+            "passed_expectation_ids": [
+              "python_loop_demorgan_changed_predicate_stays_split",
+              "python_loop_demorgan_iterator_identity_stays_split",
+              "python_loop_demorgan_positive_currently_split",
+              "python_loop_demorgan_side_effect_stays_split",
+              "python_loop_demorgan_vacuous_truth_stays_split",
+              "python_loop_demorgan_value_return_stays_split"
+            ],
+            "stale_expectation_count": 0,
+            "stale_expectation_ids": []
+          },
           "group": "blocked-on-proof",
           "hard_negative_count": 5,
           "hard_negative_gate_count": 5,
@@ -78,6 +183,105 @@
             "numeric-clamp-minmax-ternary-real-miss"
           ],
           "evidence_tier": "frontier-recorded",
+          "executable_witness_coverage": {
+            "by_expectation": [
+              {
+                "case_id": "clamp_float_nan_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_float_ternary_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_ternary_minmax_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_python_guarded_ternary_matches_minmax",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_method_name_only_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_rust_custom_method_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_library_method_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_rust_guarded_method_matches_guarded_minmax",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_library_method_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_rust_literal_method_matches_literal_minmax",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_method_name_only_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_rust_unproven_method_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_unordered_bounds",
+                "expect": "split",
+                "expectation_id": "clamp_swapped_ternary_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_unordered_bounds",
+                "expect": "split",
+                "expectation_id": "clamp_unproven_ternary_stays_split",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "covered",
+            "declared_expectation_count": 8,
+            "declared_expectation_ids": [
+              "clamp_float_ternary_stays_split",
+              "clamp_python_guarded_ternary_matches_minmax",
+              "clamp_rust_custom_method_stays_split",
+              "clamp_rust_guarded_method_matches_guarded_minmax",
+              "clamp_rust_literal_method_matches_literal_minmax",
+              "clamp_rust_unproven_method_stays_split",
+              "clamp_swapped_ternary_stays_split",
+              "clamp_unproven_ternary_stays_split"
+            ],
+            "failed_expectation_count": 0,
+            "failed_expectation_ids": [],
+            "manifest_case_ids": [
+              "clamp_float_nan_boundary",
+              "clamp_library_method_bridge",
+              "clamp_method_name_only_boundary",
+              "clamp_ternary_minmax_bridge",
+              "clamp_unordered_bounds"
+            ],
+            "manifest_hard_negative_case_ids": [
+              "clamp_float_nan_boundary",
+              "clamp_method_name_only_boundary",
+              "clamp_unordered_bounds"
+            ],
+            "manifest_only_case_ids": [],
+            "manifest_positive_case_ids": [
+              "clamp_library_method_bridge",
+              "clamp_ternary_minmax_bridge"
+            ],
+            "missing_expectation_count": 0,
+            "missing_expectation_ids": [],
+            "packet_id": "numeric-clamp-2026-06-06",
+            "passed_expectation_count": 8,
+            "passed_expectation_ids": [
+              "clamp_float_ternary_stays_split",
+              "clamp_python_guarded_ternary_matches_minmax",
+              "clamp_rust_custom_method_stays_split",
+              "clamp_rust_guarded_method_matches_guarded_minmax",
+              "clamp_rust_literal_method_matches_literal_minmax",
+              "clamp_rust_unproven_method_stays_split",
+              "clamp_swapped_ternary_stays_split",
+              "clamp_unproven_ternary_stays_split"
+            ],
+            "stale_expectation_count": 0,
+            "stale_expectation_ids": []
+          },
           "group": "admitted/resolved",
           "hard_negative_count": 4,
           "hard_negative_gate_count": 6,
@@ -129,6 +333,105 @@
             "numeric-clamp-minmax-ternary-real-miss"
           ],
           "evidence_tier": "frontier-recorded",
+          "executable_witness_coverage": {
+            "by_expectation": [
+              {
+                "case_id": "clamp_float_nan_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_float_ternary_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_ternary_minmax_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_python_guarded_ternary_matches_minmax",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_method_name_only_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_rust_custom_method_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_library_method_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_rust_guarded_method_matches_guarded_minmax",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_library_method_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_rust_literal_method_matches_literal_minmax",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_method_name_only_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_rust_unproven_method_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_unordered_bounds",
+                "expect": "split",
+                "expectation_id": "clamp_swapped_ternary_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_unordered_bounds",
+                "expect": "split",
+                "expectation_id": "clamp_unproven_ternary_stays_split",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "covered",
+            "declared_expectation_count": 8,
+            "declared_expectation_ids": [
+              "clamp_float_ternary_stays_split",
+              "clamp_python_guarded_ternary_matches_minmax",
+              "clamp_rust_custom_method_stays_split",
+              "clamp_rust_guarded_method_matches_guarded_minmax",
+              "clamp_rust_literal_method_matches_literal_minmax",
+              "clamp_rust_unproven_method_stays_split",
+              "clamp_swapped_ternary_stays_split",
+              "clamp_unproven_ternary_stays_split"
+            ],
+            "failed_expectation_count": 0,
+            "failed_expectation_ids": [],
+            "manifest_case_ids": [
+              "clamp_float_nan_boundary",
+              "clamp_library_method_bridge",
+              "clamp_method_name_only_boundary",
+              "clamp_ternary_minmax_bridge",
+              "clamp_unordered_bounds"
+            ],
+            "manifest_hard_negative_case_ids": [
+              "clamp_float_nan_boundary",
+              "clamp_method_name_only_boundary",
+              "clamp_unordered_bounds"
+            ],
+            "manifest_only_case_ids": [],
+            "manifest_positive_case_ids": [
+              "clamp_library_method_bridge",
+              "clamp_ternary_minmax_bridge"
+            ],
+            "missing_expectation_count": 0,
+            "missing_expectation_ids": [],
+            "packet_id": "numeric-clamp-2026-06-06",
+            "passed_expectation_count": 8,
+            "passed_expectation_ids": [
+              "clamp_float_ternary_stays_split",
+              "clamp_python_guarded_ternary_matches_minmax",
+              "clamp_rust_custom_method_stays_split",
+              "clamp_rust_guarded_method_matches_guarded_minmax",
+              "clamp_rust_literal_method_matches_literal_minmax",
+              "clamp_rust_unproven_method_stays_split",
+              "clamp_swapped_ternary_stays_split",
+              "clamp_unproven_ternary_stays_split"
+            ],
+            "stale_expectation_count": 0,
+            "stale_expectation_ids": []
+          },
           "group": "admitted/resolved",
           "hard_negative_count": 4,
           "hard_negative_gate_count": 6,
@@ -179,6 +482,91 @@
             "python-loop-demorgan-all-readme-real-miss"
           ],
           "evidence_tier": "frontier-recorded",
+          "executable_witness_coverage": {
+            "by_expectation": [
+              {
+                "case_id": "python_loop_demorgan_changed_predicate_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_changed_predicate_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_iterator_identity_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_all_readme",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_positive_currently_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_side_effect_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_vacuous_truth_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_vacuous_truth_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "python_loop_demorgan_value_return_boundary",
+                "expect": "split",
+                "expectation_id": "python_loop_demorgan_value_return_stays_split",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "covered",
+            "declared_expectation_count": 6,
+            "declared_expectation_ids": [
+              "python_loop_demorgan_changed_predicate_stays_split",
+              "python_loop_demorgan_iterator_identity_stays_split",
+              "python_loop_demorgan_positive_currently_split",
+              "python_loop_demorgan_side_effect_stays_split",
+              "python_loop_demorgan_vacuous_truth_stays_split",
+              "python_loop_demorgan_value_return_stays_split"
+            ],
+            "failed_expectation_count": 0,
+            "failed_expectation_ids": [],
+            "manifest_case_ids": [
+              "python_loop_demorgan_all_readme",
+              "python_loop_demorgan_changed_predicate_boundary",
+              "python_loop_demorgan_iterator_identity_boundary",
+              "python_loop_demorgan_side_effect_boundary",
+              "python_loop_demorgan_vacuous_truth_boundary",
+              "python_loop_demorgan_value_return_boundary"
+            ],
+            "manifest_hard_negative_case_ids": [
+              "python_loop_demorgan_changed_predicate_boundary",
+              "python_loop_demorgan_iterator_identity_boundary",
+              "python_loop_demorgan_side_effect_boundary",
+              "python_loop_demorgan_vacuous_truth_boundary",
+              "python_loop_demorgan_value_return_boundary"
+            ],
+            "manifest_only_case_ids": [],
+            "manifest_positive_case_ids": [
+              "python_loop_demorgan_all_readme"
+            ],
+            "missing_expectation_count": 0,
+            "missing_expectation_ids": [],
+            "packet_id": "python-loop-demorgan-all-2026-07-07",
+            "passed_expectation_count": 6,
+            "passed_expectation_ids": [
+              "python_loop_demorgan_changed_predicate_stays_split",
+              "python_loop_demorgan_iterator_identity_stays_split",
+              "python_loop_demorgan_positive_currently_split",
+              "python_loop_demorgan_side_effect_stays_split",
+              "python_loop_demorgan_vacuous_truth_stays_split",
+              "python_loop_demorgan_value_return_stays_split"
+            ],
+            "stale_expectation_count": 0,
+            "stale_expectation_ids": []
+          },
           "group": "blocked-on-proof",
           "hard_negative_count": 5,
           "hard_negative_gate_count": 5,
@@ -222,6 +610,7 @@
   "policy": {
     "detector_admitted_controlled_is_not_real_pair_admission": true,
     "exact_detector_admission_opens_only_from": "ready-for-defender",
+    "fresh_executable_witness_coverage_required_for_ready_rows": true,
     "non_ready_rows_do_not_claim_exact_real_pair_admission": true
   },
   "schema_version": 1,
@@ -230,6 +619,11 @@
       "path": "bench/coevo/packets.v1.json",
       "sha256": "50be3cc9ae19aa4966cf0787e9801d641060769c7da4f2218773331610c42dc1",
       "size_bytes": 47916
+    },
+    "executable_expectations": {
+      "path": "bench/type4/executable_expectations.v1.json",
+      "sha256": "5e6d710932e8c592643aecfd007f548d23dc5dfa1d698e76761037d4bc69a179",
+      "size_bytes": 6176
     },
     "focused_cases": {
       "path": "bench/type4/adversarial/cases/cases.v1.json",

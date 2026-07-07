@@ -245,7 +245,9 @@ frontier platform.
 
 ```sh
 bench/type4/adversarial/scripts/type4-check
-NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check
+NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check \
+  --stable-report \
+  --json-out bench/type4/executable_expectations.v1.json
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
@@ -253,9 +255,10 @@ bench/type4/adversarial/scripts/type4-next --limit 3
 `type4-check` validates target packets, real-frontier evidence links, focused fixture
 paths, and packet-level hard-negative groups. `type4-exec-check` is the executable
 perimeter gate: it runs declared focused-case `nose query` expectations and fails when an
-admitted positive or hard-negative split drifts. `type4-report` summarizes packet,
-focused-case, executable expectation, and hard-negative group coverage. `type4-next` prints
-task cards directly from `frontier_target_packets.v1.json`.
+admitted positive or hard-negative split drifts. Its stable report is committed as
+`executable_expectations.v1.json` and consumed by proof-carrying readiness. `type4-report`
+summarizes packet, focused-case, executable expectation, and hard-negative group coverage.
+`type4-next` prints task cards directly from `frontier_target_packets.v1.json`.
 
 When `nose verify --leads` has produced a leads JSON file, use
 `bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --axis <axis> --draft-json`
@@ -316,9 +319,10 @@ python3 bench/type4/proof_carrying_frontier.py --check
 python3 bench/type4/proof_carrying_frontier.py --selftest
 ```
 
-The committed artifacts are `proof_carrying_frontier.v1.json`,
-`proof_carrying_frontier.md`, `frontier_readiness.v1.json`, and
-`frontier_readiness.md`. Use `frontier_readiness.md` first for release and roadmap triage:
+The committed artifacts are `executable_expectations.v1.json`,
+`proof_carrying_frontier.v1.json`, `proof_carrying_frontier.md`,
+`frontier_readiness.v1.json`, and `frontier_readiness.md`. Use
+`frontier_readiness.md` first for release and roadmap triage:
 it groups packets into `ready-for-defender`, `blocked-on-proof`, `blocked-on-product`, and
 `admitted/resolved`, and it names the next non-admitted work item.
 
