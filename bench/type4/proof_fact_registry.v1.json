@@ -391,6 +391,100 @@
     },
     {
       "accepted_evidence": [
+        "a flat-map, multi-clause comprehension, or nested builder whose output appends every inner element in outer iteration order",
+        "source evidence that the same inner collection is traversed for each corresponding outer element",
+        "no extra filter, early exit, mutation, or receiver substitution changes the outer/inner traversal coordinates"
+      ],
+      "detector_admission_implication": "Does not admit flat-map convergence by itself; flatten depth, emitted value, source identity, and callback purity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "hof.flat-map.nested-iteration-order",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "loop.iterator-identity"
+      ],
+      "implementation_guidance": [
+        "Track outer and inner iteration coordinates separately.",
+        "Reject changed inner receivers, reordered traversal, dropped outer iterations, and derived inner collections without source evidence.",
+        "Use this fact for one-level flat-map and for later flat-map aggregate surfaces."
+      ],
+      "rejected_evidence": [
+        "same emitted expression over a different inner collection",
+        "receiver mutation or substitution between outer and inner traversal",
+        "extra outer or inner filters without separate predicate-coordinate proof"
+      ],
+      "semantic_family": "hof.flat_map",
+      "status": "specified-not-modeled",
+      "summary": "Flat-map convergence requires the same nested traversal order: each outer element exposes the same inner source before emitted values are flattened.",
+      "title": "Flat-map nested iteration order"
+    },
+    {
+      "accepted_evidence": [
+        "the inner map, builder push, or yielded value computes the same expression for each matched outer/inner coordinate",
+        "literal, parameter, field, or arithmetic coordinates are preserved through comprehension, stream, and callback lowering",
+        "focused hard negatives that change the inner emitted value remain split"
+      ],
+      "detector_admission_implication": "Does not admit flat-map convergence by itself; traversal order, flatten depth, source identity, and callback purity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "hof.flat-map.emitted-value-coordinate",
+      "hard_negative_conventions": [
+        "value.coordinate",
+        "collection.shape"
+      ],
+      "implementation_guidance": [
+        "Compare emitted values after outer and inner coordinates are matched.",
+        "Reject changed inner map expressions, wrong pushed values, and derived values without a value-equivalence proof.",
+        "Keep aggregate terminals separate; this fact only describes the flattened element stream."
+      ],
+      "rejected_evidence": [
+        "same nested traversal with a changed yielded or pushed expression",
+        "callbacks that emit the outer element instead of the inner mapped value",
+        "aggregate results whose terminal operation changes the observed value"
+      ],
+      "semantic_family": "hof.flat_map",
+      "status": "specified-not-modeled",
+      "summary": "Flat-map convergence requires the callback, comprehension, or nested builder to emit the same value for every matched nested iteration coordinate.",
+      "title": "Flat-map emitted value coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "flatMap, flat_map, stream flatMap, or multi-clause comprehension semantics that flatten exactly one collection layer",
+        "nested builder loops that append inner elements into a single output collection",
+        "hard negatives where map-returning-collection or nested-list outputs remain nested"
+      ],
+      "detector_admission_implication": "Does not admit flat-map convergence by itself; it only closes the flattened-vs-nested shape boundary for separately proven traversal and value facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.flatten-depth.one-level",
+      "hard_negative_conventions": [
+        "collection.shape",
+        "collection.cardinality",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Represent exactly one layer of flattening, not recursive flattening or identity map.",
+        "Reject map-returning-collection forms unless a flat-map or join proof supplies this fact.",
+        "Reject scalar callback results for APIs whose flat-map contract requires a collection."
+      ],
+      "rejected_evidence": [
+        "map returning a nested collection without flattening",
+        "recursive or depth-unbounded flattening",
+        "scalar callback results under a collection-producing flat-map contract"
+      ],
+      "semantic_family": "collection.flatten_depth",
+      "status": "specified-not-modeled",
+      "summary": "Flat-map and nested-builder rewrites must prove exactly one collection layer is flattened so nested-list/map shapes stay behavior-defining.",
+      "title": "One-level flatten depth"
+    },
+    {
+      "accepted_evidence": [
         "map get/index lookup paired with an explicit fallback only for absent keys",
         "membership guard plus lookup returning the same fallback for absence",
         "language API evidence that separates absent-key fallback from present key with null/nil/None payload"
