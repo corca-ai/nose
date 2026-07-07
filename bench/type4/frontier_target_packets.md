@@ -34,7 +34,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 
 ## `python-loop-demorgan-all-2026-07-07` — axis `python_loop_demorgan_all`
 
-- **owner route**: `proof-fact-prerequisite` (#734) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `fragment-contract`
+- **owner route**: `team-a-detector` (#739) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `fragment-contract`
 - **breadth**: repo 7% · primary-language 25% (2/8) · dev 4 · held-out 4 · both-splits
 - **semantic claim**: Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.
 - **proof invariant**: Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.
@@ -52,7 +52,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - `nose` (focused, Python) `bench/type4/adversarial/cases/python_loop_demorgan/positive.py:1-9`
 - **current detector result**: miss=True · `nose 0.18.0` @ `2a478b76e25a` — 0 semantic families; the README all(...) function and early-return loop do not currently converge.
 - **detector admission**: `not-admitted` · none; tracked proof packet only
-- **remaining real-pair gap**: the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier and boolean-only De Morgan proof facts
+- **remaining real-pair gap**: the README/focused Python pair is still a detector miss; all required proof facts are modeled-controlled, so #739 can open a detector-admission PR that flips the positive expectation while preserving hard negatives
 - **why now**: The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary.
-- **blocked by**: no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form, De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects, effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves
+- **blocked by**: nothing
 - **notes**: This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. It is not an exact-admission request yet: the current detector returns no semantic family for the positive fixture, and the hard negatives document the proof perimeter.

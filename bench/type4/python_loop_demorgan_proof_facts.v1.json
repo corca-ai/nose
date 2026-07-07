@@ -1,12 +1,19 @@
 {
-  "evidence_count": 5,
+  "evidence_count": 11,
   "fact_ids": [
+    "python-loop-demorgan.boolean-demorgan",
     "python-loop-demorgan.effect-safety",
-    "python-loop-demorgan.iterator-identity"
+    "python-loop-demorgan.iterator-identity",
+    "python-loop-demorgan.universal-short-circuit"
   ],
   "failed": 0,
   "input_artifacts": {
     "fixtures": [
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py",
+        "sha256": "b6adf2a4c29eb0d9212b9f9744d53745b8005864d56af0eb634f502f8044930a",
+        "size_bytes": 153
+      },
       {
         "path": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
         "sha256": "e7aa6ab857cddcd72c15875383235871fc5009f00a7eb7f4636ea1be10b71e74",
@@ -26,15 +33,25 @@
         "path": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
         "sha256": "e01dc386b63b16733e28765d4920a3becbfa13dd24d84b3db33d25b3ad206a6c",
         "size_bytes": 234
+      },
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py",
+        "sha256": "4d7b11e1cb092e00e43a1e184d438062770948f95686728ea54263ed88275d68",
+        "size_bytes": 197
+      },
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py",
+        "sha256": "948a70e036361dc665e7e93b6d4ed77b0a28e3367ac1c5685b9657cc5cf5bf92",
+        "size_bytes": 160
       }
     ],
     "tool": {
       "path": "bench/type4/python_loop_demorgan_proof_facts.py",
-      "sha256": "50fe74bfd9d8abbca2f73b34719341f429a851b12adf93dad3a41b370bf20286",
-      "size_bytes": 28302
+      "sha256": "1b8757bee8d0cce07b10e5c28b103b73c99eabe1ef2030e650aba432f4715fa4",
+      "size_bytes": 46364
     }
   },
-  "passed": 5,
+  "passed": 11,
   "results": [
     {
       "case_id": "python_loop_demorgan_all_readme",
@@ -212,6 +229,284 @@
           "function": "loop_no_zero_or_one",
           "kind": "for-loop-effect",
           "supported": true
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_all_readme",
+      "check": "universal-short-circuit",
+      "evidence_id": "python-loop-demorgan-universal-positive-counterexample-loop",
+      "expect": "universal-loop",
+      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "fact_id": "python-loop-demorgan.universal-short-circuit",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+      "observed": "universal-loop",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "all_not_zero_or_one",
+          "iterable": {
+            "expr": "xs",
+            "provenance": "arg[0]:xs",
+            "supported": true
+          },
+          "kind": "all-generator"
+        },
+        "loop": {
+          "counterexample": "x == 0 or x == 1",
+          "diagnostics": [],
+          "early_false": true,
+          "fallthrough_true": true,
+          "function": "loop_no_zero_or_one",
+          "kind": "for-loop-universal",
+          "supported": true
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_vacuous_truth_boundary",
+      "check": "universal-short-circuit",
+      "evidence_id": "python-loop-demorgan-universal-negative-empty-truth",
+      "expect": "wrong-empty-truth",
+      "expectation_id": "python_loop_demorgan_vacuous_truth_stays_split",
+      "fact_id": "python-loop-demorgan.universal-short-circuit",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py",
+      "observed": "wrong-empty-truth",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "all_not_zero_or_one",
+          "iterable": {
+            "expr": "xs",
+            "provenance": "arg[0]:xs",
+            "supported": true
+          },
+          "kind": "all-generator"
+        },
+        "loop": {
+          "counterexample": "x == 0 or x == 1",
+          "diagnostics": [
+            "fallthrough return must be literal True"
+          ],
+          "early_false": true,
+          "fallthrough_true": false,
+          "function": "loop_wrong_empty_truth",
+          "kind": "for-loop-universal",
+          "supported": true
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_side_effect_boundary",
+      "check": "universal-short-circuit",
+      "evidence_id": "python-loop-demorgan-universal-negative-extra-loop-effect",
+      "expect": "unsupported-universal-loop",
+      "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+      "fact_id": "python-loop-demorgan.universal-short-circuit",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+      "observed": "unsupported-universal-loop",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "all_not_zero_or_one",
+          "iterable": {
+            "expr": "xs",
+            "provenance": "arg[0]:xs",
+            "supported": true
+          },
+          "kind": "all-generator"
+        },
+        "loop": {
+          "counterexample": null,
+          "diagnostics": [
+            "loop body must contain only the counterexample if"
+          ],
+          "early_false": false,
+          "fallthrough_true": false,
+          "function": "loop_with_observed_effect",
+          "kind": "for-loop-universal",
+          "supported": false
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_all_readme",
+      "check": "boolean-demorgan",
+      "evidence_id": "python-loop-demorgan-boolean-positive-comparison-demorgan",
+      "expect": "boolean-demorgan",
+      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "fact_id": "python-loop-demorgan.boolean-demorgan",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+      "observed": "boolean-demorgan",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "connector": "and",
+          "diagnostics": [],
+          "expression": "x != 0 and x != 1",
+          "function": "all_not_zero_or_one",
+          "kind": "all-predicate",
+          "supported": true,
+          "terms": [
+            {
+              "literal": "0",
+              "operator": "!=",
+              "variable": "x"
+            },
+            {
+              "literal": "1",
+              "operator": "!=",
+              "variable": "x"
+            }
+          ],
+          "value_returning": false
+        },
+        "loop": {
+          "connector": "or",
+          "diagnostics": [],
+          "expression": "x == 0 or x == 1",
+          "function": "loop_no_zero_or_one",
+          "kind": "loop-counterexample",
+          "supported": true,
+          "terms": [
+            {
+              "literal": "0",
+              "operator": "==",
+              "variable": "x"
+            },
+            {
+              "literal": "1",
+              "operator": "==",
+              "variable": "x"
+            }
+          ],
+          "value_returning": false
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_changed_predicate_boundary",
+      "check": "boolean-demorgan",
+      "evidence_id": "python-loop-demorgan-boolean-negative-changed-predicate",
+      "expect": "changed-predicate",
+      "expectation_id": "python_loop_demorgan_changed_predicate_stays_split",
+      "fact_id": "python-loop-demorgan.boolean-demorgan",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py",
+      "observed": "changed-predicate",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "connector": "and",
+          "diagnostics": [],
+          "expression": "x != 0 and x != 1",
+          "function": "all_not_zero_or_one",
+          "kind": "all-predicate",
+          "supported": true,
+          "terms": [
+            {
+              "literal": "0",
+              "operator": "!=",
+              "variable": "x"
+            },
+            {
+              "literal": "1",
+              "operator": "!=",
+              "variable": "x"
+            }
+          ],
+          "value_returning": false
+        },
+        "loop": {
+          "connector": "or",
+          "diagnostics": [],
+          "expression": "x != 0 or x != 1",
+          "function": "all_changed_predicate",
+          "kind": "all-predicate",
+          "supported": true,
+          "terms": [
+            {
+              "literal": "0",
+              "operator": "!=",
+              "variable": "x"
+            },
+            {
+              "literal": "1",
+              "operator": "!=",
+              "variable": "x"
+            }
+          ],
+          "value_returning": false
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_value_return_boundary",
+      "check": "boolean-demorgan",
+      "evidence_id": "python-loop-demorgan-boolean-negative-value-returning-operand",
+      "expect": "value-returning-operand",
+      "expectation_id": "python_loop_demorgan_value_return_stays_split",
+      "fact_id": "python-loop-demorgan.boolean-demorgan",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py",
+      "observed": "value-returning-operand",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "connector": "and",
+          "diagnostics": [],
+          "expression": "x != 0 and x != 1",
+          "function": "boolean_demorgan_predicate",
+          "kind": "return-predicate",
+          "supported": true,
+          "terms": [
+            {
+              "literal": "0",
+              "operator": "!=",
+              "variable": "x"
+            },
+            {
+              "literal": "1",
+              "operator": "!=",
+              "variable": "x"
+            }
+          ],
+          "value_returning": false
+        },
+        "loop": {
+          "connector": "and",
+          "diagnostics": [
+            "predicate contains call:marker",
+            "predicate must contain only local comparison operands"
+          ],
+          "expression": "x != 0 and marker(x)",
+          "function": "value_returning_operand",
+          "kind": "return-predicate",
+          "supported": false,
+          "terms": [
+            {
+              "literal": "0",
+              "operator": "!=",
+              "variable": "x"
+            }
+          ],
+          "value_returning": true
         }
       }
     }

@@ -903,23 +903,23 @@ TARGET_PACKETS = [
         "evidence_case_ids": ["python-loop-demorgan-all-readme-real-miss"],
         "real_frontier_replay_ids": ["python-loop-demorgan-readme-focused-real-pair"],
         "hard_negative_group_ids": ["python-loop-demorgan-all-proof-perimeter"],
-        "owner_route": "proof-fact-prerequisite",
-        "owner_issue": "#734",
+        "owner_route": "team-a-detector",
+        "owner_issue": "#739",
         "why_now": "The front-page README uses this same-language Type-4 example to explain "
         "semantic duplication, but the current detector still reports no semantic family for "
         "the two Python functions. Turning it into a proof-carrying packet makes the public "
         "claim auditable and gives the next defender a concrete positive plus adjacent "
         "hard-negative boundary.",
         "proof_fact_model": {
-            "model_status": "partially-modeled-controlled",
+            "model_status": "modeled-controlled",
             "facts": [
                 {
                     "fact_id": "python-loop-demorgan.universal-short-circuit",
-                    "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
+                    "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates the positive counterexample loop, wrong empty-truth boundary, and extra loop-effect closure",
                 },
                 {
                     "fact_id": "python-loop-demorgan.boolean-demorgan",
-                    "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
+                    "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates comparison-only De Morgan, changed-predicate closure, and value-returning operand closure",
                 },
                 {
                     "fact_id": "python-loop-demorgan.effect-safety",
@@ -958,16 +958,12 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
             ],
             "remaining_real_pair_gap": (
-                "the README/focused Python pair is still a detector miss; exact admission "
-                "needs reusable loop universal-quantifier and boolean-only De Morgan "
-                "proof facts"
+                "the README/focused Python pair is still a detector miss; all required "
+                "proof facts are modeled-controlled, so #739 can open a detector-admission "
+                "PR that flips the positive expectation while preserving hard negatives"
             ),
         },
-        "blocked_by": [
-            "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
-            "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-            "effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves",
-        ],
+        "blocked_by": [],
         "notes": "This packet deliberately corrects the README-facing example from prose-only "
         "claim to auditable frontier evidence. It is not an exact-admission request yet: "
         "the current detector returns no semantic family for the positive fixture, and the "

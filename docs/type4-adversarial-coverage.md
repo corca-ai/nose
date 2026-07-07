@@ -90,10 +90,11 @@ separate from admission readiness, names the next work item, and repeats stable 
 release notes. For example, numeric clamp is `admitted/resolved` only for its controlled
 detector slice; the current cross-language pair still lacks fzf-side bound-order evidence
 and shared integer-domain evidence, even though its focused executable perimeter is covered.
-The Python loop plus De Morgan packet is `blocked-on-proof` until its universal-loop and
-boolean-only De Morgan facts exist. Its iterator-identity and effect-safety facts are
-modeled for controlled evidence, and its current executable report makes the positive miss
-and adjacent split boundaries explicit.
+The Python loop plus De Morgan packet is `ready-for-defender`: universal-loop,
+boolean-only De Morgan, iterator-identity, and effect-safety facts are all modeled for
+controlled evidence. Its current executable report still makes the positive miss and
+adjacent split boundaries explicit so the detector-admission PR can flip only the
+positive gate.
 
 ## Focused cases
 
@@ -150,8 +151,9 @@ packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versu
 early-return counterexample loop; hard negatives cover vacuous truth, observed effects,
 helper-call purity, Python value-returning boolean operands, changed predicates, and
 different iterable identity. `python_loop_demorgan_proof_facts.py` machine-checks the
-iterator-identity and effect-safety source evidence against the positive,
-different-iterable, observed-effect, and helper-call fixtures.
+iterator-identity, effect-safety, universal-loop, and boolean-only De Morgan source
+evidence against the positive, different-iterable, observed-effect, helper-call,
+empty-truth, changed-predicate, and value-return fixtures.
 
 Good hard negatives attack exactly the proof invariant a rule needs:
 

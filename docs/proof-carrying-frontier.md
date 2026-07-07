@@ -79,14 +79,13 @@ has landed, with positive and hard-negative gates and 8/8 executable focused
 expectations covered, but the real-corpus pair still lacks fzf-side order evidence
 and shared integer-domain evidence. Float NaN remains a closed domain boundary.
 
-`python-loop-demorgan-all-2026-07-07` is `blocked-on-proof`: the README-facing
-Python `all(...)` plus early-return loop example is now linked to frontier evidence,
-with 7/7 executable focused expectations covered, but no detector slice is admitted
-until the loop universal-quantifier proof and boolean-only De Morgan proof are
-modeled. Its iterator-identity and effect-safety facts have controlled source
-evidence for the README fixture plus different-iterable, observed-effect, and
-helper-call hard negatives, but those facts do not admit the detector slice by
-themselves.
+`python-loop-demorgan-all-2026-07-07` is `ready-for-defender`: the README-facing
+Python `all(...)` plus early-return loop example is linked to frontier evidence, has
+7/7 executable focused expectations covered, and now has controlled source evidence for
+all four required proof facts. No detector slice is admitted yet; the next PR may flip
+the positive gate only inside the packet's proof invariant while preserving the
+vacuous-truth, observed-effect, helper-call, value-return, changed-predicate, and
+iterator-identity hard negatives.
 
 This is the intended outcome. The report makes those boundaries explicit so the next
 worker extends proof evidence instead of adding selector-shaped detector shortcuts.

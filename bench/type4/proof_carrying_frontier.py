@@ -107,9 +107,16 @@ PROOF_FACT_EVIDENCE_OBSERVATIONS = {
     "same-iterator",
     "different-iterator",
     "unsupported-iterator",
+    "universal-loop",
+    "wrong-empty-truth",
+    "unsupported-universal-loop",
     "effect-safe",
     "effectful",
     "unsupported-effect-safety",
+    "boolean-demorgan",
+    "changed-predicate",
+    "value-returning-operand",
+    "unsupported-boolean-demorgan",
 }
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
