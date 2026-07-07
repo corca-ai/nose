@@ -1180,6 +1180,17 @@ def check_artifact(path: Path, expected: str, mismatches: list[str]) -> None:
         mismatches.append(repo_rel(path))
 
 
+def check_packet_artifacts(packet_doc: dict, packets_json_out: Path, packets_md_out: Path) -> None:
+    mismatches: list[str] = []
+    check_artifact(
+        packets_json_out,
+        json.dumps(packet_doc, indent=2, sort_keys=True) + "\n",
+        mismatches,
+    )
+    check_artifact(packets_md_out, packets_markdown(packet_doc), mismatches)
+    assert not mismatches, f"frontier target packet artifacts are stale: {', '.join(mismatches)}"
+
+
 def check_artifacts(
     platform_result: dict,
     packet_doc: dict,
@@ -1195,13 +1206,9 @@ def check_artifacts(
         mismatches,
     )
     check_artifact(markdown_out, markdown_report(platform_result), mismatches)
-    check_artifact(
-        packets_json_out,
-        json.dumps(packet_doc, indent=2, sort_keys=True) + "\n",
-        mismatches,
-    )
-    check_artifact(packets_md_out, packets_markdown(packet_doc), mismatches)
-    assert not mismatches, f"frontier platform artifacts are stale: {', '.join(mismatches)}"
+    if mismatches:
+        raise AssertionError(f"frontier platform artifacts are stale: {', '.join(mismatches)}")
+    check_packet_artifacts(packet_doc, packets_json_out, packets_md_out)
 
 
 def packets_markdown(packet_doc: dict) -> str:
@@ -1509,7 +1516,14 @@ def selftest() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--selftest", action="store_true", help="run corpus-free correctness checks")
-    ap.add_argument("--check", action="store_true", help="fail if committed platform/packet artifacts are stale; skips when bench/repos is absent")
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help=(
+            "fail if committed platform/packet artifacts are stale; without bench/repos, "
+            "checks packet artifacts against the committed platform artifact"
+        ),
+    )
     ap.add_argument("--corpus", type=Path, default=pf.DEFAULT_CORPUS)
     ap.add_argument("--repos-root", type=Path, default=pf.DEFAULT_REPOS_ROOT)
     ap.add_argument("--max-bytes", type=int, default=512_000)
@@ -1535,7 +1549,22 @@ def main() -> int:
         return selftest()
 
     if args.check and not frontier_repos_available(args.corpus, args.repos_root):
-        print("skipped frontier platform artifact check — bench/repos corpus is not available")
+        platform_json_out = args.json_out or DEFAULT_JSON_OUT
+        if not platform_json_out.exists():
+            raise AssertionError(
+                f"frontier platform artifact is missing: {repo_rel(platform_json_out)}"
+            )
+        platform_result = json.loads(platform_json_out.read_text())
+        packet_doc = build_packets(platform_result, args.real_frontier, args.corpus)
+        check_packet_artifacts(
+            packet_doc,
+            args.packets_json_out or DEFAULT_PACKETS_JSON_OUT,
+            args.packets_md_out or DEFAULT_PACKETS_MD_OUT,
+        )
+        print(
+            "skipped frontier platform breadth check — bench/repos corpus is not available; "
+            "checked target packet artifacts against the committed platform artifact"
+        )
         return 0
 
     nose_binary = None

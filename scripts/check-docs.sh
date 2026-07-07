@@ -23,6 +23,7 @@ if command -v python3 >/dev/null 2>&1; then
     python3 bench/type4/frontier_platform.py --check
     python3 bench/type4/proof_carrying_frontier.py --selftest
     python3 bench/type4/proof_carrying_frontier.py --check
+    bench/type4/adversarial/scripts/type4-check
 else
     echo "skipped semantic-pack example check — python3 not installed"
 fi

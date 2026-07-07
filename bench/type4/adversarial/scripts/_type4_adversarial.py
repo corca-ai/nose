@@ -16,6 +16,7 @@ PACKETS_PATH = TYPE4_ROOT / "frontier_target_packets.v1.json"
 REAL_FRONTIER_PATH = TYPE4_ROOT / "real_frontier.v1.json"
 CASES_PATH = ROOT / "cases" / "cases.v1.json"
 CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
+REGRESSION_GATE_SEPARATOR = "::"
 HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "numeric",
     "boolean",
@@ -221,6 +222,8 @@ def validate_all(
             f"{CASE_REF_PREFIX}{case_id}"
             for case_id in group.get("positive_cases", []) + group.get("hard_negative_cases", [])
         }
+        for gate_ref in group.get("regression_gates", []):
+            _validate_regression_gate_ref(gate_ref, case_by_id, group_id, errors)
         missing_case_gates = sorted(expected_case_gates - set(group.get("regression_gates", [])))
         if missing_case_gates:
             errors.append(
@@ -234,6 +237,49 @@ def validate_all(
 def _require(item: dict[str, Any], field: str, label: str, errors: list[str]) -> None:
     if field not in item or item[field] in ("", None, []):
         errors.append(f"{label} missing required field {field}")
+
+
+def _validate_regression_gate_ref(
+    gate_ref: Any,
+    case_by_id: dict[str, dict[str, Any]],
+    group_id: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(gate_ref, str) or not gate_ref:
+        errors.append(f"hard-negative group {group_id} has an empty regression gate")
+        return
+    if gate_ref.startswith(CASE_REF_PREFIX):
+        case_id = gate_ref.removeprefix(CASE_REF_PREFIX)
+        if case_id not in case_by_id:
+            errors.append(
+                f"hard-negative group {group_id} regression gate references "
+                f"unknown focused case {case_id}"
+            )
+        return
+    if REGRESSION_GATE_SEPARATOR not in gate_ref:
+        errors.append(
+            f"hard-negative group {group_id} regression gate {gate_ref!r} must be "
+            "a focused case ref or path::symbol"
+        )
+        return
+    path_text, symbol = gate_ref.split(REGRESSION_GATE_SEPARATOR, 1)
+    if not path_text or not symbol:
+        errors.append(
+            f"hard-negative group {group_id} regression gate {gate_ref!r} must be "
+            "a focused case ref or path::symbol"
+        )
+        return
+    gate_path = REPO_ROOT / path_text
+    if not gate_path.is_file():
+        errors.append(
+            f"hard-negative group {group_id} regression gate file does not exist: {path_text}"
+        )
+        return
+    if symbol not in gate_path.read_text():
+        errors.append(
+            f"hard-negative group {group_id} regression gate symbol {symbol!r} "
+            f"not found in {path_text}"
+        )
 
 
 def _check_unique(

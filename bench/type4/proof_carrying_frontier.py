@@ -85,6 +85,7 @@ COEVO_VERDICTS = {
 }
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
+REGRESSION_GATE_SEPARATOR = "::"
 HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "numeric",
     "boolean",
@@ -339,6 +340,41 @@ def case_refs(values: list[str]) -> set[str]:
     return {case_id for ref in values if (case_id := case_ref_id(ref))}
 
 
+def validate_regression_gate_ref(
+    gate_ref: str, case_by_id: dict[str, dict[str, Any]], group_id: str
+) -> None:
+    if not isinstance(gate_ref, str) or not gate_ref:
+        raise FrontierError(f"hard-negative group {group_id} has an empty regression gate")
+    if (case_id := case_ref_id(gate_ref)) is not None:
+        if case_id not in case_by_id:
+            raise FrontierError(
+                f"hard-negative group {group_id} regression gate references "
+                f"unknown focused case {case_id}"
+            )
+        return
+    if REGRESSION_GATE_SEPARATOR not in gate_ref:
+        raise FrontierError(
+            f"hard-negative group {group_id} regression gate {gate_ref!r} must be "
+            "a focused case ref or path::symbol"
+        )
+    path_text, symbol = gate_ref.split(REGRESSION_GATE_SEPARATOR, 1)
+    if not path_text or not symbol:
+        raise FrontierError(
+            f"hard-negative group {group_id} regression gate {gate_ref!r} must be "
+            "a focused case ref or path::symbol"
+        )
+    gate_path = ROOT / path_text
+    if not gate_path.is_file():
+        raise FrontierError(
+            f"hard-negative group {group_id} regression gate file does not exist: {path_text}"
+        )
+    if symbol not in gate_path.read_text():
+        raise FrontierError(
+            f"hard-negative group {group_id} regression gate symbol {symbol!r} "
+            f"not found in {path_text}"
+        )
+
+
 def validate_focused_cases_doc(focused_cases: dict[str, Any]) -> tuple[
     dict[str, dict[str, Any]], dict[str, dict[str, Any]], set[str]
 ]:
@@ -427,6 +463,8 @@ def validate_focused_cases_doc(focused_cases: dict[str, Any]) -> tuple[
             f"{HARD_NEGATIVE_CASE_REF_PREFIX}{case_id}"
             for case_id in group["positive_cases"] + group["hard_negative_cases"]
         }
+        for gate_ref in group["regression_gates"]:
+            validate_regression_gate_ref(gate_ref, case_by_id, group_id)
         missing_case_gates = sorted(expected_case_gates - set(group["regression_gates"]))
         if missing_case_gates:
             raise FrontierError(
@@ -1107,6 +1145,7 @@ def write_artifacts(
 
 
 def selftest() -> None:
+    file_gate = "bench/type4/proof_carrying_frontier.py::selftest"
     packet = {
         "packet_id": "p",
         "candidate_axis": "axis",
@@ -1144,7 +1183,7 @@ def selftest() -> None:
             "scope": "none",
             "capabilities": ["none"],
             "positive_gates": [f"{HARD_NEGATIVE_CASE_REF_PREFIX}positive"],
-            "hard_negative_gates": [f"{HARD_NEGATIVE_CASE_REF_PREFIX}negative"],
+            "hard_negative_gates": [f"{HARD_NEGATIVE_CASE_REF_PREFIX}negative", file_gate],
             "remaining_real_pair_gap": "missing proof",
         },
         "blocked_by": ["missing proof"],
@@ -1171,6 +1210,7 @@ def selftest() -> None:
                 "positive_cases": ["positive"],
                 "hard_negative_cases": ["negative"],
                 "regression_gates": [
+                    file_gate,
                     f"{HARD_NEGATIVE_CASE_REF_PREFIX}positive",
                     f"{HARD_NEGATIVE_CASE_REF_PREFIX}negative",
                 ],
@@ -1298,6 +1338,17 @@ def selftest() -> None:
             focused_cases,
         )
         raise AssertionError("unknown hard-negative group was not detected")
+    except FrontierError:
+        pass
+    try:
+        bad_cases = json.loads(json.dumps(focused_cases))
+        bad_cases["hard_negative_groups"][0]["regression_gates"] = [
+            "bench/type4/proof_carrying_frontier.py::missing_selftest_symbol",
+            f"{HARD_NEGATIVE_CASE_REF_PREFIX}positive",
+            f"{HARD_NEGATIVE_CASE_REF_PREFIX}negative",
+        ]
+        validate_hard_negative_linkage(packets, bad_cases)
+        raise AssertionError("unknown file regression gate symbol was not detected")
     except FrontierError:
         pass
     no_model = dict(packet)
