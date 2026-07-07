@@ -96,6 +96,11 @@ run_type4_frontier_evidence_checks() {
     python3 bench/type4/proof_carrying_frontier.py --check
 }
 
+run_type4_executable_expectations() {
+    need_cmd python3
+    NOSE_BIN="${1}" bench/type4/adversarial/scripts/type4-exec-check
+}
+
 run_regression_checker_selftests() {
     need_cmd python3
     python3 scripts/query-regression-harness.py --self-test
@@ -162,6 +167,10 @@ if [[ "$mode" == "fast" ]]; then
     step "nose-cli tests"
     cargo test -p nose-cli
 
+    step "Type-4 executable focused expectations"
+    cargo build -p nose-cli
+    run_type4_executable_expectations target/debug/nose
+
     step "docs wiki connectivity (awiki)"
     run_docs_wiki_lint
 
@@ -177,6 +186,9 @@ cargo build --release
 
 step "semantic-pack example conformance"
 target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
+
+step "Type-4 executable focused expectations"
+run_type4_executable_expectations target/release/nose
 
 step "test (release)"
 cargo test --release

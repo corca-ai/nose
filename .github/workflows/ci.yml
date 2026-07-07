@@ -77,6 +77,8 @@ jobs:
         run: cargo build --release
       - name: semantic-pack example conformance
         run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
+      - name: Type-4 executable focused expectations
+        run: NOSE_BIN=target/release/nose bench/type4/adversarial/scripts/type4-exec-check
       - name: test
         run: cargo test --release
       - name: duplication gate (nose on itself)

@@ -245,14 +245,17 @@ frontier platform.
 
 ```sh
 bench/type4/adversarial/scripts/type4-check
+NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
 
 `type4-check` validates target packets, real-frontier evidence links, focused fixture
-paths, and packet-level hard-negative groups. `type4-report` summarizes packet,
-focused-case, and hard-negative group coverage. `type4-next` prints task cards directly
-from `frontier_target_packets.v1.json`.
+paths, and packet-level hard-negative groups. `type4-exec-check` is the executable
+perimeter gate: it runs declared focused-case `nose query` expectations and fails when an
+admitted positive or hard-negative split drifts. `type4-report` summarizes packet,
+focused-case, executable expectation, and hard-negative group coverage. `type4-next` prints
+task cards directly from `frontier_target_packets.v1.json`.
 
 When `nose verify --leads` has produced a leads JSON file, use
 `bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --axis <axis> --draft-json`

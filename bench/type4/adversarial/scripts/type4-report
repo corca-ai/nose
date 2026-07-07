@@ -8,6 +8,7 @@ from collections import Counter
 
 from _type4_adversarial import (
     case_items,
+    executable_expectation_items,
     hard_negative_groups,
     load_all,
     packet_items,
@@ -36,9 +37,11 @@ def main() -> int:
 
     packets = packet_items(packet_doc)
     focused_cases = case_items(cases)
+    expectations = executable_expectation_items(cases)
     groups = hard_negative_groups(cases)
     print(f"target packets: {len(packets)}")
     print(f"focused cases: {len(focused_cases)}")
+    print(f"executable expectations: {len(expectations)}")
     print(f"hard-negative groups: {len(groups)}")
     print(f"real-frontier items: {len(real_frontier.get('items', []))}")
 
@@ -49,6 +52,10 @@ def main() -> int:
     print_counter(
         "focused cases by semantic family",
         Counter(case["semantic_family"] for case in focused_cases),
+    )
+    print_counter(
+        "executable expectations by family",
+        Counter(case["semantic_family"] for case, _expectation in expectations),
     )
     print_counter(
         "hard-negative groups by family",

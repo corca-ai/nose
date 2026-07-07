@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+"""Execute Type-4 focused-case query expectations."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+from _type4_adversarial import (
+    REPO_ROOT,
+    executable_expectation_items,
+    load_all,
+    validate_all,
+)
+
+
+TOOL_VERSION = "type4-exec-check/1"
+
+
+def query_families(payload: object) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [family for family in payload if isinstance(family, dict)]
+    if isinstance(payload, dict) and isinstance(payload.get("families"), list):
+        return [family for family in payload["families"] if isinstance(family, dict)]
+    raise ValueError("nose query JSON must be a list or an object with a families array")
+
+
+def run_query(nose: Path, expectation: dict[str, Any]) -> list[dict[str, Any]]:
+    query = expectation.get("query") or {}
+    mode = query.get("mode", "semantic")
+    min_size = str(query.get("min_size", 1))
+    min_lines = str(query.get("min_lines", 1))
+    cmd = [
+        str(nose),
+        "query",
+        str(REPO_ROOT / expectation["fixture"]),
+        "all",
+        "top=0",
+        "--mode",
+        mode,
+        "--format",
+        "json",
+        "--min-size",
+        min_size,
+        "--min-lines",
+        min_lines,
+    ]
+    proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    return query_families(json.loads(proc.stdout or "[]"))
+
+
+def loc_file(loc: dict[str, Any]) -> Path | None:
+    value = loc.get("file")
+    if not isinstance(value, str):
+        return None
+    path = Path(value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    return path.resolve()
+
+
+def loc_bounds(loc: dict[str, Any]) -> tuple[int, int] | None:
+    start = loc.get("start_line", loc.get("start"))
+    end = loc.get("end_line", loc.get("end"))
+    if start is None or end is None:
+        return None
+    return int(start), int(end)
+
+
+def overlaps(a: tuple[int, int], b: tuple[int, int]) -> bool:
+    return not (a[1] < b[0] or b[1] < a[0])
+
+
+def member_matches_loc(member: dict[str, Any], loc: dict[str, Any]) -> bool:
+    expected_file = (REPO_ROOT / member["file"]).resolve()
+    if loc_file(loc) != expected_file:
+        return False
+    if member.get("name") and loc.get("name") != member["name"]:
+        return False
+    if "start_line" in member or "end_line" in member:
+        if "start_line" not in member or "end_line" not in member:
+            return False
+        bounds = loc_bounds(loc)
+        if bounds is None:
+            return False
+        if not overlaps((int(member["start_line"]), int(member["end_line"])), bounds):
+            return False
+    return True
+
+
+def family_matches_members(family: dict[str, Any], members: list[dict[str, Any]]) -> bool:
+    locations = family.get("locations", [])
+    if not isinstance(locations, list):
+        return False
+    return all(
+        any(isinstance(loc, dict) and member_matches_loc(member, loc) for loc in locations)
+        for member in members
+    )
+
+
+def matching_family(families: list[dict[str, Any]], members: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for family in families:
+        if family_matches_members(family, members):
+            return family
+    return None
+
+
+def result_for(case: dict[str, Any], expectation: dict[str, Any], families: list[dict[str, Any]]) -> dict[str, Any]:
+    match = matching_family(families, expectation["members"])
+    observed = "same-family" if match is not None else "split"
+    expected = expectation["expect"]
+    return {
+        "case_id": case["id"],
+        "expectation_id": expectation["id"],
+        "expect": expected,
+        "fixture": expectation["fixture"],
+        "observed": observed,
+        "ok": observed == expected,
+        "matching_family": summarize_family(match) if match is not None else None,
+    }
+
+
+def summarize_family(family: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "value": family.get("value"),
+        "witness": family.get("witness"),
+        "locations": [
+            {
+                "file": loc.get("file"),
+                "start": loc.get("start_line", loc.get("start")),
+                "end": loc.get("end_line", loc.get("end")),
+                "name": loc.get("name"),
+            }
+            for loc in family.get("locations", [])
+            if isinstance(loc, dict)
+        ],
+    }
+
+
+def default_nose() -> Path:
+    if os.environ.get("NOSE_BIN"):
+        return Path(os.environ["NOSE_BIN"])
+    debug = REPO_ROOT / "target" / "debug" / "nose"
+    if debug.exists():
+        return debug
+    return REPO_ROOT / "target" / "release" / "nose"
+
+
+def run_expectations(
+    nose: Path, only_case: str | None = None, only_expectation: str | None = None
+) -> dict[str, Any]:
+    packet_doc, cases, real_frontier = load_all()
+    errors = validate_all(packet_doc, cases, real_frontier)
+    if errors:
+        raise SystemExit("type4 structural check failed before execution:\n" + "\n".join(errors))
+
+    items = executable_expectation_items(cases)
+    if only_case:
+        items = [(case, exp) for case, exp in items if case["id"] == only_case]
+    if only_expectation:
+        items = [(case, exp) for case, exp in items if exp["id"] == only_expectation]
+    if not items:
+        raise SystemExit("no executable expectations matched the filters")
+
+    query_cache: dict[tuple[str, str, int, int], list[dict[str, Any]]] = {}
+    results = []
+    for case, expectation in items:
+        query = expectation.get("query") or {}
+        key = (
+            expectation["fixture"],
+            query.get("mode", "semantic"),
+            int(query.get("min_size", 1)),
+            int(query.get("min_lines", 1)),
+        )
+        if key not in query_cache:
+            query_cache[key] = run_query(nose, expectation)
+        results.append(result_for(case, expectation, query_cache[key]))
+
+    failed = [result for result in results if not result["ok"]]
+    return {
+        "schema_version": 1,
+        "tool_version": TOOL_VERSION,
+        "nose_binary": str(nose),
+        "expectation_count": len(results),
+        "query_count": len(query_cache),
+        "passed": len(results) - len(failed),
+        "failed": len(failed),
+        "results": results,
+    }
+
+
+def print_human(report: dict[str, Any]) -> None:
+    prefix = "ok" if report["failed"] == 0 else "FAIL"
+    print(
+        f"{prefix}: "
+        f"{report['passed']}/{report['expectation_count']} executable Type-4 "
+        f"expectations across {report['query_count']} query runs"
+    )
+    for result in report["results"]:
+        status = "ok" if result["ok"] else "FAIL"
+        print(
+            f"  {status} {result['expectation_id']} "
+            f"({result['case_id']}): expected {result['expect']}, observed {result['observed']}"
+        )
+
+
+def selftest() -> None:
+    member_a = {"file": "a.py", "name": "f"}
+    member_b = {"file": "a.py", "start_line": 10, "end_line": 12}
+    family = {
+        "locations": [
+            {"file": str(REPO_ROOT / "a.py"), "name": "f", "start": 1, "end": 3},
+            {"file": "a.py", "name": None, "start": 11, "end": 11},
+        ]
+    }
+    assert family_matches_members(family, [member_a, member_b])
+    assert not family_matches_members(
+        family, [member_a, {"file": "a.py", "start_line": 20, "end_line": 22}]
+    )
+    print("selftest OK")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--nose", type=Path, default=default_nose())
+    parser.add_argument("--case", help="run one focused case id")
+    parser.add_argument("--expectation", help="run one expectation id")
+    parser.add_argument("--json", action="store_true", help="print JSON report")
+    parser.add_argument("--json-out", type=Path, help="write JSON report")
+    parser.add_argument("--selftest", action="store_true", help="run helper self-test")
+    args = parser.parse_args()
+
+    if args.selftest:
+        selftest()
+        return 0
+    if not args.nose.exists():
+        print(f"error: nose binary not found: {args.nose}", file=sys.stderr)
+        return 2
+
+    report = run_expectations(args.nose, args.case, args.expectation)
+    if args.json_out:
+        args.json_out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print_human(report)
+    return 1 if report["failed"] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

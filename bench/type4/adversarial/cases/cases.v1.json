@@ -354,6 +354,26 @@
       "claim": "Clamp composition is not sound when lo<=hi is not proven.",
       "mutation": "remove or invert the bound-order proof",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py", "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
+      "executable_expectations": [
+        {
+          "id": "clamp_unproven_ternary_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_minmax_guarded"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_ternary_unproven"}
+          ]
+        },
+        {
+          "id": "clamp_swapped_ternary_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_minmax_guarded"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_ternary_swapped_bounds"}
+          ]
+        }
+      ],
       "evidence": "Focused tests reject missing and non-exiting guards, swapped bounds, wrong nesting, unproven ternary clamps, and unproven Rust .clamp(lo, hi); numeric_clamp smoke reports 0/4 hard-negative false merges and the bridge corpus verifies with 0 false merges."
     },
     {
@@ -363,6 +383,17 @@
       "claim": "Floating-point NaN/min/max behavior is not covered by integer clamp facts.",
       "mutation": "numeric domain becomes floatish",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py", "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py"],
+      "executable_expectations": [
+        {
+          "id": "clamp_float_ternary_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_minmax_guarded"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_ternary_float"}
+          ]
+        }
+      ],
       "evidence": "Float-annotated clamp min/max and ternary forms remain outside the integer Clamp canon; numeric_clamp smoke includes a float boundary hard negative and the bridge corpus verifies with 0 false merges."
     },
     {
@@ -371,6 +402,17 @@
       "semantic_family": "numeric.clamp",
       "claim": "A two-comparison clamp can converge with proof-backed min/max clamp composition under the same integer lo<=hi proof.",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py"],
+      "executable_expectations": [
+        {
+          "id": "clamp_python_guarded_ternary_matches_minmax",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py",
+          "expect": "same-family",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_minmax_guarded"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_ternary_guarded"}
+          ]
+        }
+      ],
       "evidence": "Focused equivalence tests prove the guarded lower-first Python ternary clamp converges with proof-backed min/max Clamp while unproven, swapped-bound, and float ternaries stay split. The bridge fixture also keeps the upper-first spelling visible as adjacent corpus evidence, not as a broader admission claim."
     },
     {
@@ -379,6 +421,26 @@
       "semantic_family": "numeric.clamp",
       "claim": "Language library clamp forms can converge with proof-backed min/max clamp composition when the same integer bound proof is available.",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
+      "executable_expectations": [
+        {
+          "id": "clamp_rust_literal_method_matches_literal_minmax",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+          "expect": "same-family",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "name": "clamp_literal_method"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "name": "clamp_literal_minmax"}
+          ]
+        },
+        {
+          "id": "clamp_rust_guarded_method_matches_guarded_minmax",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs",
+          "expect": "same-family",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "start_line": 5, "end_line": 9},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "start_line": 12, "end_line": 16}
+          ]
+        }
+      ],
       "evidence": "Focused equivalence tests prove literal ordered Rust .clamp converges with literal min/max Clamp, and guarded Rust .clamp converges with guarded Rust x.max(lo).min(hi) under the same lo<=hi proof. The bridge corpus verifies that unproven, custom-method, and float boundaries stay split."
     },
     {
@@ -388,6 +450,26 @@
       "claim": "A method named clamp is not a numeric library clamp without a proven numeric receiver and bound-order proof.",
       "mutation": "custom receiver method or parameter bounds without lo<=hi proof",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
+      "executable_expectations": [
+        {
+          "id": "clamp_rust_unproven_method_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "name": "clamp_literal_method"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "name": "clamp_unproven_method"}
+          ]
+        },
+        {
+          "id": "clamp_rust_custom_method_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "name": "clamp_literal_method"},
+            {"file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs", "name": "clamp_custom_method"}
+          ]
+        }
+      ],
       "evidence": "Focused equivalence tests keep unproven Rust x.clamp(lo, hi) and custom Wrap::clamp forms split from literal/proof-backed Clamp values; the bridge corpus verifies with 0 false merges."
     },
     {
@@ -396,6 +478,17 @@
       "semantic_family": "python.loop_demorgan_all",
       "claim": "A Python all(...) universal predicate can converge with an early-return loop that returns False on the De Morgan counterexample and True after exhaustion.",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/positive.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_positive_currently_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py", "name": "all_not_zero_or_one"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py", "name": "loop_no_zero_or_one"}
+          ]
+        }
+      ],
       "evidence": "The README-shaped positive pair is a current detector miss, so the frontier packet records it as proof-fact-prerequisite rather than admitted behavior."
     },
     {
@@ -405,6 +498,17 @@
       "claim": "Changing the empty-iterable result breaks all(...) vacuous truth.",
       "mutation": "fallthrough return True -> False",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_vacuous_truth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py", "name": "all_not_zero_or_one"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py", "name": "loop_wrong_empty_truth"}
+          ]
+        }
+      ],
       "evidence": "The hard-negative fixture includes loop_wrong_empty_truth, which returns False for empty input while all(...) returns True."
     },
     {
@@ -414,6 +518,17 @@
       "claim": "Observed predicate or loop-body effects prevent treating the loop and all(...) as pure boolean rewrites.",
       "mutation": "insert observed append before the counterexample return",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_side_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py", "name": "all_not_zero_or_one"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py", "name": "loop_with_observed_effect"}
+          ]
+        }
+      ],
       "evidence": "The hard-negative fixture uses the same `(xs, seen)` signature on both functions; loop_with_observed_effect mutates the seen list, so the split depends on observable effects rather than arity."
     },
     {
@@ -423,6 +538,17 @@
       "claim": "Python and/or can return operand payloads in value contexts, so this packet's De Morgan step is safe only for boolean-only predicates.",
       "mutation": "boolean predicate result is replaced by a value-returning `and` operand",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/value_return.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_value_return_stays_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py", "name": "boolean_demorgan_predicate"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/value_return.py", "name": "value_returning_operand"}
+          ]
+        }
+      ],
       "evidence": "The hard-negative fixture includes value_returning_operand and marker so future admission must prove boolean-only operands rather than rewriting value-returning `and` payloads."
     },
     {
@@ -432,6 +558,17 @@
       "claim": "Changing the De Morgan predicate changes behavior even when the surface still contains != and or.",
       "mutation": "`x != 0 and x != 1` -> `x != 0 or x != 1`",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py", "name": "all_not_zero_or_one"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py", "name": "all_changed_predicate"}
+          ]
+        }
+      ],
       "evidence": "The hard-negative fixture includes all_changed_predicate, which is true for every scalar except impossible simultaneous 0 and 1."
     },
     {
@@ -441,6 +578,17 @@
       "claim": "The loop and all(...) must consume the same iterable; changing the iterated receiver changes behavior.",
       "mutation": "loop iterates ys while all(...) iterates xs",
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_iterator_identity_stays_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py", "name": "all_not_zero_or_one"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py", "name": "loop_different_iterable"}
+          ]
+        }
+      ],
       "evidence": "The hard-negative fixture uses the same `(xs, ys)` signature on both functions but drives the loop from ys, so future admission must prove same-iterator identity instead of matching only predicate shape."
     },
     {
