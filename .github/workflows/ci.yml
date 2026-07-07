@@ -82,6 +82,9 @@ jobs:
           NOSE_BIN=target/release/nose bench/type4/adversarial/scripts/type4-exec-check \
             --stable-report \
             --json-out bench/type4/executable_expectations.v1.json
+          NOSE_BIN=target/release/nose python3 bench/type4/real_frontier_replay.py \
+            --stable-report \
+            --check
           python3 bench/type4/proof_carrying_frontier.py --check
       - name: test
         run: cargo test --release

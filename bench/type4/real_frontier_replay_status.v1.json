@@ -1,0 +1,57 @@
+{
+  "entry_count": 2,
+  "failed": 0,
+  "input_artifacts": {
+    "manifest": {
+      "path": "bench/type4/real_frontier_replay.v1.json",
+      "sha256": "67ddd052b1ab742ec130a5b41dad099ee36a9fae158e56fc0ede9c335bb5ff46",
+      "size_bytes": 2795
+    },
+    "real_frontier": {
+      "path": "bench/type4/real_frontier.v1.json",
+      "sha256": "dd612ae7fa6ef206d39c2eacc9fb35db41c5651c5174091d3c94533e07bcf6da",
+      "size_bytes": 70496
+    },
+    "target_packets": {
+      "path": "bench/type4/frontier_target_packets.v1.json",
+      "sha256": "75cc7ca74c8874df1a2065e53cfdba0cc6e334bf649bca51b7467d385a31d20c",
+      "size_bytes": 22199
+    }
+  },
+  "nose_binary": "nose",
+  "passed": 2,
+  "query_count": 2,
+  "results": [
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "numeric-clamp-minmax-ternary-real-miss",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "numeric-clamp-2026-06-06",
+      "replay_id": "numeric-clamp-boltons-fzf-real-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "python-loop-demorgan-all-readme-real-miss",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "python-loop-demorgan-all-2026-07-07",
+      "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+      "status": "passed"
+    }
+  ],
+  "schema_version": 1,
+  "tool_version": "real-frontier-replay/1",
+  "unavailable": 0
+}

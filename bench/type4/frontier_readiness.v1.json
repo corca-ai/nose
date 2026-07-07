@@ -150,6 +150,37 @@
           "proof_fact_model_status": "specified-not-modeled",
           "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
           "readiness_status": "blocked-on-proof",
+          "real_frontier_replay": {
+            "by_replay": [
+              {
+                "case_id": "python-loop-demorgan-all-readme-real-miss",
+                "expect": "split",
+                "observed": "split",
+                "proof_gap": [
+                  "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
+                  "boolean-only De Morgan and effect-safety proof facts are not modeled"
+                ],
+                "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "passed",
+            "declared_replay_count": 1,
+            "declared_replay_ids": [
+              "python-loop-demorgan-readme-focused-real-pair"
+            ],
+            "failed_replay_count": 0,
+            "failed_replay_ids": [],
+            "missing_replay_count": 0,
+            "missing_replay_ids": [],
+            "packet_id": "python-loop-demorgan-all-2026-07-07",
+            "passed_replay_count": 1,
+            "passed_replay_ids": [
+              "python-loop-demorgan-readme-focused-real-pair"
+            ],
+            "unavailable_replay_count": 0,
+            "unavailable_replay_ids": []
+          },
           "release_note": "python-loop-demorgan-all-2026-07-07: blocked on proof evidence for python_loop_demorgan_all; no detector admission is claimed until these facts are satisfied: python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety.",
           "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
           "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
@@ -300,6 +331,37 @@
           "proof_fact_model_status": "modeled-for-controlled-evidence",
           "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
           "readiness_status": "detector-admitted-controlled",
+          "real_frontier_replay": {
+            "by_replay": [
+              {
+                "case_id": "numeric-clamp-minmax-ternary-real-miss",
+                "expect": "split",
+                "observed": "split",
+                "proof_gap": [
+                  "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
+                  "the boltons/fzf pair still has no shared integer-only domain proof"
+                ],
+                "replay_id": "numeric-clamp-boltons-fzf-real-pair",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "passed",
+            "declared_replay_count": 1,
+            "declared_replay_ids": [
+              "numeric-clamp-boltons-fzf-real-pair"
+            ],
+            "failed_replay_count": 0,
+            "failed_replay_ids": [],
+            "missing_replay_count": 0,
+            "missing_replay_ids": [],
+            "packet_id": "numeric-clamp-2026-06-06",
+            "passed_replay_count": 1,
+            "passed_replay_ids": [
+              "numeric-clamp-boltons-fzf-real-pair"
+            ],
+            "unavailable_replay_count": 0,
+            "unavailable_replay_ids": []
+          },
           "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss.",
           "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
           "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
@@ -450,6 +512,37 @@
           "proof_fact_model_status": "modeled-for-controlled-evidence",
           "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
           "readiness_status": "detector-admitted-controlled",
+          "real_frontier_replay": {
+            "by_replay": [
+              {
+                "case_id": "numeric-clamp-minmax-ternary-real-miss",
+                "expect": "split",
+                "observed": "split",
+                "proof_gap": [
+                  "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
+                  "the boltons/fzf pair still has no shared integer-only domain proof"
+                ],
+                "replay_id": "numeric-clamp-boltons-fzf-real-pair",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "passed",
+            "declared_replay_count": 1,
+            "declared_replay_ids": [
+              "numeric-clamp-boltons-fzf-real-pair"
+            ],
+            "failed_replay_count": 0,
+            "failed_replay_ids": [],
+            "missing_replay_count": 0,
+            "missing_replay_ids": [],
+            "packet_id": "numeric-clamp-2026-06-06",
+            "passed_replay_count": 1,
+            "passed_replay_ids": [
+              "numeric-clamp-boltons-fzf-real-pair"
+            ],
+            "unavailable_replay_count": 0,
+            "unavailable_replay_ids": []
+          },
           "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss.",
           "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
           "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
@@ -586,6 +679,37 @@
           "proof_fact_model_status": "specified-not-modeled",
           "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
           "readiness_status": "blocked-on-proof",
+          "real_frontier_replay": {
+            "by_replay": [
+              {
+                "case_id": "python-loop-demorgan-all-readme-real-miss",
+                "expect": "split",
+                "observed": "split",
+                "proof_gap": [
+                  "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
+                  "boolean-only De Morgan and effect-safety proof facts are not modeled"
+                ],
+                "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "passed",
+            "declared_replay_count": 1,
+            "declared_replay_ids": [
+              "python-loop-demorgan-readme-focused-real-pair"
+            ],
+            "failed_replay_count": 0,
+            "failed_replay_ids": [],
+            "missing_replay_count": 0,
+            "missing_replay_ids": [],
+            "packet_id": "python-loop-demorgan-all-2026-07-07",
+            "passed_replay_count": 1,
+            "passed_replay_ids": [
+              "python-loop-demorgan-readme-focused-real-pair"
+            ],
+            "unavailable_replay_count": 0,
+            "unavailable_replay_ids": []
+          },
           "release_note": "python-loop-demorgan-all-2026-07-07: blocked on proof evidence for python_loop_demorgan_all; no detector admission is claimed until these facts are satisfied: python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety.",
           "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
           "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
@@ -611,7 +735,25 @@
     "detector_admitted_controlled_is_not_real_pair_admission": true,
     "exact_detector_admission_opens_only_from": "ready-for-defender",
     "fresh_executable_witness_coverage_required_for_ready_rows": true,
-    "non_ready_rows_do_not_claim_exact_real_pair_admission": true
+    "non_ready_rows_do_not_claim_exact_real_pair_admission": true,
+    "passing_real_frontier_replay_required_for_ready_rows": true
+  },
+  "real_frontier_replay": {
+    "declared_replay_count": 2,
+    "failed": 0,
+    "fully_replayed_packet_count": 2,
+    "nose_binary": "nose",
+    "packet_count": 2,
+    "packet_count_by_coverage": {
+      "passed": 2
+    },
+    "passed": 2,
+    "query_count": 2,
+    "report_failed_replay_ids": [],
+    "report_missing_replay_ids": [],
+    "report_unavailable_replay_ids": [],
+    "result_count": 2,
+    "unavailable": 0
   },
   "schema_version": 1,
   "source_artifacts": {
@@ -635,10 +777,20 @@
       "sha256": "dd612ae7fa6ef206d39c2eacc9fb35db41c5651c5174091d3c94533e07bcf6da",
       "size_bytes": 70496
     },
+    "real_frontier_replay": {
+      "path": "bench/type4/real_frontier_replay.v1.json",
+      "sha256": "67ddd052b1ab742ec130a5b41dad099ee36a9fae158e56fc0ede9c335bb5ff46",
+      "size_bytes": 2795
+    },
+    "real_frontier_replay_status": {
+      "path": "bench/type4/real_frontier_replay_status.v1.json",
+      "sha256": "c3e57eb3c1094fa5340435c8f7de418b5ec87f92ea94118582f92b874ea66e16",
+      "size_bytes": 1618
+    },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "f33caeb443546480806389e9929ce55827f0992cf46af5756d726d9c1c2fbcd8",
-      "size_bytes": 22007
+      "sha256": "75cc7ca74c8874df1a2065e53cfdba0cc6e334bf649bca51b7467d385a31d20c",
+      "size_bytes": 22199
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",
