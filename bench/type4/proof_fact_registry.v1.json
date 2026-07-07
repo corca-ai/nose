@@ -265,6 +265,130 @@
     },
     {
       "accepted_evidence": [
+        "map get/index lookup paired with an explicit fallback only for absent keys",
+        "membership guard plus lookup returning the same fallback for absence",
+        "language API evidence that separates absent-key fallback from present key with null/nil/None payload"
+      ],
+      "detector_admission_implication": "Does not admit map-default convergence by itself; receiver identity, key/default coordinates, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "map.default.absence-fallback",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Model only absence-default APIs or guards whose fallback fires on missing keys.",
+        "Keep nullish/truthy defaulting and present-null payload semantics outside this fact.",
+        "Require a separate API identity proof for language helpers such as Python get, JS Map.get with has, Java Map.getOrDefault, Rust HashMap lookup, and Swift dictionary default subscripts."
+      ],
+      "rejected_evidence": [
+        "nullish coalescing on a map read without absent-key proof",
+        "truthy/default idioms that treat present falsey values as absent",
+        "custom helper names without API identity evidence"
+      ],
+      "semantic_family": "map.default_lookup",
+      "status": "specified-not-modeled",
+      "summary": "Map-default lookup may converge only when the fallback is proven to represent absent-key behavior, not nullish or truthy value replacement.",
+      "title": "Map default absence fallback"
+    },
+    {
+      "accepted_evidence": [
+        "the compared lookups read from the same local map binding, imported immutable map, or statically proven map literal source",
+        "module/export/static field provenance for imported literal maps",
+        "no alias changes the receiver between construction/import and lookup"
+      ],
+      "detector_admission_implication": "Does not admit map-default convergence by itself; it only proves that both sides query the same map value source.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "map.receiver.source-identity",
+      "hard_negative_conventions": [
+        "loop.iterator-identity",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Reuse import/projection evidence for cross-file literal map sources.",
+        "Reject same-shaped literals or same variable names that do not share source provenance.",
+        "Keep different map receivers split even when key and default literals match."
+      ],
+      "rejected_evidence": [
+        "different map bindings or imported exports",
+        "same-shaped map literals with no shared provenance",
+        "receiver aliases whose source cannot be traced"
+      ],
+      "semantic_family": "map.default_lookup",
+      "status": "specified-not-modeled",
+      "summary": "Map-default surfaces must query the same proven map source before key/default and fallback semantics can be compared.",
+      "title": "Map receiver source identity"
+    },
+    {
+      "accepted_evidence": [
+        "the lookup key coordinates are equal on both surfaces",
+        "the fallback/default value coordinates are equal on both surfaces",
+        "literal, imported, or parameter coordinates are preserved through lowering"
+      ],
+      "detector_admission_implication": "Does not admit map-default convergence by itself; it only closes the key/default coordinate boundary.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "map.default.key-fallback-coordinate",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "boolean.truth-table"
+      ],
+      "implementation_guidance": [
+        "Treat key and fallback as independent coordinates.",
+        "Reject swapped, changed, or derived keys/defaults unless a separate value proof connects them.",
+        "Keep wrong-key and wrong-default hard negatives adjacent to any admitted map-default surface."
+      ],
+      "rejected_evidence": [
+        "same receiver with a changed lookup key",
+        "same receiver/key with a changed fallback value",
+        "derived keys or defaults without value-equivalence proof"
+      ],
+      "semantic_family": "map.default_lookup",
+      "status": "specified-not-modeled",
+      "summary": "Map-default convergence requires the same map receiver, the same lookup key, and the same fallback/default value coordinates.",
+      "title": "Map key/default coordinate identity"
+    },
+    {
+      "accepted_evidence": [
+        "no writes, updates, deletes, or mutating method calls can affect the map receiver before lookup",
+        "imported literal maps are immutable or treated as frozen evidence",
+        "guard and lookup read the same receiver state"
+      ],
+      "detector_admission_implication": "Does not admit map-default convergence by itself; it only closes mutation and stale-receiver boundaries.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "map.receiver.no-intervening-mutation",
+      "hard_negative_conventions": [
+        "boolean.effect-safety",
+        "collection.cardinality"
+      ],
+      "implementation_guidance": [
+        "Reject receiver mutation between map construction/import and lookup.",
+        "Reject guard/read pairs if mutation can happen between the guard and the read.",
+        "Treat cross-file imported maps as stable only when import/export evidence proves immutable literal provenance."
+      ],
+      "rejected_evidence": [
+        "assignment or update to the map receiver before lookup",
+        "helper calls that may mutate the map receiver",
+        "guarded lookups with intervening writes"
+      ],
+      "semantic_family": "map.default_lookup",
+      "status": "specified-not-modeled",
+      "summary": "Map-default surfaces require a stable receiver state; mutation between receiver proof and lookup is behavior-defining.",
+      "title": "Map receiver mutation closure"
+    },
+    {
+      "accepted_evidence": [
         "comparison predicates whose results are booleans",
         "the same element variable and the same literal/value coordinates on both sides",
         "a boolean context where operand values are not observed"

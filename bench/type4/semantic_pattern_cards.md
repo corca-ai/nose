@@ -13,6 +13,7 @@ proof-carrying frontier gates required by the linked pattern.
 | pattern | status | proof facts | surfaces |
 |---|---|---:|---:|
 | `numeric.clamp.proven-integer-bounds` | `controlled-slice-admitted` | 2 | 4 |
+| `map.default.absence-lookup` | `pattern-carded` | 4 | 5 |
 
 ## `numeric.clamp.proven-integer-bounds`
 
@@ -33,3 +34,24 @@ Integer clamp surfaces are equivalent only when they compute the same bounded va
 | Rust | integer .clamp(lo, hi) when literal or guard evidence proves lo <= hi | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge |
 | Go | generic min/max Constrain-style helpers after integer-domain and bound-order proof | `open` | bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06 |
 | JS/TS | number-domain min/max clamp forms until float/NaN boundaries are excluded | `closed` |  |
+
+## `map.default.absence-lookup`
+
+**Absence-preserving map default lookup**
+
+Map-default lookup surfaces are equivalent only when they read the same stable map source with the same key and fallback, and the fallback is proven to mean absent-key behavior.
+
+- status: `pattern-carded`
+- rationale: The frontier platform records map_default_lookup as a high-breadth multi-language candidate with focused cross-file evidence and adjacent mutation/wrong-map negatives; carding it keeps future work on map semantics instead of API spelling.
+- required facts: `map.default.absence-fallback`, `map.receiver.source-identity`, `map.default.key-fallback-coordinate`, `map.receiver.no-intervening-mutation`
+- hard-negative templates: `map.receiver-mutation`, `map.wrong-receiver`, `map.changed-key`, `map.changed-fallback`, `map.nullish-vs-absent-default`, `protocol-boundary.api-identity`
+- boundaries: absent-key fallback is distinct from nullish, truthy, or falsey value replacement; the map receiver must be the same proven source, including imported immutable literal sources; the lookup key and fallback/default coordinates must match independently; receiver mutation between construction/import, guard, and lookup is behavior-defining
+- evidence: `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_js_ts_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_java_static_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_imported_rust_const_literal`, `bench/type4/adversarial/cases/cases.v1.json::map_default_mutated_receiver`, `bench/type4/adversarial/cases/cases.v1.json::map_default_wrong_map`, `bench/type4/proof_fact_registry.v1.json::map.default.absence-fallback`, `bench/type4/proof_fact_registry.v1.json::map.receiver.source-identity`, `bench/type4/proof_fact_registry.v1.json::map.default.key-fallback-coordinate`, `bench/type4/proof_fact_registry.v1.json::map.receiver.no-intervening-mutation`
+
+| language | surface | status | evidence |
+|---|---|---|---|
+| Python | dict.get and membership-guarded literal/imported map lookup | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_literal |
+| JS/TS | named imports from unmutated sibling map/object exports | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_js_ts_literal |
+| Java | static Map.of field imports with getOrDefault-style absence fallback | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_java_static_literal |
+| Rust | use-imported const entry arrays consumed by HashMap::from | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::map_default_imported_rust_const_literal |
+| Swift | Dictionary default subscript after receiver-coordinate proof | `open` |  |
