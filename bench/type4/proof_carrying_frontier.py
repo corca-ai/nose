@@ -37,6 +37,8 @@ DEFAULT_REAL_FRONTIER = HERE / "real_frontier.v1.json"
 DEFAULT_COEVO_LEDGER = ROOT / "bench" / "coevo" / "packets.v1.json"
 DEFAULT_FOCUSED_CASES = HERE / "adversarial" / "cases" / "cases.v1.json"
 DEFAULT_EXECUTABLE_EXPECTATIONS = HERE / "executable_expectations.v1.json"
+DEFAULT_REAL_FRONTIER_REPLAY = HERE / "real_frontier_replay.v1.json"
+DEFAULT_REAL_FRONTIER_REPLAY_STATUS = HERE / "real_frontier_replay_status.v1.json"
 DEFAULT_JSON_OUT = HERE / "proof_carrying_frontier.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "proof_carrying_frontier.md"
 DEFAULT_READINESS_JSON_OUT = HERE / "frontier_readiness.v1.json"
@@ -53,6 +55,7 @@ REQUIRED_PACKET_FIELDS = {
     "owner_route",
     "owner_issue",
     "evidence_case_ids",
+    "real_frontier_replay_ids",
     "hard_negative_group_ids",
     "breadth",
     "evidence_tier",
@@ -86,6 +89,8 @@ COEVO_VERDICTS = {
 }
 EXECUTABLE_EXPECTATION_STATUS = {"same-family", "split"}
 EXECUTABLE_REPORT_TOOL_VERSION = "type4-exec-check/1"
+REAL_FRONTIER_REPLAY_TOOL_VERSION = "real-frontier-replay/1"
+REAL_FRONTIER_REPLAY_STATUS = {"passed", "failed", "unavailable"}
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
 REGRESSION_GATE_SEPARATOR = "::"
@@ -213,6 +218,8 @@ def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
             raise FrontierError(f"packet {packet_id} has unknown owner_route: {packet['owner_route']}")
         if not packet["evidence_case_ids"]:
             raise FrontierError(f"packet {packet_id} must link at least one evidence case")
+        if not packet["real_frontier_replay_ids"]:
+            raise FrontierError(f"packet {packet_id} must link at least one real-frontier replay")
         if not packet["proof_invariant"]:
             raise FrontierError(f"packet {packet_id} must name a proof invariant")
         if not packet["hard_negative_siblings"]:
@@ -741,6 +748,283 @@ def summarize_executable_witness_coverage(
     }
 
 
+def replay_entries_by_id(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    if manifest.get("schema_version") != SCHEMA_VERSION:
+        raise FrontierError("real frontier replay manifest schema_version must be 1")
+    if manifest.get("tool_version") != REAL_FRONTIER_REPLAY_TOOL_VERSION:
+        raise FrontierError(
+            "real frontier replay manifest tool_version must be "
+            f"{REAL_FRONTIER_REPLAY_TOOL_VERSION}"
+        )
+    entries = manifest.get("entries")
+    if not isinstance(entries, list):
+        raise FrontierError("real frontier replay manifest must contain entries")
+    by_id: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise FrontierError("real frontier replay entries must be objects")
+        replay_id = entry.get("replay_id")
+        if not replay_id:
+            raise FrontierError("real frontier replay entry missing replay_id")
+        if replay_id in by_id:
+            raise FrontierError(f"duplicate real frontier replay id: {replay_id}")
+        if entry.get("expect") not in EXECUTABLE_EXPECTATION_STATUS:
+            raise FrontierError(f"real frontier replay {replay_id} has unknown expect")
+        if not isinstance(entry.get("sources"), list) or not entry["sources"]:
+            raise FrontierError(f"real frontier replay {replay_id} must list sources")
+        if not isinstance(entry.get("members"), list) or len(entry["members"]) < 2:
+            raise FrontierError(f"real frontier replay {replay_id} must list members")
+        by_id[replay_id] = entry
+    return by_id
+
+
+def validate_real_frontier_replay_manifest(
+    packets: list[dict[str, Any]],
+    real_frontier: dict[str, Any],
+    manifest: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    entries = replay_entries_by_id(manifest)
+    cases = by_case_id(real_frontier)
+    packet_by_id = {packet["packet_id"]: packet for packet in packets}
+    for packet in packets:
+        replay_ids = packet.get("real_frontier_replay_ids")
+        if not isinstance(replay_ids, list) or not replay_ids:
+            raise FrontierError(
+                f"packet {packet['packet_id']} must cite real_frontier_replay_ids"
+            )
+        for replay_id in replay_ids:
+            if replay_id not in entries:
+                raise FrontierError(
+                    f"packet {packet['packet_id']} references unknown replay {replay_id}"
+                )
+    for replay_id, entry in entries.items():
+        packet_id = entry.get("packet_id")
+        case_id = entry.get("case_id")
+        packet = packet_by_id.get(packet_id)
+        if packet is None:
+            raise FrontierError(f"real frontier replay {replay_id} references unknown packet")
+        if replay_id not in packet["real_frontier_replay_ids"]:
+            raise FrontierError(
+                f"real frontier replay {replay_id} is not linked from packet {packet_id}"
+            )
+        if case_id not in packet["evidence_case_ids"]:
+            raise FrontierError(
+                f"real frontier replay {replay_id} case {case_id} is not linked evidence"
+            )
+        case = cases.get(case_id)
+        if case is None:
+            raise FrontierError(f"real frontier replay {replay_id} references unknown case")
+        if case.get("status") != "real-miss":
+            raise FrontierError(f"real frontier replay {replay_id} must link a real-miss")
+    return entries
+
+
+def validate_real_frontier_replay_status(
+    status_report: dict[str, Any],
+    replay_entries: dict[str, dict[str, Any]],
+    expected_artifacts: dict[str, Any],
+) -> dict[str, Any]:
+    if status_report.get("schema_version") != SCHEMA_VERSION:
+        raise FrontierError("real frontier replay status schema_version must be 1")
+    if status_report.get("tool_version") != REAL_FRONTIER_REPLAY_TOOL_VERSION:
+        raise FrontierError(
+            "real frontier replay status tool_version must be "
+            f"{REAL_FRONTIER_REPLAY_TOOL_VERSION}"
+        )
+    if status_report.get("input_artifacts") != expected_artifacts:
+        raise FrontierError("real frontier replay status input_artifacts are stale")
+    results = status_report.get("results")
+    if not isinstance(results, list):
+        raise FrontierError("real frontier replay status must contain results")
+    seen: set[str] = set()
+    by_id: dict[str, dict[str, Any]] = {}
+    failed_ids: list[str] = []
+    unavailable_ids: list[str] = []
+    for result in results:
+        if not isinstance(result, dict):
+            raise FrontierError("real frontier replay status results must be objects")
+        replay_id = result.get("replay_id")
+        if not replay_id:
+            raise FrontierError("real frontier replay status result missing replay_id")
+        if replay_id in seen:
+            raise FrontierError(f"duplicate real frontier replay status: {replay_id}")
+        seen.add(replay_id)
+        entry = replay_entries.get(replay_id)
+        if entry is None:
+            raise FrontierError(f"extra real frontier replay status: {replay_id}")
+        for field in ("packet_id", "case_id", "expect"):
+            if result.get(field) != entry.get(field):
+                raise FrontierError(
+                    f"real frontier replay status {replay_id} field {field} is stale"
+                )
+        status = result.get("status")
+        if status not in REAL_FRONTIER_REPLAY_STATUS:
+            raise FrontierError(
+                f"real frontier replay status {replay_id} has unknown status {status}"
+            )
+        observed = result.get("observed")
+        if status == "unavailable":
+            unavailable_ids.append(replay_id)
+            if observed is not None or result.get("ok") is not None:
+                raise FrontierError(
+                    f"unavailable real frontier replay {replay_id} must not carry ok/observed"
+                )
+        else:
+            if observed not in EXECUTABLE_EXPECTATION_STATUS:
+                raise FrontierError(
+                    f"real frontier replay status {replay_id} has unknown observed"
+                )
+            if status == "passed" and observed != result["expect"]:
+                raise FrontierError(
+                    f"real frontier replay status {replay_id} passed with wrong observed"
+                )
+            if status == "failed" and observed == result["expect"]:
+                raise FrontierError(
+                    f"real frontier replay status {replay_id} failed with matching observed"
+                )
+            if bool(result.get("ok")) != (status == "passed"):
+                raise FrontierError(f"real frontier replay status {replay_id} ok flag drifted")
+            if status == "failed":
+                failed_ids.append(replay_id)
+        by_id[replay_id] = result
+    missing_ids = sorted(set(replay_entries) - set(by_id))
+    if missing_ids:
+        raise FrontierError(f"missing real frontier replay status: {missing_ids}")
+    counts = Counter(result["status"] for result in results)
+    if status_report.get("entry_count") != len(results):
+        raise FrontierError("real frontier replay status entry_count is stale")
+    if status_report.get("passed") != counts.get("passed", 0):
+        raise FrontierError("real frontier replay status passed count is stale")
+    if status_report.get("failed") != counts.get("failed", 0):
+        raise FrontierError("real frontier replay status failed count is stale")
+    if status_report.get("unavailable") != counts.get("unavailable", 0):
+        raise FrontierError("real frontier replay status unavailable count is stale")
+    return {
+        "results_by_id": by_id,
+        "missing_ids": missing_ids,
+        "failed_ids": sorted(failed_ids),
+        "unavailable_ids": sorted(unavailable_ids),
+        "summary": {
+            "nose_binary": status_report.get("nose_binary"),
+            "declared_replay_count": len(replay_entries),
+            "result_count": len(results),
+            "query_count": status_report.get("query_count"),
+            "passed": counts.get("passed", 0),
+            "failed": counts.get("failed", 0),
+            "unavailable": counts.get("unavailable", 0),
+            "report_missing_replay_ids": missing_ids,
+            "report_failed_replay_ids": sorted(failed_ids),
+            "report_unavailable_replay_ids": sorted(unavailable_ids),
+        },
+    }
+
+
+def real_frontier_replay_blockers(replay_coverage: dict[str, Any] | None) -> list[str]:
+    if replay_coverage is None:
+        return ["real-frontier replay coverage was not evaluated for this packet"]
+    status = replay_coverage.get("coverage_status")
+    if status == "passed":
+        return []
+    blockers = []
+    if replay_coverage.get("missing_replay_ids"):
+        blockers.append(
+            "missing real-frontier replay results: "
+            + ", ".join(replay_coverage["missing_replay_ids"])
+        )
+    if replay_coverage.get("failed_replay_ids"):
+        blockers.append(
+            "failing real-frontier replay results: "
+            + ", ".join(replay_coverage["failed_replay_ids"])
+        )
+    if replay_coverage.get("unavailable_replay_ids"):
+        blockers.append(
+            "unavailable real-frontier replay results: "
+            + ", ".join(replay_coverage["unavailable_replay_ids"])
+        )
+    return blockers or [f"real-frontier replay coverage is {status}"]
+
+
+def summarize_real_frontier_replay(
+    packets: list[dict[str, Any]],
+    replay_manifest: dict[str, Any],
+    replay_status_report: dict[str, Any],
+    real_frontier: dict[str, Any],
+    expected_artifacts: dict[str, Any],
+) -> dict[str, Any]:
+    replay_entries = validate_real_frontier_replay_manifest(
+        packets,
+        real_frontier,
+        replay_manifest,
+    )
+    validated = validate_real_frontier_replay_status(
+        replay_status_report,
+        replay_entries,
+        expected_artifacts,
+    )
+    results_by_id = validated["results_by_id"]
+    report_failed = set(validated["failed_ids"])
+    report_unavailable = set(validated["unavailable_ids"])
+    by_packet: dict[str, dict[str, Any]] = {}
+    by_status: Counter[str] = Counter()
+    for packet in packets:
+        packet_id = packet["packet_id"]
+        replay_ids = sorted(packet["real_frontier_replay_ids"])
+        missing_ids = sorted(replay_id for replay_id in replay_ids if replay_id not in results_by_id)
+        failed_ids = sorted(set(replay_ids) & report_failed)
+        unavailable_ids = sorted(set(replay_ids) & report_unavailable)
+        passed_ids = sorted(
+            replay_id
+            for replay_id in replay_ids
+            if results_by_id.get(replay_id, {}).get("status") == "passed"
+        )
+        if missing_ids or failed_ids:
+            coverage_status = "blocked"
+        elif unavailable_ids:
+            coverage_status = "unavailable"
+        else:
+            coverage_status = "passed"
+        by_status[coverage_status] += 1
+        by_replay = []
+        for replay_id in replay_ids:
+            entry = replay_entries[replay_id]
+            result = results_by_id.get(replay_id)
+            by_replay.append(
+                {
+                    "replay_id": replay_id,
+                    "case_id": entry["case_id"],
+                    "expect": entry["expect"],
+                    "status": result.get("status") if result else "missing",
+                    "observed": result.get("observed") if result else None,
+                    "proof_gap": entry.get("proof_gap", []),
+                }
+            )
+        by_packet[packet_id] = {
+            "packet_id": packet_id,
+            "coverage_status": coverage_status,
+            "declared_replay_ids": replay_ids,
+            "passed_replay_ids": passed_ids,
+            "missing_replay_ids": missing_ids,
+            "failed_replay_ids": failed_ids,
+            "unavailable_replay_ids": unavailable_ids,
+            "declared_replay_count": len(replay_ids),
+            "passed_replay_count": len(passed_ids),
+            "missing_replay_count": len(missing_ids),
+            "failed_replay_count": len(failed_ids),
+            "unavailable_replay_count": len(unavailable_ids),
+            "by_replay": by_replay,
+        }
+    return {
+        "summary": {
+            **validated["summary"],
+            "packet_count": len(packets),
+            "packet_count_by_coverage": dict(sorted(by_status.items())),
+            "fully_replayed_packet_count": by_status.get("passed", 0),
+        },
+        "packets": [by_packet[packet["packet_id"]] for packet in packets],
+        "by_packet": by_packet,
+    }
+
+
 def validate_hard_negative_linkage(
     packets: list[dict[str, Any]], focused_cases: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -826,16 +1110,26 @@ def validate_hard_negative_linkage(
 def readiness_for(
     packet: dict[str, Any],
     executable_coverage: dict[str, Any] | None = None,
+    real_frontier_replay: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     blockers = list(packet.get("blocked_by") or [])
     coverage_blockers = executable_coverage_blockers(executable_coverage)
+    replay_blockers = real_frontier_replay_blockers(real_frontier_replay)
     blockers.extend(coverage_blockers)
+    blockers.extend(replay_blockers)
     admission = packet.get("detector_admission") or {}
     if coverage_blockers:
         return {
             "status": "blocked",
             "can_open_exact_admission": False,
             "reason": "packet lacks fresh executable focused-case witness coverage",
+            "blocking_items": blockers,
+        }
+    if replay_blockers:
+        return {
+            "status": "blocked",
+            "can_open_exact_admission": False,
+            "reason": "packet lacks passing real-frontier replay coverage",
             "blocking_items": blockers,
         }
     if admission.get("status") == "controlled-slice-admitted":
@@ -880,22 +1174,28 @@ def readiness_for(
 def summarize_packets(
     packets: list[dict[str, Any]],
     executable_coverage_by_packet: dict[str, dict[str, Any]] | None = None,
+    real_frontier_replay_by_packet: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows = []
     by_status: Counter[str] = Counter()
     by_route: Counter[str] = Counter()
     by_detector_admission: Counter[str] = Counter()
     by_executable_coverage: Counter[str] = Counter()
+    by_real_frontier_replay: Counter[str] = Counter()
     executable_coverage_by_packet = executable_coverage_by_packet or {}
+    real_frontier_replay_by_packet = real_frontier_replay_by_packet or {}
     for packet in packets:
         executable_coverage = executable_coverage_by_packet.get(packet["packet_id"])
-        readiness = readiness_for(packet, executable_coverage)
+        real_frontier_replay = real_frontier_replay_by_packet.get(packet["packet_id"])
+        readiness = readiness_for(packet, executable_coverage, real_frontier_replay)
         by_status[readiness["status"]] += 1
         by_route[packet["owner_route"]] += 1
         admission = packet["detector_admission"]
         by_detector_admission[admission["status"]] += 1
         if executable_coverage:
             by_executable_coverage[executable_coverage["coverage_status"]] += 1
+        if real_frontier_replay:
+            by_real_frontier_replay[real_frontier_replay["coverage_status"]] += 1
         rows.append(
             {
                 "packet_id": packet["packet_id"],
@@ -904,6 +1204,7 @@ def summarize_packets(
                 "owner_route": packet["owner_route"],
                 "owner_issue": packet["owner_issue"],
                 "evidence_case_ids": packet["evidence_case_ids"],
+                "real_frontier_replay_ids": packet["real_frontier_replay_ids"],
                 "hard_negative_group_ids": packet["hard_negative_group_ids"],
                 "evidence_tier": packet["evidence_tier"],
                 "proof_invariant": packet["proof_invariant"],
@@ -925,6 +1226,7 @@ def summarize_packets(
                     "remaining_real_pair_gap": admission.get("remaining_real_pair_gap"),
                 },
                 "executable_witness_coverage": executable_coverage,
+                "real_frontier_replay": real_frontier_replay,
                 "readiness": readiness,
             }
         )
@@ -934,6 +1236,7 @@ def summarize_packets(
         "by_owner_route": dict(sorted(by_route.items())),
         "by_detector_admission": dict(sorted(by_detector_admission.items())),
         "by_executable_witness_coverage": dict(sorted(by_executable_coverage.items())),
+        "by_real_frontier_replay": dict(sorted(by_real_frontier_replay.items())),
         "ready_packet_count": sum(
             1 for row in rows if row["readiness"]["can_open_exact_admission"]
         ),
@@ -995,12 +1298,16 @@ def build_report(
     coevo_ledger_path: Path,
     focused_cases_path: Path,
     executable_expectations_path: Path,
+    real_frontier_replay_path: Path,
+    real_frontier_replay_status_path: Path,
 ) -> dict[str, Any]:
     packet_doc = load_json(target_packets_path)
     real_frontier = load_json(real_frontier_path)
     coevo = load_json(coevo_ledger_path)
     focused_cases = load_json(focused_cases_path)
     executable_report = load_json(executable_expectations_path)
+    replay_manifest = load_json(real_frontier_replay_path)
+    replay_status_report = load_json(real_frontier_replay_status_path)
     packets = validate_packet_doc(packet_doc)
     evidence_links = validate_evidence_links(packets, real_frontier)
     hard_negative_linkage = validate_hard_negative_linkage(packets, focused_cases)
@@ -1010,13 +1317,29 @@ def build_report(
         focused_cases,
         executable_report,
     )
+    replay_coverage = summarize_real_frontier_replay(
+        packets,
+        replay_manifest,
+        replay_status_report,
+        real_frontier,
+        {
+            "manifest": artifact_ref(real_frontier_replay_path),
+            "target_packets": artifact_ref(target_packets_path),
+            "real_frontier": artifact_ref(real_frontier_path),
+        },
+    )
     packet_rows, packet_summary = summarize_packets(
         packets,
         executable_coverage["by_packet"],
+        replay_coverage["by_packet"],
     )
     public_executable_coverage = {
         "summary": executable_coverage["summary"],
         "packets": executable_coverage["packets"],
+    }
+    public_replay_coverage = {
+        "summary": replay_coverage["summary"],
+        "packets": replay_coverage["packets"],
     }
     coevo_summary = summarize_coevo(coevo)
     verdict = admission_verdict(packet_summary["ready_packet_count"])
@@ -1030,6 +1353,10 @@ def build_report(
                 "coevo_ledger": artifact_ref(coevo_ledger_path),
                 "focused_cases": artifact_ref(focused_cases_path),
                 "executable_expectations": artifact_ref(executable_expectations_path),
+                "real_frontier_replay": artifact_ref(real_frontier_replay_path),
+                "real_frontier_replay_status": artifact_ref(
+                    real_frontier_replay_status_path
+                ),
             },
             "target_packet_identity": packet_doc.get("identity", {}),
         },
@@ -1040,6 +1367,7 @@ def build_report(
                 "adjacent hard-negative siblings",
                 "packet-level hard-negative group linkage",
                 "fresh executable focused-case witness coverage for declared expectations",
+                "passing real-frontier replay status for linked real-corpus evidence",
                 "current detector result showing the present boundary",
                 "no unresolved proof or soundness blockers",
                 "product-output and runtime evidence before merge",
@@ -1056,6 +1384,7 @@ def build_report(
             "evidence_links": evidence_links,
             "hard_negative_linkage": hard_negative_linkage,
             "executable_witness_coverage": public_executable_coverage,
+            "real_frontier_replay": public_replay_coverage,
         },
         "coevolution_guardrails": coevo_summary,
     }
@@ -1070,8 +1399,10 @@ def markdown_report(report: dict[str, Any]) -> str:
     by_executable_coverage = json.dumps(
         target["by_executable_witness_coverage"], sort_keys=True
     )
+    by_real_frontier_replay = json.dumps(target["by_real_frontier_replay"], sort_keys=True)
     by_verdict = json.dumps(coevo["by_verdict"], sort_keys=True)
     executable_summary = report["target_packets"]["executable_witness_coverage"]["summary"]
+    replay_summary = report["target_packets"]["real_frontier_replay"]["summary"]
     lines = [
         "# Proof-carrying Type-4 frontier",
         "",
@@ -1093,10 +1424,16 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- by owner route: `{by_owner_route}`",
         f"- by detector admission: `{by_detector_admission}`",
         f"- by executable witness coverage: `{by_executable_coverage}`",
+        f"- by real-frontier replay: `{by_real_frontier_replay}`",
         (
             "- executable expectations: "
             f"{executable_summary['passed']}/{executable_summary['declared_expectation_count']} "
             "passed"
+        ),
+        (
+            "- real-frontier replays: "
+            f"{replay_summary['passed']}/{replay_summary['declared_replay_count']} "
+            f"passed; {replay_summary['unavailable']} unavailable"
         ),
         "",
         "## Admission Policy",
@@ -1107,8 +1444,8 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Target Packets",
         "",
-        "| packet | axis | route | readiness | exec witnesses | proof facts | hard negatives | groups |",
-        "|---|---|---|---|---|---:|---:|---:|",
+        "| packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |",
+        "|---|---|---|---|---|---|---:|---:|---:|",
     ]
     for packet in report["target_packets"]["packets"]:
         readiness = packet["readiness"]
@@ -1118,10 +1455,17 @@ def markdown_report(report: dict[str, Any]) -> str:
             f"({coverage['passed_expectation_count']}/"
             f"{coverage['declared_expectation_count']})"
         )
+        replay = packet["real_frontier_replay"]
+        replay_cell = (
+            f"{replay['coverage_status']} "
+            f"({replay['passed_replay_count']}/"
+            f"{replay['declared_replay_count']})"
+        )
         lines.append(
             f"| `{packet['packet_id']}` | `{packet['candidate_axis']}` | "
             f"`{packet['owner_route']}` | `{readiness['status']}` | "
             f"`{exec_cell}` | "
+            f"`{replay_cell}` | "
             f"{packet['proof_fact_model']['fact_count']} | "
             f"{packet['hard_negative_count']} | "
             f"{len(packet['hard_negative_group_ids'])} |"
@@ -1148,6 +1492,16 @@ def markdown_report(report: dict[str, Any]) -> str:
             f"({coverage['passed_expectation_count']}/"
             f"{coverage['declared_expectation_count']} passed)"
         )
+        replay = packet["real_frontier_replay"]
+        lines.append(
+            "- real-frontier replay: "
+            f"`{replay['coverage_status']}` "
+            f"({replay['passed_replay_count']}/"
+            f"{replay['declared_replay_count']} passed)"
+        )
+        if replay["unavailable_replay_ids"]:
+            replay_ids = ", ".join(f"`{replay_id}`" for replay_id in replay["unavailable_replay_ids"])
+            lines.append(f"- unavailable real-frontier replays: {replay_ids}")
         if coverage["manifest_only_case_ids"]:
             cases = ", ".join(f"`{case_id}`" for case_id in coverage["manifest_only_case_ids"])
             lines.append(f"- manifest-only cases: {cases}")
@@ -1209,10 +1563,16 @@ def release_note_for(packet: dict[str, Any], group: str) -> str:
     admission = packet["detector_admission"]
     facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
     coverage = packet.get("executable_witness_coverage") or {}
+    replay = packet.get("real_frontier_replay") or {}
     if executable_coverage_blockers(coverage):
         return (
             f"{packet_id}: exact admission for {axis} remains closed because executable "
             f"focused-case witness coverage is {coverage.get('coverage_status', 'missing')}."
+        )
+    if real_frontier_replay_blockers(replay):
+        return (
+            f"{packet_id}: exact admission for {axis} remains closed because "
+            f"real-frontier replay coverage is {replay.get('coverage_status', 'missing')}."
         )
     if group == "ready-for-defender":
         return (
@@ -1247,10 +1607,16 @@ def next_action_for(packet: dict[str, Any], group: str) -> str:
     facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
     blockers = packet["readiness"]["blocking_items"]
     coverage = packet.get("executable_witness_coverage") or {}
+    replay = packet.get("real_frontier_replay") or {}
     if executable_coverage_blockers(coverage):
         return (
             "Refresh executable focused-case witness coverage before changing detector "
             "admission status."
+        )
+    if real_frontier_replay_blockers(replay):
+        return (
+            "Refresh or make available real-frontier replay coverage before changing "
+            "detector admission status."
         )
     if group == "ready-for-defender":
         return (
@@ -1293,6 +1659,7 @@ def readiness_packet_view(packet: dict[str, Any]) -> dict[str, Any]:
         "positive_gate_count": packet["detector_admission"]["positive_gate_count"],
         "hard_negative_gate_count": packet["detector_admission"]["hard_negative_gate_count"],
         "executable_witness_coverage": packet["executable_witness_coverage"],
+        "real_frontier_replay": packet["real_frontier_replay"],
         "detector_scope": packet["detector_admission"]["scope"],
         "remaining_real_pair_gap": packet["detector_admission"]["remaining_real_pair_gap"],
         "blockers": packet["readiness"]["blocking_items"],
@@ -1338,10 +1705,14 @@ def build_readiness_summary(report: dict[str, Any]) -> dict[str, Any]:
             "non_ready_rows_do_not_claim_exact_real_pair_admission": True,
             "detector_admitted_controlled_is_not_real_pair_admission": True,
             "fresh_executable_witness_coverage_required_for_ready_rows": True,
+            "passing_real_frontier_replay_required_for_ready_rows": True,
         },
         "executable_witness_coverage": report["target_packets"][
             "executable_witness_coverage"
         ]["summary"],
+        "real_frontier_replay": report["target_packets"]["real_frontier_replay"][
+            "summary"
+        ],
         "next_work": next_work,
         "groups": grouped,
     }
@@ -1384,7 +1755,9 @@ def markdown_cell(value: Any) -> str:
 def markdown_readiness(summary: dict[str, Any]) -> str:
     next_work = summary["next_work"]
     coverage = summary["executable_witness_coverage"]
+    replay = summary["real_frontier_replay"]
     by_coverage = json.dumps(coverage["packet_count_by_coverage"], sort_keys=True)
+    by_replay = json.dumps(replay["packet_count_by_coverage"], sort_keys=True)
     lines = [
         "# Type-4 frontier readiness",
         "",
@@ -1400,9 +1773,15 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
         f"- next axis: `{next_work['candidate_axis'] or 'none'}`",
         f"- action: {next_work['why']}",
         f"- executable witness coverage: `{by_coverage}`",
+        f"- real-frontier replay: `{by_replay}`",
         (
             "- executable expectations: "
             f"{coverage['passed']}/{coverage['declared_expectation_count']} passed"
+        ),
+        (
+            "- real-frontier replays: "
+            f"{replay['passed']}/{replay['declared_replay_count']} passed; "
+            f"{replay['unavailable']} unavailable"
         ),
         "",
         "Exact detector admission may only open from `ready-for-defender` rows. Rows",
@@ -1423,8 +1802,8 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
             lines += ["_None._", ""]
             continue
         lines += [
-            "| packet | axis | readiness | exec coverage | detector admission | hard-negative groups | action |",
-            "|---|---|---|---|---|---|---|",
+            "| packet | axis | readiness | exec coverage | real replay | detector admission | hard-negative groups | action |",
+            "|---|---|---|---|---|---|---|---|",
         ]
         for packet in data["packets"]:
             groups = ", ".join(
@@ -1436,11 +1815,18 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
                 f"({exec_coverage['passed_expectation_count']}/"
                 f"{exec_coverage['declared_expectation_count']})"
             )
+            replay_coverage = packet["real_frontier_replay"]
+            replay_cell = (
+                f"{replay_coverage['coverage_status']} "
+                f"({replay_coverage['passed_replay_count']}/"
+                f"{replay_coverage['declared_replay_count']})"
+            )
             lines.append(
                 f"| `{markdown_cell(packet['packet_id'])}` | "
                 f"`{markdown_cell(packet['candidate_axis'])}` | "
                 f"`{markdown_cell(packet['readiness_status'])}` | "
                 f"`{markdown_cell(exec_cell)}` | "
+                f"`{markdown_cell(replay_cell)}` | "
                 f"`{markdown_cell(packet['detector_admission_status'])}` | "
                 f"{groups} | "
                 f"{markdown_cell(packet['planning_summary'])} |"
@@ -1526,6 +1912,7 @@ def selftest() -> None:
         "owner_route": "proof-fact-prerequisite",
         "owner_issue": None,
         "evidence_case_ids": ["c"],
+        "real_frontier_replay_ids": ["r"],
         "hard_negative_group_ids": ["g"],
         "breadth": {},
         "evidence_tier": "frontier-recorded",
@@ -1611,6 +1998,7 @@ def selftest() -> None:
         ],
     }
     real_frontier = {
+        "schema_version": 1,
         "items": [
             {
                 "case_id": "c",
@@ -1667,8 +2055,62 @@ def selftest() -> None:
         focused_cases,
         executable_report,
     )
+    replay_manifest = {
+        "schema_version": 1,
+        "tool_version": REAL_FRONTIER_REPLAY_TOOL_VERSION,
+        "entries": [
+            {
+                "replay_id": "r",
+                "packet_id": "p",
+                "case_id": "c",
+                "expect": "split",
+                "sources": [{"kind": "workspace", "path": "bench/type4/selftest.py"}],
+                "members": [
+                    {"kind": "workspace", "file": "a.py"},
+                    {"kind": "workspace", "file": "b.py"},
+                ],
+                "query": {"mode": "semantic", "min_size": 1, "min_lines": 1},
+                "proof_gap": ["missing reusable proof"],
+            }
+        ],
+    }
+    replay_artifacts = {"manifest": {}, "target_packets": {}, "real_frontier": {}}
+    replay_status = {
+        "schema_version": 1,
+        "tool_version": REAL_FRONTIER_REPLAY_TOOL_VERSION,
+        "input_artifacts": replay_artifacts,
+        "nose_binary": "nose",
+        "entry_count": 1,
+        "query_count": 1,
+        "passed": 1,
+        "failed": 0,
+        "unavailable": 0,
+        "results": [
+            {
+                "replay_id": "r",
+                "packet_id": "p",
+                "case_id": "c",
+                "expect": "split",
+                "status": "passed",
+                "observed": "split",
+                "ok": True,
+            }
+        ],
+    }
+    replay_coverage = summarize_real_frontier_replay(
+        packets,
+        replay_manifest,
+        replay_status,
+        real_frontier,
+        replay_artifacts,
+    )
     assert executable_coverage["by_packet"]["p"]["coverage_status"] == "covered"
-    assert readiness_for(packet, executable_coverage["by_packet"]["p"])["status"] == (
+    assert replay_coverage["by_packet"]["p"]["coverage_status"] == "passed"
+    assert readiness_for(
+        packet,
+        executable_coverage["by_packet"]["p"],
+        replay_coverage["by_packet"]["p"],
+    )["status"] == (
         "blocked-on-proof"
     )
     drifted = json.loads(json.dumps(packet_doc))
@@ -1681,7 +2123,11 @@ def selftest() -> None:
     ready = dict(packet)
     ready["owner_route"] = "team-a-detector"
     ready["blocked_by"] = []
-    assert readiness_for(ready, executable_coverage["by_packet"]["p"])[
+    assert readiness_for(
+        ready,
+        executable_coverage["by_packet"]["p"],
+        replay_coverage["by_packet"]["p"],
+    )[
         "can_open_exact_admission"
     ]
     missing_executable_report = json.loads(json.dumps(executable_report))
@@ -1695,9 +2141,32 @@ def selftest() -> None:
         missing_executable_report,
     )
     assert missing_coverage["by_packet"]["p"]["coverage_status"] == "blocked"
-    assert not readiness_for(ready, missing_coverage["by_packet"]["p"])[
+    assert not readiness_for(
+        ready,
+        missing_coverage["by_packet"]["p"],
+        replay_coverage["by_packet"]["p"],
+    )[
         "can_open_exact_admission"
     ]
+    unavailable_replay_status = json.loads(json.dumps(replay_status))
+    unavailable_replay_status["passed"] = 0
+    unavailable_replay_status["unavailable"] = 1
+    unavailable_replay_status["results"][0]["status"] = "unavailable"
+    unavailable_replay_status["results"][0]["observed"] = None
+    unavailable_replay_status["results"][0]["ok"] = None
+    unavailable_replay_coverage = summarize_real_frontier_replay(
+        packets,
+        replay_manifest,
+        unavailable_replay_status,
+        real_frontier,
+        replay_artifacts,
+    )
+    assert unavailable_replay_coverage["by_packet"]["p"]["coverage_status"] == "unavailable"
+    assert not readiness_for(
+        ready,
+        executable_coverage["by_packet"]["p"],
+        unavailable_replay_coverage["by_packet"]["p"],
+    )["can_open_exact_admission"]
     admitted = dict(packet)
     admitted["detector_admission"] = {
         "status": "controlled-slice-admitted",
@@ -1707,13 +2176,18 @@ def selftest() -> None:
         "hard_negative_gates": ["negative"],
         "remaining_real_pair_gap": "still open",
     }
-    admitted_readiness = readiness_for(admitted, executable_coverage["by_packet"]["p"])
+    admitted_readiness = readiness_for(
+        admitted,
+        executable_coverage["by_packet"]["p"],
+        replay_coverage["by_packet"]["p"],
+    )
     assert admitted_readiness["status"] == "detector-admitted-controlled"
     assert not admitted_readiness["can_open_exact_admission"]
     admitted_doc = {"schema_version": 1, "packet_count": 1, "packets": [admitted]}
     admitted_rows, admitted_summary = summarize_packets(
         validate_packet_doc(admitted_doc),
         executable_coverage["by_packet"],
+        replay_coverage["by_packet"],
     )
     assert admitted_summary["ready_packet_count"] == 0
     assert admitted_summary["detector_admitted_packet_count"] == 1
@@ -1725,6 +2199,7 @@ def selftest() -> None:
     ready_rows, _ready_summary = summarize_packets(
         validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [ready]}),
         executable_coverage["by_packet"],
+        replay_coverage["by_packet"],
     )
     report = {
         "schema_version": 1,
@@ -1736,6 +2211,7 @@ def selftest() -> None:
             "packets": ready_rows,
             "evidence_links": [],
             "executable_witness_coverage": executable_coverage,
+            "real_frontier_replay": replay_coverage,
         },
     }
     readiness_summary = build_readiness_summary(report)
@@ -1748,6 +2224,7 @@ def selftest() -> None:
     blocked_rows, _blocked_summary = summarize_packets(
         validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [packet]}),
         executable_coverage["by_packet"],
+        replay_coverage["by_packet"],
     )
     report["verdict"] = "no-exact-admission-ready-packets"
     report["target_packets"]["packets"] = blocked_rows
@@ -1846,6 +2323,16 @@ def main() -> int:
         type=Path,
         default=DEFAULT_EXECUTABLE_EXPECTATIONS,
     )
+    parser.add_argument(
+        "--real-frontier-replay",
+        type=Path,
+        default=DEFAULT_REAL_FRONTIER_REPLAY,
+    )
+    parser.add_argument(
+        "--real-frontier-replay-status",
+        type=Path,
+        default=DEFAULT_REAL_FRONTIER_REPLAY_STATUS,
+    )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
     parser.add_argument("--readiness-json-out", type=Path, default=DEFAULT_READINESS_JSON_OUT)
@@ -1868,6 +2355,8 @@ def main() -> int:
             args.coevo_ledger,
             args.focused_cases,
             args.executable_expectations,
+            args.real_frontier_replay,
+            args.real_frontier_replay_status,
         )
         if args.check:
             check_artifacts(

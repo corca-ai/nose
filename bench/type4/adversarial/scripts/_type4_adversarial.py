@@ -135,6 +135,7 @@ def validate_all(
             "owner_route",
             "evidence_tier",
             "evidence_case_ids",
+            "real_frontier_replay_ids",
             "semantic_claim",
             "proof_invariant",
             "hard_negative_siblings",
@@ -150,6 +151,8 @@ def validate_all(
         for case_id in packet.get("evidence_case_ids", []):
             if case_id not in evidence_ids:
                 errors.append(f"target packet {packet_id} references unknown real_frontier case {case_id}")
+        if not isinstance(packet.get("real_frontier_replay_ids"), list):
+            errors.append(f"target packet {packet_id} real_frontier_replay_ids must be a list")
         for group_id in packet.get("hard_negative_group_ids", []):
             group = group_by_id.get(group_id)
             if group is None:

@@ -7,6 +7,7 @@
       "adjacent hard-negative siblings",
       "packet-level hard-negative group linkage",
       "fresh executable focused-case witness coverage for declared expectations",
+      "passing real-frontier replay status for linked real-corpus evidence",
       "current detector result showing the present boundary",
       "no unresolved proof or soundness blockers",
       "product-output and runtime evidence before merge"
@@ -115,10 +116,20 @@
         "sha256": "dd612ae7fa6ef206d39c2eacc9fb35db41c5651c5174091d3c94533e07bcf6da",
         "size_bytes": 70496
       },
+      "real_frontier_replay": {
+        "path": "bench/type4/real_frontier_replay.v1.json",
+        "sha256": "67ddd052b1ab742ec130a5b41dad099ee36a9fae158e56fc0ede9c335bb5ff46",
+        "size_bytes": 2795
+      },
+      "real_frontier_replay_status": {
+        "path": "bench/type4/real_frontier_replay_status.v1.json",
+        "sha256": "c3e57eb3c1094fa5340435c8f7de418b5ec87f92ea94118582f92b874ea66e16",
+        "size_bytes": 1618
+      },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "f33caeb443546480806389e9929ce55827f0992cf46af5756d726d9c1c2fbcd8",
-        "size_bytes": 22007
+        "sha256": "75cc7ca74c8874df1a2065e53cfdba0cc6e334bf649bca51b7467d385a31d20c",
+        "size_bytes": 22199
       }
     },
     "target_packet_identity": {
@@ -563,6 +574,40 @@
           "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
           "status": "detector-admitted-controlled"
         },
+        "real_frontier_replay": {
+          "by_replay": [
+            {
+              "case_id": "numeric-clamp-minmax-ternary-real-miss",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [
+                "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
+                "the boltons/fzf pair still has no shared integer-only domain proof"
+              ],
+              "replay_id": "numeric-clamp-boltons-fzf-real-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 1,
+          "declared_replay_ids": [
+            "numeric-clamp-boltons-fzf-real-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "numeric-clamp-2026-06-06",
+          "passed_replay_count": 1,
+          "passed_replay_ids": [
+            "numeric-clamp-boltons-fzf-real-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
+        },
+        "real_frontier_replay_ids": [
+          "numeric-clamp-boltons-fzf-real-pair"
+        ],
         "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
         "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
       },
@@ -694,10 +739,127 @@
           "reason": "packet still requires reusable proof evidence before detector work",
           "status": "blocked-on-proof"
         },
+        "real_frontier_replay": {
+          "by_replay": [
+            {
+              "case_id": "python-loop-demorgan-all-readme-real-miss",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [
+                "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
+                "boolean-only De Morgan and effect-safety proof facts are not modeled"
+              ],
+              "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 1,
+          "declared_replay_ids": [
+            "python-loop-demorgan-readme-focused-real-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "python-loop-demorgan-all-2026-07-07",
+          "passed_replay_count": 1,
+          "passed_replay_ids": [
+            "python-loop-demorgan-readme-focused-real-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
+        },
+        "real_frontier_replay_ids": [
+          "python-loop-demorgan-readme-focused-real-pair"
+        ],
         "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
         "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary."
       }
     ],
+    "real_frontier_replay": {
+      "packets": [
+        {
+          "by_replay": [
+            {
+              "case_id": "numeric-clamp-minmax-ternary-real-miss",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [
+                "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
+                "the boltons/fzf pair still has no shared integer-only domain proof"
+              ],
+              "replay_id": "numeric-clamp-boltons-fzf-real-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 1,
+          "declared_replay_ids": [
+            "numeric-clamp-boltons-fzf-real-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "numeric-clamp-2026-06-06",
+          "passed_replay_count": 1,
+          "passed_replay_ids": [
+            "numeric-clamp-boltons-fzf-real-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
+        },
+        {
+          "by_replay": [
+            {
+              "case_id": "python-loop-demorgan-all-readme-real-miss",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [
+                "loop-to-all universal short-circuit/vacuous-truth proof fact is not modeled",
+                "boolean-only De Morgan and effect-safety proof facts are not modeled"
+              ],
+              "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 1,
+          "declared_replay_ids": [
+            "python-loop-demorgan-readme-focused-real-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "python-loop-demorgan-all-2026-07-07",
+          "passed_replay_count": 1,
+          "passed_replay_ids": [
+            "python-loop-demorgan-readme-focused-real-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
+        }
+      ],
+      "summary": {
+        "declared_replay_count": 2,
+        "failed": 0,
+        "fully_replayed_packet_count": 2,
+        "nose_binary": "nose",
+        "packet_count": 2,
+        "packet_count_by_coverage": {
+          "passed": 2
+        },
+        "passed": 2,
+        "query_count": 2,
+        "report_failed_replay_ids": [],
+        "report_missing_replay_ids": [],
+        "report_unavailable_replay_ids": [],
+        "result_count": 2,
+        "unavailable": 0
+      }
+    },
     "summary": {
       "by_detector_admission": {
         "controlled-slice-admitted": 1,
@@ -712,6 +874,9 @@
       "by_readiness": {
         "blocked-on-proof": 1,
         "detector-admitted-controlled": 1
+      },
+      "by_real_frontier_replay": {
+        "passed": 2
       },
       "detector_admitted_packet_count": 1,
       "packet_count": 2,

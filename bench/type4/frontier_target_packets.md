@@ -21,6 +21,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - lo > hi precondition violation: the two compositions diverge -- clamp Counterexamples.lean precondition_required
   - float NaN inputs where min/max builtins and comparison chains can return different values depending on language NaN semantics
 - **evidence**: `numeric-clamp-minmax-ternary-real-miss` (`real_frontier.v1.json`)
+- **real frontier replay**: `numeric-clamp-boltons-fzf-real-pair` (`real_frontier_replay.v1.json`)
 - **representative locations**:
   - `boltons` (heldout, Python) `boltons/mathutils.py:40-69`
   - `fzf` (heldout, Go) `src/util/util.go:63-65`
@@ -44,6 +45,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1
   - different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys
 - **evidence**: `python-loop-demorgan-all-readme-real-miss` (`real_frontier.v1.json`)
+- **real frontier replay**: `python-loop-demorgan-readme-focused-real-pair` (`real_frontier_replay.v1.json`)
 - **representative locations**:
   - `nose` (docs, Python) `README.md:15-33`
   - `nose` (focused, Python) `bench/type4/adversarial/cases/python_loop_demorgan/positive.py:1-9`
