@@ -1028,3 +1028,18 @@ varying spots. This is detector span noise from two intentionally independent
 statement walkers, not a useful base class/helper extraction; coupling the
 interpreter to the value-graph builder would make the boundary worse. The
 budget is raised to 27 for this reviewed span-noise family.
+
+The Python loop/De Morgan detector admission moves the reviewed default-surface
+count from 27 to 30. The new logical De Morgan plus literal-absence
+canonicalization improves nose's own near-channel enough to surface three
+pre-existing production families: `856ea94f585f0c67`, the integer and float
+binary operator dispatchers in `interp/ops.rs`; `f918559454acf9c4`, the Java map
+factory enum projections across constructor contracts and LibraryApi rows; and
+`ea682c9db2126d8a`, the language profile/type-domain vocabulary projections.
+These are real review signals, but none is useful to extract in this PR:
+numeric dispatch keeps integer wrapping, float IEEE, and division/modulo
+boundaries explicit; Java map factory projections intentionally keep argument
+domain, contract-key, and pack-id vocabulary separate; and the language profile
+matches are small exhaustiveness boundaries over different semantic surfaces.
+The budget is raised to 30 for this detector-improvement surfacing, not for new
+avoidable duplication.

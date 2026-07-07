@@ -339,12 +339,13 @@ remains routed as a proof prerequisite until a real-corpus bound-order fact can 
 `lo <= hi` without opening the float-NaN boundary.
 
 The README-facing Python loop plus De Morgan example is also a target packet now. It is a
-current detector miss and remains `not-admitted`, but all four required proof facts now
-have controlled source evidence. The iterator-identity, effect-safety, universal
-short-circuit, and boolean-only De Morgan facts are modeled for the README fixture plus
-different-iterable, observed-effect, helper-call, empty-truth, changed-predicate, and
-value-return hard negatives. The readiness artifact now names the packet as
-`ready-for-defender` work for detector admission.
+`real-pair-admitted`: the README-shaped `all(...)` predicate and early-return loop now
+land in the same semantic family, while the adjacent hard-negative perimeter remains
+split. The iterator-identity, effect-safety, universal short-circuit, and boolean-only
+De Morgan facts are modeled for the README fixture plus different-iterable,
+observed-effect, helper-call, empty-truth, changed-predicate, and value-return hard
+negatives. The readiness artifact now has no non-admitted detector packet queued; both
+current target packets are reported under `admitted/resolved`.
 
 ## CI smoke
 

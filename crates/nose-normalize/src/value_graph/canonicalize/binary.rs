@@ -69,6 +69,8 @@ impl<'a> Builder<'a> {
                     if let Some(v) = self.literal_equality_disjunction(args[0], args[1]) {
                         return Some(v);
                     }
+                } else if let Some(v) = self.literal_inequality_conjunction(args[0], args[1]) {
+                    return Some(v);
                 }
                 // LATTICE CANON on a total order — close the strict comparison from a
                 // non-strict one plus an (in)equality, so a guard written as the

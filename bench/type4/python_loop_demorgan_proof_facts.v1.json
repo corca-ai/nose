@@ -47,8 +47,8 @@
     ],
     "tool": {
       "path": "bench/type4/python_loop_demorgan_proof_facts.py",
-      "sha256": "1b8757bee8d0cce07b10e5c28b103b73c99eabe1ef2030e650aba432f4715fa4",
-      "size_bytes": 46364
+      "sha256": "b234f1d06a99fef5c8c8cfe3ded4db0fd33c7a6dde3b4341f0b77a14578bf589",
+      "size_bytes": 46352
     }
   },
   "passed": 11,
@@ -58,7 +58,7 @@
       "check": "iterator-identity",
       "evidence_id": "python-loop-demorgan-iterator-positive-same-binding",
       "expect": "same-iterator",
-      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "expectation_id": "python_loop_demorgan_positive_matches_loop",
       "fact_id": "python-loop-demorgan.iterator-identity",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
       "observed": "same-iterator",
@@ -144,7 +144,7 @@
       "check": "effect-safety",
       "evidence_id": "python-loop-demorgan-effect-positive-pure-local-comparisons",
       "expect": "effect-safe",
-      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "expectation_id": "python_loop_demorgan_positive_matches_loop",
       "fact_id": "python-loop-demorgan.effect-safety",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
       "observed": "effect-safe",
@@ -237,7 +237,7 @@
       "check": "universal-short-circuit",
       "evidence_id": "python-loop-demorgan-universal-positive-counterexample-loop",
       "expect": "universal-loop",
-      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "expectation_id": "python_loop_demorgan_positive_matches_loop",
       "fact_id": "python-loop-demorgan.universal-short-circuit",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
       "observed": "universal-loop",
@@ -352,7 +352,7 @@
       "check": "boolean-demorgan",
       "evidence_id": "python-loop-demorgan-boolean-positive-comparison-demorgan",
       "expect": "boolean-demorgan",
-      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "expectation_id": "python_loop_demorgan_positive_matches_loop",
       "fact_id": "python-loop-demorgan.boolean-demorgan",
       "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
       "observed": "boolean-demorgan",

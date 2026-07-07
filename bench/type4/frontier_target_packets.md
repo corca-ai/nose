@@ -50,9 +50,9 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **representative locations**:
   - `nose` (docs, Python) `README.md:15-33`
   - `nose` (focused, Python) `bench/type4/adversarial/cases/python_loop_demorgan/positive.py:1-9`
-- **current detector result**: miss=True · `nose 0.18.0` @ `2a478b76e25a` — 0 semantic families; the README all(...) function and early-return loop do not currently converge.
-- **detector admission**: `not-admitted` · none; tracked proof packet only
-- **remaining real-pair gap**: the README/focused Python pair is still a detector miss; all required proof facts are modeled-controlled, so #739 can open a detector-admission PR that flips the positive expectation while preserving hard negatives
-- **why now**: The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary.
+- **current detector result**: miss=False · `nose 0.18.0` @ `#739 detecto` — Semantic query reports one family containing the README all(...) function and early-return loop.
+- **detector admission**: `real-pair-admitted` · README/focused Python all(generator) universal predicate versus counterexample early-return loop with boolean-only literal comparison De Morgan
+- **remaining real-pair gap**: none
+- **why now**: The front-page README uses this same-language Type-4 example to explain semantic duplication. The proof facts are now modeled-controlled, and the detector admits the README/focused positive while the adjacent hard-negative boundary remains executable.
 - **blocked by**: nothing
-- **notes**: This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. It is not an exact-admission request yet: the current detector returns no semantic family for the positive fixture, and the hard negatives document the proof perimeter.
+- **notes**: This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. The exact-admission request is now fulfilled for the README/focused pair, and the hard negatives document the proof perimeter.

@@ -9,14 +9,14 @@ report keeps the fuller evidence and admission boundary.
 
 ## Verdict
 
-**exact-admission-ready**
+**no-exact-admission-ready-packets**
 
 - target packets: 2
-- ready for exact admission: 1
-- detector admitted packets: 1
-- by readiness: `{"detector-admitted-controlled": 1, "ready-for-defender": 1}`
+- ready for exact admission: 0
+- detector admitted packets: 2
+- by readiness: `{"detector-admitted": 1, "detector-admitted-controlled": 1}`
 - by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 1}`
-- by detector admission: `{"controlled-slice-admitted": 1, "not-admitted": 1}`
+- by detector admission: `{"controlled-slice-admitted": 1, "real-pair-admitted": 1}`
 - by executable witness coverage: `{"covered": 2}`
 - by real-frontier replay: `{"passed": 2}`
 - executable expectations: 15/15 passed
@@ -40,7 +40,7 @@ report keeps the fuller evidence and admission boundary.
 | packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |
 |---|---|---|---|---|---|---:|---:|---:|
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `ready-for-defender` | `covered (7/7)` | `passed (1/1)` | 4 | 6 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 4 | 6 | 1 |
 
 ## Packet Details
 
@@ -59,8 +59,7 @@ report keeps the fuller evidence and admission boundary.
 
 ### `python-loop-demorgan-all-2026-07-07`
 
-- detector admission: `not-admitted` over none; tracked proof packet only
-- remaining real-pair gap: the README/focused Python pair is still a detector miss; all required proof facts are modeled-controlled, so #739 can open a detector-admission PR that flips the positive expectation while preserving hard negatives
+- detector admission: `real-pair-admitted` over README/focused Python all(generator) universal predicate versus counterexample early-return loop with boolean-only literal comparison De Morgan
 - gates: 1 positive, 6 hard-negative
 - executable witness coverage: `covered` (7/7 passed)
 - real-frontier replay: `passed` (1/1 passed)

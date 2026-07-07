@@ -482,16 +482,16 @@
       "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/positive.py"],
       "executable_expectations": [
         {
-          "id": "python_loop_demorgan_positive_currently_split",
+          "id": "python_loop_demorgan_positive_matches_loop",
           "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
-          "expect": "split",
+          "expect": "same-family",
           "members": [
             {"file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py", "name": "all_not_zero_or_one"},
             {"file": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py", "name": "loop_no_zero_or_one"}
           ]
         }
       ],
-      "evidence": "The README-shaped positive pair is a current detector miss, so the frontier packet records it as proof-fact-prerequisite rather than admitted behavior."
+      "evidence": "The README-shaped positive pair is now detector-admitted under the modeled proof facts: the focused executable expectation requires all_not_zero_or_one and loop_no_zero_or_one to report one semantic family."
     },
     {
       "id": "python_loop_demorgan_vacuous_truth_boundary",

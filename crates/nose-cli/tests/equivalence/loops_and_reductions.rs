@@ -127,6 +127,61 @@ fn loop_converges_with_reduce_and_comprehension() {
 }
 
 #[test]
+fn python_all_demorgan_converges_with_early_return_loop() {
+    let i = Interner::new();
+    let positive = "\
+def all_not_zero_or_one(xs):
+    return all(x != 0 and x != 1 for x in xs)
+
+def loop_no_zero_or_one(xs):
+    for x in xs:
+        if x == 0 or x == 1:
+            return False
+    return True
+";
+    let all_fp = value_fp_named(&i, positive, Lang::Python, "all_not_zero_or_one");
+    assert_eq!(
+        all_fp,
+        value_fp_named(&i, positive, Lang::Python, "loop_no_zero_or_one"),
+        "all(x != 0 and x != 1) should converge with the De Morgan counterexample loop"
+    );
+
+    let changed_predicate = "\
+def all_not_zero_or_one(xs):
+    return all(x != 0 and x != 1 for x in xs)
+
+def all_changed_predicate(xs):
+    return all(x != 0 or x != 1 for x in xs)
+";
+    assert_ne!(
+        value_fp_named(&i, changed_predicate, Lang::Python, "all_not_zero_or_one"),
+        value_fp_named(&i, changed_predicate, Lang::Python, "all_changed_predicate"),
+        "changing the predicate connective must stay distinct"
+    );
+
+    let value_returning = "\
+def boolean_demorgan_predicate(x):
+    return x != 0 and x != 1
+
+def value_returning_operand(x):
+    return x != 0 and marker(x)
+
+def marker(x):
+    return x
+";
+    assert_ne!(
+        value_fp_named(
+            &i,
+            value_returning,
+            Lang::Python,
+            "boolean_demorgan_predicate"
+        ),
+        value_fp_named(&i, value_returning, Lang::Python, "value_returning_operand"),
+        "boolean De Morgan must not admit value-returning and/or operands"
+    );
+}
+
+#[test]
 fn filtered_reduction_converges_for_and_while() {
     // A guarded (filtered) reduction `if cond: acc += contrib` is recognized as
     // `Reduce(+, 0, cond ? contrib : 0)` (§AI), so a filtered for-each loop and the

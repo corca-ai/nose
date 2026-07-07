@@ -189,6 +189,11 @@ set -euo pipefail
 # the interpreter statement executor and the value-graph statement walker, sharing 16 lines
 # across ~270-line NodeKind dispatchers. Reviewed in docs/dogfooding-history.md; accepted
 # as detector span noise, not a useful shared abstraction.
+# 27 -> 30 (Python loop/De Morgan admission): logical De Morgan plus literal-absence
+# canonicalization surfaces three PRE-EXISTING production families in nose's own code:
+# numeric int/float binary dispatch, Java map factory vocabulary projections, and language
+# profile/type-domain vocabulary projections. Reviewed in docs/dogfooding-history.md;
+# accepted as detector-improvement surfacing, not new avoidable duplication.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

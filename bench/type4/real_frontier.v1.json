@@ -23,7 +23,7 @@
  "items": [
   {
    "case_id": "python-loop-demorgan-all-readme-real-miss",
-   "status": "real-miss",
+   "status": "already-covered",
    "candidate_axis": "python_loop_demorgan_all / early_return_universal",
    "repo": "nose",
    "language": "python",
@@ -40,16 +40,16 @@
     }
    ],
    "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
-      "evidence": "Manual source audit plus local detector check on the README-shaped fixture: `target/debug/nose query <fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1` reports zero semantic families at build 2a478b76e25a. Focused positive, helper-call, and hard-negative fixtures are recorded in `bench/type4/adversarial/cases/cases.v1.json` so the example is now tracked by the frontier rather than prose alone.",
+      "evidence": "Manual source audit plus local detector admission on the README-shaped fixture: `target/debug/nose query <fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1` now reports a semantic family containing all_not_zero_or_one and loop_no_zero_or_one. Focused positive, helper-call, and hard-negative fixtures are recorded in `bench/type4/adversarial/cases/cases.v1.json` so the admitted example remains tracked by the frontier.",
    "detector": {
-    "current_detector_miss": true,
+    "current_detector_miss": false,
     "binary_path": "target/debug/nose",
     "nose_version": "nose 0.18.0",
-    "build_ref": "2a478b76e25a",
+    "build_ref": "#739 detector admission",
     "baseline_command": "target/debug/nose query <README-shaped Python fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1",
-    "baseline_result": "0 semantic families; the README all(...) function and early-return loop do not currently converge.",
-    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports no family containing both functions.",
-    "default_query_result": "Default query likewise reports no exact semantic family for the pair."
+    "baseline_result": "Semantic query reports one family containing the README all(...) function and early-return loop.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports a family containing both functions.",
+    "default_query_result": "Default query also reports an exact semantic family for the pair."
    },
       "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
    "hard_negative_siblings": [
@@ -61,7 +61,7 @@
         "different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys"
    ],
    "batch": "2026-07-07-readme-loop-demorgan-frontier",
-      "notes": "Issue #717 tracking record. This is a same-language, README-facing proof target, not a detector admission. The packet remains proof-fact-prerequisite until loop universal quantifier and boolean-only De Morgan facts are modeled."
+      "notes": "Issue #739 detector admission record. The same-language README-facing proof target is now covered by the detector under modeled-controlled loop universal, boolean De Morgan, effect-safety, and iterator-identity proof facts."
   },
   {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",

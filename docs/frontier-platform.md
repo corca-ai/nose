@@ -94,9 +94,10 @@ The first extra axes are:
   two-comparison ternary clamps and proven numeric Rust `.clamp` forms while keeping
   unproven bounds, custom method names, and float domains outside the shared Clamp value.
 - `python_loop_demorgan_all` — the README-facing Python `all(...)` plus early-return loop
-  and De Morgan example. This packet is deliberately `not-admitted`: it records the current
-  detector miss and the proof perimeter for loop vacuous truth, short-circuit order,
-  pure predicates, and Python's boolean-value boundary before any detector expansion.
+  and De Morgan example. This packet is now `real-pair-admitted`: it records the proof
+  perimeter for loop vacuous truth, short-circuit order, pure predicates, and Python's
+  boolean-value boundary, and the focused README-shaped pair now replays as
+  `same-family` while adjacent hard negatives remain split.
 
 ## The miss-mining arm (`miss_mining.py`)
 
@@ -168,7 +169,9 @@ detector admission explicit: the current `numeric-clamp-2026-06-06` packet is
 `detector-admitted-controlled` because proof-backed controlled integer clamp surfaces
 have landed, but the linked boltons/fzf real-corpus pair remains blocked: fzf has no
 bound-order evidence, neither side has shared integer-domain evidence, and the
-float-NaN boundary remains closed.
+float-NaN boundary remains closed. The current `python-loop-demorgan-all-2026-07-07`
+packet is `detector-admitted` for the README/focused real pair and therefore appears
+under `admitted/resolved`, not as queued defender work.
 
 ```sh
 python3 bench/type4/proof_carrying_frontier.py --check
