@@ -1,0 +1,67 @@
+{
+  "patterns": [
+    {
+      "boundaries": [
+        "unordered or swapped bounds are not clamp-equivalent",
+        "float or NaN-sensitive domains stay outside this integer clamp pattern",
+        "method names alone do not prove library clamp semantics",
+        "custom clamp-shaped APIs need receiver, domain, and bound-order evidence"
+      ],
+      "evidence_refs": [
+        "bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06",
+        "bench/type4/adversarial/cases/cases.v1.json::numeric-clamp-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_minmax_guarded_bounds",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary",
+        "bench/type4/proof_fact_registry.v1.json::numeric-clamp.integer-domain",
+        "bench/type4/proof_fact_registry.v1.json::numeric-clamp.bound-order"
+      ],
+      "hard_negative_templates": [
+        "numeric.unordered-bounds",
+        "numeric.swapped-bounds",
+        "numeric.float-nan-domain",
+        "protocol-boundary.method-name-only",
+        "numeric.wrong-minmax-shape"
+      ],
+      "language_surfaces": [
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::clamp_minmax_guarded_bounds",
+          "language": "Python",
+          "status": "modeled-controlled",
+          "surface": "min(max(x, lo), hi), max(min(x, hi), lo), and guarded ternary clamp"
+        },
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+          "language": "Rust",
+          "status": "modeled-controlled",
+          "surface": "integer .clamp(lo, hi) when literal or guard evidence proves lo <= hi"
+        },
+        {
+          "evidence": "bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06",
+          "language": "Go",
+          "status": "open",
+          "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof"
+        },
+        {
+          "language": "JS/TS",
+          "status": "closed",
+          "surface": "number-domain min/max clamp forms until float/NaN boundaries are excluded"
+        }
+      ],
+      "law": "Integer clamp surfaces are equivalent only when they compute the same bounded value and source evidence proves both integer-domain operands and lo <= hi bound order.",
+      "pattern_id": "numeric.clamp.proven-integer-bounds",
+      "rationale": "The numeric-clamp packet already has a proof-carrying perimeter, modeled facts, focused positives, and hard negatives; recording it as a semantic pattern makes future language surfaces attach to the same invariant instead of to min/max or method-name spelling.",
+      "required_facts": [
+        "numeric-clamp.integer-domain",
+        "numeric-clamp.bound-order"
+      ],
+      "status": "controlled-slice-admitted",
+      "title": "Proof-backed integer clamp"
+    }
+  ],
+  "schema_version": 1,
+  "tool_version": "semantic-pattern-cards/1"
+}

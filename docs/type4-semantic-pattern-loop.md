@@ -66,7 +66,8 @@ language_surfaces:
 
 Keep the card short enough to review in a PR. The detailed evidence still lives
 in `real_frontier.v1.json`, `frontier_target_packets.v1.json`, focused cases,
-proof fact artifacts, and generated PCF/readiness outputs.
+proof fact artifacts, generated PCF/readiness outputs, and the checked pattern
+catalog at `bench/type4/semantic_pattern_cards.v1.json`.
 
 ## Capability matrix
 

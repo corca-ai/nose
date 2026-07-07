@@ -309,6 +309,21 @@ python3 bench/type4/frontier_platform.py --repos-root /path/to/bench/repos \
 See [`docs/frontier-platform.md`](../../docs/frontier-platform.md) for the two-layer model,
 the new-axis/packet workflow, `owner_route`, and the audit template.
 
+## Semantic pattern cards
+
+`semantic_pattern_cards.py` validates the checked pattern-card catalog used by
+[`docs/type4-semantic-pattern-loop.md`](../../docs/type4-semantic-pattern-loop.md).
+Cards name the neutral law, proof facts, hard-negative templates, evidence refs,
+and per-language capability matrix before a future surface is admitted.
+
+```sh
+python3 bench/type4/semantic_pattern_cards.py
+python3 bench/type4/semantic_pattern_cards.py --check
+```
+
+The committed artifacts are `semantic_pattern_cards.v1.json` and
+`semantic_pattern_cards.md`.
+
 ## Proof-carrying frontier admission
 
 `proof_carrying_frontier.py` is the admission layer above target packets. It validates that
