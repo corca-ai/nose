@@ -53,6 +53,7 @@ REQUIRED_PACKET_FIELDS = {
     "evidence_tier",
     "curated",
     "why_now",
+    "proof_fact_model",
     "blocked_by",
     "notes",
 }
@@ -151,6 +152,7 @@ def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
             raise FrontierError(f"packet {packet_id} must name a proof invariant")
         if not packet["hard_negative_siblings"]:
             raise FrontierError(f"packet {packet_id} must name hard negatives")
+        validate_proof_fact_model(packet_id, packet["proof_fact_model"])
         detector_missing = sorted(REQUIRED_DETECTOR_FIELDS - set(packet["current_detector_result"]))
         if detector_missing:
             raise FrontierError(
@@ -161,6 +163,40 @@ def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
                 f"packet {packet_id} routes to proof-fact-prerequisite but has no blockers"
             )
     return packets
+
+
+def validate_proof_fact_model(packet_id: str, model: Any) -> None:
+    if not isinstance(model, dict):
+        raise FrontierError(f"packet {packet_id} proof_fact_model must be an object")
+    facts = model.get("facts")
+    if not isinstance(facts, list) or not facts:
+        raise FrontierError(f"packet {packet_id} proof_fact_model must contain facts")
+    seen = set()
+    for fact in facts:
+        if not isinstance(fact, dict):
+            raise FrontierError(f"packet {packet_id} proof fact entries must be objects")
+        fact_id = fact.get("fact_id")
+        if not fact_id:
+            raise FrontierError(f"packet {packet_id} proof fact missing fact_id")
+        if fact_id in seen:
+            raise FrontierError(f"packet {packet_id} duplicate proof fact: {fact_id}")
+        seen.add(fact_id)
+        for field in (
+            "description",
+            "accepted_evidence",
+            "rejected_evidence",
+            "current_real_pair_status",
+        ):
+            if field not in fact:
+                raise FrontierError(f"packet {packet_id} proof fact {fact_id} missing {field}")
+        if not isinstance(fact["accepted_evidence"], list) or not fact["accepted_evidence"]:
+            raise FrontierError(
+                f"packet {packet_id} proof fact {fact_id} needs accepted_evidence"
+            )
+        if not isinstance(fact["rejected_evidence"], list) or not fact["rejected_evidence"]:
+            raise FrontierError(
+                f"packet {packet_id} proof fact {fact_id} needs rejected_evidence"
+            )
 
 
 def validate_evidence_links(
@@ -212,7 +248,7 @@ def readiness_for(packet: dict[str, Any]) -> dict[str, Any]:
         return {
             "status": "blocked-on-proof",
             "can_open_exact_admission": False,
-            "reason": "packet still requires a reusable proof fact before detector work",
+            "reason": "packet still requires reusable proof evidence before detector work",
             "blocking_items": blockers,
         }
     if blockers:
@@ -247,6 +283,13 @@ def summarize_packets(packets: list[dict[str, Any]]) -> tuple[list[dict[str, Any
                 "evidence_tier": packet["evidence_tier"],
                 "proof_invariant": packet["proof_invariant"],
                 "hard_negative_count": len(packet["hard_negative_siblings"]),
+                "proof_fact_model": {
+                    "model_status": packet["proof_fact_model"].get("model_status", "unknown"),
+                    "fact_ids": [
+                        fact["fact_id"] for fact in packet["proof_fact_model"]["facts"]
+                    ],
+                    "fact_count": len(packet["proof_fact_model"]["facts"]),
+                },
                 "readiness": readiness,
             }
         )
@@ -382,17 +425,21 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Target Packets",
         "",
-        "| packet | axis | route | readiness | hard negatives |",
-        "|---|---|---|---|---:|",
+        "| packet | axis | route | readiness | proof facts | hard negatives |",
+        "|---|---|---|---|---:|---:|",
     ]
     for packet in report["target_packets"]["packets"]:
         readiness = packet["readiness"]
         lines.append(
             f"| `{packet['packet_id']}` | `{packet['candidate_axis']}` | "
             f"`{packet['owner_route']}` | `{readiness['status']}` | "
+            f"{packet['proof_fact_model']['fact_count']} | "
             f"{packet['hard_negative_count']} |"
         )
         if readiness["blocking_items"]:
+            lines.append("")
+            facts = ", ".join(f"`{fact}`" for fact in packet["proof_fact_model"]["fact_ids"])
+            lines.append(f"Proof facts modeled for `{packet['packet_id']}`: {facts}")
             lines.append("")
             lines.append(f"Blocked by `{packet['packet_id']}`:")
             lines.extend(f"- {item}" for item in readiness["blocking_items"])
@@ -452,6 +499,18 @@ def selftest() -> None:
         "evidence_tier": "frontier-recorded",
         "curated": {},
         "why_now": "priced",
+        "proof_fact_model": {
+            "model_status": "modeled-for-controlled-evidence",
+            "facts": [
+                {
+                    "fact_id": "numeric-clamp.bound-order",
+                    "description": "lo <= hi proof",
+                    "accepted_evidence": ["asserted guard evidence"],
+                    "rejected_evidence": ["parameter names"],
+                    "current_real_pair_status": "unsatisfied",
+                }
+            ],
+        },
         "blocked_by": ["missing proof"],
         "notes": "n/a",
     }
@@ -496,6 +555,13 @@ def selftest() -> None:
         bad["hard_negative_siblings"] = []
         validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [bad]})
         raise AssertionError("missing hard negative was not detected")
+    except FrontierError:
+        pass
+    no_model = dict(packet)
+    no_model["proof_fact_model"] = {}
+    try:
+        validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [no_model]})
+        raise AssertionError("missing proof fact model was not detected")
     except FrontierError:
         pass
     coevo = {

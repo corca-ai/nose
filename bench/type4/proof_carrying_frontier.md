@@ -24,13 +24,15 @@ evidence, and the co-evolution packet ledger.
 
 ## Target Packets
 
-| packet | axis | route | readiness | hard negatives |
-|---|---|---|---|---:|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `blocked-on-proof` | 4 |
+| packet | axis | route | readiness | proof facts | hard negatives |
+|---|---|---|---|---:|---:|
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `blocked-on-proof` | 2 | 4 |
+
+Proof facts modeled for `numeric-clamp-2026-06-06`: `numeric-clamp.integer-domain`, `numeric-clamp.bound-order`
 
 Blocked by `numeric-clamp-2026-06-06`:
-- real-corpus bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves the precondition is required; the current proof-backed slice handles literal bounds and exiting inverse guards, but parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)
-- float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on NaN, by language)
+- the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
+- the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries
 
 ## Co-Evolution Guardrails
 

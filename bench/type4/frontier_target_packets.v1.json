@@ -19,8 +19,8 @@
   "packets": [
     {
       "blocked_by": [
-        "real-corpus bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves the precondition is required; the current proof-backed slice handles literal bounds and exiting inverse guards, but parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
-        "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on NaN, by language)"
+        "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+        "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
       ],
       "breadth": {
         "dev_breadth": 0.2121,
@@ -102,10 +102,52 @@
           "split": "heldout"
         }
       ],
-      "notes": "The proof-backed integer Clamp canon now covers min/max composition plus controlled two-comparison and library method bridge surfaces when literal or exiting-guard evidence proves lo<=hi. The remaining packet is still routed proof-fact-prerequisite: parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof.",
+      "notes": "The proof-backed integer Clamp canon now covers min/max composition plus controlled two-comparison and library method bridge surfaces when literal or asserted Guard(BoundOrder) evidence proves lo<=hi and integer-domain evidence excludes float/NaN behavior. The remaining packet is still routed proof-fact-prerequisite because the real fzf member lacks modeled order evidence and the cross-language pair lacks a shared integer-only domain proof.",
       "owner_issue": null,
       "owner_route": "proof-fact-prerequisite",
       "packet_id": "numeric-clamp-2026-06-06",
+      "proof_fact_model": {
+        "facts": [
+          {
+            "accepted_evidence": [
+              "integer literals",
+              "asserted integer parameter/domain evidence on each clamp operand"
+            ],
+            "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
+            "description": "Clamp canonicalization is restricted to integer-domain operands so float/NaN-sensitive min/max and comparison-chain forms stay closed.",
+            "fact_id": "numeric-clamp.integer-domain",
+            "rejected_evidence": [
+              "Python dynamic numeric parameters without integer-domain evidence",
+              "TypeScript/JavaScript number domains",
+              "Go cmp.Ordered or other generic ordered domains that can include floats"
+            ]
+          },
+          {
+            "accepted_evidence": [
+              "ordered integer literal bounds",
+              "asserted Guard(BoundOrder) evidence on a dominating exiting inverse guard, e.g. if hi < lo then raise/return/throw before the clamp",
+              "asserted Guard(BoundOrder) evidence on a positive branch guard, e.g. if lo <= hi then evaluate the clamp and the other branch exits"
+            ],
+            "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
+            "description": "The lower bound must be proven <= the upper bound before min(max(x, lo), hi), max(min(x, hi), lo), and ternary clamp forms can share a Clamp value.",
+            "fact_id": "numeric-clamp.bound-order",
+            "rejected_evidence": [
+              "parameter names such as lower/upper or minimum/maximum",
+              "non-exiting guard expressions",
+              "swapped bounds or wrong min/max nesting"
+            ]
+          }
+        ],
+        "focused_tests": [
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::literal_bound_order_is_proof_backed_only_when_ordered",
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence",
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::positive_branch_bound_order_is_proof_backed_inside_branch",
+          "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
+          "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary"
+        ],
+        "model_status": "modeled-for-controlled-evidence"
+      },
       "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
       "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
       "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."

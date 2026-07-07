@@ -1,17 +1,18 @@
 use super::*;
 use crate::test_support::compat_test_evidence_with_dependencies as evidence_with_dependencies;
 use nose_il::{
-    CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
-    EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind,
-    IlBuilder, ImportEvidenceKind, Interner, JsRecordGuardComparison, JsRecordGuardNullCheck,
-    LibraryApiEvidenceKind, ParamSemantic, PlaceEvidenceKind, PromiseSettledValueEvidenceKind,
-    PromiseSettlementChannel, SequenceSurfaceKind, SourceCastKind, SourceFactKind,
-    SourcePatternKind, SourceRangeKind, Span, Symbol, SymbolEvidenceKind, TypeEvidenceKind, Unit,
-    UnitKind,
+    BoundOrderGuardActivation, CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
+    EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
+    GuardEvidenceKind, IlBuilder, ImportEvidenceKind, Interner, JsRecordGuardComparison,
+    JsRecordGuardNullCheck, LibraryApiEvidenceKind, ParamSemantic, PlaceEvidenceKind,
+    PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind, SourceCastKind,
+    SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol, SymbolEvidenceKind,
+    TypeEvidenceKind, Unit, UnitKind,
 };
 
 mod call_targets;
 mod effects_and_places;
+mod guard_evidence;
 mod js_symbol_guards;
 mod library_api_contracts;
 mod library_api_evidence;

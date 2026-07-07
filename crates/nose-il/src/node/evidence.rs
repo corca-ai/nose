@@ -181,6 +181,12 @@ pub enum JsRecordGuardComparison {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum BoundOrderGuardActivation {
+    WhenTrue,
+    WhenFalse,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum GuardEvidenceKind {
     JsRecordShape {
         subject_hash: u64,
@@ -189,6 +195,11 @@ pub enum GuardEvidenceKind {
     },
     JsOwnProperty {
         api_path_hash: u64,
+    },
+    BoundOrder {
+        lower_span: Span,
+        upper_span: Span,
+        activation: BoundOrderGuardActivation,
     },
 }
 

@@ -32,14 +32,15 @@ pub use ident::{
 pub use il::Il;
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
-    Builtin, CTypeTarget, CallTargetEvidenceKind, DomainEvidence, EffectEvidenceKind,
-    EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
-    EvidenceStatus, GuardEvidenceKind, HoFKind, ImportEvidenceKind, JsRecordGuardComparison,
-    JsRecordGuardNullCheck, LibraryApiEvidenceKind, LitClass, LoopKind, Node, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, PlaceEvidenceKind, PromiseSettledValueEvidenceKind,
-    PromiseSettlementChannel, SequenceSurfaceKind, SourceBindingKind, SourceCallKind,
-    SourceCastKind, SourceComprehensionKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
-    SourcePatternKind, SourceProtocolKind, SourceRangeKind, SymbolEvidenceKind, TypeEvidenceKind,
+    BoundOrderGuardActivation, Builtin, CTypeTarget, CallTargetEvidenceKind, DomainEvidence,
+    EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+    EvidenceProvenance, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind,
+    ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind,
+    LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind,
+    PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
+    SourceBindingKind, SourceCallKind, SourceCastKind, SourceComprehensionKind, SourceFactKind,
+    SourceLiteralKind, SourceOperatorKind, SourcePatternKind, SourceProtocolKind, SourceRangeKind,
+    SymbolEvidenceKind, TypeEvidenceKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 pub use unit::{Unit, UnitKind, UnitOrigin};

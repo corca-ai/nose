@@ -16,8 +16,12 @@ impl<'a> Builder<'a> {
             // produces the same guarded sinks as the if-else form (`if c {return a} else
             // {return b}`) — converging the two writings of the same function (e.g. sympy
             // `symmetric_residue` vs `gf_int`). Cascades for stacked guards.
-            if let Some(ncond) = self.guard_clause_negation(s, env) {
-                self.record_bound_order_fact(ncond);
+            if let Some((cond_node, ncond)) = self.guard_clause_negation(s, env) {
+                self.record_bound_order_fact_for_condition(
+                    cond_node,
+                    BoundOrderGuardActivation::WhenFalse,
+                    env,
+                );
                 self.path.push(ncond);
                 continue;
             }
@@ -44,7 +48,7 @@ impl<'a> Builder<'a> {
         &mut self,
         s: NodeId,
         env: &FxHashMap<u32, ValueId>,
-    ) -> Option<ValueId> {
+    ) -> Option<(NodeId, ValueId)> {
         if self.il.kind(s) != NodeKind::If {
             return None;
         }
@@ -53,25 +57,21 @@ impl<'a> Builder<'a> {
             return None; // has an else, or the then-branch can fall through
         }
         let cond = self.eval(kids[0], env);
-        Some(self.mk(ValOp::Un(Op::Not as u32), vec![cond]))
+        let ncond = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
+        Some((kids[0], ncond))
     }
 
-    pub(in crate::value_graph) fn record_bound_order_fact(&mut self, cond: ValueId) {
-        if let Some((lo, hi)) = self.bound_order_from_condition(cond) {
+    pub(in crate::value_graph) fn record_bound_order_fact_for_condition(
+        &mut self,
+        cond_node: NodeId,
+        activation: BoundOrderGuardActivation,
+        env: &FxHashMap<u32, ValueId>,
+    ) {
+        if let Some((lo_node, hi_node)) = bound_order_guard_for_node(self.il, cond_node, activation)
+        {
+            let lo = self.eval(lo_node, env);
+            let hi = self.eval(hi_node, env);
             self.bound_order_facts.push((lo, hi));
-        }
-    }
-
-    pub(in crate::value_graph) fn bound_order_from_condition(
-        &self,
-        cond: ValueId,
-    ) -> Option<(ValueId, ValueId)> {
-        match &self.nodes[cond as usize] {
-            ValNode {
-                op: ValOp::Bin(op),
-                args,
-            } if *op == Op::Le as u32 && args.len() == 2 => Some((args[0], args[1])),
-            _ => None,
         }
     }
 

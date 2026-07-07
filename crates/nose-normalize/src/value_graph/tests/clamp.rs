@@ -14,6 +14,16 @@ enum GuardShape {
     NonExiting,
 }
 
+#[derive(Clone, Copy)]
+enum BoundOrderEvidenceMode {
+    None,
+    Valid,
+    SwappedOperands,
+    WrongActivation,
+    Ambiguous,
+    MissingDependency,
+}
+
 fn param(b: &mut IlBuilder, cid: u32, line: u32) -> NodeId {
     b.add(NodeKind::Param, Payload::Cid(cid), sp(line), &[])
 }
@@ -88,6 +98,104 @@ fn push_canonical_java_minmax_builtin_evidence(il: &mut Il, first_id: u32) {
     }
 }
 
+fn push_bound_order_guard_evidence(
+    il: &mut Il,
+    id: u32,
+    cond: NodeId,
+    lower: NodeId,
+    upper: NodeId,
+    activation: BoundOrderGuardActivation,
+    dependencies: Vec<EvidenceId>,
+) {
+    il.evidence.push(language_core_evidence_with_dependencies(
+        id,
+        il.meta.lang,
+        EvidenceAnchor::node(il.node(cond).span, NodeKind::BinOp),
+        EvidenceKind::Guard(GuardEvidenceKind::BoundOrder {
+            lower_span: il.node(lower).span,
+            upper_span: il.node(upper).span,
+            activation,
+        }),
+        dependencies,
+    ));
+}
+
+fn opposite_activation(activation: BoundOrderGuardActivation) -> BoundOrderGuardActivation {
+    match activation {
+        BoundOrderGuardActivation::WhenTrue => BoundOrderGuardActivation::WhenFalse,
+        BoundOrderGuardActivation::WhenFalse => BoundOrderGuardActivation::WhenTrue,
+    }
+}
+
+fn push_bound_order_evidence_mode(
+    il: &mut Il,
+    mode: BoundOrderEvidenceMode,
+    cond: NodeId,
+    lower: NodeId,
+    upper: NodeId,
+    valid_activation: BoundOrderGuardActivation,
+) {
+    match mode {
+        BoundOrderEvidenceMode::None => {}
+        BoundOrderEvidenceMode::Valid => push_bound_order_guard_evidence(
+            il,
+            50,
+            cond,
+            lower,
+            upper,
+            valid_activation,
+            Vec::new(),
+        ),
+        BoundOrderEvidenceMode::SwappedOperands => push_bound_order_guard_evidence(
+            il,
+            50,
+            cond,
+            upper,
+            lower,
+            valid_activation,
+            Vec::new(),
+        ),
+        BoundOrderEvidenceMode::WrongActivation => push_bound_order_guard_evidence(
+            il,
+            50,
+            cond,
+            lower,
+            upper,
+            opposite_activation(valid_activation),
+            Vec::new(),
+        ),
+        BoundOrderEvidenceMode::Ambiguous => {
+            push_bound_order_guard_evidence(
+                il,
+                50,
+                cond,
+                lower,
+                upper,
+                valid_activation,
+                Vec::new(),
+            );
+            push_bound_order_guard_evidence(
+                il,
+                51,
+                cond,
+                upper,
+                lower,
+                valid_activation,
+                Vec::new(),
+            );
+        }
+        BoundOrderEvidenceMode::MissingDependency => push_bound_order_guard_evidence(
+            il,
+            50,
+            cond,
+            lower,
+            upper,
+            valid_activation,
+            vec![EvidenceId(999)],
+        ),
+    }
+}
+
 fn clamp_expr(b: &mut IlBuilder, shape: ClampShape, x: NodeId, lo: NodeId, hi: NodeId) -> NodeId {
     match shape {
         ClampShape::MinMax => {
@@ -109,6 +217,7 @@ fn guarded_function(
     guard: GuardShape,
     shape: ClampShape,
     semantics: [Option<ParamSemantic>; 3],
+    evidence_mode: BoundOrderEvidenceMode,
 ) -> (usize, usize) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
@@ -116,6 +225,7 @@ fn guarded_function(
     let plo = param(&mut b, 1, 2);
     let phi = param(&mut b, 2, 3);
     let mut stmts = Vec::new();
+    let mut guard_evidence_nodes = None;
     if !matches!(guard, GuardShape::None) {
         let hi_guard = var(&mut b, 2);
         let lo_guard = var(&mut b, 1);
@@ -138,6 +248,7 @@ fn guarded_function(
         };
         let then_block = b.add(NodeKind::Block, Payload::None, sp(5), &[then_stmt]);
         stmts.push(b.add(NodeKind::If, Payload::None, sp(4), &[cond, then_block]));
+        guard_evidence_nodes = Some((cond, lo_guard, hi_guard));
     }
     let x = var(&mut b, 0);
     let lo = var(&mut b, 1);
@@ -171,6 +282,16 @@ fn guarded_function(
             ));
         }
     }
+    if let Some((cond, lo_guard, hi_guard)) = guard_evidence_nodes {
+        push_bound_order_evidence_mode(
+            &mut il,
+            evidence_mode,
+            cond,
+            lo_guard,
+            hi_guard,
+            BoundOrderGuardActivation::WhenFalse,
+        );
+    }
     push_canonical_java_minmax_builtin_evidence(&mut il, 100);
     let mut builder = Builder::new(&il, &interner);
     builder.build_unit(func);
@@ -180,7 +301,10 @@ fn guarded_function(
     )
 }
 
-fn positive_branch_guarded_function(semantics: [Option<ParamSemantic>; 3]) -> (usize, usize) {
+fn positive_branch_guarded_function(
+    semantics: [Option<ParamSemantic>; 3],
+    evidence_mode: BoundOrderEvidenceMode,
+) -> (usize, usize) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let px = param(&mut b, 0, 1);
@@ -235,6 +359,14 @@ fn positive_branch_guarded_function(semantics: [Option<ParamSemantic>; 3]) -> (u
             ));
         }
     }
+    push_bound_order_evidence_mode(
+        &mut il,
+        evidence_mode,
+        cond,
+        lo_guard,
+        hi_guard,
+        BoundOrderGuardActivation::WhenTrue,
+    );
     push_canonical_java_minmax_builtin_evidence(&mut il, 100);
     let mut builder = Builder::new(&il, &interner);
     builder.build_unit(func);
@@ -302,18 +434,43 @@ fn literal_bound_order_is_proof_backed_only_when_ordered() {
 }
 
 #[test]
-fn guarded_bound_order_requires_exiting_inverse_guard() {
+fn guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence() {
     let integer = Some(ParamSemantic::Integer);
     assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::MinMax, [integer; 3]),
+        guarded_function(
+            GuardShape::Exiting,
+            ClampShape::MinMax,
+            [integer; 3],
+            BoundOrderEvidenceMode::Valid,
+        ),
         (1, 1)
     );
     assert_eq!(
-        guarded_function(GuardShape::NonExiting, ClampShape::MinMax, [integer; 3]),
+        guarded_function(
+            GuardShape::Exiting,
+            ClampShape::MinMax,
+            [integer; 3],
+            BoundOrderEvidenceMode::None,
+        ),
+        (1, 0),
+        "guard shape alone is not a proof fact"
+    );
+    assert_eq!(
+        guarded_function(
+            GuardShape::NonExiting,
+            ClampShape::MinMax,
+            [integer; 3],
+            BoundOrderEvidenceMode::Valid,
+        ),
         (1, 0)
     );
     assert_eq!(
-        guarded_function(GuardShape::None, ClampShape::MinMax, [integer; 3]),
+        guarded_function(
+            GuardShape::None,
+            ClampShape::MinMax,
+            [integer; 3],
+            BoundOrderEvidenceMode::Valid,
+        ),
         (1, 0)
     );
 }
@@ -321,7 +478,30 @@ fn guarded_bound_order_requires_exiting_inverse_guard() {
 #[test]
 fn positive_branch_bound_order_is_proof_backed_inside_branch() {
     let integer = Some(ParamSemantic::Integer);
-    assert_eq!(positive_branch_guarded_function([integer; 3]), (1, 1));
+    assert_eq!(
+        positive_branch_guarded_function([integer; 3], BoundOrderEvidenceMode::Valid),
+        (1, 1)
+    );
+    assert_eq!(
+        positive_branch_guarded_function([integer; 3], BoundOrderEvidenceMode::None),
+        (1, 0)
+    );
+}
+
+#[test]
+fn bound_order_evidence_must_match_exact_operands_activation_and_dependencies() {
+    let integer = Some(ParamSemantic::Integer);
+    for mode in [
+        BoundOrderEvidenceMode::SwappedOperands,
+        BoundOrderEvidenceMode::WrongActivation,
+        BoundOrderEvidenceMode::Ambiguous,
+        BoundOrderEvidenceMode::MissingDependency,
+    ] {
+        assert_eq!(
+            guarded_function(GuardShape::Exiting, ClampShape::MinMax, [integer; 3], mode),
+            (1, 0)
+        );
+    }
 }
 
 #[test]
@@ -329,16 +509,31 @@ fn proof_rejects_floatish_number_and_wrong_shapes() {
     let integer = Some(ParamSemantic::Integer);
     let number = Some(ParamSemantic::Number);
     assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::MinMax, [number; 3]),
+        guarded_function(
+            GuardShape::Exiting,
+            ClampShape::MinMax,
+            [number; 3],
+            BoundOrderEvidenceMode::Valid,
+        ),
         (1, 0),
         "float-sensitive Number params need a separate NaN/domain proof"
     );
     assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::SwappedBounds, [integer; 3]),
+        guarded_function(
+            GuardShape::Exiting,
+            ClampShape::SwappedBounds,
+            [integer; 3],
+            BoundOrderEvidenceMode::Valid,
+        ),
         (1, 0)
     );
     assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::WrongNesting, [integer; 3]),
+        guarded_function(
+            GuardShape::Exiting,
+            ClampShape::WrongNesting,
+            [integer; 3],
+            BoundOrderEvidenceMode::Valid,
+        ),
         (1, 0)
     );
 }

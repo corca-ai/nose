@@ -1,12 +1,12 @@
 pub(super) use super::super::*;
 pub(super) use nose_il::{
-    Builtin, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor, EvidenceId, EvidenceKind,
-    EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, HoFKind, Il, IlBuilder,
-    ImportEvidenceKind, Interner, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
-    LibraryApiEvidenceKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind, SourceCallKind,
-    SourceCastKind, SourceComprehensionKind, SourceFactKind, SourcePatternKind, SourceRangeKind,
-    Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+    BoundOrderGuardActivation, Builtin, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor,
+    EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind,
+    HoFKind, Il, IlBuilder, ImportEvidenceKind, Interner, JsRecordGuardComparison,
+    JsRecordGuardNullCheck, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Op, ParamSemantic,
+    Payload, PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
+    SourceCallKind, SourceCastKind, SourceComprehensionKind, SourceFactKind, SourcePatternKind,
+    SourceRangeKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
 };
 pub(super) use nose_semantics::test_support::{
     compat_test_asserted_evidence as evidence_with_dependencies,

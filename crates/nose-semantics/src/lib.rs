@@ -7,14 +7,15 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    contains_js_identifier, stable_symbol_hash, Builtin, CallTargetEvidenceKind,
-    EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord,
-    EvidenceStatus, GuardEvidenceKind, HoFKind, Il, ImportEvidenceKind, Interner, Lang,
-    LibraryApiEvidenceKind, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
-    SourceBindingKind, SourceCallKind, SourceCastKind, SourceComprehensionKind, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, SourcePatternKind, SourceProtocolKind, SourceRangeKind,
-    Span, Symbol, SymbolEvidenceKind, TypeEvidenceKind,
+    contains_js_identifier, stable_symbol_hash, BoundOrderGuardActivation, Builtin,
+    CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
+    EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il,
+    ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, LoopKind, NodeId,
+    NodeKind, Op, ParamSemantic, Payload, PromiseSettledValueEvidenceKind,
+    PromiseSettlementChannel, SequenceSurfaceKind, SourceBindingKind, SourceCallKind,
+    SourceCastKind, SourceComprehensionKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    SourcePatternKind, SourceProtocolKind, SourceRangeKind, Span, Symbol, SymbolEvidenceKind,
+    TypeEvidenceKind,
 };
 use rustc_hash::FxHashMap;
 

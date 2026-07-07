@@ -105,8 +105,8 @@
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "3fefdea12f9337281065978143eea4170cc49d48a1a5bf70deff671ecb4fcef7",
-        "size_bytes": 6744
+        "sha256": "f48ff2e54e7454e44c15b53d8228363058b4d1d0033baf7c38ac3071a45d8535",
+        "size_bytes": 9470
       }
     },
     "target_packet_identity": {
@@ -141,14 +141,22 @@
         "hard_negative_count": 4,
         "owner_route": "proof-fact-prerequisite",
         "packet_id": "numeric-clamp-2026-06-06",
+        "proof_fact_model": {
+          "fact_count": 2,
+          "fact_ids": [
+            "numeric-clamp.integer-domain",
+            "numeric-clamp.bound-order"
+          ],
+          "model_status": "modeled-for-controlled-evidence"
+        },
         "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
         "readiness": {
           "blocking_items": [
-            "real-corpus bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves the precondition is required; the current proof-backed slice handles literal bounds and exiting inverse guards, but parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
-            "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on NaN, by language)"
+            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
           ],
           "can_open_exact_admission": false,
-          "reason": "packet still requires a reusable proof fact before detector work",
+          "reason": "packet still requires reusable proof evidence before detector work",
           "status": "blocked-on-proof"
         }
       }

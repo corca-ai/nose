@@ -184,6 +184,11 @@ set -euo pipefail
 # reviewed Markdown/code candidate-pair enumeration representative from `cc48beefc6a85976`
 # to `ec66a9b9f2569018`. The members are still `fingerprint.rs::candidate_pairs` and
 # `candidates.rs::anchor_candidates`; no new budget is accepted.
+# 26 -> 27 (numeric clamp proof facts): an avoidable test-helper family in the new clamp
+# proof fixtures was deduped. The remaining new family is a broad whole-impl span between
+# the interpreter statement executor and the value-graph statement walker, sharing 16 lines
+# across ~270-line NodeKind dispatchers. Reviewed in docs/dogfooding-history.md; accepted
+# as detector span noise, not a useful shared abstraction.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 
