@@ -371,7 +371,7 @@
       "semantic_family": "numeric.clamp",
       "claim": "A two-comparison clamp can converge with proof-backed min/max clamp composition under the same integer lo<=hi proof.",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py"],
-      "evidence": "Focused equivalence tests and the bridge corpus show guarded lower-first and upper-first Python ternary clamps converging with proof-backed min/max Clamp while unproven, swapped-bound, and float ternaries stay split."
+      "evidence": "Focused equivalence tests prove the guarded lower-first Python ternary clamp converges with proof-backed min/max Clamp while unproven, swapped-bound, and float ternaries stay split. The bridge fixture also keeps the upper-first spelling visible as adjacent corpus evidence, not as a broader admission claim."
     },
     {
       "id": "clamp_library_method_bridge",
@@ -379,7 +379,7 @@
       "semantic_family": "numeric.clamp",
       "claim": "Language library clamp forms can converge with proof-backed min/max clamp composition when the same integer bound proof is available.",
       "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
-      "evidence": "Rust numeric .clamp now converges with literal ordered min/max clamps and with guarded Rust x.max(lo).min(hi) under the same lo<=hi proof. The bridge corpus verifies with 0 false merges."
+      "evidence": "Focused equivalence tests prove literal ordered Rust .clamp converges with literal min/max Clamp, and guarded Rust .clamp converges with guarded Rust x.max(lo).min(hi) under the same lo<=hi proof. The bridge corpus verifies that unproven, custom-method, and float boundaries stay split."
     },
     {
       "id": "clamp_method_name_only_boundary",
