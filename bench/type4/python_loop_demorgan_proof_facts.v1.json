@@ -1,0 +1,115 @@
+{
+  "evidence_count": 2,
+  "fact_ids": [
+    "python-loop-demorgan.iterator-identity"
+  ],
+  "failed": 0,
+  "input_artifacts": {
+    "fixtures": [
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
+        "sha256": "e942fa7fca1440cd9a2564bbe43fff2456494e55934f50dcedb326c2ef4d3e5f",
+        "size_bytes": 205
+      },
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+        "sha256": "41923f69b1709732f42eb10f73ca76dfbdd4a8375ba42b863eca663e727622cf",
+        "size_bytes": 193
+      }
+    ],
+    "tool": {
+      "path": "bench/type4/python_loop_demorgan_proof_facts.py",
+      "sha256": "9134e1393942777e520e83d712b66bd677c8a77429a8584c0c1e234a74f26e0f",
+      "size_bytes": 16077
+    }
+  },
+  "passed": 2,
+  "results": [
+    {
+      "case_id": "python_loop_demorgan_all_readme",
+      "evidence_id": "python-loop-demorgan-iterator-positive-same-binding",
+      "expect": "same-iterator",
+      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "fact_id": "python-loop-demorgan.iterator-identity",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+      "observed": "same-iterator",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "all_not_zero_or_one",
+          "iterable": {
+            "expr": "xs",
+            "provenance": "arg[0]:xs",
+            "supported": true
+          },
+          "kind": "all-generator"
+        },
+        "loop": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "loop_no_zero_or_one",
+          "iterable": {
+            "expr": "xs",
+            "provenance": "arg[0]:xs",
+            "supported": true
+          },
+          "kind": "for-loop"
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_iterator_identity_boundary",
+      "evidence_id": "python-loop-demorgan-iterator-negative-different-binding",
+      "expect": "different-iterator",
+      "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
+      "fact_id": "python-loop-demorgan.iterator-identity",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
+      "observed": "different-iterator",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "all_not_zero_or_one",
+          "iterable": {
+            "expr": "xs",
+            "provenance": "arg[0]:xs",
+            "supported": true
+          },
+          "kind": "all-generator"
+        },
+        "loop": {
+          "diagnostics": [],
+          "element": {
+            "expr": "x",
+            "provenance": "element:x",
+            "supported": true
+          },
+          "function": "loop_different_iterable",
+          "iterable": {
+            "expr": "ys",
+            "provenance": "arg[1]:ys",
+            "supported": true
+          },
+          "kind": "for-loop"
+        }
+      }
+    }
+  ],
+  "schema_version": 1,
+  "tool_version": "python-loop-demorgan-proof-facts/1"
+}

@@ -911,7 +911,7 @@ TARGET_PACKETS = [
         "claim auditable and gives the next defender a concrete positive plus adjacent "
         "hard-negative boundary.",
         "proof_fact_model": {
-            "model_status": "specified-not-modeled",
+            "model_status": "partially-modeled-controlled",
             "facts": [
                 {
                     "fact_id": "python-loop-demorgan.universal-short-circuit",
@@ -927,7 +927,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "python-loop-demorgan.iterator-identity",
-                    "current_real_pair_status": "unsatisfied: no same-iterator proof fact is modeled for this packet",
+                    "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates that the positive pair consumes arg[0]:xs on both sides and that the ys hard negative stays outside the fact",
                 },
             ],
             "focused_tests": [
@@ -964,7 +964,7 @@ TARGET_PACKETS = [
         "blocked_by": [
             "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
             "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-            "effect-safety and same-iterator proof are not yet modeled for this fragment shape",
+            "effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself",
         ],
         "notes": "This packet deliberately corrects the README-facing example from prose-only "
         "claim to auditable frontier evidence. It is not an exact-admission request yet: "

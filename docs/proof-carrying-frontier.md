@@ -83,7 +83,9 @@ and shared integer-domain evidence. Float NaN remains a closed domain boundary.
 Python `all(...)` plus early-return loop example is now linked to frontier evidence,
 with 6/6 executable focused expectations covered, but no detector slice is admitted
 until the loop universal-quantifier proof, boolean-only De Morgan proof, and
-effect-safety perimeter are modeled.
+effect-safety perimeter are modeled. Its iterator-identity fact has controlled
+source evidence for the README fixture and the different-iterable hard negative,
+but that fact does not admit the detector slice by itself.
 
 This is the intended outcome. The report makes those boundaries explicit so the next
 worker extends proof evidence instead of adding selector-shaped detector shortcuts.

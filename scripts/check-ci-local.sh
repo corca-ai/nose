@@ -92,6 +92,8 @@ run_type4_frontier_evidence_checks() {
     need_cmd python3
     python3 bench/type4/frontier_platform.py --selftest
     python3 bench/type4/frontier_platform.py --check
+    python3 bench/type4/python_loop_demorgan_proof_facts.py --selftest
+    python3 bench/type4/python_loop_demorgan_proof_facts.py --check
     python3 bench/type4/proof_carrying_frontier.py --selftest
     python3 bench/type4/proof_carrying_frontier.py --check
 }
@@ -101,6 +103,7 @@ run_type4_executable_expectations() {
     NOSE_BIN="${1}" bench/type4/adversarial/scripts/type4-exec-check \
         --stable-report \
         --json-out bench/type4/executable_expectations.v1.json
+    python3 bench/type4/python_loop_demorgan_proof_facts.py --check
     python3 bench/type4/proof_carrying_frontier.py --check
 }
 

@@ -40,6 +40,9 @@ DEFAULT_EXECUTABLE_EXPECTATIONS = HERE / "executable_expectations.v1.json"
 DEFAULT_REAL_FRONTIER_REPLAY = HERE / "real_frontier_replay.v1.json"
 DEFAULT_REAL_FRONTIER_REPLAY_STATUS = HERE / "real_frontier_replay_status.v1.json"
 DEFAULT_PROOF_FACT_REGISTRY = HERE / "proof_fact_registry.v1.json"
+DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS = (
+    HERE / "python_loop_demorgan_proof_facts.v1.json"
+)
 DEFAULT_JSON_OUT = HERE / "proof_carrying_frontier.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "proof_carrying_frontier.md"
 DEFAULT_READINESS_JSON_OUT = HERE / "frontier_readiness.v1.json"
@@ -93,11 +96,17 @@ EXECUTABLE_REPORT_TOOL_VERSION = "type4-exec-check/1"
 REAL_FRONTIER_REPLAY_TOOL_VERSION = "real-frontier-replay/1"
 REAL_FRONTIER_REPLAY_STATUS = {"passed", "failed", "unavailable"}
 PROOF_FACT_REGISTRY_TOOL_VERSION = "proof-fact-registry/1"
+PYTHON_LOOP_DEMORGAN_PROOF_FACTS_TOOL_VERSION = "python-loop-demorgan-proof-facts/1"
 PROOF_FACT_STATUSES = {
     "specified-not-modeled",
     "modeled-controlled",
     "admitted-real-pair",
     "retired",
+}
+PROOF_FACT_EVIDENCE_OBSERVATIONS = {
+    "same-iterator",
+    "different-iterator",
+    "unsupported-iterator",
 }
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
@@ -269,8 +278,119 @@ def validate_proof_fact_registry(registry: dict[str, Any]) -> dict[str, dict[str
                     f"proof fact {fact_id} references unknown evidence requirement "
                     f"{requirement}"
                 )
+        controlled_evidence = fact.get("controlled_evidence")
+        if controlled_evidence is not None and (
+            not isinstance(controlled_evidence, list)
+            or not controlled_evidence
+            or not all(isinstance(item, str) and "::" in item for item in controlled_evidence)
+        ):
+            raise FrontierError(
+                f"proof fact {fact_id} controlled_evidence must be non-empty list[str] refs"
+            )
         by_id[fact_id] = fact
     return by_id
+
+
+def validate_python_loop_demorgan_proof_facts(
+    report: dict[str, Any],
+    evidence_path: Path,
+    proof_fact_registry: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    if report.get("schema_version") != SCHEMA_VERSION:
+        raise FrontierError("python loop/De Morgan proof facts schema_version must be 1")
+    if report.get("tool_version") != PYTHON_LOOP_DEMORGAN_PROOF_FACTS_TOOL_VERSION:
+        raise FrontierError(
+            "python loop/De Morgan proof facts tool_version must be "
+            f"{PYTHON_LOOP_DEMORGAN_PROOF_FACTS_TOOL_VERSION}"
+        )
+    results = report.get("results")
+    if not isinstance(results, list) or not results:
+        raise FrontierError("python loop/De Morgan proof facts must contain results")
+    if report.get("evidence_count") != len(results):
+        raise FrontierError("python loop/De Morgan proof facts count does not match results")
+    if report.get("failed") != 0:
+        raise FrontierError("python loop/De Morgan proof facts contain failing evidence")
+
+    evidence_artifact = repo_rel(evidence_path)
+    expected_refs: dict[str, str] = {}
+    for fact_id, fact in proof_fact_registry.items():
+        for ref in fact.get("controlled_evidence") or []:
+            path_text, evidence_id = ref.split("::", 1)
+            if path_text == evidence_artifact:
+                expected_refs[evidence_id] = fact_id
+
+    if not expected_refs:
+        iterator_fact = proof_fact_registry.get("python-loop-demorgan.iterator-identity")
+        if iterator_fact and iterator_fact["status"] == "modeled-controlled":
+            raise FrontierError(
+                "python-loop-demorgan.iterator-identity is modeled-controlled but "
+                f"does not cite {evidence_artifact} controlled evidence"
+            )
+        return {}
+
+    seen_refs: set[str] = set()
+    by_fact: dict[str, dict[str, Any]] = {}
+    for result in results:
+        if not isinstance(result, dict):
+            raise FrontierError("python loop/De Morgan proof fact result must be an object")
+        evidence_id = result.get("evidence_id")
+        fact_id = result.get("fact_id")
+        if not evidence_id or not fact_id:
+            raise FrontierError("python loop/De Morgan proof fact result missing id fields")
+        if evidence_id in seen_refs:
+            raise FrontierError(
+                f"duplicate python loop/De Morgan proof evidence id: {evidence_id}"
+            )
+        seen_refs.add(evidence_id)
+        expected_fact = expected_refs.get(evidence_id)
+        if expected_fact is None:
+            raise FrontierError(
+                f"python loop/De Morgan proof evidence {evidence_id} is not cited "
+                "by the proof fact registry"
+            )
+        if fact_id != expected_fact:
+            raise FrontierError(
+                f"python loop/De Morgan proof evidence {evidence_id} belongs to "
+                f"{fact_id}, expected {expected_fact}"
+            )
+        if result.get("observed") not in PROOF_FACT_EVIDENCE_OBSERVATIONS:
+            raise FrontierError(
+                f"python loop/De Morgan proof evidence {evidence_id} has unknown "
+                f"observation {result.get('observed')}"
+            )
+        if result.get("expect") not in PROOF_FACT_EVIDENCE_OBSERVATIONS:
+            raise FrontierError(
+                f"python loop/De Morgan proof evidence {evidence_id} has unknown "
+                f"expectation {result.get('expect')}"
+            )
+        if result.get("ok") is not True:
+            raise FrontierError(
+                f"python loop/De Morgan proof evidence {evidence_id} did not pass"
+            )
+        by_fact.setdefault(
+            fact_id,
+            {
+                "artifact": evidence_artifact,
+                "tool_version": report["tool_version"],
+                "evidence_ids": [],
+                "observations": {},
+                "passed": 0,
+            },
+        )
+        by_fact[fact_id]["evidence_ids"].append(evidence_id)
+        by_fact[fact_id]["observations"][evidence_id] = result["observed"]
+        by_fact[fact_id]["passed"] += 1
+
+    missing_refs = sorted(set(expected_refs) - seen_refs)
+    if missing_refs:
+        raise FrontierError(
+            "python loop/De Morgan proof facts missing registry-cited evidence: "
+            f"{missing_refs}"
+        )
+    for fact_summary in by_fact.values():
+        fact_summary["evidence_ids"].sort()
+        fact_summary["observations"] = dict(sorted(fact_summary["observations"].items()))
+    return by_fact
 
 
 def validate_packet_doc(
@@ -1259,6 +1379,7 @@ def summarize_packets(
     executable_coverage_by_packet: dict[str, dict[str, Any]] | None = None,
     real_frontier_replay_by_packet: dict[str, dict[str, Any]] | None = None,
     proof_fact_registry: dict[str, dict[str, Any]] | None = None,
+    proof_fact_evidence_by_fact: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows = []
     by_status: Counter[str] = Counter()
@@ -1268,6 +1389,7 @@ def summarize_packets(
     by_real_frontier_replay: Counter[str] = Counter()
     executable_coverage_by_packet = executable_coverage_by_packet or {}
     real_frontier_replay_by_packet = real_frontier_replay_by_packet or {}
+    proof_fact_evidence_by_fact = proof_fact_evidence_by_fact or {}
     for packet in packets:
         executable_coverage = executable_coverage_by_packet.get(packet["packet_id"])
         real_frontier_replay = real_frontier_replay_by_packet.get(packet["packet_id"])
@@ -1291,6 +1413,7 @@ def summarize_packets(
                     "registry_status": registry_entry.get("status"),
                     "semantic_family": registry_entry.get("semantic_family"),
                     "evidence_requirements": registry_entry.get("evidence_requirements", []),
+                    "controlled_evidence": proof_fact_evidence_by_fact.get(fact_id),
                     "current_real_pair_status": fact.get("current_real_pair_status"),
                 }
             )
@@ -1400,6 +1523,7 @@ def build_report(
     real_frontier_replay_path: Path,
     real_frontier_replay_status_path: Path,
     proof_fact_registry_path: Path,
+    python_loop_demorgan_proof_facts_path: Path,
 ) -> dict[str, Any]:
     packet_doc = load_json(target_packets_path)
     real_frontier = load_json(real_frontier_path)
@@ -1409,6 +1533,12 @@ def build_report(
     replay_manifest = load_json(real_frontier_replay_path)
     replay_status_report = load_json(real_frontier_replay_status_path)
     proof_fact_registry = validate_proof_fact_registry(load_json(proof_fact_registry_path))
+    python_loop_demorgan_proof_facts = load_json(python_loop_demorgan_proof_facts_path)
+    proof_fact_evidence_by_fact = validate_python_loop_demorgan_proof_facts(
+        python_loop_demorgan_proof_facts,
+        python_loop_demorgan_proof_facts_path,
+        proof_fact_registry,
+    )
     packets = validate_packet_doc(packet_doc, proof_fact_registry)
     evidence_links = validate_evidence_links(packets, real_frontier)
     hard_negative_linkage = validate_hard_negative_linkage(packets, focused_cases)
@@ -1434,6 +1564,7 @@ def build_report(
         executable_coverage["by_packet"],
         replay_coverage["by_packet"],
         proof_fact_registry,
+        proof_fact_evidence_by_fact,
     )
     public_executable_coverage = {
         "summary": executable_coverage["summary"],
@@ -1460,6 +1591,9 @@ def build_report(
                     real_frontier_replay_status_path
                 ),
                 "proof_fact_registry": artifact_ref(proof_fact_registry_path),
+                "python_loop_demorgan_proof_facts": artifact_ref(
+                    python_loop_demorgan_proof_facts_path
+                ),
             },
             "target_packet_identity": packet_doc.get("identity", {}),
         },
@@ -1664,11 +1798,21 @@ def readiness_sort_key(packet: dict[str, Any]) -> tuple[int, str, str]:
     return (READINESS_GROUPS[group]["rank"], admission, packet["packet_id"])
 
 
+def proof_fact_action_ids(packet: dict[str, Any]) -> list[str]:
+    facts = packet["proof_fact_model"]["facts"]
+    pending = [
+        fact["fact_id"]
+        for fact in facts
+        if fact.get("registry_status") == "specified-not-modeled"
+    ]
+    return pending or packet["proof_fact_model"]["fact_ids"]
+
+
 def release_note_for(packet: dict[str, Any], group: str) -> str:
     packet_id = packet["packet_id"]
     axis = packet["candidate_axis"]
     admission = packet["detector_admission"]
-    facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
+    facts = ", ".join(proof_fact_action_ids(packet))
     coverage = packet.get("executable_witness_coverage") or {}
     replay = packet.get("real_frontier_replay") or {}
     if executable_coverage_blockers(coverage):
@@ -1711,7 +1855,7 @@ def release_note_for(packet: dict[str, Any], group: str) -> str:
 
 def next_action_for(packet: dict[str, Any], group: str) -> str:
     admission = packet["detector_admission"]
-    facts = ", ".join(packet["proof_fact_model"]["fact_ids"])
+    facts = ", ".join(proof_fact_action_ids(packet))
     blockers = packet["readiness"]["blocking_items"]
     coverage = packet.get("executable_witness_coverage") or {}
     replay = packet.get("real_frontier_replay") or {}
@@ -2070,6 +2214,47 @@ def selftest() -> None:
         ],
     }
     proof_fact_registry = validate_proof_fact_registry(registry_doc)
+    evidence_ref = (
+        f"{repo_rel(DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS)}::iterator-selftest"
+    )
+    evidence_registry_doc = json.loads(json.dumps(registry_doc))
+    evidence_registry_doc["facts"][0]["fact_id"] = "python-loop-demorgan.iterator-identity"
+    evidence_registry_doc["facts"][0]["semantic_family"] = "python.loop_demorgan_all"
+    evidence_registry_doc["facts"][0]["controlled_evidence"] = [evidence_ref]
+    evidence_registry = validate_proof_fact_registry(evidence_registry_doc)
+    proof_evidence = {
+        "schema_version": 1,
+        "tool_version": PYTHON_LOOP_DEMORGAN_PROOF_FACTS_TOOL_VERSION,
+        "evidence_count": 1,
+        "passed": 1,
+        "failed": 0,
+        "results": [
+            {
+                "evidence_id": "iterator-selftest",
+                "fact_id": "python-loop-demorgan.iterator-identity",
+                "expect": "same-iterator",
+                "observed": "same-iterator",
+                "ok": True,
+            }
+        ],
+    }
+    proof_evidence_by_fact = validate_python_loop_demorgan_proof_facts(
+        proof_evidence,
+        DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
+        evidence_registry,
+    )
+    assert proof_evidence_by_fact["python-loop-demorgan.iterator-identity"]["passed"] == 1
+    missing_evidence = json.loads(json.dumps(proof_evidence))
+    missing_evidence["results"][0]["evidence_id"] = "wrong-id"
+    try:
+        validate_python_loop_demorgan_proof_facts(
+            missing_evidence,
+            DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
+            evidence_registry,
+        )
+        raise AssertionError("missing registry-cited proof evidence was not detected")
+    except FrontierError:
+        pass
     packet_doc = {"schema_version": 1, "packet_count": 1, "packets": [packet]}
     packets = validate_packet_doc(packet_doc, proof_fact_registry)
     focused_cases = {
@@ -2477,6 +2662,11 @@ def main() -> int:
         type=Path,
         default=DEFAULT_PROOF_FACT_REGISTRY,
     )
+    parser.add_argument(
+        "--python-loop-demorgan-proof-facts",
+        type=Path,
+        default=DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
+    )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
     parser.add_argument("--readiness-json-out", type=Path, default=DEFAULT_READINESS_JSON_OUT)
@@ -2502,6 +2692,7 @@ def main() -> int:
             args.real_frontier_replay,
             args.real_frontier_replay_status,
             args.proof_fact_registry,
+            args.python_loop_demorgan_proof_facts,
         )
         if args.check:
             check_artifacts(

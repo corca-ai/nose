@@ -64,11 +64,11 @@ report keeps the fuller evidence and admission boundary.
 - gates: 1 positive, 5 hard-negative
 - executable witness coverage: `covered` (6/6 passed)
 - real-frontier replay: `passed` (1/1 passed)
-- proof fact model: `specified-not-modeled`; facts: `python-loop-demorgan.universal-short-circuit` (specified-not-modeled), `python-loop-demorgan.boolean-demorgan` (specified-not-modeled), `python-loop-demorgan.effect-safety` (specified-not-modeled), `python-loop-demorgan.iterator-identity` (specified-not-modeled)
+- proof fact model: `partially-modeled-controlled`; facts: `python-loop-demorgan.universal-short-circuit` (specified-not-modeled), `python-loop-demorgan.boolean-demorgan` (specified-not-modeled), `python-loop-demorgan.effect-safety` (specified-not-modeled), `python-loop-demorgan.iterator-identity` (modeled-controlled)
 - blocked by:
   - no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form
   - De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects
-  - effect-safety and same-iterator proof are not yet modeled for this fragment shape
+  - effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself
 - hard-negative groups: `python-loop-demorgan-all-proof-perimeter`
 
 ## Hard-Negative Linkage

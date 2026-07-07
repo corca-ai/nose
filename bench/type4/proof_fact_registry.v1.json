@@ -135,6 +135,10 @@
         "no reassignment or mutation changes the iterable between the two forms",
         "the generator and loop use the same element variable coordinate"
       ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-iterator-positive-same-binding",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-iterator-negative-different-binding"
+      ],
       "detector_admission_implication": "Does not admit loop/all convergence by itself; it only rules out different receiver/iterator inputs.",
       "evidence_requirements": [
         "focused-executable",
@@ -154,7 +158,7 @@
         "derived iterables whose cardinality/order relationship is not proven"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "The generator consumed by all(...) and the explicit loop must traverse the same iterable in the same order.",
       "title": "Loop/all iterator identity"
     },

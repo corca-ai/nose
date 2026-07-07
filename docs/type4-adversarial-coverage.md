@@ -91,8 +91,9 @@ release notes. For example, numeric clamp is `admitted/resolved` only for its co
 detector slice; the current cross-language pair still lacks fzf-side bound-order evidence
 and shared integer-domain evidence, even though its focused executable perimeter is covered.
 The Python loop plus De Morgan packet is `blocked-on-proof` until its universal-loop,
-boolean-only De Morgan, and effect-safety facts exist; its current executable report makes
-the positive miss and adjacent split boundaries explicit.
+boolean-only De Morgan, and effect-safety facts exist. Its iterator-identity fact is
+modeled for controlled evidence, and its current executable report makes the positive miss
+and adjacent split boundaries explicit.
 
 ## Focused cases
 
@@ -148,7 +149,8 @@ The `python.loop_demorgan_all` focused group clarifies the README-facing same-la
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the
 early-return counterexample loop; hard negatives cover vacuous truth, observed effects,
 Python value-returning boolean operands, changed predicates, and different iterable
-identity.
+identity. `python_loop_demorgan_proof_facts.py` machine-checks the iterator-identity
+source evidence against the positive and different-iterable fixtures.
 
 Good hard negatives attack exactly the proof invariant a rule needs:
 
