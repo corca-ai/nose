@@ -114,8 +114,13 @@
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "f2849c4f9f1a785fa7fc8363b73aff1f94024694696a2da5533d3596164f3c6a",
-        "size_bytes": 10303
+        "sha256": "63b16008664bfec8517ba93a48aef44410a7c3d2d09a035fe4589bb80282b794",
+        "size_bytes": 10578
+      },
+      "python_loop_demorgan_proof_facts": {
+        "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+        "sha256": "625865787ea699782be93ae0811d35af68ec9d8f71dc652e1322bcbac594e4f6",
+        "size_bytes": 3465
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
@@ -129,13 +134,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "4f7df46e5488fea86b9aa9df47e8f7e76b98a489a208a598d4779e3b206a7bad",
+        "sha256": "49bb80416d302030009bd49541c9dcab821ab0155e5654fd98d93e55ecb96328",
         "size_bytes": 1618
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "eb44b817fa6fed74f63eb313948090a8a0383f33742c603965e2e3dfaa56527c",
-        "size_bytes": 18811
+        "sha256": "ae9efcd9d13a5b882cf1715525e1594eb5aa5868938aca766b42169e80d4e8c4",
+        "size_bytes": 19018
       }
     },
     "target_packet_identity": {
@@ -570,6 +575,7 @@
           ],
           "facts": [
             {
+              "controlled_evidence": null,
               "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
               "evidence_requirements": [
                 "formal-or-mechanized",
@@ -582,6 +588,7 @@
               "title": "Clamp integer domain"
             },
             {
+              "controlled_evidence": null,
               "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
               "evidence_requirements": [
                 "formal-or-mechanized",
@@ -761,6 +768,7 @@
           ],
           "facts": [
             {
+              "controlled_evidence": null,
               "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
               "evidence_requirements": [
                 "focused-executable",
@@ -772,6 +780,7 @@
               "title": "Universal loop short-circuit and vacuous truth"
             },
             {
+              "controlled_evidence": null,
               "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
               "evidence_requirements": [
                 "focused-executable",
@@ -783,6 +792,7 @@
               "title": "Boolean-only De Morgan"
             },
             {
+              "controlled_evidence": null,
               "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
               "evidence_requirements": [
                 "focused-executable",
@@ -794,25 +804,38 @@
               "title": "Loop/all effect safety"
             },
             {
-              "current_real_pair_status": "unsatisfied: no same-iterator proof fact is modeled for this packet",
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-iterator-negative-different-binding",
+                  "python-loop-demorgan-iterator-positive-same-binding"
+                ],
+                "observations": {
+                  "python-loop-demorgan-iterator-negative-different-binding": "different-iterator",
+                  "python-loop-demorgan-iterator-positive-same-binding": "same-iterator"
+                },
+                "passed": 2,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates that the positive pair consumes arg[0]:xs on both sides and that the ys hard negative stays outside the fact",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
               ],
               "fact_id": "python-loop-demorgan.iterator-identity",
-              "registry_status": "specified-not-modeled",
+              "registry_status": "modeled-controlled",
               "semantic_family": "python.loop_demorgan_all",
               "title": "Loop/all iterator identity"
             }
           ],
-          "model_status": "specified-not-modeled"
+          "model_status": "partially-modeled-controlled"
         },
         "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
         "readiness": {
           "blocking_items": [
             "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
             "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-            "effect-safety and same-iterator proof are not yet modeled for this fragment shape"
+            "effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself"
           ],
           "can_open_exact_admission": false,
           "reason": "packet still requires reusable proof evidence before detector work",

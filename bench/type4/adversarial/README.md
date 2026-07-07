@@ -15,6 +15,8 @@ What remains here is deliberately small:
 - `scripts/type4-check` validates target packets, real-frontier evidence links, focused
   case fixture paths, and hard-negative group references.
 - `scripts/type4-exec-check` runs executable focused-case expectations through `nose query`.
+- `../python_loop_demorgan_proof_facts.py` machine-checks controlled source evidence for
+  the README-facing Python loop/all proof facts.
 - `scripts/type4-report` summarizes target packets, focused cases, and hard-negative groups.
 - `scripts/type4-ingest-leads` summarizes `nose verify --leads` JSON and emits draft target
   packet skeletons for manual curation.
@@ -24,6 +26,7 @@ What remains here is deliberately small:
 ```sh
 bench/type4/adversarial/scripts/type4-check
 NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check
+python3 bench/type4/python_loop_demorgan_proof_facts.py --check
 bench/type4/adversarial/scripts/type4-next --limit 3
 bench/type4/adversarial/scripts/type4-report
 ```
@@ -31,6 +34,8 @@ bench/type4/adversarial/scripts/type4-report
 `type4-check` is structural and does not require a built `nose` binary. `type4-exec-check`
 is the executable proof-perimeter gate: it runs each declared focused expectation and fails
 if a positive/split witness drifts from the current detector result.
+`python_loop_demorgan_proof_facts.py` checks proof-fact source evidence that is too narrow
+for a full detector admission but strong enough to make a registry fact reusable.
 
 `type4-next` does not infer new work from this directory. It reads target packets generated
 by the frontier platform. When `nose verify --leads` produces leads, run

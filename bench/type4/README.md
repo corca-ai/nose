@@ -248,6 +248,7 @@ bench/type4/adversarial/scripts/type4-check
 NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check \
   --stable-report \
   --json-out bench/type4/executable_expectations.v1.json
+python3 bench/type4/python_loop_demorgan_proof_facts.py --check
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
@@ -256,9 +257,12 @@ bench/type4/adversarial/scripts/type4-next --limit 3
 paths, and packet-level hard-negative groups. `type4-exec-check` is the executable
 perimeter gate: it runs declared focused-case `nose query` expectations and fails when an
 admitted positive or hard-negative split drifts. Its stable report is committed as
-`executable_expectations.v1.json` and consumed by proof-carrying readiness. `type4-report`
-summarizes packet, focused-case, executable expectation, and hard-negative group coverage.
-`type4-next` prints task cards directly from `frontier_target_packets.v1.json`.
+`executable_expectations.v1.json` and consumed by proof-carrying readiness.
+`python_loop_demorgan_proof_facts.py` machine-checks controlled source evidence for the
+README-facing Python loop/all proof facts; its committed report is
+`python_loop_demorgan_proof_facts.v1.json`. `type4-report` summarizes packet,
+focused-case, executable expectation, and hard-negative group coverage. `type4-next`
+prints task cards directly from `frontier_target_packets.v1.json`.
 
 When `nose verify --leads` has produced a leads JSON file, use
 `bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --axis <axis> --draft-json`
@@ -317,9 +321,12 @@ semantic behavior.
 python3 bench/type4/proof_carrying_frontier.py
 python3 bench/type4/proof_carrying_frontier.py --check
 python3 bench/type4/proof_carrying_frontier.py --selftest
+python3 bench/type4/python_loop_demorgan_proof_facts.py --selftest
+python3 bench/type4/python_loop_demorgan_proof_facts.py --check
 ```
 
 The committed artifacts are `executable_expectations.v1.json`,
+`python_loop_demorgan_proof_facts.v1.json`,
 `proof_carrying_frontier.v1.json`, `proof_carrying_frontier.md`,
 `frontier_readiness.v1.json`, and `frontier_readiness.md`. Use
 `frontier_readiness.md` first for release and roadmap triage:
@@ -333,8 +340,10 @@ remains routed as a proof prerequisite until a real-corpus bound-order fact can 
 
 The README-facing Python loop plus De Morgan example is also a target packet now. It is a
 current detector miss and remains `not-admitted` until the universal-loop, boolean-only
-De Morgan, and effect-safety proof facts exist. The readiness artifact names it as the
-current `blocked-on-proof` next-work packet.
+De Morgan, and effect-safety proof facts exist. The iterator-identity proof fact has
+controlled source evidence for the README fixture and the different-iterable hard
+negative. The readiness artifact names the packet as the current `blocked-on-proof`
+next-work packet.
 
 ## CI smoke
 

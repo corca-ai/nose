@@ -166,7 +166,7 @@
       "blocked_by": [
         "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
         "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-        "effect-safety and same-iterator proof are not yet modeled for this fragment shape"
+        "effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself"
       ],
       "breadth": {
         "dev_breadth": 0.0606,
@@ -277,7 +277,7 @@
             "fact_id": "python-loop-demorgan.effect-safety"
           },
           {
-            "current_real_pair_status": "unsatisfied: no same-iterator proof fact is modeled for this packet",
+            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates that the positive pair consumes arg[0]:xs on both sides and that the ys hard negative stays outside the fact",
             "fact_id": "python-loop-demorgan.iterator-identity"
           }
         ],
@@ -289,7 +289,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
         ],
-        "model_status": "specified-not-modeled"
+        "model_status": "partially-modeled-controlled"
       },
       "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
       "real_frontier_replay_ids": [
