@@ -105,6 +105,11 @@
         "no calls, assignments, yields, awaits, or mutations inside the predicate or loop body",
         "no observed state before the early return or inside the all(...) predicate"
       ],
+      "controlled_evidence": [
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-positive-pure-local-comparisons",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-negative-observed-loop-effect",
+        "bench/type4/python_loop_demorgan_proof_facts.v1.json::python-loop-demorgan-effect-negative-helper-call"
+      ],
       "detector_admission_implication": "Does not admit loop/all convergence by itself; it only permits comparing short-circuit boundaries after the predicate is effect-safe.",
       "evidence_requirements": [
         "focused-executable",
@@ -125,7 +130,7 @@
         "iterator or receiver mutation during traversal"
       ],
       "semantic_family": "python.loop_demorgan_all",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "The predicate must be pure and exact-safe so all(...) short-circuit and the early-return loop observe the same effects and stop at the same first counterexample.",
       "title": "Loop/all effect safety"
     },

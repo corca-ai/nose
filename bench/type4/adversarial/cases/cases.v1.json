@@ -78,6 +78,7 @@
       "hard_negative_cases": [
         "python_loop_demorgan_vacuous_truth_boundary",
         "python_loop_demorgan_side_effect_boundary",
+        "python_loop_demorgan_helper_call_boundary",
         "python_loop_demorgan_value_return_boundary",
         "python_loop_demorgan_changed_predicate_boundary",
         "python_loop_demorgan_iterator_identity_boundary"
@@ -86,11 +87,12 @@
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
       ],
-      "claim": "Python loop/all plus De Morgan admission must keep vacuous truth, short-circuit timing, iterator identity, boolean value-context, predicate-coordinate, and effect-safety hard negatives beside the positive packet."
+      "claim": "Python loop/all plus De Morgan admission must keep vacuous truth, short-circuit timing, helper-call purity, iterator identity, boolean value-context, predicate-coordinate, and effect-safety hard negatives beside the positive packet."
     }
   ],
   "cases": [
@@ -530,6 +532,26 @@
         }
       ],
       "evidence": "The hard-negative fixture uses the same `(xs, seen)` signature on both functions; loop_with_observed_effect mutates the seen list, so the split depends on observable effects rather than arity."
+    },
+    {
+      "id": "python_loop_demorgan_helper_call_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "Helper calls inside the all(...) predicate remain closed unless a separate purity proof proves they have no observable effects.",
+      "mutation": "replace the local comparison predicate with is_allowed(x, seen), whose body appends to observed state",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py"],
+      "executable_expectations": [
+        {
+          "id": "python_loop_demorgan_helper_call_stays_split",
+          "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py", "name": "all_with_helper_call"},
+            {"file": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py", "name": "loop_no_zero_or_one"}
+          ]
+        }
+      ],
+      "evidence": "The all(...) form delegates the predicate to is_allowed, and that helper mutates the shared seen list before returning the same boolean comparison."
     },
     {
       "id": "python_loop_demorgan_value_return_boundary",

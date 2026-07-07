@@ -1,11 +1,17 @@
 {
-  "evidence_count": 2,
+  "evidence_count": 5,
   "fact_ids": [
+    "python-loop-demorgan.effect-safety",
     "python-loop-demorgan.iterator-identity"
   ],
   "failed": 0,
   "input_artifacts": {
     "fixtures": [
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
+        "sha256": "e7aa6ab857cddcd72c15875383235871fc5009f00a7eb7f4636ea1be10b71e74",
+        "size_bytes": 283
+      },
       {
         "path": "bench/type4/adversarial/cases/python_loop_demorgan/iterator_identity.py",
         "sha256": "e942fa7fca1440cd9a2564bbe43fff2456494e55934f50dcedb326c2ef4d3e5f",
@@ -15,18 +21,24 @@
         "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
         "sha256": "41923f69b1709732f42eb10f73ca76dfbdd4a8375ba42b863eca663e727622cf",
         "size_bytes": 193
+      },
+      {
+        "path": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+        "sha256": "e01dc386b63b16733e28765d4920a3becbfa13dd24d84b3db33d25b3ad206a6c",
+        "size_bytes": 234
       }
     ],
     "tool": {
       "path": "bench/type4/python_loop_demorgan_proof_facts.py",
-      "sha256": "9134e1393942777e520e83d712b66bd677c8a77429a8584c0c1e234a74f26e0f",
-      "size_bytes": 16077
+      "sha256": "50fe74bfd9d8abbca2f73b34719341f429a851b12adf93dad3a41b370bf20286",
+      "size_bytes": 28302
     }
   },
-  "passed": 2,
+  "passed": 5,
   "results": [
     {
       "case_id": "python_loop_demorgan_all_readme",
+      "check": "iterator-identity",
       "evidence_id": "python-loop-demorgan-iterator-positive-same-binding",
       "expect": "same-iterator",
       "expectation_id": "python_loop_demorgan_positive_currently_split",
@@ -69,6 +81,7 @@
     },
     {
       "case_id": "python_loop_demorgan_iterator_identity_boundary",
+      "check": "iterator-identity",
       "evidence_id": "python-loop-demorgan-iterator-negative-different-binding",
       "expect": "different-iterator",
       "expectation_id": "python_loop_demorgan_iterator_identity_stays_split",
@@ -106,6 +119,99 @@
             "supported": true
           },
           "kind": "for-loop"
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_all_readme",
+      "check": "effect-safety",
+      "evidence_id": "python-loop-demorgan-effect-positive-pure-local-comparisons",
+      "expect": "effect-safe",
+      "expectation_id": "python_loop_demorgan_positive_currently_split",
+      "fact_id": "python-loop-demorgan.effect-safety",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+      "observed": "effect-safe",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "effect_safe": true,
+          "effects": [],
+          "function": "all_not_zero_or_one",
+          "kind": "all-generator-effect",
+          "supported": true
+        },
+        "loop": {
+          "diagnostics": [],
+          "effect_safe": true,
+          "effects": [],
+          "function": "loop_no_zero_or_one",
+          "kind": "for-loop-effect",
+          "supported": true
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_side_effect_boundary",
+      "check": "effect-safety",
+      "evidence_id": "python-loop-demorgan-effect-negative-observed-loop-effect",
+      "expect": "effectful",
+      "expectation_id": "python_loop_demorgan_side_effect_stays_split",
+      "fact_id": "python-loop-demorgan.effect-safety",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py",
+      "observed": "effectful",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [],
+          "effect_safe": true,
+          "effects": [],
+          "function": "all_not_zero_or_one",
+          "kind": "all-generator-effect",
+          "supported": true
+        },
+        "loop": {
+          "diagnostics": [],
+          "effect_safe": false,
+          "effects": [
+            "call:seen.append"
+          ],
+          "function": "loop_with_observed_effect",
+          "kind": "for-loop-effect",
+          "supported": true
+        }
+      }
+    },
+    {
+      "case_id": "python_loop_demorgan_helper_call_boundary",
+      "check": "effect-safety",
+      "evidence_id": "python-loop-demorgan-effect-negative-helper-call",
+      "expect": "effectful",
+      "expectation_id": "python_loop_demorgan_helper_call_stays_split",
+      "fact_id": "python-loop-demorgan.effect-safety",
+      "fixture": "bench/type4/adversarial/cases/python_loop_demorgan/helper_call.py",
+      "observed": "effectful",
+      "ok": true,
+      "shapes": {
+        "all": {
+          "diagnostics": [
+            "all predicate must be local comparisons over the element and literals"
+          ],
+          "effect_safe": false,
+          "effects": [
+            "call:is_allowed"
+          ],
+          "function": "all_with_helper_call",
+          "kind": "all-generator-effect",
+          "supported": false
+        },
+        "loop": {
+          "diagnostics": [],
+          "effect_safe": true,
+          "effects": [],
+          "function": "loop_no_zero_or_one",
+          "kind": "for-loop-effect",
+          "supported": true
         }
       }
     }

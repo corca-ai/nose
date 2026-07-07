@@ -923,7 +923,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "python-loop-demorgan.effect-safety",
-                    "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
+                    "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates pure local comparisons, observed loop effects, and helper-call closure",
                 },
                 {
                     "fact_id": "python-loop-demorgan.iterator-identity",
@@ -934,6 +934,7 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
@@ -951,20 +952,21 @@ TARGET_PACKETS = [
             "hard_negative_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
             ],
             "remaining_real_pair_gap": (
                 "the README/focused Python pair is still a detector miss; exact admission "
-                "needs reusable loop universal-quantifier, boolean-only De Morgan, and "
-                "effect-safety proof facts"
+                "needs reusable loop universal-quantifier and boolean-only De Morgan "
+                "proof facts"
             ),
         },
         "blocked_by": [
             "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
             "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-            "effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself",
+            "effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves",
         ],
         "notes": "This packet deliberately corrects the README-facing example from prose-only "
         "claim to auditable frontier evidence. It is not an exact-admission request yet: "

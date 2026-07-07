@@ -19,7 +19,7 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 1, "not-admitted": 1}`
 - by executable witness coverage: `{"covered": 2}`
 - by real-frontier replay: `{"passed": 2}`
-- executable expectations: 14/14 passed
+- executable expectations: 15/15 passed
 - real-frontier replays: 2/2 passed; 0 unavailable
 
 ## Admission Policy
@@ -40,7 +40,7 @@ report keeps the fuller evidence and admission boundary.
 | packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |
 |---|---|---|---|---|---|---:|---:|---:|
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | `covered (6/6)` | `passed (1/1)` | 4 | 5 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | `covered (7/7)` | `passed (1/1)` | 4 | 6 | 1 |
 
 ## Packet Details
 
@@ -60,15 +60,15 @@ report keeps the fuller evidence and admission boundary.
 ### `python-loop-demorgan-all-2026-07-07`
 
 - detector admission: `not-admitted` over none; tracked proof packet only
-- remaining real-pair gap: the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts
-- gates: 1 positive, 5 hard-negative
-- executable witness coverage: `covered` (6/6 passed)
+- remaining real-pair gap: the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier and boolean-only De Morgan proof facts
+- gates: 1 positive, 6 hard-negative
+- executable witness coverage: `covered` (7/7 passed)
 - real-frontier replay: `passed` (1/1 passed)
-- proof fact model: `partially-modeled-controlled`; facts: `python-loop-demorgan.universal-short-circuit` (specified-not-modeled), `python-loop-demorgan.boolean-demorgan` (specified-not-modeled), `python-loop-demorgan.effect-safety` (specified-not-modeled), `python-loop-demorgan.iterator-identity` (modeled-controlled)
+- proof fact model: `partially-modeled-controlled`; facts: `python-loop-demorgan.universal-short-circuit` (specified-not-modeled), `python-loop-demorgan.boolean-demorgan` (specified-not-modeled), `python-loop-demorgan.effect-safety` (modeled-controlled), `python-loop-demorgan.iterator-identity` (modeled-controlled)
 - blocked by:
   - no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form
   - De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects
-  - effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself
+  - effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves
 - hard-negative groups: `python-loop-demorgan-all-proof-perimeter`
 
 ## Hard-Negative Linkage
@@ -84,8 +84,8 @@ report keeps the fuller evidence and admission boundary.
 
 - semantic family: `python.loop_demorgan_all`
 - conventions: `boolean.truth-table`, `boolean.value-context`, `boolean.effect-safety`, `loop.empty-input`, `loop.short-circuit`, `loop.iterator-identity`
-- cases: 1 positive, 5 hard-negative
-- regression gates: 6
+- cases: 1 positive, 6 hard-negative
+- regression gates: 7
 
 ## Co-Evolution Guardrails
 

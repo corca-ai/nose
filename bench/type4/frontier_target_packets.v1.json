@@ -166,7 +166,7 @@
       "blocked_by": [
         "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
         "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
-        "effect-safety is not yet modeled for this fragment shape; iterator identity has controlled evidence but does not admit the detector slice by itself"
+        "effect-safety and iterator identity have controlled evidence but do not admit the detector slice by themselves"
       ],
       "breadth": {
         "dev_breadth": 0.0606,
@@ -215,6 +215,7 @@
         "hard_negative_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
@@ -222,7 +223,7 @@
         "positive_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme"
         ],
-        "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
+        "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier and boolean-only De Morgan proof facts",
         "scope": "none; tracked proof packet only",
         "status": "not-admitted"
       },
@@ -236,6 +237,7 @@
       "hard_negative_siblings": [
         "vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)",
         "predicate side effects or iterator mutation before returning, where short-circuit timing is observable",
+        "predicate helper calls without a separate purity proof, where effects can be hidden behind a name",
         "Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test",
         "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1",
         "different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys"
@@ -273,7 +275,7 @@
             "fact_id": "python-loop-demorgan.boolean-demorgan"
           },
           {
-            "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
+            "current_real_pair_status": "satisfied for controlled README/focused fixtures: python_loop_demorgan_proof_facts validates pure local comparisons, observed loop effects, and helper-call closure",
             "fact_id": "python-loop-demorgan.effect-safety"
           },
           {
@@ -285,13 +287,14 @@
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
         ],
         "model_status": "partially-modeled-controlled"
       },
-      "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+      "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, helper calls without a separate purity proof, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
       "real_frontier_replay_ids": [
         "python-loop-demorgan-readme-focused-real-pair"
       ],
