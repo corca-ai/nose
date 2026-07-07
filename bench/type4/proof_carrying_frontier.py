@@ -39,6 +39,7 @@ DEFAULT_FOCUSED_CASES = HERE / "adversarial" / "cases" / "cases.v1.json"
 DEFAULT_EXECUTABLE_EXPECTATIONS = HERE / "executable_expectations.v1.json"
 DEFAULT_REAL_FRONTIER_REPLAY = HERE / "real_frontier_replay.v1.json"
 DEFAULT_REAL_FRONTIER_REPLAY_STATUS = HERE / "real_frontier_replay_status.v1.json"
+DEFAULT_PROOF_FACT_REGISTRY = HERE / "proof_fact_registry.v1.json"
 DEFAULT_JSON_OUT = HERE / "proof_carrying_frontier.v1.json"
 DEFAULT_MARKDOWN_OUT = HERE / "proof_carrying_frontier.md"
 DEFAULT_READINESS_JSON_OUT = HERE / "frontier_readiness.v1.json"
@@ -91,6 +92,13 @@ EXECUTABLE_EXPECTATION_STATUS = {"same-family", "split"}
 EXECUTABLE_REPORT_TOOL_VERSION = "type4-exec-check/1"
 REAL_FRONTIER_REPLAY_TOOL_VERSION = "real-frontier-replay/1"
 REAL_FRONTIER_REPLAY_STATUS = {"passed", "failed", "unavailable"}
+PROOF_FACT_REGISTRY_TOOL_VERSION = "proof-fact-registry/1"
+PROOF_FACT_STATUSES = {
+    "specified-not-modeled",
+    "modeled-controlled",
+    "admitted-real-pair",
+    "retired",
+}
 
 HARD_NEGATIVE_CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
 REGRESSION_GATE_SEPARATOR = "::"
@@ -195,7 +203,80 @@ def by_case_id(real_frontier: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
-def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
+def validate_proof_fact_registry(registry: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    if registry.get("schema_version") != SCHEMA_VERSION:
+        raise FrontierError("proof fact registry schema_version must be 1")
+    if registry.get("tool_version") != PROOF_FACT_REGISTRY_TOOL_VERSION:
+        raise FrontierError(
+            f"proof fact registry tool_version must be {PROOF_FACT_REGISTRY_TOOL_VERSION}"
+        )
+    status_vocabulary = registry.get("status_vocabulary")
+    if not isinstance(status_vocabulary, dict):
+        raise FrontierError("proof fact registry must define status_vocabulary")
+    missing_statuses = sorted(PROOF_FACT_STATUSES - set(status_vocabulary))
+    extra_statuses = sorted(set(status_vocabulary) - PROOF_FACT_STATUSES)
+    if missing_statuses or extra_statuses:
+        raise FrontierError(
+            "proof fact registry status_vocabulary drifted: "
+            f"missing={missing_statuses}, extra={extra_statuses}"
+        )
+    requirement_vocabulary = registry.get("evidence_requirement_vocabulary")
+    if not isinstance(requirement_vocabulary, dict) or not requirement_vocabulary:
+        raise FrontierError("proof fact registry must define evidence_requirement_vocabulary")
+    facts = registry.get("facts")
+    if not isinstance(facts, list) or not facts:
+        raise FrontierError("proof fact registry must contain facts")
+    by_id: dict[str, dict[str, Any]] = {}
+    required_fields = {
+        "fact_id",
+        "title",
+        "semantic_family",
+        "status",
+        "summary",
+        "evidence_requirements",
+        "accepted_evidence",
+        "rejected_evidence",
+        "implementation_guidance",
+        "detector_admission_implication",
+    }
+    for fact in facts:
+        if not isinstance(fact, dict):
+            raise FrontierError("proof fact registry facts must be objects")
+        fact_id = fact.get("fact_id")
+        if not fact_id:
+            raise FrontierError("proof fact registry fact missing fact_id")
+        if fact_id in by_id:
+            raise FrontierError(f"duplicate proof fact registry id: {fact_id}")
+        missing = sorted(required_fields - set(fact))
+        if missing:
+            raise FrontierError(f"proof fact {fact_id} missing fields: {missing}")
+        if fact["status"] not in PROOF_FACT_STATUSES:
+            raise FrontierError(f"proof fact {fact_id} has unknown status: {fact['status']}")
+        for field in (
+            "evidence_requirements",
+            "accepted_evidence",
+            "rejected_evidence",
+            "implementation_guidance",
+        ):
+            values = fact[field]
+            if not isinstance(values, list) or not values or not all(
+                isinstance(item, str) and item for item in values
+            ):
+                raise FrontierError(f"proof fact {fact_id} {field} must be non-empty list[str]")
+        for requirement in fact["evidence_requirements"]:
+            if requirement not in requirement_vocabulary:
+                raise FrontierError(
+                    f"proof fact {fact_id} references unknown evidence requirement "
+                    f"{requirement}"
+                )
+        by_id[fact_id] = fact
+    return by_id
+
+
+def validate_packet_doc(
+    packet_doc: dict[str, Any],
+    proof_fact_registry: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     if packet_doc.get("schema_version") != SCHEMA_VERSION:
         raise FrontierError("frontier_target_packets.v1.json schema_version must be 1")
     packets = packet_doc.get("packets")
@@ -224,7 +305,7 @@ def validate_packet_doc(packet_doc: dict[str, Any]) -> list[dict[str, Any]]:
             raise FrontierError(f"packet {packet_id} must name a proof invariant")
         if not packet["hard_negative_siblings"]:
             raise FrontierError(f"packet {packet_id} must name hard negatives")
-        validate_proof_fact_model(packet_id, packet["proof_fact_model"])
+        validate_proof_fact_model(packet_id, packet["proof_fact_model"], proof_fact_registry)
         validate_detector_admission(packet_id, packet["detector_admission"])
         detector_missing = sorted(REQUIRED_DETECTOR_FIELDS - set(packet["current_detector_result"]))
         if detector_missing:
@@ -263,7 +344,11 @@ def validate_detector_admission(packet_id: str, admission: Any) -> None:
         )
 
 
-def validate_proof_fact_model(packet_id: str, model: Any) -> None:
+def validate_proof_fact_model(
+    packet_id: str,
+    model: Any,
+    proof_fact_registry: dict[str, dict[str, Any]] | None = None,
+) -> None:
     if not isinstance(model, dict):
         raise FrontierError(f"packet {packet_id} proof_fact_model must be an object")
     facts = model.get("facts")
@@ -279,21 +364,19 @@ def validate_proof_fact_model(packet_id: str, model: Any) -> None:
         if fact_id in seen:
             raise FrontierError(f"packet {packet_id} duplicate proof fact: {fact_id}")
         seen.add(fact_id)
-        for field in (
-            "description",
-            "accepted_evidence",
-            "rejected_evidence",
-            "current_real_pair_status",
-        ):
-            if field not in fact:
-                raise FrontierError(f"packet {packet_id} proof fact {fact_id} missing {field}")
-        if not isinstance(fact["accepted_evidence"], list) or not fact["accepted_evidence"]:
+        if proof_fact_registry is not None:
+            registry_entry = proof_fact_registry.get(fact_id)
+            if registry_entry is None:
+                raise FrontierError(
+                    f"packet {packet_id} proof fact {fact_id} is not in proof registry"
+                )
+            if registry_entry["status"] == "retired":
+                raise FrontierError(
+                    f"packet {packet_id} proof fact {fact_id} is retired in proof registry"
+                )
+        if not fact.get("current_real_pair_status"):
             raise FrontierError(
-                f"packet {packet_id} proof fact {fact_id} needs accepted_evidence"
-            )
-        if not isinstance(fact["rejected_evidence"], list) or not fact["rejected_evidence"]:
-            raise FrontierError(
-                f"packet {packet_id} proof fact {fact_id} needs rejected_evidence"
+                f"packet {packet_id} proof fact {fact_id} missing current_real_pair_status"
             )
 
 
@@ -1175,6 +1258,7 @@ def summarize_packets(
     packets: list[dict[str, Any]],
     executable_coverage_by_packet: dict[str, dict[str, Any]] | None = None,
     real_frontier_replay_by_packet: dict[str, dict[str, Any]] | None = None,
+    proof_fact_registry: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows = []
     by_status: Counter[str] = Counter()
@@ -1196,6 +1280,20 @@ def summarize_packets(
             by_executable_coverage[executable_coverage["coverage_status"]] += 1
         if real_frontier_replay:
             by_real_frontier_replay[real_frontier_replay["coverage_status"]] += 1
+        fact_rows = []
+        for fact in packet["proof_fact_model"]["facts"]:
+            fact_id = fact["fact_id"]
+            registry_entry = (proof_fact_registry or {}).get(fact_id, {})
+            fact_rows.append(
+                {
+                    "fact_id": fact_id,
+                    "title": registry_entry.get("title"),
+                    "registry_status": registry_entry.get("status"),
+                    "semantic_family": registry_entry.get("semantic_family"),
+                    "evidence_requirements": registry_entry.get("evidence_requirements", []),
+                    "current_real_pair_status": fact.get("current_real_pair_status"),
+                }
+            )
         rows.append(
             {
                 "packet_id": packet["packet_id"],
@@ -1215,6 +1313,7 @@ def summarize_packets(
                     "fact_ids": [
                         fact["fact_id"] for fact in packet["proof_fact_model"]["facts"]
                     ],
+                    "facts": fact_rows,
                     "fact_count": len(packet["proof_fact_model"]["facts"]),
                 },
                 "detector_admission": {
@@ -1300,6 +1399,7 @@ def build_report(
     executable_expectations_path: Path,
     real_frontier_replay_path: Path,
     real_frontier_replay_status_path: Path,
+    proof_fact_registry_path: Path,
 ) -> dict[str, Any]:
     packet_doc = load_json(target_packets_path)
     real_frontier = load_json(real_frontier_path)
@@ -1308,7 +1408,8 @@ def build_report(
     executable_report = load_json(executable_expectations_path)
     replay_manifest = load_json(real_frontier_replay_path)
     replay_status_report = load_json(real_frontier_replay_status_path)
-    packets = validate_packet_doc(packet_doc)
+    proof_fact_registry = validate_proof_fact_registry(load_json(proof_fact_registry_path))
+    packets = validate_packet_doc(packet_doc, proof_fact_registry)
     evidence_links = validate_evidence_links(packets, real_frontier)
     hard_negative_linkage = validate_hard_negative_linkage(packets, focused_cases)
     executable_coverage = summarize_executable_witness_coverage(
@@ -1332,6 +1433,7 @@ def build_report(
         packets,
         executable_coverage["by_packet"],
         replay_coverage["by_packet"],
+        proof_fact_registry,
     )
     public_executable_coverage = {
         "summary": executable_coverage["summary"],
@@ -1357,6 +1459,7 @@ def build_report(
                 "real_frontier_replay_status": artifact_ref(
                     real_frontier_replay_status_path
                 ),
+                "proof_fact_registry": artifact_ref(proof_fact_registry_path),
             },
             "target_packet_identity": packet_doc.get("identity", {}),
         },
@@ -1364,6 +1467,7 @@ def build_report(
             "exact_admission_requires": [
                 "linked real_frontier real-miss evidence",
                 "proof invariant narrow enough to defend",
+                "proof fact ids resolved through the reusable registry",
                 "adjacent hard-negative siblings",
                 "packet-level hard-negative group linkage",
                 "fresh executable focused-case witness coverage for declared expectations",
@@ -1507,7 +1611,10 @@ def markdown_report(report: dict[str, Any]) -> str:
             lines.append(f"- manifest-only cases: {cases}")
         if readiness["blocking_items"]:
             model_status = packet["proof_fact_model"]["model_status"]
-            facts = ", ".join(f"`{fact}`" for fact in packet["proof_fact_model"]["fact_ids"])
+            facts = ", ".join(
+                f"`{fact['fact_id']}` ({fact.get('registry_status') or 'unknown'})"
+                for fact in packet["proof_fact_model"]["facts"]
+            )
             lines.append(f"- proof fact model: `{model_status}`; facts: {facts}")
             lines.append("- blocked by:")
             lines.extend(f"  - {item}" for item in readiness["blocking_items"])
@@ -1655,6 +1762,7 @@ def readiness_packet_view(packet: dict[str, Any]) -> dict[str, Any]:
         "evidence_tier": packet["evidence_tier"],
         "proof_fact_model_status": packet["proof_fact_model"]["model_status"],
         "proof_fact_ids": packet["proof_fact_model"]["fact_ids"],
+        "proof_facts": packet["proof_fact_model"]["facts"],
         "hard_negative_count": packet["hard_negative_count"],
         "positive_gate_count": packet["detector_admission"]["positive_gate_count"],
         "hard_negative_gate_count": packet["detector_admission"]["hard_negative_gate_count"],
@@ -1923,9 +2031,6 @@ def selftest() -> None:
             "facts": [
                 {
                     "fact_id": "numeric-clamp.bound-order",
-                    "description": "lo <= hi proof",
-                    "accepted_evidence": ["asserted guard evidence"],
-                    "rejected_evidence": ["parameter names"],
                     "current_real_pair_status": "unsatisfied",
                 }
             ],
@@ -1941,8 +2046,32 @@ def selftest() -> None:
         "blocked_by": ["missing proof"],
         "notes": "n/a",
     }
+    registry_doc = {
+        "schema_version": 1,
+        "tool_version": PROOF_FACT_REGISTRY_TOOL_VERSION,
+        "status_vocabulary": {status: status for status in PROOF_FACT_STATUSES},
+        "evidence_requirement_vocabulary": {
+            "source-evidence": "source",
+            "focused-executable": "focused",
+        },
+        "facts": [
+            {
+                "fact_id": "numeric-clamp.bound-order",
+                "title": "Bound order",
+                "semantic_family": "numeric.clamp",
+                "status": "modeled-controlled",
+                "summary": "lo <= hi proof",
+                "evidence_requirements": ["source-evidence", "focused-executable"],
+                "accepted_evidence": ["asserted guard evidence"],
+                "rejected_evidence": ["parameter names"],
+                "implementation_guidance": ["reject names only"],
+                "detector_admission_implication": "not an admission by itself",
+            }
+        ],
+    }
+    proof_fact_registry = validate_proof_fact_registry(registry_doc)
     packet_doc = {"schema_version": 1, "packet_count": 1, "packets": [packet]}
-    packets = validate_packet_doc(packet_doc)
+    packets = validate_packet_doc(packet_doc, proof_fact_registry)
     focused_cases = {
         "schema_version": 1,
         "hard_negative_conventions": {
@@ -2120,6 +2249,13 @@ def selftest() -> None:
         raise AssertionError("drift was not detected")
     except FrontierError:
         pass
+    unknown_fact = json.loads(json.dumps(packet_doc))
+    unknown_fact["packets"][0]["proof_fact_model"]["facts"][0]["fact_id"] = "unknown.fact"
+    try:
+        validate_packet_doc(unknown_fact, proof_fact_registry)
+        raise AssertionError("unknown proof fact id was not detected")
+    except FrontierError:
+        pass
     ready = dict(packet)
     ready["owner_route"] = "team-a-detector"
     ready["blocked_by"] = []
@@ -2188,6 +2324,7 @@ def selftest() -> None:
         validate_packet_doc(admitted_doc),
         executable_coverage["by_packet"],
         replay_coverage["by_packet"],
+        proof_fact_registry,
     )
     assert admitted_summary["ready_packet_count"] == 0
     assert admitted_summary["detector_admitted_packet_count"] == 1
@@ -2200,6 +2337,7 @@ def selftest() -> None:
         validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [ready]}),
         executable_coverage["by_packet"],
         replay_coverage["by_packet"],
+        proof_fact_registry,
     )
     report = {
         "schema_version": 1,
@@ -2225,6 +2363,7 @@ def selftest() -> None:
         validate_packet_doc({"schema_version": 1, "packet_count": 1, "packets": [packet]}),
         executable_coverage["by_packet"],
         replay_coverage["by_packet"],
+        proof_fact_registry,
     )
     report["verdict"] = "no-exact-admission-ready-packets"
     report["target_packets"]["packets"] = blocked_rows
@@ -2333,6 +2472,11 @@ def main() -> int:
         type=Path,
         default=DEFAULT_REAL_FRONTIER_REPLAY_STATUS,
     )
+    parser.add_argument(
+        "--proof-fact-registry",
+        type=Path,
+        default=DEFAULT_PROOF_FACT_REGISTRY,
+    )
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
     parser.add_argument("--readiness-json-out", type=Path, default=DEFAULT_READINESS_JSON_OUT)
@@ -2357,6 +2501,7 @@ def main() -> int:
             args.executable_expectations,
             args.real_frontier_replay,
             args.real_frontier_replay_status,
+            args.proof_fact_registry,
         )
         if args.check:
             check_artifacts(

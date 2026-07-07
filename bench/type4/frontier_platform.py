@@ -835,31 +835,10 @@ TARGET_PACKETS = [
             "facts": [
                 {
                     "fact_id": "numeric-clamp.integer-domain",
-                    "description": "Clamp canonicalization is restricted to integer-domain operands so float/NaN-sensitive min/max and comparison-chain forms stay closed.",
-                    "accepted_evidence": [
-                        "integer literals",
-                        "asserted integer parameter/domain evidence on each clamp operand",
-                    ],
-                    "rejected_evidence": [
-                        "Python dynamic numeric parameters without integer-domain evidence",
-                        "TypeScript/JavaScript number domains",
-                        "Go cmp.Ordered or other generic ordered domains that can include floats",
-                    ],
                     "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
                 },
                 {
                     "fact_id": "numeric-clamp.bound-order",
-                    "description": "The lower bound must be proven <= the upper bound before min(max(x, lo), hi), max(min(x, hi), lo), and ternary clamp forms can share a Clamp value.",
-                    "accepted_evidence": [
-                        "ordered integer literal bounds",
-                        "asserted Guard(BoundOrder) evidence on a dominating exiting inverse guard, e.g. if hi < lo then raise/return/throw before the clamp",
-                        "asserted Guard(BoundOrder) evidence on a positive branch guard, e.g. if lo <= hi then evaluate the clamp and the other branch exits",
-                    ],
-                    "rejected_evidence": [
-                        "parameter names such as lower/upper or minimum/maximum",
-                        "non-exiting guard expressions",
-                        "swapped bounds or wrong min/max nesting",
-                    ],
                     "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
                 },
             ],
@@ -936,47 +915,19 @@ TARGET_PACKETS = [
             "facts": [
                 {
                     "fact_id": "python-loop-demorgan.universal-short-circuit",
-                    "description": "A Python early-return loop that returns False on the first counterexample and True after exhaustion is equivalent to all(P(x) for x in xs) only when the same iterable is consumed in the same order and empty iterables return True.",
-                    "accepted_evidence": [
-                        "single for-loop over the same local iterable",
-                        "only counterexample branch returns False",
-                        "fallthrough return is literal True",
-                        "generator all(...) preserves the same element order and vacuous truth",
-                    ],
-                    "rejected_evidence": [
-                        "fallthrough returns False or a non-boolean payload",
-                        "loop body has break/continue/else effects or extra observed state",
-                        "the loop consumes a different iterable or mutates the iterable",
-                    ],
                     "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
                 },
                 {
                     "fact_id": "python-loop-demorgan.boolean-demorgan",
-                    "description": "The counterexample guard not P may normalize through De Morgan only for proven boolean operands, e.g. not (x == 0 or x == 1) == (x != 0 and x != 1).",
-                    "accepted_evidence": [
-                        "comparison predicates whose results are booleans",
-                        "same element variable and same literal/value coordinates on both sides",
-                    ],
-                    "rejected_evidence": [
-                        "Python value-returning and/or operands whose value, not only truthiness, is observed",
-                        "overloaded comparison or predicate calls with effects",
-                        "changed predicates such as x != 0 or x != 1",
-                    ],
                     "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
                 },
                 {
                     "fact_id": "python-loop-demorgan.effect-safety",
-                    "description": "The predicate must be pure and exact-safe so the all(...) short-circuit and early-return loop observe the same effects and stop at the same first counterexample.",
-                    "accepted_evidence": [
-                        "local comparisons over the loop variable and literals",
-                        "no calls, assignments, yields, awaits, or mutations inside the predicate or loop body",
-                    ],
-                    "rejected_evidence": [
-                        "predicate helper calls such as is_bad(x) unless callee purity is proven",
-                        "observed counters/logging before return",
-                        "iterator or receiver mutation during traversal",
-                    ],
                     "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
+                },
+                {
+                    "fact_id": "python-loop-demorgan.iterator-identity",
+                    "current_real_pair_status": "unsatisfied: no same-iterator proof fact is modeled for this packet",
                 },
             ],
             "focused_tests": [

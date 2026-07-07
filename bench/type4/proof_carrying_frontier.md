@@ -26,6 +26,7 @@ report keeps the fuller evidence and admission boundary.
 
 - linked real_frontier real-miss evidence
 - proof invariant narrow enough to defend
+- proof fact ids resolved through the reusable registry
 - adjacent hard-negative siblings
 - packet-level hard-negative group linkage
 - fresh executable focused-case witness coverage for declared expectations
@@ -39,7 +40,7 @@ report keeps the fuller evidence and admission boundary.
 | packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |
 |---|---|---|---|---|---|---:|---:|---:|
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | `covered (6/6)` | `passed (1/1)` | 3 | 5 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `proof-fact-prerequisite` | `blocked-on-proof` | `covered (6/6)` | `passed (1/1)` | 4 | 5 | 1 |
 
 ## Packet Details
 
@@ -50,7 +51,7 @@ report keeps the fuller evidence and admission boundary.
 - gates: 5 positive, 6 hard-negative
 - executable witness coverage: `covered` (8/8 passed)
 - real-frontier replay: `passed` (1/1 passed)
-- proof fact model: `modeled-for-controlled-evidence`; facts: `numeric-clamp.integer-domain`, `numeric-clamp.bound-order`
+- proof fact model: `modeled-for-controlled-evidence`; facts: `numeric-clamp.integer-domain` (modeled-controlled), `numeric-clamp.bound-order` (modeled-controlled)
 - blocked by:
   - the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
   - the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries
@@ -63,7 +64,7 @@ report keeps the fuller evidence and admission boundary.
 - gates: 1 positive, 5 hard-negative
 - executable witness coverage: `covered` (6/6 passed)
 - real-frontier replay: `passed` (1/1 passed)
-- proof fact model: `specified-not-modeled`; facts: `python-loop-demorgan.universal-short-circuit`, `python-loop-demorgan.boolean-demorgan`, `python-loop-demorgan.effect-safety`
+- proof fact model: `specified-not-modeled`; facts: `python-loop-demorgan.universal-short-circuit` (specified-not-modeled), `python-loop-demorgan.boolean-demorgan` (specified-not-modeled), `python-loop-demorgan.effect-safety` (specified-not-modeled), `python-loop-demorgan.iterator-identity` (specified-not-modeled)
 - blocked by:
   - no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form
   - De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects
