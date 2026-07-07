@@ -1,0 +1,201 @@
+{
+  "description": "Reusable proof prerequisites for proof-carrying Type-4 frontier packets. Target packets cite these fact_id values; packet-local models may add only packet-specific current status.",
+  "evidence_requirement_vocabulary": {
+    "focused-executable": "A focused positive or hard-negative expectation must exercise the fact boundary.",
+    "formal-or-mechanized": "A formal proof, proof obligation, or machine-checked model must justify the rewrite precondition.",
+    "source-evidence": "The source program must expose evidence for the fact; names alone are not enough."
+  },
+  "facts": [
+    {
+      "accepted_evidence": [
+        "ordered integer literal bounds",
+        "asserted Guard(BoundOrder) evidence on a dominating exiting inverse guard, for example if hi < lo then raise/return/throw before the clamp",
+        "asserted Guard(BoundOrder) evidence on a positive branch guard, for example if lo <= hi then evaluate the clamp and the other branch exits"
+      ],
+      "detector_admission_implication": "Does not admit a real clamp pair by itself; the paired members must also satisfy numeric-clamp.integer-domain.",
+      "evidence_requirements": [
+        "formal-or-mechanized",
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "numeric-clamp.bound-order",
+      "hard_negative_conventions": [
+        "numeric.precondition",
+        "numeric.shape"
+      ],
+      "implementation_guidance": [
+        "Represent only dominating exiting inverse guards and positive branch guards as bound-order evidence.",
+        "Reject parameter naming, non-exiting checks, swapped bounds, and wrong min/max nesting."
+      ],
+      "rejected_evidence": [
+        "parameter names such as lower/upper or minimum/maximum",
+        "non-exiting guard expressions",
+        "swapped bounds or wrong min/max nesting"
+      ],
+      "semantic_family": "numeric.clamp",
+      "status": "modeled-controlled",
+      "summary": "The lower bound must be proven <= the upper bound before min(max(x, lo), hi), max(min(x, hi), lo), ternary clamp, and library clamp forms can share a Clamp value.",
+      "title": "Clamp bound order"
+    },
+    {
+      "accepted_evidence": [
+        "integer literals",
+        "asserted integer parameter/domain evidence on each clamp operand",
+        "language/type evidence that excludes float, NaN, and non-total-order behavior"
+      ],
+      "detector_admission_implication": "Does not admit a real clamp pair by itself; the paired members must also satisfy numeric-clamp.bound-order.",
+      "evidence_requirements": [
+        "formal-or-mechanized",
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "numeric-clamp.integer-domain",
+      "hard_negative_conventions": [
+        "numeric.domain",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Gate clamp canonicalization to integer-domain operands.",
+        "Keep language domains that can include floats or NaN outside exact clamp admission."
+      ],
+      "rejected_evidence": [
+        "Python dynamic numeric parameters without integer-domain evidence",
+        "TypeScript/JavaScript number domains",
+        "Go cmp.Ordered or other generic ordered domains that can include floats"
+      ],
+      "semantic_family": "numeric.clamp",
+      "status": "modeled-controlled",
+      "summary": "Clamp canonicalization is restricted to integer-domain operands so float/NaN-sensitive min/max and comparison-chain forms stay closed.",
+      "title": "Clamp integer domain"
+    },
+    {
+      "accepted_evidence": [
+        "comparison predicates whose results are booleans",
+        "the same element variable and the same literal/value coordinates on both sides",
+        "a boolean context where operand values are not observed"
+      ],
+      "detector_admission_implication": "Does not admit loop/all convergence by itself; universal short-circuit, effect safety, and iterator identity are separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "python-loop-demorgan.boolean-demorgan",
+      "hard_negative_conventions": [
+        "boolean.truth-table",
+        "boolean.value-context",
+        "boolean.effect-safety"
+      ],
+      "implementation_guidance": [
+        "Normalize De Morgan only for proven boolean operands.",
+        "Reject Python value-returning and/or contexts and effectful predicate calls."
+      ],
+      "rejected_evidence": [
+        "Python value-returning and/or operands whose value, not only truthiness, is observed",
+        "overloaded comparison or predicate calls with effects",
+        "changed predicates such as x != 0 or x != 1"
+      ],
+      "semantic_family": "python.loop_demorgan_all",
+      "status": "specified-not-modeled",
+      "summary": "The counterexample guard not P may normalize through De Morgan only for proven boolean operands, for example not (x == 0 or x == 1) == (x != 0 and x != 1).",
+      "title": "Boolean-only De Morgan"
+    },
+    {
+      "accepted_evidence": [
+        "local comparisons over the loop variable and literals",
+        "no calls, assignments, yields, awaits, or mutations inside the predicate or loop body",
+        "no observed state before the early return or inside the all(...) predicate"
+      ],
+      "detector_admission_implication": "Does not admit loop/all convergence by itself; it only permits comparing short-circuit boundaries after the predicate is effect-safe.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "python-loop-demorgan.effect-safety",
+      "hard_negative_conventions": [
+        "boolean.effect-safety",
+        "loop.short-circuit"
+      ],
+      "implementation_guidance": [
+        "Treat helper calls, mutation, logging, yield, await, and assignment as closed unless separate purity/effect evidence exists.",
+        "Keep short-circuit timing as behavior-defining when side effects can be observed."
+      ],
+      "rejected_evidence": [
+        "predicate helper calls such as is_bad(x) unless callee purity is proven",
+        "observed counters or logging before return",
+        "iterator or receiver mutation during traversal"
+      ],
+      "semantic_family": "python.loop_demorgan_all",
+      "status": "specified-not-modeled",
+      "summary": "The predicate must be pure and exact-safe so all(...) short-circuit and the early-return loop observe the same effects and stop at the same first counterexample.",
+      "title": "Loop/all effect safety"
+    },
+    {
+      "accepted_evidence": [
+        "all(...) and the explicit loop consume the same local iterable binding",
+        "no reassignment or mutation changes the iterable between the two forms",
+        "the generator and loop use the same element variable coordinate"
+      ],
+      "detector_admission_implication": "Does not admit loop/all convergence by itself; it only rules out different receiver/iterator inputs.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "python-loop-demorgan.iterator-identity",
+      "hard_negative_conventions": [
+        "loop.iterator-identity"
+      ],
+      "implementation_guidance": [
+        "Require same local iterable provenance for all(...) and the loop.",
+        "Reject forms where all(...) ranges over xs but the loop ranges over ys or over a mutated receiver."
+      ],
+      "rejected_evidence": [
+        "different iterable bindings",
+        "receiver or iterator mutation during traversal",
+        "derived iterables whose cardinality/order relationship is not proven"
+      ],
+      "semantic_family": "python.loop_demorgan_all",
+      "status": "specified-not-modeled",
+      "summary": "The generator consumed by all(...) and the explicit loop must traverse the same iterable in the same order.",
+      "title": "Loop/all iterator identity"
+    },
+    {
+      "accepted_evidence": [
+        "a single for-loop over the same local iterable",
+        "only the counterexample branch returns False",
+        "fallthrough return is literal True",
+        "empty iterables return True in both forms"
+      ],
+      "detector_admission_implication": "Does not admit loop/all convergence by itself; boolean De Morgan, effect safety, and iterator identity remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "python-loop-demorgan.universal-short-circuit",
+      "hard_negative_conventions": [
+        "loop.empty-input",
+        "loop.short-circuit"
+      ],
+      "implementation_guidance": [
+        "Model the explicit loop as universal quantification only when the counterexample branch is the sole early False return and fallthrough returns literal True.",
+        "Keep wrong empty-input truth and extra loop control/effects closed."
+      ],
+      "rejected_evidence": [
+        "fallthrough returns False or a non-boolean payload",
+        "loop body has break, continue, else effects, or extra observed state",
+        "the loop consumes a different iterable or mutates the iterable"
+      ],
+      "semantic_family": "python.loop_demorgan_all",
+      "status": "specified-not-modeled",
+      "summary": "A Python early-return loop that returns False on the first counterexample and True after exhaustion is equivalent to all(P(x) for x in xs) only with vacuous truth and matching short-circuit behavior.",
+      "title": "Universal loop short-circuit and vacuous truth"
+    }
+  ],
+  "schema_version": 1,
+  "status_vocabulary": {
+    "admitted-real-pair": "The fact is reusable and has current real-pair evidence, but detector admission still depends on every fact required by the packet.",
+    "modeled-controlled": "The fact is implemented or machine-checked for controlled evidence; individual real-corpus members still need source evidence.",
+    "retired": "The fact id is retained only for historical artifacts and should not be cited by new packets.",
+    "specified-not-modeled": "The fact is specified as a reusable prerequisite, but no detector/proof implementation can consume it yet."
+  },
+  "tool_version": "proof-fact-registry/1"
+}

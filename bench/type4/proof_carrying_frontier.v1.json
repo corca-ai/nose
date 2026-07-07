@@ -4,6 +4,7 @@
     "exact_admission_requires": [
       "linked real_frontier real-miss evidence",
       "proof invariant narrow enough to defend",
+      "proof fact ids resolved through the reusable registry",
       "adjacent hard-negative siblings",
       "packet-level hard-negative group linkage",
       "fresh executable focused-case witness coverage for declared expectations",
@@ -111,6 +112,11 @@
         "sha256": "053012c92ce5683b70946455f7161c2661487f24261dab8296ca8ea1844efb5f",
         "size_bytes": 40786
       },
+      "proof_fact_registry": {
+        "path": "bench/type4/proof_fact_registry.v1.json",
+        "sha256": "f2849c4f9f1a785fa7fc8363b73aff1f94024694696a2da5533d3596164f3c6a",
+        "size_bytes": 10303
+      },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
         "sha256": "dd612ae7fa6ef206d39c2eacc9fb35db41c5651c5174091d3c94533e07bcf6da",
@@ -123,13 +129,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "c3e57eb3c1094fa5340435c8f7de418b5ec87f92ea94118582f92b874ea66e16",
+        "sha256": "c2546f00b9676452960b6c07822e57804d42918c56aa7ba23ae9c795d850fdb9",
         "size_bytes": 1618
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "75cc7ca74c8874df1a2065e53cfdba0cc6e334bf649bca51b7467d385a31d20c",
-        "size_bytes": 22199
+        "sha256": "5a72521521422282ef103539e41cc5903b8c5628c97b83260536eb12d02266f9",
+        "size_bytes": 18809
       }
     },
     "target_packet_identity": {
@@ -562,6 +568,32 @@
             "numeric-clamp.integer-domain",
             "numeric-clamp.bound-order"
           ],
+          "facts": [
+            {
+              "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
+              "evidence_requirements": [
+                "formal-or-mechanized",
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "numeric-clamp.integer-domain",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "numeric.clamp",
+              "title": "Clamp integer domain"
+            },
+            {
+              "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
+              "evidence_requirements": [
+                "formal-or-mechanized",
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "numeric-clamp.bound-order",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "numeric.clamp",
+              "title": "Clamp bound order"
+            }
+          ],
           "model_status": "modeled-for-controlled-evidence"
         },
         "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
@@ -720,11 +752,58 @@
         "owner_route": "proof-fact-prerequisite",
         "packet_id": "python-loop-demorgan-all-2026-07-07",
         "proof_fact_model": {
-          "fact_count": 3,
+          "fact_count": 4,
           "fact_ids": [
             "python-loop-demorgan.universal-short-circuit",
             "python-loop-demorgan.boolean-demorgan",
-            "python-loop-demorgan.effect-safety"
+            "python-loop-demorgan.effect-safety",
+            "python-loop-demorgan.iterator-identity"
+          ],
+          "facts": [
+            {
+              "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "python-loop-demorgan.universal-short-circuit",
+              "registry_status": "specified-not-modeled",
+              "semantic_family": "python.loop_demorgan_all",
+              "title": "Universal loop short-circuit and vacuous truth"
+            },
+            {
+              "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "python-loop-demorgan.boolean-demorgan",
+              "registry_status": "specified-not-modeled",
+              "semantic_family": "python.loop_demorgan_all",
+              "title": "Boolean-only De Morgan"
+            },
+            {
+              "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "python-loop-demorgan.effect-safety",
+              "registry_status": "specified-not-modeled",
+              "semantic_family": "python.loop_demorgan_all",
+              "title": "Loop/all effect safety"
+            },
+            {
+              "current_real_pair_status": "unsatisfied: no same-iterator proof fact is modeled for this packet",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "python-loop-demorgan.iterator-identity",
+              "registry_status": "specified-not-modeled",
+              "semantic_family": "python.loop_demorgan_all",
+              "title": "Loop/all iterator identity"
+            }
           ],
           "model_status": "specified-not-modeled"
         },

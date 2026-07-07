@@ -14,8 +14,8 @@
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "75cc7ca74c8874df1a2065e53cfdba0cc6e334bf649bca51b7467d385a31d20c",
-      "size_bytes": 22199
+      "sha256": "5a72521521422282ef103539e41cc5903b8c5628c97b83260536eb12d02266f9",
+      "size_bytes": 18809
     }
   },
   "nose_binary": "nose",
