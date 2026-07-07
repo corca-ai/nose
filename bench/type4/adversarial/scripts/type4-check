@@ -12,6 +12,7 @@ from _type4_adversarial import (
     case_items,
     find_case,
     find_packet,
+    executable_expectation_items,
     load_all,
     packet_card,
     packet_items,
@@ -39,6 +40,7 @@ def main() -> int:
         "errors": errors,
         "target_packets": len(packet_items(packet_doc)),
         "focused_cases": len(case_items(cases)),
+        "executable_expectations": len(executable_expectation_items(cases)),
         "real_frontier_items": len(real_frontier.get("items", [])),
     }
     if args.json:
@@ -53,6 +55,7 @@ def main() -> int:
                 "ok: "
                 f"{summary['target_packets']} target packets, "
                 f"{summary['focused_cases']} focused cases, "
+                f"{summary['executable_expectations']} executable expectations, "
                 f"{summary['real_frontier_items']} real-frontier items"
             )
         if packet is not None:

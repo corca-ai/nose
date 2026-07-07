@@ -17,6 +17,7 @@ REAL_FRONTIER_PATH = TYPE4_ROOT / "real_frontier.v1.json"
 CASES_PATH = ROOT / "cases" / "cases.v1.json"
 CASE_REF_PREFIX = "bench/type4/adversarial/cases/cases.v1.json::"
 REGRESSION_GATE_SEPARATOR = "::"
+EXECUTABLE_EXPECTATIONS = {"same-family", "split"}
 HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "numeric",
     "boolean",
@@ -66,6 +67,14 @@ def hard_negative_convention_ids(cases: dict[str, Any]) -> set[str]:
     for values in conventions.values():
         if isinstance(values, list):
             result.update(item for item in values if isinstance(item, str))
+    return result
+
+
+def executable_expectation_items(cases: dict[str, Any]) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    result = []
+    for case in case_items(cases):
+        for expectation in case.get("executable_expectations", []):
+            result.append((case, expectation))
     return result
 
 
@@ -156,6 +165,7 @@ def validate_all(
         if packet.get("owner_route") == "proof-fact-prerequisite" and not packet.get("blocked_by"):
             errors.append(f"target packet {packet_id} is proof-fact-prerequisite but has no blocked_by list")
 
+    expectation_ids: set[str] = set()
     for case in case_items(cases):
         case_id = case.get("id", "?")
         for field in ("id", "kind", "semantic_family", "claim"):
@@ -163,6 +173,7 @@ def validate_all(
         for fixture in case.get("fixtures", []):
             if not (REPO_ROOT / fixture).exists():
                 errors.append(f"focused case {case_id} fixture does not exist: {fixture}")
+        _validate_executable_expectations(case, expectation_ids, errors)
 
     if not convention_ids:
         errors.append("cases.v1.json must define hard_negative_conventions")
@@ -237,6 +248,67 @@ def validate_all(
 def _require(item: dict[str, Any], field: str, label: str, errors: list[str]) -> None:
     if field not in item or item[field] in ("", None, []):
         errors.append(f"{label} missing required field {field}")
+
+
+def _validate_executable_expectations(
+    case: dict[str, Any], expectation_ids: set[str], errors: list[str]
+) -> None:
+    case_id = case.get("id", "?")
+    expectations = case.get("executable_expectations", [])
+    if expectations in (None, []):
+        return
+    if not isinstance(expectations, list):
+        errors.append(f"focused case {case_id} executable_expectations must be a list")
+        return
+    for expectation in expectations:
+        label = f"focused case {case_id} executable expectation {expectation.get('id', '?')}"
+        for field in ("id", "fixture", "expect", "members"):
+            _require(expectation, field, label, errors)
+        expectation_id = expectation.get("id")
+        if expectation_id:
+            if expectation_id in expectation_ids:
+                errors.append(f"executable expectation id {expectation_id} appears more than once")
+            expectation_ids.add(expectation_id)
+        if expectation.get("expect") not in EXECUTABLE_EXPECTATIONS:
+            errors.append(
+                f"{label} expect must be one of {sorted(EXECUTABLE_EXPECTATIONS)}"
+            )
+        fixture = expectation.get("fixture")
+        if isinstance(fixture, str) and not (REPO_ROOT / fixture).exists():
+            errors.append(f"{label} fixture does not exist: {fixture}")
+        query = expectation.get("query", {})
+        if query and not isinstance(query, dict):
+            errors.append(f"{label} query must be an object")
+        elif isinstance(query, dict):
+            if query.get("mode", "semantic") != "semantic":
+                errors.append(f"{label} query.mode must be semantic")
+            for field in ("min_size", "min_lines"):
+                if field in query and not isinstance(query[field], int):
+                    errors.append(f"{label} query.{field} must be an integer")
+        members = expectation.get("members")
+        if not isinstance(members, list) or len(members) < 2:
+            errors.append(f"{label} members must contain at least two entries")
+            continue
+        for idx, member in enumerate(members, start=1):
+            member_label = f"{label} member {idx}"
+            if not isinstance(member, dict):
+                errors.append(f"{member_label} must be an object")
+                continue
+            _require(member, "file", member_label, errors)
+            member_file = member.get("file")
+            if isinstance(member_file, str) and not (REPO_ROOT / member_file).is_file():
+                errors.append(f"{member_label} file does not exist: {member_file}")
+            has_name = isinstance(member.get("name"), str) and bool(member["name"])
+            has_span = "start_line" in member and "end_line" in member
+            if not has_name and not has_span:
+                errors.append(f"{member_label} must define name or start_line/end_line")
+            if has_span:
+                if not isinstance(member.get("start_line"), int) or not isinstance(
+                    member.get("end_line"), int
+                ):
+                    errors.append(f"{member_label} start_line/end_line must be integers")
+                elif member["end_line"] < member["start_line"]:
+                    errors.append(f"{member_label} end_line must be >= start_line")
 
 
 def _validate_regression_gate_ref(

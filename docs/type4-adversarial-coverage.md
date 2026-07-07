@@ -29,6 +29,7 @@ What remains is intentionally smaller:
 | `cases/cases.v1.json::hard_negative_groups` | packet-level positive/negative/gate linkage |
 | `cases/**` | small fixture corpora used by focused query gates, focused verifier checks, or boundary documentation |
 | `scripts/type4-check` | validate target packets, real-frontier links, and focused cases |
+| `scripts/type4-exec-check` | execute focused-case `nose query` expectations |
 | `scripts/type4-next` | print next task cards from `frontier_target_packets.v1.json` |
 | `scripts/type4-report` | summarize target packets and focused case coverage |
 | `scripts/type4-ingest-leads` | turn `nose verify --leads` JSON into draft target packets |
@@ -37,9 +38,17 @@ Run the basic checks:
 
 ```sh
 bench/type4/adversarial/scripts/type4-check
+NOSE_BIN=target/debug/nose bench/type4/adversarial/scripts/type4-exec-check
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
+
+`type4-check` is the structural gate and intentionally does not require a built `nose`
+binary. `type4-exec-check` is the executable witness gate. It runs declared focused-case
+expectations through `nose query` and fails when a pair expected to be `same-family` is
+split, or when a pair expected to stay `split` is merged. CI runs this gate with the
+release binary after build, so packet perimeters can no longer drift as manifest-only
+strings.
 
 ## Target packets
 
@@ -84,6 +93,12 @@ real frontier evidence. Important cases should be promoted into an automatic gat
   zero-violation verifier corpus;
 - `query_regression compare` for product output/runtime and HoF value-graph budget checks;
 - formal obligations where a proof precondition is the boundary.
+
+Cases that are stable enough for direct detector replay can add
+`executable_expectations`. Each expectation names a fixture path, two or more members, and
+whether those members must currently be `same-family` or `split`. Positive frontier cases
+can still declare `split` while they are blocked-on-proof; that makes the current miss
+explicit and gives the admission PR a concrete expectation to flip when the proof lands.
 
 If a focused case is not used by a gate and does not clarify a target packet boundary, it is
 only historical context and should be deleted instead of preserved.

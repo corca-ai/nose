@@ -101,8 +101,8 @@
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "57985f4c327a4bfd240b9d59c4901e6a7edff00057335cade6d0682498680373",
-        "size_bytes": 33506
+        "sha256": "053012c92ce5683b70946455f7161c2661487f24261dab8296ca8ea1844efb5f",
+        "size_bytes": 40786
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
