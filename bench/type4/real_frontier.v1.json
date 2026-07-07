@@ -56,7 +56,8 @@
     "vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)",
     "predicate side effects or iterator mutation before returning, where short-circuit timing is observable",
     "Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test",
-    "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1"
+    "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1",
+    "different iterable identity: all(...) over xs is not equivalent to an early-return loop over ys"
    ],
    "batch": "2026-07-07-readme-loop-demorgan-frontier",
    "notes": "Issue #717 tracking record. This is a same-language, README-facing proof target, not a detector admission. The packet remains proof-fact-prerequisite until loop universal quantifier, boolean-only De Morgan, and effect-safety facts are modeled."

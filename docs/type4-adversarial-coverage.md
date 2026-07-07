@@ -26,6 +26,7 @@ What remains is intentionally smaller:
 | file | role |
 |---|---|
 | `cases/cases.v1.json` | focused positive and hard-negative case handles |
+| `cases/cases.v1.json::hard_negative_groups` | packet-level positive/negative/gate linkage |
 | `cases/**` | small fixture corpora used by focused query gates, focused verifier checks, or boundary documentation |
 | `scripts/type4-check` | validate target packets, real-frontier links, and focused cases |
 | `scripts/type4-next` | print next task cards from `frontier_target_packets.v1.json` |
@@ -87,10 +88,38 @@ real frontier evidence. Important cases should be promoted into an automatic gat
 If a focused case is not used by a gate and does not clarify a target packet boundary, it is
 only historical context and should be deleted instead of preserved.
 
+Target packets now cite `hard_negative_groups`. A group binds the packet's positive focused
+cases, hard-negative focused cases, and regression gates together, then labels the perimeter
+with convention IDs. The convention categories are `numeric`, `boolean`, `loop`,
+`collection`, and `protocol-boundary`; `proof_carrying_frontier.py --check` fails if a
+packet omits its group, if a group case has the wrong kind, or if detector admission cites a
+positive without the group's hard-negative gates.
+
+Convention glossary:
+
+| convention | boundary to prove or keep closed |
+|---|---|
+| `numeric.domain` | integer/finite numeric evidence, especially excluding float/NaN-sensitive behavior |
+| `numeric.precondition` | required order, range, or nonzero preconditions |
+| `numeric.shape` | operator nesting, bound coordinate, and wrong-literal shape |
+| `boolean.truth-table` | predicate-coordinate and truth-table preserving rewrites |
+| `boolean.value-context` | languages where logical operators can return operand payloads |
+| `boolean.effect-safety` | predicate calls, overloads, mutation, or observed effects |
+| `loop.empty-input` | empty iterable/collection result such as vacuous truth |
+| `loop.short-circuit` | first-failing element, break/continue, and stopping-time behavior |
+| `loop.iterator-identity` | same receiver/source iterable and no receiver mutation during traversal |
+| `collection.cardinality` | flat vs nested shape, dropped vs kept elements, and aggregation seed behavior |
+| `collection.absence-vs-value` | absent item vs emitted null/None/falsey payload |
+| `collection.receiver-provenance` | map/set/list identity, imported literal provenance, and key/default coordinates |
+| `protocol-boundary.api-identity` | library/member identity, custom method names, receiver type, and imports |
+| `protocol-boundary.lifecycle` | settlement, cancellation, scheduling, channel, or runtime lifecycle state |
+| `protocol-boundary.callback-effect` | callback mutation, ordering, exceptions, and externally observed effects |
+
 The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
 packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the
 early-return counterexample loop; hard negatives cover vacuous truth, observed effects,
-Python value-returning boolean operands, and changed predicates.
+Python value-returning boolean operands, changed predicates, and different iterable
+identity.
 
 Good hard negatives attack exactly the proof invariant a rule needs:
 

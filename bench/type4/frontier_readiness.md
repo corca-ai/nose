@@ -29,9 +29,9 @@ Packets where the next useful work is reusable proof evidence. Detector admissio
 
 Count: 1
 
-| packet | axis | readiness | detector admission | action |
-|---|---|---|---|---|
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `blocked-on-proof` | `not-admitted` | Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety) before opening detector admission. |
+| packet | axis | readiness | detector admission | hard-negative groups | action |
+|---|---|---|---|---|---|
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `blocked-on-proof` | `not-admitted` | `python-loop-demorgan-all-proof-perimeter` | Model or cite reusable proof facts (python-loop-demorgan.universal-short-circuit, python-loop-demorgan.boolean-demorgan, python-loop-demorgan.effect-safety) before opening detector admission. |
 
 Release-note wording:
 
@@ -58,9 +58,9 @@ Packets with an admitted detector scope or already-resolved current scope. Contr
 
 Count: 1
 
-| packet | axis | readiness | detector admission | action |
-|---|---|---|---|---|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `detector-admitted-controlled` | `controlled-slice-admitted` | Do not widen this detector row from the readiness queue; use the remaining real-pair gap as proof follow-up. |
+| packet | axis | readiness | detector admission | hard-negative groups | action |
+|---|---|---|---|---|---|
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `detector-admitted-controlled` | `controlled-slice-admitted` | `numeric-clamp-proof-perimeter` | Do not widen this detector row from the readiness queue; use the remaining real-pair gap as proof follow-up. |
 
 Release-note wording:
 
