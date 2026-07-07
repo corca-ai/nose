@@ -34,6 +34,10 @@ packet-specific current status locally.
 | `quantifier.vacuous-truth` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes the empty-input boundary for a separately proven counterexample loop. |
 | `iteration.same-source-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only rules out different receivers, iterators, or traversal sources. |
 | `effect.pure-predicate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only permits comparing short-circuit boundaries after predicate effects are closed. |
+| `map.default.absence-fallback` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Requires receiver identity, key/default coordinates, and mutation closure. |
+| `map.receiver.source-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both sides query the same map value source. |
+| `map.default.key-fallback-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes the key/default coordinate boundary. |
+| `map.receiver.no-intervening-mutation` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
 
 ## Compatibility Aliases
 
