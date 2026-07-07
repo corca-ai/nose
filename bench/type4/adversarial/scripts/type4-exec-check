@@ -152,7 +152,10 @@ def default_nose() -> Path:
 
 
 def run_expectations(
-    nose: Path, only_case: str | None = None, only_expectation: str | None = None
+    nose: Path,
+    only_case: str | None = None,
+    only_expectation: str | None = None,
+    nose_label: str | None = None,
 ) -> dict[str, Any]:
     packet_doc, cases, real_frontier = load_all()
     errors = validate_all(packet_doc, cases, real_frontier)
@@ -185,7 +188,7 @@ def run_expectations(
     return {
         "schema_version": 1,
         "tool_version": TOOL_VERSION,
-        "nose_binary": str(nose),
+        "nose_binary": nose_label or str(nose),
         "expectation_count": len(results),
         "query_count": len(query_cache),
         "passed": len(results) - len(failed),
@@ -232,6 +235,11 @@ def main() -> int:
     parser.add_argument("--expectation", help="run one expectation id")
     parser.add_argument("--json", action="store_true", help="print JSON report")
     parser.add_argument("--json-out", type=Path, help="write JSON report")
+    parser.add_argument(
+        "--stable-report",
+        action="store_true",
+        help="omit the local debug/release binary path from JSON reports",
+    )
     parser.add_argument("--selftest", action="store_true", help="run helper self-test")
     args = parser.parse_args()
 
@@ -242,7 +250,8 @@ def main() -> int:
         print(f"error: nose binary not found: {args.nose}", file=sys.stderr)
         return 2
 
-    report = run_expectations(args.nose, args.case, args.expectation)
+    nose_label = "nose" if args.stable_report else None
+    report = run_expectations(args.nose, args.case, args.expectation, nose_label)
     if args.json_out:
         args.json_out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     if args.json:
