@@ -26,11 +26,14 @@ def b(xs):
     return True
 ```
 
-These functions are the same computation. `b` searches for a counterexample: if any
-element is `0` or `1`, the answer is false; otherwise true. That is exactly
-`all(not (x == 0 or x == 1) for x in xs)`, and De Morgan reduces the predicate to
-`x != 0 and x != 1`. `nose` normalizes both the early-return loop and the boolean
-logic before comparing the semantic fingerprint.
+Under the tracked proof conditions, these functions are the same computation for
+pure scalar comparisons where `==` and `!=` are complementary. `b` searches for a
+counterexample: if any element is `0` or `1`, the answer is false; otherwise true.
+That is exactly `all(not (x == 0 or x == 1) for x in xs)`, and De Morgan reduces
+the predicate to `x != 0 and x != 1`. This exact same-language case is tracked as
+the `python-loop-demorgan-all-2026-07-07` proof-carrying Type-4 frontier packet, so
+the required loop, vacuous-truth, short-circuit, and boolean-only proof conditions
+are auditable before detector admission.
 
 ## Install
 

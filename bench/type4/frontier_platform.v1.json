@@ -1374,6 +1374,147 @@
       ],
       "scope": "all-language",
       "title": "Scalar min/max/abs idioms"
+    },
+    {
+      "breadth": {
+        "dev_breadth": 0.0606,
+        "dev_presence": 4,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.0741,
+        "heldout_presence": 4,
+        "primary_language_breadth": 0.25,
+        "primary_language_presence": 2,
+        "primary_languages": [
+          "Java",
+          "Python"
+        ],
+        "raw_occurrences": 60,
+        "repo_breadth": 0.0667,
+        "repo_presence": 8,
+        "source_language_breadth": 0.125,
+        "source_language_presence": 1,
+        "source_languages": [
+          "python"
+        ]
+      },
+      "candidate_id": "python_loop_demorgan_all",
+      "curated": {
+        "implementation_cost": "medium",
+        "rationale": "The semantic identity needs a small function/loop fragment proof: universal `all` over a pure boolean predicate equals a counterexample early-return loop with the same iteration order and vacuous truth, plus a boolean-only De Morgan normalization. Python `and`/`or` value-returning semantics, predicate effects, and changed empty-iterable behavior are the soundness boundaries.",
+        "soundness_risk": "medium",
+        "substrate_required": "fragment-contract"
+      },
+      "detector_suggested": null,
+      "evidence_tier": "frontier-recorded",
+      "gap_samples": [],
+      "human_evidence": {
+        "count": 1,
+        "records": [
+          {
+            "candidate_axis": "python_loop_demorgan_all / early_return_universal",
+            "case_id": "python-loop-demorgan-all-readme-real-miss",
+            "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+            "status": "real-miss"
+          }
+        ],
+        "statuses": [
+          "real-miss"
+        ]
+      },
+      "presence_rank": 10,
+      "prioritizer_status": "open",
+      "recommendation_category": "single-language",
+      "routing": {
+        "issue_37_subset_repos": [
+          "antlr4",
+          "black",
+          "boltons",
+          "flask",
+          "rich",
+          "scrapy",
+          "sqlalchemy",
+          "sympy"
+        ],
+        "issue_43_substrate_target": true,
+        "issue_45_product_noise": false
+      },
+      "samples": [
+        {
+          "language": "python",
+          "line": 420,
+          "path": "runtime/Python3/src/antlr4/atn/PredictionMode.py",
+          "pattern_id": "py_all_generator_predicate",
+          "repo": "antlr4",
+          "snippet": "return all(alts == first for alts in iter(altsets))",
+          "split": "dev"
+        },
+        {
+          "language": "python",
+          "line": 1327,
+          "path": "src/black/lines.py",
+          "pattern_id": "py_all_generator_predicate",
+          "repo": "black",
+          "snippet": "return all(val == 0 for val in commas)",
+          "split": "dev"
+        },
+        {
+          "language": "python",
+          "line": 246,
+          "path": "src/black/mode.py",
+          "pattern_id": "py_all_generator_predicate",
+          "repo": "black",
+          "snippet": "return all(feature in VERSION_TO_FEATURES[version] for version in target_versions)",
+          "split": "dev"
+        },
+        {
+          "language": "python",
+          "line": 1040,
+          "path": "boltons/iterutils.py",
+          "pattern_id": "py_all_generator_predicate",
+          "repo": "boltons",
+          "snippet": "return all(val == ref for val in iterator)",
+          "split": "heldout"
+        },
+        {
+          "language": "python",
+          "line": 266,
+          "path": "boltons/setutils.py",
+          "pattern_id": "py_early_return_universal_false",
+          "repo": "boltons",
+          "snippet": "for k in other: if k in iim: return False return True",
+          "split": "heldout"
+        },
+        {
+          "language": "python",
+          "line": 275,
+          "path": "boltons/setutils.py",
+          "pattern_id": "py_early_return_universal_false",
+          "repo": "boltons",
+          "snippet": "for k in self.item_index_map: if k not in other: return False return True",
+          "split": "heldout"
+        },
+        {
+          "language": "python",
+          "line": 285,
+          "path": "boltons/setutils.py",
+          "pattern_id": "py_early_return_universal_false",
+          "repo": "boltons",
+          "snippet": "for k in other: if k not in iim: return False return True",
+          "split": "heldout"
+        },
+        {
+          "language": "python",
+          "line": 804,
+          "path": "boltons/urlutils.py",
+          "pattern_id": "py_early_return_universal_false",
+          "repo": "boltons",
+          "snippet": "for attr in self._cmp_attrs: if not getattr(self, attr) == getattr(other, attr, None): return False return True",
+          "split": "heldout"
+        }
+      ],
+      "scope": "single-language",
+      "title": "Python all()/early-return loop plus De Morgan"
     }
   ],
   "identity": {
@@ -1422,9 +1563,10 @@
       "numeric_minmax_abs",
       "own_property_guard",
       "property_type_guard",
+      "python_loop_demorgan_all",
       "string_prefix_suffix"
     ],
-    "union_signature": "90ea2da63d26f788af8f54728b0cbcdeba5c0c6ee9ba687f4aded2710e3dcea5"
+    "union_signature": "fec264f35c3f1dedb6c0b750ac6e3320da20d10feb721127775800bd32b81c73"
   },
   "primary_languages": [
     "C",
@@ -1450,7 +1592,8 @@
   "tool_version": "frontier-platform/1",
   "union_outcome": {
     "extra_axes_with_packets": [
-      "numeric_clamp"
+      "numeric_clamp",
+      "python_loop_demorgan_all"
     ],
     "prevalence_axes": "no-implementation-ready-batch (see audit_conclusion)",
     "target_packets_artifact": "frontier_target_packets.v1.json"

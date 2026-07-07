@@ -84,13 +84,19 @@ metadata. Two staleness guards run on every build and `--selftest`: the #44
 `validate_union` (plus a recorded `union_signature`) covers the combined set, so a packet or
 conclusion cannot silently drift when an axis is added or removed.
 
-The first extra axis is `numeric_clamp` — `min(max(x, lo), hi)` clamp composition, a real
-frontier packet whose identity and hard negatives are machine-checked in [formal/obligations/normalize/value_graph/clamp/Proof.lean](../formal/obligations/normalize/value_graph/clamp/Proof.lean).
-The proof-backed integer min/max composition slice now canonicalizes when `lo <= hi` is
-established by literal bounds or by asserted `Guard(BoundOrder)` evidence for an exiting
-inverse guard or branch-local positive guard. The surface bridge also covers
-two-comparison ternary clamps and proven numeric Rust `.clamp` forms while keeping unproven
-bounds, custom method names, and float domains outside the shared Clamp value.
+The first extra axes are:
+
+- `numeric_clamp` — `min(max(x, lo), hi)` clamp composition, a real frontier packet whose
+  identity and hard negatives are machine-checked in [formal/obligations/normalize/value_graph/clamp/Proof.lean](../formal/obligations/normalize/value_graph/clamp/Proof.lean).
+  The proof-backed integer min/max composition slice now canonicalizes when `lo <= hi` is
+  established by literal bounds or by asserted `Guard(BoundOrder)` evidence for an exiting
+  inverse guard or branch-local positive guard. The surface bridge also covers
+  two-comparison ternary clamps and proven numeric Rust `.clamp` forms while keeping
+  unproven bounds, custom method names, and float domains outside the shared Clamp value.
+- `python_loop_demorgan_all` — the README-facing Python `all(...)` plus early-return loop
+  and De Morgan example. This packet is deliberately `not-admitted`: it records the current
+  detector miss and the proof perimeter for loop vacuous truth, short-circuit order,
+  pure predicates, and Python's boolean-value boundary before any detector expansion.
 
 ## The miss-mining arm (`miss_mining.py`)
 

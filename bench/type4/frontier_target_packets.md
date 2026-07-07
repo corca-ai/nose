@@ -4,10 +4,10 @@ Implementation-ready selections from the corpus-balanced frontier evidence platf
 Each packet LINKS human-verified `real_frontier.v1.json` evidence (it never restates a
 status) and adds team routing. See [frontier-platform](../../docs/frontier-platform.md).
 
-- build ref: `None` · union signature `90ea2da63d26f788…`
+- build ref: `None` · union signature `fec264f35c3f1ded…`
 - corpus: 120 repos · commit digest `2bf0b8c147be66b7…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
-- packets: 1
+- packets: 2
 
 ## `numeric-clamp-2026-06-06` — axis `numeric_clamp`
 
@@ -30,3 +30,25 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **why now**: A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing — present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary.
 - **blocked by**: the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof, the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries
 - **notes**: The proof-backed integer Clamp canon now covers min/max composition plus controlled two-comparison and library method bridge surfaces when literal or asserted Guard(BoundOrder) evidence proves lo<=hi and integer-domain evidence excludes float/NaN behavior. The remaining packet is still routed proof-fact-prerequisite because the real fzf member lacks modeled order evidence and the cross-language pair lacks a shared integer-only domain proof.
+
+## `python-loop-demorgan-all-2026-07-07` — axis `python_loop_demorgan_all`
+
+- **owner route**: `proof-fact-prerequisite` (no team yet) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `fragment-contract`
+- **breadth**: repo 7% · primary-language 25% (2/8) · dev 4 · held-out 4 · both-splits
+- **semantic claim**: Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.
+- **proof invariant**: Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.
+- **hard negatives**:
+  - vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)
+  - predicate side effects or iterator mutation before returning, where short-circuit timing is observable
+  - Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test
+  - changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1
+- **evidence**: `python-loop-demorgan-all-readme-real-miss` (`real_frontier.v1.json`)
+- **representative locations**:
+  - `nose` (docs, Python) `README.md:15-33`
+  - `nose` (focused, Python) `bench/type4/adversarial/cases/python_loop_demorgan/positive.py:1-9`
+- **current detector result**: miss=True · `nose 0.18.0` @ `2a478b76e25a` — 0 semantic families; the README all(...) function and early-return loop do not currently converge.
+- **detector admission**: `not-admitted` · none; tracked proof packet only
+- **remaining real-pair gap**: the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts
+- **why now**: The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary.
+- **blocked by**: no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form, De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects, effect-safety and same-iterator proof are not yet modeled for this fragment shape
+- **notes**: This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. It is not an exact-admission request yet: the current detector returns no semantic family for the positive fixture, and the hard negatives document the proof perimeter.

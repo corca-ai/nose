@@ -291,6 +291,23 @@ or `Guard(BoundOrder)` evidence plus integer-domain evidence. The real boltons/f
 remains a `proof-fact-prerequisite` because fzf still supplies names, not an order proof,
 and the cross-language integer-only domain proof is still absent.
 
+### 2026-07-07 README loop/De Morgan frontier packet
+
+Promoted the front-page same-language example from prose into a tracked target packet:
+`python-loop-demorgan-all-2026-07-07`. The semantic claim is the Python universal
+predicate identity:
+
+- `all(x != 0 and x != 1 for x in xs)`
+- an early-return loop that returns `False` on `x == 0 or x == 1` and `True` after
+  exhaustion
+
+The packet is deliberately `not-admitted`. Local focused queries still report no semantic
+family for the positive fixture, so this is a proof target rather than a detector behavior
+claim. The proof perimeter is now explicit: preserve vacuous truth for empty iterables,
+same-iterator short-circuit order, pure boolean predicates, and boolean-only De Morgan.
+Focused hard negatives cover changed empty-result behavior, observed effects, Python
+value-returning boolean operands, and changed predicates.
+
 ## Contract-Migration Expansion (issue #55)
 
 The first detector-expanding step after `LoopEffect`, `SelfFieldBody`, and

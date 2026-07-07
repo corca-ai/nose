@@ -500,34 +500,35 @@ def markdown_report(report: dict[str, Any]) -> str:
     ]
     for packet in report["target_packets"]["packets"]:
         readiness = packet["readiness"]
-        admission = packet["detector_admission"]
         lines.append(
             f"| `{packet['packet_id']}` | `{packet['candidate_axis']}` | "
             f"`{packet['owner_route']}` | `{readiness['status']}` | "
             f"{packet['proof_fact_model']['fact_count']} | "
             f"{packet['hard_negative_count']} |"
         )
-        if admission["status"] != "not-admitted":
-            lines.append("")
-            lines.append(
-                f"Detector admission for `{packet['packet_id']}`: "
-                f"`{admission['status']}` over {admission['scope']}."
-            )
-            if admission.get("remaining_real_pair_gap"):
-                lines.append(f"Remaining real-pair gap: {admission['remaining_real_pair_gap']}")
-            lines.append(
-                f"Gates: {admission['positive_gate_count']} positive, "
-                f"{admission['hard_negative_gate_count']} hard-negative."
-            )
+    lines += ["", "## Packet Details", ""]
+    for packet in report["target_packets"]["packets"]:
+        readiness = packet["readiness"]
+        admission = packet["detector_admission"]
+        lines.append(f"### `{packet['packet_id']}`")
+        lines.append("")
+        lines.append(
+            f"- detector admission: `{admission['status']}` over {admission['scope']}"
+        )
+        if admission.get("remaining_real_pair_gap"):
+            lines.append(f"- remaining real-pair gap: {admission['remaining_real_pair_gap']}")
+        lines.append(
+            f"- gates: {admission['positive_gate_count']} positive, "
+            f"{admission['hard_negative_gate_count']} hard-negative"
+        )
         if readiness["blocking_items"]:
-            lines.append("")
+            model_status = packet["proof_fact_model"]["model_status"]
             facts = ", ".join(f"`{fact}`" for fact in packet["proof_fact_model"]["fact_ids"])
-            lines.append(f"Proof facts modeled for `{packet['packet_id']}`: {facts}")
-            lines.append("")
-            lines.append(f"Blocked by `{packet['packet_id']}`:")
-            lines.extend(f"- {item}" for item in readiness["blocking_items"])
+            lines.append(f"- proof fact model: `{model_status}`; facts: {facts}")
+            lines.append("- blocked by:")
+            lines.extend(f"  - {item}" for item in readiness["blocking_items"])
+        lines.append("")
     lines += [
-        "",
         "## Co-Evolution Guardrails",
         "",
         f"- packets: {coevo['packet_count']} across {len(coevo['by_surface'])} surfaces",

@@ -100,13 +100,13 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "2d47c5561de4928bc9c0bbc3bc0637dfb948c47ce5ff7b64381cd83feea7a572",
-        "size_bytes": 66710
+        "sha256": "d216ab1cdc2051eae20c64eff8d7eaf375679bc7878bd075ca865a53d16014eb",
+        "size_bytes": 70393
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "85d15d5174db55541fae1a04d7ab77656afe2aa4ff4c01988c5449638e62d61e",
-        "size_bytes": 11296
+        "sha256": "7e1b180497e0c1a2528ef284be1b24190fd939c5ede253aa4ee454590fc7cf76",
+        "size_bytes": 21509
       }
     },
     "target_packet_identity": {
@@ -118,7 +118,7 @@
         "repo_count": 120
       },
       "real_frontier": "bench/type4/real_frontier.v1.json",
-      "union_signature": "90ea2da63d26f788af8f54728b0cbcdeba5c0c6ee9ba687f4aded2710e3dcea5"
+      "union_signature": "fec264f35c3f1dedb6c0b750ac6e3320da20d10feb721127775800bd32b81c73"
     }
   },
   "schema_version": 1,
@@ -128,6 +128,12 @@
         "candidate_axis": "numeric_clamp / clamp_surface_bridge",
         "case_id": "numeric-clamp-minmax-ternary-real-miss",
         "packet_id": "numeric-clamp-2026-06-06",
+        "status": "real-miss"
+      },
+      {
+        "candidate_axis": "python_loop_demorgan_all / early_return_universal",
+        "case_id": "python-loop-demorgan-all-readme-real-miss",
+        "packet_id": "python-loop-demorgan-all-2026-07-07",
         "status": "real-miss"
       }
     ],
@@ -171,20 +177,62 @@
           "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
           "status": "detector-admitted-controlled"
         }
+      },
+      {
+        "candidate_axis": "python_loop_demorgan_all",
+        "detector_admission": {
+          "capabilities": [
+            "no detector slice admitted for loop/all plus De Morgan yet"
+          ],
+          "hard_negative_gate_count": 4,
+          "positive_gate_count": 1,
+          "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
+          "scope": "none; tracked proof packet only",
+          "status": "not-admitted"
+        },
+        "evidence_case_ids": [
+          "python-loop-demorgan-all-readme-real-miss"
+        ],
+        "evidence_tier": "frontier-recorded",
+        "hard_negative_count": 4,
+        "owner_route": "proof-fact-prerequisite",
+        "packet_id": "python-loop-demorgan-all-2026-07-07",
+        "proof_fact_model": {
+          "fact_count": 3,
+          "fact_ids": [
+            "python-loop-demorgan.universal-short-circuit",
+            "python-loop-demorgan.boolean-demorgan",
+            "python-loop-demorgan.effect-safety"
+          ],
+          "model_status": "specified-not-modeled"
+        },
+        "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+        "readiness": {
+          "blocking_items": [
+            "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
+            "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
+            "effect-safety and same-iterator proof are not yet modeled for this fragment shape"
+          ],
+          "can_open_exact_admission": false,
+          "reason": "packet still requires reusable proof evidence before detector work",
+          "status": "blocked-on-proof"
+        }
       }
     ],
     "summary": {
       "by_detector_admission": {
-        "controlled-slice-admitted": 1
+        "controlled-slice-admitted": 1,
+        "not-admitted": 1
       },
       "by_owner_route": {
-        "proof-fact-prerequisite": 1
+        "proof-fact-prerequisite": 2
       },
       "by_readiness": {
+        "blocked-on-proof": 1,
         "detector-admitted-controlled": 1
       },
       "detector_admitted_packet_count": 1,
-      "packet_count": 1,
+      "packet_count": 2,
       "ready_packet_count": 0
     }
   },

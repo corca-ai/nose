@@ -234,6 +234,7 @@ EXPECTED_UNION_AXES = [
     "numeric_minmax_abs",
     "own_property_guard",
     "property_type_guard",
+    "python_loop_demorgan_all",
     "string_prefix_suffix",
 ]
 
@@ -915,6 +916,122 @@ TARGET_PACKETS = [
              "snippet": "func Constrain[T cmp.Ordered](val, minimum, maximum T) T { return max(min(val, maximum), minimum) }"},
         ],
     },
+    {
+        "packet_id": "python-loop-demorgan-all-2026-07-07",
+        "candidate_axis": "python_loop_demorgan_all",
+        "evidence_case_ids": ["python-loop-demorgan-all-readme-real-miss"],
+        "owner_route": "proof-fact-prerequisite",
+        "owner_issue": None,
+        "why_now": "The front-page README uses this same-language Type-4 example to explain "
+        "semantic duplication, but the current detector still reports no semantic family for "
+        "the two Python functions. Turning it into a proof-carrying packet makes the public "
+        "claim auditable and gives the next defender a concrete positive plus adjacent "
+        "hard-negative boundary.",
+        "proof_fact_model": {
+            "model_status": "specified-not-modeled",
+            "facts": [
+                {
+                    "fact_id": "python-loop-demorgan.universal-short-circuit",
+                    "description": "A Python early-return loop that returns False on the first counterexample and True after exhaustion is equivalent to all(P(x) for x in xs) only when the same iterable is consumed in the same order and empty iterables return True.",
+                    "accepted_evidence": [
+                        "single for-loop over the same local iterable",
+                        "only counterexample branch returns False",
+                        "fallthrough return is literal True",
+                        "generator all(...) preserves the same element order and vacuous truth",
+                    ],
+                    "rejected_evidence": [
+                        "fallthrough returns False or a non-boolean payload",
+                        "loop body has break/continue/else effects or extra observed state",
+                        "the loop consumes a different iterable or mutates the iterable",
+                    ],
+                    "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
+                },
+                {
+                    "fact_id": "python-loop-demorgan.boolean-demorgan",
+                    "description": "The counterexample guard not P may normalize through De Morgan only for proven boolean operands, e.g. not (x == 0 or x == 1) == (x != 0 and x != 1).",
+                    "accepted_evidence": [
+                        "comparison predicates whose results are booleans",
+                        "same element variable and same literal/value coordinates on both sides",
+                    ],
+                    "rejected_evidence": [
+                        "Python value-returning and/or operands whose value, not only truthiness, is observed",
+                        "overloaded comparison or predicate calls with effects",
+                        "changed predicates such as x != 0 or x != 1",
+                    ],
+                    "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
+                },
+                {
+                    "fact_id": "python-loop-demorgan.effect-safety",
+                    "description": "The predicate must be pure and exact-safe so the all(...) short-circuit and early-return loop observe the same effects and stop at the same first counterexample.",
+                    "accepted_evidence": [
+                        "local comparisons over the loop variable and literals",
+                        "no calls, assignments, yields, awaits, or mutations inside the predicate or loop body",
+                    ],
+                    "rejected_evidence": [
+                        "predicate helper calls such as is_bad(x) unless callee purity is proven",
+                        "observed counters/logging before return",
+                        "iterator or receiver mutation during traversal",
+                    ],
+                    "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
+                },
+            ],
+            "focused_tests": [
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+            ],
+        },
+        "detector_admission": {
+            "status": "not-admitted",
+            "scope": "none; tracked proof packet only",
+            "capabilities": [
+                "no detector slice admitted for loop/all plus De Morgan yet"
+            ],
+            "positive_gates": [
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme"
+            ],
+            "hard_negative_gates": [
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+            ],
+            "remaining_real_pair_gap": (
+                "the README/focused Python pair is still a detector miss; exact admission "
+                "needs reusable loop universal-quantifier, boolean-only De Morgan, and "
+                "effect-safety proof facts"
+            ),
+        },
+        "blocked_by": [
+            "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
+            "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
+            "effect-safety and same-iterator proof are not yet modeled for this fragment shape",
+        ],
+        "notes": "This packet deliberately corrects the README-facing example from prose-only "
+        "claim to auditable frontier evidence. It is not an exact-admission request yet: "
+        "the current detector returns no semantic family for the positive fixture, and the "
+        "hard negatives document the proof perimeter.",
+        "locations": [
+            {
+                "repo": "nose",
+                "split": "docs",
+                "primary_language": "Python",
+                "path": "README.md",
+                "span": "15-33",
+                "snippet": "def a(xs): return all(x != 0 and x != 1 for x in xs); def b(xs): for x in xs: if x == 0 or x == 1: return False; return True",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Python",
+                "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+                "span": "1-9",
+                "snippet": "all_not_zero_or_one(xs) and loop_no_zero_or_one(xs) encode the same universal predicate",
+            },
+        ],
+    },
 ]
 
 
@@ -949,8 +1066,12 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
         locations = [
             {
                 "repo": loc["repo"],
-                "split": repo_meta.get(loc["repo"], {}).get("split", "unknown"),
-                "primary_language": repo_meta.get(loc["repo"], {}).get("primary_language", ""),
+                "split": repo_meta.get(loc["repo"], {}).get(
+                    "split", loc.get("split", "unknown")
+                ),
+                "primary_language": repo_meta.get(loc["repo"], {}).get(
+                    "primary_language", loc.get("primary_language", "")
+                ),
                 "path": loc["path"],
                 "span": loc["span"],
                 "snippet": loc["snippet"],

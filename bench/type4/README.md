@@ -317,6 +317,10 @@ while the linked real-corpus proof gap stays open; the current numeric-clamp pac
 example. It remains routed as a proof prerequisite until a real-corpus bound-order fact can
 prove `lo <= hi` without opening the float-NaN boundary.
 
+The README-facing Python loop plus De Morgan example is also a target packet now. It is a
+current detector miss and remains `not-admitted` until the universal-loop, boolean-only
+De Morgan, and effect-safety proof facts exist.
+
 ## CI smoke
 
 Run the Type-4 smoke gate locally:
