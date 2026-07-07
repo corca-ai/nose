@@ -46,13 +46,21 @@ that the packet's claim surface has been attacked.
 
 The current generated verdict is `no-exact-admission-ready-packets`.
 
-The active packet, `numeric-clamp-2026-06-06`, is
+The active packets are intentionally not exact-admission ready.
+
+`numeric-clamp-2026-06-06` is
 `detector-admitted-controlled`: the proof-backed controlled integer clamp slice
 has landed, with positive and hard-negative gates, but the real-corpus pair still
 lacks fzf-side order evidence and shared integer-domain evidence. Float NaN
-remains a closed domain boundary. This is the intended outcome. The report makes
-that boundary explicit so the next worker extends real-corpus proof evidence
-instead of adding a selector-shaped detector shortcut.
+remains a closed domain boundary.
+
+`python-loop-demorgan-all-2026-07-07` is `blocked-on-proof`: the README-facing
+Python `all(...)` plus early-return loop example is now linked to frontier evidence,
+but no detector slice is admitted until the loop universal-quantifier proof, boolean-only
+De Morgan proof, and effect-safety perimeter are modeled.
+
+This is the intended outcome. The report makes those boundaries explicit so the next
+worker extends proof evidence instead of adding selector-shaped detector shortcuts.
 
 ## Commands
 

@@ -60,11 +60,12 @@ Before opening exact semantic behavior from a target packet, check the
 python3 bench/type4/proof_carrying_frontier.py --check
 ```
 
-That report keeps target-packet routing separate from admission readiness. For example, the
-current numeric-clamp packet is `detector-admitted-controlled`: controlled proof-backed
-integer clamp surfaces have landed, but the current cross-language pair still lacks
-fzf-side bound-order evidence and shared integer-domain evidence, so the real-corpus proof
-gap remains open.
+That report keeps target-packet routing separate from admission readiness. For example,
+numeric clamp is `detector-admitted-controlled`: controlled proof-backed integer clamp
+surfaces have landed, but the current cross-language pair still lacks fzf-side bound-order
+evidence and shared integer-domain evidence. The Python loop plus De Morgan packet is
+`blocked-on-proof` until its universal-loop, boolean-only De Morgan, and effect-safety
+facts exist.
 
 ## Focused cases
 
@@ -82,6 +83,11 @@ real frontier evidence. Important cases should be promoted into an automatic gat
 
 If a focused case is not used by a gate and does not clarify a target packet boundary, it is
 only historical context and should be deleted instead of preserved.
+
+The `python.loop_demorgan_all` focused group clarifies the README-facing same-language
+packet. Its positive fixture captures `all(x != 0 and x != 1 for x in xs)` versus the
+early-return counterexample loop; hard negatives cover vacuous truth, observed effects,
+Python value-returning boolean operands, and changed predicates.
 
 Good hard negatives attack exactly the proof invariant a rule needs:
 

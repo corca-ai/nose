@@ -299,6 +299,50 @@
       "evidence": "Focused equivalence tests keep unproven Rust x.clamp(lo, hi) and custom Wrap::clamp forms split from literal/proof-backed Clamp values; the bridge corpus verifies with 0 false merges."
     },
     {
+      "id": "python_loop_demorgan_all_readme",
+      "kind": "positive",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "A Python all(...) universal predicate can converge with an early-return loop that returns False on the De Morgan counterexample and True after exhaustion.",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/positive.py"],
+      "evidence": "The README-shaped positive pair is a current detector miss, so the frontier packet records it as proof-fact-prerequisite rather than admitted behavior."
+    },
+    {
+      "id": "python_loop_demorgan_vacuous_truth_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "Changing the empty-iterable result breaks all(...) vacuous truth.",
+      "mutation": "fallthrough return True -> False",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/vacuous_truth.py"],
+      "evidence": "The hard-negative fixture includes loop_wrong_empty_truth, which returns False for empty input while all(...) returns True."
+    },
+    {
+      "id": "python_loop_demorgan_side_effect_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "Observed predicate or loop-body effects prevent treating the loop and all(...) as pure boolean rewrites.",
+      "mutation": "insert observed append before the counterexample return",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/side_effect.py"],
+      "evidence": "The hard-negative fixture uses the same `(xs, seen)` signature on both functions; loop_with_observed_effect mutates the seen list, so the split depends on observable effects rather than arity."
+    },
+    {
+      "id": "python_loop_demorgan_value_return_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "Python and/or can return operand payloads in value contexts, so this packet's De Morgan step is safe only for boolean-only predicates.",
+      "mutation": "boolean predicate result is replaced by a value-returning `and` operand",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/value_return.py"],
+      "evidence": "The hard-negative fixture includes value_returning_operand and marker so future admission must prove boolean-only operands rather than rewriting value-returning `and` payloads."
+    },
+    {
+      "id": "python_loop_demorgan_changed_predicate_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "python.loop_demorgan_all",
+      "claim": "Changing the De Morgan predicate changes behavior even when the surface still contains != and or.",
+      "mutation": "`x != 0 and x != 1` -> `x != 0 or x != 1`",
+      "fixtures": ["bench/type4/adversarial/cases/python_loop_demorgan/changed_predicate.py"],
+      "evidence": "The hard-negative fixture includes all_changed_predicate, which is true for every scalar except impossible simultaneous 0 and 1."
+    },
+    {
       "id": "map_default_imported_literal",
       "kind": "positive",
       "semantic_family": "map_default_lookup",

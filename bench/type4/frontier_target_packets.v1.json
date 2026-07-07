@@ -8,14 +8,14 @@
       "repo_count": 120
     },
     "real_frontier": "bench/type4/real_frontier.v1.json",
-    "union_signature": "90ea2da63d26f788af8f54728b0cbcdeba5c0c6ee9ba687f4aded2710e3dcea5"
+    "union_signature": "fec264f35c3f1dedb6c0b750ac6e3320da20d10feb721127775800bd32b81c73"
   },
   "owner_route_vocabulary": [
     "proof-fact-prerequisite",
     "team-a-detector",
     "team-c-product"
   ],
-  "packet_count": 1,
+  "packet_count": 2,
   "packets": [
     {
       "blocked_by": [
@@ -176,6 +176,161 @@
       "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
       "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
       "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
+    },
+    {
+      "blocked_by": [
+        "no reusable proof fact yet connects Python all(...) generator vacuous truth and short-circuit behavior to the early-return universal loop form",
+        "De Morgan normalization must be restricted to proven boolean operands; Python and/or can return operand values and can observe predicate effects",
+        "effect-safety and same-iterator proof are not yet modeled for this fragment shape"
+      ],
+      "breadth": {
+        "dev_breadth": 0.0606,
+        "dev_presence": 4,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.0741,
+        "heldout_presence": 4,
+        "primary_language_breadth": 0.25,
+        "primary_language_presence": 2,
+        "primary_language_total": 8,
+        "primary_languages": [
+          "Java",
+          "Python"
+        ],
+        "raw_occurrences": 60,
+        "repo_breadth": 0.0667,
+        "repo_presence": 8,
+        "source_language_breadth": 0.125,
+        "source_language_presence": 1,
+        "source_languages": [
+          "python"
+        ]
+      },
+      "candidate_axis": "python_loop_demorgan_all",
+      "curated": {
+        "implementation_cost": "medium",
+        "rationale": "The semantic identity needs a small function/loop fragment proof: universal `all` over a pure boolean predicate equals a counterexample early-return loop with the same iteration order and vacuous truth, plus a boolean-only De Morgan normalization. Python `and`/`or` value-returning semantics, predicate effects, and changed empty-iterable behavior are the soundness boundaries.",
+        "soundness_risk": "medium",
+        "substrate_required": "fragment-contract"
+      },
+      "current_detector_result": {
+        "baseline_command": "target/debug/nose query <README-shaped Python fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+        "baseline_result": "0 semantic families; the README all(...) function and early-return loop do not currently converge.",
+        "binary_path": "target/debug/nose",
+        "build_ref": "2a478b76e25a",
+        "current_detector_miss": true,
+        "default_query_result": "Default query likewise reports no exact semantic family for the pair.",
+        "nose_version": "nose 0.18.0",
+        "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports no family containing both functions."
+      },
+      "detector_admission": {
+        "capabilities": [
+          "no detector slice admitted for loop/all plus De Morgan yet"
+        ],
+        "hard_negative_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary"
+        ],
+        "positive_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme"
+        ],
+        "remaining_real_pair_gap": "the README/focused Python pair is still a detector miss; exact admission needs reusable loop universal-quantifier, boolean-only De Morgan, and effect-safety proof facts",
+        "scope": "none; tracked proof packet only",
+        "status": "not-admitted"
+      },
+      "evidence_case_ids": [
+        "python-loop-demorgan-all-readme-real-miss"
+      ],
+      "evidence_tier": "frontier-recorded",
+      "hard_negative_siblings": [
+        "vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)",
+        "predicate side effects or iterator mutation before returning, where short-circuit timing is observable",
+        "Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test",
+        "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1"
+      ],
+      "locations": [
+        {
+          "path": "README.md",
+          "primary_language": "Python",
+          "repo": "nose",
+          "snippet": "def a(xs): return all(x != 0 and x != 1 for x in xs); def b(xs): for x in xs: if x == 0 or x == 1: return False; return True",
+          "span": "15-33",
+          "split": "docs"
+        },
+        {
+          "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+          "primary_language": "Python",
+          "repo": "nose",
+          "snippet": "all_not_zero_or_one(xs) and loop_no_zero_or_one(xs) encode the same universal predicate",
+          "span": "1-9",
+          "split": "focused"
+        }
+      ],
+      "notes": "This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. It is not an exact-admission request yet: the current detector returns no semantic family for the positive fixture, and the hard negatives document the proof perimeter.",
+      "owner_issue": null,
+      "owner_route": "proof-fact-prerequisite",
+      "packet_id": "python-loop-demorgan-all-2026-07-07",
+      "proof_fact_model": {
+        "facts": [
+          {
+            "accepted_evidence": [
+              "single for-loop over the same local iterable",
+              "only counterexample branch returns False",
+              "fallthrough return is literal True",
+              "generator all(...) preserves the same element order and vacuous truth"
+            ],
+            "current_real_pair_status": "unsatisfied: the README/focused fixture pair is a detector miss and no reusable loop-to-all proof fact is modeled",
+            "description": "A Python early-return loop that returns False on the first counterexample and True after exhaustion is equivalent to all(P(x) for x in xs) only when the same iterable is consumed in the same order and empty iterables return True.",
+            "fact_id": "python-loop-demorgan.universal-short-circuit",
+            "rejected_evidence": [
+              "fallthrough returns False or a non-boolean payload",
+              "loop body has break/continue/else effects or extra observed state",
+              "the loop consumes a different iterable or mutates the iterable"
+            ]
+          },
+          {
+            "accepted_evidence": [
+              "comparison predicates whose results are booleans",
+              "same element variable and same literal/value coordinates on both sides"
+            ],
+            "current_real_pair_status": "unsatisfied: boolean-only De Morgan proof is not tied to the loop/all frontier packet",
+            "description": "The counterexample guard not P may normalize through De Morgan only for proven boolean operands, e.g. not (x == 0 or x == 1) == (x != 0 and x != 1).",
+            "fact_id": "python-loop-demorgan.boolean-demorgan",
+            "rejected_evidence": [
+              "Python value-returning and/or operands whose value, not only truthiness, is observed",
+              "overloaded comparison or predicate calls with effects",
+              "changed predicates such as x != 0 or x != 1"
+            ]
+          },
+          {
+            "accepted_evidence": [
+              "local comparisons over the loop variable and literals",
+              "no calls, assignments, yields, awaits, or mutations inside the predicate or loop body"
+            ],
+            "current_real_pair_status": "unsatisfied: no effect-safety proof fact is modeled for this packet",
+            "description": "The predicate must be pure and exact-safe so the all(...) short-circuit and early-return loop observe the same effects and stop at the same first counterexample.",
+            "fact_id": "python-loop-demorgan.effect-safety",
+            "rejected_evidence": [
+              "predicate helper calls such as is_bad(x) unless callee purity is proven",
+              "observed counters/logging before return",
+              "iterator or receiver mutation during traversal"
+            ]
+          }
+        ],
+        "focused_tests": [
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary"
+        ],
+        "model_status": "specified-not-modeled"
+      },
+      "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+      "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
+      "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary."
     }
   ],
   "schema_version": 1,

@@ -22,6 +22,46 @@
  },
  "items": [
   {
+   "case_id": "python-loop-demorgan-all-readme-real-miss",
+   "status": "real-miss",
+   "candidate_axis": "python_loop_demorgan_all / early_return_universal",
+   "repo": "nose",
+   "language": "python",
+   "locations": [
+    {
+     "path": "README.md",
+     "span": "15-33",
+     "snippet": "def a(xs): return all(x != 0 and x != 1 for x in xs); def b(xs): for x in xs: if x == 0 or x == 1: return False; return True"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/python_loop_demorgan/positive.py",
+     "span": "1-9",
+     "snippet": "all_not_zero_or_one(xs) and loop_no_zero_or_one(xs) encode the same universal predicate"
+    }
+   ],
+   "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
+   "evidence": "Manual source audit plus local detector check on the README-shaped fixture: `target/debug/nose query <fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1` reports zero semantic families at build 2a478b76e25a. Focused positive and hard-negative fixtures are recorded in `bench/type4/adversarial/cases/cases.v1.json` so the example is now tracked by the frontier rather than prose alone.",
+   "detector": {
+    "current_detector_miss": true,
+    "binary_path": "target/debug/nose",
+    "nose_version": "nose 0.18.0",
+    "build_ref": "2a478b76e25a",
+    "baseline_command": "target/debug/nose query <README-shaped Python fixture> --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+    "baseline_result": "0 semantic families; the README all(...) function and early-return loop do not currently converge.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports no family containing both functions.",
+    "default_query_result": "Default query likewise reports no exact semantic family for the pair."
+   },
+   "proof_invariant": "Open the equivalence only when the loop is a pure universal counterexample scan over the same iterable: the only loop exit returns literal False on `not P(x)`, fallthrough returns literal True, empty iterables preserve vacuous truth, and the all(...) generator evaluates the same pure boolean predicate in the same order. The De Morgan step is allowed only for proven boolean operands such as comparisons; Python value-returning `and`/`or`, predicate side effects, overloaded comparisons, changed predicates, and changed empty-iterable results must remain non-equivalent.",
+   "hard_negative_siblings": [
+    "vacuous-truth boundary: a loop that returns False after exhausting an empty iterable is not all(...)",
+    "predicate side effects or iterator mutation before returning, where short-circuit timing is observable",
+    "Python value-returning boolean expressions whose operand payload is returned or observed rather than used only as a truth test",
+    "changed predicates such as `x != 0 or x != 1`, which is almost always true and not equivalent to excluding 0 and 1"
+   ],
+   "batch": "2026-07-07-readme-loop-demorgan-frontier",
+   "notes": "Issue #717 tracking record. This is a same-language, README-facing proof target, not a detector admission. The packet remains proof-fact-prerequisite until loop universal quantifier, boolean-only De Morgan, and effect-safety facts are modeled."
+  },
+  {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
    "status": "unsupported",
    "candidate_axis": "membership_contains / literal_collection_membership",

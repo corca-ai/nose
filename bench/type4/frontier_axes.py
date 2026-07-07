@@ -67,6 +67,43 @@ EXTRA_CANDIDATES = [
             pf.pat("ts_clamp_math", "typescript", r"\bMath\.min\s*\(\s*Math\.max\s*\(|\bMath\.max\s*\(\s*Math\.min\s*\(", "high"),
         ),
     ),
+    pf.Candidate(
+        "python_loop_demorgan_all",
+        "Python all()/early-return loop plus De Morgan",
+        "single-language",
+        2,
+        3,
+        "open",
+        "A Python `all(predicate(x) for x in xs)` and an early-return loop that returns "
+        "`False` on the first counterexample and `True` after exhaustion both encode a "
+        "universal quantifier. De Morgan can connect the counterexample guard "
+        "`x == 0 or x == 1` with the all-predicate `x != 0 and x != 1`, but only under "
+        "pure boolean predicate and short-circuit/vacuous-truth proof conditions.",
+        "Track the README-facing same-language Type-4 example as a proof-carrying packet; "
+        "require pure boolean operands, identical iteration order, preserved vacuous truth, "
+        "and no predicate or loop-body side effects. Reject Python value-returning boolean "
+        "boundaries and changed predicates.",
+        (
+            pf.pat(
+                "py_all_generator_predicate",
+                "python",
+                r"\breturn\s+all\s*\([^)]*\bfor\s+\w+\s+in\s+[^)]*\)",
+                "high",
+            ),
+            pf.pat(
+                "py_early_return_universal_false",
+                "python",
+                r"\bfor\s+\w+\s+in\s+[^:\n]+:\s*\n\s+if\s+[^\n]+:\s*\n\s+return\s+False\s*\n\s+return\s+True\b",
+                "high",
+            ),
+            pf.pat(
+                "py_demorgan_counterexample_guard",
+                "python",
+                r"\bif\s+[^\n]+==[^\n]+\bor\b[^\n]+==[^\n]+:\s*\n\s+return\s+False",
+                "medium",
+            ),
+        ),
+    ),
 ]
 
 # Broad probes for gap detection, per candidate. Same family as the patterns here (the
@@ -77,6 +114,18 @@ EXTRA_PROBES_BY_CANDIDATE: dict[str, tuple] = {
         pf.probe("clamp_go", "go", r"\bmin\s*\(\s*max\s*\(|\bmax\s*\(\s*min\s*\("),
         pf.probe("clamp_py", "python", r"\bmin\s*\(\s*max\s*\(|\bmax\s*\(\s*min\s*\("),
         pf.probe("clamp_rs", "rust", r"\.\s*clamp\s*\("),
+    ),
+    "python_loop_demorgan_all": (
+        pf.probe(
+            "py_all_generator",
+            "python",
+            r"\breturn\s+all\s*\([^)]*\bfor\s+\w+\s+in\s+[^)]*\)",
+        ),
+        pf.probe(
+            "py_early_return_false_true",
+            "python",
+            r"\bfor\s+\w+\s+in\s+[^:\n]+:\s*\n\s+if\s+[^\n]+:\s*\n\s+return\s+False\s*\n\s+return\s+True\b",
+        ),
     ),
 }
 
@@ -94,5 +143,16 @@ EXTRA_CURATED: dict[str, dict] = {
         "(machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean). "
         "Proof-backed min/max plus controlled two-comparison/library bridge surfaces have "
         "landed; real-corpus bound-order proof remains.",
+    },
+    "python_loop_demorgan_all": {
+        "implementation_cost": "medium",
+        "soundness_risk": "medium",
+        "substrate_required": "fragment-contract",
+        "rationale": "The semantic identity needs a small function/loop fragment proof: "
+        "universal `all` over a pure boolean predicate equals a counterexample "
+        "early-return loop with the same iteration order and vacuous truth, plus a "
+        "boolean-only De Morgan normalization. Python `and`/`or` value-returning "
+        "semantics, predicate effects, and changed empty-iterable behavior are the "
+        "soundness boundaries.",
     },
 }
