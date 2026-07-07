@@ -156,7 +156,11 @@ python3 bench/type4/frontier_platform.py --check
 Target packets are necessary but not sufficient to open exact semantic behavior.
 The [proof-carrying frontier](proof-carrying-frontier.md) report reads
 `frontier_target_packets.v1.json`, `real_frontier.v1.json`, and the co-evolution
-packet ledger, then answers whether any packet is ready for exact admission.
+packet ledger, then answers whether any packet is ready for exact admission. The generated
+[`frontier_readiness.md`](../bench/type4/frontier_readiness.md) artifact is the compact
+roadmap surface: it groups packets into `ready-for-defender`, `blocked-on-proof`,
+`blocked-on-product`, and `admitted/resolved`, and it names the next non-admitted work
+item.
 
 The report fails if a packet's copied semantic claim, proof invariant, hard negatives,
 or detector result drift from the linked `real_frontier` record. It also makes staged

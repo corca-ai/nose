@@ -157,6 +157,7 @@
         ],
         "evidence_tier": "frontier-recorded",
         "hard_negative_count": 4,
+        "owner_issue": null,
         "owner_route": "proof-fact-prerequisite",
         "packet_id": "numeric-clamp-2026-06-06",
         "proof_fact_model": {
@@ -176,7 +177,9 @@
           "can_open_exact_admission": false,
           "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
           "status": "detector-admitted-controlled"
-        }
+        },
+        "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
+        "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
       },
       {
         "candidate_axis": "python_loop_demorgan_all",
@@ -195,6 +198,7 @@
         ],
         "evidence_tier": "frontier-recorded",
         "hard_negative_count": 4,
+        "owner_issue": null,
         "owner_route": "proof-fact-prerequisite",
         "packet_id": "python-loop-demorgan-all-2026-07-07",
         "proof_fact_model": {
@@ -216,7 +220,9 @@
           "can_open_exact_admission": false,
           "reason": "packet still requires reusable proof evidence before detector work",
           "status": "blocked-on-proof"
-        }
+        },
+        "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
+        "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication, but the current detector still reports no semantic family for the two Python functions. Turning it into a proof-carrying packet makes the public claim auditable and gives the next defender a concrete positive plus adjacent hard-negative boundary."
       }
     ],
     "summary": {
