@@ -104,6 +104,33 @@ EXTRA_CANDIDATES = [
             ),
         ),
     ),
+    pf.Candidate(
+        "reduce_minmax_anyall",
+        "Reduction identity, terminal predicate, and selection boundary",
+        "all-language",
+        3,
+        3,
+        "open",
+        "Sum/product folds, any/all terminal predicates, and seeded min/max selection "
+        "loops are broad Type-4 surfaces. They are semantically reusable only when the "
+        "source, identity/empty behavior, step or terminal predicate coordinate, "
+        "short-circuit direction, and selection seed/domain are proven.",
+        "Record the language-neutral reduction proof perimeter before widening future "
+        "reduce/min/max/any/all detector behavior; reject wrong seeds, changed steps, "
+        "changed predicates, unseeded selection APIs with different empty/all-negative "
+        "behavior, and effectful callbacks or predicates.",
+        (
+            pf.pat("c_reduction_loop", "c", r"\bfor\s*\(|\bwhile\s*\(", "medium"),
+            pf.pat("go_reduction_loop", "go", r"\bfor\s+(?:_,\s*)?\w+\s*:?=\s*range\b|\bfor\s+\w+\s*<\s*len\s*\(", "medium"),
+            pf.pat("java_stream_reduce", "java", r"\.stream\s*\([^)]*\)\s*\.\s*(?:reduce|anyMatch|allMatch)\s*\(", "high"),
+            pf.pat("js_reduce_terminal", "javascript", r"\.\s*(?:reduce|some|every)\s*\(", "high"),
+            pf.pat("py_reduce_terminal", "python", r"\b(?:sum|any|all)\s*\(|\breduce\s*\(", "high"),
+            pf.pat("ruby_reduce_terminal", "ruby", r"\.\s*(?:reduce|inject|any\?|all\?)\b", "high"),
+            pf.pat("rust_reduce_terminal", "rust", r"\.\s*(?:fold|sum|product|any|all)\s*\(", "high"),
+            pf.pat("swift_reduction_loop", "swift", r"\bfor\s+\w+\s+in\b|\.\s*(?:reduce|contains|allSatisfy)\s*\(", "medium"),
+            pf.pat("ts_reduce_terminal", "typescript", r"\.\s*(?:reduce|some|every)\s*\(", "high"),
+        ),
+    ),
 ]
 
 # Broad probes for gap detection, per candidate. Same family as the patterns here (the
@@ -126,6 +153,12 @@ EXTRA_PROBES_BY_CANDIDATE: dict[str, tuple] = {
             "python",
             r"\bfor\s+\w+\s+in\s+[^:\n]+:\s*\n\s+if\s+[^\n]+:\s*\n\s+return\s+False\s*\n\s+return\s+True\b",
         ),
+    ),
+    "reduce_minmax_anyall": (
+        pf.probe("reduce_py_terminals", "python", r"\b(?:sum|any|all)\s*\(|\breduce\s*\("),
+        pf.probe("reduce_js_terminals", "javascript", r"\.\s*(?:reduce|some|every)\s*\("),
+        pf.probe("reduce_ts_terminals", "typescript", r"\.\s*(?:reduce|some|every)\s*\("),
+        pf.probe("reduce_rust_terminals", "rust", r"\.\s*(?:fold|sum|product|any|all)\s*\("),
     ),
 }
 
@@ -154,5 +187,16 @@ EXTRA_CURATED: dict[str, dict] = {
         "boolean-only De Morgan normalization. Python `and`/`or` value-returning "
         "semantics, predicate effects, and changed empty-iterable behavior are the "
         "soundness boundaries.",
+    },
+    "reduce_minmax_anyall": {
+        "implementation_cost": "medium",
+        "soundness_risk": "medium",
+        "substrate_required": "fragment-contract",
+        "rationale": "Reduction equivalence crosses loop shapes, higher-order terminals, "
+        "and seeded selection forms. It needs source/iteration identity, "
+        "identity-empty behavior, step or terminal predicate coordinate proof, "
+        "short-circuit direction, selection seed/domain proof, and effect closure; "
+        "the current work records that perimeter as reusable semantic facts rather "
+        "than adding spelling-specific detector shortcuts.",
     },
 }

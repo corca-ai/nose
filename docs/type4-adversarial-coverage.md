@@ -127,7 +127,7 @@ only historical context and should be deleted instead of preserved.
 Target packets now cite `hard_negative_groups`. A group binds the packet's positive focused
 cases, hard-negative focused cases, and regression gates together, then labels the perimeter
 with convention IDs. The convention categories are `numeric`, `boolean`, `loop`,
-`collection`, `string`, `option`, and `protocol-boundary`; `proof_carrying_frontier.py --check`
+`collection`, `string`, `option`, `reduction`, and `protocol-boundary`; `proof_carrying_frontier.py --check`
 fails if a packet omits its group, if a group case has the wrong kind, or if detector
 admission cites a positive without the group's hard-negative gates.
 
@@ -156,6 +156,11 @@ Convention glossary:
 | `option.presence-direction` | absence and present predicate direction must stay distinct |
 | `option.fallback-coordinate` | default/fallback value identity and wrong-default boundaries |
 | `option.default-short-circuit` | nullish/absence trigger for pure or already-evaluated fallbacks, truthy defaults, strict-null defaulting, and effectful fallback timing boundaries |
+| `reduction.identity-empty` | explicit seed, identity, and empty-input behavior for folds and terminals |
+| `reduction.step-coordinate` | accumulator step, contribution expression, and traversed element coordinate identity |
+| `reduction.terminal-predicate` | any/all predicate coordinate and changed-predicate boundaries |
+| `reduction.short-circuit-direction` | existential `any` versus universal `all` direction and fallthrough behavior |
+| `reduction.selection-seed-domain` | seeded min/max comparator direction, seed/domain behavior, and unseeded terminal boundaries |
 | `protocol-boundary.api-identity` | library/member identity, custom method names, receiver type, and imports |
 | `protocol-boundary.lifecycle` | settlement, cancellation, scheduling, channel, or runtime lifecycle state |
 | `protocol-boundary.callback-effect` | callback mutation, ordering, exceptions, and externally observed effects |

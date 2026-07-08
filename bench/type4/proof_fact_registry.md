@@ -60,8 +60,11 @@ packet-specific current status locally.
 | `string.affix.import-source-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves namespace/helper or imported affix binding provenance. |
 | `string.affix.direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only preserves prefix versus suffix direction. |
 | `string.affix.whole-string-single-affix` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes offset, tuple, and multi-affix arity boundaries. |
-| `reduction.identity-empty-behavior` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes seed and empty-input behavior for separately proven aggregate facts. |
-| `reduction.step-coordinate-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves the terminal step, predicate, or contribution observes the same flattened element coordinate. |
+| `reduction.identity-empty-behavior` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes seed and empty-input behavior for separately proven aggregate facts. |
+| `reduction.step-coordinate-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the terminal step, predicate, or contribution observes the same flattened element coordinate. |
+| `reduction.terminal-predicate-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves any/all terminal predicate coordinates after source identity is proven. |
+| `reduction.short-circuit-direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes existential versus universal short-circuit direction. |
+| `reduction.selection-seed-domain` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only preserves seeded min/max selection behavior; unseeded terminals need separate proof. |
 | `hof.flat-map.aggregate-guard-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves outer, inner, and terminal guard placement for flat-map aggregates. |
 | `map.default.absence-fallback` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Requires receiver identity, key/default coordinates, and mutation closure. |
 | `map.receiver.source-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both sides query the same map value source. |
@@ -141,6 +144,23 @@ and single-affix arity.
 | `string.affix.import-source-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open for imported affix constants |
 | `string.affix.direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
 | `string.affix.whole-string-single-affix` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
+
+## Reduction Pattern Matrix
+
+This matrix records the neutral proof perimeter for sum/product reductions,
+any/all terminal predicates, and seeded min/max selection reductions. The
+supported surfaces still depend on source evidence for traversal identity,
+identity/empty behavior, step or terminal predicate coordinates,
+short-circuit direction, selection seed/domain, numeric-domain closure for
+numeric aggregates, and effect closure.
+
+| fact | C | Go | Java | Python | JS/TS | Rust | Ruby | Swift |
+|---|---|---|---|---|---|---|---|---|
+| `reduction.identity-empty-behavior` | modeled-controlled sum loop | modeled-controlled sum loop | modeled-controlled stream reduce | modeled-controlled sum/reduce | modeled-controlled typed reduce | modeled-controlled fold/sum | probe-covered; receiver proof open | probe-covered; focused proof open |
+| `reduction.step-coordinate-identity` | modeled-controlled sum/count split | modeled-controlled sum/count split | modeled-controlled sum/product split | modeled-controlled sum/product split | modeled-controlled typed sum/wrong-seed split | modeled-controlled sum/product split | probe-covered; receiver proof open | probe-covered; focused proof open |
+| `reduction.terminal-predicate-coordinate` | open int-bool terminal proof | open | open | modeled via quantifier card | modeled-controlled TS any | modeled-controlled any/all | open receiver proof | open |
+| `reduction.short-circuit-direction` | open int-bool terminal proof | open | open | modeled via quantifier card | open for all/every direction; TS any/some only | modeled-controlled any/all | open receiver proof | open |
+| `reduction.selection-seed-domain` | open | open | open | modeled-controlled seeded min/max | open numeric proof | modeled-controlled seeded min/max | open | open |
 
 ## Universal Quantifier Pattern Matrix
 

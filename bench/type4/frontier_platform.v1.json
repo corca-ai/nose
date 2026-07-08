@@ -198,6 +198,164 @@
     },
     {
       "breadth": {
+        "dev_breadth": 0.8788,
+        "dev_presence": 58,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.8704,
+        "heldout_presence": 47,
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 8,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ],
+        "raw_occurrences": 57452,
+        "repo_breadth": 0.875,
+        "repo_presence": 105,
+        "source_language_breadth": 1.0,
+        "source_language_presence": 8,
+        "source_languages": [
+          "c",
+          "go",
+          "java",
+          "javascript",
+          "python",
+          "ruby",
+          "rust",
+          "typescript"
+        ]
+      },
+      "candidate_id": "reduce_minmax_anyall",
+      "curated": {
+        "implementation_cost": "medium",
+        "rationale": "Reduction equivalence crosses loop shapes, higher-order terminals, and seeded selection forms. It needs source/iteration identity, identity-empty behavior, step or terminal predicate coordinate proof, short-circuit direction, selection seed/domain proof, and effect closure; the current work records that perimeter as reusable semantic facts rather than adding spelling-specific detector shortcuts.",
+        "soundness_risk": "medium",
+        "substrate_required": "fragment-contract"
+      },
+      "detector_suggested": null,
+      "evidence_tier": "frontier-recorded",
+      "gap_samples": [],
+      "human_evidence": {
+        "count": 1,
+        "records": [
+          {
+            "candidate_axis": "reduce_minmax_anyall / loops_and_reductions / iteration_contracts",
+            "case_id": "reduction-minmax-anyall-focused-controlled",
+            "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+            "status": "already-covered"
+          }
+        ],
+        "statuses": [
+          "already-covered"
+        ]
+      },
+      "presence_rank": 2,
+      "prioritizer_status": "open",
+      "recommendation_category": "all-language",
+      "routing": {
+        "issue_37_subset_repos": [
+          "alacritty",
+          "alamofire",
+          "antlr4",
+          "arrow",
+          "asciidoctor",
+          "axios",
+          "badger",
+          "bat",
+          "black",
+          "boltons",
+          "chi",
+          "clap"
+        ],
+        "issue_43_substrate_target": true,
+        "issue_45_product_noise": false
+      },
+      "samples": [
+        {
+          "language": "rust",
+          "line": 136,
+          "path": "alacritty/src/config/monitor.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": ".any(|path| paths.contains(&path))",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 201,
+          "path": "alacritty/src/display/damage.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": "|| (start.line + 1..end.line).any(|line| self.lines[line].is_damaged())",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 1530,
+          "path": "alacritty/src/display/mod.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": "text[byte_offset.0..].chars().fold(0, |acc, ch| acc + ch.width().unwrap_or(1));",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 1532,
+          "path": "alacritty/src/display/mod.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": "text[byte_offset.1..].chars().fold(0, |acc, ch| acc + ch.width().unwrap_or(1));",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 188,
+          "path": "alacritty/src/logging.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": "_ => ALLOWED_TARGETS.contains(&target) || extra_log_targets().iter().any(|t| t == target),",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 100,
+          "path": "alacritty/src/scheduler.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": "self.timers.iter().any(|timer| timer.id == id)",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 17,
+          "path": "alacritty_config_derive/src/config_deserialize/de_enum.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": "variant.attrs.iter().all(|attr| {",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 96,
+          "path": "alacritty_config_derive/src/serde_replace.rs",
+          "pattern_id": "rust_reduce_terminal",
+          "repo": "alacritty",
+          "snippet": ".any(|parsed| parsed.ident.as_str() == \"flatten\");",
+          "split": "dev"
+        }
+      ],
+      "scope": "all-language",
+      "title": "Reduction identity, terminal predicate, and selection boundary"
+    },
+    {
+      "breadth": {
         "dev_breadth": 0.8485,
         "dev_presence": 56,
         "gap_repo_presence": 0,
@@ -263,7 +421,7 @@
           "closed"
         ]
       },
-      "presence_rank": 2,
+      "presence_rank": 3,
       "prioritizer_status": "covered-current",
       "recommendation_category": "all-language",
       "routing": {
@@ -420,7 +578,7 @@
           "already-covered"
         ]
       },
-      "presence_rank": 3,
+      "presence_rank": 4,
       "prioritizer_status": "covered-current",
       "recommendation_category": "all-language",
       "routing": {
@@ -577,7 +735,7 @@
           "already-covered"
         ]
       },
-      "presence_rank": 4,
+      "presence_rank": 5,
       "prioritizer_status": "covered-current",
       "recommendation_category": "all-language",
       "routing": {
@@ -733,7 +891,7 @@
           "unsupported"
         ]
       },
-      "presence_rank": 5,
+      "presence_rank": 6,
       "prioritizer_status": "partially-covered",
       "recommendation_category": "multi-language",
       "routing": {
@@ -890,7 +1048,7 @@
           "real-miss"
         ]
       },
-      "presence_rank": 6,
+      "presence_rank": 7,
       "prioritizer_status": "open",
       "recommendation_category": "all-language",
       "routing": {
@@ -1032,7 +1190,7 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 7,
+      "presence_rank": 8,
       "prioritizer_status": "covered-current",
       "recommendation_category": "language-family",
       "routing": {
@@ -1174,7 +1332,7 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 8,
+      "presence_rank": 9,
       "prioritizer_status": "covered-current",
       "recommendation_category": "language-family",
       "routing": {
@@ -1309,7 +1467,7 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 9,
+      "presence_rank": 10,
       "prioritizer_status": "covered-current",
       "recommendation_category": "all-language",
       "routing": {
@@ -1454,7 +1612,7 @@
           "already-covered"
         ]
       },
-      "presence_rank": 10,
+      "presence_rank": 11,
       "prioritizer_status": "open",
       "recommendation_category": "single-language",
       "routing": {
@@ -1596,9 +1754,10 @@
       "own_property_guard",
       "property_type_guard",
       "python_loop_demorgan_all",
+      "reduce_minmax_anyall",
       "string_prefix_suffix"
     ],
-    "union_signature": "fec264f35c3f1dedb6c0b750ac6e3320da20d10feb721127775800bd32b81c73"
+    "union_signature": "779a4975ba2b7b27c566d21a9b598f39cf902d60bffcf5c20dd8613c8a7fa88f"
   },
   "primary_languages": [
     "C",
@@ -1629,6 +1788,7 @@
       "null_option_presence",
       "numeric_clamp",
       "python_loop_demorgan_all",
+      "reduce_minmax_anyall",
       "string_prefix_suffix"
     ],
     "prevalence_axes": "no-implementation-ready-batch (see audit_conclusion)",
