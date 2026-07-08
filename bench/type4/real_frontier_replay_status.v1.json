@@ -1,27 +1,58 @@
 {
-  "entry_count": 2,
+  "entry_count": 3,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "9b3e4d7a812cd2cf370bb4a29ae48fc69b226ecb795783c1cc7032f98e057399",
-      "size_bytes": 2655
+      "sha256": "3b9ddf474c6f92acd92fba3f050b4b3a3527e6f96bccdef0ff7fda6c734b6f7a",
+      "size_bytes": 3892
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "22cbe37c2a42bcd22f9b5a9e28fda6cff01d5d44c0f284237ee4b5e40b09a35f",
-      "size_bytes": 70731
+      "sha256": "fbc90029248972607fe59e2428047e310d2543ad81ec63edd41b156962bcf3bb",
+      "size_bytes": 74262
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "4daf5d6672f011e871a0aaed47d1e499e434a03590b0cd66ce2fe3d7a0338a81",
-      "size_bytes": 19417
+      "sha256": "4ffeb6d16bd3bdff20cb3e66bf8dc0bf91e2ebd185e4917e2889326255700fa2",
+      "size_bytes": 30367
     }
   },
   "nose_binary": "nose",
-  "passed": 2,
-  "query_count": 2,
+  "passed": 3,
+  "query_count": 3,
   "results": [
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "collection-membership-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+            "name": "jsSetMember",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.py",
+            "name": "py_literal_member",
+            "start": 1
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "membership-contains-2026-07-08",
+      "replay_id": "collection-membership-focused-controlled-pair",
+      "status": "passed"
+    },
     {
       "availability": {
         "missing": [],

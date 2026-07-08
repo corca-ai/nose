@@ -485,6 +485,135 @@
     },
     {
       "accepted_evidence": [
+        "language standard membership APIs over a proven collection receiver, such as Python in, JS/TS Array.includes or Set.has, Go slices.Contains, Java Collection.contains, Ruby include?/member?, Rust contains, and Swift contains",
+        "membership-like higher-order surfaces whose boolean result is proven to be an existence predicate, such as some/findIndex/indexOf/filter-length comparisons or their negated absence forms",
+        "type, import, constructor, package, or receiver evidence that separates collection membership from substring, regex, map-key, value, and custom contains semantics"
+      ],
+      "detector_admission_implication": "Does not admit membership convergence by itself; element coordinate, collection/source coordinate, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.membership.api-domain-identity",
+      "hard_negative_conventions": [
+        "collection.receiver-provenance",
+        "protocol-boundary.api-identity",
+        "boolean.truth-table"
+      ],
+      "implementation_guidance": [
+        "Attach membership semantics only after the receiver domain and API identity are proven.",
+        "Reject method-name-only contains/has/include calls, JavaScript in, substring contains, regex contains, raw index/count payloads, loose equality predicates, and shadowed or missing standard-library constructors.",
+        "Keep map-key membership on a separate map-key semantic family even when the surface spelling is contains/has."
+      ],
+      "rejected_evidence": [
+        "substring, regex, or string receiver contains calls",
+        "map-key membership or map-value search without an explicit collection-membership domain",
+        "raw indexOf/findIndex/filter length values whose numeric payload is observed",
+        "missing imports, shadowed constructors, untyped dynamic has receivers, or custom contains methods"
+      ],
+      "semantic_family": "collection.membership",
+      "status": "modeled-controlled",
+      "summary": "Collection membership surfaces require proven receiver domain and API identity before contains/has/include-shaped calls can be treated as element-in-collection predicates.",
+      "title": "Collection membership API/domain identity"
+    },
+    {
+      "accepted_evidence": [
+        "the searched element coordinate is the same local value, parameter, literal, imported value, or lowered expression on both surfaces",
+        "membership and negated-membership forms compare the same element coordinate against the collection",
+        "focused wrong-element hard negatives remain split"
+      ],
+      "detector_admission_implication": "Does not admit membership convergence by itself; receiver/API domain, collection/source coordinate, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.membership.element-coordinate",
+      "hard_negative_conventions": [
+        "collection.element-coordinate",
+        "boolean.truth-table"
+      ],
+      "implementation_guidance": [
+        "Track the searched element independently from the collection source.",
+        "Reject value-to-other substitutions even when all collection evidence still matches.",
+        "For callback-based membership encodings, bind the callback comparison to the searched element coordinate before canonicalizing."
+      ],
+      "rejected_evidence": [
+        "same collection with a changed searched element",
+        "callback comparisons against a different parameter or captured value",
+        "derived element expressions without a separate value-equivalence proof"
+      ],
+      "semantic_family": "collection.membership",
+      "status": "modeled-controlled",
+      "summary": "Collection membership is a predicate over a specific searched element coordinate; changing that coordinate changes behavior.",
+      "title": "Collection membership element coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "static literal collections with the same element set or sequence under the collection kind's equality/order semantics",
+        "standard collection factories, module-level bindings, imports, package/static fields, or typed dynamic receivers whose source provenance is proven",
+        "focused wrong-collection and provider-provenance hard negatives remain split"
+      ],
+      "detector_admission_implication": "Does not admit membership convergence by itself; receiver/API domain, searched element coordinate, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.membership.collection-source-coordinate",
+      "hard_negative_conventions": [
+        "collection.collection-coordinate",
+        "collection.receiver-provenance",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Preserve the collection kind/source coordinate separately from the searched element.",
+        "Use import, package, static-field, and constructor identity evidence for cross-file or factory-backed collections.",
+        "Reject same-shaped literals or same variable names when provenance, type/domain, or collection contents differ."
+      ],
+      "rejected_evidence": [
+        "different literal items or provider exports",
+        "same receiver spelling without import/type/source proof",
+        "single-argument Java Arrays.asList over an unproven non-array receiver",
+        "enum or field-chain elements whose value identity is not strict-safe"
+      ],
+      "semantic_family": "collection.membership",
+      "status": "modeled-controlled",
+      "summary": "Collection membership requires the same proven collection source or dynamic receiver coordinate, including collection-kind and constructor/import provenance.",
+      "title": "Collection membership collection/source coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "no writes, adds, appends, inserts, fills, deletes, or mutating method calls can affect the collection receiver before the membership check",
+        "imported or module-level collections are immutable, frozen, or treated as stable literal provenance",
+        "provider and importer modules both preserve the collection state before membership"
+      ],
+      "detector_admission_implication": "Does not admit membership convergence by itself; it only closes mutation and stale-receiver boundaries for separately proven membership surfaces.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.membership.no-intervening-mutation",
+      "hard_negative_conventions": [
+        "collection.mutation",
+        "collection.receiver-provenance"
+      ],
+      "implementation_guidance": [
+        "Reject receiver mutation after construction/import and before membership.",
+        "Treat provider-side and importer-side mutations as separate stale-provenance blockers.",
+        "Keep helper calls that may mutate the receiver outside strict membership proof unless a separate effect/immutability proof exists."
+      ],
+      "rejected_evidence": [
+        "append/add/insert/push/fill/copyWithin or assignment to the collection before membership",
+        "provider module mutates an exported collection after initialization",
+        "importer mutates an imported collection before reading membership",
+        "helper calls that may mutate the collection receiver"
+      ],
+      "semantic_family": "collection.membership",
+      "status": "modeled-controlled",
+      "summary": "Collection membership over constructed, imported, or typed receivers requires a stable receiver state; mutation changes the membership predicate.",
+      "title": "Collection membership mutation closure"
+    },
+    {
+      "accepted_evidence": [
         "sum, reduce, any, all, or equivalent loop terminals with the same initial value or empty-input result",
         "loop accumulators whose seed matches the aggregate terminal identity",
         "focused hard negatives where changed seeds or empty-input behavior remain split"

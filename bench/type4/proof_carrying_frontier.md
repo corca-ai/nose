@@ -11,16 +11,16 @@ report keeps the fuller evidence and admission boundary.
 
 **no-exact-admission-ready-packets**
 
-- target packets: 2
+- target packets: 3
 - ready for exact admission: 0
-- detector admitted packets: 2
-- by readiness: `{"detector-admitted": 1, "detector-admitted-controlled": 1}`
-- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 1}`
-- by detector admission: `{"controlled-slice-admitted": 1, "real-pair-admitted": 1}`
-- by executable witness coverage: `{"covered": 2}`
-- by real-frontier replay: `{"passed": 2}`
-- executable expectations: 15/15 passed
-- real-frontier replays: 2/2 passed; 0 unavailable
+- detector admitted packets: 3
+- by readiness: `{"detector-admitted": 2, "detector-admitted-controlled": 1}`
+- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 2}`
+- by detector admission: `{"controlled-slice-admitted": 1, "real-pair-admitted": 2}`
+- by executable witness coverage: `{"covered": 3}`
+- by real-frontier replay: `{"passed": 3}`
+- executable expectations: 20/20 passed
+- real-frontier replays: 3/3 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -41,6 +41,7 @@ report keeps the fuller evidence and admission boundary.
 |---|---|---|---|---|---|---:|---:|---:|
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 5 | 6 | 1 |
+| `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (1/1)` | 4 | 7 | 1 |
 
 ## Packet Details
 
@@ -65,6 +66,14 @@ report keeps the fuller evidence and admission boundary.
 - real-frontier replay: `passed` (1/1 passed)
 - hard-negative groups: `python-loop-demorgan-all-proof-perimeter`
 
+### `membership-contains-2026-07-08`
+
+- detector admission: `real-pair-admitted` over controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces
+- gates: 7 positive, 7 hard-negative
+- executable witness coverage: `covered` (5/5 passed)
+- real-frontier replay: `passed` (1/1 passed)
+- hard-negative groups: `collection-membership-proof-perimeter`
+
 ## Hard-Negative Linkage
 
 ### `numeric-clamp-2026-06-06` / `numeric-clamp-proof-perimeter`
@@ -80,6 +89,13 @@ report keeps the fuller evidence and admission boundary.
 - conventions: `boolean.truth-table`, `boolean.value-context`, `boolean.effect-safety`, `loop.empty-input`, `loop.short-circuit`, `loop.iterator-identity`
 - cases: 1 positive, 6 hard-negative
 - regression gates: 7
+
+### `membership-contains-2026-07-08` / `collection-membership-proof-perimeter`
+
+- semantic family: `collection.membership`
+- conventions: `collection.receiver-provenance`, `collection.element-coordinate`, `collection.collection-coordinate`, `collection.mutation`, `protocol-boundary.api-identity`, `boolean.truth-table`
+- cases: 1 positive, 4 hard-negative
+- regression gates: 12
 
 ## Co-Evolution Guardrails
 

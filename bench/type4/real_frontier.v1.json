@@ -64,6 +64,49 @@
       "notes": "Issue #739 detector admission record. The same-language README-facing proof target is now covered by the detector under modeled-controlled counterexample-loop, vacuous-truth, same-source identity, pure-predicate, and boolean De Morgan proof facts."
   },
   {
+   "case_id": "collection-membership-focused-controlled",
+   "status": "already-covered",
+   "candidate_axis": "membership_contains / literal_collection_membership",
+   "repo": "nose",
+   "language": "multi-language",
+   "locations": [
+    {
+     "path": "bench/type4/adversarial/cases/collection_membership/positive.py",
+     "span": "1-2",
+     "snippet": "def py_literal_member(value, other): return value in [\"red\", \"blue\"]"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/collection_membership/positive.js",
+     "span": "1-3",
+     "snippet": "function jsSetMember(value, other) { return new Set([\"red\", \"blue\"]).has(value); }"
+    }
+   ],
+   "semantic_claim": "A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
+   "evidence": "Focused membership suites already cover literal, factory-backed, imported immutable, typed dynamic, and probe membership surfaces across Python, JS/TS, Go, Java, Ruby, Rust, and Swift with zero false-merge boundaries; the replay fixture records the minimal Python literal and JS Set bridge.",
+   "detector": {
+    "current_detector_miss": false,
+    "binary_path": "nose",
+    "nose_version": "nose",
+    "build_ref": "#754 semantic pattern card",
+    "baseline_command": "nose query bench/type4/adversarial/cases/collection_membership --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+    "baseline_result": "Semantic query reports a family containing py_literal_member and jsSetMember.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports the Python literal membership and JS Set.has membership functions in the same family.",
+    "default_query_result": "Default query also reports the same semantic family for the focused pair."
+   },
+   "proof_invariant": "Open collection-membership convergence only when source evidence proves the receiver is a collection-membership domain, the searched element coordinate is identical, the collection/source coordinate is identical across literals/factories/imports/typed receivers, and no mutation changes the receiver before membership. Substring/regex contains, map-key or value membership, raw index/count payloads, loose equality, NaN-sensitive equality, missing imports, shadowed constructors, custom contains receivers, and mutated providers/importers must remain non-equivalent.",
+   "hard_negative_siblings": [
+    "wrong searched element: contains(value) is not contains(other)",
+    "wrong collection/source coordinate: [\"red\", \"blue\"] is not [\"green\", \"blue\"]",
+    "substring or regex contains is not element membership",
+    "map-key membership and value search remain distinct semantic families",
+    "raw indexOf/findIndex/filter length payloads are not boolean membership predicates unless compared to the correct sentinel",
+    "missing imports, shadowed constructors, untyped dynamic has receivers, and custom contains methods are not API/domain proof",
+    "provider-side or importer-side mutation after construction/import changes the receiver state"
+   ],
+   "batch": "2026-07-08-collection-membership-pattern-card",
+   "notes": "Issue #754 pattern-card evidence. This is a controlled, replayable focused pair; real-corpus unsupported membership leads remain documented separately and should not widen exact admission without their missing source/type facts."
+  },
+  {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
    "status": "unsupported",
    "candidate_axis": "membership_contains / literal_collection_membership",

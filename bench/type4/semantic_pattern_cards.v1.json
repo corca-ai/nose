@@ -135,6 +135,99 @@
     },
     {
       "boundaries": [
+        "the receiver must be proven to be a collection membership domain, not a substring, regex, map-key, map-value, or custom contains domain",
+        "the searched element coordinate must match independently from the collection source",
+        "the collection/source coordinate must match across literals, factories, imports, package/static fields, or typed dynamic receivers",
+        "mutation between construction/import/source proof and membership is behavior-defining",
+        "raw index, count, or position payloads stay outside membership unless compared to a no-hit/zero sentinel in a boolean membership context",
+        "loose equality, NaN-sensitive equality, shadowed constructors, missing imports, and untyped dynamic receivers remain closed until separately proven"
+      ],
+      "evidence_refs": [
+        "bench/type4/frontier_target_packets.v1.json::membership-contains-2026-07-08",
+        "bench/type4/adversarial/cases/cases.v1.json::collection-membership-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_element_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_collection_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_receiver_api_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_mutated_receiver_boundary",
+        "bench/type4/proof_fact_registry.v1.json::collection.membership.api-domain-identity",
+        "bench/type4/proof_fact_registry.v1.json::collection.membership.element-coordinate",
+        "bench/type4/proof_fact_registry.v1.json::collection.membership.collection-source-coordinate",
+        "bench/type4/proof_fact_registry.v1.json::collection.membership.no-intervening-mutation"
+      ],
+      "hard_negative_templates": [
+        "collection.wrong-element-coordinate",
+        "collection.wrong-collection-coordinate",
+        "collection.receiver-mutation",
+        "collection.substring-vs-element-membership",
+        "collection.map-key-vs-element-membership",
+        "protocol-boundary.api-identity",
+        "protocol-boundary.shadowed-constructor",
+        "boolean.loose-or-nan-sensitive-membership"
+      ],
+      "language_surfaces": [
+        {
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership; bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive",
+          "language": "Python",
+          "status": "modeled-controlled",
+          "surface": "literal in, builtin set/tuple/frozenset factories, imported deque/set bindings, and typed list/tuple/Sequence/Container/Set receivers"
+        },
+        {
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership; crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings; bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive",
+          "language": "JS/TS",
+          "status": "modeled-controlled",
+          "surface": "Array.includes, Set.has, array some/every/indexOf/findIndex/filter-length boolean membership, and imported immutable Set bindings"
+        },
+        {
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership",
+          "language": "Go",
+          "status": "modeled-controlled",
+          "surface": "slices.Contains over inline, local, package-level, aliased-import, and const-backed slice sources"
+        },
+        {
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership; crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_java_imported_collection_factories",
+          "language": "Java",
+          "status": "modeled-controlled",
+          "surface": "List.of, Set.of, Arrays.asList multi-argument, Collections singleton/empty factories, static final imports, local List bindings, and typed Collection receivers"
+        },
+        {
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership; crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries",
+          "language": "Rust",
+          "status": "modeled-controlled",
+          "surface": "array/slice/Vec contains plus std HashSet, BTreeSet, VecDeque factories and typed slice/VecDeque receivers"
+        },
+        {
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries",
+          "language": "Ruby",
+          "status": "modeled-controlled",
+          "surface": "Array include?/member? and Set.new include?/member? when require/import and mutation boundaries are proven"
+        },
+        {
+          "evidence": "bench/type4/coverage_probes/membership_contains/swift/pos; bench/type4/coverage_probes/membership_contains/swift/neg-element",
+          "language": "Swift",
+          "status": "open",
+          "surface": "coverage-probe contains over proven collection receivers; mutation closure remains open before full admission"
+        },
+        {
+          "language": "C",
+          "status": "not-applicable",
+          "surface": "no standard collection-membership surface is admitted without a modeled library/domain contract"
+        }
+      ],
+      "law": "Collection membership surfaces are equivalent only when source evidence proves the same collection-membership API/domain, searched element coordinate, collection/source coordinate, and stable receiver state.",
+      "pattern_id": "collection.membership.proven-receiver-element",
+      "rationale": "The membership_contains frontier axis is broad, multi-language, and already covered by focused literal, factory, imported, typed dynamic, and probe evidence; carding it records the reusable proof perimeter so future contains/has/include work extends neutral receiver, element, collection, and mutation facts instead of adding spelling-specific shortcuts.",
+      "required_facts": [
+        "collection.membership.api-domain-identity",
+        "collection.membership.element-coordinate",
+        "collection.membership.collection-source-coordinate",
+        "collection.membership.no-intervening-mutation"
+      ],
+      "status": "pattern-carded",
+      "title": "Proof-backed collection membership"
+    },
+    {
+      "boundaries": [
         "absent-key fallback is distinct from nullish, truthy, or falsey value replacement",
         "the map receiver must be the same proven source, including imported immutable literal sources",
         "the lookup key and fallback/default coordinates must match independently",
