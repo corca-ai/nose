@@ -1,26 +1,26 @@
 {
-  "entry_count": 17,
+  "entry_count": 18,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "a8f958daa47b724197e700e052c56d6e6b925faa8826906fcf5b3e7e90229365",
-      "size_bytes": 18614
+      "sha256": "cfea900df092f8e0f497115594c4891e19b19186e3d4ca46f2ce137492f2abbc",
+      "size_bytes": 21277
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "a51915bcb5c09acd164c627eb1d45b3467e085745feafd15f160aa1879a51075",
-      "size_bytes": 97082
+      "sha256": "51823b404c10cfdce8815a60818d90621e6c56d5a23446a19cebf2ad20710025",
+      "size_bytes": 101768
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "9ff5471f25c98cdd8cd847581dcc87179fc324e8f1f99d6767ed65cca09c8943",
-      "size_bytes": 91489
+      "sha256": "df40afea8fee9d8246857c6c3f138e5bc6b45eea2b3b7474e159ec67b489aef2",
+      "size_bytes": 93150
     }
   },
   "nose_binary": "nose",
-  "passed": 17,
-  "query_count": 9,
+  "passed": 18,
+  "query_count": 10,
   "results": [
     {
       "availability": {
@@ -506,6 +506,20 @@
       "ok": true,
       "packet_id": "reduction-minmax-anyall-2026-07-08",
       "replay_id": "reduction-sum-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-typescript-every-append-only-flags-drizzle-real-pair",
       "status": "passed"
     },
     {

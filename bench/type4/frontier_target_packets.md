@@ -25,7 +25,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **representative locations**:
   - `boltons` (heldout, Python) `boltons/mathutils.py:40-69`
   - `fzf` (heldout, Go) `src/util/util.go:63-65`
-- **current detector result**: miss=True · `nose 0.5.0` @ `58c4c9b0c513` — Historic controlled query: abs control merged (1 family: absTern, absBuilt); clamp ternary/library bridge forms did not. Current focused equivalence/adversarial cases now cover the proof-backed controlled bridge forms.
+- **current detector result (primary linked evidence)**: miss=True · `nose 0.5.0` @ `58c4c9b0c513` — Historic controlled query: abs control merged (1 family: absTern, absBuilt); clamp ternary/library bridge forms did not. Current focused equivalence/adversarial cases now cover the proof-backed controlled bridge forms.
 - **detector admission**: `controlled-slice-admitted` · proof-backed controlled integer clamp surfaces
 - **remaining real-pair gap**: the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss
 - **why now**: A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing — present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary.
@@ -50,7 +50,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **representative locations**:
   - `nose` (docs, Python) `README.md:15-33`
   - `nose` (focused, Python) `bench/type4/adversarial/cases/python_loop_demorgan/positive.py:1-9`
-- **current detector result**: miss=False · `nose 0.18.0` @ `#739 detecto` — Semantic query reports one family containing the README all(...) function and early-return loop.
+- **current detector result (primary linked evidence)**: miss=False · `nose 0.18.0` @ `#739 detecto` — Semantic query reports one family containing the README all(...) function and early-return loop.
 - **detector admission**: `real-pair-admitted` · README/focused Python all(generator) universal predicate versus counterexample early-return loop with boolean-only literal comparison De Morgan
 - **remaining real-pair gap**: none
 - **why now**: The front-page README uses this same-language Type-4 example to explain semantic duplication. The proof facts are now modeled-controlled, and the detector admits the README/focused positive while the adjacent hard-negative boundary remains executable.
@@ -76,7 +76,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **representative locations**:
   - `nose` (focused, Python) `bench/type4/adversarial/cases/collection_membership/positive.py:1-2`
   - `nose` (focused, JavaScript) `bench/type4/adversarial/cases/collection_membership/positive.js:1-3`
-- **current detector result**: miss=False · `nose` @ `#754 semanti` — Semantic query reports a family containing py_literal_member and jsSetMember.
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#754 semanti` — Semantic query reports a family containing py_literal_member and jsSetMember.
 - **detector admission**: `real-pair-admitted` · controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces
 - **remaining real-pair gap**: none
 - **why now**: membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces.
@@ -100,7 +100,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **representative locations**:
   - `nose` (focused, Rust) `bench/type4/adversarial/cases/collection_empty_check/positive.rs:1-15`
   - `netty` (dev, Java) `common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java:147-149`
-- **current detector result**: miss=False · `nose` @ `#755 semanti` — Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#755 semanti` — Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.
 - **detector admission**: `real-pair-admitted` · controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof
 - **remaining real-pair gap**: none
 - **why now**: collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces.
@@ -127,7 +127,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - `nose` (focused, multi-language) `crates/nose-cli/tests/fixtures/string_affix_550/prefix.py:1-2`
   - `nose` (focused, TypeScript) `crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts:1-3`
   - `nose` (focused, Ruby) `crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb:1-3`
-- **current detector result**: miss=False · `nose` @ `#756 semanti` — Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role parameter, and immutable binding families while adjacent hard negatives stay outside those families.
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#756 semanti` — Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role parameter, and immutable binding families while adjacent hard negatives stay outside those families.
 - **detector admission**: `controlled-slice-admitted` · controlled case-sensitive whole-string prefix/suffix predicates with receiver, API/import, affix coordinate, direction, and arity proof
 - **remaining real-pair gap**: a non-focused real-corpus string-affix pair still needs separate audit before this packet can claim real-pair admission
 - **why now**: string_prefix_suffix has broad controlled coverage across core languages, a Swift probe row, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces.
@@ -154,7 +154,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - `nose` (focused, Python) `bench/type4/adversarial/cases/null_option_presence/presence.py:1-9`
   - `nose` (focused, Rust) `bench/type4/adversarial/cases/null_option_presence/presence.rs:1-15`
   - `nose` (focused, JavaScript) `bench/type4/adversarial/cases/null_option_presence/default.js:1-26`
-- **current detector result**: miss=False · `nose` @ `#757 semanti` — Semantic query reports distinct absence, present, and defaulting families while direction, wrong-value, truthy-default, strict-null, and wrong-coordinate hard negatives stay outside those families.
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#757 semanti` — Semantic query reports distinct absence, present, and defaulting families while direction, wrong-value, truthy-default, strict-null, and wrong-coordinate hard negatives stay outside those families.
 - **detector admission**: `controlled-slice-admitted` · controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence
 - **remaining real-pair gap**: a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission
 - **why now**: null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts.
@@ -183,8 +183,8 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - seeded max over max(0, xs...) differs from max(xs).unwrap_or(0) on all-negative non-empty inputs
   - min and max selection directions are distinct even when both use the same seed
   - effectful reducers, predicates, callbacks, or receiver/protocol mutations are behavior-defining
-- **evidence**: `reduction-minmax-anyall-focused-controlled` (`real_frontier.v1.json`)
-- **real frontier replay**: `reduction-sum-focused-controlled-pair`, `reduction-any-focused-controlled-pair`, `reduction-typescript-every-dense-literal-controlled-pair`, `reduction-typescript-every-array-param-boundary-controlled-pair`, `reduction-selection-focused-controlled-pair` (`real_frontier_replay.v1.json`)
+- **evidence**: `reduction-minmax-anyall-focused-controlled`, `reduction-typescript-every-append-only-flags-drizzle-real-miss` (`real_frontier.v1.json`)
+- **real frontier replay**: `reduction-sum-focused-controlled-pair`, `reduction-any-focused-controlled-pair`, `reduction-typescript-every-dense-literal-controlled-pair`, `reduction-typescript-every-array-param-boundary-controlled-pair`, `reduction-typescript-every-append-only-flags-drizzle-real-pair`, `reduction-selection-focused-controlled-pair` (`real_frontier_replay.v1.json`)
 - **representative locations**:
   - `nose` (focused, multi-language) `bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py:1-23`
   - `nose` (focused, Rust) `bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs:1-42`
@@ -194,9 +194,11 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - `nose` (focused, Ruby) `bench/type4/adversarial/cases/ruby_enumerable_quantifier/monkey_patch.rb:1-8`
   - `nose` (focused, Ruby) `bench/type4/adversarial/cases/ruby_enumerable_quantifier/module_eval_patch.rb:1-9`
   - `nose` (focused, Swift) `bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift:1-80`
-- **current detector result**: miss=False · `nose` @ `#769 Swift a` — Semantic queries report a broad sum/reduce family, TypeScript any/some, dense-literal one-argument TypeScript every/for-of, Swift eager allSatisfy/loop, plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, TypeScript array-param every, TypeScript every callback-extra-argument, Swift changed predicate/source, wrong empty truth, effect, two-argument custom overload, lazy receiver, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.
+  - `drizzle-orm` (dev, TypeScript) `drizzle-kit/src/cli/commands/mysqlIntrospect.ts:35-38`
+  - `drizzle-orm` (dev, TypeScript) `drizzle-kit/src/cli/commands/sqliteIntrospect.ts:41-44`
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#769 Swift a` — Semantic queries report a broad sum/reduce family, TypeScript any/some, dense-literal one-argument TypeScript every/for-of, Swift eager allSatisfy/loop, plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, TypeScript array-param every, TypeScript every callback-extra-argument, Swift changed predicate/source, wrong empty truth, effect, two-argument custom overload, lazy receiver, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.
 - **detector admission**: `controlled-slice-admitted` · controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
-- **remaining real-pair gap**: a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission
+- **remaining real-pair gap**: the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit
 - **why now**: reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter — identity/empty behavior, aggregate value-model closure for arithmetic reductions, selection value-order closure for min/max, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure — so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings.
-- **blocked by**: nothing
-- **notes**: This packet records the current focused reduction perimeter as reusable proof facts. The linked real-corpus detector metadata predates the Ruby focused slice; Ruby and Swift coverage here is carried by focused executable witnesses. It intentionally does not claim a new non-focused real-corpus admission, untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.
+- **blocked by**: the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources, the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed, Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean
+- **notes**: This packet records the current focused reduction perimeter as reusable proof facts. The linked Drizzle real-corpus replay is an executable split expectation for the next TypeScript every source-provenance fact, not a real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.

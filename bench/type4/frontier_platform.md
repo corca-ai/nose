@@ -39,7 +39,7 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 | rank | axis | category | evidence tier | repo breadth | primary-lang breadth | dev | heldout | generalization | cost | risk | substrate | human evidence | raw occ |
 |---:|---|---|---|---:|---:|---:|---:|---|---|---|---|---|---:|
 | 1 | `membership_contains` | multi-language | frontier-recorded | 88% (105) | 100% (8) | 85% (56) | 91% (49) | both-splits | medium | medium | none | 3 (already-covered, unsupported) | 23027 |
-| 2 | `reduce_minmax_anyall` | all-language | frontier-recorded | 88% (105) | 100% (8) | 88% (58) | 87% (47) | both-splits | medium | medium | fragment-contract | 1 (already-covered) | 57452 |
+| 2 | `reduce_minmax_anyall` | all-language | frontier-recorded | 88% (105) | 100% (8) | 88% (58) | 87% (47) | both-splits | medium | medium | fragment-contract | 2 (already-covered, real-miss) | 57452 |
 | 3 | `collection_empty_check` | all-language | frontier-recorded | 86% (103) | 100% (8) | 85% (56) | 87% (47) | both-splits | low | low | none | 2 (already-covered, closed) | 21615 |
 | 4 | `null_option_presence` | all-language | frontier-recorded | 82% (99) | 100% (8) | 80% (53) | 85% (46) | both-splits | medium | medium | none | 1 (already-covered) | 127849 |
 | 5 | `string_prefix_suffix` | all-language | frontier-recorded | 82% (98) | 100% (8) | 79% (52) | 85% (46) | both-splits | low | low | none | 1 (already-covered) | 6330 |
@@ -69,6 +69,7 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 - curated: cost `medium` · risk `medium` · substrate `fragment-contract`
   - rationale: Reduction equivalence crosses loop shapes, higher-order terminals, and seeded selection forms. It needs source/iteration identity, identity-empty behavior, step or terminal predicate coordinate proof, short-circuit direction, selection seed/domain proof, and effect closure; the current work records that perimeter as reusable semantic facts rather than adding spelling-specific detector shortcuts.
   - human evidence: `reduction-minmax-anyall-focused-controlled` → **already-covered** (reduce_minmax_anyall / loops_and_reductions / iteration_contracts)
+  - human evidence: `reduction-typescript-every-append-only-flags-drizzle-real-miss` → **real-miss** (reduce_minmax_anyall / typescript_every / append_only_local_array)
 
 ### `collection_empty_check` — Collection emptiness and non-emptiness
 

@@ -998,7 +998,11 @@
       "why_now": "null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts."
     },
     {
-      "blocked_by": [],
+      "blocked_by": [
+        "the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources",
+        "the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed",
+        "Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean"
+      ],
       "breadth": {
         "dev_breadth": 0.8788,
         "dev_presence": 58,
@@ -1095,12 +1099,13 @@
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
           "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall"
         ],
-        "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
+        "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
         "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
         "status": "controlled-slice-admitted"
       },
       "evidence_case_ids": [
-        "reduction-minmax-anyall-focused-controlled"
+        "reduction-minmax-anyall-focused-controlled",
+        "reduction-typescript-every-append-only-flags-drizzle-real-miss"
       ],
       "evidence_tier": "frontier-recorded",
       "hard_negative_group_ids": [
@@ -1187,9 +1192,25 @@
           "snippet": "Swift eager Array/Collection allSatisfy representatives with changed predicate/source, wrong empty truth, effect, custom overload, and lazy receiver boundaries",
           "span": "1-80",
           "split": "focused"
+        },
+        {
+          "path": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+          "primary_language": "TypeScript",
+          "repo": "drizzle-orm",
+          "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+          "span": "35-38",
+          "split": "dev"
+        },
+        {
+          "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+          "primary_language": "TypeScript",
+          "repo": "drizzle-orm",
+          "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+          "span": "41-44",
+          "split": "dev"
         }
       ],
-      "notes": "This packet records the current focused reduction perimeter as reusable proof facts. The linked real-corpus detector metadata predates the Ruby focused slice; Ruby and Swift coverage here is carried by focused executable witnesses. It intentionally does not claim a new non-focused real-corpus admission, untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
+      "notes": "This packet records the current focused reduction perimeter as reusable proof facts. The linked Drizzle real-corpus replay is an executable split expectation for the next TypeScript every source-provenance fact, not a real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
       "owner_issue": "#758",
       "owner_route": "team-a-detector",
       "packet_id": "reduction-minmax-anyall-2026-07-08",
@@ -1208,7 +1229,7 @@
             "fact_id": "numeric.float-special-value-boundary"
           },
           {
-            "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing",
+            "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
             "fact_id": "iteration.same-source-identity"
           },
           {
@@ -1220,7 +1241,7 @@
             "fact_id": "reduction.step-coordinate-identity"
           },
           {
-            "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice",
+            "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
             "fact_id": "reduction.terminal-predicate-coordinate"
           },
           {
@@ -1273,6 +1294,7 @@
         "reduction-any-focused-controlled-pair",
         "reduction-typescript-every-dense-literal-controlled-pair",
         "reduction-typescript-every-array-param-boundary-controlled-pair",
+        "reduction-typescript-every-append-only-flags-drizzle-real-pair",
         "reduction-selection-focused-controlled-pair"
       ],
       "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",

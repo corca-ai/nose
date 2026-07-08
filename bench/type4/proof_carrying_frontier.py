@@ -1766,14 +1766,14 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- by owner route: `{by_owner_route}`",
         f"- by detector admission: `{by_detector_admission}`",
         f"- by executable witness coverage: `{by_executable_coverage}`",
-        f"- by real-frontier replay: `{by_real_frontier_replay}`",
+        f"- by real-frontier replay expectations: `{by_real_frontier_replay}`",
         (
             "- executable expectations: "
             f"{executable_summary['passed']}/{executable_summary['declared_expectation_count']} "
             "passed"
         ),
         (
-            "- real-frontier replays: "
+            "- real-frontier replay expectations: "
             f"{replay_summary['passed']}/{replay_summary['declared_replay_count']} "
             f"passed; {replay_summary['unavailable']} unavailable"
         ),
@@ -1786,7 +1786,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Target Packets",
         "",
-        "| packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |",
+        "| packet | axis | route | readiness | exec witnesses | real replay expectations | proof facts | hard negatives | groups |",
         "|---|---|---|---|---|---|---:|---:|---:|",
     ]
     for packet in report["target_packets"]["packets"]:
@@ -1799,7 +1799,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         )
         replay = packet["real_frontier_replay"]
         replay_cell = (
-            f"{replay['coverage_status']} "
+            f"{replay['coverage_status']} expectations "
             f"({replay['passed_replay_count']}/"
             f"{replay['declared_replay_count']})"
         )
@@ -1836,10 +1836,10 @@ def markdown_report(report: dict[str, Any]) -> str:
         )
         replay = packet["real_frontier_replay"]
         lines.append(
-            "- real-frontier replay: "
+            "- real-frontier replay expectations: "
             f"`{replay['coverage_status']}` "
             f"({replay['passed_replay_count']}/"
-            f"{replay['declared_replay_count']} passed)"
+            f"{replay['declared_replay_count']} expectations passed)"
         )
         if replay["unavailable_replay_ids"]:
             replay_ids = ", ".join(f"`{replay_id}`" for replay_id in replay["unavailable_replay_ids"])
@@ -2129,13 +2129,13 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
         f"- next axis: `{next_work['candidate_axis'] or 'none'}`",
         f"- action: {next_work['why']}",
         f"- executable witness coverage: `{by_coverage}`",
-        f"- real-frontier replay: `{by_replay}`",
+        f"- real-frontier replay expectations: `{by_replay}`",
         (
             "- executable expectations: "
             f"{coverage['passed']}/{coverage['declared_expectation_count']} passed"
         ),
         (
-            "- real-frontier replays: "
+            "- real-frontier replay expectations: "
             f"{replay['passed']}/{replay['declared_replay_count']} passed; "
             f"{replay['unavailable']} unavailable"
         ),
@@ -2158,7 +2158,7 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
             lines += ["_None._", ""]
             continue
         lines += [
-            "| packet | axis | readiness | exec coverage | real replay | detector admission | hard-negative groups | action |",
+            "| packet | axis | readiness | exec coverage | real replay expectations | detector admission | hard-negative groups | action |",
             "|---|---|---|---|---|---|---|---|",
         ]
         for packet in data["packets"]:
@@ -2173,7 +2173,7 @@ def markdown_readiness(summary: dict[str, Any]) -> str:
             )
             replay_coverage = packet["real_frontier_replay"]
             replay_cell = (
-                f"{replay_coverage['coverage_status']} "
+                f"{replay_coverage['coverage_status']} expectations "
                 f"({replay_coverage['passed_replay_count']}/"
                 f"{replay_coverage['declared_replay_count']})"
             )

@@ -243,17 +243,24 @@
       "evidence_tier": "frontier-recorded",
       "gap_samples": [],
       "human_evidence": {
-        "count": 1,
+        "count": 2,
         "records": [
           {
             "candidate_axis": "reduce_minmax_anyall / loops_and_reductions / iteration_contracts",
             "case_id": "reduction-minmax-anyall-focused-controlled",
             "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
             "status": "already-covered"
+          },
+          {
+            "candidate_axis": "reduce_minmax_anyall / typescript_every / append_only_local_array",
+            "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+            "proof_invariant": "Do not widen the focused dense-literal TypeScript Array.every admission to local arrays unless source evidence proves the array is freshly allocated, append-only before the terminal check, dense, unaliased or non-escaping, populated only with boolean values, and traversed by a value-only predicate whose receiver and source coordinate match the loop. Array parameters, sparse arrays, callback index/source-array observation, mutation after population, non-boolean pushes, aliased writes, and shadowed Boolean predicates must remain non-equivalent.",
+            "status": "real-miss"
           }
         ],
         "statuses": [
-          "already-covered"
+          "already-covered",
+          "real-miss"
         ]
       },
       "presence_rank": 2,

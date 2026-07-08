@@ -1443,12 +1443,16 @@ TARGET_PACKETS = [
     {
         "packet_id": "reduction-minmax-anyall-2026-07-08",
         "candidate_axis": "reduce_minmax_anyall",
-        "evidence_case_ids": ["reduction-minmax-anyall-focused-controlled"],
+        "evidence_case_ids": [
+            "reduction-minmax-anyall-focused-controlled",
+            "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+        ],
         "real_frontier_replay_ids": [
             "reduction-sum-focused-controlled-pair",
             "reduction-any-focused-controlled-pair",
             "reduction-typescript-every-dense-literal-controlled-pair",
             "reduction-typescript-every-array-param-boundary-controlled-pair",
+            "reduction-typescript-every-append-only-flags-drizzle-real-pair",
             "reduction-selection-focused-controlled-pair",
         ],
         "hard_negative_group_ids": ["reduction-minmax-anyall-proof-perimeter"],
@@ -1478,7 +1482,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "iteration.same-source-identity",
-                    "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing",
+                    "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
                 },
                 {
                     "fact_id": "reduction.identity-empty-behavior",
@@ -1490,7 +1494,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "reduction.terminal-predicate-coordinate",
-                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice",
+                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
                 },
                 {
                     "fact_id": "reduction.short-circuit-direction",
@@ -1538,7 +1542,7 @@ TARGET_PACKETS = [
         "detector_admission": {
             "status": "controlled-slice-admitted",
             "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
-            "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
+            "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
             "capabilities": [
                 "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and numeric.aggregate-value-model-domain evidence match",
                 "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
@@ -1582,10 +1586,14 @@ TARGET_PACKETS = [
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary",
             ],
         },
-        "blocked_by": [],
+        "blocked_by": [
+            "the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources",
+            "the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed",
+            "Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean",
+        ],
         "notes": "This packet records the current focused reduction perimeter as reusable proof "
-        "facts. The linked real-corpus detector metadata predates the Ruby focused slice; "
-        "Ruby and Swift coverage here is carried by focused executable witnesses. It intentionally does not claim a new non-focused real-corpus admission, "
+        "facts. The linked Drizzle real-corpus replay is an executable split expectation for the "
+        "next TypeScript every source-provenance fact, not a real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, "
         "untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver "
         "admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
         "locations": [
@@ -1652,6 +1660,22 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
                 "span": "1-80",
                 "snippet": "Swift eager Array/Collection allSatisfy representatives with changed predicate/source, wrong empty truth, effect, custom overload, and lazy receiver boundaries",
+            },
+            {
+                "repo": "drizzle-orm",
+                "split": "dev",
+                "primary_language": "TypeScript",
+                "path": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+                "span": "35-38",
+                "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+            },
+            {
+                "repo": "drizzle-orm",
+                "split": "dev",
+                "primary_language": "TypeScript",
+                "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+                "span": "41-44",
+                "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
             },
         ],
     },
@@ -1887,7 +1911,8 @@ def packets_markdown(packet_doc: dict) -> str:
         det = p["current_detector_result"]
         admission = p["detector_admission"]
         lines += [
-            f"- **current detector result**: miss={det.get('current_detector_miss')} · "
+            f"- **current detector result (primary linked evidence)**: "
+            f"miss={det.get('current_detector_miss')} · "
             f"`{det.get('nose_version')}` @ `{(det.get('build_ref') or '')[:12]}` — "
             f"{det.get('baseline_result', '')}",
             f"- **detector admission**: `{admission['status']}` · {admission['scope']}",

@@ -261,6 +261,53 @@ def member_path(member: dict[str, Any], repos_root: Path) -> Path:
     raise ReplayError(f"unknown replay member kind: {kind}")
 
 
+def normalized_snippet(value: str) -> str:
+    return " ".join(value.split())
+
+
+def validate_member_freshness(entry: dict[str, Any], repos_root: Path) -> None:
+    replay_id = entry["replay_id"]
+    for member in entry["members"]:
+        path = member_path(member, repos_root)
+        if not path.exists():
+            raise ReplayError(
+                f"replay {replay_id} member source is stale or missing: {repo_rel(path)}"
+            )
+        lines = path.read_text(errors="replace").splitlines()
+        has_start = "start_line" in member
+        has_end = "end_line" in member
+        if has_start != has_end:
+            raise ReplayError(
+                f"replay {replay_id} member span must include start_line and end_line"
+            )
+        if has_start:
+            start = int(member["start_line"])
+            end = int(member["end_line"])
+            if start < 1 or end < start or end > len(lines):
+                raise ReplayError(
+                    f"replay {replay_id} member span is stale: {repo_rel(path)}:{start}-{end}"
+                )
+            excerpt = "\n".join(lines[start - 1 : end])
+        else:
+            excerpt = "\n".join(lines)
+        snippet = member.get("snippet")
+        if entry.get("expect") == "split" and snippet is None:
+            raise ReplayError(f"replay {replay_id} split members must carry snippets")
+        if snippet is None:
+            continue
+        if not isinstance(snippet, str) or not snippet.strip():
+            raise ReplayError(
+                f"replay {replay_id} member snippet must be a non-empty string"
+            )
+        if normalized_snippet(snippet) not in normalized_snippet(excerpt):
+            span = ""
+            if has_start:
+                span = f":{int(member['start_line'])}-{int(member['end_line'])}"
+            raise ReplayError(
+                f"replay {replay_id} member snippet is stale: {repo_rel(path)}{span}"
+            )
+
+
 def loc_file(loc: dict[str, Any]) -> Path | None:
     value = loc.get("file")
     if not isinstance(value, str):
@@ -453,6 +500,7 @@ def run_replays(
         if missing:
             results.append(unavailable_result(entry, missing))
             continue
+        validate_member_freshness(entry, repos_root)
         key = query_cache_key(entry, roots)
         if key not in query_cache:
             query_cache[key] = run_query(nose, entry, roots)
@@ -600,6 +648,47 @@ def selftest() -> None:
         ],
         ROOT,
     )
+    this_file = ROOT / "bench/type4/real_frontier_replay.py"
+    this_lines = this_file.read_text().splitlines()
+    selftest_line = next(
+        i + 1 for i, line in enumerate(this_lines) if "def selftest()" in line
+    )
+    fresh_entry = {
+        "replay_id": "fresh",
+        "members": [
+            {
+                "kind": "workspace",
+                "file": "bench/type4/real_frontier_replay.py",
+                "start_line": selftest_line,
+                "end_line": selftest_line,
+                "snippet": "def selftest() -> None:",
+            }
+        ],
+    }
+    validate_member_freshness(fresh_entry, ROOT)
+    stale_span = json.loads(json.dumps(fresh_entry))
+    stale_span["members"][0]["start_line"] = len(this_lines) + 1
+    stale_span["members"][0]["end_line"] = len(this_lines) + 1
+    try:
+        validate_member_freshness(stale_span, ROOT)
+        raise AssertionError("stale replay member span was not detected")
+    except ReplayError:
+        pass
+    stale_snippet = json.loads(json.dumps(fresh_entry))
+    stale_snippet["members"][0]["snippet"] = "def not_the_selftest() -> None:"
+    try:
+        validate_member_freshness(stale_snippet, ROOT)
+        raise AssertionError("stale replay member snippet was not detected")
+    except ReplayError:
+        pass
+    split_without_snippet = json.loads(json.dumps(fresh_entry))
+    split_without_snippet["expect"] = "split"
+    del split_without_snippet["members"][0]["snippet"]
+    try:
+        validate_member_freshness(split_without_snippet, ROOT)
+        raise AssertionError("split replay member without snippet was not detected")
+    except ReplayError:
+        pass
     manifest = {
         "schema_version": 1,
         "tool_version": TOOL_VERSION,
