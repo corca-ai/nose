@@ -49,6 +49,12 @@ packet-specific current status locally.
 | `collection.empty.domain-kind-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves compatible collection domain/kind identity. |
 | `collection.empty.predicate-direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves empty versus non-empty boolean direction. |
 | `collection.empty.no-intervening-mutation` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
+| `string.affix.receiver-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires API, affix coordinate, direction, and arity facts; does not admit affix convergence by itself. |
+| `string.affix.affix-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the literal, parameter, or immutable binding affix coordinate. |
+| `string.affix.api-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the standard case-sensitive prefix/suffix API identity. |
+| `string.affix.import-source-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves namespace/helper or imported affix binding provenance. |
+| `string.affix.direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only preserves prefix versus suffix direction. |
+| `string.affix.whole-string-single-affix` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes offset, tuple, and multi-affix arity boundaries. |
 | `reduction.identity-empty-behavior` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes seed and empty-input behavior for separately proven aggregate facts. |
 | `reduction.step-coordinate-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves the terminal step, predicate, or contribution observes the same flattened element coordinate. |
 | `hof.flat-map.aggregate-guard-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves outer, inner, and terminal guard placement for flat-map aggregates. |
@@ -98,6 +104,22 @@ domain/kind identity, predicate direction, and receiver mutation closure.
 | `collection.empty.domain-kind-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
 | `collection.empty.predicate-direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
 | `collection.empty.no-intervening-mutation` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
+
+## String Affix Pattern Matrix
+
+This matrix records the neutral proof perimeter for case-sensitive whole-string
+prefix/suffix predicates. The supported surfaces still depend on source evidence
+for receiver identity, standard API/import identity, affix coordinate, direction,
+and single-affix arity.
+
+| fact | Python | JS/TS | Go | Java | Ruby | Rust | Swift |
+|---|---|---|---|---|---|---|---|
+| `string.affix.receiver-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
+| `string.affix.affix-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open partial parameter |
+| `string.affix.api-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
+| `string.affix.import-source-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open for imported affix constants |
+| `string.affix.direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
+| `string.affix.whole-string-single-affix` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
 
 ## Universal Quantifier Pattern Matrix
 

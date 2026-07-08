@@ -320,6 +320,103 @@
     },
     {
       "boundaries": [
+        "the checked string receiver coordinate and string-domain proof must match",
+        "the affix value coordinate must match independently from the receiver, including literal, same-role parameter, and immutable binding evidence",
+        "the API must be a proven standard case-sensitive prefix/suffix predicate or imported namespace helper",
+        "prefix and suffix directions remain distinct even when the affix literal matches",
+        "offset overloads, tuple/multi-affix disjunctions, and unsupported arities stay outside whole-string single-affix proof",
+        "custom same-name methods, monkey patches, borrowed prototypes, missing imports, and locale/case-insensitive variants are not standard API identity"
+      ],
+      "evidence_refs": [
+        "bench/type4/frontier_target_packets.v1.json::string-prefix-suffix-2026-07-08",
+        "bench/type4/adversarial/cases/cases.v1.json::string-affix-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_prefix_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_suffix_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_parameter_coordinate_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_literal_binding_coordinate_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_direction_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_unproven_receiver_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_wrong_affix_coordinate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_dynamic_or_mutated_affix_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_api_boundary",
+        "bench/type4/proof_fact_registry.v1.json::string.affix.receiver-identity",
+        "bench/type4/proof_fact_registry.v1.json::string.affix.affix-coordinate",
+        "bench/type4/proof_fact_registry.v1.json::string.affix.api-identity",
+        "bench/type4/proof_fact_registry.v1.json::string.affix.import-source-identity",
+        "bench/type4/proof_fact_registry.v1.json::string.affix.direction",
+        "bench/type4/proof_fact_registry.v1.json::string.affix.whole-string-single-affix"
+      ],
+      "hard_negative_templates": [
+        "string.wrong-receiver-coordinate",
+        "string.unproven-receiver-domain",
+        "string.changed-affix-coordinate",
+        "string.prefix-suffix-direction",
+        "string.offset-overload",
+        "string.multi-affix-disjunction",
+        "protocol-boundary.api-identity"
+      ],
+      "language_surfaces": [
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::string_prefix_suffix/python covered 2/2 positives and 0/5 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_prefix_positive; bench/type4/adversarial/cases/cases.v1.json::string_affix_literal_binding_coordinate_positive",
+          "language": "Python",
+          "status": "modeled-controlled",
+          "surface": "str.startswith/endswith over typed/proven string receivers with literal, same-role parameter, or immutable binding affix proof; tuple affixes remain closed"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::string_prefix_suffix/javascript covered 8/8 positives and 0/20 hard-negative false merges; bench/type4/coverage_evidence.v1.json::string_prefix_suffix/typescript covered 2/2 positives and 0/5 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_unproven_receiver_boundary",
+          "language": "JS/TS",
+          "status": "modeled-controlled",
+          "surface": "String.prototype startsWith/endsWith when primitive string receiver and standard API identity are proven; untyped, nullable, wrapper, borrowed, patched, and offset forms stay closed"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::string_prefix_suffix/go covered 2/2 positives and 0/5 hard-negative false merges; docs/go-string-affix-closeout-549.md",
+          "language": "Go",
+          "status": "modeled-controlled",
+          "surface": "strings.HasPrefix/HasSuffix with imported strings namespace proof"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::string_prefix_suffix/java covered 2/2 positives and 0/5 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
+          "language": "Java",
+          "status": "modeled-controlled",
+          "surface": "String.startsWith/endsWith whole-string single-affix predicates; offset overloads stay closed"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::string_prefix_suffix/ruby covered 2/2 positives and 0/5 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_positive; docs/ruby-string-affix-closeout-551.md",
+          "language": "Ruby",
+          "status": "modeled-controlled",
+          "surface": "String#start_with?/end_with? after literal String receiver proof and no same-file String monkey patch; multi-affix calls stay closed"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::string_prefix_suffix/rust covered 2/2 positives and 0/5 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_prefix_positive",
+          "language": "Rust",
+          "status": "modeled-controlled",
+          "surface": "str starts_with/ends_with with exact receiver and affix coordinate proof"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::probe:string_prefix_suffix/swift covered 1/1 positive and 0/1 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_parameter_coordinate_positive covers hasPrefix parameter direction only",
+          "language": "Swift",
+          "status": "open",
+          "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open"
+        }
+      ],
+      "law": "Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver, standard affix API identity, the same affix coordinate, the same prefix or suffix direction, and a whole-string single-affix shape.",
+      "pattern_id": "string.affix.proven-receiver-coordinate",
+      "rationale": "The string_prefix_suffix axis already has broad controlled coverage and closeout evidence for Go namespace ownership, Ruby receiver proof, and affix-coordinate boundaries; carding it turns those scattered gates into reusable receiver, API, coordinate, direction, and arity facts.",
+      "required_facts": [
+        "string.affix.receiver-identity",
+        "string.affix.affix-coordinate",
+        "string.affix.api-identity",
+        "string.affix.import-source-identity",
+        "string.affix.direction",
+        "string.affix.whole-string-single-affix"
+      ],
+      "status": "pattern-carded",
+      "title": "Proof-backed string affix predicate"
+    },
+    {
+      "boundaries": [
         "absent-key fallback is distinct from nullish, truthy, or falsey value replacement",
         "the map receiver must be the same proven source, including imported immutable literal sources",
         "the lookup key and fallback/default coordinates must match independently",

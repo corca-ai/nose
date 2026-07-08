@@ -738,6 +738,191 @@
     },
     {
       "accepted_evidence": [
+        "typed or literal string receivers whose binding coordinate is proven",
+        "receiver-method calls where the receiver expression is the same parameter, local, field, or literal string coordinate",
+        "focused wrong-receiver and untyped receiver hard negatives remain split"
+      ],
+      "detector_admission_implication": "Does not admit string-affix convergence by itself; API identity, affix coordinate, direction, and whole-string arity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "string.affix.receiver-identity",
+      "hard_negative_conventions": [
+        "string.receiver-coordinate",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Attach prefix/suffix proof to the receiver coordinate, not to the method name alone.",
+        "Reject untyped dynamic receivers, boxed String/object wrappers, nullable receivers, custom receiver classes, and wrong receiver parameters without exact string-domain proof.",
+        "For namespace helper forms, prove the checked subject argument as the receiver coordinate."
+      ],
+      "rejected_evidence": [
+        "same method spelling over an untyped or nullable receiver",
+        "receiver object wrappers or custom classes with same-name methods",
+        "the same affix predicate over a different receiver parameter"
+      ],
+      "semantic_family": "string.affix",
+      "status": "modeled-controlled",
+      "summary": "String affix predicates require exact string receiver identity before prefix/suffix APIs can share an affix predicate.",
+      "title": "String affix receiver identity"
+    },
+    {
+      "accepted_evidence": [
+        "the same literal affix value",
+        "the same parameter role on both sides of the predicate",
+        "immutable local, module, import, or static binding evidence for the affix value"
+      ],
+      "detector_admission_implication": "Does not admit string-affix convergence by itself; it only proves that the compared prefix/suffix predicates use the same affix value coordinate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "string.affix.affix-coordinate",
+      "hard_negative_conventions": [
+        "string.affix-coordinate"
+      ],
+      "implementation_guidance": [
+        "Track affix literals, same-role parameters, and immutable bindings as value coordinates.",
+        "Reject wrong parameters, changed literals, dynamic transformations, and mutated bindings unless a separate value proof establishes equality.",
+        "Keep receiver and affix coordinates independent so receiver equality cannot mask a changed affix."
+      ],
+      "rejected_evidence": [
+        "using another parameter as the affix",
+        "dynamic affix expressions such as trim/normalize transformations",
+        "mutable or reassigned affix constants"
+      ],
+      "semantic_family": "string.affix",
+      "status": "modeled-controlled",
+      "summary": "String affix convergence requires the same literal, parameter, or immutable binding affix coordinate.",
+      "title": "String affix coordinate identity"
+    },
+    {
+      "accepted_evidence": [
+        "case-sensitive standard prefix/suffix receiver methods with exact receiver proof",
+        "language namespace helpers whose imported namespace and helper name are proven, such as Go strings.HasPrefix or strings.HasSuffix",
+        "focused hard negatives for custom same-name methods and monkey-patched builtins remain split",
+        "source-evidence regression gates keep missing or wrong imported namespace helpers closed"
+      ],
+      "detector_admission_implication": "Does not admit string-affix convergence by itself; receiver identity, affix coordinate, direction, and whole-string arity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "string.affix.api-identity",
+      "hard_negative_conventions": [
+        "protocol-boundary.api-identity",
+        "string.receiver-coordinate"
+      ],
+      "implementation_guidance": [
+        "Prove the library/API occurrence rather than trusting a selector spelling.",
+        "Reject borrowed prototype calls, custom same-name receivers, monkey-patched standard APIs, missing namespace imports, and wrong helper provenance.",
+        "Keep case-insensitive, locale-sensitive, regex, substring, and contains-like APIs outside this fact."
+      ],
+      "rejected_evidence": [
+        "custom startWith/start_with?/startsWith methods with matching names",
+        "standard-library methods after same-file monkey patching or prototype replacement",
+        "missing or wrong imported namespace helper proof",
+        "case-insensitive or locale-sensitive variants"
+      ],
+      "semantic_family": "string.affix",
+      "status": "modeled-controlled",
+      "summary": "String affix APIs must be proven standard case-sensitive prefix/suffix predicates, not same-name custom or patched methods.",
+      "title": "String affix API identity"
+    },
+    {
+      "accepted_evidence": [
+        "imported namespace identity for helper APIs such as Go strings.HasPrefix and strings.HasSuffix",
+        "imported or module-level immutable affix constants whose provider binding is proven stable",
+        "source/import evidence that connects the consumer call to the provider symbol"
+      ],
+      "detector_admission_implication": "Does not admit string-affix convergence by itself; it only supplies namespace/helper or affix-binding provenance for separately proven affix predicates.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "string.affix.import-source-identity",
+      "hard_negative_conventions": [
+        "protocol-boundary.api-identity",
+        "string.affix-coordinate"
+      ],
+      "implementation_guidance": [
+        "Reuse import/projection evidence for namespace helpers and immutable affix bindings.",
+        "Reject missing imports, local shadows, wrong packages, and provider or importer mutations.",
+        "Keep same symbol names in unrelated files outside this fact without import/source proof."
+      ],
+      "rejected_evidence": [
+        "missing or shadowed imported namespace helpers",
+        "same-named constants without a source/import edge",
+        "provider or importer mutation of an affix binding"
+      ],
+      "semantic_family": "string.affix",
+      "status": "modeled-controlled",
+      "summary": "String affix namespace helpers and imported affix constants require source/import identity proof before their API or value coordinates can be reused.",
+      "title": "String affix import/source identity"
+    },
+    {
+      "accepted_evidence": [
+        "prefix APIs are compared only with prefix APIs",
+        "suffix APIs are compared only with suffix APIs",
+        "focused prefix-vs-suffix hard negatives remain split even when receiver and affix literals match"
+      ],
+      "detector_admission_implication": "Does not admit string-affix convergence by itself; it only preserves the prefix versus suffix boolean direction.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "string.affix.direction",
+      "hard_negative_conventions": [
+        "string.affix-direction"
+      ],
+      "implementation_guidance": [
+        "Represent prefix and suffix as distinct predicate directions.",
+        "Reject prefix/suffix swaps unless a separate string-domain proof establishes an exceptional equivalence.",
+        "Keep direction independent from affix value identity."
+      ],
+      "rejected_evidence": [
+        "startsWith compared with endsWith solely because the literal matches",
+        "Ruby start_with? compared with end_with? without a direction proof",
+        "contains-like APIs treated as either prefix or suffix direction"
+      ],
+      "semantic_family": "string.affix",
+      "status": "modeled-controlled",
+      "summary": "Prefix and suffix predicates are different affix directions and must remain separate unless explicitly proven otherwise.",
+      "title": "String affix direction"
+    },
+    {
+      "accepted_evidence": [
+        "single-affix whole-string prefix/suffix calls with supported arity",
+        "focused JS/Java offset overloads remain outside whole-string affix proof",
+        "focused Python tuple affixes and Ruby multi-affix calls remain outside single-affix proof"
+      ],
+      "detector_admission_implication": "Does not admit string-affix convergence by itself; it closes unsupported overload and disjunction shapes for separately proven receiver/API/affix facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "string.affix.whole-string-single-affix",
+      "hard_negative_conventions": [
+        "string.offset-or-multi-affix"
+      ],
+      "implementation_guidance": [
+        "Limit this pattern to whole-string single-affix predicates.",
+        "Reject offset overloads until start-position semantics are explicitly modeled.",
+        "Reject tuple/multi-affix forms until disjunction semantics and per-affix coordinates are represented."
+      ],
+      "rejected_evidence": [
+        "startsWith(prefix, offset) or Java startsWith(prefix, offset)",
+        "Python tuple affixes",
+        "Ruby multi-affix start_with?/end_with? calls"
+      ],
+      "semantic_family": "string.affix",
+      "status": "modeled-controlled",
+      "summary": "The current string-affix pattern covers whole-string single-affix predicates; offset and multi-affix/disjunction forms stay closed.",
+      "title": "String affix whole-string single-affix arity"
+    },
+    {
+      "accepted_evidence": [
         "sum, reduce, any, all, or equivalent loop terminals with the same initial value or empty-input result",
         "loop accumulators whose seed matches the aggregate terminal identity",
         "focused hard negatives where changed seeds or empty-input behavior remain split"

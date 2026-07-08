@@ -127,7 +127,7 @@ only historical context and should be deleted instead of preserved.
 Target packets now cite `hard_negative_groups`. A group binds the packet's positive focused
 cases, hard-negative focused cases, and regression gates together, then labels the perimeter
 with convention IDs. The convention categories are `numeric`, `boolean`, `loop`,
-`collection`, and `protocol-boundary`; `proof_carrying_frontier.py --check` fails if a
+`collection`, `string`, and `protocol-boundary`; `proof_carrying_frontier.py --check` fails if a
 packet omits its group, if a group case has the wrong kind, or if detector admission cites a
 positive without the group's hard-negative gates.
 
@@ -147,6 +147,10 @@ Convention glossary:
 | `collection.cardinality` | flat vs nested shape, dropped vs kept elements, and aggregation seed behavior |
 | `collection.absence-vs-value` | absent item vs emitted null/None/falsey payload |
 | `collection.receiver-provenance` | map/set/list identity, imported literal provenance, and key/default coordinates |
+| `string.receiver-coordinate` | exact string receiver identity, domain proof, and wrong-receiver boundaries |
+| `string.affix-coordinate` | literal, parameter, imported, dynamic, or mutated affix value coordinates |
+| `string.affix-direction` | prefix and suffix predicate direction must stay distinct |
+| `string.offset-or-multi-affix` | offset overloads, tuple/multi-affix disjunctions, and unsupported arities |
 | `protocol-boundary.api-identity` | library/member identity, custom method names, receiver type, and imports |
 | `protocol-boundary.lifecycle` | settlement, cancellation, scheduling, channel, or runtime lifecycle state |
 | `protocol-boundary.callback-effect` | callback mutation, ordering, exceptions, and externally observed effects |

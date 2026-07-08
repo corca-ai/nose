@@ -1,9 +1,9 @@
 {
-  "expectation_count": 25,
+  "expectation_count": 45,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 25,
-  "query_count": 12,
+  "passed": 45,
+  "query_count": 15,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -142,6 +142,324 @@
       "expect": "split",
       "expectation_id": "collection_empty_mutated_receiver_stays_split",
       "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_prefix_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_prefix_cross_language_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.java",
+            "name": "Prefix",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.go",
+            "name": "Prefix",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.rs",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 6,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/shadowed_constructor_patch.ts",
+            "name": "shadowedPatch",
+            "start": 4
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.py",
+            "name": "prefix",
+            "start": 1
+          }
+        ],
+        "value": 67.5,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_suffix_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_suffix_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
+            "name": "suffix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.py",
+            "name": "suffix",
+            "start": 1
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_parameter_coordinate_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_parameter_coordinate_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_swift.swift",
+            "name": "paramPrefix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_ts.ts",
+            "name": "paramPrefix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_python.py",
+            "name": "param_prefix",
+            "start": 1
+          }
+        ],
+        "value": 10.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_literal_binding_coordinate_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_literal_binding_coordinate_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 4,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_ts.ts",
+            "name": "localBindingPrefix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/literal_py.py",
+            "name": "literal_prefix",
+            "start": 1
+          },
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_py.py",
+            "name": "module_binding_prefix",
+            "start": 4
+          }
+        ],
+        "value": 8.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_ruby_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_ruby_prefix_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb",
+            "name": "ruby_prefix_one",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_551/prefix_same.rb",
+            "name": "ruby_prefix_two",
+            "start": 1
+          }
+        ],
+        "value": 3.9000000000000004,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_ruby_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_ruby_suffix_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_551/suffix.rb",
+            "name": "ruby_suffix_one",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_551/suffix_same.rb",
+            "name": "ruby_suffix_two",
+            "start": 1
+          }
+        ],
+        "value": 3.9000000000000004,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_direction_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_prefix_suffix_stay_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_direction_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_ruby_prefix_suffix_stay_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_unproven_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_untyped_js_receiver_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_unproven_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_wrong_receiver_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_wrong_affix_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_wrong_parameter_coordinate_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_wrong_affix_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_wrong_literal_coordinate_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_dynamic_parameter_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_mutated_binding_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_offset_or_multi_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_offset_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_offset_or_multi_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_java_offset_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_offset_or_multi_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_tuple_multi_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_offset_or_multi_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_ruby_multi_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_ruby_api_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_ruby_custom_api_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_ruby_api_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_ruby_monkey_patch_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
       "matching_family": null,
       "observed": "split",
       "ok": true

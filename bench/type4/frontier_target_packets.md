@@ -7,7 +7,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - build ref: `None` · union signature `fec264f35c3f1ded…`
 - corpus: 120 repos · commit digest `2bf0b8c147be66b7…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
-- packets: 4
+- packets: 5
 
 ## `numeric-clamp-2026-06-06` — axis `numeric_clamp`
 
@@ -106,3 +106,30 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **why now**: collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces.
 - **blocked by**: nothing
 - **notes**: This packet records the current collection-empty perimeter as reusable proof facts. The Java Netty array/Queue/String record remains a hard-negative domain sibling; it must not be used to merge incompatible empty domains without explicit domain/kind proof.
+
+## `string-prefix-suffix-2026-07-08` — axis `string_prefix_suffix`
+
+- **owner route**: `team-a-detector` (#756) · evidence tier: `frontier-recorded` · cost `low` · risk `low` · substrate `none`
+- **breadth**: repo 82% · primary-language 100% (8/8) · dev 52 · held-out 46 · both-splits
+- **semantic claim**: Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver coordinate, the same literal/parameter/imported affix coordinate, standard API or imported namespace identity, the same prefix-versus-suffix direction, and a whole-string single-affix shape. Parameter affixes and immutable local/module affix bindings may join literal affixes under those facts; offset overloads, tuple/multi-affix disjunctions, custom same-name methods, monkey patches, untyped receivers, wrong receivers, and mutated affix bindings remain outside the exact family.
+- **proof invariant**: Open string-affix convergence only when source evidence proves exact string receiver identity, standard case-sensitive affix API or imported namespace identity, the same affix value coordinate, the same prefix/suffix direction, and a whole-string single-affix shape. Untyped receivers, boxed or nullable receivers, wrong receivers, custom same-name APIs, missing or shadowed imports, monkey-patched builtins, wrong affix coordinates, dynamic or mutated affix bindings, case-insensitive or locale-sensitive variants, offset overloads, tuple/multi-affix forms, and substring/contains-style APIs must remain non-equivalent.
+- **hard negatives**:
+  - wrong receiver coordinate or unproven string receiver type
+  - wrong literal, parameter, imported, dynamic, or mutated affix coordinate
+  - prefix and suffix directions are not interchangeable
+  - custom same-name methods, borrowed prototypes, missing imports, and monkey-patched builtins are not standard API proof
+  - JS/Java offset overloads are not whole-string prefix proof
+  - Python tuple affixes and Ruby multi-affix forms are disjunctions, not single-affix predicates
+  - case-insensitive or locale-sensitive variants stay outside case-sensitive affix proof
+- **evidence**: `string-affix-focused-controlled` (`real_frontier.v1.json`)
+- **real frontier replay**: `string-affix-prefix-focused-controlled-pair`, `string-affix-suffix-focused-controlled-pair`, `string-affix-parameter-coordinate-controlled-pair`, `string-affix-ruby-prefix-controlled-pair` (`real_frontier_replay.v1.json`)
+- **representative locations**:
+  - `nose` (focused, multi-language) `crates/nose-cli/tests/fixtures/string_affix_550/prefix.py:1-2`
+  - `nose` (focused, TypeScript) `crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts:1-3`
+  - `nose` (focused, Ruby) `crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb:1-3`
+- **current detector result**: miss=False · `nose` @ `#756 semanti` — Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role parameter, and immutable binding families while adjacent hard negatives stay outside those families.
+- **detector admission**: `controlled-slice-admitted` · controlled case-sensitive whole-string prefix/suffix predicates with receiver, API/import, affix coordinate, direction, and arity proof
+- **remaining real-pair gap**: a non-focused real-corpus string-affix pair still needs separate audit before this packet can claim real-pair admission
+- **why now**: string_prefix_suffix has broad controlled coverage across core languages, a Swift probe row, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces.
+- **blocked by**: nothing
+- **notes**: This packet records the current string-affix perimeter as reusable proof facts. It intentionally leaves case-insensitive, locale-sensitive, offset, and multi-affix semantics outside exact admission until their extra proof facts exist.

@@ -175,6 +175,139 @@
         }
       ],
       "why_expected": "The focused collection non-empty pair is admitted when the same receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts are all satisfied."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.py",
+          "kind": "workspace",
+          "name": "prefix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts",
+          "kind": "workspace",
+          "name": "prefix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-prefix-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_550"
+        }
+      ],
+      "why_expected": "The focused string-affix prefix pair is admitted when receiver identity, API identity, affix coordinate, prefix direction, and whole-string arity facts are all satisfied."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.py",
+          "kind": "workspace",
+          "name": "suffix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
+          "kind": "workspace",
+          "name": "suffix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-suffix-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_550"
+        }
+      ],
+      "why_expected": "The focused string-affix suffix pair is admitted separately from prefix direction under the same receiver, API, affix, and arity proof perimeter."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_ts.ts",
+          "kind": "workspace",
+          "name": "paramPrefix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_swift.swift",
+          "kind": "workspace",
+          "name": "paramPrefix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_python.py",
+          "kind": "workspace",
+          "name": "param_prefix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-parameter-coordinate-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_552"
+        }
+      ],
+      "why_expected": "The focused same-role parameter affix family is admitted when the subject receiver and affix parameter coordinates both match."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb",
+          "kind": "workspace",
+          "name": "ruby_prefix_one"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_551/prefix_same.rb",
+          "kind": "workspace",
+          "name": "ruby_prefix_two"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-ruby-prefix-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_551"
+        }
+      ],
+      "why_expected": "The focused Ruby prefix pair is admitted when literal String receiver proof and standard String#start_with? API identity are both satisfied."
     }
   ],
   "schema_version": 1,

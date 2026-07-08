@@ -1,26 +1,26 @@
 {
-  "entry_count": 5,
+  "entry_count": 9,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "de859306074b6ae0858e17a89677f4797837d2214e293e2bfef89bf58d54bea1",
-      "size_bytes": 6108
+      "sha256": "b4f130b5b00426c8469f3e1dbf4d6a4bc6789d3c69a7eea885d0dfd229b22e32",
+      "size_bytes": 10393
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "ebb0ebfa1ab52e6ea28fcaff75797b6764582e9f5950c851b17c515dfeff03e9",
-      "size_bytes": 77978
+      "sha256": "4c32981731bde6ec50641b12e834a649193b799473c96d7ff22ccf264b694d31",
+      "size_bytes": 83091
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "a5de30bb0a1a71c0a7100fb64eded3ab3e3a50e3b923354aec84f59a74a5cc6b",
-      "size_bytes": 39589
+      "sha256": "331a9c79a48d2eab5537e2a89c3945256deb8997746b37669094d0b09e5131a3",
+      "size_bytes": 52463
     }
   },
   "nose_binary": "nose",
-  "passed": 5,
-  "query_count": 4,
+  "passed": 9,
+  "query_count": 7,
   "results": [
     {
       "availability": {
@@ -158,6 +158,160 @@
       "ok": true,
       "packet_id": "python-loop-demorgan-all-2026-07-07",
       "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_swift.swift",
+            "name": "paramPrefix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_ts.ts",
+            "name": "paramPrefix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_python.py",
+            "name": "param_prefix",
+            "start": 1
+          }
+        ],
+        "value": 10.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-parameter-coordinate-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.java",
+            "name": "Prefix",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.go",
+            "name": "Prefix",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.rs",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 6,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/shadowed_constructor_patch.ts",
+            "name": "shadowedPatch",
+            "start": 4
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.py",
+            "name": "prefix",
+            "start": 1
+          }
+        ],
+        "value": 67.5,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-prefix-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb",
+            "name": "ruby_prefix_one",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_551/prefix_same.rb",
+            "name": "ruby_prefix_two",
+            "start": 1
+          }
+        ],
+        "value": 3.9000000000000004,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-ruby-prefix-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
+            "name": "suffix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.py",
+            "name": "suffix",
+            "start": 1
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-suffix-focused-controlled-pair",
       "status": "passed"
     }
   ],
