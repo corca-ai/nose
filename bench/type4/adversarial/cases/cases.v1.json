@@ -20,7 +20,10 @@
     "collection": [
       "collection.cardinality",
       "collection.absence-vs-value",
-      "collection.receiver-provenance"
+      "collection.receiver-provenance",
+      "collection.element-coordinate",
+      "collection.collection-coordinate",
+      "collection.mutation"
     ],
     "protocol-boundary": [
       "protocol-boundary.api-identity",
@@ -93,6 +96,43 @@
         "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary"
       ],
       "claim": "Python loop/all plus De Morgan admission must keep vacuous truth, short-circuit timing, helper-call purity, iterator identity, boolean value-context, predicate-coordinate, and effect-safety hard negatives beside the positive packet."
+    },
+    {
+      "id": "collection-membership-proof-perimeter",
+      "semantic_family": "collection.membership",
+      "packet_ids": ["membership-contains-2026-07-08"],
+      "conventions": [
+        "collection.receiver-provenance",
+        "collection.element-coordinate",
+        "collection.collection-coordinate",
+        "collection.mutation",
+        "protocol-boundary.api-identity",
+        "boolean.truth-table"
+      ],
+      "positive_cases": [
+        "collection_membership_literal_and_typed_positive"
+      ],
+      "hard_negative_cases": [
+        "collection_membership_wrong_element_boundary",
+        "collection_membership_wrong_collection_boundary",
+        "collection_membership_receiver_api_boundary",
+        "collection_membership_mutated_receiver_boundary"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_element_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_collection_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_receiver_api_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_membership_mutated_receiver_boundary",
+        "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership",
+        "crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership",
+        "crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_keeps_unproven_contains_calls_distinct",
+        "crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries",
+        "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_python_imported_collection_factories",
+        "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_java_imported_collection_factories",
+        "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings"
+      ],
+      "claim": "Collection membership admission must keep receiver API/domain proof, searched-element coordinates, collection/source coordinates, and mutation closure beside every literal, factory, imported, or typed dynamic membership bridge."
     }
   ],
   "cases": [
@@ -122,6 +162,142 @@
       "claim": "Mapping to a list without flattening is not one-level flat-map.",
       "mutation": "flatMap callback result is kept nested",
       "evidence": "Required sibling for any future FlatMap idiom extension."
+    },
+    {
+      "id": "collection_membership_literal_and_typed_positive",
+      "kind": "positive",
+      "semantic_family": "collection.membership",
+      "claim": "Literal, factory-backed, imported immutable, and typed dynamic collection membership surfaces can converge when they prove the same searched element and collection receiver/source coordinates.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_membership/positive.py",
+        "bench/type4/adversarial/cases/collection_membership/positive.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_membership_python_literal_matches_js_set",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.py",
+              "name": "py_literal_member"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+              "name": "jsSetMember"
+            }
+          ]
+        }
+      ],
+      "evidence": "The executable replay fixture proves the minimal Python literal membership to JS Set.has bridge; the proof perimeter regression gates cite the broader literal, factory-backed, imported immutable, typed dynamic, and Swift probe membership suites."
+    },
+    {
+      "id": "collection_membership_wrong_element_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.membership",
+      "claim": "Membership over a different searched element is a different proof coordinate even when the collection receiver is identical.",
+      "mutation": "contains(value) -> contains(other)",
+      "fixtures": ["bench/type4/adversarial/cases/collection_membership/wrong_element.js"],
+      "executable_expectations": [
+        {
+          "id": "collection_membership_wrong_element_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+              "name": "jsSetMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/wrong_element.js",
+              "name": "jsSetWrongElement"
+            }
+          ]
+        }
+      ],
+      "evidence": "Literal, typed dynamic, imported, and Set/factory membership tests keep wrong-element fixtures out of the positive membership family."
+    },
+    {
+      "id": "collection_membership_wrong_collection_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.membership",
+      "claim": "Membership over different static items, imported providers, or receiver sources changes the collection coordinate.",
+      "mutation": "[\"red\", \"blue\"].contains(value) -> [\"green\", \"blue\"].contains(value)",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_membership/wrong_collection.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_membership_wrong_collection_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+              "name": "jsSetMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/wrong_collection.js",
+              "name": "jsSetWrongCollection"
+            }
+          ]
+        }
+      ],
+      "evidence": "The membership suites keep wrong-collection literals, factories, imports, package slices, and local bindings split."
+    },
+    {
+      "id": "collection_membership_receiver_api_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.membership",
+      "claim": "A contains/has/include-shaped call is not collection membership without a proven receiver domain and API identity.",
+      "mutation": "collection membership API -> substring contains, JavaScript `in`, raw index/count payload, loose equality, missing import, or shadowed factory",
+      "fixtures": ["bench/type4/adversarial/cases/collection_membership/substring.js"],
+      "executable_expectations": [
+        {
+          "id": "collection_membership_substring_contains_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+              "name": "jsSetMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/substring.js",
+              "name": "jsSubstringContains"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused membership tests reject substring receivers, JavaScript `in`, raw indexOf/findIndex/filter length payloads, loose equality predicates, missing imports, shadowed constructors, custom contains receivers, and untyped dynamic `has` calls."
+    },
+    {
+      "id": "collection_membership_mutated_receiver_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.membership",
+      "claim": "A collection binding mutated after construction/import no longer proves the original membership predicate.",
+      "mutation": "construct/import collection -> mutate/add/append/fill/copyWithin/push/insert before membership",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_membership/mutated_receiver.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_membership_mutated_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+              "name": "jsSetMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/mutated_receiver.js",
+              "name": "jsMutatedSetMember"
+            }
+          ]
+        }
+      ],
+      "evidence": "Module, local, provider, importer, and std-factory mutation fixtures across Python, JS/TS, Go, Java, Ruby, and Rust stay split from the original literal membership family."
     },
     {
       "id": "filter_map_filter_map_equiv",

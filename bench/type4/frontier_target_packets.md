@@ -7,7 +7,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - build ref: `None` · union signature `fec264f35c3f1ded…`
 - corpus: 120 repos · commit digest `2bf0b8c147be66b7…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
-- packets: 2
+- packets: 3
 
 ## `numeric-clamp-2026-06-06` — axis `numeric_clamp`
 
@@ -56,3 +56,29 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **why now**: The front-page README uses this same-language Type-4 example to explain semantic duplication. The proof facts are now modeled-controlled, and the detector admits the README/focused positive while the adjacent hard-negative boundary remains executable.
 - **blocked by**: nothing
 - **notes**: This packet deliberately corrects the README-facing example from prose-only claim to auditable frontier evidence. The exact-admission request is now fulfilled for the README/focused pair, and the hard negatives document the proof perimeter.
+
+## `membership-contains-2026-07-08` — axis `membership_contains`
+
+- **owner route**: `team-a-detector` (#754) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `none`
+- **breadth**: repo 88% · primary-language 100% (8/8) · dev 56 · held-out 49 · both-splits
+- **semantic claim**: A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.
+- **proof invariant**: Open collection-membership convergence only when source evidence proves the receiver is a collection-membership domain, the searched element coordinate is identical, the collection/source coordinate is identical across literals/factories/imports/typed receivers, and no mutation changes the receiver before membership. Substring/regex contains, map-key or value membership, raw index/count payloads, loose equality, NaN-sensitive equality, missing imports, shadowed constructors, custom contains receivers, and mutated providers/importers must remain non-equivalent.
+- **hard negatives**:
+  - wrong searched element: contains(value) is not contains(other)
+  - wrong collection/source coordinate: ["red", "blue"] is not ["green", "blue"]
+  - substring or regex contains is not element membership
+  - map-key membership and value search remain distinct semantic families
+  - raw indexOf/findIndex/filter length payloads are not boolean membership predicates unless compared to the correct sentinel
+  - missing imports, shadowed constructors, untyped dynamic has receivers, and custom contains methods are not API/domain proof
+  - provider-side or importer-side mutation after construction/import changes the receiver state
+- **evidence**: `collection-membership-focused-controlled` (`real_frontier.v1.json`)
+- **real frontier replay**: `collection-membership-focused-controlled-pair` (`real_frontier_replay.v1.json`)
+- **representative locations**:
+  - `nose` (focused, Python) `bench/type4/adversarial/cases/collection_membership/positive.py:1-2`
+  - `nose` (focused, JavaScript) `bench/type4/adversarial/cases/collection_membership/positive.js:1-3`
+- **current detector result**: miss=False · `nose` @ `#754 semanti` — Semantic query reports a family containing py_literal_member and jsSetMember.
+- **detector admission**: `real-pair-admitted` · controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces
+- **remaining real-pair gap**: none
+- **why now**: membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces.
+- **blocked by**: nothing
+- **notes**: This packet records the current controlled membership perimeter as reusable proof facts. The real-corpus EnumSet and single-argument Arrays.asList leads remain guarded by their unsupported evidence records and must not be used to widen exact admission without missing enum/array source facts.

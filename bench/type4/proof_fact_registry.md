@@ -41,6 +41,10 @@ packet-specific current status locally.
 | `hof.flat-map.nested-iteration-order` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves matching outer/inner traversal coordinates. |
 | `hof.flat-map.emitted-value-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves each matched nested coordinate emits the same value. |
 | `collection.flatten-depth.one-level` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes flattened-vs-nested output shape boundaries. |
+| `collection.membership.api-domain-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires element, collection/source, and mutation facts; does not admit membership convergence by itself. |
+| `collection.membership.element-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the searched element coordinate. |
+| `collection.membership.collection-source-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the collection/source receiver coordinate. |
+| `collection.membership.no-intervening-mutation` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
 | `reduction.identity-empty-behavior` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes seed and empty-input behavior for separately proven aggregate facts. |
 | `reduction.step-coordinate-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves the terminal step, predicate, or contribution observes the same flattened element coordinate. |
 | `hof.flat-map.aggregate-guard-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves outer, inner, and terminal guard placement for flat-map aggregates. |
@@ -62,6 +66,20 @@ new packet-local citations.
 | `python-loop-demorgan.effect-safety` | `effect.pure-predicate` |
 | `python-loop-demorgan.iterator-identity` | `iteration.same-source-identity` |
 | `python-loop-demorgan.universal-short-circuit` | `quantifier.universal.counterexample-loop`, `quantifier.vacuous-truth` |
+
+## Collection Membership Pattern Matrix
+
+This matrix records the neutral proof perimeter for literal, factory-backed,
+imported immutable, and typed dynamic collection membership. The supported
+surfaces still depend on source evidence for receiver/API identity, searched
+element identity, collection/source identity, and receiver mutation closure.
+
+| fact | Python | JS/TS | Go | Java | Ruby | Rust | Swift |
+|---|---|---|---|---|---|---|---|
+| `collection.membership.api-domain-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
+| `collection.membership.element-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
+| `collection.membership.collection-source-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
+| `collection.membership.no-intervening-mutation` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
 
 ## Universal Quantifier Pattern Matrix
 

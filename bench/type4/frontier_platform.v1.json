@@ -72,8 +72,14 @@
       "evidence_tier": "frontier-recorded",
       "gap_samples": [],
       "human_evidence": {
-        "count": 2,
+        "count": 3,
         "records": [
+          {
+            "candidate_axis": "membership_contains / literal_collection_membership",
+            "case_id": "collection-membership-focused-controlled",
+            "proof_invariant": "Open collection-membership convergence only when source evidence proves the receiver is a collection-membership domain, the searched element coordinate is identical, the collection/source coordinate is identical across literals/factories/imports/typed receivers, and no mutation changes the receiver before membership. Substring/regex contains, map-key or value membership, raw index/count payloads, loose equality, NaN-sensitive equality, missing imports, shadowed constructors, custom contains receivers, and mutated providers/importers must remain non-equivalent.",
+            "status": "already-covered"
+          },
           {
             "candidate_axis": "membership_contains / literal_collection_membership",
             "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
@@ -88,6 +94,7 @@
           }
         ],
         "statuses": [
+          "already-covered",
           "unsupported"
         ]
       },
@@ -1592,6 +1599,7 @@
   "tool_version": "frontier-platform/1",
   "union_outcome": {
     "extra_axes_with_packets": [
+      "membership_contains",
       "numeric_clamp",
       "python_loop_demorgan_all"
     ],

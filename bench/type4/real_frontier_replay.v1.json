@@ -75,6 +75,42 @@
         }
       ],
       "why_expected": "The README-facing same-language positive is admitted after modeling the counterexample-loop, vacuous-truth, same-source identity, pure-predicate, and boolean De Morgan proof facts."
+    },
+    {
+      "case_id": "collection-membership-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/collection_membership/positive.py",
+          "kind": "workspace",
+          "name": "py_literal_member"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+          "kind": "workspace",
+          "name": "jsSetMember"
+        }
+      ],
+      "packet_id": "membership-contains-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "collection-membership-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_membership/positive.py"
+        },
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_membership/positive.js"
+        }
+      ],
+      "why_expected": "The focused collection-membership pair is admitted when the receiver API/domain, searched element, collection/source coordinate, and receiver mutation facts are all satisfied."
     }
   ],
   "schema_version": 1,

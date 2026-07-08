@@ -1,10 +1,72 @@
 {
-  "expectation_count": 15,
+  "expectation_count": 20,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 15,
-  "query_count": 10,
+  "passed": 20,
+  "query_count": 11,
   "results": [
+    {
+      "case_id": "collection_membership_literal_and_typed_positive",
+      "expect": "same-family",
+      "expectation_id": "collection_membership_python_literal_matches_js_set",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+            "name": "jsSetMember",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.py",
+            "name": "py_literal_member",
+            "start": 1
+          }
+        ],
+        "value": 3.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_wrong_element_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_wrong_element_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_wrong_collection_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_wrong_collection_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_receiver_api_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_substring_contains_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_mutated_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_mutated_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
     {
       "case_id": "clamp_unordered_bounds",
       "expect": "split",

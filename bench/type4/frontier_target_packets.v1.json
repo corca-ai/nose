@@ -15,7 +15,7 @@
     "team-a-detector",
     "team-c-product"
   ],
-  "packet_count": 2,
+  "packet_count": 3,
   "packets": [
     {
       "blocked_by": [
@@ -301,6 +301,167 @@
       ],
       "semantic_claim": "Under the packet's proof conditions, a Python `all(x != 0 and x != 1 for x in xs)` universal predicate is equivalent to an early-return loop that returns False when `x == 0 or x == 1` and True after exhausting `xs`. The loop searches for a counterexample; for pure scalar comparisons where `==` and `!=` are complementary, De Morgan rewrites `not (x == 0 or x == 1)` to `x != 0 and x != 1`, so both forms accept exactly the same elements and both are true for an empty iterable.",
       "why_now": "The front-page README uses this same-language Type-4 example to explain semantic duplication. The proof facts are now modeled-controlled, and the detector admits the README/focused positive while the adjacent hard-negative boundary remains executable."
+    },
+    {
+      "blocked_by": [],
+      "breadth": {
+        "dev_breadth": 0.8485,
+        "dev_presence": 56,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.9074,
+        "heldout_presence": 49,
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 8,
+        "primary_language_total": 8,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ],
+        "raw_occurrences": 23027,
+        "repo_breadth": 0.875,
+        "repo_presence": 105,
+        "source_language_breadth": 0.875,
+        "source_language_presence": 7,
+        "source_languages": [
+          "go",
+          "java",
+          "javascript",
+          "python",
+          "ruby",
+          "rust",
+          "typescript"
+        ]
+      },
+      "candidate_axis": "membership_contains",
+      "curated": {
+        "implementation_cost": "medium",
+        "rationale": "Remaining work is dynamic-receiver/element provenance and type facts (import/immutability), not the #33 fragment substrate.",
+        "soundness_risk": "medium",
+        "substrate_required": "none"
+      },
+      "current_detector_result": {
+        "baseline_command": "nose query bench/type4/adversarial/cases/collection_membership --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+        "baseline_result": "Semantic query reports a family containing py_literal_member and jsSetMember.",
+        "binary_path": "nose",
+        "build_ref": "#754 semantic pattern card",
+        "current_detector_miss": false,
+        "default_query_result": "Default query also reports the same semantic family for the focused pair.",
+        "nose_version": "nose",
+        "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports the Python literal membership and JS Set.has membership functions in the same family."
+      },
+      "detector_admission": {
+        "capabilities": [
+          "converges literal collection membership with standard factory and Set/contains APIs when receiver/source and element coordinates match",
+          "converges typed dynamic collection receivers across supported languages with element-coordinate proof",
+          "preserves imported/module/provider collection provenance and mutation boundaries"
+        ],
+        "hard_negative_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_element_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_collection_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_receiver_api_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_mutated_receiver_boundary",
+          "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership",
+          "crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_keeps_unproven_contains_calls_distinct",
+          "crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries"
+        ],
+        "positive_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive",
+          "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership",
+          "crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership",
+          "crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries",
+          "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_python_imported_collection_factories",
+          "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_java_imported_collection_factories",
+          "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings"
+        ],
+        "scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces",
+        "status": "real-pair-admitted"
+      },
+      "evidence_case_ids": [
+        "collection-membership-focused-controlled"
+      ],
+      "evidence_tier": "frontier-recorded",
+      "hard_negative_group_ids": [
+        "collection-membership-proof-perimeter"
+      ],
+      "hard_negative_siblings": [
+        "wrong searched element: contains(value) is not contains(other)",
+        "wrong collection/source coordinate: [\"red\", \"blue\"] is not [\"green\", \"blue\"]",
+        "substring or regex contains is not element membership",
+        "map-key membership and value search remain distinct semantic families",
+        "raw indexOf/findIndex/filter length payloads are not boolean membership predicates unless compared to the correct sentinel",
+        "missing imports, shadowed constructors, untyped dynamic has receivers, and custom contains methods are not API/domain proof",
+        "provider-side or importer-side mutation after construction/import changes the receiver state"
+      ],
+      "locations": [
+        {
+          "path": "bench/type4/adversarial/cases/collection_membership/positive.py",
+          "primary_language": "Python",
+          "repo": "nose",
+          "snippet": "def py_literal_member(value, other): return value in [\"red\", \"blue\"]",
+          "span": "1-2",
+          "split": "focused"
+        },
+        {
+          "path": "bench/type4/adversarial/cases/collection_membership/positive.js",
+          "primary_language": "JavaScript",
+          "repo": "nose",
+          "snippet": "function jsSetMember(value, other) { return new Set([\"red\", \"blue\"]).has(value); }",
+          "span": "1-3",
+          "split": "focused"
+        }
+      ],
+      "notes": "This packet records the current controlled membership perimeter as reusable proof facts. The real-corpus EnumSet and single-argument Arrays.asList leads remain guarded by their unsupported evidence records and must not be used to widen exact admission without missing enum/array source facts.",
+      "owner_issue": "#754",
+      "owner_route": "team-a-detector",
+      "packet_id": "membership-contains-2026-07-08",
+      "proof_fact_model": {
+        "facts": [
+          {
+            "current_real_pair_status": "satisfied for focused literal/factory/imported/typed membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
+            "fact_id": "collection.membership.api-domain-identity"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, and callback surfaces stay outside the positive family",
+            "fact_id": "collection.membership.element-coordinate"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, and typed receivers preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
+            "fact_id": "collection.membership.collection-source-coordinate"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, and std-factory mutation fixtures remain distinct from their original membership predicates",
+            "fact_id": "collection.membership.no-intervening-mutation"
+          }
+        ],
+        "focused_tests": [
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_element_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_collection_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_receiver_api_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_membership_mutated_receiver_boundary",
+          "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership",
+          "crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership",
+          "crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_keeps_unproven_contains_calls_distinct",
+          "crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries",
+          "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_python_imported_collection_factories",
+          "crates/nose-cli/tests/equivalence/imported_collection_membership.rs::collection_membership_converges_with_java_imported_collection_factories",
+          "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings"
+        ],
+        "model_status": "modeled-controlled"
+      },
+      "proof_invariant": "Open collection-membership convergence only when source evidence proves the receiver is a collection-membership domain, the searched element coordinate is identical, the collection/source coordinate is identical across literals/factories/imports/typed receivers, and no mutation changes the receiver before membership. Substring/regex contains, map-key or value membership, raw index/count payloads, loose equality, NaN-sensitive equality, missing imports, shadowed constructors, custom contains receivers, and mutated providers/importers must remain non-equivalent.",
+      "real_frontier_replay_ids": [
+        "collection-membership-focused-controlled-pair"
+      ],
+      "semantic_claim": "A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
+      "why_now": "membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces."
     }
   ],
   "schema_version": 1,
