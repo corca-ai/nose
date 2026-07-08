@@ -11,16 +11,16 @@ report keeps the fuller evidence and admission boundary.
 
 **no-exact-admission-ready-packets**
 
-- target packets: 4
+- target packets: 5
 - ready for exact admission: 0
-- detector admitted packets: 4
-- by readiness: `{"detector-admitted": 3, "detector-admitted-controlled": 1}`
-- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 3}`
-- by detector admission: `{"controlled-slice-admitted": 1, "real-pair-admitted": 3}`
-- by executable witness coverage: `{"covered": 4}`
-- by real-frontier replay: `{"passed": 4}`
-- executable expectations: 25/25 passed
-- real-frontier replays: 5/5 passed; 0 unavailable
+- detector admitted packets: 5
+- by readiness: `{"detector-admitted": 3, "detector-admitted-controlled": 2}`
+- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 4}`
+- by detector admission: `{"controlled-slice-admitted": 2, "real-pair-admitted": 3}`
+- by executable witness coverage: `{"covered": 5}`
+- by real-frontier replay: `{"passed": 5}`
+- executable expectations: 45/45 passed
+- real-frontier replays: 9/9 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -43,6 +43,7 @@ report keeps the fuller evidence and admission boundary.
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 5 | 6 | 1 |
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (1/1)` | 4 | 7 | 1 |
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (2/2)` | 4 | 5 | 1 |
+| `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed (4/4)` | 6 | 7 | 1 |
 
 ## Packet Details
 
@@ -83,6 +84,15 @@ report keeps the fuller evidence and admission boundary.
 - real-frontier replay: `passed` (2/2 passed)
 - hard-negative groups: `collection-empty-check-proof-perimeter`
 
+### `string-prefix-suffix-2026-07-08`
+
+- detector admission: `controlled-slice-admitted` over controlled case-sensitive whole-string prefix/suffix predicates with receiver, API/import, affix coordinate, direction, and arity proof
+- remaining real-pair gap: a non-focused real-corpus string-affix pair still needs separate audit before this packet can claim real-pair admission
+- gates: 6 positive, 10 hard-negative
+- executable witness coverage: `covered` (20/20 passed)
+- real-frontier replay: `passed` (4/4 passed)
+- hard-negative groups: `string-affix-proof-perimeter`
+
 ## Hard-Negative Linkage
 
 ### `numeric-clamp-2026-06-06` / `numeric-clamp-proof-perimeter`
@@ -112,6 +122,13 @@ report keeps the fuller evidence and admission boundary.
 - conventions: `collection.cardinality`, `collection.receiver-provenance`, `collection.mutation`, `protocol-boundary.api-identity`, `boolean.truth-table`
 - cases: 2 positive, 3 hard-negative
 - regression gates: 7
+
+### `string-prefix-suffix-2026-07-08` / `string-affix-proof-perimeter`
+
+- semantic family: `string.affix`
+- conventions: `string.receiver-coordinate`, `string.affix-coordinate`, `string.affix-direction`, `string.offset-or-multi-affix`, `protocol-boundary.api-identity`
+- cases: 5 positive, 6 hard-negative
+- regression gates: 15
 
 ## Co-Evolution Guardrails
 

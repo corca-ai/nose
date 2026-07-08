@@ -39,7 +39,7 @@ artifact check fails.
 The hard-negative group check is stricter than "has some negatives": every target
 packet must cite a packet-level group, and that group must keep positive focused cases,
 hard-negative focused cases, and regression gates together. Convention IDs cover the
-numeric, boolean, loop, collection, and protocol-boundary classes so new packets inherit a
+numeric, boolean, loop, collection, string, and protocol-boundary classes so new packets inherit a
 named soundness perimeter instead of inventing one-off prose.
 
 Executable witness coverage is tracked separately from manifest linkage. A packet can
@@ -52,7 +52,8 @@ fresh coverage for every declared expectation in the packet perimeter.
 An exact-admission packet is ready only when it has all of:
 
 - linked `real_frontier` evidence whose primary status is `real-miss` for new
-  admission work, or `already-covered` only after the linked real pair is admitted;
+  admission work, or `already-covered` only after the linked controlled slice or
+  real pair is admitted;
 - a narrow proof invariant;
 - adjacent hard-negative siblings;
 - packet-level hard-negative group linkage;

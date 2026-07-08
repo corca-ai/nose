@@ -19,9 +19,9 @@ case "${1:-}" in
         cat <<'EOF'
 usage: ./scripts/check-ci-local.sh [--fast|--full]
 
-  --fast  corpus and semantic-pack self-tests, rustfmt, file-length ratchet,
-          legacy-prelude guard, shellcheck, clippy -D warnings,
-          nose-cli tests, docs wiki lint
+  --fast  corpus and semantic-pack self-tests, Type-4 packet/replay checks,
+          rustfmt, file-length ratchet, legacy-prelude guard, shellcheck,
+          clippy -D warnings, nose-cli tests, docs wiki lint
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
           file-length ratchet, duplication, MSRV, supply-chain, docs wiki,
           formal obligation lint, and Lean proofs
@@ -103,6 +103,9 @@ run_type4_executable_expectations() {
     NOSE_BIN="${1}" bench/type4/adversarial/scripts/type4-exec-check \
         --stable-report \
         --json-out bench/type4/executable_expectations.v1.json
+    NOSE_BIN="${1}" python3 bench/type4/real_frontier_replay.py \
+        --stable-report \
+        --check
     python3 bench/type4/python_loop_demorgan_proof_facts.py --check
     python3 bench/type4/proof_carrying_frontier.py --check
 }

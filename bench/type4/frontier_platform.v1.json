@@ -547,17 +547,26 @@
       "candidate_id": "string_prefix_suffix",
       "curated": {
         "implementation_cost": "low",
-        "rationale": "Prefix/suffix predicates are pure string-builtin value facts.",
+        "rationale": "Prefix/suffix predicates lower to string value facts once receiver, API identity, affix coordinate, direction, and whole-string arity evidence is proven.",
         "soundness_risk": "low",
         "substrate_required": "none"
       },
       "detector_suggested": null,
-      "evidence_tier": "pattern-signal",
+      "evidence_tier": "frontier-recorded",
       "gap_samples": [],
       "human_evidence": {
-        "count": 0,
-        "records": [],
-        "statuses": []
+        "count": 1,
+        "records": [
+          {
+            "candidate_axis": "string_prefix_suffix",
+            "case_id": "string-affix-focused-controlled",
+            "proof_invariant": "Open string-affix convergence only when source evidence proves exact string receiver identity, standard case-sensitive affix API or imported namespace identity, the same affix value coordinate, the same prefix/suffix direction, and a whole-string single-affix shape. Untyped receivers, boxed or nullable receivers, wrong receivers, custom same-name APIs, missing or shadowed imports, monkey-patched builtins, wrong affix coordinates, dynamic or mutated affix bindings, case-insensitive or locale-sensitive variants, offset overloads, tuple/multi-affix forms, and substring/contains-style APIs must remain non-equivalent.",
+            "status": "already-covered"
+          }
+        ],
+        "statuses": [
+          "already-covered"
+        ]
       },
       "presence_rank": 4,
       "prioritizer_status": "covered-current",
@@ -1609,7 +1618,8 @@
       "collection_empty_check",
       "membership_contains",
       "numeric_clamp",
-      "python_loop_demorgan_all"
+      "python_loop_demorgan_all",
+      "string_prefix_suffix"
     ],
     "prevalence_axes": "no-implementation-ready-batch (see audit_conclusion)",
     "target_packets_artifact": "frontier_target_packets.v1.json"

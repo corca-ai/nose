@@ -129,6 +129,7 @@ HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "boolean",
     "loop",
     "collection",
+    "string",
     "protocol-boundary",
 }
 
@@ -551,13 +552,13 @@ def validate_evidence_links(
                 )
         admission_status = packet.get("detector_admission", {}).get("status")
         admitted_primary_status = (
-            admission_status == "real-pair-admitted"
-            and primary["status"] == "already-covered"
+            primary["status"] == "already-covered"
+            and admission_status in {"controlled-slice-admitted", "real-pair-admitted"}
         )
         if primary["status"] != "real-miss" and not admitted_primary_status:
             raise FrontierError(
                 f"packet {packet_id} primary evidence must be real-miss or "
-                f"already-covered after real-pair admission, got {primary['status']}"
+                f"already-covered after detector admission, got {primary['status']}"
             )
     return link_rows
 
@@ -2285,6 +2286,7 @@ def selftest() -> None:
             "boolean": ["boolean.truth-table"],
             "loop": ["loop.short-circuit"],
             "collection": ["collection.cardinality"],
+            "string": ["string.receiver-coordinate"],
             "protocol-boundary": ["protocol-boundary.api-identity"],
         },
         "hard_negative_groups": [
