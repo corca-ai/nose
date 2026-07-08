@@ -6,6 +6,16 @@ pub(super) fn typed_method_call_il(
     semantic: ParamSemantic,
     duplicate_param_name: bool,
 ) -> (Il, Interner, NodeId) {
+    typed_method_call_il_with_callback_param_count(lang, method, semantic, duplicate_param_name, 1)
+}
+
+pub(super) fn typed_method_call_il_with_callback_param_count(
+    lang: Lang,
+    method: &str,
+    semantic: ParamSemantic,
+    duplicate_param_name: bool,
+    callback_param_count: usize,
+) -> (Il, Interner, NodeId) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let mut functions = Vec::new();
@@ -19,14 +29,13 @@ pub(super) fn typed_method_call_il(
         sp(),
         &[receiver],
     );
-    let func_param = b.add(NodeKind::Param, Payload::Cid(1), sp(), &[]);
+    let func_params = (0..callback_param_count)
+        .map(|idx| b.add(NodeKind::Param, Payload::Cid(1 + idx as u32), sp(), &[]))
+        .collect::<Vec<_>>();
     let func_body = b.add(NodeKind::Block, Payload::None, sp(), &[]);
-    let func = b.add(
-        NodeKind::Lambda,
-        Payload::None,
-        sp(),
-        &[func_param, func_body],
-    );
+    let mut func_children = func_params;
+    func_children.push(func_body);
+    let func = b.add(NodeKind::Lambda, Payload::None, sp(), &func_children);
     let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, func]);
     let body = b.add(NodeKind::Block, Payload::None, sp(), &[call]);
     let function = b.add(NodeKind::Func, Payload::None, sp(), &[param, body]);

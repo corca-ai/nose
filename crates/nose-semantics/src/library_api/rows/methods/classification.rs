@@ -52,6 +52,10 @@ pub(in crate::library_api) fn swift_sequence_hof_method_call(
                 MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap),
                 MethodReceiverContract::ExactArrayOrCollection,
                 MethodBuiltinArgs::Hof,
+            ) | (
+                MethodSemanticContract::Builtin(Builtin::All),
+                MethodReceiverContract::ExactArrayOrCollection,
+                MethodBuiltinArgs::BoolReduction,
             )
         )
 }

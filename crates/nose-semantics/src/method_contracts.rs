@@ -184,34 +184,8 @@ pub(super) fn method_call_contract_shapes(
         contract
     } else if method_fold_name(lang, name) && arg_count > 0 {
         (Builtin::Reduce, Receiver::ExactProtocol, Args::Fold)
-    } else if js_like_lang(lang)
-        && method_bool_reduction_builtin(lang, name).is_some()
-        && arg_count == 1
-    {
-        (
-            method_bool_reduction_builtin(lang, name).unwrap(),
-            Receiver::ExactArray,
-            Args::BoolReduction,
-        )
-    } else if lang == Lang::Ruby
-        && method_bool_reduction_builtin(lang, name).is_some()
-        && arg_count == 1
-    {
-        (
-            method_bool_reduction_builtin(lang, name).unwrap(),
-            Receiver::ExactArrayOrCollection,
-            Args::BoolReduction,
-        )
-    } else if !js_like_lang(lang)
-        && lang != Lang::Ruby
-        && method_bool_reduction_builtin(lang, name).is_some()
-        && arg_count > 0
-    {
-        (
-            method_bool_reduction_builtin(lang, name).unwrap(),
-            Receiver::ExactProtocol,
-            Args::BoolReduction,
-        )
+    } else if let Some(contract) = method_bool_reduction_contract_shape(lang, name, arg_count) {
+        contract
     } else if method_collection_reduction_builtin(lang, name).is_some() && arg_count == 0 {
         (
             method_collection_reduction_builtin(lang, name).unwrap(),
@@ -269,6 +243,27 @@ pub(super) fn method_call_contract_shapes(
         });
     }
     contracts
+}
+
+fn method_bool_reduction_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let builtin = method_bool_reduction_builtin(lang, name)?;
+    let receiver = if js_like_lang(lang) && arg_count == 1 {
+        Receiver::ExactArray
+    } else if matches!(lang, Lang::Ruby | Lang::Swift) && arg_count == 1 {
+        Receiver::ExactArrayOrCollection
+    } else if !js_like_lang(lang) && !matches!(lang, Lang::Ruby | Lang::Swift) && arg_count > 0 {
+        Receiver::ExactProtocol
+    } else {
+        return None;
+    };
+    Some((builtin, receiver, Args::BoolReduction))
 }
 
 pub(super) fn method_append_contract_shape(

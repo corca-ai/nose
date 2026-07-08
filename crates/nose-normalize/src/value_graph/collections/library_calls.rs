@@ -142,10 +142,9 @@ impl<'a> Builder<'a> {
         if self.il.kind(lambda) != NodeKind::Lambda {
             return None;
         }
-        if matches!(self.il.meta.lang, Lang::Ruby) && self.lambda_param_count(lambda) != 1 {
-            return None;
-        }
-        if js_like_lang(self.il.meta.lang) && self.lambda_param_count(lambda) != 1 {
+        if bool_reduction_requires_unary_value_callback(self.il.meta.lang)
+            && self.lambda_param_count(lambda) != 1
+        {
             return None;
         }
         let coll = self.eval(occurrence.receiver?, env);
@@ -234,4 +233,8 @@ impl<'a> Builder<'a> {
         let (map, key) = self.proven_map_get_value(value)?;
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
+}
+
+fn bool_reduction_requires_unary_value_callback(lang: Lang) -> bool {
+    matches!(lang, Lang::Ruby | Lang::Swift) || js_like_lang(lang)
 }

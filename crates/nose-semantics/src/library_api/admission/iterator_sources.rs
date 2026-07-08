@@ -81,9 +81,10 @@ fn method_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId)
             MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
             | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
         ) if js_like_lang(lang) => true,
-        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
-            HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap,
-        )) if lang == Lang::Swift => true,
+        LibraryApiContractId::MethodCall(
+            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+            | MethodSemanticContract::Builtin(Builtin::All),
+        ) if lang == Lang::Swift => true,
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
             HoFKind::Map | HoFKind::Filter | HoFKind::Reject,
         )) if lang == Lang::Ruby => true,
@@ -120,6 +121,10 @@ fn method_hof_callback_value_only_obligation_required(
             MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
             | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
         ) if lang == Lang::Ruby => true,
+        LibraryApiContractId::MethodCall(
+            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+            | MethodSemanticContract::Builtin(Builtin::All),
+        ) if lang == Lang::Swift => true,
         LibraryApiContractId::MethodCall(
             MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
             | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),

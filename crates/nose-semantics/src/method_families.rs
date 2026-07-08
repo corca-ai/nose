@@ -23,7 +23,10 @@ pub fn method_bool_reduction_builtin(lang: Lang, name: &str) -> Option<Builtin> 
             Builtin::All
         }
         (Lang::Rust, "any") | (Lang::Ruby, "any?") | (Lang::Java, "anyMatch") => Builtin::Any,
-        (Lang::Rust, "all") | (Lang::Ruby, "all?") | (Lang::Java, "allMatch") => Builtin::All,
+        (Lang::Rust, "all")
+        | (Lang::Ruby, "all?")
+        | (Lang::Java, "allMatch")
+        | (Lang::Swift, "allSatisfy") => Builtin::All,
         _ => return None,
     })
 }

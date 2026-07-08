@@ -220,11 +220,27 @@ pub(super) fn apply_method_contract(
 }
 
 fn method_contract_requires_unary_value_callback(lang: Lang, contract: MethodCallContract) -> bool {
-    js_like_lang(lang)
-        && (matches!(
-            contract.semantic,
-            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-        ) || contract.args == MethodBuiltinArgs::BoolReduction)
+    match lang {
+        Lang::Ruby => {
+            matches!(
+                contract.semantic,
+                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
+            ) || contract.args == MethodBuiltinArgs::BoolReduction
+        }
+        Lang::Swift => {
+            matches!(
+                contract.semantic,
+                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+            ) || contract.args == MethodBuiltinArgs::BoolReduction
+        }
+        _ if js_like_lang(lang) => {
+            matches!(
+                contract.semantic,
+                MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+            ) || contract.args == MethodBuiltinArgs::BoolReduction
+        }
+        _ => false,
+    }
 }
 
 fn method_contract_callback_shape_allowed(

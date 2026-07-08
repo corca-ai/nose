@@ -110,6 +110,8 @@ mod ruby_enumerable_quantifier;
 mod semantic_law_boundaries;
 #[path = "equivalence/source_identity_boundaries.rs"]
 mod source_identity_boundaries;
+#[path = "equivalence/swift_all_satisfy.rs"]
+mod swift_all_satisfy;
 #[path = "equivalence/syntax_surfaces.rs"]
 mod syntax_surfaces;
 #[path = "equivalence/typescript_every.rs"]

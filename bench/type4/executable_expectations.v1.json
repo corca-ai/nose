@@ -1,9 +1,9 @@
 {
-  "expectation_count": 97,
+  "expectation_count": 106,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 97,
-  "query_count": 18,
+  "passed": 106,
+  "query_count": 19,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -1345,6 +1345,121 @@
           }
         ],
         "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_changed_predicate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_different_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_wrong_empty_truth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_callback_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_loop_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_lazy_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_proof_boundary",
+      "expect": "split",
+      "expectation_id": "swift_all_satisfy_custom_overload_stays_split",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_all_satisfy_loop_matches_call",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+            "name": "swiftAllLoop",
+            "start": 1
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+            "name": "swiftAllSatisfy",
+            "start": 10
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "swift_all_satisfy_positive",
+      "expect": "same-family",
+      "expectation_id": "swift_all_satisfy_empty_vacuous_matches_call",
+      "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 22,
+            "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+            "name": "swiftAllEmptyLoop",
+            "start": 14
+          },
+          {
+            "end": 27,
+            "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+            "name": "swiftAllEmptySatisfy",
+            "start": 24
+          }
+        ],
+        "value": 6.0,
         "witness": "exact"
       },
       "observed": "same-family",

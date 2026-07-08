@@ -301,6 +301,38 @@ return x < y && x <= y
 }
 
 #[test]
+fn parenthesized_logical_not_lowers_as_boolean_not_not_force_call() {
+    let il = il(r#"
+func accepted(_ x: Int, _ min: Int) -> Bool {
+return !(x >= min)
+}
+"#);
+    assert!(il.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::UnOp || node.payload != Payload::Op(Op::Not) {
+            return false;
+        }
+        let kids = il.children(NodeId(idx as u32));
+        matches!(
+            kids,
+            [child]
+                if il.kind(*child) == NodeKind::BinOp
+                    && il.node(*child).payload == Payload::Op(Op::Ge)
+        )
+    }));
+    assert!(
+        !il.nodes
+            .iter()
+            .enumerate()
+            .any(|(idx, node)| node.kind == NodeKind::Call
+                && il
+                    .children(NodeId(idx as u32))
+                    .first()
+                    .is_some_and(|callee| il.kind(*callee) == NodeKind::Seq)),
+        "parenthesized logical not must not lower as a swift_force_marker call"
+    );
+}
+
+#[test]
 fn dictionary_default_subscript_lowers_with_marker() {
     let (il, interner) = il_with_interner(
         r#"

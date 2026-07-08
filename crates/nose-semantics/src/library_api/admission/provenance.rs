@@ -161,6 +161,12 @@ fn swift_sequence_hof_method_callee(
                 method: "map" | "filter" | "flatMap",
                 receiver: MethodReceiverContract::ExactArrayOrCollection,
             },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::All)),
+            LibraryApiCalleeContract::Method {
+                method: "allSatisfy",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
         )
     )
 }

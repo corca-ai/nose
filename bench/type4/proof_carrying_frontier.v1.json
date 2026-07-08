@@ -104,13 +104,13 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "cdceafc85fd84b8513d1ea4c86cfa14fb9eb39544a1adcdb8f61387301d081c2",
-        "size_bytes": 50908
+        "sha256": "564e5ba0ff33c7888ea060c893ed3b5f73f7101c3b869b21465dbffde5c6f029",
+        "size_bytes": 54649
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "1d0d29789ac4d9e8bd2e97c057e6d8d0ca5ead7887e325f5e43c75858e82b532",
-        "size_bytes": 139228
+        "sha256": "c72bb219557b065f059e7e2840aff6a91e69ba43240e7aa0c313cf1d8f3cde5e",
+        "size_bytes": 146715
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
@@ -124,8 +124,8 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "26e47098f1bcb51d61111cd4c16938c1acca5807bd884a209312851bc4dc63b6",
-        "size_bytes": 94642
+        "sha256": "f90d5a25fa64fe9684ace76df34191c1224ee15fcd895fad7ecbb11e72eb657e",
+        "size_bytes": 96337
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
@@ -134,13 +134,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "4fcef90d2203102d3dfc9aeb732c7d636d653bafb2470141d45252b826b34ff2",
+        "sha256": "89b3e13d10dd052ac771a99db3fd725a4ccc10fb38cc227de4dcef4b440509b2",
         "size_bytes": 21095
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "f332b02a2faa6599b7b80e3e7e915421bb7ac5429533d35fff4cb7b6d1144791",
-        "size_bytes": 85866
+        "sha256": "62eab1a17272fcbcb4c26f54cef32e3aba82095eca4ce7a4b325b54492fff9dc",
+        "size_bytes": 89474
       }
     },
     "target_packet_identity": {
@@ -1084,10 +1084,64 @@
               "expect": "split",
               "expectation_id": "ruby_enumerable_param_receiver_stays_split",
               "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_callback_effect_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_custom_overload_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_different_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_all_satisfy_empty_vacuous_matches_call",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_lazy_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_loop_effect_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_all_satisfy_loop_matches_call",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_wrong_empty_truth_stays_split",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 29,
+          "declared_expectation_count": 38,
           "declared_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -1117,7 +1171,16 @@
             "ruby_enumerable_monkey_patch_stays_split",
             "ruby_enumerable_multi_param_block_stays_split",
             "ruby_enumerable_no_block_stays_split",
-            "ruby_enumerable_param_receiver_stays_split"
+            "ruby_enumerable_param_receiver_stays_split",
+            "swift_all_satisfy_callback_effect_stays_split",
+            "swift_all_satisfy_changed_predicate_stays_split",
+            "swift_all_satisfy_custom_overload_stays_split",
+            "swift_all_satisfy_different_source_stays_split",
+            "swift_all_satisfy_empty_vacuous_matches_call",
+            "swift_all_satisfy_lazy_receiver_stays_split",
+            "swift_all_satisfy_loop_effect_stays_split",
+            "swift_all_satisfy_loop_matches_call",
+            "swift_all_satisfy_wrong_empty_truth_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
@@ -1130,26 +1193,30 @@
             "reduction_terminal_predicate_boundary",
             "reduction_wrong_seed_boundary",
             "ruby_enumerable_quantifier_positive",
-            "ruby_enumerable_quantifier_proof_boundary"
+            "ruby_enumerable_quantifier_proof_boundary",
+            "swift_all_satisfy_positive",
+            "swift_all_satisfy_proof_boundary"
           ],
           "manifest_hard_negative_case_ids": [
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
             "reduction_terminal_predicate_boundary",
             "reduction_wrong_seed_boundary",
-            "ruby_enumerable_quantifier_proof_boundary"
+            "ruby_enumerable_quantifier_proof_boundary",
+            "swift_all_satisfy_proof_boundary"
           ],
           "manifest_only_case_ids": [],
           "manifest_positive_case_ids": [
             "reduction_any_all_terminal_positive",
             "reduction_selection_seeded_positive",
             "reduction_sum_step_positive",
-            "ruby_enumerable_quantifier_positive"
+            "ruby_enumerable_quantifier_positive",
+            "swift_all_satisfy_positive"
           ],
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_expectation_count": 29,
+          "passed_expectation_count": 38,
           "passed_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -1179,14 +1246,23 @@
             "ruby_enumerable_monkey_patch_stays_split",
             "ruby_enumerable_multi_param_block_stays_split",
             "ruby_enumerable_no_block_stays_split",
-            "ruby_enumerable_param_receiver_stays_split"
+            "ruby_enumerable_param_receiver_stays_split",
+            "swift_all_satisfy_callback_effect_stays_split",
+            "swift_all_satisfy_changed_predicate_stays_split",
+            "swift_all_satisfy_custom_overload_stays_split",
+            "swift_all_satisfy_different_source_stays_split",
+            "swift_all_satisfy_empty_vacuous_matches_call",
+            "swift_all_satisfy_lazy_receiver_stays_split",
+            "swift_all_satisfy_loop_effect_stays_split",
+            "swift_all_satisfy_loop_matches_call",
+            "swift_all_satisfy_wrong_empty_truth_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         }
       ],
       "summary": {
-        "declared_expectation_count": 97,
+        "declared_expectation_count": 106,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -1196,13 +1272,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 97,
-        "query_count": 18,
+        "passed": 106,
+        "query_count": 19,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 97,
+        "result_count": 106,
         "stale": 0
       }
     },
@@ -1447,14 +1523,16 @@
           "reduction_changed_step_boundary",
           "reduction_terminal_predicate_boundary",
           "reduction_selection_seed_domain_boundary",
-          "ruby_enumerable_quantifier_proof_boundary"
+          "ruby_enumerable_quantifier_proof_boundary",
+          "swift_all_satisfy_proof_boundary"
         ],
         "packet_id": "reduction-minmax-anyall-2026-07-08",
         "positive_cases": [
           "reduction_sum_step_positive",
           "reduction_any_all_terminal_positive",
           "reduction_selection_seeded_positive",
-          "ruby_enumerable_quantifier_positive"
+          "ruby_enumerable_quantifier_positive",
+          "swift_all_satisfy_positive"
         ],
         "regression_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
@@ -1471,9 +1549,15 @@
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
           "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
           "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
           "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
           "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
-          "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed"
+          "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed",
+          "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_converges_with_counterexample_loop",
+          "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
+          "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_effect_and_lazy_boundaries",
+          "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary"
         ],
         "semantic_family": "reduction.aggregate"
       }
@@ -3122,13 +3206,14 @@
             "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
             "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
             "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
+            "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
             "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
           ],
-          "hard_negative_gate_count": 12,
-          "positive_gate_count": 12,
+          "hard_negative_gate_count": 16,
+          "positive_gate_count": 14,
           "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
-          "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and predicate/reducer effect evidence",
+          "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
           "status": "controlled-slice-admitted"
         },
         "evidence_case_ids": [
@@ -3310,10 +3395,64 @@
               "expect": "split",
               "expectation_id": "ruby_enumerable_param_receiver_stays_split",
               "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_callback_effect_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_custom_overload_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_different_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_all_satisfy_empty_vacuous_matches_call",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_lazy_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_loop_effect_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_positive",
+              "expect": "same-family",
+              "expectation_id": "swift_all_satisfy_loop_matches_call",
+              "status": "passed"
+            },
+            {
+              "case_id": "swift_all_satisfy_proof_boundary",
+              "expect": "split",
+              "expectation_id": "swift_all_satisfy_wrong_empty_truth_stays_split",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 29,
+          "declared_expectation_count": 38,
           "declared_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -3343,7 +3482,16 @@
             "ruby_enumerable_monkey_patch_stays_split",
             "ruby_enumerable_multi_param_block_stays_split",
             "ruby_enumerable_no_block_stays_split",
-            "ruby_enumerable_param_receiver_stays_split"
+            "ruby_enumerable_param_receiver_stays_split",
+            "swift_all_satisfy_callback_effect_stays_split",
+            "swift_all_satisfy_changed_predicate_stays_split",
+            "swift_all_satisfy_custom_overload_stays_split",
+            "swift_all_satisfy_different_source_stays_split",
+            "swift_all_satisfy_empty_vacuous_matches_call",
+            "swift_all_satisfy_lazy_receiver_stays_split",
+            "swift_all_satisfy_loop_effect_stays_split",
+            "swift_all_satisfy_loop_matches_call",
+            "swift_all_satisfy_wrong_empty_truth_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
@@ -3356,26 +3504,30 @@
             "reduction_terminal_predicate_boundary",
             "reduction_wrong_seed_boundary",
             "ruby_enumerable_quantifier_positive",
-            "ruby_enumerable_quantifier_proof_boundary"
+            "ruby_enumerable_quantifier_proof_boundary",
+            "swift_all_satisfy_positive",
+            "swift_all_satisfy_proof_boundary"
           ],
           "manifest_hard_negative_case_ids": [
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
             "reduction_terminal_predicate_boundary",
             "reduction_wrong_seed_boundary",
-            "ruby_enumerable_quantifier_proof_boundary"
+            "ruby_enumerable_quantifier_proof_boundary",
+            "swift_all_satisfy_proof_boundary"
           ],
           "manifest_only_case_ids": [],
           "manifest_positive_case_ids": [
             "reduction_any_all_terminal_positive",
             "reduction_selection_seeded_positive",
             "reduction_sum_step_positive",
-            "ruby_enumerable_quantifier_positive"
+            "ruby_enumerable_quantifier_positive",
+            "swift_all_satisfy_positive"
           ],
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_expectation_count": 29,
+          "passed_expectation_count": 38,
           "passed_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -3405,12 +3557,21 @@
             "ruby_enumerable_monkey_patch_stays_split",
             "ruby_enumerable_multi_param_block_stays_split",
             "ruby_enumerable_no_block_stays_split",
-            "ruby_enumerable_param_receiver_stays_split"
+            "ruby_enumerable_param_receiver_stays_split",
+            "swift_all_satisfy_callback_effect_stays_split",
+            "swift_all_satisfy_changed_predicate_stays_split",
+            "swift_all_satisfy_custom_overload_stays_split",
+            "swift_all_satisfy_different_source_stays_split",
+            "swift_all_satisfy_empty_vacuous_matches_call",
+            "swift_all_satisfy_lazy_receiver_stays_split",
+            "swift_all_satisfy_loop_effect_stays_split",
+            "swift_all_satisfy_loop_matches_call",
+            "swift_all_satisfy_wrong_empty_truth_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         },
-        "hard_negative_count": 9,
+        "hard_negative_count": 12,
         "hard_negative_group_ids": [
           "reduction-minmax-anyall-proof-perimeter"
         ],
@@ -3479,7 +3640,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice",
+              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3491,7 +3652,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; Ruby now covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; JavaScript and untyped relational terminals remain open",
+              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; Ruby covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; Swift covers eager Array/Collection allSatisfy while changed predicate/source, wrong empty truth, effects, two-argument custom overload callbacks, and .lazy receiver demand semantics remain closed; JavaScript and untyped relational terminals remain open",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3529,7 +3690,7 @@
                 "passed": 3,
                 "tool_version": "python-loop-demorgan-proof-facts/1"
               },
-              "current_real_pair_status": "satisfied for controlled terminal predicates and Ruby one-argument quantifier blocks; effectful predicates, reducers, callbacks, and Ruby multi-parameter block destructuring remain outside the focused admission claim",
+              "current_real_pair_status": "satisfied for controlled terminal predicates and Ruby/Swift one-argument quantifier callbacks; effectful predicates, reducers, callbacks, loop bodies, Ruby multi-parameter block destructuring, and Swift two-argument custom overload callbacks remain outside the focused admission claim",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3542,7 +3703,7 @@
           ],
           "model_status": "modeled-controlled"
         },
-        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
         "readiness": {
           "blocking_items": [],
           "can_open_exact_admission": false,
@@ -3624,7 +3785,7 @@
           "reduction-typescript-every-array-param-boundary-controlled-pair",
           "reduction-selection-focused-controlled-pair"
         ],
-        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
+        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
         "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
       }
     ],

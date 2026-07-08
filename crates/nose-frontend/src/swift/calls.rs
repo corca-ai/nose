@@ -47,7 +47,23 @@ pub(super) fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
             }
         }
     }
+    if lo.text(node).trim_start().starts_with('!')
+        && kids.len() == 2
+        && is_swift_force_marker(lo, kids[0])
+    {
+        return lo.add(NodeKind::UnOp, Payload::Op(Op::Not), span, &[kids[1]]);
+    }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+fn is_swift_force_marker(lo: &Lowering, node: NodeId) -> bool {
+    if lo.b.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    let Payload::Name(name) = lo.b.payload(node) else {
+        return false;
+    };
+    lo.interner.resolve(name) == "swift_force_marker"
 }
 pub(super) fn lower_macro_invocation(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);

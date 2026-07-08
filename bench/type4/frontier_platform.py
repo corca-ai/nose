@@ -1478,11 +1478,11 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "reduction.terminal-predicate-coordinate",
-                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice",
+                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice",
                 },
                 {
                     "fact_id": "reduction.short-circuit-direction",
-                    "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; Ruby now covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; JavaScript and untyped relational terminals remain open",
+                    "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; Ruby covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; Swift covers eager Array/Collection allSatisfy while changed predicate/source, wrong empty truth, effects, two-argument custom overload callbacks, and .lazy receiver demand semantics remain closed; JavaScript and untyped relational terminals remain open",
                 },
                 {
                     "fact_id": "reduction.selection-seed-domain",
@@ -1490,7 +1490,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "effect.pure-predicate",
-                    "current_real_pair_status": "satisfied for controlled terminal predicates and Ruby one-argument quantifier blocks; effectful predicates, reducers, callbacks, and Ruby multi-parameter block destructuring remain outside the focused admission claim",
+                    "current_real_pair_status": "satisfied for controlled terminal predicates and Ruby/Swift one-argument quantifier callbacks; effectful predicates, reducers, callbacks, loop bodies, Ruby multi-parameter block destructuring, and Swift two-argument custom overload callbacks remain outside the focused admission claim",
                 },
             ],
             "focused_tests": [
@@ -1506,6 +1506,8 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
@@ -1513,20 +1515,25 @@ TARGET_PACKETS = [
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_converges_with_counterexample_loop",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_effect_and_lazy_boundaries",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
                 "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
             ],
         },
         "detector_admission": {
             "status": "controlled-slice-admitted",
-            "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and predicate/reducer effect evidence",
+            "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
             "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
             "capabilities": [
                 "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
                 "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
                 "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
+                "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
                 "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries",
+                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
@@ -1534,11 +1541,13 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_converges_with_counterexample_loop",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
                 "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
             ],
@@ -1550,19 +1559,23 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_effect_and_lazy_boundaries",
+                "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary",
             ],
         },
         "blocked_by": [],
         "notes": "This packet records the current focused reduction perimeter as reusable proof "
         "facts. The linked real-corpus detector metadata predates the Ruby focused slice; "
-        "Ruby coverage here is carried by focused executable witnesses. It intentionally does not claim a new non-focused real-corpus admission, "
+        "Ruby and Swift coverage here is carried by focused executable witnesses. It intentionally does not claim a new non-focused real-corpus admission, "
         "untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver "
-        "admission, or Swift full reduction admission until those proof perimeters are separately covered.",
+        "admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
         "locations": [
             {
                 "repo": "nose",
@@ -1619,6 +1632,14 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/module_eval_patch.rb",
                 "span": "1-9",
                 "snippet": "Ruby same-file Enumerable.module_eval any? monkey-patch boundary representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+                "span": "1-80",
+                "snippet": "Swift eager Array/Collection allSatisfy representatives with changed predicate/source, wrong empty truth, effect, custom overload, and lazy receiver boundaries",
             },
         ],
     },
