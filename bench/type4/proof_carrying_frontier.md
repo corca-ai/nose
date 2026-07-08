@@ -19,8 +19,8 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay: `{"passed": 7}`
-- executable expectations: 76/76 passed
-- real-frontier replays: 15/15 passed; 0 unavailable
+- executable expectations: 86/86 passed
+- real-frontier replays: 17/17 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -45,7 +45,7 @@ report keeps the fuller evidence and admission boundary.
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (2/2)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed (4/4)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed (3/3)` | 6 | 7 | 1 |
-| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (18/18)` | `passed (3/3)` | 8 | 7 | 1 |
+| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (18/18)` | `passed (5/5)` | 8 | 9 | 1 |
 
 ## Packet Details
 
@@ -109,9 +109,9 @@ report keeps the fuller evidence and admission boundary.
 
 - detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and effect evidence
 - remaining real-pair gap: a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission
-- gates: 9 positive, 7 hard-negative
+- gates: 10 positive, 9 hard-negative
 - executable witness coverage: `covered` (18/18 passed)
-- real-frontier replay: `passed` (3/3 passed)
+- real-frontier replay: `passed` (5/5 passed)
 - hard-negative groups: `reduction-minmax-anyall-proof-perimeter`
 
 ## Hard-Negative Linkage

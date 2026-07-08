@@ -179,6 +179,14 @@ neutral same-source identity, pure-predicate, counterexample-loop, vacuous-truth
 boolean-only De Morgan source evidence against the positive, different-iterable,
 observed-effect, helper-call, empty-truth, changed-predicate, and value-return fixtures.
 
+The TypeScript `Array.prototype.every` focused perimeter admits dense literal
+source evidence for one-argument value predicates against the equivalent `for-of`
+counterexample loop. Adjacent executable hard negatives keep plain `number[]`
+parameters split because sparse holes are skipped by `every`, and also keep wrong
+empty-input truth, changed predicates, different loop sources, callbacks that
+observe index/source-array arguments, callback or loop `seen.push(...)` effects,
+and value-returning `x && ...` predicates split from the admitted family.
+
 Good hard negatives attack exactly the proof invariant a rule needs:
 
 - flattened list vs nested list;

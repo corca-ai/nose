@@ -27,6 +27,36 @@ impl<'a> Builder<'a> {
         (self.raw_elem(coll), None)
     }
 
+    pub(in crate::value_graph) fn js_like_array_param_universal_closed(
+        &self,
+        coll: ValueId,
+    ) -> bool {
+        self.is_js_like_lang() && self.is_array_param_value(coll)
+    }
+
+    pub(in crate::value_graph) fn refs_js_like_array_param_elem(&self, v: ValueId) -> bool {
+        if !self.is_js_like_lang() {
+            return false;
+        }
+        let mut seen = FxHashSet::default();
+        let mut stack = vec![v];
+        while let Some(n) = stack.pop() {
+            if !seen.insert(n) {
+                continue;
+            }
+            if matches!(self.nodes[n as usize].op, ValOp::Elem(_))
+                && self.nodes[n as usize]
+                    .args
+                    .first()
+                    .is_some_and(|&coll| self.is_array_param_value(coll))
+            {
+                return true;
+            }
+            stack.extend(self.nodes[n as usize].args.iter().copied());
+        }
+        false
+    }
+
     fn hof_emitted_elem_with_pred(&mut self, coll: ValueId) -> Option<(ValueId, Option<ValueId>)> {
         // FUNCTOR LAW / map fusion: an element drawn from `map(f, c)` is `f` applied to an
         // element of `c`, and a pure Map node's `contrib` (args[0]) already *is* that

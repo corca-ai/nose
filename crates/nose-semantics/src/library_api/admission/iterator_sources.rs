@@ -33,7 +33,7 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_call(
     record: &EvidenceRecord,
 ) -> bool {
     if method_hof_callback_obligation_required(il.meta.lang, id) {
-        return method_hof_callback_obligation_matches_node(il, interner, call);
+        return method_hof_callback_obligation_matches_node(il, interner, call, id);
     }
 
     let Some(source_args) = library_api_contract_iterable_source_argument_indices(il.meta.lang, id)
@@ -62,7 +62,7 @@ pub(in crate::library_api) fn library_api_contract_obligations_match_node(
     id: LibraryApiContractId,
 ) -> bool {
     if method_hof_callback_obligation_required(il.meta.lang, id) {
-        return method_hof_callback_obligation_matches_node(il, interner, node);
+        return method_hof_callback_obligation_matches_node(il, interner, node, id);
     }
     true
 }
@@ -95,11 +95,41 @@ fn method_hof_callback_obligation_matches_node(
     il: &Il,
     interner: Option<&Interner>,
     node: NodeId,
+    id: LibraryApiContractId,
 ) -> bool {
     let Some(&callback) = il.children(node).get(1) else {
         return false;
     };
+    if method_hof_callback_value_only_obligation_required(il.meta.lang, id)
+        && !method_hof_callback_has_single_value_param(il, callback)
+    {
+        return false;
+    }
     method_hof_callback_effect_closed(il, interner, callback)
+}
+
+fn method_hof_callback_value_only_obligation_required(
+    lang: Lang,
+    id: LibraryApiContractId,
+) -> bool {
+    matches!(
+        id,
+        LibraryApiContractId::MethodCall(
+            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+                | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All)
+        ) if js_like_lang(lang)
+    )
+}
+
+fn method_hof_callback_has_single_value_param(il: &Il, callback: NodeId) -> bool {
+    if !matches!(il.kind(callback), NodeKind::Func | NodeKind::Lambda) {
+        return false;
+    }
+    il.children(callback)
+        .iter()
+        .filter(|&&child| il.kind(child) == NodeKind::Param)
+        .count()
+        == 1
 }
 
 fn method_hof_callback_effect_closed(

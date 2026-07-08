@@ -134,7 +134,24 @@ impl<'a> Builder<'a> {
             return None;
         };
         let inner = self.nodes[value as usize].args[0];
-        (op == Op::Not as u32 && self.vty(inner) == ValueDomain::Boolean).then_some(inner)
+        (op == Op::Not as u32
+            && (self.vty(inner) == ValueDomain::Boolean
+                || self.opaque_comparison_result_is_boolean(inner)))
+        .then_some(inner)
+    }
+    fn opaque_comparison_result_is_boolean(&self, value: ValueId) -> bool {
+        let ValOp::Opaque(tag) = self.nodes[value as usize].op else {
+            return false;
+        };
+        if matches!(
+            tag,
+            JS_LOOSE_EQ_CMP_TAG | JS_LOOSE_NE_CMP_TAG | JS_INSTANCEOF_CMP_TAG
+        ) {
+            return true;
+        }
+        [Op::Lt, Op::Le, Op::Gt, Op::Ge]
+            .into_iter()
+            .any(|op| tag == combine(JS_RELATIONAL_CMP_TAG, op as u64))
     }
     pub(super) fn negated_comparison(&mut self, comparison: ValueId) -> Option<ValueId> {
         let ValOp::Bin(op) = self.nodes[comparison as usize].op else {

@@ -110,6 +110,8 @@ mod semantic_law_boundaries;
 mod source_identity_boundaries;
 #[path = "equivalence/syntax_surfaces.rs"]
 mod syntax_surfaces;
+#[path = "equivalence/typescript_every.rs"]
+mod typescript_every;
 #[path = "equivalence/value_graph_boundaries.rs"]
 mod value_graph_boundaries;
 #[path = "equivalence/value_graph_core.rs"]

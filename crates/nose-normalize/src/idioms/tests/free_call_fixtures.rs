@@ -24,15 +24,6 @@ pub(super) fn free_call_il(lang: Lang, name: &str, shadow_name: bool) -> (Il, In
     );
     let call = b.add(NodeKind::Call, Payload::None, sp(), &[callee, arg]);
     module_kids.push(call);
-    let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
-    let il = b.finish(
-        root,
-        FileMeta {
-            path: "t".to_string(),
-            lang,
-        },
-        Vec::new(),
-        cid_names,
-    );
+    let il = finish_module_il(b, lang, module_kids, cid_names);
     (il, interner, call)
 }

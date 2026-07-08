@@ -176,6 +176,9 @@ impl<'a> Builder<'a> {
         if let Some(r) = self.eval_product_call(expr, kids, env) {
             return Some(r);
         }
+        if let Some(r) = self.eval_bool_reduction_method_call(expr, kids, env) {
+            return Some(r);
+        }
         if let Some(r) = self.eval_proven_integer_method_call(expr, kids, env) {
             return Some(r);
         }

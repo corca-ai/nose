@@ -7,7 +7,7 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, Payload};
 use nose_semantics::{
     admitted_free_function_builtin_at_call, admitted_free_function_hof_at_call,
     admitted_free_name_map_factory_at_call, admitted_iterator_identity_adapter_at_call,

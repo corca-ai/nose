@@ -497,7 +497,7 @@ fn strict_exact_object_key_view_safe(
     strict_exact_safe_tree(il, interner, facts, map)
 }
 
-fn strict_exact_literal_collection_receiver_safe(
+pub(super) fn strict_exact_literal_collection_receiver_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,

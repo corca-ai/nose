@@ -104,13 +104,13 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "72f1d8c503b927b9a4df10d3d5b596b9a21bec459e5fbdb2b85114969d5b02a8",
-        "size_bytes": 42170
+        "sha256": "e62d2ee9ab1877157c3d76a8951c4126436ec98dd24cee14527d446edb64237d",
+        "size_bytes": 45853
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "f3f55f1dc4b56fd17db769219399762967adcaa9b21f568464973265296c8ddc",
-        "size_bytes": 117051
+        "sha256": "d2b91ff3601c4039088b8f49858f41a75dd25579a358f93263384c7016908b5f",
+        "size_bytes": 127539
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
@@ -124,23 +124,23 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "5aa19a0db82457aa84169e0a3ddbe0e56e884e7f4d380f4cd89db1e56c110505",
-        "size_bytes": 93519
+        "sha256": "26e47098f1bcb51d61111cd4c16938c1acca5807bd884a209312851bc4dc63b6",
+        "size_bytes": 94642
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "f14b2e08aa655acb866237d014bdb7df52afb87f211727e2defd7eabf2d0ea16",
-        "size_bytes": 16597
+        "sha256": "a8f958daa47b724197e700e052c56d6e6b925faa8826906fcf5b3e7e90229365",
+        "size_bytes": 18614
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "6b12fbb7889532be0995760ca1287bb9e5cb06c71b808f99764434937a7162ef",
-        "size_bytes": 19754
+        "sha256": "e9f5f884b3d70613c55cb8cea613dc3bbb839db462f9d2000ebbea7e67a54bfd",
+        "size_bytes": 21095
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "80a9d64e48599cebb41dc305ac9cc458666aba0dfd4be8e0c1d50d90f960bf8c",
-        "size_bytes": 80821
+        "sha256": "34c348c30a8ee2bcb292a1632c82e1dab451b6285d04a9ba654a165e217066b1",
+        "size_bytes": 83008
       }
     },
     "target_packet_identity": {
@@ -1094,7 +1094,7 @@
         }
       ],
       "summary": {
-        "declared_expectation_count": 76,
+        "declared_expectation_count": 86,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -1104,13 +1104,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 76,
+        "passed": 86,
         "query_count": 17,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 76,
+        "result_count": 86,
         "stale": 0
       }
     },
@@ -3020,12 +3020,12 @@
         "detector_admission": {
           "capabilities": [
             "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
-            "converges Rust any/all terminal forms and TypeScript any/some terminal forms with equivalent early-return loops when predicate and admitted direction evidence match",
+            "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
             "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
           ],
-          "hard_negative_gate_count": 7,
-          "positive_gate_count": 9,
+          "hard_negative_gate_count": 9,
+          "positive_gate_count": 10,
           "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
           "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and effect evidence",
           "status": "controlled-slice-admitted"
@@ -3217,7 +3217,7 @@
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         },
-        "hard_negative_count": 7,
+        "hard_negative_count": 9,
         "hard_negative_group_ids": [
           "reduction-minmax-anyall-proof-perimeter"
         ],
@@ -3299,7 +3299,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript currently covers any/some only",
+              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript now covers any/some plus the focused dense-literal, one-argument every/for-of universal slice while array-param every and callbacks observing index/source arguments remain closed; JavaScript and untyped relational terminals remain open",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3362,7 +3362,7 @@
           ],
           "model_status": "modeled-controlled"
         },
-        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
         "readiness": {
           "blocking_items": [],
           "can_open_exact_admission": false,
@@ -3394,25 +3394,45 @@
               "proof_gap": [],
               "replay_id": "reduction-sum-focused-controlled-pair",
               "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [],
+              "replay_id": "reduction-typescript-every-array-param-boundary-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-typescript-every-dense-literal-controlled-pair",
+              "status": "passed"
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 3,
+          "declared_replay_count": 5,
           "declared_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
-            "reduction-sum-focused-controlled-pair"
+            "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-array-param-boundary-controlled-pair",
+            "reduction-typescript-every-dense-literal-controlled-pair"
           ],
           "failed_replay_count": 0,
           "failed_replay_ids": [],
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_replay_count": 3,
+          "passed_replay_count": 5,
           "passed_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
-            "reduction-sum-focused-controlled-pair"
+            "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-array-param-boundary-controlled-pair",
+            "reduction-typescript-every-dense-literal-controlled-pair"
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
@@ -3420,9 +3440,11 @@
         "real_frontier_replay_ids": [
           "reduction-sum-focused-controlled-pair",
           "reduction-any-focused-controlled-pair",
+          "reduction-typescript-every-dense-literal-controlled-pair",
+          "reduction-typescript-every-array-param-boundary-controlled-pair",
           "reduction-selection-focused-controlled-pair"
         ],
-        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus TypeScript any/some terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
+        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
         "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
       }
     ],
@@ -3684,32 +3706,52 @@
               "proof_gap": [],
               "replay_id": "reduction-sum-focused-controlled-pair",
               "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [],
+              "replay_id": "reduction-typescript-every-array-param-boundary-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-typescript-every-dense-literal-controlled-pair",
+              "status": "passed"
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 3,
+          "declared_replay_count": 5,
           "declared_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
-            "reduction-sum-focused-controlled-pair"
+            "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-array-param-boundary-controlled-pair",
+            "reduction-typescript-every-dense-literal-controlled-pair"
           ],
           "failed_replay_count": 0,
           "failed_replay_ids": [],
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_replay_count": 3,
+          "passed_replay_count": 5,
           "passed_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
-            "reduction-sum-focused-controlled-pair"
+            "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-array-param-boundary-controlled-pair",
+            "reduction-typescript-every-dense-literal-controlled-pair"
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
         }
       ],
       "summary": {
-        "declared_replay_count": 15,
+        "declared_replay_count": 17,
         "failed": 0,
         "fully_replayed_packet_count": 7,
         "nose_binary": "nose",
@@ -3717,12 +3759,12 @@
         "packet_count_by_coverage": {
           "passed": 7
         },
-        "passed": 15,
+        "passed": 17,
         "query_count": 9,
         "report_failed_replay_ids": [],
         "report_missing_replay_ids": [],
         "report_unavailable_replay_ids": [],
-        "result_count": 15,
+        "result_count": 17,
         "unavailable": 0
       }
     },

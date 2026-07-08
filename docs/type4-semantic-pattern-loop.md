@@ -59,7 +59,10 @@ language_surfaces:
   rust:
     status: open
     surface: Iterator::all
-  js_ts:
+  typescript:
+    status: admitted
+    surface: dense-literal one-argument Array.prototype.every
+  javascript:
     status: open
     surface: Array.prototype.every
 ```
@@ -74,13 +77,13 @@ catalog at `bench/type4/semantic_pattern_cards.v1.json`.
 Every reusable pattern should have a small matrix that distinguishes facts from
 surfaces:
 
-| fact | Python | Ruby | Rust | JS/TS |
-|---|---|---|---|---|
-| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | open | open | open |
-| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | open | open | open |
-| `iteration.same-source-identity` | modeled-controlled; packet admitted | open | open | open |
-| `effect.pure-predicate` | modeled-controlled; packet admitted | open | open | open |
-| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | open | open | open |
+| fact | Python | TypeScript | JavaScript | Ruby | Rust |
+|---|---|---|---|---|---|
+| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of | open | open | open |
+| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | open | open | open |
+| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | open | open | open |
+| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | open | open | open |
+| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | open | open | open |
 
 Use vocabulary like `open`, `modeled-controlled`, `admitted`, and
 `not-applicable`. Do not mark a language surface admitted because another

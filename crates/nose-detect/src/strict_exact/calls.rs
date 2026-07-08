@@ -81,6 +81,9 @@ pub(super) fn strict_exact_safe_call(
     if strict_exact_map_get_default_call_safe(il, interner, facts, node, callee, method) {
         return true;
     }
+    if strict_exact_bool_reduction_method_call_safe(il, interner, facts, node, callee, method) {
+        return true;
+    }
     if strict_exact_iterator_identity_adapter_call_safe(il, interner, facts, node, callee, method) {
         return true;
     }

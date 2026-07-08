@@ -152,6 +152,12 @@ impl<'a> Builder<'a> {
         // predicate, guarded by the OR/AND identity (false for any, true for all).
         let contrib = if kids.len() >= 2 && self.il.kind(kids[1]) == NodeKind::Lambda {
             let coll = self.eval(kids[0], env);
+            // JS/TS Array.every skips sparse-array holes, while value iteration over a
+            // `number[]` parameter can observe `undefined` at those positions. A typed
+            // Array parameter is therefore not dense-source proof for universal folds.
+            if all && self.js_like_array_param_universal_closed(coll) {
+                return None;
+            }
             let (elem, carried_guard) = self.collection_elem_with_pred(coll);
             let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
             if carried_guard.is_none()

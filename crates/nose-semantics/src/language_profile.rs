@@ -166,7 +166,7 @@ impl LanguageProfile {
     }
 }
 
-pub(crate) fn js_like_lang(lang: Lang) -> bool {
+pub fn js_like_lang(lang: Lang) -> bool {
     matches!(
         lang,
         Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
