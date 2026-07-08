@@ -324,6 +324,20 @@ python3 bench/type4/semantic_pattern_cards.py --check
 The committed artifacts are `semantic_pattern_cards.v1.json` and
 `semantic_pattern_cards.md`.
 
+`open_surface_admission_audit.py` reads the checked cards and emits the queue
+for the next proof-backed language-surface admission. It separates rows whose
+neutral facts are modeled from rows that still need surface-specific focused
+positives, adjacent hard negatives, executable expectations, or proof-fact
+modeling.
+
+```sh
+python3 bench/type4/open_surface_admission_audit.py
+python3 bench/type4/open_surface_admission_audit.py --check
+```
+
+The committed artifacts are `open_surface_admission_audit.v1.json` and
+`open_surface_admission_audit.md`.
+
 ## Proof-carrying frontier admission
 
 `proof_carrying_frontier.py` is the admission layer above target packets. It validates that

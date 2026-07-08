@@ -13,6 +13,7 @@ frontier_platform.py
   -> real_frontier.v1.json evidence
   -> frontier_target_packets.v1.json implementation-ready target packets
   -> semantic_pattern_cards.v1.json reusable semantic pattern catalog
+  -> open_surface_admission_audit.v1.json open surface queue
   -> executable_expectations.v1.json focused witness replay
   -> proof_carrying_frontier.v1.json admission readiness
   -> frontier_readiness.md roadmap triage
@@ -100,6 +101,10 @@ When a packet teaches a reusable law, promote the next iteration through the
 [Type-4 semantic pattern loop](type4-semantic-pattern-loop.md): define the
 language-neutral facts and capability matrix first, then attach additional
 language surfaces through evidence producers and focused fixtures.
+Use the checked
+[`open_surface_admission_audit.md`](../bench/type4/open_surface_admission_audit.md) queue
+before picking the next language surface; it separates proof-fact-ready,
+probe-to-focused, surface-fixture setup, and unmodeled-fact blockers.
 
 ## Focused cases
 

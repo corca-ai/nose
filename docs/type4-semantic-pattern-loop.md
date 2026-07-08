@@ -87,6 +87,26 @@ Use vocabulary like `open`, `modeled-controlled`, `admitted`, and
 language has the same-looking syntax. A language cell becomes admitted only
 after executable replay and PCF/readiness agree.
 
+## Open-surface audit
+
+Use the checked open-surface audit before choosing the next admission target:
+
+```sh
+python3 bench/type4/open_surface_admission_audit.py --check
+```
+
+The generated
+[`open_surface_admission_audit.md`](../bench/type4/open_surface_admission_audit.md) artifact
+groups open language surfaces by semantic pattern, proof fact, language,
+current status, evidence level, focused-case support, and likely blocker. It is
+the queueing view for this loop: start with `proof-fact-ready` or
+`probe-to-focused-candidate` rows when choosing an admission target. Treat
+`needs-surface-focused-perimeter` rows as focused-fixture setup work: the
+neutral facts are modeled, but the exact language surface still needs positives,
+adjacent hard negatives, and executable expectations. Leave
+`blocked-by-unmodeled-facts` rows open until their neutral facts become
+modeled-controlled.
+
 ## Eight-step loop
 
 1. Pick a frontier candidate from corpus evidence.
