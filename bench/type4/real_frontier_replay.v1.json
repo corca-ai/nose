@@ -111,6 +111,70 @@
         }
       ],
       "why_expected": "The focused collection-membership pair is admitted when the receiver API/domain, searched element, collection/source coordinate, and receiver mutation facts are all satisfied."
+    },
+    {
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+          "kind": "workspace",
+          "name": "rust_len_empty"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+          "kind": "workspace",
+          "name": "rust_named_empty"
+        }
+      ],
+      "packet_id": "collection-empty-check-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "collection-empty-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
+        }
+      ],
+      "why_expected": "The focused collection-empty pair is admitted when the receiver coordinate, collection domain/kind, empty predicate direction, and receiver mutation facts are all satisfied."
+    },
+    {
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+          "kind": "workspace",
+          "name": "rust_len_nonempty"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+          "kind": "workspace",
+          "name": "rust_named_nonempty"
+        }
+      ],
+      "packet_id": "collection-empty-check-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "collection-nonempty-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
+        }
+      ],
+      "why_expected": "The focused collection non-empty pair is admitted when the same receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts are all satisfied."
     }
   ],
   "schema_version": 1,

@@ -133,6 +133,37 @@
         "crates/nose-cli/tests/equivalence/imported_js_ts_collection_membership.rs::collection_membership_converges_with_js_ts_imported_set_bindings"
       ],
       "claim": "Collection membership admission must keep receiver API/domain proof, searched-element coordinates, collection/source coordinates, and mutation closure beside every literal, factory, imported, or typed dynamic membership bridge."
+    },
+    {
+      "id": "collection-empty-check-proof-perimeter",
+      "semantic_family": "collection.empty_check",
+      "packet_ids": ["collection-empty-check-2026-07-08"],
+      "conventions": [
+        "collection.cardinality",
+        "collection.receiver-provenance",
+        "collection.mutation",
+        "protocol-boundary.api-identity",
+        "boolean.truth-table"
+      ],
+      "positive_cases": [
+        "collection_empty_named_zero_positive",
+        "collection_nonempty_named_positive"
+      ],
+      "hard_negative_cases": [
+        "collection_empty_threshold_boundary",
+        "collection_empty_wrong_receiver_boundary",
+        "collection_empty_mutated_receiver_boundary"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+        "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+        "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string"
+      ],
+      "claim": "Collection empty-check admission must keep receiver identity, collection domain/kind, empty-vs-nonempty predicate direction, threshold/cardinality, and mutation closure beside every length-zero or named-empty bridge."
     }
   ],
   "cases": [
@@ -298,6 +329,144 @@
         }
       ],
       "evidence": "Module, local, provider, importer, and std-factory mutation fixtures across Python, JS/TS, Go, Java, Ruby, and Rust stay split from the original literal membership family."
+    },
+    {
+      "id": "collection_empty_named_zero_positive",
+      "kind": "positive",
+      "semantic_family": "collection.empty_check",
+      "claim": "Length-zero comparisons and named emptiness predicates converge when they prove the same collection receiver coordinate and empty direction.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_empty_rust_len_matches_named",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_len_empty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_named_empty"
+            }
+          ]
+        }
+      ],
+      "evidence": "The executable fixture proves the minimal Rust Vec length-zero to is_empty bridge; the proof perimeter regression gates cite broader generated coverage and the Rust/Java CLI empty-check suite."
+    },
+    {
+      "id": "collection_nonempty_named_positive",
+      "kind": "positive",
+      "semantic_family": "collection.empty_check",
+      "claim": "Negated named emptiness and nonzero length comparisons converge only as the non-empty direction of the same receiver proof.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_nonempty_rust_len_matches_negated_named",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_len_nonempty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_named_nonempty"
+            }
+          ]
+        }
+      ],
+      "evidence": "The executable fixture records the non-empty direction separately so truthiness/non-emptiness admission cannot be confused with an empty predicate."
+    },
+    {
+      "id": "collection_empty_threshold_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.empty_check",
+      "claim": "A length-one threshold is not strict emptiness, even though it has the same receiver and length surface.",
+      "mutation": "len(receiver) == 0 -> len(receiver) == 1",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_empty_check/threshold.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_empty_threshold_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_len_empty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/threshold.rs",
+              "name": "rust_one_item"
+            }
+          ]
+        }
+      ],
+      "evidence": "Generated collection_empty_check negatives and the focused fixture keep zero-length predicates distinct from one-length/cardinality thresholds."
+    },
+    {
+      "id": "collection_empty_wrong_receiver_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.empty_check",
+      "claim": "Emptiness over a different collection parameter is a different receiver coordinate.",
+      "mutation": "items.is_empty() -> other.is_empty()",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_empty_check/wrong_receiver.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_empty_wrong_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_named_empty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/wrong_receiver.rs",
+              "name": "rust_other_empty"
+            }
+          ]
+        }
+      ],
+      "evidence": "Generated wrong-receiver negatives and the focused fixture keep same-shaped emptiness predicates split when the collection coordinate changes."
+    },
+    {
+      "id": "collection_empty_mutated_receiver_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.empty_check",
+      "claim": "A collection mutated before the emptiness predicate no longer proves the original receiver state.",
+      "mutation": "read receiver emptiness -> mutate receiver, then read emptiness",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_empty_check/mutated_receiver.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_empty_mutated_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+              "name": "rust_named_empty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/mutated_receiver.rs",
+              "name": "rust_mutated_empty"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture pins mutation closure so future empty-check expansion cannot treat a stale receiver proof as current state."
     },
     {
       "id": "filter_map_filter_map_equiv",

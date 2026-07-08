@@ -235,7 +235,7 @@
       "candidate_id": "collection_empty_check",
       "curated": {
         "implementation_cost": "low",
-        "rationale": "Emptiness predicates lower to a value-graph length/size fact; no fragment substrate or receiver-place proof is involved.",
+        "rationale": "Emptiness predicates lower to value-graph length/size facts; they need receiver-coordinate proof but no #33 fragment substrate.",
         "soundness_risk": "low",
         "substrate_required": "none"
       },
@@ -243,8 +243,14 @@
       "evidence_tier": "frontier-recorded",
       "gap_samples": [],
       "human_evidence": {
-        "count": 1,
+        "count": 2,
         "records": [
+          {
+            "candidate_axis": "collection_empty_check",
+            "case_id": "collection-empty-focused-controlled",
+            "proof_invariant": "Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.",
+            "status": "already-covered"
+          },
           {
             "candidate_axis": "collection_empty_check / typed_empty_domain_soundness",
             "case_id": "java-empty-domain-netty-array-queue-string",
@@ -253,6 +259,7 @@
           }
         ],
         "statuses": [
+          "already-covered",
           "closed"
         ]
       },
@@ -1599,6 +1606,7 @@
   "tool_version": "frontier-platform/1",
   "union_outcome": {
     "extra_axes_with_packets": [
+      "collection_empty_check",
       "membership_contains",
       "numeric_clamp",
       "python_loop_demorgan_all"

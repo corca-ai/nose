@@ -1,9 +1,9 @@
 {
-  "expectation_count": 20,
+  "expectation_count": 25,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 20,
-  "query_count": 11,
+  "passed": 25,
+  "query_count": 12,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -63,6 +63,85 @@
       "expect": "split",
       "expectation_id": "collection_membership_mutated_receiver_stays_split",
       "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_named_zero_positive",
+      "expect": "same-family",
+      "expectation_id": "collection_empty_rust_len_matches_named",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_len_empty",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_named_empty",
+            "start": 5
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "collection_nonempty_named_positive",
+      "expect": "same-family",
+      "expectation_id": "collection_nonempty_rust_len_matches_negated_named",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_len_nonempty",
+            "start": 9
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_named_nonempty",
+            "start": 13
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_threshold_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_threshold_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_wrong_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_wrong_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_mutated_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_mutated_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
       "matching_family": null,
       "observed": "split",
       "ok": true

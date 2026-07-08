@@ -7,7 +7,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - build ref: `None` · union signature `fec264f35c3f1ded…`
 - corpus: 120 repos · commit digest `2bf0b8c147be66b7…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
-- packets: 3
+- packets: 4
 
 ## `numeric-clamp-2026-06-06` — axis `numeric_clamp`
 
@@ -82,3 +82,27 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **why now**: membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces.
 - **blocked by**: nothing
 - **notes**: This packet records the current controlled membership perimeter as reusable proof facts. The real-corpus EnumSet and single-argument Arrays.asList leads remain guarded by their unsupported evidence records and must not be used to widen exact admission without missing enum/array source facts.
+
+## `collection-empty-check-2026-07-08` — axis `collection_empty_check`
+
+- **owner route**: `team-a-detector` (#755) · evidence tier: `frontier-recorded` · cost `low` · risk `low` · substrate `none`
+- **breadth**: repo 86% · primary-language 100% (8/8) · dev 56 · held-out 47 · both-splits
+- **semantic claim**: A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.
+- **proof invariant**: Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.
+- **hard negatives**:
+  - length-one or greater-than-one thresholds are not strict emptiness
+  - the same empty predicate over a different receiver parameter is not equivalent
+  - Java array length, Java Collection.isEmpty, and String.isEmpty stay split without domain/kind proof
+  - truthiness over unproven or value-returning domains cannot be folded into collection emptiness
+  - mutation before the empty check changes the receiver state
+- **evidence**: `collection-empty-focused-controlled`, `java-empty-domain-netty-array-queue-string` (`real_frontier.v1.json`)
+- **real frontier replay**: `collection-empty-focused-controlled-pair`, `collection-nonempty-focused-controlled-pair` (`real_frontier_replay.v1.json`)
+- **representative locations**:
+  - `nose` (focused, Rust) `bench/type4/adversarial/cases/collection_empty_check/positive.rs:1-15`
+  - `netty` (dev, Java) `common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java:147-149`
+- **current detector result**: miss=False · `nose` @ `#755 semanti` — Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.
+- **detector admission**: `real-pair-admitted` · controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof
+- **remaining real-pair gap**: none
+- **why now**: collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces.
+- **blocked by**: nothing
+- **notes**: This packet records the current collection-empty perimeter as reusable proof facts. The Java Netty array/Queue/String record remains a hard-negative domain sibling; it must not be used to merge incompatible empty domains without explicit domain/kind proof.

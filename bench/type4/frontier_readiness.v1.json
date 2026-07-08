@@ -1,22 +1,22 @@
 {
   "executable_witness_coverage": {
-    "declared_expectation_count": 20,
+    "declared_expectation_count": 25,
     "extra": 0,
     "failed": 0,
-    "fully_covered_packet_count": 3,
+    "fully_covered_packet_count": 4,
     "missing": 0,
     "nose_binary": "nose",
-    "packet_count": 3,
+    "packet_count": 4,
     "packet_count_by_coverage": {
-      "covered": 3
+      "covered": 4
     },
-    "passed": 20,
-    "query_count": 11,
+    "passed": 25,
+    "query_count": 12,
     "report_extra_expectation_ids": [],
     "report_failed_expectation_ids": [],
     "report_missing_expectation_ids": [],
     "report_stale_expectation_ids": [],
-    "result_count": 20,
+    "result_count": 25,
     "stale": 0
   },
   "group_list": [
@@ -42,7 +42,7 @@
       "title": "Blocked On Product"
     },
     {
-      "count": 3,
+      "count": 4,
       "description": "Packets with an admitted detector scope or already-resolved current scope. Controlled rows can still list broader real-corpus gaps.",
       "group": "admitted/resolved",
       "packets": [
@@ -239,6 +239,205 @@
           "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
           "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
           "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
+        },
+        {
+          "blockers": [],
+          "can_open_exact_admission": false,
+          "candidate_axis": "collection_empty_check",
+          "detector_admission_status": "real-pair-admitted",
+          "detector_scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
+          "evidence_case_ids": [
+            "collection-empty-focused-controlled",
+            "java-empty-domain-netty-array-queue-string"
+          ],
+          "evidence_tier": "frontier-recorded",
+          "executable_witness_coverage": {
+            "by_expectation": [
+              {
+                "case_id": "collection_empty_mutated_receiver_boundary",
+                "expect": "split",
+                "expectation_id": "collection_empty_mutated_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_empty_named_zero_positive",
+                "expect": "same-family",
+                "expectation_id": "collection_empty_rust_len_matches_named",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_empty_threshold_boundary",
+                "expect": "split",
+                "expectation_id": "collection_empty_threshold_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_empty_wrong_receiver_boundary",
+                "expect": "split",
+                "expectation_id": "collection_empty_wrong_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_nonempty_named_positive",
+                "expect": "same-family",
+                "expectation_id": "collection_nonempty_rust_len_matches_negated_named",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "covered",
+            "declared_expectation_count": 5,
+            "declared_expectation_ids": [
+              "collection_empty_mutated_receiver_stays_split",
+              "collection_empty_rust_len_matches_named",
+              "collection_empty_threshold_stays_split",
+              "collection_empty_wrong_receiver_stays_split",
+              "collection_nonempty_rust_len_matches_negated_named"
+            ],
+            "failed_expectation_count": 0,
+            "failed_expectation_ids": [],
+            "manifest_case_ids": [
+              "collection_empty_mutated_receiver_boundary",
+              "collection_empty_named_zero_positive",
+              "collection_empty_threshold_boundary",
+              "collection_empty_wrong_receiver_boundary",
+              "collection_nonempty_named_positive"
+            ],
+            "manifest_hard_negative_case_ids": [
+              "collection_empty_mutated_receiver_boundary",
+              "collection_empty_threshold_boundary",
+              "collection_empty_wrong_receiver_boundary"
+            ],
+            "manifest_only_case_ids": [],
+            "manifest_positive_case_ids": [
+              "collection_empty_named_zero_positive",
+              "collection_nonempty_named_positive"
+            ],
+            "missing_expectation_count": 0,
+            "missing_expectation_ids": [],
+            "packet_id": "collection-empty-check-2026-07-08",
+            "passed_expectation_count": 5,
+            "passed_expectation_ids": [
+              "collection_empty_mutated_receiver_stays_split",
+              "collection_empty_rust_len_matches_named",
+              "collection_empty_threshold_stays_split",
+              "collection_empty_wrong_receiver_stays_split",
+              "collection_nonempty_rust_len_matches_negated_named"
+            ],
+            "stale_expectation_count": 0,
+            "stale_expectation_ids": []
+          },
+          "group": "admitted/resolved",
+          "hard_negative_count": 5,
+          "hard_negative_gate_count": 5,
+          "hard_negative_group_ids": [
+            "collection-empty-check-proof-perimeter"
+          ],
+          "owner_issue": "#755",
+          "owner_route": "team-a-detector",
+          "packet_id": "collection-empty-check-2026-07-08",
+          "planning_summary": "No follow-up is queued from the readiness artifact.",
+          "positive_gate_count": 4,
+          "proof_fact_ids": [
+            "collection.empty.receiver-coordinate",
+            "collection.empty.domain-kind-identity",
+            "collection.empty.predicate-direction",
+            "collection.empty.no-intervening-mutation"
+          ],
+          "proof_fact_model_status": "modeled-controlled",
+          "proof_facts": [
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.receiver-coordinate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty-check receiver coordinate"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.domain-kind-identity",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty-check domain and kind identity"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.predicate-direction",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty/non-empty predicate direction"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused mutation fixtures: mutating the receiver before the empty check remains distinct from the original empty predicate",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.no-intervening-mutation",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty-check mutation closure"
+            }
+          ],
+          "proof_invariant": "Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.",
+          "readiness_status": "detector-admitted",
+          "real_frontier_replay": {
+            "by_replay": [
+              {
+                "case_id": "collection-empty-focused-controlled",
+                "expect": "same-family",
+                "observed": "same-family",
+                "proof_gap": [],
+                "replay_id": "collection-empty-focused-controlled-pair",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection-empty-focused-controlled",
+                "expect": "same-family",
+                "observed": "same-family",
+                "proof_gap": [],
+                "replay_id": "collection-nonempty-focused-controlled-pair",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "passed",
+            "declared_replay_count": 2,
+            "declared_replay_ids": [
+              "collection-empty-focused-controlled-pair",
+              "collection-nonempty-focused-controlled-pair"
+            ],
+            "failed_replay_count": 0,
+            "failed_replay_ids": [],
+            "missing_replay_count": 0,
+            "missing_replay_ids": [],
+            "packet_id": "collection-empty-check-2026-07-08",
+            "passed_replay_count": 2,
+            "passed_replay_ids": [
+              "collection-empty-focused-controlled-pair",
+              "collection-nonempty-focused-controlled-pair"
+            ],
+            "unavailable_replay_count": 0,
+            "unavailable_replay_ids": []
+          },
+          "release_note": "collection-empty-check-2026-07-08: the linked real-corpus detector scope for collection_empty_check is already admitted or resolved; no new detector behavior is opened from this row.",
+          "remaining_real_pair_gap": null,
+          "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+          "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
         },
         {
           "blockers": [],
@@ -725,7 +924,7 @@
   ],
   "groups": {
     "admitted/resolved": {
-      "count": 3,
+      "count": 4,
       "description": "Packets with an admitted detector scope or already-resolved current scope. Controlled rows can still list broader real-corpus gaps.",
       "packets": [
         {
@@ -921,6 +1120,205 @@
           "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
           "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
           "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
+        },
+        {
+          "blockers": [],
+          "can_open_exact_admission": false,
+          "candidate_axis": "collection_empty_check",
+          "detector_admission_status": "real-pair-admitted",
+          "detector_scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
+          "evidence_case_ids": [
+            "collection-empty-focused-controlled",
+            "java-empty-domain-netty-array-queue-string"
+          ],
+          "evidence_tier": "frontier-recorded",
+          "executable_witness_coverage": {
+            "by_expectation": [
+              {
+                "case_id": "collection_empty_mutated_receiver_boundary",
+                "expect": "split",
+                "expectation_id": "collection_empty_mutated_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_empty_named_zero_positive",
+                "expect": "same-family",
+                "expectation_id": "collection_empty_rust_len_matches_named",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_empty_threshold_boundary",
+                "expect": "split",
+                "expectation_id": "collection_empty_threshold_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_empty_wrong_receiver_boundary",
+                "expect": "split",
+                "expectation_id": "collection_empty_wrong_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_nonempty_named_positive",
+                "expect": "same-family",
+                "expectation_id": "collection_nonempty_rust_len_matches_negated_named",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "covered",
+            "declared_expectation_count": 5,
+            "declared_expectation_ids": [
+              "collection_empty_mutated_receiver_stays_split",
+              "collection_empty_rust_len_matches_named",
+              "collection_empty_threshold_stays_split",
+              "collection_empty_wrong_receiver_stays_split",
+              "collection_nonempty_rust_len_matches_negated_named"
+            ],
+            "failed_expectation_count": 0,
+            "failed_expectation_ids": [],
+            "manifest_case_ids": [
+              "collection_empty_mutated_receiver_boundary",
+              "collection_empty_named_zero_positive",
+              "collection_empty_threshold_boundary",
+              "collection_empty_wrong_receiver_boundary",
+              "collection_nonempty_named_positive"
+            ],
+            "manifest_hard_negative_case_ids": [
+              "collection_empty_mutated_receiver_boundary",
+              "collection_empty_threshold_boundary",
+              "collection_empty_wrong_receiver_boundary"
+            ],
+            "manifest_only_case_ids": [],
+            "manifest_positive_case_ids": [
+              "collection_empty_named_zero_positive",
+              "collection_nonempty_named_positive"
+            ],
+            "missing_expectation_count": 0,
+            "missing_expectation_ids": [],
+            "packet_id": "collection-empty-check-2026-07-08",
+            "passed_expectation_count": 5,
+            "passed_expectation_ids": [
+              "collection_empty_mutated_receiver_stays_split",
+              "collection_empty_rust_len_matches_named",
+              "collection_empty_threshold_stays_split",
+              "collection_empty_wrong_receiver_stays_split",
+              "collection_nonempty_rust_len_matches_negated_named"
+            ],
+            "stale_expectation_count": 0,
+            "stale_expectation_ids": []
+          },
+          "group": "admitted/resolved",
+          "hard_negative_count": 5,
+          "hard_negative_gate_count": 5,
+          "hard_negative_group_ids": [
+            "collection-empty-check-proof-perimeter"
+          ],
+          "owner_issue": "#755",
+          "owner_route": "team-a-detector",
+          "packet_id": "collection-empty-check-2026-07-08",
+          "planning_summary": "No follow-up is queued from the readiness artifact.",
+          "positive_gate_count": 4,
+          "proof_fact_ids": [
+            "collection.empty.receiver-coordinate",
+            "collection.empty.domain-kind-identity",
+            "collection.empty.predicate-direction",
+            "collection.empty.no-intervening-mutation"
+          ],
+          "proof_fact_model_status": "modeled-controlled",
+          "proof_facts": [
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.receiver-coordinate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty-check receiver coordinate"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.domain-kind-identity",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty-check domain and kind identity"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.predicate-direction",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty/non-empty predicate direction"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused mutation fixtures: mutating the receiver before the empty check remains distinct from the original empty predicate",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "collection.empty.no-intervening-mutation",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "collection.empty_check",
+              "title": "Collection empty-check mutation closure"
+            }
+          ],
+          "proof_invariant": "Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.",
+          "readiness_status": "detector-admitted",
+          "real_frontier_replay": {
+            "by_replay": [
+              {
+                "case_id": "collection-empty-focused-controlled",
+                "expect": "same-family",
+                "observed": "same-family",
+                "proof_gap": [],
+                "replay_id": "collection-empty-focused-controlled-pair",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection-empty-focused-controlled",
+                "expect": "same-family",
+                "observed": "same-family",
+                "proof_gap": [],
+                "replay_id": "collection-nonempty-focused-controlled-pair",
+                "status": "passed"
+              }
+            ],
+            "coverage_status": "passed",
+            "declared_replay_count": 2,
+            "declared_replay_ids": [
+              "collection-empty-focused-controlled-pair",
+              "collection-nonempty-focused-controlled-pair"
+            ],
+            "failed_replay_count": 0,
+            "failed_replay_ids": [],
+            "missing_replay_count": 0,
+            "missing_replay_ids": [],
+            "packet_id": "collection-empty-check-2026-07-08",
+            "passed_replay_count": 2,
+            "passed_replay_ids": [
+              "collection-empty-focused-controlled-pair",
+              "collection-nonempty-focused-controlled-pair"
+            ],
+            "unavailable_replay_count": 0,
+            "unavailable_replay_ids": []
+          },
+          "release_note": "collection-empty-check-2026-07-08: the linked real-corpus detector scope for collection_empty_check is already admitted or resolved; no new detector behavior is opened from this row.",
+          "remaining_real_pair_gap": null,
+          "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+          "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
         },
         {
           "blockers": [],
@@ -1431,20 +1829,20 @@
     "passing_real_frontier_replay_required_for_ready_rows": true
   },
   "real_frontier_replay": {
-    "declared_replay_count": 3,
+    "declared_replay_count": 5,
     "failed": 0,
-    "fully_replayed_packet_count": 3,
+    "fully_replayed_packet_count": 4,
     "nose_binary": "nose",
-    "packet_count": 3,
+    "packet_count": 4,
     "packet_count_by_coverage": {
-      "passed": 3
+      "passed": 4
     },
-    "passed": 3,
-    "query_count": 3,
+    "passed": 5,
+    "query_count": 4,
     "report_failed_replay_ids": [],
     "report_missing_replay_ids": [],
     "report_unavailable_replay_ids": [],
-    "result_count": 3,
+    "result_count": 5,
     "unavailable": 0
   },
   "schema_version": 1,
@@ -1456,18 +1854,18 @@
     },
     "executable_expectations": {
       "path": "bench/type4/executable_expectations.v1.json",
-      "sha256": "88c6bef72dc760cecddbec15daa9e9fe4b54a08a3f90f6a8e046ea212ef76bc1",
-      "size_bytes": 9142
+      "sha256": "4ca9feddd046290c1c0661cab4541c82150ef186361c4d793eed4da6df52b0e4",
+      "size_bytes": 11714
     },
     "focused_cases": {
       "path": "bench/type4/adversarial/cases/cases.v1.json",
-      "sha256": "09a255492dd025a76ace1bdab41c79879b3d0aa02f8a570df799ffde5213ae39",
-      "size_bytes": 51439
+      "sha256": "1fe04703942d7fc1cb2518ef8ea2662834302e0d76660a93d79a55897a87205c",
+      "size_bytes": 59052
     },
     "proof_fact_registry": {
       "path": "bench/type4/proof_fact_registry.v1.json",
-      "sha256": "67994a658be19c168d10640e888a4c10abd39cc95a641153acf3ef269a959498",
-      "size_bytes": 53046
+      "sha256": "c0817010828dbbd0a3feb27cf672b379c0b57eb45db957456faf93ca312c4c97",
+      "size_bytes": 60594
     },
     "python_loop_demorgan_proof_facts": {
       "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
@@ -1476,23 +1874,23 @@
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "fbc90029248972607fe59e2428047e310d2543ad81ec63edd41b156962bcf3bb",
-      "size_bytes": 74262
+      "sha256": "ebb0ebfa1ab52e6ea28fcaff75797b6764582e9f5950c851b17c515dfeff03e9",
+      "size_bytes": 77978
     },
     "real_frontier_replay": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "3b9ddf474c6f92acd92fba3f050b4b3a3527e6f96bccdef0ff7fda6c734b6f7a",
-      "size_bytes": 3892
+      "sha256": "de859306074b6ae0858e17a89677f4797837d2214e293e2bfef89bf58d54bea1",
+      "size_bytes": 6108
     },
     "real_frontier_replay_status": {
       "path": "bench/type4/real_frontier_replay_status.v1.json",
-      "sha256": "18a5021f8ec1a323d7ff7aebc34646cd52937e2d3699b47ffeebdc343a5dfdac",
-      "size_bytes": 3011
+      "sha256": "2f4f1b5ffe825f4ea873a0c4c6b1a241cd7f3b4a2f8af36864922463fa303070",
+      "size_bytes": 4809
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "4ffeb6d16bd3bdff20cb3e66bf8dc0bf91e2ebd185e4917e2889326255700fa2",
-      "size_bytes": 30367
+      "sha256": "a5de30bb0a1a71c0a7100fb64eded3ab3e3a50e3b923354aec84f59a74a5cc6b",
+      "size_bytes": 39589
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",

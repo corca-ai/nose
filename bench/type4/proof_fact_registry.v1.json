@@ -614,6 +614,130 @@
     },
     {
       "accepted_evidence": [
+        "length, size, truthiness, or named-empty surfaces read the same local receiver place",
+        "the empty and non-empty predicates refer to the same parameter, local binding, field, or imported receiver coordinate",
+        "focused wrong-receiver hard negatives remain split"
+      ],
+      "detector_admission_implication": "Does not admit empty-check convergence by itself; collection domain/kind, predicate direction, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.empty.receiver-coordinate",
+      "hard_negative_conventions": [
+        "collection.receiver-provenance"
+      ],
+      "implementation_guidance": [
+        "Track the receiver coordinate independently from the empty/non-empty predicate spelling.",
+        "Reject same-shaped predicates over a different parameter, field, or derived receiver unless a separate alias/source fact proves identity.",
+        "For method and property surfaces, attach the fact to the receiver place rather than to the method name."
+      ],
+      "rejected_evidence": [
+        "length or named-empty checks over a different receiver",
+        "derived receivers such as filtered, sliced, or copied collections without a source-preservation fact",
+        "same variable names across files without import, type, or binding evidence"
+      ],
+      "semantic_family": "collection.empty_check",
+      "status": "modeled-controlled",
+      "summary": "Collection empty-check predicates compare the state of a specific receiver coordinate; changing that receiver changes behavior.",
+      "title": "Collection empty-check receiver coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "type, import, constructor, package, or receiver evidence proves the receiver is the same collection domain and kind",
+        "array, list, set, map, queue, and sequence emptiness are matched only when the kind-specific empty state is behavior-compatible",
+        "real and focused hard negatives keep collection, array, map, and string empty domains split without domain proof"
+      ],
+      "detector_admission_implication": "Does not admit empty-check convergence by itself; receiver coordinate, predicate direction, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.empty.domain-kind-identity",
+      "hard_negative_conventions": [
+        "collection.receiver-provenance",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Require a proven collection-domain and kind before folding length, size, named-empty, or truthiness surfaces.",
+        "Keep string emptiness, Java array length, map-key domain, custom isEmpty-like APIs, and untyped receivers closed without explicit domain evidence.",
+        "Use language frontends and library contracts to emit domain/kind evidence instead of relying on spelling alone."
+      ],
+      "rejected_evidence": [
+        "string or substring emptiness folded into collection emptiness by name",
+        "array length, map emptiness, and collection emptiness merged without kind compatibility proof",
+        "custom empty/isEmpty methods or shadowed standard-library APIs without API identity"
+      ],
+      "semantic_family": "collection.empty_check",
+      "status": "modeled-controlled",
+      "summary": "Empty-check convergence requires a compatible collection domain and kind, so string, array, map, and custom empty surfaces stay distinct unless explicitly proven.",
+      "title": "Collection empty-check domain and kind identity"
+    },
+    {
+      "accepted_evidence": [
+        "length or size equals zero, named empty predicates, and collection truthiness surfaces are normalized to the empty direction only when the boolean result is observed",
+        "length or size not-equals zero, negated named empty predicates, and supported non-empty truthiness surfaces are normalized to the non-empty direction",
+        "focused threshold and direction hard negatives remain split"
+      ],
+      "detector_admission_implication": "Does not admit empty-check convergence by itself; receiver coordinate, domain/kind identity, and mutation closure remain separate facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.empty.predicate-direction",
+      "hard_negative_conventions": [
+        "collection.cardinality",
+        "boolean.truth-table",
+        "boolean.value-context"
+      ],
+      "implementation_guidance": [
+        "Represent empty and non-empty as opposite boolean directions over the same receiver proof.",
+        "Reject one-length, greater-than-one, raw length payload, and compound arithmetic forms unless a separate cardinality proof admits them.",
+        "For truthiness, require language-specific collection-domain evidence and a boolean context so payload values are not observed."
+      ],
+      "rejected_evidence": [
+        "len(x) == 1, len(x) > 1, or other cardinality thresholds",
+        "raw length/size numeric payloads whose value is observed",
+        "truthiness over unproven or value-returning domains"
+      ],
+      "semantic_family": "collection.empty_check",
+      "status": "modeled-controlled",
+      "summary": "Length-zero, named-empty, truthiness, and their negations must preserve the empty versus non-empty boolean direction.",
+      "title": "Collection empty/non-empty predicate direction"
+    },
+    {
+      "accepted_evidence": [
+        "no writes, pushes, appends, inserts, clears, removals, deletes, or mutating method calls can affect the receiver before the empty check",
+        "imported or module-level collections are immutable, frozen, or treated as stable literal provenance before the check",
+        "focused mutation hard negatives remain split from the original empty predicate"
+      ],
+      "detector_admission_implication": "Does not admit empty-check convergence by itself; it only closes mutation and stale-receiver boundaries for separately proven empty-check surfaces.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "collection.empty.no-intervening-mutation",
+      "hard_negative_conventions": [
+        "collection.mutation",
+        "collection.receiver-provenance"
+      ],
+      "implementation_guidance": [
+        "Reject receiver mutation after construction/import and before the empty or non-empty predicate.",
+        "Treat provider-side and importer-side collection mutations as stale-provenance blockers.",
+        "Keep helper calls that may mutate the receiver outside strict empty-check proof unless a separate effect/immutability proof exists."
+      ],
+      "rejected_evidence": [
+        "push/append/add/insert/remove/clear/delete or assignment to the collection before the empty check",
+        "provider module mutates an exported collection after initialization",
+        "helper calls that may mutate the collection receiver"
+      ],
+      "semantic_family": "collection.empty_check",
+      "status": "modeled-controlled",
+      "summary": "Collection empty-checks over constructed, imported, or typed receivers require a stable receiver state; mutation changes the empty/non-empty predicate.",
+      "title": "Collection empty-check mutation closure"
+    },
+    {
+      "accepted_evidence": [
         "sum, reduce, any, all, or equivalent loop terminals with the same initial value or empty-input result",
         "loop accumulators whose seed matches the aggregate terminal identity",
         "focused hard negatives where changed seeds or empty-input behavior remain split"
