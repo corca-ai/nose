@@ -45,6 +45,12 @@ impl<'a> Builder<'a> {
             let (code, pred) = if ret_true && plain_false {
                 (REDUCE_ANY, guard)
             } else if ret_false && plain_true {
+                // `Array.prototype.every` skips sparse-array holes. A JS/TS typed
+                // Array parameter does not prove the for-of source is dense, so keep
+                // universal counterexample loops over such sources outside this fold.
+                if self.refs_js_like_array_param_elem(guard) {
+                    continue;
+                }
                 (REDUCE_ALL, self.mk(ValOp::Un(Op::Not as u32), vec![guard]))
             } else {
                 continue;

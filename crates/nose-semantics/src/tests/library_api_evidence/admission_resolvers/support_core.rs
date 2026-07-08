@@ -92,6 +92,37 @@ pub(crate) enum CallbackFixtureShape {
     Throwing { err_cid: u32 },
 }
 
+pub(crate) fn inline_lambda_with_params(
+    b: &mut IlBuilder,
+    first_cid: u32,
+    param_count: usize,
+    span_base: u32,
+) -> NodeId {
+    let mut kids = (0..param_count)
+        .map(|idx| {
+            b.add(
+                NodeKind::Param,
+                Payload::Cid(first_cid + idx as u32),
+                sp(span_base + idx as u32),
+                &[],
+            )
+        })
+        .collect::<Vec<_>>();
+    let body = b.add(
+        NodeKind::Block,
+        Payload::None,
+        sp(span_base + param_count as u32),
+        &[],
+    );
+    kids.push(body);
+    b.add(
+        NodeKind::Lambda,
+        Payload::None,
+        sp(span_base + param_count as u32 + 1),
+        &kids,
+    )
+}
+
 pub(crate) fn callback_fixture_node(
     b: &mut IlBuilder,
     interner: &Interner,

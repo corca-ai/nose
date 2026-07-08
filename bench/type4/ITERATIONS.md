@@ -176,6 +176,23 @@ that many new reports are 1-3 line proof fragments. Those are sound, but not alw
 human refactoring pass unless ranking or views separate "semantic proof" from "actionable
 refactor".
 
+## Proof-Backed Surface Admission
+
+The first open-surface admission loop after the neutral pattern cards promoted
+dense-literal one-argument TypeScript `Array.prototype.every` plus a `for-of`
+counterexample loop.
+The implementation keeps JS/TS relational comparison semantics opaque, but records
+that comparison results are boolean enough for `!!predicate` elimination inside the
+universal-loop proof perimeter. It also keeps plain `number[]` parameters closed
+for universal `every`/`for-of` convergence because sparse array holes are skipped by
+`every` but observable to value iteration. Callbacks that observe Array.every's
+index or source-array arguments also stay outside the value-only proof. Focused
+expectations now admit the positive `tsAllLoop`/`tsAllEvery` pair and keep
+array-param sparse boundaries, wrong vacuous truth, changed predicates, different
+sources, callback extra args, callback/loop effects, and value-returning `&&`
+operands split. JavaScript `every` remains open until exact Array receiver evidence
+and its own surface-focused perimeter are executable.
+
 Representative recent fragment gates:
 
 ```text

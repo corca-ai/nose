@@ -479,6 +479,70 @@
    "expect": "same-family",
    "members": [
     {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+     "kind": "workspace",
+     "name": "tsAllLoop"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+     "kind": "workspace",
+     "name": "tsAllEvery"
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-typescript-every-dense-literal-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused TypeScript every pair is admitted only for a dense literal source, a one-argument value predicate, same-source traversal, universal short-circuit direction, vacuous truth, and predicate purity."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "split",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+     "kind": "workspace",
+     "name": "tsAllParamLoop"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+     "kind": "workspace",
+     "name": "tsAllParamEvery"
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-typescript-every-array-param-boundary-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused TypeScript number[] parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; the array annotation alone is not dense-source proof."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
      "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
      "kind": "workspace",
      "name": "py_max_loop"

@@ -44,6 +44,7 @@ use nose_semantics::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
+mod bool_reductions;
 mod calls;
 mod collections;
 mod factories;
@@ -57,15 +58,17 @@ mod tree;
 #[cfg(test)]
 mod tests;
 
+use bool_reductions::strict_exact_bool_reduction_method_call_safe;
 use calls::{admitted_method_call_contract, field_receiver, strict_exact_safe_call};
 pub(crate) use collections::{
     strict_exact_collection_contains_call_safe, strict_exact_membership_collection_safe,
 };
 use collections::{
     strict_exact_collection_factory_call_safe, strict_exact_iterator_identity_adapter_call_safe,
-    strict_exact_map_contains_call_safe, strict_exact_map_get_call_safe,
-    strict_exact_map_get_default_call_safe, strict_exact_map_receiver_or_factory_safe,
-    strict_exact_proven_collection_receiver_safe, strict_exact_proven_map_receiver_safe,
+    strict_exact_literal_collection_receiver_safe, strict_exact_map_contains_call_safe,
+    strict_exact_map_get_call_safe, strict_exact_map_get_default_call_safe,
+    strict_exact_map_receiver_or_factory_safe, strict_exact_proven_collection_receiver_safe,
+    strict_exact_proven_map_receiver_safe,
 };
 use factories::{
     strict_exact_go_literal_zero_map_index_safe, strict_exact_java_collection_constructor_safe,

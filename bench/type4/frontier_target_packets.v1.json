@@ -1044,9 +1044,9 @@
       },
       "current_detector_result": {
         "baseline_command": "nose query bench/type4/adversarial/cases/reduction_minmax_anyall --mode semantic top=0 --format json --min-size 1 --min-lines 1",
-        "baseline_result": "Semantic query reports a broad sum/reduce family, TypeScript any/some plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.",
+        "baseline_result": "Semantic query reports a broad sum/reduce family, TypeScript any/some, dense-literal one-argument TypeScript every/for-of, plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, TypeScript array-param every, TypeScript every callback-extra-argument cases, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.",
         "binary_path": "nose",
-        "build_ref": "#758 semantic pattern card",
+        "build_ref": "#767 dense-literal TypeScript every admission",
         "current_detector_miss": false,
         "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations.",
         "nose_version": "nose",
@@ -1055,14 +1055,16 @@
       "detector_admission": {
         "capabilities": [
           "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
-          "converges Rust any/all terminal forms and TypeScript any/some terminal forms with equivalent early-return loops when predicate and admitted direction evidence match",
+          "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
           "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
         ],
         "hard_negative_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
@@ -1071,6 +1073,7 @@
         "positive_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
@@ -1095,6 +1098,8 @@
         "additive sum, multiplicative product, and positive-count contributions are distinct step coordinates",
         "any/all terminal predicates such as x > 0, x >= 0, and x < 0 are distinct coordinates",
         "any and all have opposite short-circuit direction and fallthrough truth values",
+        "TypeScript number[] parameters do not prove dense Array.every sources because sparse holes are skipped by every but observable to for-of iteration",
+        "TypeScript Array.every callbacks that observe index or source-array arguments are outside the value-only predicate proof",
         "seeded max over max(0, xs...) differs from max(xs).unwrap_or(0) on all-negative non-empty inputs",
         "min and max selection directions are distinct even when both use the same seed",
         "effectful reducers, predicates, callbacks, or receiver/protocol mutations are behavior-defining"
@@ -1114,6 +1119,14 @@
           "repo": "nose",
           "snippet": "Rust any/all loop and Iterator terminal representatives plus same-predicate direction boundary",
           "span": "1-42",
+          "split": "focused"
+        },
+        {
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+          "primary_language": "TypeScript",
+          "repo": "nose",
+          "snippet": "TypeScript any/some and dense-literal every/for-of representatives with array-param, callback-extra-arg, predicate, source, effect, and value-returning boundaries",
+          "span": "1-124",
           "split": "focused"
         },
         {
@@ -1148,7 +1161,7 @@
             "fact_id": "reduction.terminal-predicate-coordinate"
           },
           {
-            "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript currently covers any/some only",
+            "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript now covers any/some plus the focused dense-literal, one-argument every/for-of universal slice while array-param every and callbacks observing index/source arguments remain closed; JavaScript and untyped relational terminals remain open",
             "fact_id": "reduction.short-circuit-direction"
           },
           {
@@ -1167,6 +1180,9 @@
         "focused_tests": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
@@ -1181,13 +1197,15 @@
         ],
         "model_status": "modeled-controlled"
       },
-      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
       "real_frontier_replay_ids": [
         "reduction-sum-focused-controlled-pair",
         "reduction-any-focused-controlled-pair",
+        "reduction-typescript-every-dense-literal-controlled-pair",
+        "reduction-typescript-every-array-param-boundary-controlled-pair",
         "reduction-selection-focused-controlled-pair"
       ],
-      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus TypeScript any/some terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
+      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
       "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
     }
   ],

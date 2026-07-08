@@ -1,8 +1,8 @@
 {
-  "expectation_count": 76,
+  "expectation_count": 86,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 76,
+  "passed": 86,
   "query_count": 17,
   "results": [
     {
@@ -994,6 +994,113 @@
       "case_id": "reduction_terminal_predicate_boundary",
       "expect": "split",
       "expectation_id": "reduction_rust_any_all_direction_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_universal_positive",
+      "expect": "same-family",
+      "expectation_id": "typescript_every_loop_matches_every",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 27,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllLoop",
+            "start": 20
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllEvery",
+            "start": 29
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_sparse_array_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_array_param_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_vacuous_truth_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_wrong_empty_truth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_changed_predicate_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_changed_predicate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_source_identity_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_different_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_side_effect_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_callback_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_side_effect_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_loop_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_callback_extra_args_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_index_callback_arg_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_callback_extra_args_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_source_callback_arg_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "typescript_every_value_return_boundary",
+      "expect": "split",
+      "expectation_id": "typescript_every_value_returning_and_stays_split",
       "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
       "matching_family": null,
       "observed": "split",

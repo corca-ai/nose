@@ -1940,6 +1940,183 @@
       "evidence": "The Rust and TypeScript terminal fixtures keep changed predicates out of the admitted any/all families, and the Rust terminal fixture keeps any(x > 0) separate from all(x > 0)."
     },
     {
+      "id": "typescript_every_universal_positive",
+      "kind": "positive",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "A TypeScript Array.every(...) universal predicate can converge with a same-source for-of counterexample loop when dense literal source evidence closes sparse-hole behavior, the callback observes only the element value, the loop returns false on the first failing boolean predicate, and true after exhaustion.",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_loop_matches_every",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllLoop"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEvery"}
+          ]
+        }
+      ],
+      "evidence": "The TypeScript fixture admits only the dense-literal Array.every surface whose for-of loop traverses the same parameterized literal source [a, b, c], returns false on the first counterexample against min, preserves vacuous truth, and uses a one-argument comparison predicate whose result is boolean even when JS/TS relational coercion keeps the comparison value opaque."
+    },
+    {
+      "id": "typescript_every_sparse_array_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "A TypeScript number[] parameter is not dense-source proof for Array.every(...) because sparse array holes are skipped by every but can be observed by for-of iteration.",
+      "mutation": "dense literal source evidence -> plain number[] parameter",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_array_param_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllParamLoop"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllParamEvery"}
+          ]
+        }
+      ],
+      "evidence": "For a sparse runtime array such as new Array(1), Array.every skips the hole and returns true while the for-of loop can visit undefined and reject the comparison; a TypeScript number[] annotation alone does not rule that out."
+    },
+    {
+      "id": "typescript_every_vacuous_truth_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Changing the for-of loop fallthrough result breaks Array.every(...) vacuous truth.",
+      "mutation": "fallthrough return true -> false",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_wrong_empty_truth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEvery"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllWrongEmptyTruth"}
+          ]
+        }
+      ],
+      "evidence": "tsAllWrongEmptyTruth returns false for empty input while Array.every(...) returns true."
+    },
+    {
+      "id": "typescript_every_changed_predicate_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Changing the Array.every(...) predicate changes behavior even when the surface remains universal.",
+      "mutation": "x >= 0 -> x > 0",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEvery"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllChangedPredicate"}
+          ]
+        }
+      ],
+      "evidence": "tsAllChangedPredicate uses a strict threshold coordinate, so values equal to min are accepted by tsAllEvery and rejected by the changed predicate."
+    },
+    {
+      "id": "typescript_every_source_identity_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "The Array.every(...) receiver and for-of loop source must be the same collection.",
+      "mutation": "loop traverses ys while every traverses xs",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_different_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEvery"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllDifferentSource"}
+          ]
+        }
+      ],
+      "evidence": "tsAllDifferentSource has the same predicate and vacuous-truth shape but iterates [a, b, d] while tsAllEvery traverses [a, b, c], so source-coordinate identity is behavior-defining without relying on an always-false literal."
+    },
+    {
+      "id": "typescript_every_side_effect_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Callback or loop-body effects prevent treating Array.every(...) and a counterexample loop as a pure boolean rewrite.",
+      "mutation": "insert observed seen.push(x) in the callback or counterexample branch",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_callback_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEveryPureWithSeen"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEveryCallbackEffect"}
+          ]
+        },
+        {
+          "id": "typescript_every_loop_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllEveryPureWithSeen"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsAllLoopWithObservedEffect"}
+          ]
+        }
+      ],
+      "evidence": "Both hard negatives keep the same `(seen, bad, ok)` signature; only the callback or the failing loop branch can observe a push effect."
+    },
+    {
+      "id": "typescript_every_callback_extra_args_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Array.every(...) callbacks that observe the index or source-array arguments stay outside the value-only universal predicate proof.",
+      "mutation": "one-argument element predicate -> callback observes index or source array",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_index_callback_arg_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsEveryIndexShort"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsEveryIndexLong"}
+          ]
+        },
+        {
+          "id": "typescript_every_source_callback_arg_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsEverySourceArrayShort"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsEverySourceArrayLong"}
+          ]
+        }
+      ],
+      "evidence": "tsEveryIndexLong can fail solely because the third index is observable, and tsEverySourceArrayLong can fail solely because the callback source array has length 3; the admitted value-only proof binds only the element coordinate."
+    },
+    {
+      "id": "typescript_every_value_return_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "JS/TS value-returning && operands are not boolean-only predicate evidence.",
+      "mutation": "proven comparison predicate conjunction -> value-returning x && comparison",
+      "fixtures": ["bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"],
+      "executable_expectations": [
+        {
+          "id": "typescript_every_value_returning_and_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsEveryBooleanAnd"},
+            {"file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts", "name": "tsEveryValueReturningAnd"}
+          ]
+        }
+      ],
+      "evidence": "tsEveryValueReturningAnd uses `x && ...`, whose left operand is a value/truthiness payload rather than a proven boolean comparison result."
+    },
+    {
       "id": "reduction_selection_seeded_positive",
       "kind": "positive",
       "semantic_family": "reduction.aggregate",

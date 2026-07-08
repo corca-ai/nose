@@ -1447,6 +1447,8 @@ TARGET_PACKETS = [
         "real_frontier_replay_ids": [
             "reduction-sum-focused-controlled-pair",
             "reduction-any-focused-controlled-pair",
+            "reduction-typescript-every-dense-literal-controlled-pair",
+            "reduction-typescript-every-array-param-boundary-controlled-pair",
             "reduction-selection-focused-controlled-pair",
         ],
         "hard_negative_group_ids": ["reduction-minmax-anyall-proof-perimeter"],
@@ -1480,7 +1482,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "reduction.short-circuit-direction",
-                    "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript currently covers any/some only",
+                    "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript now covers any/some plus the focused dense-literal, one-argument every/for-of universal slice while array-param every and callbacks observing index/source arguments remain closed; JavaScript and untyped relational terminals remain open",
                 },
                 {
                     "fact_id": "reduction.selection-seed-domain",
@@ -1498,6 +1500,9 @@ TARGET_PACKETS = [
             "focused_tests": [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
@@ -1517,13 +1522,14 @@ TARGET_PACKETS = [
             "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
             "capabilities": [
                 "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
-                "converges Rust any/all terminal forms and TypeScript any/some terminal forms with equivalent early-return loops when predicate and admitted direction evidence match",
+                "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
                 "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries",
+                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
@@ -1536,6 +1542,8 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
@@ -1563,6 +1571,14 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
                 "span": "1-42",
                 "snippet": "Rust any/all loop and Iterator terminal representatives plus same-predicate direction boundary",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "TypeScript",
+                "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+                "span": "1-124",
+                "snippet": "TypeScript any/some and dense-literal every/for-of representatives with array-param, callback-extra-arg, predicate, source, effect, and value-returning boundaries",
             },
             {
                 "repo": "nose",

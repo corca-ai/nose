@@ -121,6 +121,45 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Reduce(op as u32), vec![init, contrib]))
     }
 
+    pub(in crate::value_graph) fn eval_bool_reduction_method_call(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let occurrence = admitted_library_method_call_at_call(self.il, self.interner, expr)?;
+        let result = occurrence.contract.result;
+        if result.args != MethodBuiltinArgs::BoolReduction {
+            return None;
+        }
+        let all = match result.semantic {
+            MethodSemanticContract::Builtin(Builtin::Any) => false,
+            MethodSemanticContract::Builtin(Builtin::All) => true,
+            _ => return None,
+        };
+        let lambda = *kids.get(1)?;
+        if self.il.kind(lambda) != NodeKind::Lambda {
+            return None;
+        }
+        if js_like_lang(self.il.meta.lang) && self.lambda_param_count(lambda) != 1 {
+            return None;
+        }
+        let coll = self.eval(occurrence.receiver?, env);
+        if all && self.js_like_array_param_universal_closed(coll) {
+            return None;
+        }
+        let (elem, carried_guard) = self.collection_elem_with_pred(coll);
+        let pred = self.eval_lambda_body(lambda, &[elem], env)?;
+        let contrib = if let Some(carried_guard) = carried_guard {
+            let ident = self.bool_const_value(!all);
+            self.mk(ValOp::Phi, vec![carried_guard, pred, ident])
+        } else {
+            pred
+        };
+        let code = if all { REDUCE_ALL } else { REDUCE_ANY };
+        Some(self.mk(ValOp::Reduce(code), vec![contrib]))
+    }
+
     pub(in crate::value_graph) fn eval_iterator_identity_adapter(
         &mut self,
         expr: NodeId,
@@ -191,4 +230,11 @@ impl<'a> Builder<'a> {
         let (map, key) = self.proven_map_get_value(value)?;
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
+}
+
+fn js_like_lang(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    )
 }

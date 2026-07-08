@@ -158,23 +158,26 @@ numeric aggregates, and effect closure.
 |---|---|---|---|---|---|---|---|---|
 | `reduction.identity-empty-behavior` | modeled-controlled sum loop | modeled-controlled sum loop | modeled-controlled stream reduce | modeled-controlled sum/reduce | modeled-controlled typed reduce | modeled-controlled fold/sum | probe-covered; receiver proof open | probe-covered; focused proof open |
 | `reduction.step-coordinate-identity` | modeled-controlled sum/count split | modeled-controlled sum/count split | modeled-controlled sum/product split | modeled-controlled sum/product split | modeled-controlled typed sum/wrong-seed split | modeled-controlled sum/product split | probe-covered; receiver proof open | probe-covered; focused proof open |
-| `reduction.terminal-predicate-coordinate` | open int-bool terminal proof | open | open | modeled via quantifier card | modeled-controlled TS any | modeled-controlled any/all | open receiver proof | open |
-| `reduction.short-circuit-direction` | open int-bool terminal proof | open | open | modeled via quantifier card | open for all/every direction; TS any/some only | modeled-controlled any/all | open receiver proof | open |
+| `reduction.terminal-predicate-coordinate` | open int-bool terminal proof | open | open | modeled via quantifier card | modeled-controlled TS any/some plus dense-literal one-arg every | modeled-controlled any/all | open receiver proof | open |
+| `reduction.short-circuit-direction` | open int-bool terminal proof | open | open | modeled via quantifier card | modeled-controlled TS any/some plus dense-literal one-arg every; array-param and callback-extra-arg every stay split | modeled-controlled any/all | open receiver proof | open |
 | `reduction.selection-seed-domain` | open | open | open | modeled-controlled seeded min/max | open numeric proof | modeled-controlled seeded min/max | open | open |
 
 ## Universal Quantifier Pattern Matrix
 
-This matrix records capability by language surface. Python is the first admitted
-surface through `python-loop-demorgan-all-2026-07-07`; the other columns are open
-candidates until they have their own evidence producer, focused replay, hard
+This matrix records capability by language surface. Python is admitted through
+`python-loop-demorgan-all-2026-07-07`; TypeScript is admitted for the focused
+dense-literal one-argument `Array.prototype.every` plus `for-of` counterexample-loop slice,
+while plain `number[]` parameters and callbacks that observe index/source-array arguments
+remain split because they do not prove the value-only dense-source perimeter. Other columns
+are open candidates until they have their own evidence producer, focused replay, hard
 negatives, and PCF/readiness admission.
 
-| fact | Python `all(...)` + loop | Ruby `Enumerable#all?` | Rust `Iterator::all` | JS/TS `every` |
-|---|---|---|---|---|
-| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | open | open | open |
-| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | open | open | open |
-| `iteration.same-source-identity` | modeled-controlled; packet admitted | open | open | open |
-| `effect.pure-predicate` | modeled-controlled; packet admitted | open | open | open |
-| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | open | open | open |
+| fact | Python `all(...)` + loop | TypeScript `every` + loop | JavaScript `every` + loop | Ruby `Enumerable#all?` | Rust `Iterator::all` |
+|---|---|---|---|---|---|
+| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | open | open | open |
+| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for fallthrough true | open | open | open |
+| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | open | open | open |
+| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | open | open | open |
+| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | open | open | open |
 
 Registry entries guide implementation work; they are not detector admission.

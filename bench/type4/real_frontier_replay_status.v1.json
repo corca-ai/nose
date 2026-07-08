@@ -1,25 +1,25 @@
 {
-  "entry_count": 15,
+  "entry_count": 17,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "f14b2e08aa655acb866237d014bdb7df52afb87f211727e2defd7eabf2d0ea16",
-      "size_bytes": 16597
+      "sha256": "a8f958daa47b724197e700e052c56d6e6b925faa8826906fcf5b3e7e90229365",
+      "size_bytes": 18614
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "5aa19a0db82457aa84169e0a3ddbe0e56e884e7f4d380f4cd89db1e56c110505",
-      "size_bytes": 93519
+      "sha256": "26e47098f1bcb51d61111cd4c16938c1acca5807bd884a209312851bc4dc63b6",
+      "size_bytes": 94642
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "80a9d64e48599cebb41dc305ac9cc458666aba0dfd4be8e0c1d50d90f960bf8c",
-      "size_bytes": 80821
+      "sha256": "34c348c30a8ee2bcb292a1632c82e1dab451b6285d04a9ba654a165e217066b1",
+      "size_bytes": 83008
     }
   },
   "nose_binary": "nose",
-  "passed": 15,
+  "passed": 17,
   "query_count": 9,
   "results": [
     {
@@ -506,6 +506,51 @@
       "ok": true,
       "packet_id": "reduction-minmax-anyall-2026-07-08",
       "replay_id": "reduction-sum-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-typescript-every-array-param-boundary-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 27,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllLoop",
+            "start": 20
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllEvery",
+            "start": 29
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-typescript-every-dense-literal-controlled-pair",
       "status": "passed"
     },
     {

@@ -6,6 +6,15 @@ pub(super) enum ProvenReceiver {
     MapGet { map: NodeId, key: NodeId },
 }
 
+impl ProvenReceiver {
+    fn direct(self) -> Option<NodeId> {
+        match self {
+            Self::Direct(node) => Some(node),
+            Self::MapGet { .. } => None,
+        }
+    }
+}
+
 pub(super) fn prove_method_receiver(
     old: &Il,
     interner: &Interner,
@@ -67,7 +76,7 @@ pub(super) fn prove_method_receiver(
             if exact_collection_receiver(old, interner, domains, base) {
                 return Some(ProvenReceiver::Direct(base));
             }
-            if old.meta.lang == nose_il::Lang::Java {
+            if old.meta.lang == Lang::Java {
                 let map = key_set_receiver(old, interner, base)?;
                 return map_like_literal(old, interner, map).then_some(ProvenReceiver::Direct(map));
             }
@@ -105,6 +114,10 @@ pub(super) fn apply_method_contract(
     receiver: ProvenReceiver,
     args: &[NodeId],
 ) -> CallCanon {
+    if !method_contract_callback_shape_allowed(old, contract, args) {
+        return CallCanon::None;
+    }
+
     let op = match contract.semantic {
         MethodSemanticContract::Builtin(op) => op,
         MethodSemanticContract::HoF(kind) => {
@@ -119,10 +132,7 @@ pub(super) fn apply_method_contract(
         }
     };
 
-    let direct = match receiver {
-        ProvenReceiver::Direct(node) => Some(node),
-        ProvenReceiver::MapGet { .. } => None,
-    };
+    let direct = receiver.direct();
 
     match contract.args {
         MethodBuiltinArgs::All => CallCanon::Builtin {
@@ -206,4 +216,40 @@ pub(super) fn apply_method_contract(
             collection_reduction_args(old, interner, op, direct)
         }
     }
+}
+
+fn method_contract_requires_unary_value_callback(lang: Lang, contract: MethodCallContract) -> bool {
+    js_like_lang(lang)
+        && (matches!(
+            contract.semantic,
+            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
+        ) || contract.args == MethodBuiltinArgs::BoolReduction)
+}
+
+fn method_contract_callback_shape_allowed(
+    old: &Il,
+    contract: MethodCallContract,
+    args: &[NodeId],
+) -> bool {
+    !method_contract_requires_unary_value_callback(old.meta.lang, contract)
+        || args
+            .first()
+            .is_some_and(|&callback| lambda_param_count(old, callback) == 1)
+}
+
+fn lambda_param_count(il: &Il, lambda: NodeId) -> usize {
+    if !matches!(il.kind(lambda), NodeKind::Func | NodeKind::Lambda) {
+        return 0;
+    }
+    il.children(lambda)
+        .iter()
+        .filter(|&&child| il.kind(child) == NodeKind::Param)
+        .count()
+}
+
+fn js_like_lang(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    )
 }

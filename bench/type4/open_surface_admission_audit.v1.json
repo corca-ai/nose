@@ -3,10 +3,10 @@
     "add surface-specific focused fixtures and executable expectations": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -141,10 +141,10 @@
     "boolean.demorgan.proven-bool-operands": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -323,10 +323,10 @@
     "effect.pure-predicate": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -471,10 +471,10 @@
     "iteration.same-source-identity": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -721,10 +721,10 @@
     "quantifier.universal.counterexample-loop": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -747,10 +747,10 @@
     "quantifier.vacuous-truth": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -964,16 +964,6 @@
         "surface_status": "open"
       }
     ],
-    "JS/TS": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
-        "surface_status": "open"
-      }
-    ],
     "Java": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -981,6 +971,16 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "surface": "Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts",
+        "surface_status": "open"
+      }
+    ],
+    "JavaScript": [
+      {
+        "candidate_priority": "needs-surface-focused-perimeter",
+        "language": "JavaScript",
+        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
+        "pattern_id": "quantifier.universal.counterexample-loop",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       }
     ],
@@ -1195,10 +1195,10 @@
     "quantifier.universal.counterexample-loop": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -1283,10 +1283,10 @@
       },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "JS/TS",
+        "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+        "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
         "surface_status": "open"
       },
       {
@@ -1604,12 +1604,12 @@
         "quantifier.universal.counterexample-loop": "modeled-controlled",
         "quantifier.vacuous-truth": "modeled-controlled"
       },
-      "language": "JS/TS",
+      "language": "JavaScript",
       "likely_blocker": "add surface-specific focused fixtures and executable expectations",
       "pattern_focused_support": {
-        "hard_negative": 6,
+        "hard_negative": 20,
         "hard_negative_group": 1,
-        "positive": 1
+        "positive": 3
       },
       "pattern_id": "quantifier.universal.counterexample-loop",
       "pattern_status": "real-pair-admitted",
@@ -1620,7 +1620,7 @@
         "effect.pure-predicate",
         "boolean.demorgan.proven-bool-operands"
       ],
-      "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed",
+      "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
       "surface_evidence": "",
       "surface_focused_support": {
         "hard_negative": 0,
@@ -1645,9 +1645,9 @@
       "language": "Ruby",
       "likely_blocker": "add surface-specific focused fixtures and executable expectations",
       "pattern_focused_support": {
-        "hard_negative": 6,
+        "hard_negative": 20,
         "hard_negative_group": 1,
-        "positive": 1
+        "positive": 3
       },
       "pattern_id": "quantifier.universal.counterexample-loop",
       "pattern_status": "real-pair-admitted",
@@ -1683,9 +1683,9 @@
       "language": "Rust",
       "likely_blocker": "add surface-specific focused fixtures and executable expectations",
       "pattern_focused_support": {
-        "hard_negative": 6,
+        "hard_negative": 20,
         "hard_negative_group": 1,
-        "positive": 1
+        "positive": 3
       },
       "pattern_id": "quantifier.universal.counterexample-loop",
       "pattern_status": "real-pair-admitted",
@@ -2220,8 +2220,8 @@
     },
     "by_language": {
       "Go": 1,
-      "JS/TS": 1,
       "Java": 1,
+      "JavaScript": 1,
       "Ruby": 3,
       "Rust": 1,
       "Swift": 9

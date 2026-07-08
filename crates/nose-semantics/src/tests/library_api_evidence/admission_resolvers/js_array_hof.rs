@@ -12,12 +12,16 @@ fn js_array_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId
     );
     let args = (0..arg_count)
         .map(|idx| {
-            b.add(
-                NodeKind::Func,
-                Payload::Cid(1 + idx as u32),
-                sp(212 + idx as u32),
-                &[],
-            )
+            if idx == 0 {
+                inline_lambda_with_params(&mut b, 1, 1, 212)
+            } else {
+                b.add(
+                    NodeKind::Func,
+                    Payload::Cid(1 + idx as u32),
+                    sp(212 + idx as u32),
+                    &[],
+                )
+            }
         })
         .collect::<Vec<_>>();
     let mut children = Vec::with_capacity(args.len() + 1);
@@ -25,6 +29,30 @@ fn js_array_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId
     children.extend(args);
     let call = b.add(NodeKind::Call, Payload::None, sp(220), &children);
     let root = b.add(NodeKind::Func, Payload::None, sp(221), &[call]);
+    (
+        finish_il(b, root, Lang::JavaScript),
+        interner,
+        call,
+        receiver,
+    )
+}
+
+fn js_array_hof_call_with_lambda_param_count_il(
+    method: &str,
+    param_count: usize,
+) -> (Il, Interner, NodeId, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(215), &[]);
+    let callee = b.add(
+        NodeKind::Field,
+        Payload::Name(interner.intern(method)),
+        sp(216),
+        &[receiver],
+    );
+    let callback = inline_lambda_with_params(&mut b, 1, param_count, 217);
+    let call = b.add(NodeKind::Call, Payload::None, sp(225), &[callee, callback]);
+    let root = b.add(NodeKind::Func, Payload::None, sp(226), &[call]);
     (
         finish_il(b, root, Lang::JavaScript),
         interner,
@@ -99,7 +127,7 @@ fn js_array_hof_chain_with_map_callback_il(
         sp(271),
         &[map_call],
     );
-    let filter_fn = b.add(NodeKind::Func, Payload::Cid(2), sp(272), &[]);
+    let filter_fn = inline_lambda_with_params(&mut b, 2, 1, 272);
     let filter_call = b.add(
         NodeKind::Call,
         Payload::None,
@@ -197,7 +225,7 @@ fn js_array_hof_chain_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
         sp(231),
         &[receiver],
     );
-    let map_fn = b.add(NodeKind::Func, Payload::Cid(1), sp(232), &[]);
+    let map_fn = inline_lambda_with_params(&mut b, 1, 1, 232);
     let map_call = b.add(
         NodeKind::Call,
         Payload::None,
@@ -210,7 +238,7 @@ fn js_array_hof_chain_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
         sp(234),
         &[map_call],
     );
-    let filter_fn = b.add(NodeKind::Func, Payload::Cid(2), sp(235), &[]);
+    let filter_fn = inline_lambda_with_params(&mut b, 2, 1, 235);
     let filter_call = b.add(
         NodeKind::Call,
         Payload::None,
@@ -408,6 +436,32 @@ fn js_array_hof_pack_rejects_this_arg_and_deferred_methods() {
         admitted_library_method_call_at_call(&find, &interner, call).is_none(),
         "Array.find evidence cannot mint a deferred JS Array HOF contract"
     );
+}
+
+#[test]
+fn js_array_hof_pack_rejects_callbacks_that_observe_extra_args() {
+    for (method, message) in [
+        (
+            "map",
+            "Array.map callback index/source arguments stay closed until modeled",
+        ),
+        (
+            "every",
+            "Array.every callback index/source arguments stay closed until modeled",
+        ),
+    ] {
+        let (mut il, interner, call, receiver) =
+            js_array_hof_call_with_lambda_param_count_il(method, 2);
+        push_receiver_domain_dependency(&mut il, receiver, DomainEvidence::Array);
+        let contract =
+            library_method_call_contract(Lang::JavaScript, method, 1).expect("JS Array row");
+        il.evidence
+            .push(js_array_hof_record(1, &il, call, contract, &[0]));
+        assert!(
+            admitted_library_method_call_at_call(&il, &interner, call).is_none(),
+            "{message}"
+        );
+    }
 }
 
 #[test]
