@@ -104,6 +104,8 @@ mod receiver_membership;
 mod recursion_iteration;
 #[path = "equivalence/reinvented_helper_boundaries.rs"]
 mod reinvented_helper_boundaries;
+#[path = "equivalence/ruby_enumerable_quantifier.rs"]
+mod ruby_enumerable_quantifier;
 #[path = "equivalence/semantic_law_boundaries.rs"]
 mod semantic_law_boundaries;
 #[path = "equivalence/source_identity_boundaries.rs"]

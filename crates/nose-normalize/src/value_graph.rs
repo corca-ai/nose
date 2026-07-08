@@ -27,6 +27,7 @@
 //!
 mod api;
 mod builders;
+mod call_boundaries;
 mod canonicalize;
 mod collections;
 mod context;
@@ -113,20 +114,20 @@ use nose_semantics::{
     imported_literal_producer_evidence_for_node, imported_namespace_symbol,
     java_collection_factory_rejects_null_literal, java_map_factory_positional_arg_count_supported,
     java_map_factory_uses_positional_entries, js_object_key_view_argument_map_node_at_call_span,
-    map_builder_index_write_contract, nodes_contain_duplicate_static_literal_keys,
-    nodes_contain_static_null_literal, nullish_global_contract, own_property_guard_for_node,
-    record_shape_guard_for_node, reduction_builtin_contract, ruby_shovel_append_parts, semantics,
-    seq_surface_contract_for_node, source_comprehension_at_node, source_operator_at_node,
-    source_pattern_at_node, source_range_at_node, unproven_membership_like_method_contract,
-    BuiltinArgContract, CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw,
-    DomainEvidence, DomainRequirement, GoZeroMapDefaultKind, ImportFactKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IndexWriteReceiverContract,
-    IteratorAdapterReceiverContract, JavaMapFactoryKind, LibraryApiCalleeContract,
-    LibraryApiContractId, LibraryApiSpanCall, LibraryCollectionFactoryResult,
-    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
-    StaticIndexMembershipKind, SwiftCollectionFactoryKind, ValueDomain, ValueLaw,
-    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
+    library_method_call_contract, map_builder_index_write_contract,
+    nodes_contain_duplicate_static_literal_keys, nodes_contain_static_null_literal,
+    nullish_global_contract, own_property_guard_for_node, record_shape_guard_for_node,
+    reduction_builtin_contract, ruby_shovel_append_parts, semantics, seq_surface_contract_for_node,
+    source_comprehension_at_node, source_operator_at_node, source_pattern_at_node,
+    source_range_at_node, unproven_membership_like_method_contract, BuiltinArgContract,
+    CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IndexWriteReceiverContract, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiContractId, LibraryApiSpanCall,
+    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    SeqSurfaceContract, StaticIndexMembershipKind, SwiftCollectionFactoryKind, ValueDomain,
+    ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
     SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use ops::*;

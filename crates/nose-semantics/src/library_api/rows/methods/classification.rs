@@ -67,6 +67,10 @@ pub(in crate::library_api) fn ruby_sequence_hof_method_call(
                 MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject),
                 MethodReceiverContract::ExactArrayOrCollection,
                 MethodBuiltinArgs::Hof,
+            ) | (
+                MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
+                MethodReceiverContract::ExactArrayOrCollection,
+                MethodBuiltinArgs::BoolReduction,
             )
         )
 }

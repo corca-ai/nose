@@ -1,15 +1,17 @@
 mod recording;
+mod ruby_redefinitions;
 mod static_globals;
 use recording::*;
+use ruby_redefinitions::ruby_sequence_hof_method_redefined_in_file;
 use static_globals::record_static_global_method_library_api;
 
 #[cfg(test)]
 use nose_il::EvidenceRecord;
 use nose_il::{
     stable_symbol_hash, Builtin, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId,
-    EvidenceKind, EvidenceStatus, Il, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind,
-    Payload, PromiseSettledValueEvidenceKind, PromiseSettlementChannel, SequenceSurfaceKind,
-    Symbol, SymbolEvidenceKind,
+    EvidenceKind, EvidenceStatus, HoFKind, Il, Interner, Lang, LibraryApiEvidenceKind, NodeId,
+    NodeKind, Payload, PromiseSettledValueEvidenceKind, PromiseSettlementChannel,
+    SequenceSurfaceKind, Symbol, SymbolEvidenceKind,
 };
 use nose_semantics::{
     admitted_library_api_result_domain_for_call_record, builder_append_method_contract,
@@ -23,11 +25,12 @@ use nose_semantics::{
     library_rust_option_some_constructor_contract, library_rust_result_err_constructor_contract,
     library_rust_result_ok_constructor_contract,
     proven_receiver_method_api_contract_for_call_with_cache, sequence_surface_kind_for_tag,
-    LibraryApiCalleeContract, LibraryApiDependencyCache, LibraryImportedPromiseFactoryContract,
-    MethodBuiltinArgs, MethodEffectReceiverContract, MethodReceiverContract,
-    MethodSemanticContract, BUILTIN_COMPAT_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID,
-    BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID, JS_LIKE_BUILTIN_PROMISE_PRODUCER_ID,
-    RUST_STDLIB_OPTION_PRODUCER_ID, RUST_STDLIB_RESULT_PRODUCER_ID,
+    LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
+    LibraryImportedPromiseFactoryContract, MethodBuiltinArgs, MethodEffectReceiverContract,
+    MethodReceiverContract, MethodSemanticContract, BUILTIN_COMPAT_PACK_ID,
+    BUILTIN_METHOD_CALL_PROTOCOL_PACK_ID, BUILTIN_METHOD_CALL_PROTOCOL_PRODUCER_ID,
+    JS_LIKE_BUILTIN_PROMISE_PRODUCER_ID, RUST_STDLIB_OPTION_PRODUCER_ID,
+    RUST_STDLIB_RESULT_PRODUCER_ID,
 };
 use rustc_hash::FxHashMap;
 use std::cell::RefCell;

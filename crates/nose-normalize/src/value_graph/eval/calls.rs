@@ -228,6 +228,10 @@ impl<'a> Builder<'a> {
             let salt = self.source_salted_hash(expr, 0x4D45_4D42_4552);
             return Some(self.mk(ValOp::Opaque(salt), vec![]));
         }
+        if self.is_unproven_sequence_hof_like_call(expr, kids) {
+            let salt = self.source_salted_hash(expr, 0x5345_5148_4F46);
+            return Some(self.mk(ValOp::Opaque(salt), vec![]));
+        }
         None
     }
 }

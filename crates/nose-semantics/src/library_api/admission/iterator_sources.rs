@@ -87,6 +87,9 @@ fn method_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId)
         LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(
             HoFKind::Map | HoFKind::Filter | HoFKind::Reject,
         )) if lang == Lang::Ruby => true,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+            Builtin::Any | Builtin::All,
+        )) if lang == Lang::Ruby => true,
         _ => false,
     }
 }
@@ -112,13 +115,17 @@ fn method_hof_callback_value_only_obligation_required(
     lang: Lang,
     id: LibraryApiContractId,
 ) -> bool {
-    matches!(
-        id,
+    match id {
+        LibraryApiContractId::MethodCall(
+            MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
+            | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
+        ) if lang == Lang::Ruby => true,
         LibraryApiContractId::MethodCall(
             MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::FlatMap)
-                | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All)
-        ) if js_like_lang(lang)
-    )
+            | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
+        ) if js_like_lang(lang) => true,
+        _ => false,
+    }
 }
 
 fn method_hof_callback_has_single_value_param(il: &Il, callback: NodeId) -> bool {
@@ -169,6 +176,7 @@ fn method_hof_callback_node_effect_closed(kind: NodeKind) -> bool {
             | NodeKind::Lambda
             | NodeKind::Param
             | NodeKind::Block
+            | NodeKind::ExprStmt
             | NodeKind::Return
             | NodeKind::If
             | NodeKind::Var

@@ -1,4 +1,5 @@
 use super::*;
+use nose_il::HoFKind;
 
 pub(super) fn record_post_lower_receiver_method_library_api(
     il: &mut Il,
@@ -20,6 +21,9 @@ pub(super) fn record_post_lower_receiver_method_library_api(
             return false;
         }
         if ruby_string_affix_redefined_in_file(il, interner, contract) {
+            return false;
+        }
+        if ruby_sequence_hof_method_redefined_in_file(il, interner, contract) {
             return false;
         }
         record_post_lower_library_api_contract(
@@ -65,146 +69,57 @@ fn ruby_string_instance_method_redefined_in_file(
     interner: &Interner,
     expected_method: &str,
 ) -> bool {
-    ruby_string_class_unit_redefines_method(il, interner, expected_method)
-        || ruby_string_class_eval_redefines_method(il, interner, expected_method)
-        || ruby_string_direct_define_method_redefines_method(il, interner, expected_method)
+    ruby_class_instance_method_redefined_in_file(
+        il,
+        interner,
+        &["String", "::String"],
+        expected_method,
+    )
 }
 
-fn ruby_string_class_unit_redefines_method(
+fn ruby_sequence_hof_method_redefined_in_file(
     il: &Il,
     interner: &Interner,
-    expected_method: &str,
+    contract: LibraryReceiverMethodApiContract,
 ) -> bool {
-    il.units.iter().any(|class_unit| {
-        class_unit.kind == UnitKind::Class
-            && class_unit
-                .name
-                .is_some_and(|name| ruby_string_class_name(interner.resolve(name)))
-            && {
-                let class_span = il.node(class_unit.root).span;
-                il.units.iter().any(|method_unit| {
-                    let method_span = il.node(method_unit.root).span;
-                    method_unit.kind == UnitKind::Method
-                        && method_unit
-                            .name
-                            .is_some_and(|name| interner.resolve(name) == expected_method)
-                        && class_span.file == method_span.file
-                        && class_span.start_byte <= method_span.start_byte
-                        && method_span.end_byte <= class_span.end_byte
-                }) || il.nodes.iter().enumerate().any(|(idx, node)| {
-                    let call = NodeId(idx as u32);
-                    node.kind == NodeKind::Call
-                        && ruby_define_method_call_redefines_method(
-                            il,
-                            interner,
-                            call,
-                            expected_method,
-                        )
-                        && class_span.file == node.span.file
-                        && class_span.start_byte <= node.span.start_byte
-                        && node.span.end_byte <= class_span.end_byte
-                })
-            }
-    })
-}
-
-fn ruby_string_class_eval_redefines_method(
-    il: &Il,
-    interner: &Interner,
-    expected_method: &str,
-) -> bool {
-    let method_spans: Vec<Span> = il
-        .units
-        .iter()
-        .filter(|unit| {
-            unit.kind == UnitKind::Method
-                && unit
-                    .name
-                    .is_some_and(|name| interner.resolve(name) == expected_method)
-        })
-        .map(|unit| il.node(unit.root).span)
-        .collect();
-    let define_method_spans: Vec<Span> = il
-        .nodes
-        .iter()
-        .enumerate()
-        .filter(|(idx, node)| {
-            node.kind == NodeKind::Call
-                && ruby_define_method_call_redefines_method(
-                    il,
-                    interner,
-                    NodeId(*idx as u32),
-                    expected_method,
-                )
-        })
-        .map(|(_, node)| node.span)
-        .collect();
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        let call = NodeId(idx as u32);
-        node.kind == NodeKind::Call
-            && ruby_string_class_eval_call(il, interner, call)
-            && (method_spans.iter().any(|&method_span| {
-                node.span.file == method_span.file
-                    && node.span.start_byte <= method_span.start_byte
-                    && method_span.end_byte <= node.span.end_byte
-            }) || define_method_spans.iter().any(|&define_method_span| {
-                node.span.file == define_method_span.file
-                    && node.span.start_byte <= define_method_span.start_byte
-                    && define_method_span.end_byte <= node.span.end_byte
-            }))
-    })
-}
-
-fn ruby_string_class_eval_call(il: &Il, interner: &Interner, call: NodeId) -> bool {
-    let Some(&callee) = il.children(call).first() else {
+    if il.meta.lang != Lang::Ruby {
+        return false;
+    }
+    let LibraryApiContractId::MethodCall(
+        MethodSemanticContract::HoF(HoFKind::Map | HoFKind::Filter | HoFKind::Reject)
+        | MethodSemanticContract::Builtin(Builtin::Any | Builtin::All),
+    ) = contract.id
+    else {
         return false;
     };
-    field_name(il, interner, callee) == Some("class_eval")
-        && il
-            .children(callee)
-            .first()
-            .copied()
-            .and_then(|receiver| post_lower_var_name(il, interner, receiver))
-            .is_some_and(ruby_string_class_name)
-}
-
-fn ruby_string_direct_define_method_redefines_method(
-    il: &Il,
-    interner: &Interner,
-    expected_method: &str,
-) -> bool {
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        let call = NodeId(idx as u32);
-        node.kind == NodeKind::Call
-            && ruby_define_method_call_redefines_method(il, interner, call, expected_method)
-            && il.children(call).first().copied().is_some_and(|callee| {
-                field_name(il, interner, callee) == Some("define_method")
-                    && il
-                        .children(callee)
-                        .first()
-                        .copied()
-                        .and_then(|receiver| post_lower_var_name(il, interner, receiver))
-                        .is_some_and(ruby_string_class_name)
-            })
-    })
-}
-
-fn ruby_define_method_call_redefines_method(
-    il: &Il,
-    interner: &Interner,
-    call: NodeId,
-    expected_method: &str,
-) -> bool {
-    let [callee, method, ..] = il.children(call) else {
+    let LibraryApiCalleeContract::Method {
+        method,
+        receiver: MethodReceiverContract::ExactArrayOrCollection,
+    } = contract.callee
+    else {
         return false;
     };
-    (post_lower_var_name(il, interner, *callee) == Some("define_method")
-        || field_name(il, interner, *callee) == Some("define_method"))
-        && string_literal(il, *method, expected_method)
+    ruby_class_instance_method_redefined_in_file(
+        il,
+        interner,
+        &["Array", "::Array", "Enumerable", "::Enumerable"],
+        method,
+    )
 }
 
-fn ruby_string_class_name(name: &str) -> bool {
-    matches!(name, "String" | "::String")
+fn ruby_class_instance_method_redefined_in_file(
+    il: &Il,
+    interner: &Interner,
+    class_names: &[&str],
+    expected_method: &str,
+) -> bool {
+    nose_semantics::ruby_class_instance_method_redefined_in_file(
+        il,
+        interner,
+        class_names,
+        expected_method,
+        post_lower_var_name,
+    )
 }
 
 fn js_ts_string_affix_prototype_mutated_in_file(

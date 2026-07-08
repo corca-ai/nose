@@ -131,6 +131,14 @@ fn is_sequence_hof_method_call(
                     method: "map" | "collect" | "select" | "filter" | "reject",
                     receiver: MethodReceiverContract::ExactArrayOrCollection,
                 },
+            ) | (
+                LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                    Builtin::Any | Builtin::All,
+                )),
+                LibraryApiCalleeContract::Method {
+                    method: "any?" | "all?",
+                    receiver: MethodReceiverContract::ExactArrayOrCollection,
+                },
             )
         ),
         _ => false,

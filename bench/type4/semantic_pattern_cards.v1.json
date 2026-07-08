@@ -93,7 +93,9 @@
         "bench/type4/proof_fact_registry.v1.json::quantifier.vacuous-truth",
         "bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity",
         "bench/type4/proof_fact_registry.v1.json::effect.pure-predicate",
-        "bench/type4/proof_fact_registry.v1.json::boolean.demorgan.proven-bool-operands"
+        "bench/type4/proof_fact_registry.v1.json::boolean.demorgan.proven-bool-operands",
+        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary"
       ],
       "hard_negative_templates": [
         "loop.changed-empty-result",
@@ -115,8 +117,9 @@
         },
         {
           "language": "Ruby",
-          "status": "open",
-          "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence"
+          "status": "admitted",
+          "surface": "literal Array receiver Enumerable#all? plus a pure counterexample loop over the same source, including empty-literal vacuous truth; receiver parameters, changed predicates/sources, effects, multi-parameter blocks, no-block calls, and monkey patches stay split",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive; bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary"
         },
         {
           "language": "Rust",
@@ -137,7 +140,7 @@
       ],
       "law": "Universal quantifier surfaces are equivalent to explicit counterexample loops only when both forms traverse the same source, return true on empty input, stop at the same first counterexample, evaluate a pure boolean predicate, and any boolean rewrites are proven boolean-only over non-overloaded scalar comparison complements.",
       "pattern_id": "quantifier.universal.counterexample-loop",
-      "rationale": "The Python loop/De Morgan packet already admits the README-shaped real pair and keeps vacuous-truth, source-identity, effect, helper-call, value-returning boolean, and changed-predicate negatives executable; carding the pattern makes future Ruby/Rust/JS/TS all/every work attach to the same neutral proof facts instead of cloning Python-specific detector logic.",
+      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair and the TypeScript/Ruby slices now add dense/literal receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, and changed-predicate boundaries; carding the pattern keeps future all/every work attached to neutral proof facts instead of language-specific detector branches.",
       "required_facts": [
         "quantifier.universal.counterexample-loop",
         "quantifier.vacuous-truth",
@@ -749,7 +752,8 @@
         "min/max selection must preserve explicit seed, comparator direction, and selection domain",
         "numeric aggregates require the focused integer/value-model domain or a separate numeric-domain proof; overflow, float, and NaN-sensitive behavior stays closed",
         "unseeded terminal min/max APIs are not seeded clamped selection loops unless empty and all-negative behavior is proven",
-        "predicate, callback, receiver, or reducer effects are behavior-defining"
+        "predicate, reducer, Ruby block, receiver, or still-unmodeled callback effects are behavior-defining",
+        "receiver API identity and same-file monkey-patch boundaries must be proven before language-level quantifier methods enter exact admission"
       ],
       "evidence_refs": [
         "bench/type4/frontier_target_packets.v1.json::reduction-minmax-anyall-2026-07-08",
@@ -763,12 +767,13 @@
         "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
         "bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity",
         "bench/type4/proof_fact_registry.v1.json::effect.pure-predicate",
-        "bench/type4/proof_fact_registry.v1.json::effect.pure-callback",
         "bench/type4/proof_fact_registry.v1.json::reduction.identity-empty-behavior",
         "bench/type4/proof_fact_registry.v1.json::reduction.step-coordinate-identity",
         "bench/type4/proof_fact_registry.v1.json::reduction.terminal-predicate-coordinate",
         "bench/type4/proof_fact_registry.v1.json::reduction.short-circuit-direction",
-        "bench/type4/proof_fact_registry.v1.json::reduction.selection-seed-domain"
+        "bench/type4/proof_fact_registry.v1.json::reduction.selection-seed-domain",
+        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary"
       ],
       "hard_negative_templates": [
         "reduction.changed-seed",
@@ -779,7 +784,8 @@
         "numeric.domain",
         "iteration.source-identity",
         "effect.observed-predicate-effect",
-        "effect.observed-callback-effect"
+        "effect.observed-reducer-or-block-effect",
+        "protocol-boundary.api-identity"
       ],
       "language_surfaces": [
         {
@@ -819,10 +825,10 @@
           "surface": "for loops, Iterator::sum/product, fold, any/all, and seeded min/max selection folds with matching source, seed, predicate, and comparator direction"
         },
         {
-          "evidence": "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive; bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary; bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
           "language": "Ruby",
-          "status": "open",
-          "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission"
+          "status": "modeled-controlled",
+          "surface": "literal Array receiver Enumerable#any?/all? with pure one-argument blocks, matching early-return loops, and empty-literal all? vacuous truth; receiver parameters, changed predicate/source coordinates, observed block effects, multi-parameter blocks, no-block semantics, and Array/Enumerable monkey patches stay closed"
         },
         {
           "evidence": "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
@@ -831,13 +837,12 @@
           "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open"
         }
       ],
-      "law": "Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within a proven numeric/value domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, and close predicate/callback effects.",
+      "law": "Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within a proven numeric/value domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, prove receiver/API identity for protocol methods, and close predicate, reducer, or block effects.",
       "pattern_id": "reduction.aggregate.proven-terminal-identity",
-      "rationale": "The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any terminals, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, numeric domain, step, terminal, direction, selection, and effect facts instead of adding spelling-specific reduction shortcuts.",
+      "rationale": "The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any/every terminals, Ruby literal-receiver any?/all?, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, numeric domain, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.",
       "required_facts": [
         "iteration.same-source-identity",
         "effect.pure-predicate",
-        "effect.pure-callback",
         "reduction.identity-empty-behavior",
         "reduction.step-coordinate-identity",
         "reduction.terminal-predicate-coordinate",

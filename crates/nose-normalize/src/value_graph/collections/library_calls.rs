@@ -142,6 +142,9 @@ impl<'a> Builder<'a> {
         if self.il.kind(lambda) != NodeKind::Lambda {
             return None;
         }
+        if matches!(self.il.meta.lang, Lang::Ruby) && self.lambda_param_count(lambda) != 1 {
+            return None;
+        }
         if js_like_lang(self.il.meta.lang) && self.lambda_param_count(lambda) != 1 {
             return None;
         }

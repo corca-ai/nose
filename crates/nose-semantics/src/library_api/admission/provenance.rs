@@ -79,6 +79,18 @@ fn ruby_sequence_hof_method_callee(
                 method: "reject",
                 receiver: MethodReceiverContract::ExactArrayOrCollection,
             },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::Any)),
+            LibraryApiCalleeContract::Method {
+                method: "any?",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
+        ) | (
+            LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(Builtin::All)),
+            LibraryApiCalleeContract::Method {
+                method: "all?",
+                receiver: MethodReceiverContract::ExactArrayOrCollection,
+            },
         )
     )
 }

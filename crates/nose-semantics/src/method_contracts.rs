@@ -193,7 +193,17 @@ pub(super) fn method_call_contract_shapes(
             Receiver::ExactArray,
             Args::BoolReduction,
         )
+    } else if lang == Lang::Ruby
+        && method_bool_reduction_builtin(lang, name).is_some()
+        && arg_count == 1
+    {
+        (
+            method_bool_reduction_builtin(lang, name).unwrap(),
+            Receiver::ExactArrayOrCollection,
+            Args::BoolReduction,
+        )
     } else if !js_like_lang(lang)
+        && lang != Lang::Ruby
         && method_bool_reduction_builtin(lang, name).is_some()
         && arg_count > 0
     {

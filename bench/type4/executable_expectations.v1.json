@@ -1,9 +1,9 @@
 {
-  "expectation_count": 86,
+  "expectation_count": 97,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 86,
-  "query_count": 17,
+  "passed": 97,
+  "query_count": 18,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -1198,6 +1198,156 @@
       "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
       "matching_family": null,
       "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_param_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_changed_predicate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_different_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_block_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_no_block_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_multi_param_block_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_monkey_patch_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_proof_boundary",
+      "expect": "split",
+      "expectation_id": "ruby_enumerable_module_eval_patch_stays_split",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_positive",
+      "expect": "same-family",
+      "expectation_id": "ruby_enumerable_any_loop_matches_any",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/any_all.rb",
+            "name": "ruby_any_literal_loop",
+            "start": 1
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/any_all.rb",
+            "name": "ruby_any_literal_call",
+            "start": 10
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_positive",
+      "expect": "same-family",
+      "expectation_id": "ruby_enumerable_all_loop_matches_all",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 21,
+            "file": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/any_all.rb",
+            "name": "ruby_all_literal_loop",
+            "start": 14
+          },
+          {
+            "end": 25,
+            "file": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/any_all.rb",
+            "name": "ruby_all_literal_call",
+            "start": 23
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "ruby_enumerable_quantifier_positive",
+      "expect": "same-family",
+      "expectation_id": "ruby_enumerable_all_empty_vacuous_matches_all",
+      "fixture": "bench/type4/adversarial/cases/ruby_enumerable_quantifier",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 34,
+            "file": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/any_all.rb",
+            "name": "ruby_all_empty_loop",
+            "start": 27
+          },
+          {
+            "end": 38,
+            "file": "bench/type4/adversarial/cases/ruby_enumerable_quantifier/any_all.rb",
+            "name": "ruby_all_empty_call",
+            "start": 36
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
       "ok": true
     },
     {

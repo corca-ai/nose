@@ -47,7 +47,7 @@ pub(super) fn record_static_global_method_library_api(
 
 struct StaticGlobalMethodContract {
     pack_id: &'static str,
-    id: nose_semantics::LibraryApiContractId,
+    id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
 }
 

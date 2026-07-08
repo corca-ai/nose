@@ -11,14 +11,6 @@
       },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
         "language": "Rust",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
@@ -92,22 +84,6 @@
         "pattern_id": "option.presence-default.proven-channel-coordinate",
         "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
         "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
-        "surface_status": "open"
       }
     ],
     "promote probe evidence into focused positives and hard negatives": [
@@ -131,6 +107,14 @@
         "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
         "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+        "surface_status": "open"
+      },
+      {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "string.affix.proven-receiver-coordinate",
         "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
         "surface_status": "open"
@@ -145,14 +129,6 @@
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
         "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
         "surface_status": "open"
       },
       {
@@ -302,39 +278,23 @@
         "pattern_id": "hof.flat-map.one-level-flatten",
         "surface": "Sequence.flatMap after focused one-level flatten and callback-effect evidence",
         "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
-        "surface_status": "open"
       }
     ],
     "effect.pure-predicate": [
+      {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+        "surface_status": "open"
+      },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
         "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
         "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
         "surface_status": "open"
       },
       {
@@ -359,22 +319,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
       }
     ],
@@ -470,19 +414,19 @@
     ],
     "iteration.same-source-identity": [
       {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+        "surface_status": "open"
+      },
+      {
         "candidate_priority": "needs-surface-focused-perimeter",
         "language": "JavaScript",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
         "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
         "surface_status": "open"
       },
       {
@@ -523,22 +467,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "hof.flat-map.one-level-flatten",
         "surface": "Sequence.flatMap after focused one-level flatten and callback-effect evidence",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
       }
     ],
@@ -729,14 +657,6 @@
       },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
         "language": "Rust",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
@@ -755,14 +675,6 @@
       },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
         "language": "Rust",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
@@ -772,6 +684,14 @@
     ],
     "reduction.identity-empty-behavior": [
       {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+        "surface_status": "open"
+      },
+      {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
         "likely_blocker": "model required facts before detector admission",
@@ -786,37 +706,13 @@
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
         "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
-        "surface_status": "open"
       }
     ],
     "reduction.selection-seed-domain": [
       {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
+        "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "reduction.aggregate.proven-terminal-identity",
         "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
@@ -824,23 +720,23 @@
     ],
     "reduction.short-circuit-direction": [
       {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
+        "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "reduction.aggregate.proven-terminal-identity",
         "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
       }
     ],
     "reduction.step-coordinate-identity": [
+      {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+        "surface_status": "open"
+      },
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
@@ -856,37 +752,13 @@
         "pattern_id": "hof.flat-map.aggregate-reduction",
         "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
         "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
-        "surface_status": "open"
       }
     ],
     "reduction.terminal-predicate-coordinate": [
       {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
+        "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "reduction.aggregate.proven-terminal-identity",
         "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
@@ -986,27 +858,11 @@
     ],
     "Ruby": [
       {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
-        "surface_status": "open"
-      },
-      {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Ruby",
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "option.presence-default.proven-channel-coordinate",
         "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
         "surface_status": "open"
       }
     ],
@@ -1035,6 +891,14 @@
         "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "collection.membership.proven-receiver-element",
         "surface": "coverage-probe contains over proven collection receivers; mutation closure remains open before full admission",
+        "surface_status": "open"
+      },
+      {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
       },
       {
@@ -1083,14 +947,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "option.presence-default.proven-channel-coordinate",
         "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
       }
     ]
@@ -1203,14 +1059,6 @@
       },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
         "language": "Rust",
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
@@ -1220,17 +1068,9 @@
     ],
     "reduction.aggregate.proven-terminal-identity": [
       {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
+        "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "reduction.aggregate.proven-terminal-identity",
         "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
@@ -1269,6 +1109,14 @@
         "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
         "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+        "pattern_id": "reduction.aggregate.proven-terminal-identity",
+        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+        "surface_status": "open"
+      },
+      {
+        "candidate_priority": "probe-to-focused-candidate",
+        "language": "Swift",
+        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "string.affix.proven-receiver-coordinate",
         "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
         "surface_status": "open"
@@ -1287,14 +1135,6 @@
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
         "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Ruby",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
         "surface_status": "open"
       },
       {
@@ -1359,22 +1199,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "option.presence-default.proven-channel-coordinate",
         "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "reduction.aggregate.proven-terminal-identity",
-        "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
         "surface_status": "open"
       }
     ]
@@ -1503,6 +1327,71 @@
       "coverage": {
         "false_merges": 0,
         "gen_axes": [
+          "probe:reduce_minmax_anyall"
+        ],
+        "hard_negatives": 1,
+        "language_components": [
+          "swift"
+        ],
+        "matched_languages": [
+          "swift"
+        ],
+        "missing_languages": [],
+        "positive_hits": 1,
+        "positives": 1,
+        "probe_ready": true,
+        "row_count": 1,
+        "sources": [
+          "probe"
+        ],
+        "statuses": [
+          "covered"
+        ]
+      },
+      "evidence_level": "probe-only",
+      "fact_statuses": {
+        "effect.pure-predicate": "modeled-controlled",
+        "iteration.same-source-identity": "modeled-controlled",
+        "reduction.identity-empty-behavior": "modeled-controlled",
+        "reduction.selection-seed-domain": "modeled-controlled",
+        "reduction.short-circuit-direction": "modeled-controlled",
+        "reduction.step-coordinate-identity": "modeled-controlled",
+        "reduction.terminal-predicate-coordinate": "modeled-controlled"
+      },
+      "language": "Swift",
+      "likely_blocker": "promote probe evidence into focused positives and hard negatives",
+      "pattern_focused_support": {
+        "hard_negative": 5,
+        "hard_negative_group": 1,
+        "positive": 4
+      },
+      "pattern_id": "reduction.aggregate.proven-terminal-identity",
+      "pattern_status": "pattern-carded",
+      "required_facts": [
+        "iteration.same-source-identity",
+        "effect.pure-predicate",
+        "reduction.identity-empty-behavior",
+        "reduction.step-coordinate-identity",
+        "reduction.terminal-predicate-coordinate",
+        "reduction.short-circuit-direction",
+        "reduction.selection-seed-domain"
+      ],
+      "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
+      "surface_evidence": "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
+      "surface_focused_support": {
+        "hard_negative": 0,
+        "hard_negative_group": 0,
+        "positive": 0
+      },
+      "surface_status": "open",
+      "unmodeled_facts": [],
+      "unresolved_surface_evidence_refs": []
+    },
+    {
+      "candidate_priority": "probe-to-focused-candidate",
+      "coverage": {
+        "false_merges": 0,
+        "gen_axes": [
           "probe:string_prefix_suffix"
         ],
         "hard_negatives": 1,
@@ -1607,9 +1496,9 @@
       "language": "JavaScript",
       "likely_blocker": "add surface-specific focused fixtures and executable expectations",
       "pattern_focused_support": {
-        "hard_negative": 20,
+        "hard_negative": 21,
         "hard_negative_group": 1,
-        "positive": 3
+        "positive": 4
       },
       "pattern_id": "quantifier.universal.counterexample-loop",
       "pattern_status": "real-pair-admitted",
@@ -1642,50 +1531,12 @@
         "quantifier.universal.counterexample-loop": "modeled-controlled",
         "quantifier.vacuous-truth": "modeled-controlled"
       },
-      "language": "Ruby",
-      "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-      "pattern_focused_support": {
-        "hard_negative": 20,
-        "hard_negative_group": 1,
-        "positive": 3
-      },
-      "pattern_id": "quantifier.universal.counterexample-loop",
-      "pattern_status": "real-pair-admitted",
-      "required_facts": [
-        "quantifier.universal.counterexample-loop",
-        "quantifier.vacuous-truth",
-        "iteration.same-source-identity",
-        "effect.pure-predicate",
-        "boolean.demorgan.proven-bool-operands"
-      ],
-      "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence",
-      "surface_evidence": "",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [],
-      "unresolved_surface_evidence_refs": []
-    },
-    {
-      "candidate_priority": "needs-surface-focused-perimeter",
-      "coverage": {},
-      "evidence_level": "missing",
-      "fact_statuses": {
-        "boolean.demorgan.proven-bool-operands": "modeled-controlled",
-        "effect.pure-predicate": "modeled-controlled",
-        "iteration.same-source-identity": "modeled-controlled",
-        "quantifier.universal.counterexample-loop": "modeled-controlled",
-        "quantifier.vacuous-truth": "modeled-controlled"
-      },
       "language": "Rust",
       "likely_blocker": "add surface-specific focused fixtures and executable expectations",
       "pattern_focused_support": {
-        "hard_negative": 20,
+        "hard_negative": 21,
         "hard_negative_group": 1,
-        "positive": 3
+        "positive": 4
       },
       "pattern_id": "quantifier.universal.counterexample-loop",
       "pattern_status": "real-pair-admitted",
@@ -2067,144 +1918,6 @@
         "option.absence-channel.identity"
       ],
       "unresolved_surface_evidence_refs": []
-    },
-    {
-      "candidate_priority": "blocked-by-unmodeled-facts",
-      "coverage": {
-        "false_merges": 0,
-        "gen_axes": [
-          "probe:reduce_minmax_anyall"
-        ],
-        "hard_negatives": 1,
-        "language_components": [
-          "ruby"
-        ],
-        "matched_languages": [
-          "ruby"
-        ],
-        "missing_languages": [],
-        "positive_hits": 1,
-        "positives": 1,
-        "probe_ready": true,
-        "row_count": 1,
-        "sources": [
-          "probe"
-        ],
-        "statuses": [
-          "covered"
-        ]
-      },
-      "evidence_level": "probe-only",
-      "fact_statuses": {
-        "effect.pure-callback": "specified-not-modeled",
-        "effect.pure-predicate": "modeled-controlled",
-        "iteration.same-source-identity": "modeled-controlled",
-        "reduction.identity-empty-behavior": "modeled-controlled",
-        "reduction.selection-seed-domain": "modeled-controlled",
-        "reduction.short-circuit-direction": "modeled-controlled",
-        "reduction.step-coordinate-identity": "modeled-controlled",
-        "reduction.terminal-predicate-coordinate": "modeled-controlled"
-      },
-      "language": "Ruby",
-      "likely_blocker": "model required facts before detector admission",
-      "pattern_focused_support": {
-        "hard_negative": 4,
-        "hard_negative_group": 1,
-        "positive": 3
-      },
-      "pattern_id": "reduction.aggregate.proven-terminal-identity",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "iteration.same-source-identity",
-        "effect.pure-predicate",
-        "effect.pure-callback",
-        "reduction.identity-empty-behavior",
-        "reduction.step-coordinate-identity",
-        "reduction.terminal-predicate-coordinate",
-        "reduction.short-circuit-direction",
-        "reduction.selection-seed-domain"
-      ],
-      "surface": "probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission",
-      "surface_evidence": "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [
-        "effect.pure-callback"
-      ],
-      "unresolved_surface_evidence_refs": []
-    },
-    {
-      "candidate_priority": "blocked-by-unmodeled-facts",
-      "coverage": {
-        "false_merges": 0,
-        "gen_axes": [
-          "probe:reduce_minmax_anyall"
-        ],
-        "hard_negatives": 1,
-        "language_components": [
-          "swift"
-        ],
-        "matched_languages": [
-          "swift"
-        ],
-        "missing_languages": [],
-        "positive_hits": 1,
-        "positives": 1,
-        "probe_ready": true,
-        "row_count": 1,
-        "sources": [
-          "probe"
-        ],
-        "statuses": [
-          "covered"
-        ]
-      },
-      "evidence_level": "probe-only",
-      "fact_statuses": {
-        "effect.pure-callback": "specified-not-modeled",
-        "effect.pure-predicate": "modeled-controlled",
-        "iteration.same-source-identity": "modeled-controlled",
-        "reduction.identity-empty-behavior": "modeled-controlled",
-        "reduction.selection-seed-domain": "modeled-controlled",
-        "reduction.short-circuit-direction": "modeled-controlled",
-        "reduction.step-coordinate-identity": "modeled-controlled",
-        "reduction.terminal-predicate-coordinate": "modeled-controlled"
-      },
-      "language": "Swift",
-      "likely_blocker": "model required facts before detector admission",
-      "pattern_focused_support": {
-        "hard_negative": 4,
-        "hard_negative_group": 1,
-        "positive": 3
-      },
-      "pattern_id": "reduction.aggregate.proven-terminal-identity",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "iteration.same-source-identity",
-        "effect.pure-predicate",
-        "effect.pure-callback",
-        "reduction.identity-empty-behavior",
-        "reduction.step-coordinate-identity",
-        "reduction.terminal-predicate-coordinate",
-        "reduction.short-circuit-direction",
-        "reduction.selection-seed-domain"
-      ],
-      "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open",
-      "surface_evidence": "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [
-        "effect.pure-callback"
-      ],
-      "unresolved_surface_evidence_refs": []
     }
   ],
   "schema_version": 1,
@@ -2214,27 +1927,27 @@
     ],
     "by_evidence_level": {
       "coverage-sweep": 1,
-      "missing": 8,
-      "probe-only": 6,
+      "missing": 7,
+      "probe-only": 5,
       "target-packet": 1
     },
     "by_language": {
       "Go": 1,
       "Java": 1,
       "JavaScript": 1,
-      "Ruby": 3,
+      "Ruby": 1,
       "Rust": 1,
       "Swift": 9
     },
     "by_priority": {
-      "blocked-by-unmodeled-facts": 9,
-      "needs-surface-focused-perimeter": 4,
-      "probe-to-focused-candidate": 3
+      "blocked-by-unmodeled-facts": 7,
+      "needs-surface-focused-perimeter": 3,
+      "probe-to-focused-candidate": 4
     },
     "by_status": {
-      "open": 16
+      "open": 14
     },
-    "open_surface_count": 16,
+    "open_surface_count": 14,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"
