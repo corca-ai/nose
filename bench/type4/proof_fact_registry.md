@@ -29,6 +29,9 @@ packet-specific current status locally.
 |---|---|---|---|
 | `numeric-clamp.bound-order` | `modeled-controlled` | `formal-or-mechanized`, `focused-executable`, `source-evidence` | Requires `numeric-clamp.integer-domain`; does not admit a real pair by itself. |
 | `numeric-clamp.integer-domain` | `modeled-controlled` | `formal-or-mechanized`, `focused-executable`, `source-evidence` | Requires `numeric-clamp.bound-order`; does not admit a real pair by itself. |
+| `numeric.aggregate-value-model-domain` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires source identity, identity/empty, step coordinate, and effect facts; does not prove runtime no-overflow integer arithmetic or admit aggregate convergence by itself. |
+| `numeric.selection-value-order-domain` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires source identity, seed/identity, comparator coordinate, and effect facts; does not prove a broad runtime strict-total-order domain or admit min/max selection by itself. |
+| `numeric.float-special-value-boundary` | `modeled-controlled` | `focused-executable`, `source-evidence` | Boundary fact only; keeps NaN, signed-zero, and grouping-sensitive float surfaces closed unless separately modeled. |
 | `boolean.demorgan.proven-bool-operands` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires source identity, purity, counterexample-loop, and vacuous-truth facts. |
 | `quantifier.universal.counterexample-loop` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires vacuous truth, source identity, predicate purity, and any boolean rewrite facts. |
 | `quantifier.vacuous-truth` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes the empty-input boundary for a separately proven counterexample loop. |
@@ -151,8 +154,9 @@ This matrix records the neutral proof perimeter for sum/product reductions,
 any/all terminal predicates, and seeded min/max selection reductions. The
 supported surfaces still depend on source evidence for traversal identity,
 identity/empty behavior, step or terminal predicate coordinates,
-short-circuit direction, selection seed/domain, numeric-domain closure for
-numeric aggregates, and effect closure.
+short-circuit direction, selection seed/domain, controlled aggregate value-model
+or selection value-order numeric-domain closure, float special-value boundaries,
+and effect closure.
 
 | fact | C | Go | Java | Python | JS/TS | Rust | Ruby | Swift |
 |---|---|---|---|---|---|---|---|---|
@@ -161,6 +165,9 @@ numeric aggregates, and effect closure.
 | `reduction.terminal-predicate-coordinate` | open int-bool terminal proof | open | open | modeled via quantifier card | modeled-controlled TS any/some plus dense-literal one-arg every | modeled-controlled any/all | open receiver proof | open |
 | `reduction.short-circuit-direction` | open int-bool terminal proof | open | open | modeled via quantifier card | modeled-controlled TS any/some plus dense-literal one-arg every; array-param and callback-extra-arg every stay split | modeled-controlled any/all | open receiver proof | open |
 | `reduction.selection-seed-domain` | open | open | open | modeled-controlled seeded min/max | open numeric proof | modeled-controlled seeded min/max | open | open |
+| `numeric.aggregate-value-model-domain` | modeled-controlled value-model sum; signed overflow/UB closed | modeled-controlled value-model sum; overflow-sensitive proof still separate | modeled-controlled value-model stream reduce; fixed-width overflow closed | modeled-controlled value-model sum/reduce; dynamic float/string values closed | modeled-controlled typed sum; `number` NaN/signed-zero and untyped number remain closed | modeled-controlled value-model fold/sum; overflow-sensitive proof still separate | open receiver proof | open proof |
+| `numeric.selection-value-order-domain` | open | open | open | modeled-controlled seeded min/max in focused value-order model; untyped broad total-order proof closed | open numeric proof | modeled-controlled seeded min/max; float/custom order closed | open | open |
+| `numeric.float-special-value-boundary` | modeled-controlled boundary | modeled-controlled boundary | modeled-controlled boundary | modeled-controlled boundary | modeled-controlled boundary | modeled-controlled boundary | open | open |
 
 ## Universal Quantifier Pattern Matrix
 

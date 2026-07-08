@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -298,13 +299,83 @@ def validate_proof_fact_registry(registry: dict[str, Any]) -> dict[str, dict[str
         if controlled_evidence is not None and (
             not isinstance(controlled_evidence, list)
             or not controlled_evidence
-            or not all(isinstance(item, str) and "::" in item for item in controlled_evidence)
+            or not all(
+                isinstance(item, str)
+                and "::" in item
+                and all(part for part in item.split("::", 1))
+                for item in controlled_evidence
+            )
         ):
             raise FrontierError(
                 f"proof fact {fact_id} controlled_evidence must be non-empty list[str] refs"
             )
         by_id[fact_id] = fact
     return by_id
+
+
+def validate_registry_controlled_evidence_refs(
+    proof_fact_registry: dict[str, dict[str, Any]],
+    focused_cases: dict[str, Any],
+    focused_cases_path: Path,
+    python_loop_demorgan_proof_facts: dict[str, Any],
+    python_loop_demorgan_proof_facts_path: Path,
+) -> dict[str, dict[str, Any]]:
+    case_by_id, group_by_id, _convention_ids = validate_focused_cases_doc(focused_cases)
+    focused_cases_artifact = repo_rel(focused_cases_path)
+    python_evidence_artifact = repo_rel(python_loop_demorgan_proof_facts_path)
+    python_evidence_ids = {
+        result["evidence_id"]
+        for result in python_loop_demorgan_proof_facts.get("results", [])
+        if isinstance(result, dict) and isinstance(result.get("evidence_id"), str)
+    }
+
+    by_fact: dict[str, dict[str, Any]] = {}
+    for fact_id, fact in proof_fact_registry.items():
+        refs = fact.get("controlled_evidence") or []
+        if not refs:
+            continue
+        artifacts: set[str] = set()
+        for ref in refs:
+            path_text, local_id = ref.split("::", 1)
+            artifacts.add(path_text)
+            if path_text == focused_cases_artifact:
+                if local_id not in case_by_id and local_id not in group_by_id:
+                    raise FrontierError(
+                        f"proof fact {fact_id} controlled evidence references "
+                        f"unknown focused case/group {ref}"
+                    )
+                continue
+            if path_text == python_evidence_artifact:
+                if local_id not in python_evidence_ids:
+                    raise FrontierError(
+                        f"proof fact {fact_id} controlled evidence references "
+                        f"unknown Python loop/De Morgan evidence {ref}"
+                    )
+                continue
+
+            evidence_path = Path(path_text)
+            if not evidence_path.is_absolute():
+                evidence_path = ROOT / evidence_path
+            if not evidence_path.exists():
+                raise FrontierError(
+                    f"proof fact {fact_id} controlled evidence path does not exist: {ref}"
+                )
+            evidence_text = evidence_path.read_text()
+            if evidence_path.suffix == ".rs":
+                anchor_pattern = rf"\bfn\s+{re.escape(local_id)}\b"
+                anchor_found = re.search(anchor_pattern, evidence_text) is not None
+            else:
+                anchor_found = local_id in evidence_text
+            if not anchor_found:
+                raise FrontierError(
+                    f"proof fact {fact_id} controlled evidence anchor does not exist: {ref}"
+                )
+        by_fact[fact_id] = {
+            "validated_ref_count": len(refs),
+            "artifacts": sorted(artifacts),
+            "refs": sorted(refs),
+        }
+    return by_fact
 
 
 def validate_python_loop_demorgan_proof_facts(
@@ -1563,6 +1634,15 @@ def build_report(
         python_loop_demorgan_proof_facts_path,
         proof_fact_registry,
     )
+    registry_controlled_evidence_by_fact = validate_registry_controlled_evidence_refs(
+        proof_fact_registry,
+        focused_cases,
+        focused_cases_path,
+        python_loop_demorgan_proof_facts,
+        python_loop_demorgan_proof_facts_path,
+    )
+    for fact_id, evidence in registry_controlled_evidence_by_fact.items():
+        proof_fact_evidence_by_fact.setdefault(fact_id, evidence)
     packets = validate_packet_doc(packet_doc, proof_fact_registry)
     evidence_links = validate_evidence_links(packets, real_frontier)
     hard_negative_linkage = validate_hard_negative_linkage(packets, focused_cases)
@@ -2338,6 +2418,48 @@ def selftest() -> None:
             },
         ],
     }
+    validated_registry_refs = validate_registry_controlled_evidence_refs(
+        evidence_registry,
+        focused_cases,
+        DEFAULT_FOCUSED_CASES,
+        proof_evidence,
+        DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
+    )
+    assert (
+        validated_registry_refs["iteration.same-source-identity"]["validated_ref_count"]
+        == 1
+    )
+    case_registry_doc = json.loads(json.dumps(registry_doc))
+    case_registry_doc["facts"][0]["controlled_evidence"] = [
+        f"{repo_rel(DEFAULT_FOCUSED_CASES)}::positive"
+    ]
+    case_registry = validate_proof_fact_registry(case_registry_doc)
+    assert (
+        validate_registry_controlled_evidence_refs(
+            case_registry,
+            focused_cases,
+            DEFAULT_FOCUSED_CASES,
+            proof_evidence,
+            DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
+        )["numeric-clamp.bound-order"]["validated_ref_count"]
+        == 1
+    )
+    bad_case_registry_doc = json.loads(json.dumps(case_registry_doc))
+    bad_case_registry_doc["facts"][0]["controlled_evidence"] = [
+        f"{repo_rel(DEFAULT_FOCUSED_CASES)}::missing"
+    ]
+    bad_case_registry = validate_proof_fact_registry(bad_case_registry_doc)
+    try:
+        validate_registry_controlled_evidence_refs(
+            bad_case_registry,
+            focused_cases,
+            DEFAULT_FOCUSED_CASES,
+            proof_evidence,
+            DEFAULT_PYTHON_LOOP_DEMORGAN_PROOF_FACTS,
+        )
+        raise AssertionError("missing registry controlled evidence ref was not detected")
+    except FrontierError:
+        pass
     real_frontier = {
         "schema_version": 1,
         "items": [

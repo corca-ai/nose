@@ -1054,12 +1054,12 @@
       },
       "detector_admission": {
         "capabilities": [
-          "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
+          "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and numeric.aggregate-value-model-domain evidence match",
           "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
           "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
           "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
-          "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+          "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, selection domain, and numeric.selection-value-order-domain evidence match",
+          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries"
         ],
         "hard_negative_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
@@ -1096,7 +1096,7 @@
           "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall"
         ],
         "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
-        "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
+        "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
         "status": "controlled-slice-admitted"
       },
       "evidence_case_ids": [
@@ -1113,6 +1113,9 @@
         "any and all have opposite short-circuit direction and fallthrough truth values",
         "TypeScript number[] parameters do not prove dense Array.every sources because sparse holes are skipped by every but observable to for-of iteration",
         "TypeScript Array.every callbacks that observe index or source-array arguments are outside the value-only predicate proof",
+        "numeric aggregate arithmetic without numeric.aggregate-value-model-domain evidence stays outside exact reduction admission",
+        "min/max or relational selection without numeric.selection-value-order-domain evidence stays outside exact selection admission",
+        "NaN, signed-zero, and float non-associativity surfaces are tracked by numeric.float-special-value-boundary and stay split",
         "Swift allSatisfy two-argument custom overloads are outside the value-only stdlib Sequence quantifier proof",
         "Swift allSatisfy over .lazy receivers is outside the eager Array/Collection demand proof",
         "Swift allSatisfy changed predicate/source coordinates, wrong empty truth, or callback/loop effects stay split",
@@ -1193,6 +1196,18 @@
       "proof_fact_model": {
         "facts": [
           {
+            "current_real_pair_status": "satisfied for focused sum/product/count fixtures under the controlled aggregate value model; runtime no-overflow, untyped dynamic, overflow-sensitive, and float domains remain outside the focused aggregate claim",
+            "fact_id": "numeric.aggregate-value-model-domain"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused seeded min/max and typed relational fixtures under the controlled selection value-order model; broad runtime total-order, NaN-sensitive, generic ordered, and custom comparator domains remain outside exact selection admission",
+            "fact_id": "numeric.selection-value-order-domain"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused clamp, scalar min/max, abs, and algebra-law hard negatives: NaN, signed-zero, and float non-associativity boundaries remain split",
+            "fact_id": "numeric.float-special-value-boundary"
+          },
+          {
             "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing",
             "fact_id": "iteration.same-source-identity"
           },
@@ -1201,7 +1216,7 @@
             "fact_id": "reduction.identity-empty-behavior"
           },
           {
-            "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
+            "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures under numeric.aggregate-value-model-domain: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
             "fact_id": "reduction.step-coordinate-identity"
           },
           {
@@ -1252,7 +1267,7 @@
         ],
         "model_status": "modeled-controlled"
       },
-      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
       "real_frontier_replay_ids": [
         "reduction-sum-focused-controlled-pair",
         "reduction-any-focused-controlled-pair",
@@ -1260,8 +1275,8 @@
         "reduction-typescript-every-array-param-boundary-controlled-pair",
         "reduction-selection-focused-controlled-pair"
       ],
-      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
-      "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
+      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",
+      "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, aggregate value-model closure for arithmetic reductions, selection value-order closure for min/max, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
     }
   ],
   "schema_version": 1,

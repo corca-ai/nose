@@ -63,6 +63,39 @@ def require_strings(values: list[Any], field: str, context: str) -> list[str]:
     return list(values)
 
 
+def optional_strings(obj: dict[str, Any], field: str, context: str) -> list[str]:
+    values = obj.get(field, [])
+    if values is None:
+        return []
+    if not isinstance(values, list):
+        raise PatternCardError(f"{context} {field} must be a list[str] when present")
+    return require_strings(values, field, context)
+
+
+def optional_conditional_facts(pattern: dict[str, Any], context: str) -> list[dict[str, str]]:
+    values = pattern.get("conditional_facts", [])
+    if values is None:
+        return []
+    if not isinstance(values, list):
+        raise PatternCardError(f"{context} conditional_facts must be a list when present")
+    result: list[dict[str, str]] = []
+    for index, item in enumerate(values):
+        if not isinstance(item, dict):
+            raise PatternCardError(
+                f"{context} conditional_facts[{index}] must be an object"
+            )
+        fact_id = item.get("fact_id")
+        when = item.get("when")
+        if not isinstance(fact_id, str) or not fact_id:
+            raise PatternCardError(
+                f"{context} conditional_facts[{index}] missing fact_id"
+            )
+        if not isinstance(when, str) or not when:
+            raise PatternCardError(f"{context} conditional_facts[{index}] missing when")
+        result.append({"fact_id": fact_id, "when": when})
+    return result
+
+
 def case_ids(focused_cases: dict[str, Any]) -> set[str]:
     ids = {case["id"] for case in focused_cases.get("cases", []) if isinstance(case, dict)}
     ids.update(
@@ -146,6 +179,23 @@ def validate_cards(
         for fact_id in required_facts:
             if fact_id not in allowed_facts:
                 raise PatternCardError(f"{context} references unknown proof fact {fact_id}")
+        conditional_facts = optional_conditional_facts(pattern, context)
+        conditional_fact_ids = [fact["fact_id"] for fact in conditional_facts]
+        boundary_facts = optional_strings(pattern, "boundary_facts", context)
+        for field, fact_list in (
+            ("conditional_facts", conditional_fact_ids),
+            ("boundary_facts", boundary_facts),
+        ):
+            for fact_id in fact_list:
+                if fact_id not in allowed_facts:
+                    raise PatternCardError(
+                        f"{context} references unknown {field} proof fact {fact_id}"
+                    )
+        fact_roles = required_facts + conditional_fact_ids + boundary_facts
+        if len(set(fact_roles)) != len(fact_roles):
+            raise PatternCardError(
+                f"{context} proof facts must not be duplicated across fact roles"
+            )
 
         for field in ("hard_negative_templates", "boundaries", "evidence_refs"):
             values = require_strings(require_non_empty_list(pattern, field, context), field, context)
@@ -190,15 +240,20 @@ def render_markdown(patterns: list[dict[str, Any]]) -> str:
         "",
         "## Summary",
         "",
-        "| pattern | status | proof facts | surfaces |",
-        "|---|---|---:|---:|",
+        "| pattern | status | required facts | conditional facts | boundary facts | surfaces |",
+        "|---|---|---:|---:|---:|---:|",
     ]
     for pattern in patterns:
+        conditional_facts = pattern.get("conditional_facts") or []
+        boundary_facts = pattern.get("boundary_facts") or []
         lines.append(
             f"| `{pattern['pattern_id']}` | `{pattern['status']}` | "
-            f"{len(pattern['required_facts'])} | {len(pattern['language_surfaces'])} |"
+            f"{len(pattern['required_facts'])} | {len(conditional_facts)} | "
+            f"{len(boundary_facts)} | {len(pattern['language_surfaces'])} |"
         )
     for pattern in patterns:
+        conditional_facts = pattern.get("conditional_facts") or []
+        boundary_facts = pattern.get("boundary_facts") or []
         lines.extend(
             [
                 "",
@@ -212,6 +267,22 @@ def render_markdown(patterns: list[dict[str, Any]]) -> str:
                 f"- rationale: {pattern['rationale']}",
                 "- required facts: "
                 + ", ".join(f"`{fact}`" for fact in pattern["required_facts"]),
+            ]
+        )
+        if conditional_facts:
+            lines.append(
+                "- conditional facts: "
+                + "; ".join(
+                    f"`{fact['fact_id']}` when {fact['when']}"
+                    for fact in conditional_facts
+                )
+            )
+        if boundary_facts:
+            lines.append(
+                "- boundary facts: " + ", ".join(f"`{fact}`" for fact in boundary_facts)
+            )
+        lines.extend(
+            [
                 "- hard-negative templates: "
                 + ", ".join(f"`{item}`" for item in pattern["hard_negative_templates"]),
                 "- boundaries: " + "; ".join(pattern["boundaries"]),

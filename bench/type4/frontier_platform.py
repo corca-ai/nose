@@ -1457,13 +1457,25 @@ TARGET_PACKETS = [
         "why_now": "reduce_minmax_anyall has all-language probe coverage and already "
         "appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. "
         "The useful work is to record the shared reduction proof perimeter — identity/empty "
-        "behavior, numeric-domain closure for numeric aggregates, step or terminal predicate "
-        "coordinate, short-circuit direction, selection seed/domain, source identity, and predicate "
+        "behavior, aggregate value-model closure for arithmetic reductions, selection value-order closure for min/max, "
+        "step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate "
         "or reducer effect closure — so future reduce, any/all, and min/max surfaces extend neutral facts instead "
         "of per-language spellings.",
         "proof_fact_model": {
             "model_status": "modeled-controlled",
             "facts": [
+                {
+                    "fact_id": "numeric.aggregate-value-model-domain",
+                    "current_real_pair_status": "satisfied for focused sum/product/count fixtures under the controlled aggregate value model; runtime no-overflow, untyped dynamic, overflow-sensitive, and float domains remain outside the focused aggregate claim",
+                },
+                {
+                    "fact_id": "numeric.selection-value-order-domain",
+                    "current_real_pair_status": "satisfied for focused seeded min/max and typed relational fixtures under the controlled selection value-order model; broad runtime total-order, NaN-sensitive, generic ordered, and custom comparator domains remain outside exact selection admission",
+                },
+                {
+                    "fact_id": "numeric.float-special-value-boundary",
+                    "current_real_pair_status": "satisfied for focused clamp, scalar min/max, abs, and algebra-law hard negatives: NaN, signed-zero, and float non-associativity boundaries remain split",
+                },
                 {
                     "fact_id": "iteration.same-source-identity",
                     "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing",
@@ -1474,7 +1486,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "reduction.step-coordinate-identity",
-                    "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
+                    "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures under numeric.aggregate-value-model-domain: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
                 },
                 {
                     "fact_id": "reduction.terminal-predicate-coordinate",
@@ -1525,15 +1537,15 @@ TARGET_PACKETS = [
         },
         "detector_admission": {
             "status": "controlled-slice-admitted",
-            "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
+            "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
             "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
             "capabilities": [
-                "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
+                "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and numeric.aggregate-value-model-domain evidence match",
                 "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
                 "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
                 "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
-                "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries",
+                "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, selection domain, and numeric.selection-value-order-domain evidence match",
+                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",

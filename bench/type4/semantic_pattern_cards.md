@@ -10,19 +10,19 @@ proof-carrying frontier gates required by the linked pattern.
 
 ## Summary
 
-| pattern | status | proof facts | surfaces |
-|---|---|---:|---:|
-| `numeric.clamp.proven-integer-bounds` | `controlled-slice-admitted` | 2 | 4 |
-| `quantifier.universal.counterexample-loop` | `real-pair-admitted` | 5 | 6 |
-| `collection.membership.proven-receiver-element` | `pattern-carded` | 4 | 8 |
-| `collection.empty-check.proven-receiver-domain` | `pattern-carded` | 4 | 8 |
-| `string.affix.proven-receiver-coordinate` | `pattern-carded` | 6 | 7 |
-| `option.presence-default.proven-channel-coordinate` | `pattern-carded` | 6 | 8 |
-| `map.default.absence-lookup` | `pattern-carded` | 4 | 5 |
-| `hof.filter-map.option-emission` | `pattern-carded` | 5 | 4 |
-| `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 5 |
-| `reduction.aggregate.proven-terminal-identity` | `pattern-carded` | 7 | 8 |
-| `hof.flat-map.aggregate-reduction` | `pattern-carded` | 9 | 5 |
+| pattern | status | required facts | conditional facts | boundary facts | surfaces |
+|---|---|---:|---:|---:|---:|
+| `numeric.clamp.proven-integer-bounds` | `controlled-slice-admitted` | 2 | 0 | 0 | 4 |
+| `quantifier.universal.counterexample-loop` | `real-pair-admitted` | 5 | 0 | 0 | 6 |
+| `collection.membership.proven-receiver-element` | `pattern-carded` | 4 | 0 | 0 | 8 |
+| `collection.empty-check.proven-receiver-domain` | `pattern-carded` | 4 | 0 | 0 | 8 |
+| `string.affix.proven-receiver-coordinate` | `pattern-carded` | 6 | 0 | 0 | 7 |
+| `option.presence-default.proven-channel-coordinate` | `pattern-carded` | 6 | 0 | 0 | 8 |
+| `map.default.absence-lookup` | `pattern-carded` | 4 | 0 | 0 | 5 |
+| `hof.filter-map.option-emission` | `pattern-carded` | 5 | 0 | 0 | 4 |
+| `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 0 | 0 | 5 |
+| `reduction.aggregate.proven-terminal-identity` | `pattern-carded` | 7 | 2 | 1 | 8 |
+| `hof.flat-map.aggregate-reduction` | `pattern-carded` | 9 | 0 | 0 | 5 |
 
 ## `numeric.clamp.proven-integer-bounds`
 
@@ -227,14 +227,16 @@ One-level flat-map surfaces are equivalent to multi-clause comprehensions or nes
 
 **Proof-backed aggregate reduction**
 
-Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within a proven numeric/value domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, prove receiver/API identity for protocol methods, and close predicate, reducer, or block effects.
+Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within the appropriate aggregate value-model or selection value-order domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, prove receiver/API identity for protocol methods, and close predicate, reducer, or block effects.
 
 - status: `pattern-carded`
-- rationale: The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any/every terminals, Ruby literal-receiver any?/all?, Swift eager Array/Collection allSatisfy, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, numeric domain, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.
+- rationale: The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any/every terminals, Ruby literal-receiver any?/all?, Swift eager Array/Collection allSatisfy, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, aggregate value-model and selection value-order numeric facts, float-special-value boundaries, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.
 - required facts: `iteration.same-source-identity`, `effect.pure-predicate`, `reduction.identity-empty-behavior`, `reduction.step-coordinate-identity`, `reduction.terminal-predicate-coordinate`, `reduction.short-circuit-direction`, `reduction.selection-seed-domain`
+- conditional facts: `numeric.aggregate-value-model-domain` when aggregate arithmetic behavior matters for sum, reduce, fold, product, or count surfaces; `numeric.selection-value-order-domain` when min/max or relational selection behavior matters
+- boundary facts: `numeric.float-special-value-boundary`
 - hard-negative templates: `reduction.changed-seed`, `reduction.changed-step-coordinate`, `reduction.changed-terminal-predicate`, `reduction.changed-short-circuit-direction`, `reduction.changed-selection-seed-domain`, `numeric.domain`, `iteration.source-identity`, `effect.observed-predicate-effect`, `effect.observed-reducer-or-block-effect`, `protocol-boundary.api-identity`
-- boundaries: identity seed and empty-input behavior must match; sum/product/count step coordinates are distinct even over the same source; any/all terminal predicates must observe the same element coordinate and preserve existential versus universal direction; min/max selection must preserve explicit seed, comparator direction, and selection domain; numeric aggregates require the focused integer/value-model domain or a separate numeric-domain proof; overflow, float, and NaN-sensitive behavior stays closed; unseeded terminal min/max APIs are not seeded clamped selection loops unless empty and all-negative behavior is proven; predicate, reducer, Ruby block, receiver, or still-unmodeled callback effects are behavior-defining; receiver API identity and same-file monkey-patch boundaries must be proven before language-level quantifier methods enter exact admission
-- evidence: `bench/type4/frontier_target_packets.v1.json::reduction-minmax-anyall-2026-07-08`, `bench/type4/adversarial/cases/cases.v1.json::reduction-minmax-anyall-proof-perimeter`, `bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-predicate`, `bench/type4/proof_fact_registry.v1.json::reduction.identity-empty-behavior`, `bench/type4/proof_fact_registry.v1.json::reduction.step-coordinate-identity`, `bench/type4/proof_fact_registry.v1.json::reduction.terminal-predicate-coordinate`, `bench/type4/proof_fact_registry.v1.json::reduction.short-circuit-direction`, `bench/type4/proof_fact_registry.v1.json::reduction.selection-seed-domain`, `bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive`, `bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary`, `bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive`, `bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary`
+- boundaries: identity seed and empty-input behavior must match; sum/product/count step coordinates are distinct even over the same source; any/all terminal predicates must observe the same element coordinate and preserve existential versus universal direction; min/max selection must preserve explicit seed, comparator direction, and selection domain; numeric aggregates require numeric.aggregate-value-model-domain or a separate numeric-domain proof; min/max and relational selection require numeric.selection-value-order-domain; overflow, runtime no-overflow proofs, float, NaN, and signed-zero-sensitive behavior stays closed through numeric.float-special-value-boundary; unseeded terminal min/max APIs are not seeded clamped selection loops unless empty and all-negative behavior is proven; predicate, reducer, Ruby block, receiver, or still-unmodeled callback effects are behavior-defining; receiver API identity and same-file monkey-patch boundaries must be proven before language-level quantifier methods enter exact admission
+- evidence: `bench/type4/frontier_target_packets.v1.json::reduction-minmax-anyall-2026-07-08`, `bench/type4/adversarial/cases/cases.v1.json::reduction-minmax-anyall-proof-perimeter`, `bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-predicate`, `bench/type4/proof_fact_registry.v1.json::reduction.identity-empty-behavior`, `bench/type4/proof_fact_registry.v1.json::reduction.step-coordinate-identity`, `bench/type4/proof_fact_registry.v1.json::reduction.terminal-predicate-coordinate`, `bench/type4/proof_fact_registry.v1.json::reduction.short-circuit-direction`, `bench/type4/proof_fact_registry.v1.json::reduction.selection-seed-domain`, `bench/type4/proof_fact_registry.v1.json::numeric.aggregate-value-model-domain`, `bench/type4/proof_fact_registry.v1.json::numeric.selection-value-order-domain`, `bench/type4/proof_fact_registry.v1.json::numeric.float-special-value-boundary`, `bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive`, `bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary`, `bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive`, `bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary`
 
 | language | surface | status | evidence |
 |---|---|---|---|

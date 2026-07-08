@@ -45,7 +45,7 @@ report keeps the fuller evidence and admission boundary.
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (2/2)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed (4/4)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed (3/3)` | 6 | 7 | 1 |
-| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed (5/5)` | 7 | 12 | 1 |
+| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed (5/5)` | 10 | 15 | 1 |
 
 ## Packet Details
 
@@ -107,7 +107,7 @@ report keeps the fuller evidence and admission boundary.
 
 ### `reduction-minmax-anyall-2026-07-08`
 
-- detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
+- detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
 - remaining real-pair gap: a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission
 - gates: 14 positive, 16 hard-negative
 - executable witness coverage: `covered` (38/38 passed)
