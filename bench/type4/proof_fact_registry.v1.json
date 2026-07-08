@@ -370,6 +370,7 @@
       ],
       "fact_id": "option.absence-channel.identity",
       "hard_negative_conventions": [
+        "option.absence-channel",
         "collection.cardinality",
         "boolean.value-context",
         "protocol-boundary.api-identity"
@@ -388,6 +389,160 @@
       "status": "specified-not-modeled",
       "summary": "Optional-emission rewrites may drop only the proven absence channel; falsey and nested present payloads remain behavior-defining values.",
       "title": "Option absence channel identity"
+    },
+    {
+      "accepted_evidence": [
+        "null, nil, NULL, undefined, or Option predicates read the same parameter, local, field, or receiver coordinate",
+        "defaulting surfaces select from the same checked value coordinate before applying the fallback",
+        "focused wrong-value hard negatives remain split from the proved value coordinate"
+      ],
+      "detector_admission_implication": "Does not admit null/Option presence or defaulting convergence by itself; absence-channel identity, direction, fallback coordinate, pure/default-trigger, and API identity facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "option.value-coordinate-identity",
+      "hard_negative_conventions": [
+        "option.value-coordinate"
+      ],
+      "implementation_guidance": [
+        "Track the nullable or Option value coordinate independently from predicate spelling.",
+        "Reject same-shaped null/Option checks over a different argument, field, receiver, or derived value unless alias/source evidence proves identity.",
+        "For defaulting, attach the fact to the value selected before fallback, not to the fallback expression."
+      ],
+      "rejected_evidence": [
+        "checking `other` when the positive family checks `value`",
+        "same variable names across files without binding, parameter-role, or source evidence",
+        "derived values whose relation to the checked value is not proven"
+      ],
+      "semantic_family": "option.presence_default",
+      "status": "modeled-controlled",
+      "summary": "Null/Option presence and defaulting are about a specific nullable value coordinate; changing that coordinate changes behavior.",
+      "title": "Option value coordinate identity"
+    },
+    {
+      "accepted_evidence": [
+        "absence predicates such as is None, == null, == nil, == NULL, Option::is_none, or if-let None",
+        "presence predicates such as is not None, != null, != nil, != NULL, or Option::is_some",
+        "focused direction hard negatives keep absence and present families separate"
+      ],
+      "detector_admission_implication": "Does not admit null/Option convergence by itself; it only preserves the absence versus present boolean direction for separately proven value and channel facts.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "option.presence-direction",
+      "hard_negative_conventions": [
+        "option.presence-direction",
+        "boolean.truth-table"
+      ],
+      "implementation_guidance": [
+        "Represent absence and present predicates as opposite directions over the same value/channel proof.",
+        "Keep negated or inverted forms out of the positive family unless the boolean direction is explicitly proven.",
+        "Attach if-let and pattern predicates to the Option constructor direction, not to variable names."
+      ],
+      "rejected_evidence": [
+        "merging absence and present predicates",
+        "changed boolean polarity without a proven negation boundary",
+        "constructor names shadowed by local definitions"
+      ],
+      "semantic_family": "option.presence_default",
+      "status": "modeled-controlled",
+      "summary": "Nullable and Option predicates must preserve whether they ask for absence or presence.",
+      "title": "Option presence direction"
+    },
+    {
+      "accepted_evidence": [
+        "nullish/defaulting expressions use the same fallback parameter, literal, local, or immutable binding coordinate",
+        "Option defaulting APIs such as unwrap_or use the same already-evaluated default value coordinate",
+        "focused wrong-fallback hard negatives remain split from the proved default family"
+      ],
+      "detector_admission_implication": "Does not admit defaulting convergence by itself; value coordinate, absence-channel identity, and default short-circuit facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "option.default-fallback-coordinate",
+      "hard_negative_conventions": [
+        "option.fallback-coordinate"
+      ],
+      "implementation_guidance": [
+        "Track fallback/default values independently from the checked nullable value.",
+        "Reject wrong fallback parameters, mutated fallback bindings, and derived fallback expressions without value-equivalence proof.",
+        "Keep repeated defaulting collapsed only when the fallback coordinate is unchanged."
+      ],
+      "rejected_evidence": [
+        "`value ?? otherDefault` when the positive family uses `fallback`",
+        "mutated fallback bindings before defaulting",
+        "same default expression spelling without binding-coordinate evidence"
+      ],
+      "semantic_family": "option.presence_default",
+      "status": "modeled-controlled",
+      "summary": "Nullish and Option defaulting require the fallback/default value coordinate to match.",
+      "title": "Option default fallback coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "for pure or already-evaluated fallback coordinates, fallback is selected only when the checked value is on the nullish or Option absence channel",
+        "falsey present payloads such as 0, false, and empty strings are preserved",
+        "strict-null, shadowed-undefined, truthy-default, and wrong-coordinate boundaries stay split"
+      ],
+      "detector_admission_implication": "Does not admit defaulting convergence by itself; it only closes the nullish/absence trigger for separately proven pure or already-evaluated fallback coordinates.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "option.default-short-circuit",
+      "hard_negative_conventions": [
+        "option.default-short-circuit",
+        "boolean.value-context",
+        "boolean.effect-safety"
+      ],
+      "implementation_guidance": [
+        "Distinguish nullish defaulting from truthiness defaulting.",
+        "Keep strict-null and loose-nullish defaults separate unless undefined/null channel equivalence is proven.",
+        "Reject defaulting forms where fallback evaluation timing or side effects differ."
+      ],
+      "rejected_evidence": [
+        "`value || fallback` treated as `value ?? fallback`",
+        "`value === null ? fallback : value` treated as loose nullish defaulting",
+        "shadowed `undefined` or effectful fallback expressions without timing proof"
+      ],
+      "semantic_family": "option.presence_default",
+      "status": "modeled-controlled",
+      "summary": "For pure or already-evaluated fallbacks, defaulting may replace only the proven absence/nullish channel and must preserve falsey present payloads.",
+      "title": "Option default short-circuit"
+    },
+    {
+      "accepted_evidence": [
+        "language API evidence proves standard nullish, nullable, Optional, or Option semantics",
+        "Java Optional evidence is tied to fully-qualified java.util.Optional receiver identity",
+        "Rust Option predicates/defaulting are distinguished from Result Ok/Err channels and shadowed constructors"
+      ],
+      "detector_admission_implication": "Does not admit null/Option convergence by itself; value coordinate, absence channel, direction, fallback, and pure/default-trigger facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "option.api-identity",
+      "hard_negative_conventions": [
+        "option.absence-channel",
+        "protocol-boundary.api-identity"
+      ],
+      "implementation_guidance": [
+        "Use frontend type/import evidence for Optional/Option/nullish APIs instead of method or constructor names alone.",
+        "Keep custom option-like helpers, bare Java Optional without import-backed type-domain proof, Result channels, and shadowed constructors closed.",
+        "Record language surfaces as channel evidence producers, not as spelling shortcuts."
+      ],
+      "rejected_evidence": [
+        "bare Java Optional names without java.util.Optional type-domain proof",
+        "custom helpers named isPresent, isNone, or unwrap_or without standard API identity",
+        "Rust Result Ok/Err channels or locally shadowed Some/None/Result constructors"
+      ],
+      "semantic_family": "option.presence_default",
+      "status": "modeled-controlled",
+      "summary": "Null/Option presence and defaulting require evidence that the API really exposes the intended absence/present channel.",
+      "title": "Option API and channel identity"
     },
     {
       "accepted_evidence": [

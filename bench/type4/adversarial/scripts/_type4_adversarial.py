@@ -24,6 +24,7 @@ HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "loop",
     "collection",
     "string",
+    "option",
     "protocol-boundary",
 }
 

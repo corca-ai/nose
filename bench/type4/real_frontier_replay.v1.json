@@ -308,6 +308,102 @@
         }
       ],
       "why_expected": "The focused Ruby prefix pair is admitted when literal String receiver proof and standard String#start_with? API identity are both satisfied."
+    },
+    {
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+          "kind": "workspace",
+          "name": "py_missing"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+          "kind": "workspace",
+          "name": "rust_missing"
+        }
+      ],
+      "packet_id": "null-option-presence-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "null-option-presence-absence-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/null_option_presence"
+        }
+      ],
+      "why_expected": "The focused null/Option absence pair is admitted when value coordinate, absence channel, presence direction, and API identity facts are satisfied."
+    },
+    {
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+          "kind": "workspace",
+          "name": "py_present"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+          "kind": "workspace",
+          "name": "rust_present"
+        }
+      ],
+      "packet_id": "null-option-presence-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "null-option-presence-present-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/null_option_presence"
+        }
+      ],
+      "why_expected": "The focused null/Option present pair is admitted separately from absence direction under the same value-coordinate and API/channel proof perimeter."
+    },
+    {
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+          "kind": "workspace",
+          "name": "jsCoalesce"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+          "kind": "workspace",
+          "name": "rust_unwrap_or"
+        }
+      ],
+      "packet_id": "null-option-presence-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "nullish-default-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/null_option_presence"
+        }
+      ],
+      "why_expected": "The focused nullish/Option defaulting pair is admitted when value coordinate, absence channel, fallback coordinate, short-circuit timing, and API identity facts are satisfied."
     }
   ],
   "schema_version": 1,

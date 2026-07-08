@@ -1,9 +1,9 @@
 {
-  "expectation_count": 45,
+  "expectation_count": 58,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 45,
-  "query_count": 15,
+  "passed": 58,
+  "query_count": 16,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -460,6 +460,264 @@
       "expect": "split",
       "expectation_id": "string_affix_ruby_monkey_patch_stays_split",
       "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_absence_positive",
+      "expect": "same-family",
+      "expectation_id": "null_option_presence_absence_cross_language_matches",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 5,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.c",
+            "name": "c_missing",
+            "start": 3
+          },
+          {
+            "end": 5,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.go",
+            "name": "GoMissing",
+            "start": 3
+          },
+          {
+            "end": 4,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.java",
+            "name": "javaMissing",
+            "start": 2
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+            "name": "jsMissing",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+            "name": "rust_missing",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+            "name": "rust_iflet_missing",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.ts",
+            "name": "tsMissing",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+            "name": "py_missing",
+            "start": 1
+          }
+        ],
+        "value": 81.2,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_present_positive",
+      "expect": "same-family",
+      "expectation_id": "null_option_presence_present_cross_language_matches",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.c",
+            "name": "c_present",
+            "start": 7
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.go",
+            "name": "GoPresent",
+            "start": 7
+          },
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.java",
+            "name": "javaPresent",
+            "start": 6
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+            "name": "jsPresent",
+            "start": 5
+          },
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+            "name": "rust_present",
+            "start": 9
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.ts",
+            "name": "tsPresent",
+            "start": 5
+          },
+          {
+            "end": 6,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+            "name": "py_present",
+            "start": 5
+          }
+        ],
+        "value": 69.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_default_positive",
+      "expect": "same-family",
+      "expectation_id": "nullish_default_cross_language_matches",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+            "name": "rust_unwrap_or",
+            "start": 1
+          },
+          {
+            "end": 14,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+            "name": "jsGuard",
+            "start": 9
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+            "name": "jsCoalesce",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+            "name": "jsTernary",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
+            "name": "tsCoalesce",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
+            "name": "tsTernary",
+            "start": 5
+          }
+        ],
+        "value": 52.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_direction_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_python_direction_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_direction_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_rust_direction_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_direction_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_js_direction_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_wrong_value_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_python_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_wrong_value_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_rust_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_truthy_default_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_truthy_default_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_strict_null_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_strict_null_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_wrong_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_js_wrong_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_wrong_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_rust_wrong_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_wrong_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_rust_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
       "matching_family": null,
       "observed": "split",
       "ok": true

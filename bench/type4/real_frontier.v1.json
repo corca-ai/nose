@@ -201,6 +201,59 @@
    "notes": "Issue #756 pattern-card evidence. This packet records the current string-affix perimeter as reusable neutral proof facts and keeps Swift at probe coverage unless future focused evidence covers the full receiver/API/coordinate/mutation perimeter."
   },
   {
+   "case_id": "null-option-presence-focused-controlled",
+   "status": "already-covered",
+   "candidate_axis": "null_option_presence / null_presence_predicate / nullish_default",
+   "repo": "nose",
+   "language": "multi-language",
+   "locations": [
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+     "span": "1-9",
+     "snippet": "py_missing(value, other), py_present(value, other), and py_wrong_value(value, other) pin Python None presence and wrong-value boundaries"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+     "span": "1-15",
+     "snippet": "rust_missing, rust_iflet_missing, rust_present, and rust_wrong_value pin Rust Option presence direction and value-coordinate boundaries"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/default.js",
+     "span": "1-26",
+     "snippet": "jsCoalesce, jsTernary, jsGuard, jsTruthy, jsWrongFallback, and jsStrictNull pin nullish defaulting and adjacent boundaries"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+     "span": "1-31",
+     "snippet": "rust_unwrap_or plus wrong-value and wrong-fallback Option defaulting boundaries"
+    }
+   ],
+   "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.",
+   "evidence": "Focused null_option_presence fixtures are executable: semantic query reports an absence family across C, Go, Java, JS, TS, Python, and Rust Option::is_none/if-let None; a separate present family across the same language set except Rust if-let present in this fixture; and a nullish/default family containing JS `??`, loose-nullish ternary, guard default, TS `??`/ternary, and Rust Option::unwrap_or. Existing CLI and equivalence tests keep truthy, strict-null, wrong-value, wrong-fallback, shadowed-undefined, Java Optional type-domain, Option Some/None, and Result Ok/Err boundaries explicit.",
+   "detector": {
+    "current_detector_miss": false,
+    "binary_path": "nose",
+    "nose_version": "nose",
+    "build_ref": "#757 semantic pattern card",
+    "baseline_command": "nose query bench/type4/adversarial/cases/null_option_presence --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+    "baseline_result": "Semantic query reports distinct absence, present, and defaulting families while direction, wrong-value, truthy-default, strict-null, and wrong-coordinate hard negatives stay outside those families.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations.",
+    "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations."
+   },
+   "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.",
+   "hard_negative_siblings": [
+    "absence and present predicates are opposite directions and must stay split",
+    "checking `other` instead of `value` changes the nullable/Option value coordinate",
+    "truthy defaulting such as `value || fallback` drops falsey present payloads and is not nullish defaulting",
+    "strict-null-only defaulting is not loose nullish defaulting because undefined handling differs",
+    "wrong fallback/default coordinates change defaulting behavior",
+    "Java Optional needs fully-qualified java.util.Optional type-domain proof; bare Optional and custom option-like helpers are not enough",
+    "Rust Result Ok/Err channels and shadowed Some/None constructors are not Option Some/None channel proof"
+   ],
+   "batch": "2026-07-08-null-option-presence-pattern-card",
+   "notes": "Issue #757 pattern-card evidence. This is a controlled, replayable focused slice. It intentionally does not claim Ruby nil? focused admission, Swift full Optional admission, or Rust match-default focused convergence until those proof perimeters are separately covered."
+  },
+  {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
    "status": "unsupported",
    "candidate_axis": "membership_contains / literal_collection_membership",

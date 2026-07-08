@@ -1,26 +1,26 @@
 {
-  "entry_count": 9,
+  "entry_count": 12,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "b4f130b5b00426c8469f3e1dbf4d6a4bc6789d3c69a7eea885d0dfd229b22e32",
-      "size_bytes": 10393
+      "sha256": "6d71b1dd1ba01c744a7a3e2c13b3c5ae7ee1801441b62d358a44103e2ccd6650",
+      "size_bytes": 13584
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "4c32981731bde6ec50641b12e834a649193b799473c96d7ff22ccf264b694d31",
-      "size_bytes": 83091
+      "sha256": "c29144a440edc902998c80821fb4ebcdf578bfaa57b3b738630bf9ed5e711dd0",
+      "size_bytes": 88202
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "331a9c79a48d2eab5537e2a89c3945256deb8997746b37669094d0b09e5131a3",
-      "size_bytes": 52463
+      "sha256": "e1f41ad0cdc091f93fae63adcd3edb74b221f49f9f51e9ee240f67199f489c54",
+      "size_bytes": 66392
     }
   },
   "nose_binary": "nose",
-  "passed": 9,
-  "query_count": 7,
+  "passed": 12,
+  "query_count": 8,
   "results": [
     {
       "availability": {
@@ -113,6 +113,189 @@
       "ok": true,
       "packet_id": "collection-empty-check-2026-07-08",
       "replay_id": "collection-nonempty-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 5,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.c",
+            "name": "c_missing",
+            "start": 3
+          },
+          {
+            "end": 5,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.go",
+            "name": "GoMissing",
+            "start": 3
+          },
+          {
+            "end": 4,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.java",
+            "name": "javaMissing",
+            "start": 2
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+            "name": "jsMissing",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+            "name": "rust_missing",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+            "name": "rust_iflet_missing",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.ts",
+            "name": "tsMissing",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+            "name": "py_missing",
+            "start": 1
+          }
+        ],
+        "value": 81.2,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "null-option-presence-2026-07-08",
+      "replay_id": "null-option-presence-absence-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.c",
+            "name": "c_present",
+            "start": 7
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.go",
+            "name": "GoPresent",
+            "start": 7
+          },
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.java",
+            "name": "javaPresent",
+            "start": 6
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+            "name": "jsPresent",
+            "start": 5
+          },
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+            "name": "rust_present",
+            "start": 9
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.ts",
+            "name": "tsPresent",
+            "start": 5
+          },
+          {
+            "end": 6,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+            "name": "py_present",
+            "start": 5
+          }
+        ],
+        "value": 69.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "null-option-presence-2026-07-08",
+      "replay_id": "null-option-presence-present-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+            "name": "rust_unwrap_or",
+            "start": 1
+          },
+          {
+            "end": 14,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+            "name": "jsGuard",
+            "start": 9
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+            "name": "jsCoalesce",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+            "name": "jsTernary",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
+            "name": "tsCoalesce",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
+            "name": "tsTernary",
+            "start": 5
+          }
+        ],
+        "value": 52.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "null-option-presence-2026-07-08",
+      "replay_id": "nullish-default-focused-controlled-pair",
       "status": "passed"
     },
     {

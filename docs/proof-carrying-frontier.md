@@ -39,8 +39,8 @@ artifact check fails.
 The hard-negative group check is stricter than "has some negatives": every target
 packet must cite a packet-level group, and that group must keep positive focused cases,
 hard-negative focused cases, and regression gates together. Convention IDs cover the
-numeric, boolean, loop, collection, string, and protocol-boundary classes so new packets inherit a
-named soundness perimeter instead of inventing one-off prose.
+numeric, boolean, loop, collection, string, option, and protocol-boundary classes so new
+packets inherit a named soundness perimeter instead of inventing one-off prose.
 
 Executable witness coverage is tracked separately from manifest linkage. A packet can
 link focused cases and still be blocked if its declared executable expectations are

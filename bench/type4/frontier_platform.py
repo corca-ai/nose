@@ -1305,6 +1305,140 @@ TARGET_PACKETS = [
             },
         ],
     },
+    {
+        "packet_id": "null-option-presence-2026-07-08",
+        "candidate_axis": "null_option_presence",
+        "evidence_case_ids": ["null-option-presence-focused-controlled"],
+        "real_frontier_replay_ids": [
+            "null-option-presence-absence-focused-controlled-pair",
+            "null-option-presence-present-focused-controlled-pair",
+            "nullish-default-focused-controlled-pair",
+        ],
+        "hard_negative_group_ids": ["null-option-presence-proof-perimeter"],
+        "owner_route": "team-a-detector",
+        "owner_issue": "#757",
+        "why_now": "null_option_presence has very broad coverage and the largest raw occurrence "
+        "signal in the frontier platform, but this packet records only the controlled proof "
+        "perimeter: value coordinate, specified absence-channel boundary, presence direction, "
+        "fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, "
+        "Optional, and Option surfaces attach to neutral facts instead of per-language null "
+        "selector shortcuts.",
+        "proof_fact_model": {
+            "model_status": "modeled-controlled-plus-specified-channel-boundary",
+            "facts": [
+                {
+                    "fact_id": "option.value-coordinate-identity",
+                    "current_real_pair_status": "satisfied for focused presence/defaulting fixtures: same checked value coordinates converge while wrong-value predicates and wrong-value defaulting stay split",
+                },
+                {
+                    "fact_id": "option.absence-channel.identity",
+                    "current_real_pair_status": "specified as the shared channel boundary: falsey present payloads, nested/present values, and custom option-like helpers stay outside exact admission without channel proof; the current slice cites the boundary but does not promote this fact to modeled-controlled",
+                },
+                {
+                    "fact_id": "option.presence-direction",
+                    "current_real_pair_status": "satisfied for focused absence and present fixtures: absence and present families converge separately and remain split from each other",
+                },
+                {
+                    "fact_id": "option.default-fallback-coordinate",
+                    "current_real_pair_status": "satisfied for focused defaulting fixtures: JS/TS/Rust defaulting converges when fallback coordinates match while wrong fallbacks stay split",
+                },
+                {
+                    "fact_id": "option.default-short-circuit",
+                    "current_real_pair_status": "satisfied for focused JS/TS/Rust pure/already-evaluated fallback boundaries: nullish/Option defaults stay split from truthy, strict-null, shadowed-undefined, and wrong-default variants; eager/lazy effectful fallback timing remains outside this claim",
+                },
+                {
+                    "fact_id": "option.api-identity",
+                    "current_real_pair_status": "satisfied for focused standard nullish/null/Option surfaces plus Java Optional type-domain evidence; bare Optional, Result channels, shadowed constructors, and custom same-name helpers stay closed",
+                },
+            ],
+            "focused_tests": [
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_direction_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_wrong_value_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_strict_nullish_default_boundaries",
+                "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates",
+                "bench/type4/coverage_evidence.v1.json::null_option_presence",
+                "bench/type4/coverage_evidence.v1.json::nullish_default",
+            ],
+        },
+        "detector_admission": {
+            "status": "controlled-slice-admitted",
+            "scope": "controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence",
+            "remaining_real_pair_gap": "a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission",
+            "capabilities": [
+                "converges absence predicates across C, Go, Java, JS, TS, Python, and Rust Option surfaces when value evidence and the absence-channel boundary match",
+                "converges present predicates separately from absence predicates",
+                "converges JS/TS nullish defaulting and Rust Option::unwrap_or for pure or already-evaluated fallback coordinates",
+                "preserves direction, wrong value, wrong fallback, truthy defaulting, strict-null defaulting, Result-channel, shadowed constructor, effectful fallback timing, and API identity boundaries",
+            ],
+            "positive_gates": [
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
+                "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::repeated_nullish_default_with_same_fallback_collapses",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
+                "bench/type4/coverage_evidence.v1.json::null_option_presence",
+                "bench/type4/coverage_evidence.v1.json::nullish_default",
+            ],
+            "hard_negative_gates": [
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_direction_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_wrong_value_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_strict_nullish_default_boundaries",
+                "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_js_object_guard_nullish_boundary",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates",
+            ],
+        },
+        "blocked_by": [],
+        "notes": "This packet records the current null/Option presence/defaulting perimeter as "
+        "reusable proof facts. It intentionally leaves Ruby nil? focused admission, Swift full "
+        "Optional admission, Rust match-default focused convergence, and effectful fallback "
+        "timing outside the exact claim until separate evidence covers those boundaries.",
+        "locations": [
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Python",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+                "span": "1-9",
+                "snippet": "Python None presence and wrong-value boundary representatives",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Rust",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+                "span": "1-15",
+                "snippet": "Rust Option is_none/if-let None/is_some and wrong-value representatives",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "JavaScript",
+                "path": "bench/type4/adversarial/cases/null_option_presence/default.js",
+                "span": "1-26",
+                "snippet": "JS nullish defaulting with truthy, strict-null, and wrong-fallback boundaries",
+            },
+        ],
+    },
 ]
 
 

@@ -130,6 +130,7 @@ HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "loop",
     "collection",
     "string",
+    "option",
     "protocol-boundary",
 }
 
@@ -2287,6 +2288,7 @@ def selftest() -> None:
             "loop": ["loop.short-circuit"],
             "collection": ["collection.cardinality"],
             "string": ["string.receiver-coordinate"],
+            "option": ["option.absence-channel"],
             "protocol-boundary": ["protocol-boundary.api-identity"],
         },
         "hard_negative_groups": [

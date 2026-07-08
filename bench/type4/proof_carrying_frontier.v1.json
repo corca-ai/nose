@@ -104,18 +104,18 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "1b91b935ef6f8e719b692ef7600ac3cdd5669f76d6644ff9e6196d5bb2f3de9b",
-        "size_bytes": 21876
+        "sha256": "366a88fdb33ced863568477a190d35b2d572ac9d92e09af7ebe1a9f3d5ec2b0a",
+        "size_bytes": 30211
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "f2db7830badb02fe5705926676e51b902d294a03359b38013e9f37b1921e1ba6",
-        "size_bytes": 80003
+        "sha256": "85d7853f4b0643d7a26f959754322f37dd6fcaee3655cbcaf193eeb941b3f2e6",
+        "size_bytes": 98108
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "de2fcc6ecf84bd73ef80e8d45ab7e33ceda7e544cf8a29fc66b8c3868293893a",
-        "size_bytes": 70519
+        "sha256": "c44f5826a1fba3f6062a4cc825bcbabc0444e6a40df16584fdf81f9c1b31873a",
+        "size_bytes": 79259
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
@@ -124,23 +124,23 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "4c32981731bde6ec50641b12e834a649193b799473c96d7ff22ccf264b694d31",
-        "size_bytes": 83091
+        "sha256": "c29144a440edc902998c80821fb4ebcdf578bfaa57b3b738630bf9ed5e711dd0",
+        "size_bytes": 88202
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "b4f130b5b00426c8469f3e1dbf4d6a4bc6789d3c69a7eea885d0dfd229b22e32",
-        "size_bytes": 10393
+        "sha256": "6d71b1dd1ba01c744a7a3e2c13b3c5ae7ee1801441b62d358a44103e2ccd6650",
+        "size_bytes": 13584
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "006430687e990835677f7aefb9775baec95cfa3a0581607abc4269cd99bb39e7",
-        "size_bytes": 9251
+        "sha256": "b03b8f43e078d599dd441ad8842365efc24fc6ef85a8d0965622f950f4759bdf",
+        "size_bytes": 14775
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "331a9c79a48d2eab5537e2a89c3945256deb8997746b37669094d0b09e5131a3",
-        "size_bytes": 52463
+        "sha256": "e1f41ad0cdc091f93fae63adcd3edb74b221f49f9f51e9ee240f67199f489c54",
+        "size_bytes": 66392
       }
     },
     "target_packet_identity": {
@@ -192,6 +192,12 @@
         "candidate_axis": "string_prefix_suffix",
         "case_id": "string-affix-focused-controlled",
         "packet_id": "string-prefix-suffix-2026-07-08",
+        "status": "already-covered"
+      },
+      {
+        "candidate_axis": "null_option_presence / null_presence_predicate / nullish_default",
+        "case_id": "null-option-presence-focused-controlled",
+        "packet_id": "null-option-presence-2026-07-08",
         "status": "already-covered"
       }
     ],
@@ -747,26 +753,175 @@
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
+        },
+        {
+          "by_expectation": [
+            {
+              "case_id": "null_option_presence_absence_positive",
+              "expect": "same-family",
+              "expectation_id": "null_option_presence_absence_cross_language_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_js_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_present_positive",
+              "expect": "same-family",
+              "expectation_id": "null_option_presence_present_cross_language_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_python_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_python_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_rust_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_rust_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_default_positive",
+              "expect": "same-family",
+              "expectation_id": "nullish_default_cross_language_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_js_wrong_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_rust_wrong_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_rust_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_strict_null_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_strict_null_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_truthy_default_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_truthy_default_stays_split",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "covered",
+          "declared_expectation_count": 13,
+          "declared_expectation_ids": [
+            "null_option_presence_absence_cross_language_matches",
+            "null_option_presence_js_direction_stays_split",
+            "null_option_presence_present_cross_language_matches",
+            "null_option_presence_python_direction_stays_split",
+            "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_rust_direction_stays_split",
+            "null_option_presence_rust_wrong_value_stays_split",
+            "nullish_default_cross_language_matches",
+            "nullish_js_wrong_fallback_stays_split",
+            "nullish_rust_wrong_fallback_stays_split",
+            "nullish_rust_wrong_value_stays_split",
+            "nullish_strict_null_stays_split",
+            "nullish_truthy_default_stays_split"
+          ],
+          "failed_expectation_count": 0,
+          "failed_expectation_ids": [],
+          "manifest_case_ids": [
+            "null_option_presence_absence_positive",
+            "null_option_presence_direction_boundary",
+            "null_option_presence_present_positive",
+            "null_option_presence_wrong_value_boundary",
+            "nullish_default_positive",
+            "nullish_strict_null_boundary",
+            "nullish_truthy_default_boundary",
+            "nullish_wrong_coordinate_boundary",
+            "option_result_channel_boundary"
+          ],
+          "manifest_hard_negative_case_ids": [
+            "null_option_presence_direction_boundary",
+            "null_option_presence_wrong_value_boundary",
+            "nullish_strict_null_boundary",
+            "nullish_truthy_default_boundary",
+            "nullish_wrong_coordinate_boundary",
+            "option_result_channel_boundary"
+          ],
+          "manifest_only_case_ids": [
+            "option_result_channel_boundary"
+          ],
+          "manifest_positive_case_ids": [
+            "null_option_presence_absence_positive",
+            "null_option_presence_present_positive",
+            "nullish_default_positive"
+          ],
+          "missing_expectation_count": 0,
+          "missing_expectation_ids": [],
+          "packet_id": "null-option-presence-2026-07-08",
+          "passed_expectation_count": 13,
+          "passed_expectation_ids": [
+            "null_option_presence_absence_cross_language_matches",
+            "null_option_presence_js_direction_stays_split",
+            "null_option_presence_present_cross_language_matches",
+            "null_option_presence_python_direction_stays_split",
+            "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_rust_direction_stays_split",
+            "null_option_presence_rust_wrong_value_stays_split",
+            "nullish_default_cross_language_matches",
+            "nullish_js_wrong_fallback_stays_split",
+            "nullish_rust_wrong_fallback_stays_split",
+            "nullish_rust_wrong_value_stays_split",
+            "nullish_strict_null_stays_split",
+            "nullish_truthy_default_stays_split"
+          ],
+          "stale_expectation_count": 0,
+          "stale_expectation_ids": []
         }
       ],
       "summary": {
-        "declared_expectation_count": 45,
+        "declared_expectation_count": 58,
         "extra": 0,
         "failed": 0,
-        "fully_covered_packet_count": 5,
+        "fully_covered_packet_count": 6,
         "missing": 0,
         "nose_binary": "nose",
-        "packet_count": 5,
+        "packet_count": 6,
         "packet_count_by_coverage": {
-          "covered": 5
+          "covered": 6
         },
-        "passed": 45,
-        "query_count": 15,
+        "passed": 58,
+        "query_count": 16,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 45,
+        "result_count": 58,
         "stale": 0
       }
     },
@@ -943,6 +1098,53 @@
           "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/string_affix.rs::admitted_go_namespace_string_affix_requires_string_affix_pack_and_imported_namespace_proof"
         ],
         "semantic_family": "string.affix"
+      },
+      {
+        "conventions": [
+          "option.value-coordinate",
+          "option.absence-channel",
+          "option.presence-direction",
+          "option.fallback-coordinate",
+          "option.default-short-circuit",
+          "protocol-boundary.api-identity",
+          "boolean.value-context"
+        ],
+        "group_id": "null-option-presence-proof-perimeter",
+        "hard_negative_cases": [
+          "null_option_presence_direction_boundary",
+          "null_option_presence_wrong_value_boundary",
+          "nullish_truthy_default_boundary",
+          "nullish_strict_null_boundary",
+          "nullish_wrong_coordinate_boundary",
+          "option_result_channel_boundary"
+        ],
+        "packet_id": "null-option-presence-2026-07-08",
+        "positive_cases": [
+          "null_option_presence_absence_positive",
+          "null_option_presence_present_positive",
+          "nullish_default_positive"
+        ],
+        "regression_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_direction_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_wrong_value_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
+          "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
+          "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
+          "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_strict_nullish_default_boundaries",
+          "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_js_object_guard_nullish_boundary",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
+          "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+          "crates/nose-cli/tests/equivalence/option_boundaries.rs::repeated_nullish_default_with_same_fallback_collapses",
+          "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
+          "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates"
+        ],
+        "semantic_family": "option.presence_default"
       }
     ],
     "packets": [
@@ -2257,6 +2459,330 @@
         ],
         "semantic_claim": "Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver coordinate, the same literal/parameter/imported affix coordinate, standard API or imported namespace identity, the same prefix-versus-suffix direction, and a whole-string single-affix shape. Parameter affixes and immutable local/module affix bindings may join literal affixes under those facts; offset overloads, tuple/multi-affix disjunctions, custom same-name methods, monkey patches, untyped receivers, wrong receivers, and mutated affix bindings remain outside the exact family.",
         "why_now": "string_prefix_suffix has broad controlled coverage across core languages, a Swift probe row, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces."
+      },
+      {
+        "candidate_axis": "null_option_presence",
+        "detector_admission": {
+          "capabilities": [
+            "converges absence predicates across C, Go, Java, JS, TS, Python, and Rust Option surfaces when value evidence and the absence-channel boundary match",
+            "converges present predicates separately from absence predicates",
+            "converges JS/TS nullish defaulting and Rust Option::unwrap_or for pure or already-evaluated fallback coordinates",
+            "preserves direction, wrong value, wrong fallback, truthy defaulting, strict-null defaulting, Result-channel, shadowed constructor, effectful fallback timing, and API identity boundaries"
+          ],
+          "hard_negative_gate_count": 10,
+          "positive_gate_count": 10,
+          "remaining_real_pair_gap": "a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission",
+          "scope": "controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence",
+          "status": "controlled-slice-admitted"
+        },
+        "evidence_case_ids": [
+          "null-option-presence-focused-controlled"
+        ],
+        "evidence_tier": "frontier-recorded",
+        "executable_witness_coverage": {
+          "by_expectation": [
+            {
+              "case_id": "null_option_presence_absence_positive",
+              "expect": "same-family",
+              "expectation_id": "null_option_presence_absence_cross_language_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_js_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_present_positive",
+              "expect": "same-family",
+              "expectation_id": "null_option_presence_present_cross_language_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_python_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_python_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_rust_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_rust_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_default_positive",
+              "expect": "same-family",
+              "expectation_id": "nullish_default_cross_language_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_js_wrong_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_rust_wrong_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_rust_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_strict_null_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_strict_null_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_truthy_default_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_truthy_default_stays_split",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "covered",
+          "declared_expectation_count": 13,
+          "declared_expectation_ids": [
+            "null_option_presence_absence_cross_language_matches",
+            "null_option_presence_js_direction_stays_split",
+            "null_option_presence_present_cross_language_matches",
+            "null_option_presence_python_direction_stays_split",
+            "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_rust_direction_stays_split",
+            "null_option_presence_rust_wrong_value_stays_split",
+            "nullish_default_cross_language_matches",
+            "nullish_js_wrong_fallback_stays_split",
+            "nullish_rust_wrong_fallback_stays_split",
+            "nullish_rust_wrong_value_stays_split",
+            "nullish_strict_null_stays_split",
+            "nullish_truthy_default_stays_split"
+          ],
+          "failed_expectation_count": 0,
+          "failed_expectation_ids": [],
+          "manifest_case_ids": [
+            "null_option_presence_absence_positive",
+            "null_option_presence_direction_boundary",
+            "null_option_presence_present_positive",
+            "null_option_presence_wrong_value_boundary",
+            "nullish_default_positive",
+            "nullish_strict_null_boundary",
+            "nullish_truthy_default_boundary",
+            "nullish_wrong_coordinate_boundary",
+            "option_result_channel_boundary"
+          ],
+          "manifest_hard_negative_case_ids": [
+            "null_option_presence_direction_boundary",
+            "null_option_presence_wrong_value_boundary",
+            "nullish_strict_null_boundary",
+            "nullish_truthy_default_boundary",
+            "nullish_wrong_coordinate_boundary",
+            "option_result_channel_boundary"
+          ],
+          "manifest_only_case_ids": [
+            "option_result_channel_boundary"
+          ],
+          "manifest_positive_case_ids": [
+            "null_option_presence_absence_positive",
+            "null_option_presence_present_positive",
+            "nullish_default_positive"
+          ],
+          "missing_expectation_count": 0,
+          "missing_expectation_ids": [],
+          "packet_id": "null-option-presence-2026-07-08",
+          "passed_expectation_count": 13,
+          "passed_expectation_ids": [
+            "null_option_presence_absence_cross_language_matches",
+            "null_option_presence_js_direction_stays_split",
+            "null_option_presence_present_cross_language_matches",
+            "null_option_presence_python_direction_stays_split",
+            "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_rust_direction_stays_split",
+            "null_option_presence_rust_wrong_value_stays_split",
+            "nullish_default_cross_language_matches",
+            "nullish_js_wrong_fallback_stays_split",
+            "nullish_rust_wrong_fallback_stays_split",
+            "nullish_rust_wrong_value_stays_split",
+            "nullish_strict_null_stays_split",
+            "nullish_truthy_default_stays_split"
+          ],
+          "stale_expectation_count": 0,
+          "stale_expectation_ids": []
+        },
+        "hard_negative_count": 7,
+        "hard_negative_group_ids": [
+          "null-option-presence-proof-perimeter"
+        ],
+        "owner_issue": "#757",
+        "owner_route": "team-a-detector",
+        "packet_id": "null-option-presence-2026-07-08",
+        "proof_fact_model": {
+          "fact_count": 6,
+          "fact_ids": [
+            "option.value-coordinate-identity",
+            "option.absence-channel.identity",
+            "option.presence-direction",
+            "option.default-fallback-coordinate",
+            "option.default-short-circuit",
+            "option.api-identity"
+          ],
+          "facts": [
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused presence/defaulting fixtures: same checked value coordinates converge while wrong-value predicates and wrong-value defaulting stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "option.value-coordinate-identity",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "option.presence_default",
+              "title": "Option value coordinate identity"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "specified as the shared channel boundary: falsey present payloads, nested/present values, and custom option-like helpers stay outside exact admission without channel proof; the current slice cites the boundary but does not promote this fact to modeled-controlled",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "option.absence-channel.identity",
+              "registry_status": "specified-not-modeled",
+              "semantic_family": "option.absence_channel",
+              "title": "Option absence channel identity"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused absence and present fixtures: absence and present families converge separately and remain split from each other",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "option.presence-direction",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "option.presence_default",
+              "title": "Option presence direction"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused defaulting fixtures: JS/TS/Rust defaulting converges when fallback coordinates match while wrong fallbacks stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "option.default-fallback-coordinate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "option.presence_default",
+              "title": "Option default fallback coordinate"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused JS/TS/Rust pure/already-evaluated fallback boundaries: nullish/Option defaults stay split from truthy, strict-null, shadowed-undefined, and wrong-default variants; eager/lazy effectful fallback timing remains outside this claim",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "option.default-short-circuit",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "option.presence_default",
+              "title": "Option default short-circuit"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused standard nullish/null/Option surfaces plus Java Optional type-domain evidence; bare Optional, Result channels, shadowed constructors, and custom same-name helpers stay closed",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "option.api-identity",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "option.presence_default",
+              "title": "Option API and channel identity"
+            }
+          ],
+          "model_status": "modeled-controlled-plus-specified-channel-boundary"
+        },
+        "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.",
+        "readiness": {
+          "blocking_items": [],
+          "can_open_exact_admission": false,
+          "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
+          "status": "detector-admitted-controlled"
+        },
+        "real_frontier_replay": {
+          "by_replay": [
+            {
+              "case_id": "null-option-presence-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "null-option-presence-absence-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "null-option-presence-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "null-option-presence-present-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "null-option-presence-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "nullish-default-focused-controlled-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 3,
+          "declared_replay_ids": [
+            "null-option-presence-absence-focused-controlled-pair",
+            "null-option-presence-present-focused-controlled-pair",
+            "nullish-default-focused-controlled-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "null-option-presence-2026-07-08",
+          "passed_replay_count": 3,
+          "passed_replay_ids": [
+            "null-option-presence-absence-focused-controlled-pair",
+            "null-option-presence-present-focused-controlled-pair",
+            "nullish-default-focused-controlled-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
+        },
+        "real_frontier_replay_ids": [
+          "null-option-presence-absence-focused-controlled-pair",
+          "null-option-presence-present-focused-controlled-pair",
+          "nullish-default-focused-controlled-pair"
+        ],
+        "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.",
+        "why_now": "null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts."
       }
     ],
     "real_frontier_replay": {
@@ -2443,47 +2969,95 @@
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
+        },
+        {
+          "by_replay": [
+            {
+              "case_id": "null-option-presence-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "null-option-presence-absence-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "null-option-presence-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "null-option-presence-present-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "null-option-presence-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "nullish-default-focused-controlled-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 3,
+          "declared_replay_ids": [
+            "null-option-presence-absence-focused-controlled-pair",
+            "null-option-presence-present-focused-controlled-pair",
+            "nullish-default-focused-controlled-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "null-option-presence-2026-07-08",
+          "passed_replay_count": 3,
+          "passed_replay_ids": [
+            "null-option-presence-absence-focused-controlled-pair",
+            "null-option-presence-present-focused-controlled-pair",
+            "nullish-default-focused-controlled-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
         }
       ],
       "summary": {
-        "declared_replay_count": 9,
+        "declared_replay_count": 12,
         "failed": 0,
-        "fully_replayed_packet_count": 5,
+        "fully_replayed_packet_count": 6,
         "nose_binary": "nose",
-        "packet_count": 5,
+        "packet_count": 6,
         "packet_count_by_coverage": {
-          "passed": 5
+          "passed": 6
         },
-        "passed": 9,
-        "query_count": 7,
+        "passed": 12,
+        "query_count": 8,
         "report_failed_replay_ids": [],
         "report_missing_replay_ids": [],
         "report_unavailable_replay_ids": [],
-        "result_count": 9,
+        "result_count": 12,
         "unavailable": 0
       }
     },
     "summary": {
       "by_detector_admission": {
-        "controlled-slice-admitted": 2,
+        "controlled-slice-admitted": 3,
         "real-pair-admitted": 3
       },
       "by_executable_witness_coverage": {
-        "covered": 5
+        "covered": 6
       },
       "by_owner_route": {
         "proof-fact-prerequisite": 1,
-        "team-a-detector": 4
+        "team-a-detector": 5
       },
       "by_readiness": {
         "detector-admitted": 3,
-        "detector-admitted-controlled": 2
+        "detector-admitted-controlled": 3
       },
       "by_real_frontier_replay": {
-        "passed": 5
+        "passed": 6
       },
-      "detector_admitted_packet_count": 5,
-      "packet_count": 5,
+      "detector_admitted_packet_count": 6,
+      "packet_count": 6,
       "ready_packet_count": 0
     }
   },
