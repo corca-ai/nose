@@ -325,6 +325,53 @@
    "notes": "Issue #758 pattern-card evidence, extended by #769 for the focused Swift eager Array/Collection allSatisfy slice. This is a controlled, replayable focused slice; it records reusable reduction proof facts without claiming Swift reduce, contains(where:), custom overload allSatisfy, lazy allSatisfy, or a new non-focused real-corpus detector admission."
   },
   {
+   "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+   "status": "real-miss",
+   "candidate_axis": "reduce_minmax_anyall / typescript_every / append_only_local_array",
+   "repo": "drizzle-orm",
+   "language": "typescript",
+   "locations": [
+    {
+     "path": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+     "span": "35-38",
+     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;"
+    },
+    {
+     "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+     "span": "41-44",
+     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;"
+    },
+    {
+     "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+     "span": "82-85",
+     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;"
+    }
+   ],
+   "semantic_claim": "The Drizzle introspection filters repeat the same TypeScript universal terminal predicate, `flags.every(Boolean)`, over a local boolean array populated by the immediately preceding matcher loop. This is a real-corpus neighbor of the focused dense-literal TypeScript every/for-of admission, but it is not yet an admitted real pair because the current proof facts do not establish append-only dense local-array provenance for `flags`.",
+   "evidence": "Live replay over the Drizzle mysql/sqlite introspection files must currently observe `split` for the terminal `flags.every(Boolean)` spans. The same query does report exact duplicate matcher-branch sub-blocks in those files, so the replay is not unavailable or path-stale; the missing piece is the local array source/provenance fact needed to connect the append-only loop to the universal terminal predicate without treating arbitrary array parameters as dense.",
+   "detector": {
+    "current_detector_miss": true,
+    "binary_path": "target/debug/nose",
+    "nose_version": "nose 0.18.0",
+    "build_ref": "#771 real-frontier replay evidence",
+    "baseline_command": "target/debug/nose query -r bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/mysqlIntrospect.ts -r bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/sqliteIntrospect.ts all top=0 --mode semantic --format json --min-size 1 --min-lines 1",
+    "baseline_result": "Semantic query reports exact duplicate matcher-branch sub-blocks across mysql/sqlite introspection filters, but no family contains the `if (flags.length > 0) return flags.every(Boolean); return false` terminal spans selected by the replay.",
+    "semantic_query_result": "`real_frontier_replay.py --replay reduction-typescript-every-append-only-flags-drizzle-real-pair` expects and observes `split` for the terminal every(Boolean) real pair.",
+    "default_query_result": "No default-query admission is claimed; this real pair remains blocked on append-only dense local-array provenance and value-only Boolean predicate facts."
+   },
+   "proof_invariant": "Do not widen the focused dense-literal TypeScript Array.every admission to local arrays unless source evidence proves the array is freshly allocated, append-only before the terminal check, dense, unaliased or non-escaping, populated only with boolean values, and traversed by a value-only predicate whose receiver and source coordinate match the loop. Array parameters, sparse arrays, callback index/source-array observation, mutation after population, non-boolean pushes, aliased writes, and shadowed Boolean predicates must remain non-equivalent.",
+   "hard_negative_siblings": [
+    "TypeScript number[] parameter every versus for-of, where sparse holes are skipped by every but observable to for-of",
+    "callbacks that observe Array.every index or source-array arguments",
+    "a local flags array that is aliased, reassigned, sorted, spliced, or otherwise mutated between pushes and the terminal every(Boolean)",
+    "pushes of non-boolean values where Boolean coercion is semantic behavior rather than proof of a terminal predicate",
+    "a shadowed Boolean binding or custom truthiness helper used as the every callback"
+   ],
+   "batch": "2026-07-08-real-frontier-replay-evidence",
+   "reverify": "Run the linked real-frontier replay with the Drizzle corpus checkout available. Reclassify only when the terminal real pair merges while the TypeScript array-parameter sparse-hole, callback-extra-argument, mutation, aliasing, non-boolean push, and Boolean-shadowing boundaries remain split.",
+   "notes": "Issue #771 replay evidence for the reduction packet. This deliberately records a real-corpus miss adjacent to the #767 dense-literal TypeScript every admission; it is executable evidence of the next source-provenance fact, not a real-pair detector admission."
+  },
+  {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
    "status": "unsupported",
    "candidate_axis": "membership_contains / literal_collection_membership",

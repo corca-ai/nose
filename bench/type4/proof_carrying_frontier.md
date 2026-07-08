@@ -18,9 +18,9 @@ report keeps the fuller evidence and admission boundary.
 - by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 6}`
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
-- by real-frontier replay: `{"passed": 7}`
+- by real-frontier replay expectations: `{"passed": 7}`
 - executable expectations: 106/106 passed
-- real-frontier replays: 17/17 passed; 0 unavailable
+- real-frontier replay expectations: 18/18 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -37,15 +37,15 @@ report keeps the fuller evidence and admission boundary.
 
 ## Target Packets
 
-| packet | axis | route | readiness | exec witnesses | real replay | proof facts | hard negatives | groups |
+| packet | axis | route | readiness | exec witnesses | real replay expectations | proof facts | hard negatives | groups |
 |---|---|---|---|---|---|---:|---:|---:|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
-| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 5 | 6 | 1 |
-| `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (1/1)` | 4 | 7 | 1 |
-| `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (2/2)` | 4 | 5 | 1 |
-| `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed (4/4)` | 6 | 7 | 1 |
-| `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed (3/3)` | 6 | 7 | 1 |
-| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed (5/5)` | 10 | 15 | 1 |
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed expectations (1/1)` | 2 | 4 | 1 |
+| `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed expectations (1/1)` | 5 | 6 | 1 |
+| `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed expectations (1/1)` | 4 | 7 | 1 |
+| `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed expectations (2/2)` | 4 | 5 | 1 |
+| `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed expectations (4/4)` | 6 | 7 | 1 |
+| `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
+| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed expectations (6/6)` | 10 | 15 | 1 |
 
 ## Packet Details
 
@@ -55,7 +55,7 @@ report keeps the fuller evidence and admission boundary.
 - remaining real-pair gap: the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss
 - gates: 5 positive, 6 hard-negative
 - executable witness coverage: `covered` (8/8 passed)
-- real-frontier replay: `passed` (1/1 passed)
+- real-frontier replay expectations: `passed` (1/1 expectations passed)
 - proof fact model: `modeled-for-controlled-evidence`; facts: `numeric-clamp.integer-domain` (modeled-controlled), `numeric-clamp.bound-order` (modeled-controlled)
 - blocked by:
   - the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
@@ -67,7 +67,7 @@ report keeps the fuller evidence and admission boundary.
 - detector admission: `real-pair-admitted` over README/focused Python all(generator) universal predicate versus counterexample early-return loop with boolean-only literal comparison De Morgan
 - gates: 1 positive, 6 hard-negative
 - executable witness coverage: `covered` (7/7 passed)
-- real-frontier replay: `passed` (1/1 passed)
+- real-frontier replay expectations: `passed` (1/1 expectations passed)
 - hard-negative groups: `python-loop-demorgan-all-proof-perimeter`
 
 ### `membership-contains-2026-07-08`
@@ -75,7 +75,7 @@ report keeps the fuller evidence and admission boundary.
 - detector admission: `real-pair-admitted` over controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces
 - gates: 7 positive, 7 hard-negative
 - executable witness coverage: `covered` (5/5 passed)
-- real-frontier replay: `passed` (1/1 passed)
+- real-frontier replay expectations: `passed` (1/1 expectations passed)
 - hard-negative groups: `collection-membership-proof-perimeter`
 
 ### `collection-empty-check-2026-07-08`
@@ -83,7 +83,7 @@ report keeps the fuller evidence and admission boundary.
 - detector admission: `real-pair-admitted` over controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof
 - gates: 4 positive, 5 hard-negative
 - executable witness coverage: `covered` (5/5 passed)
-- real-frontier replay: `passed` (2/2 passed)
+- real-frontier replay expectations: `passed` (2/2 expectations passed)
 - hard-negative groups: `collection-empty-check-proof-perimeter`
 
 ### `string-prefix-suffix-2026-07-08`
@@ -92,7 +92,7 @@ report keeps the fuller evidence and admission boundary.
 - remaining real-pair gap: a non-focused real-corpus string-affix pair still needs separate audit before this packet can claim real-pair admission
 - gates: 6 positive, 10 hard-negative
 - executable witness coverage: `covered` (20/20 passed)
-- real-frontier replay: `passed` (4/4 passed)
+- real-frontier replay expectations: `passed` (4/4 expectations passed)
 - hard-negative groups: `string-affix-proof-perimeter`
 
 ### `null-option-presence-2026-07-08`
@@ -101,17 +101,22 @@ report keeps the fuller evidence and admission boundary.
 - remaining real-pair gap: a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission
 - gates: 10 positive, 10 hard-negative
 - executable witness coverage: `covered` (13/13 passed)
-- real-frontier replay: `passed` (3/3 passed)
+- real-frontier replay expectations: `passed` (3/3 expectations passed)
 - manifest-only cases: `option_result_channel_boundary`
 - hard-negative groups: `null-option-presence-proof-perimeter`
 
 ### `reduction-minmax-anyall-2026-07-08`
 
 - detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
-- remaining real-pair gap: a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission
+- remaining real-pair gap: the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit
 - gates: 14 positive, 16 hard-negative
 - executable witness coverage: `covered` (38/38 passed)
-- real-frontier replay: `passed` (5/5 passed)
+- real-frontier replay expectations: `passed` (6/6 expectations passed)
+- proof fact model: `modeled-controlled`; facts: `numeric.aggregate-value-model-domain` (modeled-controlled), `numeric.selection-value-order-domain` (modeled-controlled), `numeric.float-special-value-boundary` (modeled-controlled), `iteration.same-source-identity` (modeled-controlled), `reduction.identity-empty-behavior` (modeled-controlled), `reduction.step-coordinate-identity` (modeled-controlled), `reduction.terminal-predicate-coordinate` (modeled-controlled), `reduction.short-circuit-direction` (modeled-controlled), `reduction.selection-seed-domain` (modeled-controlled), `effect.pure-predicate` (modeled-controlled)
+- blocked by:
+  - the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources
+  - the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed
+  - Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean
 - hard-negative groups: `reduction-minmax-anyall-proof-perimeter`
 
 ## Hard-Negative Linkage

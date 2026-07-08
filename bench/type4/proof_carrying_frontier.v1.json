@@ -124,23 +124,23 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "a51915bcb5c09acd164c627eb1d45b3467e085745feafd15f160aa1879a51075",
-        "size_bytes": 97082
+        "sha256": "51823b404c10cfdce8815a60818d90621e6c56d5a23446a19cebf2ad20710025",
+        "size_bytes": 101768
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "a8f958daa47b724197e700e052c56d6e6b925faa8826906fcf5b3e7e90229365",
-        "size_bytes": 18614
+        "sha256": "cfea900df092f8e0f497115594c4891e19b19186e3d4ca46f2ce137492f2abbc",
+        "size_bytes": 21277
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "0cce2cdf187413fcf153d8ebf35a3719e34de28dc0028e9abf3c624665b7ba7b",
-        "size_bytes": 21095
+        "sha256": "fe159e75089d622d264adf20319a1b498210597082c1c8c698d80917efce544d",
+        "size_bytes": 21547
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "9ff5471f25c98cdd8cd847581dcc87179fc324e8f1f99d6767ed65cca09c8943",
-        "size_bytes": 91489
+        "sha256": "df40afea8fee9d8246857c6c3f138e5bc6b45eea2b3b7474e159ec67b489aef2",
+        "size_bytes": 93150
       }
     },
     "target_packet_identity": {
@@ -205,6 +205,12 @@
         "case_id": "reduction-minmax-anyall-focused-controlled",
         "packet_id": "reduction-minmax-anyall-2026-07-08",
         "status": "already-covered"
+      },
+      {
+        "candidate_axis": "reduce_minmax_anyall / typescript_every / append_only_local_array",
+        "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+        "packet_id": "reduction-minmax-anyall-2026-07-08",
+        "status": "real-miss"
       }
     ],
     "executable_witness_coverage": {
@@ -3212,12 +3218,13 @@
           ],
           "hard_negative_gate_count": 16,
           "positive_gate_count": 14,
-          "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
+          "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
           "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
           "status": "controlled-slice-admitted"
         },
         "evidence_case_ids": [
-          "reduction-minmax-anyall-focused-controlled"
+          "reduction-minmax-anyall-focused-controlled",
+          "reduction-typescript-every-append-only-flags-drizzle-real-miss"
         ],
         "evidence_tier": "frontier-recorded",
         "executable_witness_coverage": {
@@ -3686,7 +3693,7 @@
                 "passed": 2,
                 "tool_version": "python-loop-demorgan-proof-facts/1"
               },
-              "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing",
+              "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3722,7 +3729,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice",
+              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3787,7 +3794,11 @@
         },
         "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript Array.every callbacks observing index or source-array arguments, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
         "readiness": {
-          "blocking_items": [],
+          "blocking_items": [
+            "the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources",
+            "the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed",
+            "Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean"
+          ],
           "can_open_exact_admission": false,
           "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
           "status": "detector-admitted-controlled"
@@ -3819,6 +3830,17 @@
               "status": "passed"
             },
             {
+              "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [
+                "the real pair uses an append-only local boolean array, but the current TypeScript every admission only proves dense literal sources",
+                "the detector has no reusable source fact yet for fresh local arrays populated by pushes before a terminal every(Boolean) check"
+              ],
+              "replay_id": "reduction-typescript-every-append-only-flags-drizzle-real-pair",
+              "status": "passed"
+            },
+            {
               "case_id": "reduction-minmax-anyall-focused-controlled",
               "expect": "split",
               "observed": "split",
@@ -3836,11 +3858,12 @@
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 5,
+          "declared_replay_count": 6,
           "declared_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
             "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-append-only-flags-drizzle-real-pair",
             "reduction-typescript-every-array-param-boundary-controlled-pair",
             "reduction-typescript-every-dense-literal-controlled-pair"
           ],
@@ -3849,11 +3872,12 @@
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_replay_count": 5,
+          "passed_replay_count": 6,
           "passed_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
             "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-append-only-flags-drizzle-real-pair",
             "reduction-typescript-every-array-param-boundary-controlled-pair",
             "reduction-typescript-every-dense-literal-controlled-pair"
           ],
@@ -3865,6 +3889,7 @@
           "reduction-any-focused-controlled-pair",
           "reduction-typescript-every-dense-literal-controlled-pair",
           "reduction-typescript-every-array-param-boundary-controlled-pair",
+          "reduction-typescript-every-append-only-flags-drizzle-real-pair",
           "reduction-selection-focused-controlled-pair"
         ],
         "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",
@@ -4131,6 +4156,17 @@
               "status": "passed"
             },
             {
+              "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+              "expect": "split",
+              "observed": "split",
+              "proof_gap": [
+                "the real pair uses an append-only local boolean array, but the current TypeScript every admission only proves dense literal sources",
+                "the detector has no reusable source fact yet for fresh local arrays populated by pushes before a terminal every(Boolean) check"
+              ],
+              "replay_id": "reduction-typescript-every-append-only-flags-drizzle-real-pair",
+              "status": "passed"
+            },
+            {
               "case_id": "reduction-minmax-anyall-focused-controlled",
               "expect": "split",
               "observed": "split",
@@ -4148,11 +4184,12 @@
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 5,
+          "declared_replay_count": 6,
           "declared_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
             "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-append-only-flags-drizzle-real-pair",
             "reduction-typescript-every-array-param-boundary-controlled-pair",
             "reduction-typescript-every-dense-literal-controlled-pair"
           ],
@@ -4161,11 +4198,12 @@
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_replay_count": 5,
+          "passed_replay_count": 6,
           "passed_replay_ids": [
             "reduction-any-focused-controlled-pair",
             "reduction-selection-focused-controlled-pair",
             "reduction-sum-focused-controlled-pair",
+            "reduction-typescript-every-append-only-flags-drizzle-real-pair",
             "reduction-typescript-every-array-param-boundary-controlled-pair",
             "reduction-typescript-every-dense-literal-controlled-pair"
           ],
@@ -4174,7 +4212,7 @@
         }
       ],
       "summary": {
-        "declared_replay_count": 17,
+        "declared_replay_count": 18,
         "failed": 0,
         "fully_replayed_packet_count": 7,
         "nose_binary": "nose",
@@ -4182,12 +4220,12 @@
         "packet_count_by_coverage": {
           "passed": 7
         },
-        "passed": 17,
-        "query_count": 9,
+        "passed": 18,
+        "query_count": 10,
         "report_failed_replay_ids": [],
         "report_missing_replay_ids": [],
         "report_unavailable_replay_ids": [],
-        "result_count": 17,
+        "result_count": 18,
         "unavailable": 0
       }
     },

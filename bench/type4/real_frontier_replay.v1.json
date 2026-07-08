@@ -5,18 +5,24 @@
       "case_id": "numeric-clamp-minmax-ternary-real-miss",
       "expect": "split",
       "members": [
-        {
-          "file": "boltons/mathutils.py",
-          "kind": "repo",
-          "label": "boltons clamp",
-          "repo": "boltons"
-        },
-        {
-          "file": "src/util/util.go",
-          "kind": "repo",
-          "label": "fzf Constrain",
-          "repo": "fzf"
-        }
+    {
+     "end_line": 69,
+     "file": "boltons/mathutils.py",
+     "kind": "repo",
+     "label": "boltons clamp",
+     "repo": "boltons",
+     "snippet": "return min(max(x, lower), upper)",
+     "start_line": 40
+    },
+    {
+     "end_line": 65,
+     "file": "src/util/util.go",
+     "kind": "repo",
+     "label": "fzf Constrain",
+     "repo": "fzf",
+     "snippet": "func Constrain[T cmp.Ordered](val, minimum, maximum T) T { return max(min(val, maximum), minimum) }",
+     "start_line": 63
+    }
       ],
       "packet_id": "numeric-clamp-2026-06-06",
       "proof_gap": [
@@ -511,14 +517,20 @@
    "expect": "split",
    "members": [
     {
+     "end_line": 40,
      "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
      "kind": "workspace",
-     "name": "tsAllParamLoop"
+     "name": "tsAllParamLoop",
+     "snippet": "function tsAllParamLoop(xs: number[]): boolean { for (const x of xs) { if (!(x >= 0)) { return false; } } return true; }",
+     "start_line": 33
     },
     {
+     "end_line": 44,
      "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
      "kind": "workspace",
-     "name": "tsAllParamEvery"
+     "name": "tsAllParamEvery",
+     "snippet": "function tsAllParamEvery(xs: number[]): boolean { return xs.every((x) => x >= 0); }",
+     "start_line": 42
     }
    ],
    "packet_id": "reduction-minmax-anyall-2026-07-08",
@@ -537,6 +549,64 @@
     }
    ],
    "why_expected": "The focused TypeScript number[] parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; the array annotation alone is not dense-source proof."
+  },
+  {
+   "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+   "expect": "split",
+   "members": [
+    {
+     "end_line": 38,
+     "file": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+     "kind": "repo",
+     "label": "Drizzle mysql flags.every(Boolean) terminal",
+     "repo": "drizzle-orm",
+     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+     "start_line": 35
+    },
+    {
+     "end_line": 44,
+     "file": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+     "kind": "repo",
+     "label": "Drizzle sqlite flags.every(Boolean) terminal",
+     "repo": "drizzle-orm",
+     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+     "start_line": 41
+    },
+    {
+     "end_line": 85,
+     "file": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+     "kind": "repo",
+     "label": "Drizzle sqlite push flags.every(Boolean) terminal",
+     "repo": "drizzle-orm",
+     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+     "start_line": 82
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [
+    "the real pair uses an append-only local boolean array, but the current TypeScript every admission only proves dense literal sources",
+    "the detector has no reusable source fact yet for fresh local arrays populated by pushes before a terminal every(Boolean) check"
+   ],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-typescript-every-append-only-flags-drizzle-real-pair",
+   "sources": [
+    {
+     "kind": "repo",
+     "path": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+     "repo": "drizzle-orm"
+    },
+    {
+     "kind": "repo",
+     "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+     "repo": "drizzle-orm"
+    }
+   ],
+   "why_expected": "The focused dense-literal TypeScript every/for-of slice is admitted, but this real Drizzle pair must remain split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled."
   },
   {
    "case_id": "reduction-minmax-anyall-focused-controlled",
