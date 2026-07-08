@@ -95,7 +95,9 @@
         "bench/type4/proof_fact_registry.v1.json::effect.pure-predicate",
         "bench/type4/proof_fact_registry.v1.json::boolean.demorgan.proven-bool-operands",
         "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
-        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary"
+        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary"
       ],
       "hard_negative_templates": [
         "loop.changed-empty-result",
@@ -127,6 +129,12 @@
           "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence"
         },
         {
+          "language": "Swift",
+          "status": "admitted",
+          "surface": "eager Array/Collection allSatisfy plus a pure counterexample loop over the same source with an inline one-argument predicate; changed predicate/source coordinates, wrong vacuous truth, callback or loop effects, .lazy demand semantics, and two-argument custom overload callbacks stay split",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive; bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary"
+        },
+        {
           "evidence": "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive; bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_vacuous_truth_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_changed_predicate_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_source_identity_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_side_effect_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_value_return_boundary",
           "language": "TypeScript",
           "status": "admitted",
@@ -140,7 +148,7 @@
       ],
       "law": "Universal quantifier surfaces are equivalent to explicit counterexample loops only when both forms traverse the same source, return true on empty input, stop at the same first counterexample, evaluate a pure boolean predicate, and any boolean rewrites are proven boolean-only over non-overloaded scalar comparison complements.",
       "pattern_id": "quantifier.universal.counterexample-loop",
-      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair and the TypeScript/Ruby slices now add dense/literal receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, and changed-predicate boundaries; carding the pattern keeps future all/every work attached to neutral proof facts instead of language-specific detector branches.",
+      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair, and the TypeScript/Ruby/Swift slices add dense/literal or eager Array/Collection receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, overload, lazy-demand, and changed-predicate boundaries; carding the pattern keeps future all/every/allSatisfy work attached to neutral proof facts instead of language-specific detector branches.",
       "required_facts": [
         "quantifier.universal.counterexample-loop",
         "quantifier.vacuous-truth",
@@ -773,7 +781,9 @@
         "bench/type4/proof_fact_registry.v1.json::reduction.short-circuit-direction",
         "bench/type4/proof_fact_registry.v1.json::reduction.selection-seed-domain",
         "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
-        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary"
+        "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary"
       ],
       "hard_negative_templates": [
         "reduction.changed-seed",
@@ -831,15 +841,15 @@
           "surface": "literal Array receiver Enumerable#any?/all? with pure one-argument blocks, matching early-return loops, and empty-literal all? vacuous truth; receiver parameters, changed predicate/source coordinates, observed block effects, multi-parameter blocks, no-block semantics, and Array/Enumerable monkey patches stay closed"
         },
         {
-          "evidence": "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive; bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary; bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
           "language": "Swift",
-          "status": "open",
-          "surface": "probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open"
+          "status": "modeled-controlled",
+          "surface": "eager Array/Collection allSatisfy with pure inline one-argument predicates and matching counterexample loops; Swift reduce, contains(where:), .lazy allSatisfy, changed predicate/source, wrong empty truth, effectful callback or loop bodies, and two-argument custom overload callbacks remain closed/open"
         }
       ],
       "law": "Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within a proven numeric/value domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, prove receiver/API identity for protocol methods, and close predicate, reducer, or block effects.",
       "pattern_id": "reduction.aggregate.proven-terminal-identity",
-      "rationale": "The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any/every terminals, Ruby literal-receiver any?/all?, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, numeric domain, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.",
+      "rationale": "The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any/every terminals, Ruby literal-receiver any?/all?, Swift eager Array/Collection allSatisfy, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, numeric domain, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.",
       "required_facts": [
         "iteration.same-source-identity",
         "effect.pure-predicate",

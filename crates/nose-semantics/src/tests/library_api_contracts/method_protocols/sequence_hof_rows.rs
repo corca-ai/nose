@@ -51,9 +51,32 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
         "JS Array.map with thisArg remains closed until callback binding is modeled"
     );
 
-    for method in ["map", "filter", "flatMap"] {
+    for (method, expected, args) in [
+        (
+            "map",
+            MethodSemanticContract::HoF(HoFKind::Map),
+            MethodBuiltinArgs::Hof,
+        ),
+        (
+            "filter",
+            MethodSemanticContract::HoF(HoFKind::Filter),
+            MethodBuiltinArgs::Hof,
+        ),
+        (
+            "flatMap",
+            MethodSemanticContract::HoF(HoFKind::FlatMap),
+            MethodBuiltinArgs::Hof,
+        ),
+        (
+            "allSatisfy",
+            MethodSemanticContract::Builtin(Builtin::All),
+            MethodBuiltinArgs::BoolReduction,
+        ),
+    ] {
         let contract =
             library_method_call_contract(Lang::Swift, method, 1).expect("Swift Sequence HOF row");
+        assert_eq!(contract.id, LibraryApiContractId::MethodCall(expected));
+        assert_eq!(contract.result.args, args);
         assert_eq!(contract.pack_id, SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID);
         assert_eq!(
             contract.producer_id,
@@ -74,6 +97,14 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
     assert!(
         library_method_call_contract(Lang::Swift, "map", 2).is_none(),
         "Swift Sequence HOF rows stay closed outside the single-callback shape"
+    );
+    assert!(
+        library_method_call_contract(Lang::Swift, "allSatisfy", 0).is_none(),
+        "Swift allSatisfy requires an explicit predicate closure"
+    );
+    assert!(
+        library_method_call_contract(Lang::Swift, "allSatisfy", 2).is_none(),
+        "Swift allSatisfy stays closed outside the single-callback shape"
     );
 
     for method in [

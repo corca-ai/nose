@@ -127,6 +127,33 @@ fn swift_method_hof_requires_ordered_collection_receiver() {
 }
 
 #[test]
+fn swift_method_hof_requires_unary_value_callback() {
+    let (map, map_interner, map_call) = typed_method_call_il_with_callback_param_count(
+        Lang::Swift,
+        "map",
+        ParamSemantic::Collection,
+        false,
+        2,
+    );
+    assert!(
+        matches!(canon_call(&map, &map_interner, map_call), CallCanon::None),
+        "Swift map with a multi-parameter callback stays closed as a possible custom overload"
+    );
+
+    let (all, all_interner, all_call) = typed_method_call_il_with_callback_param_count(
+        Lang::Swift,
+        "allSatisfy",
+        ParamSemantic::Collection,
+        false,
+        2,
+    );
+    assert!(
+        matches!(canon_call(&all, &all_interner, all_call), CallCanon::None),
+        "Swift allSatisfy with a multi-parameter callback stays closed as a possible custom overload"
+    );
+}
+
+#[test]
 fn go_strings_contains_is_substring_not_slice_membership() {
     let (mut strings_il, strings_interner, strings_call, strings_receiver) =
         go_namespace_contains_call("strings");

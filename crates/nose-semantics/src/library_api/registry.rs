@@ -521,6 +521,7 @@ fn method_call_contract_callees_for_semantic(
         "filter_map",
         "some",
         "every",
+        "allSatisfy",
         "all",
         "any",
         "all?",

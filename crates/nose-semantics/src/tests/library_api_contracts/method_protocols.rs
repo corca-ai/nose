@@ -16,6 +16,10 @@ fn method_protocol_contracts_are_language_constrained() {
         method_bool_reduction_builtin(Lang::JavaScript, "every"),
         Some(Builtin::All)
     );
+    assert_eq!(
+        method_bool_reduction_builtin(Lang::Swift, "allSatisfy"),
+        Some(Builtin::All)
+    );
     assert_eq!(method_bool_reduction_builtin(Lang::Python, "every"), None);
     assert_eq!(
         method_hof_contract(Lang::Ruby, "collect"),
@@ -173,7 +177,17 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             args: MethodBuiltinArgs::Hof,
         })
     );
+    assert_eq!(
+        method_call_contract(Lang::Swift, "allSatisfy", 1),
+        Some(MethodCallContract {
+            semantic: MethodSemanticContract::Builtin(Builtin::All),
+            receiver: MethodReceiverContract::ExactArrayOrCollection,
+            args: MethodBuiltinArgs::BoolReduction,
+        })
+    );
     assert_eq!(method_call_contract(Lang::Swift, "map", 2), None);
+    assert_eq!(method_call_contract(Lang::Swift, "allSatisfy", 0), None);
+    assert_eq!(method_call_contract(Lang::Swift, "allSatisfy", 2), None);
     assert_eq!(
         method_call_contract(Lang::Ruby, "map", 1),
         Some(MethodCallContract {

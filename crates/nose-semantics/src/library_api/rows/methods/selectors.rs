@@ -16,6 +16,7 @@ pub(crate) fn library_method_selector_name(name: &str) -> Option<&'static str> {
         "all" => "all",
         "all?" => "all?",
         "allMatch" => "allMatch",
+        "allSatisfy" => "allSatisfy",
         "any" => "any",
         "any?" => "any?",
         "anyMatch" => "anyMatch",

@@ -313,14 +313,16 @@
         "reduction_sum_step_positive",
         "reduction_any_all_terminal_positive",
         "reduction_selection_seeded_positive",
-        "ruby_enumerable_quantifier_positive"
+        "ruby_enumerable_quantifier_positive",
+        "swift_all_satisfy_positive"
       ],
       "hard_negative_cases": [
         "reduction_wrong_seed_boundary",
         "reduction_changed_step_boundary",
         "reduction_terminal_predicate_boundary",
         "reduction_selection_seed_domain_boundary",
-        "ruby_enumerable_quantifier_proof_boundary"
+        "ruby_enumerable_quantifier_proof_boundary",
+        "swift_all_satisfy_proof_boundary"
       ],
       "regression_gates": [
         "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
@@ -337,11 +339,17 @@
         "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
         "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
         "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
         "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
         "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
-        "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed"
+        "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed",
+        "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_converges_with_counterexample_loop",
+        "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
+        "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_effect_and_lazy_boundaries",
+        "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary"
       ],
-      "claim": "Reduction admission must keep identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior, source identity, and effect safety beside every sum/product/any/all/min/max bridge."
+      "claim": "Reduction admission must keep identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior, source identity, receiver/API identity, and effect safety beside every sum/product/any/all/min/max bridge."
     }
   ],
   "cases": [
@@ -2510,6 +2518,166 @@
         }
       ],
       "evidence": "The focused Ruby fixture admits only literal Array receiver any?/all? blocks with pure one-argument predicates, matching early-return loop direction, and all? vacuous truth over an empty literal Array."
+    },
+    {
+      "id": "swift_all_satisfy_proof_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Swift allSatisfy admission must stay closed for changed predicates or sources, changed empty-input truth, observable callback or loop effects, lazy receiver demand semantics, and custom overloads with non-value-only callback shape.",
+      "mutation": "proven Array/Collection receiver and pure inline allSatisfy predicate -> changed predicate/source, wrong fallthrough, effectful predicate/loop, lazy adapter receiver, or two-argument overload callback",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_all_satisfy_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllChangedPredicate"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_different_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllDifferentSource"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_wrong_empty_truth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllEmptySatisfy"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllWrongEmptyTruth"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_callback_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllPure"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllCallbackEffect"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_loop_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllPure"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLoopEffect"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_lazy_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLazy"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_custom_overload_stays_split",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllCustomOverload"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused Swift fixture keeps changed predicate/source coordinates, wrong vacuous truth, observed callback or loop effects, .lazy allSatisfy demand semantics, and a typechecked two-argument custom overload outside the proved eager Array/Collection allSatisfy family."
+    },
+    {
+      "id": "swift_all_satisfy_positive",
+      "kind": "positive",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Swift allSatisfy over a proven Array/Collection receiver can converge with an equivalent counterexample loop when source identity, terminal predicate coordinate, universal short-circuit direction, vacuous truth, eager receiver demand, and predicate purity match.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "swift_all_satisfy_loop_matches_call",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllSatisfy"
+            }
+          ]
+        },
+        {
+          "id": "swift_all_satisfy_empty_vacuous_matches_call",
+          "fixture": "bench/type4/adversarial/cases/swift_all_satisfy",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllEmptyLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/swift_all_satisfy/all_satisfy.swift",
+              "name": "swiftAllEmptySatisfy"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused Swift fixture admits eager Array/Collection allSatisfy only for pure inline one-argument predicates over the same receiver/source, including empty-input vacuous truth."
     },
     {
       "id": "java_stream_flat_map_py_comp",

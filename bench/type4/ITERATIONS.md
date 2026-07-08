@@ -373,6 +373,20 @@ monkey patches, and `Enumerable.module_eval` patches. The packet and semantic pa
 now treat Ruby literal receiver quantifiers as modeled-controlled while leaving
 parameter/custom receiver and broader Ruby `reduce`/`inject` admission open.
 
+## Swift allSatisfy Receiver-Proof Slice
+
+Closed the controlled Swift `allSatisfy` universal terminal slice inside the same
+`reduction-minmax-anyall-2026-07-08` packet. The admitted surface is intentionally narrow:
+eager Array/Collection receivers, pure inline one-argument predicates, same-source
+counterexample loops, preserved vacuous truth, and standard Swift Collection API identity.
+
+The focused fixture `swift_all_satisfy` adds executable positives for parameter Array
+receivers and empty-input vacuous truth, plus hard negatives for changed predicates,
+different sources, wrong empty truth, callback and loop effects, typechecked two-argument
+custom overloads, and `.lazy.allSatisfy` demand semantics. The packet and semantic pattern cards now treat Swift eager
+Array/Collection `allSatisfy` as modeled-controlled while leaving Swift `reduce`,
+`contains(where:)`, custom overloads, lazy receivers, and broader Sequence/AnySequence admission open.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,
