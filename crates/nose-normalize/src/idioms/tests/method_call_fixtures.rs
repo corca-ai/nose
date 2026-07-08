@@ -28,8 +28,14 @@ pub(super) fn method_call_il(
         sp(),
         &[receiver],
     );
+    let func_param = b.add(NodeKind::Param, Payload::Cid(0), sp(), &[]);
     let func_body = b.add(NodeKind::Block, Payload::None, sp(), &[]);
-    let func = b.add(NodeKind::Lambda, Payload::None, sp(), &[func_body]);
+    let func = b.add(
+        NodeKind::Lambda,
+        Payload::None,
+        sp(),
+        &[func_param, func_body],
+    );
     let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, func]);
     let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
     let mut il = b.finish(
