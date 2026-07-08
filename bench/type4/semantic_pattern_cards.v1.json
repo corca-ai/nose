@@ -63,6 +63,78 @@
     },
     {
       "boundaries": [
+        "empty inputs must preserve vacuous truth",
+        "the quantifier and explicit loop must traverse the same source",
+        "both forms must preserve the same short-circuit/control shape and first-counterexample stop point",
+        "predicate effects, helper-call effects, and loop-body effects are behavior-defining",
+        "De Morgan rewrites require proven boolean operands, not value-returning boolean payloads",
+        "comparison complements such as == and != must be proven non-overloaded scalar comparisons before De Morgan evidence is reusable",
+        "changed predicate coordinates remain split even when the surface still looks like a quantifier"
+      ],
+      "evidence_refs": [
+        "bench/type4/frontier_target_packets.v1.json::python-loop-demorgan-all-2026-07-07",
+        "bench/type4/adversarial/cases/cases.v1.json::python-loop-demorgan-all-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_all_readme",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_vacuous_truth_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_side_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_helper_call_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_value_return_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_changed_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::python_loop_demorgan_iterator_identity_boundary",
+        "bench/type4/proof_fact_registry.v1.json::quantifier.universal.counterexample-loop",
+        "bench/type4/proof_fact_registry.v1.json::quantifier.vacuous-truth",
+        "bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity",
+        "bench/type4/proof_fact_registry.v1.json::effect.pure-predicate",
+        "bench/type4/proof_fact_registry.v1.json::boolean.demorgan.proven-bool-operands"
+      ],
+      "hard_negative_templates": [
+        "loop.changed-empty-result",
+        "loop.iterator-identity",
+        "loop.short-circuit",
+        "effect.observed-predicate-effect",
+        "effect.helper-call-without-purity-proof",
+        "boolean.value-context",
+        "boolean.comparison-complement",
+        "boolean.changed-predicate"
+      ],
+      "language_surfaces": [
+        {
+          "evidence": "bench/type4/frontier_target_packets.v1.json::python-loop-demorgan-all-2026-07-07",
+          "language": "Python",
+          "status": "admitted",
+          "surface": "controlled scalar/literal-comparison all(...) generator and pure early-return counterexample loop over the same iterable"
+        },
+        {
+          "language": "Ruby",
+          "status": "open",
+          "surface": "Enumerable#all? plus a pure counterexample loop after vacuous-truth, source, and predicate-effect evidence"
+        },
+        {
+          "language": "Rust",
+          "status": "open",
+          "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence"
+        },
+        {
+          "language": "JS/TS",
+          "status": "open",
+          "surface": "Array.prototype.every plus a pure counterexample loop after value-returning and callback-effect boundaries are closed"
+        }
+      ],
+      "law": "Universal quantifier surfaces are equivalent to explicit counterexample loops only when both forms traverse the same source, return true on empty input, stop at the same first counterexample, evaluate a pure boolean predicate, and any boolean rewrites are proven boolean-only over non-overloaded scalar comparison complements.",
+      "pattern_id": "quantifier.universal.counterexample-loop",
+      "rationale": "The Python loop/De Morgan packet already admits the README-shaped real pair and keeps vacuous-truth, source-identity, effect, helper-call, value-returning boolean, and changed-predicate negatives executable; carding the pattern makes future Ruby/Rust/JS/TS all/every work attach to the same neutral proof facts instead of cloning Python-specific detector logic.",
+      "required_facts": [
+        "quantifier.universal.counterexample-loop",
+        "quantifier.vacuous-truth",
+        "iteration.same-source-identity",
+        "effect.pure-predicate",
+        "boolean.demorgan.proven-bool-operands"
+      ],
+      "status": "real-pair-admitted",
+      "title": "Universal counterexample loop"
+    },
+    {
+      "boundaries": [
         "absent-key fallback is distinct from nullish, truthy, or falsey value replacement",
         "the map receiver must be the same proven source, including imported immutable literal sources",
         "the lookup key and fallback/default coordinates must match independently",
