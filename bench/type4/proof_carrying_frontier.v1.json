@@ -104,13 +104,13 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "e62d2ee9ab1877157c3d76a8951c4126436ec98dd24cee14527d446edb64237d",
-        "size_bytes": 45853
+        "sha256": "cdceafc85fd84b8513d1ea4c86cfa14fb9eb39544a1adcdb8f61387301d081c2",
+        "size_bytes": 50908
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "d2b91ff3601c4039088b8f49858f41a75dd25579a358f93263384c7016908b5f",
-        "size_bytes": 127539
+        "sha256": "1d0d29789ac4d9e8bd2e97c057e6d8d0ca5ead7887e325f5e43c75858e82b532",
+        "size_bytes": 139228
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
@@ -134,13 +134,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "e9f5f884b3d70613c55cb8cea613dc3bbb839db462f9d2000ebbea7e67a54bfd",
+        "sha256": "4fcef90d2203102d3dfc9aeb732c7d636d653bafb2470141d45252b826b34ff2",
         "size_bytes": 21095
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "34c348c30a8ee2bcb292a1632c82e1dab451b6285d04a9ba654a165e217066b1",
-        "size_bytes": 83008
+        "sha256": "f332b02a2faa6599b7b80e3e7e915421bb7ac5429533d35fff4cb7b6d1144791",
+        "size_bytes": 85866
       }
     },
     "target_packet_identity": {
@@ -1018,10 +1018,76 @@
               "expect": "split",
               "expectation_id": "reduction_unseeded_max_default_stays_split",
               "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_positive",
+              "expect": "same-family",
+              "expectation_id": "ruby_enumerable_all_empty_vacuous_matches_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_positive",
+              "expect": "same-family",
+              "expectation_id": "ruby_enumerable_all_loop_matches_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_positive",
+              "expect": "same-family",
+              "expectation_id": "ruby_enumerable_any_loop_matches_any",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_block_effect_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_different_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_module_eval_patch_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_monkey_patch_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_multi_param_block_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_no_block_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_param_receiver_stays_split",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 18,
+          "declared_expectation_count": 29,
           "declared_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -1040,7 +1106,18 @@
             "reduction_ts_any_changed_predicate_stays_split",
             "reduction_ts_any_loop_matches_some",
             "reduction_ts_sum_wrong_seed_stays_split",
-            "reduction_unseeded_max_default_stays_split"
+            "reduction_unseeded_max_default_stays_split",
+            "ruby_enumerable_all_empty_vacuous_matches_all",
+            "ruby_enumerable_all_loop_matches_all",
+            "ruby_enumerable_any_loop_matches_any",
+            "ruby_enumerable_block_effect_stays_split",
+            "ruby_enumerable_changed_predicate_stays_split",
+            "ruby_enumerable_different_source_stays_split",
+            "ruby_enumerable_module_eval_patch_stays_split",
+            "ruby_enumerable_monkey_patch_stays_split",
+            "ruby_enumerable_multi_param_block_stays_split",
+            "ruby_enumerable_no_block_stays_split",
+            "ruby_enumerable_param_receiver_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
@@ -1051,24 +1128,28 @@
             "reduction_selection_seeded_positive",
             "reduction_sum_step_positive",
             "reduction_terminal_predicate_boundary",
-            "reduction_wrong_seed_boundary"
+            "reduction_wrong_seed_boundary",
+            "ruby_enumerable_quantifier_positive",
+            "ruby_enumerable_quantifier_proof_boundary"
           ],
           "manifest_hard_negative_case_ids": [
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
             "reduction_terminal_predicate_boundary",
-            "reduction_wrong_seed_boundary"
+            "reduction_wrong_seed_boundary",
+            "ruby_enumerable_quantifier_proof_boundary"
           ],
           "manifest_only_case_ids": [],
           "manifest_positive_case_ids": [
             "reduction_any_all_terminal_positive",
             "reduction_selection_seeded_positive",
-            "reduction_sum_step_positive"
+            "reduction_sum_step_positive",
+            "ruby_enumerable_quantifier_positive"
           ],
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_expectation_count": 18,
+          "passed_expectation_count": 29,
           "passed_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -1087,14 +1168,25 @@
             "reduction_ts_any_changed_predicate_stays_split",
             "reduction_ts_any_loop_matches_some",
             "reduction_ts_sum_wrong_seed_stays_split",
-            "reduction_unseeded_max_default_stays_split"
+            "reduction_unseeded_max_default_stays_split",
+            "ruby_enumerable_all_empty_vacuous_matches_all",
+            "ruby_enumerable_all_loop_matches_all",
+            "ruby_enumerable_any_loop_matches_any",
+            "ruby_enumerable_block_effect_stays_split",
+            "ruby_enumerable_changed_predicate_stays_split",
+            "ruby_enumerable_different_source_stays_split",
+            "ruby_enumerable_module_eval_patch_stays_split",
+            "ruby_enumerable_monkey_patch_stays_split",
+            "ruby_enumerable_multi_param_block_stays_split",
+            "ruby_enumerable_no_block_stays_split",
+            "ruby_enumerable_param_receiver_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         }
       ],
       "summary": {
-        "declared_expectation_count": 86,
+        "declared_expectation_count": 97,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -1104,13 +1196,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 86,
-        "query_count": 17,
+        "passed": 97,
+        "query_count": 18,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 86,
+        "result_count": 97,
         "stale": 0
       }
     },
@@ -1346,20 +1438,23 @@
           "loop.iterator-identity",
           "loop.short-circuit",
           "boolean.effect-safety",
-          "boolean.value-context"
+          "boolean.value-context",
+          "protocol-boundary.api-identity"
         ],
         "group_id": "reduction-minmax-anyall-proof-perimeter",
         "hard_negative_cases": [
           "reduction_wrong_seed_boundary",
           "reduction_changed_step_boundary",
           "reduction_terminal_predicate_boundary",
-          "reduction_selection_seed_domain_boundary"
+          "reduction_selection_seed_domain_boundary",
+          "ruby_enumerable_quantifier_proof_boundary"
         ],
         "packet_id": "reduction-minmax-anyall-2026-07-08",
         "positive_cases": [
           "reduction_sum_step_positive",
           "reduction_any_all_terminal_positive",
-          "reduction_selection_seeded_positive"
+          "reduction_selection_seeded_positive",
+          "ruby_enumerable_quantifier_positive"
         ],
         "regression_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
@@ -1373,7 +1468,12 @@
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
-          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms"
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
+          "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
+          "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
+          "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
+          "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed"
         ],
         "semantic_family": "reduction.aggregate"
       }
@@ -3021,13 +3121,14 @@
           "capabilities": [
             "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
             "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
+            "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
             "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
-            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
           ],
-          "hard_negative_gate_count": 9,
-          "positive_gate_count": 10,
+          "hard_negative_gate_count": 12,
+          "positive_gate_count": 12,
           "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
-          "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and effect evidence",
+          "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and predicate/reducer effect evidence",
           "status": "controlled-slice-admitted"
         },
         "evidence_case_ids": [
@@ -3143,10 +3244,76 @@
               "expect": "split",
               "expectation_id": "reduction_unseeded_max_default_stays_split",
               "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_positive",
+              "expect": "same-family",
+              "expectation_id": "ruby_enumerable_all_empty_vacuous_matches_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_positive",
+              "expect": "same-family",
+              "expectation_id": "ruby_enumerable_all_loop_matches_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_positive",
+              "expect": "same-family",
+              "expectation_id": "ruby_enumerable_any_loop_matches_any",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_block_effect_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_different_source_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_module_eval_patch_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_monkey_patch_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_multi_param_block_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_no_block_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "ruby_enumerable_quantifier_proof_boundary",
+              "expect": "split",
+              "expectation_id": "ruby_enumerable_param_receiver_stays_split",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 18,
+          "declared_expectation_count": 29,
           "declared_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -3165,7 +3332,18 @@
             "reduction_ts_any_changed_predicate_stays_split",
             "reduction_ts_any_loop_matches_some",
             "reduction_ts_sum_wrong_seed_stays_split",
-            "reduction_unseeded_max_default_stays_split"
+            "reduction_unseeded_max_default_stays_split",
+            "ruby_enumerable_all_empty_vacuous_matches_all",
+            "ruby_enumerable_all_loop_matches_all",
+            "ruby_enumerable_any_loop_matches_any",
+            "ruby_enumerable_block_effect_stays_split",
+            "ruby_enumerable_changed_predicate_stays_split",
+            "ruby_enumerable_different_source_stays_split",
+            "ruby_enumerable_module_eval_patch_stays_split",
+            "ruby_enumerable_monkey_patch_stays_split",
+            "ruby_enumerable_multi_param_block_stays_split",
+            "ruby_enumerable_no_block_stays_split",
+            "ruby_enumerable_param_receiver_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
@@ -3176,24 +3354,28 @@
             "reduction_selection_seeded_positive",
             "reduction_sum_step_positive",
             "reduction_terminal_predicate_boundary",
-            "reduction_wrong_seed_boundary"
+            "reduction_wrong_seed_boundary",
+            "ruby_enumerable_quantifier_positive",
+            "ruby_enumerable_quantifier_proof_boundary"
           ],
           "manifest_hard_negative_case_ids": [
             "reduction_changed_step_boundary",
             "reduction_selection_seed_domain_boundary",
             "reduction_terminal_predicate_boundary",
-            "reduction_wrong_seed_boundary"
+            "reduction_wrong_seed_boundary",
+            "ruby_enumerable_quantifier_proof_boundary"
           ],
           "manifest_only_case_ids": [],
           "manifest_positive_case_ids": [
             "reduction_any_all_terminal_positive",
             "reduction_selection_seeded_positive",
-            "reduction_sum_step_positive"
+            "reduction_sum_step_positive",
+            "ruby_enumerable_quantifier_positive"
           ],
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "reduction-minmax-anyall-2026-07-08",
-          "passed_expectation_count": 18,
+          "passed_expectation_count": 29,
           "passed_expectation_ids": [
             "reduction_c_sum_count_step_stays_split",
             "reduction_go_sum_count_step_stays_split",
@@ -3212,7 +3394,18 @@
             "reduction_ts_any_changed_predicate_stays_split",
             "reduction_ts_any_loop_matches_some",
             "reduction_ts_sum_wrong_seed_stays_split",
-            "reduction_unseeded_max_default_stays_split"
+            "reduction_unseeded_max_default_stays_split",
+            "ruby_enumerable_all_empty_vacuous_matches_all",
+            "ruby_enumerable_all_loop_matches_all",
+            "ruby_enumerable_any_loop_matches_any",
+            "ruby_enumerable_block_effect_stays_split",
+            "ruby_enumerable_changed_predicate_stays_split",
+            "ruby_enumerable_different_source_stays_split",
+            "ruby_enumerable_module_eval_patch_stays_split",
+            "ruby_enumerable_monkey_patch_stays_split",
+            "ruby_enumerable_multi_param_block_stays_split",
+            "ruby_enumerable_no_block_stays_split",
+            "ruby_enumerable_param_receiver_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
@@ -3225,7 +3418,7 @@
         "owner_route": "team-a-detector",
         "packet_id": "reduction-minmax-anyall-2026-07-08",
         "proof_fact_model": {
-          "fact_count": 8,
+          "fact_count": 7,
           "fact_ids": [
             "iteration.same-source-identity",
             "reduction.identity-empty-behavior",
@@ -3233,8 +3426,7 @@
             "reduction.terminal-predicate-coordinate",
             "reduction.short-circuit-direction",
             "reduction.selection-seed-domain",
-            "effect.pure-predicate",
-            "effect.pure-callback"
+            "effect.pure-predicate"
           ],
           "facts": [
             {
@@ -3251,7 +3443,7 @@
                 "passed": 2,
                 "tool_version": "python-loop-demorgan-proof-facts/1"
               },
-              "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain proof is missing",
+              "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3287,7 +3479,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split",
+              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3299,7 +3491,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript now covers any/some plus the focused dense-literal, one-argument every/for-of universal slice while array-param every and callbacks observing index/source arguments remain closed; JavaScript and untyped relational terminals remain open",
+              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; Ruby now covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; JavaScript and untyped relational terminals remain open",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3337,7 +3529,7 @@
                 "passed": 3,
                 "tool_version": "python-loop-demorgan-proof-facts/1"
               },
-              "current_real_pair_status": "satisfied for controlled terminal predicates; effectful predicates or callbacks remain outside the focused admission claim",
+              "current_real_pair_status": "satisfied for controlled terminal predicates and Ruby one-argument quantifier blocks; effectful predicates, reducers, callbacks, and Ruby multi-parameter block destructuring remain outside the focused admission claim",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3346,18 +3538,6 @@
               "registry_status": "modeled-controlled",
               "semantic_family": "effect.purity",
               "title": "Pure predicate/effect safety"
-            },
-            {
-              "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for controlled reduce/fold callbacks; callback effects remain closed without a separate effect proof",
-              "evidence_requirements": [
-                "focused-executable",
-                "source-evidence"
-              ],
-              "fact_id": "effect.pure-callback",
-              "registry_status": "specified-not-modeled",
-              "semantic_family": "effect.purity",
-              "title": "Pure callback/effect safety"
             }
           ],
           "model_status": "modeled-controlled"
@@ -3445,7 +3625,7 @@
           "reduction-selection-focused-controlled-pair"
         ],
         "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript every/for-of terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript array-param every sparse-hole boundaries, TypeScript every callbacks observing index/source-array arguments, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
-        "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
+        "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
       }
     ],
     "real_frontier_replay": {

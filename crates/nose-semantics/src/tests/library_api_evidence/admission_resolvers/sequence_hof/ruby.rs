@@ -3,6 +3,7 @@ use super::*;
 #[derive(Clone, Copy)]
 enum RubyCallbackShape {
     Inline,
+    MultiParam,
     Reference,
     EffectfulCall,
     MutatingAssign,
@@ -12,7 +13,7 @@ enum RubyCallbackShape {
 impl RubyCallbackShape {
     fn fixture(self) -> CallbackFixtureShape {
         match self {
-            Self::Inline => CallbackFixtureShape::InlineFunc { cid: 1 },
+            Self::Inline | Self::MultiParam => CallbackFixtureShape::InlineFunc { cid: 1 },
             Self::Reference => CallbackFixtureShape::Reference { name: "transform" },
             Self::EffectfulCall => CallbackFixtureShape::EffectfulCall {
                 callee: "side_effect",
@@ -40,7 +41,11 @@ fn ruby_enumerable_hof_call_il(
         sp(401),
         &[receiver],
     );
-    let callback = callback_fixture_node(&mut b, &interner, shape.fixture(), 402);
+    let callback = match shape {
+        RubyCallbackShape::Inline => inline_lambda_with_params(&mut b, 1, 1, 402),
+        RubyCallbackShape::MultiParam => inline_lambda_with_params(&mut b, 1, 2, 402),
+        _ => callback_fixture_node(&mut b, &interner, shape.fixture(), 402),
+    };
     let call = b.add(NodeKind::Call, Payload::None, sp(410), &[callee, callback]);
     let root = b.add(NodeKind::Func, Payload::None, sp(411), &[call]);
     (finish_il(b, root, Lang::Ruby), interner, call, receiver)
@@ -100,7 +105,7 @@ fn ruby_enumerable_hof_chain_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
         sp(441),
         &[receiver],
     );
-    let reject_fn = b.add(NodeKind::Func, Payload::Cid(1), sp(442), &[]);
+    let reject_fn = inline_lambda_with_params(&mut b, 1, 1, 442);
     let reject_call = b.add(
         NodeKind::Call,
         Payload::None,
@@ -113,7 +118,7 @@ fn ruby_enumerable_hof_chain_il() -> (Il, Interner, NodeId, NodeId, NodeId) {
         sp(444),
         &[reject_call],
     );
-    let map_fn = b.add(NodeKind::Func, Payload::Cid(2), sp(445), &[]);
+    let map_fn = inline_lambda_with_params(&mut b, 2, 1, 445);
     let map_call = b.add(
         NodeKind::Call,
         Payload::None,
@@ -163,13 +168,48 @@ fn admitted_ruby_enumerable_hof_requires_sequence_hof_pack_block_and_ordered_col
 }
 
 #[test]
-fn admitted_ruby_enumerable_hof_pack_covers_supported_eager_hofs() {
+fn admitted_ruby_enumerable_quantifier_requires_sequence_hof_pack_block_and_ordered_collection_receiver(
+) {
+    assert_sequence_hof_requires_pack_and_ordered_receiver(
+        Lang::Ruby,
+        "all?",
+        MethodSemanticContract::Builtin(Builtin::All),
+        || ruby_enumerable_hof_call_il("all?", RubyCallbackShape::Inline),
+        &[
+            (
+                DomainEvidence::Set,
+                "Ruby Set receiver proof stays closed because the value-domain contract is not represented",
+            ),
+            (
+                DomainEvidence::Map,
+                "Ruby Hash receiver proof stays closed because key/value block shape is not represented",
+            ),
+            (
+                DomainEvidence::Iterable,
+                "Ruby lazy/framework Enumerable receiver proof stays closed",
+            ),
+        ],
+        OrderedHofPackRequirementMessages {
+            raw_shape: "raw Ruby all? shape plus collection receiver proof is not enough",
+            missing_dependency:
+                "same-span Ruby Enumerable quantifier evidence without collection proof is rejected",
+            wrong_pack: "Ruby Enumerable quantifier evidence under the generic method-call pack is rejected",
+            wrong_producer: "Ruby Enumerable quantifier evidence with the wrong producer is rejected",
+            admitted: "Ruby all? with collection proof and inline block admits",
+        },
+    );
+}
+
+#[test]
+fn admitted_ruby_enumerable_hof_pack_covers_supported_eager_hofs_and_quantifiers() {
     for (method, semantic) in [
         ("map", MethodSemanticContract::HoF(HoFKind::Map)),
         ("collect", MethodSemanticContract::HoF(HoFKind::Map)),
         ("select", MethodSemanticContract::HoF(HoFKind::Filter)),
         ("filter", MethodSemanticContract::HoF(HoFKind::Filter)),
         ("reject", MethodSemanticContract::HoF(HoFKind::Reject)),
+        ("any?", MethodSemanticContract::Builtin(Builtin::Any)),
+        ("all?", MethodSemanticContract::Builtin(Builtin::All)),
     ] {
         let (mut il, interner, call, receiver) =
             ruby_enumerable_hof_call_il(method, RubyCallbackShape::Inline);
@@ -281,7 +321,6 @@ fn ruby_enumerable_hof_rejects_no_block_lazy_custom_and_unsupported_surfaces() {
 
 #[test]
 fn ruby_enumerable_hof_rejects_non_inline_or_effectful_blocks() {
-    let contract = library_method_call_contract(Lang::Ruby, "map", 1).expect("Ruby map row");
     for (shape, message) in [
         (
             RubyCallbackShape::Reference,
@@ -300,13 +339,34 @@ fn ruby_enumerable_hof_rejects_non_inline_or_effectful_blocks() {
             "raising Ruby blocks stay closed",
         ),
     ] {
-        let (mut il, interner, call, receiver) = ruby_enumerable_hof_call_il("map", shape);
+        for method in ["map", "any?"] {
+            let (mut il, interner, call, receiver) = ruby_enumerable_hof_call_il(method, shape);
+            push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
+            let contract =
+                library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby sequence row");
+            il.evidence
+                .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
+            assert!(
+                admitted_library_method_call_at_call(&il, &interner, call).is_none(),
+                "{method}: {message}"
+            );
+        }
+    }
+}
+
+#[test]
+fn ruby_enumerable_hof_rejects_multi_param_blocks_until_destructuring_is_modeled() {
+    for method in ["map", "any?", "all?"] {
+        let (mut il, interner, call, receiver) =
+            ruby_enumerable_hof_call_il(method, RubyCallbackShape::MultiParam);
         push_receiver_domain_dependency(&mut il, 0, receiver, DomainEvidence::Collection);
+        let contract =
+            library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby sequence row");
         il.evidence
             .push(sequence_hof_record(1, &il, call, contract, 1, &[0]));
         assert!(
             admitted_library_method_call_at_call(&il, &interner, call).is_none(),
-            "{message}"
+            "{method}: Ruby multi-param blocks destructure array elements and stay closed"
         );
     }
 }

@@ -135,6 +135,27 @@ end
         "same-file Ruby String.class_eval redefinitions must close admission"
     );
 
+    let module_eval_patch = lower_fixture(
+        "ruby_module_eval_patch.rb",
+        br#"String.module_eval do
+  def start_with?(prefix)
+    false
+  end
+end
+
+def f
+  "prelude".start_with?("pre")
+end
+"#,
+        Lang::Ruby,
+        &interner,
+    );
+    assert_eq!(
+        contract_api_count(&module_eval_patch.evidence, prefix.id, prefix.callee),
+        0,
+        "same-file Ruby String.module_eval redefinitions must close admission"
+    );
+
     let define_method_patch = lower_fixture(
         "ruby_define_method_patch.rb",
         br#"class String

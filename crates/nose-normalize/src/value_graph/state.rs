@@ -383,27 +383,6 @@ impl<'a> Builder<'a> {
         self.mk(ValOp::Opaque(salt), vec![])
     }
 
-    pub(super) fn is_unproven_membership_like_call(&self, expr: NodeId, kids: &[NodeId]) -> bool {
-        if matches!(self.il.node(expr).payload, Payload::Builtin(_)) {
-            return false;
-        }
-        let Some(&callee) = kids.first() else {
-            return false;
-        };
-        if self.il.kind(callee) != NodeKind::Field {
-            return false;
-        }
-        let Payload::Name(name) = self.il.node(callee).payload else {
-            return false;
-        };
-        unproven_membership_like_method_contract(
-            self.il.meta.lang,
-            self.interner.resolve(name),
-            kids.len().saturating_sub(1),
-        )
-        .is_some()
-    }
-
     pub(super) fn admitted_builtin_call(&self, node: NodeId, builtin: Builtin) -> bool {
         admitted_builtin_semantics_at_call_with_interner(self.il, self.interner, node, builtin)
     }

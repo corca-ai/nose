@@ -358,6 +358,21 @@ exposes that several older non-Swift `flat_map` probe rows do not satisfy the st
 exact-query check; those rows are left as gaps rather than preserving stale broad-query
 evidence.
 
+## Ruby Enumerable Quantifier Receiver-Proof Slice
+
+Closed the controlled Ruby `Enumerable#any?`/`Enumerable#all?` terminal slice inside the
+`reduction-minmax-anyall-2026-07-08` packet. The admitted surface is intentionally narrow:
+literal `Array` receivers, pure one-argument blocks, same-source early-return loops, matching
+terminal predicates, and standard `Array`/`Enumerable` API identity.
+
+The focused fixture `ruby_enumerable_quantifier` adds executable positives for literal
+receiver `any?`, `all?`, and empty-literal `all?` vacuous truth, plus hard negatives for
+receiver parameters, changed predicates, different sources, observed block effects,
+multi-parameter block destructuring, no-block Enumerable semantics, same-file `Array#any?`
+monkey patches, and `Enumerable.module_eval` patches. The packet and semantic pattern cards
+now treat Ruby literal receiver quantifiers as modeled-controlled while leaving
+parameter/custom receiver and broader Ruby `reduce`/`inject` admission open.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

@@ -40,6 +40,7 @@ mod object_key_views;
 mod operator_thresholds;
 mod operators;
 mod packs;
+mod ruby_redefinitions;
 mod sequence_surface;
 mod stdlib_semantics;
 mod symbol_identity;
@@ -106,6 +107,7 @@ use operator_thresholds::{
 };
 pub use operators::*;
 pub use packs::*;
+pub use ruby_redefinitions::*;
 pub use sequence_surface::*;
 use sequence_surface::{
     sequence_surface_evidence_at_sequence_span, sequence_surface_evidence_matches_node,

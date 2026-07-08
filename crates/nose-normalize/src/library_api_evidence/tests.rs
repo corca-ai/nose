@@ -11,6 +11,7 @@ use nose_semantics::{
 mod call_result_domains;
 mod promise_result_domains;
 mod receiver_method_result_domains;
+mod ruby_enumerable_quantifier;
 
 fn sp(byte: u32) -> Span {
     Span::new(FileId(0), byte, byte + 1, byte, byte + 1)

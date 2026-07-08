@@ -95,6 +95,9 @@ pub(super) fn record_receiver_method_library_api(
         },
     )
     .is_some_and(|(arg_count, contract, dependencies)| {
+        if ruby_sequence_hof_method_redefined_in_file(il, interner, contract.id, contract.callee) {
+            return false;
+        }
         upsert_builtin_evidence_with_pack_id(
             il,
             EvidenceAnchor::node(il.node(call).span, NodeKind::Call),

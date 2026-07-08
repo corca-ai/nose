@@ -76,7 +76,9 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
         "Swift Sequence HOF rows stay closed outside the single-callback shape"
     );
 
-    for method in ["map", "collect", "select", "filter", "reject"] {
+    for method in [
+        "map", "collect", "select", "filter", "reject", "any?", "all?",
+    ] {
         let contract =
             library_method_call_contract(Lang::Ruby, method, 1).expect("Ruby Enumerable HOF row");
         assert_eq!(contract.pack_id, SEQUENCE_HOF_ADAPTER_PROTOCOL_PACK_ID);
@@ -99,6 +101,14 @@ fn rust_iterator_hof_rows_use_sequence_hof_protocol_pack() {
     assert!(
         library_method_call_contract(Lang::Ruby, "map", 2).is_none(),
         "Ruby Enumerable HOF rows stay closed for block-plus-argument shapes"
+    );
+    assert!(
+        library_method_call_contract(Lang::Ruby, "any?", 0).is_none(),
+        "Ruby Enumerable quantifier rows require an explicit block"
+    );
+    assert!(
+        library_method_call_contract(Lang::Ruby, "all?", 2).is_none(),
+        "Ruby Enumerable quantifier rows stay closed for block-plus-argument shapes"
     );
     assert!(
         library_method_call_contract(Lang::Ruby, "flat_map", 1).is_none(),
