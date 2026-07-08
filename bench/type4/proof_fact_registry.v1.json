@@ -70,6 +70,127 @@
     },
     {
       "accepted_evidence": [
+        "focused executable positives where sum, reduce, or fold surfaces converge inside the detector's controlled aggregate value model",
+        "source or fixture evidence that the compared members use the same aggregate value coordinate and additive contribution",
+        "focused hard negatives where product/count, wrong-seed, float-sensitive, overflow-sensitive, or unproven numeric-domain variants remain split"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
+        "crates/nose-cli/tests/equivalence/algebra_laws.rs::algebra_associativity",
+        "crates/nose-cli/tests/equivalence/algebra_laws.rs::float_addition_and_multiplication_are_held_unassociated",
+        "crates/nose-cli/tests/equivalence/algebra_laws.rs::float_typed_param_addition_is_held_unassociated"
+      ],
+      "detector_admission_implication": "Does not admit aggregate convergence by itself; source identity, identity/empty behavior, step coordinate, and effect facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "numeric.aggregate-value-model-domain",
+      "hard_negative_conventions": [
+        "numeric.domain",
+        "reduction.step-coordinate"
+      ],
+      "implementation_guidance": [
+        "Use this fact only for the controlled reduction slice where the detector value model has already proven the same additive aggregate coordinate.",
+        "Do not treat this fact as a runtime no-overflow integer proof; fixed-width overflow, C/C++ undefined behavior, floating-point, NaN, signed-zero-sensitive, string-concatenating, or overloaded arithmetic still need separate proof facts.",
+        "Attach new language surfaces by emitting domain evidence, not by broadening reducer spelling matches."
+      ],
+      "rejected_evidence": [
+        "using focused Python, JavaScript, Ruby, or TypeScript aggregate fixtures as proof that all runtime values are finite integers",
+        "TypeScript number, Java double, Go float64, Rust f64, Swift Double, or C floating-point aggregate domains",
+        "C/C++ signed overflow or undefined behavior used as cross-language aggregate evidence without a no-overflow proof",
+        "fixed-width overflow-sensitive integer reductions compared across languages without an overflow-domain proof",
+        "dynamic arithmetic where operands may be strings, floats, or overloaded values outside the controlled fixture's value model"
+      ],
+      "semantic_family": "numeric.domain",
+      "status": "modeled-controlled",
+      "summary": "Reduction arithmetic may enter the controlled aggregate slice only under the detector's focused aggregate value model; this is not a runtime finite-integer/no-overflow proof, and float, NaN, signed-zero, overflow, and dynamic numeric behavior remain outside the fact.",
+      "title": "Aggregate value-model numeric domain"
+    },
+    {
+      "accepted_evidence": [
+        "focused executable positives where seeded min/max selection folds preserve the same comparator direction, explicit seed, and selected value coordinate",
+        "source or fixture evidence that the compared members stay inside the detector's controlled selection value-order model",
+        "focused hard negatives where min-vs-max direction, unseeded defaults, NaN-sensitive, custom-comparator, or unproven numeric-order variants remain split"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
+        "crates/nose-cli/tests/equivalence/operator_boundaries.rs::js_relational_comparison_stays_distinct_from_typed_numeric_comparison"
+      ],
+      "detector_admission_implication": "Does not admit min/max or relational selection convergence by itself; source identity, seed/identity behavior, comparator coordinate, and effect facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "numeric.selection-value-order-domain",
+      "hard_negative_conventions": [
+        "numeric.domain",
+        "reduction.selection-seed-domain",
+        "boolean.predicate-coordinate"
+      ],
+      "implementation_guidance": [
+        "Use this fact only for controlled seeded selection where comparator direction, explicit seed, and selected value coordinate are all proven.",
+        "Do not treat this fact as a runtime strict-total-order proof for arbitrary untyped or generic ordered values.",
+        "Reject NaN-sensitive float domains, custom comparison protocols, generic ordered type parameters that can include floats, and untyped relational comparisons outside the controlled selection fixture model.",
+        "Keep comparator direction and seed/domain facts separate so min-vs-max and seeded-vs-unseeded boundaries remain visible."
+      ],
+      "rejected_evidence": [
+        "JavaScript or Python relational comparisons over untyped values used as a broad runtime total-order proof",
+        "TypeScript number, Swift Double, Java double, Go float64, Rust f64, or C floating-point min/max surfaces without explicit NaN handling",
+        "generic ordered constraints such as Go cmp.Ordered when the instantiation can include floating-point values",
+        "custom comparator or overloaded comparison methods without API identity and purity proof"
+      ],
+      "semantic_family": "numeric.order",
+      "status": "modeled-controlled",
+      "summary": "Seeded min/max and relational selection may enter the controlled selection slice only when the detector proves the same seed, comparator direction, and selected value-order coordinate; broad runtime total-order, NaN-sensitive, and custom-order surfaces stay outside exact admission.",
+      "title": "Selection value-order numeric domain"
+    },
+    {
+      "accepted_evidence": [
+        "focused hard negatives where NaN-sensitive min/max, comparison, or clamp forms remain split",
+        "focused hard negatives where signed-zero-sensitive abs or conditional-negate forms remain split",
+        "source/type evidence showing a surface is floating-point or otherwise can observe NaN, signed zero, or non-associative arithmetic"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::abs_idiom_converges",
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::scalar_abs_builtins_converge_cross_language_with_shadow_boundary",
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::scalar_minmax_builtins_converge_cross_language",
+        "crates/nose-cli/tests/equivalence/algebra_laws.rs::float_addition_and_multiplication_are_held_unassociated",
+        "crates/nose-cli/tests/equivalence/operator_boundaries.rs::js_relational_comparison_stays_distinct_from_typed_numeric_comparison"
+      ],
+      "detector_admission_implication": "This is a boundary fact, not an admission fact: it keeps floating-point special-value surfaces closed unless a future packet supplies explicit semantics for them.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "numeric.float-special-value-boundary",
+      "hard_negative_conventions": [
+        "numeric.domain",
+        "numeric.shape",
+        "boolean.truth-table"
+      ],
+      "implementation_guidance": [
+        "Record NaN, signed-zero, and non-associative float behavior as explicit hard-negative evidence instead of burying it in prose caveats.",
+        "Do not reuse integer-domain or total-order facts for floating-point APIs unless a future proof explicitly models NaN and signed-zero behavior.",
+        "Keep identical float groupings eligible to converge only when the grouping and API semantics are unchanged."
+      ],
+      "rejected_evidence": [
+        "assuming Math.min/min/max or comparison-chain behavior agrees in the presence of NaN",
+        "assuming abs(x) equals x >= 0 ? x : -x for signed-zero-sensitive domains",
+        "reassociating or regrouping floating-point addition/multiplication as if it were an associative integer operation"
+      ],
+      "semantic_family": "numeric.domain",
+      "status": "modeled-controlled",
+      "summary": "Floating-point special values and grouping-sensitive arithmetic are explicit boundaries: NaN, signed zero, and non-associativity must stay split until separately modeled.",
+      "title": "Floating-point special-value boundary"
+    },
+    {
+      "accepted_evidence": [
         "comparison predicates whose results are booleans",
         "the same element variable and the same literal/value coordinates on both sides",
         "a boolean context where operand values are not observed",
