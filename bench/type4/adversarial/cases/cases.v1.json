@@ -31,6 +31,13 @@
       "string.affix-direction",
       "string.offset-or-multi-affix"
     ],
+    "option": [
+      "option.value-coordinate",
+      "option.absence-channel",
+      "option.presence-direction",
+      "option.fallback-coordinate",
+      "option.default-short-circuit"
+    ],
     "protocol-boundary": [
       "protocol-boundary.api-identity",
       "protocol-boundary.lifecycle",
@@ -215,6 +222,54 @@
         "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/string_affix.rs::admitted_go_namespace_string_affix_requires_string_affix_pack_and_imported_namespace_proof"
       ],
       "claim": "String prefix/suffix admission must keep string receiver identity, affix coordinate identity, API/import identity, prefix-vs-suffix direction, offset overloads, multi-affix disjunctions, and monkey-patched/custom APIs beside every case-sensitive affix bridge."
+    },
+    {
+      "id": "null-option-presence-proof-perimeter",
+      "semantic_family": "option.presence_default",
+      "packet_ids": ["null-option-presence-2026-07-08"],
+      "conventions": [
+        "option.value-coordinate",
+        "option.absence-channel",
+        "option.presence-direction",
+        "option.fallback-coordinate",
+        "option.default-short-circuit",
+        "protocol-boundary.api-identity",
+        "boolean.value-context"
+      ],
+      "positive_cases": [
+        "null_option_presence_absence_positive",
+        "null_option_presence_present_positive",
+        "nullish_default_positive"
+      ],
+      "hard_negative_cases": [
+        "null_option_presence_direction_boundary",
+        "null_option_presence_wrong_value_boundary",
+        "nullish_truthy_default_boundary",
+        "nullish_strict_null_boundary",
+        "nullish_wrong_coordinate_boundary",
+        "option_result_channel_boundary"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_direction_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_wrong_value_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
+        "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
+        "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
+        "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_strict_nullish_default_boundaries",
+        "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_js_object_guard_nullish_boundary",
+        "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::repeated_nullish_default_with_same_fallback_collapses",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates"
+      ],
+      "claim": "Null/Option presence and defaulting admission must keep value coordinate, absence channel identity, presence direction, fallback coordinate, nullish-vs-truthy/default timing, and API/channel identity hard negatives beside every nullable or option bridge."
     }
   ],
   "cases": [
@@ -978,6 +1033,373 @@
         }
       ],
       "evidence": "The Ruby fixture keeps custom same-name methods and same-file String monkey patches out of the proved Ruby prefix family."
+    },
+    {
+      "id": "null_option_presence_absence_positive",
+      "kind": "positive",
+      "semantic_family": "option.presence_default",
+      "claim": "Null, nil, NULL, and Option absence predicates converge when they prove the same checked value coordinate and absence-channel direction.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "null_option_presence_absence_cross_language_matches",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+              "name": "py_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.c",
+              "name": "c_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.go",
+              "name": "GoMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.java",
+              "name": "javaMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+              "name": "jsMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.ts",
+              "name": "tsMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_iflet_missing"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused executable fixture reports one absence family across C, Go, Java, JS, TS, Python, and Rust Option::is_none/if-let None surfaces."
+    },
+    {
+      "id": "null_option_presence_present_positive",
+      "kind": "positive",
+      "semantic_family": "option.presence_default",
+      "claim": "Non-null and Option present predicates converge separately from absence when they prove the same checked value coordinate and present direction.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "null_option_presence_present_cross_language_matches",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+              "name": "py_present"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.c",
+              "name": "c_present"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.go",
+              "name": "GoPresent"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.java",
+              "name": "javaPresent"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+              "name": "jsPresent"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.ts",
+              "name": "tsPresent"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_present"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused executable fixture reports a separate present family across C, Go, Java, JS, TS, Python, and Rust Option::is_some surfaces."
+    },
+    {
+      "id": "nullish_default_positive",
+      "kind": "positive",
+      "semantic_family": "option.presence_default",
+      "claim": "Nullish/Option defaulting converges when the checked value coordinate and fallback coordinate match and defaulting triggers only on the absence/nullish channel.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "nullish_default_cross_language_matches",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsTernary"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsGuard"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
+              "name": "tsCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
+              "name": "tsTernary"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+              "name": "rust_unwrap_or"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused executable fixture reports JS `??`, loose-nullish ternary, guard default, TS `??`/ternary, and Rust Option::unwrap_or in one family; Rust match default remains outside this focused query claim."
+    },
+    {
+      "id": "null_option_presence_direction_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Absence and presence predicates are opposite directions and must not merge.",
+      "mutation": "is absent -> is present",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "null_option_presence_python_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+              "name": "py_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+              "name": "py_present"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_rust_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_present"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_js_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+              "name": "jsMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.js",
+              "name": "jsPresent"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture reports absence and present predicates in separate semantic families."
+    },
+    {
+      "id": "null_option_presence_wrong_value_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Checking a different value coordinate changes the null/Option presence predicate.",
+      "mutation": "value is None -> other is None",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "null_option_presence_python_wrong_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+              "name": "py_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
+              "name": "py_wrong_value"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_rust_wrong_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
+              "name": "rust_wrong_value"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture keeps same-shaped presence tests over `other` out of the `value` presence family."
+    },
+    {
+      "id": "nullish_truthy_default_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Truthy defaulting is not nullish defaulting because falsey present payloads must remain present values.",
+      "mutation": "value ?? fallback -> value || fallback",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "nullish_truthy_default_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsTruthy"
+            }
+          ]
+        }
+      ],
+      "evidence": "The JS nullish-default CLI tests and focused fixture keep `??`/loose-nullish defaults split from truthiness-based `||` defaults."
+    },
+    {
+      "id": "nullish_strict_null_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Strict-null defaulting is not the same as nullish defaulting because undefined remains a present value under `=== null`.",
+      "mutation": "value == null ? fallback : value -> value === null ? fallback : value",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "nullish_strict_null_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsStrictNull"
+            }
+          ]
+        }
+      ],
+      "evidence": "The strict-null CLI test records a separate strict-null family and keeps it out of the loose-nullish default family."
+    },
+    {
+      "id": "nullish_wrong_coordinate_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Changing the checked value or fallback/default coordinate changes defaulting behavior.",
+      "mutation": "value ?? fallback -> other ?? fallback or value ?? otherDefault",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence"
+      ],
+      "executable_expectations": [
+        {
+          "id": "nullish_js_wrong_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.js",
+              "name": "jsWrongFallback"
+            }
+          ]
+        },
+        {
+          "id": "nullish_rust_wrong_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+              "name": "rust_unwrap_or"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+              "name": "rust_wrong_fallback"
+            }
+          ]
+        },
+        {
+          "id": "nullish_rust_wrong_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+              "name": "rust_unwrap_or"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
+              "name": "rust_wrong_value"
+            }
+          ]
+        }
+      ],
+      "evidence": "Focused defaulting and option-boundary equivalence tests keep wrong-value and wrong-fallback coordinates split from the proved default family."
+    },
+    {
+      "id": "option_result_channel_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Result Ok/Err channels are not Option Some/None channels even when predicate names and defaulting APIs look similar.",
+      "mutation": "Option Some/None channel -> Result Ok/Err channel",
+      "fixtures": [
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs"
+      ],
+      "evidence": "The Rust option-boundaries equivalence suite keeps Option Some/None predicates distinct from Result Ok/Err predicates and keeps Result defaulting APIs outside the narrow Option/nullish default slice."
     },
     {
       "id": "filter_map_filter_map_equiv",

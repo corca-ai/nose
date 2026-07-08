@@ -417,6 +417,108 @@
     },
     {
       "boundaries": [
+        "the checked nullable or Option value coordinate must match independently from predicate/defaulting spelling",
+        "absence and presence directions converge separately and remain opposite boolean directions",
+        "the absence channel must be proven; falsey present payloads and nested/present values stay behavior-defining",
+        "defaulting requires the same fallback/default coordinate and the same nullish or Option absence trigger",
+        "truthiness defaults, strict-null defaulting, shadowed undefined, and effectful fallback timing are not admitted by the pure/already-evaluated fallback slice",
+        "standard API/channel identity must be proven; custom option-like helpers, bare Optional names, Result channels, and shadowed constructors remain closed"
+      ],
+      "evidence_refs": [
+        "bench/type4/frontier_target_packets.v1.json::null-option-presence-2026-07-08",
+        "bench/type4/adversarial/cases/cases.v1.json::null-option-presence-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_direction_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_wrong_value_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
+        "bench/type4/proof_fact_registry.v1.json::option.value-coordinate-identity",
+        "bench/type4/proof_fact_registry.v1.json::option.absence-channel.identity",
+        "bench/type4/proof_fact_registry.v1.json::option.presence-direction",
+        "bench/type4/proof_fact_registry.v1.json::option.default-fallback-coordinate",
+        "bench/type4/proof_fact_registry.v1.json::option.default-short-circuit",
+        "bench/type4/proof_fact_registry.v1.json::option.api-identity"
+      ],
+      "hard_negative_templates": [
+        "option.changed-value-coordinate",
+        "option.presence-direction",
+        "option.falsey-present-payload",
+        "option.changed-fallback-coordinate",
+        "option.truthy-vs-nullish-default",
+        "option.strict-null-vs-nullish",
+        "option.result-channel-boundary",
+        "protocol-boundary.api-identity"
+      ],
+      "language_surfaces": [
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive; bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+          "language": "C",
+          "status": "modeled-controlled",
+          "surface": "NULL pointer absence/presence comparisons over the same pointer coordinate; nullish defaulting is not applicable"
+        },
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive; bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+          "language": "Go",
+          "status": "modeled-controlled",
+          "surface": "nil absence/presence comparisons over proven nil-able value coordinates; defaulting remains open/not applicable in this card"
+        },
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive; crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
+          "language": "Java",
+          "status": "modeled-controlled",
+          "surface": "null comparisons plus fully-qualified java.util.Optional isPresent/orElse evidence; bare Optional names remain closed without type-domain proof"
+        },
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive; bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive; crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
+          "language": "JS/TS",
+          "status": "modeled-controlled",
+          "surface": "loose nullish presence checks, `??`, loose-null ternary, and guard defaults over pure/already-evaluated fallbacks; truthy defaulting, strict-null defaulting, shadowed-undefined, and wrong-fallback boundaries stay closed"
+        },
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive; bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+          "language": "Python",
+          "status": "modeled-controlled",
+          "surface": "is None / is not None presence predicates over the same value coordinate; nullish defaulting is not applicable"
+        },
+        {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive; bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive; crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+          "language": "Rust",
+          "status": "modeled-controlled",
+          "surface": "Option::is_none/is_some, if-let None/Some presence, and unwrap_or defaulting; Result channels and shadowed constructors stay closed"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::null_option_presence/ruby sweep coverage exists, but the focused CLI null-presence family deliberately excludes nil_method.rb",
+          "language": "Ruby",
+          "status": "open",
+          "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status"
+        },
+        {
+          "evidence": "bench/type4/coverage_evidence.v1.json::probe:null_option_presence/swift covers a nil-presence probe only",
+          "language": "Swift",
+          "status": "open",
+          "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open"
+        }
+      ],
+      "law": "Null/Option presence and defaulting surfaces are equivalent only when source evidence proves the same checked value coordinate, the same absence channel, the same presence direction or fallback coordinate, standard API/channel identity, and defaulting that triggers only on absence/nullish values for pure or already-evaluated fallbacks.",
+      "pattern_id": "option.presence-default.proven-channel-coordinate",
+      "rationale": "The null_option_presence axis is broad and already covered by focused presence/defaulting fixtures plus option-boundary tests; carding it records reusable channel, coordinate, direction, fallback, pure/default-trigger, and API facts so future language surfaces extend neutral evidence instead of adding per-language null checks.",
+      "required_facts": [
+        "option.value-coordinate-identity",
+        "option.absence-channel.identity",
+        "option.presence-direction",
+        "option.default-fallback-coordinate",
+        "option.default-short-circuit",
+        "option.api-identity"
+      ],
+      "status": "pattern-carded",
+      "title": "Proof-backed option presence and defaulting"
+    },
+    {
+      "boundaries": [
         "absent-key fallback is distinct from nullish, truthy, or falsey value replacement",
         "the map receiver must be the same proven source, including imported immutable literal sources",
         "the lookup key and fallback/default coordinates must match independently",

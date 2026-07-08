@@ -38,6 +38,11 @@ packet-specific current status locally.
 | `hof.filter-map.drop-condition-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both surfaces drop the same source elements. |
 | `hof.filter-map.emitted-value-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that present branches, maps, or guarded pushes emit the same value. |
 | `option.absence-channel.identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes absence-vs-payload channel boundaries. |
+| `option.value-coordinate-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires absence-channel identity, direction, fallback coordinate, pure/default-trigger, and API identity facts. |
+| `option.presence-direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only preserves absence versus present boolean direction. |
+| `option.default-fallback-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the fallback/default coordinate. |
+| `option.default-short-circuit` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes the nullish/absence trigger for pure or already-evaluated fallbacks. |
+| `option.api-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves standard nullish, nullable, Optional, or Option channel identity. |
 | `hof.flat-map.nested-iteration-order` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves matching outer/inner traversal coordinates. |
 | `hof.flat-map.emitted-value-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves each matched nested coordinate emits the same value. |
 | `collection.flatten-depth.one-level` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes flattened-vs-nested output shape boundaries. |
@@ -76,6 +81,22 @@ new packet-local citations.
 | `python-loop-demorgan.effect-safety` | `effect.pure-predicate` |
 | `python-loop-demorgan.iterator-identity` | `iteration.same-source-identity` |
 | `python-loop-demorgan.universal-short-circuit` | `quantifier.universal.counterexample-loop`, `quantifier.vacuous-truth` |
+
+## Option Presence/Defaulting Pattern Matrix
+
+This matrix records the neutral proof perimeter for null/Option presence
+predicates and nullish/defaulting surfaces. The supported surfaces still depend
+on source evidence for the checked value coordinate, absence channel, boolean
+direction, fallback coordinate, pure/default trigger, and API identity.
+
+| fact | Python | JS/TS | Go | Java | Rust | C | Ruby | Swift |
+|---|---|---|---|---|---|---|---|---|
+| `option.value-coordinate-identity` | modeled-controlled presence | modeled-controlled presence/defaulting | modeled-controlled presence | modeled-controlled presence; Optional fq evidence | modeled-controlled presence/defaulting | modeled-controlled presence | open sweep-only | open probe-only |
+| `option.absence-channel.identity` | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled |
+| `option.presence-direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open sweep-only | open probe-only |
+| `option.default-fallback-coordinate` | not-applicable | modeled-controlled | not-applicable | modeled-controlled Optional fq evidence | modeled-controlled unwrap_or | not-applicable | not-applicable | open |
+| `option.default-short-circuit` | not-applicable | modeled-controlled for pure/already-evaluated fallbacks | not-applicable | modeled-controlled Optional fq evidence for pure/already-evaluated fallbacks | modeled-controlled unwrap_or with already-evaluated fallback | not-applicable | not-applicable | open |
+| `option.api-identity` | modeled-controlled for built-in None | modeled-controlled for nullish protocol | modeled-controlled nil comparison | modeled-controlled null and fq java.util.Optional | modeled-controlled Option; Result closed | modeled-controlled NULL | open for nil? focused evidence | open probe-only |
 
 ## Collection Membership Pattern Matrix
 

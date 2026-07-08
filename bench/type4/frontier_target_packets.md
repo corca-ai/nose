@@ -7,7 +7,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - build ref: `None` · union signature `fec264f35c3f1ded…`
 - corpus: 120 repos · commit digest `2bf0b8c147be66b7…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
-- packets: 5
+- packets: 6
 
 ## `numeric-clamp-2026-06-06` — axis `numeric_clamp`
 
@@ -133,3 +133,30 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **why now**: string_prefix_suffix has broad controlled coverage across core languages, a Swift probe row, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces.
 - **blocked by**: nothing
 - **notes**: This packet records the current string-affix perimeter as reusable proof facts. It intentionally leaves case-insensitive, locale-sensitive, offset, and multi-affix semantics outside exact admission until their extra proof facts exist.
+
+## `null-option-presence-2026-07-08` — axis `null_option_presence`
+
+- **owner route**: `team-a-detector` (#757) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `none`
+- **breadth**: repo 82% · primary-language 100% (8/8) · dev 53 · held-out 46 · both-splits
+- **semantic claim**: Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.
+- **proof invariant**: Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.
+- **hard negatives**:
+  - absence and present predicates are opposite directions and must stay split
+  - checking `other` instead of `value` changes the nullable/Option value coordinate
+  - truthy defaulting such as `value || fallback` drops falsey present payloads and is not nullish defaulting
+  - strict-null-only defaulting is not loose nullish defaulting because undefined handling differs
+  - wrong fallback/default coordinates change defaulting behavior
+  - Java Optional needs fully-qualified java.util.Optional type-domain proof; bare Optional and custom option-like helpers are not enough
+  - Rust Result Ok/Err channels and shadowed Some/None constructors are not Option Some/None channel proof
+- **evidence**: `null-option-presence-focused-controlled` (`real_frontier.v1.json`)
+- **real frontier replay**: `null-option-presence-absence-focused-controlled-pair`, `null-option-presence-present-focused-controlled-pair`, `nullish-default-focused-controlled-pair` (`real_frontier_replay.v1.json`)
+- **representative locations**:
+  - `nose` (focused, Python) `bench/type4/adversarial/cases/null_option_presence/presence.py:1-9`
+  - `nose` (focused, Rust) `bench/type4/adversarial/cases/null_option_presence/presence.rs:1-15`
+  - `nose` (focused, JavaScript) `bench/type4/adversarial/cases/null_option_presence/default.js:1-26`
+- **current detector result**: miss=False · `nose` @ `#757 semanti` — Semantic query reports distinct absence, present, and defaulting families while direction, wrong-value, truthy-default, strict-null, and wrong-coordinate hard negatives stay outside those families.
+- **detector admission**: `controlled-slice-admitted` · controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence
+- **remaining real-pair gap**: a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission
+- **why now**: null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts.
+- **blocked by**: nothing
+- **notes**: This packet records the current null/Option presence/defaulting perimeter as reusable proof facts. It intentionally leaves Ruby nil? focused admission, Swift full Optional admission, Rust match-default focused convergence, and effectful fallback timing outside the exact claim until separate evidence covers those boundaries.

@@ -11,16 +11,16 @@ report keeps the fuller evidence and admission boundary.
 
 **no-exact-admission-ready-packets**
 
-- target packets: 5
+- target packets: 6
 - ready for exact admission: 0
-- detector admitted packets: 5
-- by readiness: `{"detector-admitted": 3, "detector-admitted-controlled": 2}`
-- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 4}`
-- by detector admission: `{"controlled-slice-admitted": 2, "real-pair-admitted": 3}`
-- by executable witness coverage: `{"covered": 5}`
-- by real-frontier replay: `{"passed": 5}`
-- executable expectations: 45/45 passed
-- real-frontier replays: 9/9 passed; 0 unavailable
+- detector admitted packets: 6
+- by readiness: `{"detector-admitted": 3, "detector-admitted-controlled": 3}`
+- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 5}`
+- by detector admission: `{"controlled-slice-admitted": 3, "real-pair-admitted": 3}`
+- by executable witness coverage: `{"covered": 6}`
+- by real-frontier replay: `{"passed": 6}`
+- executable expectations: 58/58 passed
+- real-frontier replays: 12/12 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -44,6 +44,7 @@ report keeps the fuller evidence and admission boundary.
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (1/1)` | 4 | 7 | 1 |
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (2/2)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed (4/4)` | 6 | 7 | 1 |
+| `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed (3/3)` | 6 | 7 | 1 |
 
 ## Packet Details
 
@@ -93,6 +94,16 @@ report keeps the fuller evidence and admission boundary.
 - real-frontier replay: `passed` (4/4 passed)
 - hard-negative groups: `string-affix-proof-perimeter`
 
+### `null-option-presence-2026-07-08`
+
+- detector admission: `controlled-slice-admitted` over controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence
+- remaining real-pair gap: a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission
+- gates: 10 positive, 10 hard-negative
+- executable witness coverage: `covered` (13/13 passed)
+- real-frontier replay: `passed` (3/3 passed)
+- manifest-only cases: `option_result_channel_boundary`
+- hard-negative groups: `null-option-presence-proof-perimeter`
+
 ## Hard-Negative Linkage
 
 ### `numeric-clamp-2026-06-06` / `numeric-clamp-proof-perimeter`
@@ -129,6 +140,13 @@ report keeps the fuller evidence and admission boundary.
 - conventions: `string.receiver-coordinate`, `string.affix-coordinate`, `string.affix-direction`, `string.offset-or-multi-affix`, `protocol-boundary.api-identity`
 - cases: 5 positive, 6 hard-negative
 - regression gates: 15
+
+### `null-option-presence-2026-07-08` / `null-option-presence-proof-perimeter`
+
+- semantic family: `option.presence_default`
+- conventions: `option.value-coordinate`, `option.absence-channel`, `option.presence-direction`, `option.fallback-coordinate`, `option.default-short-circuit`, `protocol-boundary.api-identity`, `boolean.value-context`
+- cases: 3 positive, 6 hard-negative
+- regression gates: 18
 
 ## Co-Evolution Guardrails
 

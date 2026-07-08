@@ -127,9 +127,9 @@ only historical context and should be deleted instead of preserved.
 Target packets now cite `hard_negative_groups`. A group binds the packet's positive focused
 cases, hard-negative focused cases, and regression gates together, then labels the perimeter
 with convention IDs. The convention categories are `numeric`, `boolean`, `loop`,
-`collection`, `string`, and `protocol-boundary`; `proof_carrying_frontier.py --check` fails if a
-packet omits its group, if a group case has the wrong kind, or if detector admission cites a
-positive without the group's hard-negative gates.
+`collection`, `string`, `option`, and `protocol-boundary`; `proof_carrying_frontier.py --check`
+fails if a packet omits its group, if a group case has the wrong kind, or if detector
+admission cites a positive without the group's hard-negative gates.
 
 Convention glossary:
 
@@ -151,6 +151,11 @@ Convention glossary:
 | `string.affix-coordinate` | literal, parameter, imported, dynamic, or mutated affix value coordinates |
 | `string.affix-direction` | prefix and suffix predicate direction must stay distinct |
 | `string.offset-or-multi-affix` | offset overloads, tuple/multi-affix disjunctions, and unsupported arities |
+| `option.value-coordinate` | checked nullable/Option value identity and wrong-value boundaries |
+| `option.absence-channel` | absence versus present payload channel identity, including falsey present values |
+| `option.presence-direction` | absence and present predicate direction must stay distinct |
+| `option.fallback-coordinate` | default/fallback value identity and wrong-default boundaries |
+| `option.default-short-circuit` | nullish/absence trigger for pure or already-evaluated fallbacks, truthy defaults, strict-null defaulting, and effectful fallback timing boundaries |
 | `protocol-boundary.api-identity` | library/member identity, custom method names, receiver type, and imports |
 | `protocol-boundary.lifecycle` | settlement, cancellation, scheduling, channel, or runtime lifecycle state |
 | `protocol-boundary.callback-effect` | callback mutation, ordering, exceptions, and externally observed effects |
