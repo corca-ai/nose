@@ -1,4 +1,5 @@
 use super::*;
+use nose_semantics::js_like_lang;
 
 pub(super) fn strict_exact_bool_reduction_method_call_safe(
     il: &Il,
@@ -57,13 +58,6 @@ fn strict_exact_bool_reduction_receiver_safe(
         return false;
     }
     strict_exact_proven_collection_receiver_safe(il, interner, facts, receiver)
-}
-
-fn js_like_lang(lang: Lang) -> bool {
-    matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-    )
 }
 
 fn strict_exact_bool_reduction_callback_value_only(il: &Il, node: NodeId) -> bool {

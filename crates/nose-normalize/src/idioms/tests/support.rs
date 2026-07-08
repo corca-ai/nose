@@ -3,8 +3,8 @@ pub(super) use nose_il::stable_symbol_hash;
 pub(super) use nose_il::{
     DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
     EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
-    LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
-    UnitKind,
+    LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span, Symbol, SymbolEvidenceKind,
+    Unit, UnitKind,
 };
 pub(super) use nose_semantics::test_support::{
     compat_test_evidence_with_dependencies as evidence_with_dependencies,
@@ -68,6 +68,24 @@ pub(super) fn sequence_surface_evidence(
 
 pub(super) fn next_evidence_id(il: &Il) -> u32 {
     il.evidence.len() as u32
+}
+
+pub(super) fn finish_module_il(
+    mut b: IlBuilder,
+    lang: Lang,
+    module_kids: Vec<NodeId>,
+    cid_names: Vec<Symbol>,
+) -> Il {
+    let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
+    b.finish(
+        root,
+        FileMeta {
+            path: "t".to_string(),
+            lang,
+        },
+        Vec::new(),
+        cid_names,
+    )
 }
 
 pub(super) fn method_call_receiver(il: &Il, call: NodeId) -> Option<NodeId> {

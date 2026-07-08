@@ -1,4 +1,5 @@
 use super::*;
+use nose_semantics::js_like_lang;
 
 #[derive(Clone, Copy)]
 pub(super) enum ProvenReceiver {
@@ -245,11 +246,4 @@ fn lambda_param_count(il: &Il, lambda: NodeId) -> usize {
         .iter()
         .filter(|&&child| il.kind(child) == NodeKind::Param)
         .count()
-}
-
-fn js_like_lang(lang: Lang) -> bool {
-    matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-    )
 }

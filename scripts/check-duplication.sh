@@ -194,6 +194,12 @@ set -euo pipefail
 # numeric int/float binary dispatch, Java map factory vocabulary projections, and language
 # profile/type-domain vocabulary projections. Reviewed in docs/dogfooding-history.md;
 # accepted as detector-improvement surfacing, not new avoidable duplication.
+# 30 -> 30 (dense-literal TypeScript every): the draft surfaced avoidable JS-like language
+# predicate and normalize idiom fixture-helper families; those were deduped by sharing
+# `nose_semantics::js_like_lang` and the normalize test module builders. The remaining
+# delta is representative churn from `44bfd76822ddbe95` to `2fb6d5f9c8c6d045` for the
+# same value-graph collection whole-impl span-noise class. Reviewed in docs/dogfooding-history.md;
+# no new budget is accepted.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

@@ -1043,3 +1043,15 @@ domain, contract-key, and pack-id vocabulary separate; and the language profile
 matches are small exhaustiveness boundaries over different semantic surfaces.
 The budget is raised to 30 for this detector-improvement surfacing, not for new
 avoidable duplication.
+
+The dense-literal TypeScript `every` proof-boundary slice keeps the reviewed
+default-surface count at 30. The first CI pass surfaced avoidable draft
+duplication: repeated JS-like language predicates and normalize idiom fixture
+scaffolding. The shared `nose_semantics::js_like_lang` predicate and the common
+normalize test module builders remove those families before baseline update.
+The only remaining drift is representative churn: `44bfd76822ddbe95` no longer
+reports and `2fb6d5f9c8c6d045` appears for the same reviewed value-graph
+collection span-noise class, now represented by a broad
+`collections/cardinality.rs` impl span and a small `collections/reductions.rs`
+span with only two shared lines. This is still detector span noise, not a
+useful collection-policy abstraction. No new budget is accepted.

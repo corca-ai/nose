@@ -43,16 +43,7 @@ pub(super) fn typed_method_call_il(
         );
         functions.push(other_function);
     }
-    let root = b.add(NodeKind::Module, Payload::None, sp(), &functions);
-    let mut il = b.finish(
-        root,
-        FileMeta {
-            path: "t".to_string(),
-            lang,
-        },
-        Vec::new(),
-        Vec::new(),
-    );
+    let mut il = finish_module_il(b, lang, functions, Vec::new());
     il.evidence.push(evidence(
         0,
         EvidenceAnchor::param(param_span),

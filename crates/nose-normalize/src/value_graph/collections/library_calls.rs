@@ -1,4 +1,5 @@
 use super::super::*;
+use nose_semantics::js_like_lang;
 
 impl<'a> Builder<'a> {
     pub(in crate::value_graph) fn filter_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
@@ -230,11 +231,4 @@ impl<'a> Builder<'a> {
         let (map, key) = self.proven_map_get_value(value)?;
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
-}
-
-fn js_like_lang(lang: Lang) -> bool {
-    matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-    )
 }
