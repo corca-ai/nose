@@ -8,14 +8,14 @@
       "repo_count": 120
     },
     "real_frontier": "bench/type4/real_frontier.v1.json",
-    "union_signature": "fec264f35c3f1dedb6c0b750ac6e3320da20d10feb721127775800bd32b81c73"
+    "union_signature": "779a4975ba2b7b27c566d21a9b598f39cf902d60bffcf5c20dd8613c8a7fa88f"
   },
   "owner_route_vocabulary": [
     "proof-fact-prerequisite",
     "team-a-detector",
     "team-c-product"
   ],
-  "packet_count": 6,
+  "packet_count": 7,
   "packets": [
     {
       "blocked_by": [
@@ -996,6 +996,199 @@
       ],
       "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.",
       "why_now": "null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts."
+    },
+    {
+      "blocked_by": [],
+      "breadth": {
+        "dev_breadth": 0.8788,
+        "dev_presence": 58,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.8704,
+        "heldout_presence": 47,
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 8,
+        "primary_language_total": 8,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ],
+        "raw_occurrences": 57452,
+        "repo_breadth": 0.875,
+        "repo_presence": 105,
+        "source_language_breadth": 1.0,
+        "source_language_presence": 8,
+        "source_languages": [
+          "c",
+          "go",
+          "java",
+          "javascript",
+          "python",
+          "ruby",
+          "rust",
+          "typescript"
+        ]
+      },
+      "candidate_axis": "reduce_minmax_anyall",
+      "curated": {
+        "implementation_cost": "medium",
+        "rationale": "Reduction equivalence crosses loop shapes, higher-order terminals, and seeded selection forms. It needs source/iteration identity, identity-empty behavior, step or terminal predicate coordinate proof, short-circuit direction, selection seed/domain proof, and effect closure; the current work records that perimeter as reusable semantic facts rather than adding spelling-specific detector shortcuts.",
+        "soundness_risk": "medium",
+        "substrate_required": "fragment-contract"
+      },
+      "current_detector_result": {
+        "baseline_command": "nose query bench/type4/adversarial/cases/reduction_minmax_anyall --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+        "baseline_result": "Semantic query reports a broad sum/reduce family, TypeScript any/some plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.",
+        "binary_path": "nose",
+        "build_ref": "#758 semantic pattern card",
+        "current_detector_miss": false,
+        "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations.",
+        "nose_version": "nose",
+        "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations."
+      },
+      "detector_admission": {
+        "capabilities": [
+          "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
+          "converges Rust any/all terminal forms and TypeScript any/some terminal forms with equivalent early-return loops when predicate and admitted direction evidence match",
+          "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
+          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+        ],
+        "hard_negative_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language"
+        ],
+        "positive_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
+          "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall"
+        ],
+        "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
+        "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and effect evidence",
+        "status": "controlled-slice-admitted"
+      },
+      "evidence_case_ids": [
+        "reduction-minmax-anyall-focused-controlled"
+      ],
+      "evidence_tier": "frontier-recorded",
+      "hard_negative_group_ids": [
+        "reduction-minmax-anyall-proof-perimeter"
+      ],
+      "hard_negative_siblings": [
+        "seed 0 versus seed 1 changes empty-input behavior and every non-empty sum",
+        "additive sum, multiplicative product, and positive-count contributions are distinct step coordinates",
+        "any/all terminal predicates such as x > 0, x >= 0, and x < 0 are distinct coordinates",
+        "any and all have opposite short-circuit direction and fallthrough truth values",
+        "seeded max over max(0, xs...) differs from max(xs).unwrap_or(0) on all-negative non-empty inputs",
+        "min and max selection directions are distinct even when both use the same seed",
+        "effectful reducers, predicates, callbacks, or receiver/protocol mutations are behavior-defining"
+      ],
+      "locations": [
+        {
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+          "primary_language": "multi-language",
+          "repo": "nose",
+          "snippet": "Python sum, product, and wrong-seed focused representatives",
+          "span": "1-23",
+          "split": "focused"
+        },
+        {
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "primary_language": "Rust",
+          "repo": "nose",
+          "snippet": "Rust any/all loop and Iterator terminal representatives plus same-predicate direction boundary",
+          "span": "1-42",
+          "split": "focused"
+        },
+        {
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+          "primary_language": "Rust",
+          "repo": "nose",
+          "snippet": "Rust seeded min/max fold and unseeded-selection boundary representatives",
+          "span": "1-35",
+          "split": "focused"
+        }
+      ],
+      "notes": "This packet records the current focused reduction perimeter as reusable proof facts. It intentionally does not claim a new non-focused real-corpus admission, untyped JS relational reduction admission, Ruby receiver/protocol admission, or Swift full reduction admission until those proof perimeters are separately covered.",
+      "owner_issue": "#758",
+      "owner_route": "team-a-detector",
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_fact_model": {
+        "facts": [
+          {
+            "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain proof is missing",
+            "fact_id": "iteration.same-source-identity"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused sum/product/any/all/selection fixtures: matching seeds and empty-input results converge while wrong seeds and selection APIs with different empty/all-negative behavior stay split",
+            "fact_id": "reduction.identity-empty-behavior"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
+            "fact_id": "reduction.step-coordinate-identity"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split",
+            "fact_id": "reduction.terminal-predicate-coordinate"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript currently covers any/some only",
+            "fact_id": "reduction.short-circuit-direction"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused Python/Rust seeded min/max fixtures: seeded min/max loops and folds converge while min-vs-max direction and unseeded max().unwrap_or(0) boundaries stay split",
+            "fact_id": "reduction.selection-seed-domain"
+          },
+          {
+            "current_real_pair_status": "satisfied for controlled terminal predicates; effectful predicates or callbacks remain outside the focused admission claim",
+            "fact_id": "effect.pure-predicate"
+          },
+          {
+            "current_real_pair_status": "satisfied for controlled reduce/fold callbacks; callback effects remain closed without a separate effect proof",
+            "fact_id": "effect.pure-callback"
+          }
+        ],
+        "focused_tests": [
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
+          "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall"
+        ],
+        "model_status": "modeled-controlled"
+      },
+      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+      "real_frontier_replay_ids": [
+        "reduction-sum-focused-controlled-pair",
+        "reduction-any-focused-controlled-pair",
+        "reduction-selection-focused-controlled-pair"
+      ],
+      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus TypeScript any/some terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
+      "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
     }
   ],
   "schema_version": 1,

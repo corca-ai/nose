@@ -4,10 +4,10 @@ Implementation-ready selections from the corpus-balanced frontier evidence platf
 Each packet LINKS human-verified `real_frontier.v1.json` evidence (it never restates a
 status) and adds team routing. See [frontier-platform](../../docs/frontier-platform.md).
 
-- build ref: `None` · union signature `fec264f35c3f1ded…`
+- build ref: `None` · union signature `779a4975ba2b7b27…`
 - corpus: 120 repos · commit digest `2bf0b8c147be66b7…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
-- packets: 6
+- packets: 7
 
 ## `numeric-clamp-2026-06-06` — axis `numeric_clamp`
 
@@ -160,3 +160,30 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **why now**: null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts.
 - **blocked by**: nothing
 - **notes**: This packet records the current null/Option presence/defaulting perimeter as reusable proof facts. It intentionally leaves Ruby nil? focused admission, Swift full Optional admission, Rust match-default focused convergence, and effectful fallback timing outside the exact claim until separate evidence covers those boundaries.
+
+## `reduction-minmax-anyall-2026-07-08` — axis `reduce_minmax_anyall`
+
+- **owner route**: `team-a-detector` (#758) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `fragment-contract`
+- **breadth**: repo 88% · primary-language 100% (8/8) · dev 58 · held-out 47 · both-splits
+- **semantic claim**: Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus TypeScript any/some terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.
+- **proof invariant**: Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.
+- **hard negatives**:
+  - seed 0 versus seed 1 changes empty-input behavior and every non-empty sum
+  - additive sum, multiplicative product, and positive-count contributions are distinct step coordinates
+  - any/all terminal predicates such as x > 0, x >= 0, and x < 0 are distinct coordinates
+  - any and all have opposite short-circuit direction and fallthrough truth values
+  - seeded max over max(0, xs...) differs from max(xs).unwrap_or(0) on all-negative non-empty inputs
+  - min and max selection directions are distinct even when both use the same seed
+  - effectful reducers, predicates, callbacks, or receiver/protocol mutations are behavior-defining
+- **evidence**: `reduction-minmax-anyall-focused-controlled` (`real_frontier.v1.json`)
+- **real frontier replay**: `reduction-sum-focused-controlled-pair`, `reduction-any-focused-controlled-pair`, `reduction-selection-focused-controlled-pair` (`real_frontier_replay.v1.json`)
+- **representative locations**:
+  - `nose` (focused, multi-language) `bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py:1-23`
+  - `nose` (focused, Rust) `bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs:1-42`
+  - `nose` (focused, Rust) `bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs:1-35`
+- **current detector result**: miss=False · `nose` @ `#758 semanti` — Semantic query reports a broad sum/reduce family, TypeScript any/some plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.
+- **detector admission**: `controlled-slice-admitted` · controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and effect evidence
+- **remaining real-pair gap**: a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission
+- **why now**: reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter — identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and effect closure — so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings.
+- **blocked by**: nothing
+- **notes**: This packet records the current focused reduction perimeter as reusable proof facts. It intentionally does not claim a new non-focused real-corpus admission, untyped JS relational reduction admission, Ruby receiver/protocol admission, or Swift full reduction admission until those proof perimeters are separately covered.

@@ -254,6 +254,59 @@
    "notes": "Issue #757 pattern-card evidence. This is a controlled, replayable focused slice. It intentionally does not claim Ruby nil? focused admission, Swift full Optional admission, or Rust match-default focused convergence until those proof perimeters are separately covered."
   },
   {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "status": "already-covered",
+   "candidate_axis": "reduce_minmax_anyall / loops_and_reductions / iteration_contracts",
+   "repo": "nose",
+   "language": "multi-language",
+   "locations": [
+    {
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+     "span": "1-23",
+     "snippet": "Python sum loop, builtin sum, product step, and wrong seed representatives"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+     "span": "1-15",
+     "snippet": "Typed TypeScript sum loop/reduce and wrong-seed boundary"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "span": "1-42",
+     "snippet": "Rust any/all early-return loops, Iterator::any/all terminals, changed-predicate boundary, and same-predicate direction boundary"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+     "span": "1-35",
+     "snippet": "Rust seeded min/max loops/folds plus unseeded max().unwrap_or(0) selection boundary"
+    }
+   ],
+   "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus TypeScript any/some terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
+   "evidence": "Focused reduction_minmax_anyall fixtures are executable: semantic query reports a seven-language sum family, TypeScript any/some and Rust any/all terminal families, same-predicate Rust any-vs-all direction split, and separate seeded min/max selection families while wrong seed, changed product/count step, changed predicate, and unseeded selection boundaries stay split. Existing loops_and_reductions, iteration_contracts, extreme semantic idiom tests, and the reduce_minmax_anyall coverage probes provide broader all-language coverage evidence.",
+   "detector": {
+    "current_detector_miss": false,
+    "binary_path": "nose",
+    "nose_version": "nose",
+    "build_ref": "#758 semantic pattern card",
+    "baseline_command": "nose query bench/type4/adversarial/cases/reduction_minmax_anyall --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+    "baseline_result": "Semantic query reports a broad sum/reduce family, TypeScript any/some plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations.",
+    "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations."
+   },
+   "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+   "hard_negative_siblings": [
+    "seed 0 versus seed 1 changes empty-input behavior and every non-empty sum",
+    "additive sum, multiplicative product, and positive-count contributions are distinct step coordinates",
+    "any/all terminal predicates such as x > 0, x >= 0, and x < 0 are distinct coordinates",
+    "any and all have opposite short-circuit direction and fallthrough truth values",
+    "seeded max over max(0, xs...) differs from max(xs).unwrap_or(0) on all-negative non-empty inputs",
+    "min and max selection directions are distinct even when both use the same seed",
+    "effectful reducers, predicates, callbacks, or receiver/protocol mutations are behavior-defining"
+   ],
+   "batch": "2026-07-08-reduction-minmax-anyall-pattern-card",
+   "notes": "Issue #758 pattern-card evidence. This is a controlled, replayable focused slice; it records reusable reduction proof facts without claiming a new non-focused real-corpus detector admission."
+  },
+  {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
    "status": "unsupported",
    "candidate_axis": "membership_contains / literal_collection_membership",

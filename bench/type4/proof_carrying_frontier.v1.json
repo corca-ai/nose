@@ -104,18 +104,18 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "366a88fdb33ced863568477a190d35b2d572ac9d92e09af7ebe1a9f3d5ec2b0a",
-        "size_bytes": 30211
+        "sha256": "72f1d8c503b927b9a4df10d3d5b596b9a21bec459e5fbdb2b85114969d5b02a8",
+        "size_bytes": 42170
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "85d7853f4b0643d7a26f959754322f37dd6fcaee3655cbcaf193eeb941b3f2e6",
-        "size_bytes": 98108
+        "sha256": "f3f55f1dc4b56fd17db769219399762967adcaa9b21f568464973265296c8ddc",
+        "size_bytes": 117051
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "c44f5826a1fba3f6062a4cc825bcbabc0444e6a40df16584fdf81f9c1b31873a",
-        "size_bytes": 79259
+        "sha256": "056175bcf062c75acf7ff478d5ffcc89fa7bd647b52e11d1a42b176315cb327f",
+        "size_bytes": 84903
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
@@ -124,23 +124,23 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "c29144a440edc902998c80821fb4ebcdf578bfaa57b3b738630bf9ed5e711dd0",
-        "size_bytes": 88202
+        "sha256": "5aa19a0db82457aa84169e0a3ddbe0e56e884e7f4d380f4cd89db1e56c110505",
+        "size_bytes": 93519
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "6d71b1dd1ba01c744a7a3e2c13b3c5ae7ee1801441b62d358a44103e2ccd6650",
-        "size_bytes": 13584
+        "sha256": "f14b2e08aa655acb866237d014bdb7df52afb87f211727e2defd7eabf2d0ea16",
+        "size_bytes": 16597
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "b03b8f43e078d599dd441ad8842365efc24fc6ef85a8d0965622f950f4759bdf",
-        "size_bytes": 14775
+        "sha256": "6b12fbb7889532be0995760ca1287bb9e5cb06c71b808f99764434937a7162ef",
+        "size_bytes": 19754
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "e1f41ad0cdc091f93fae63adcd3edb74b221f49f9f51e9ee240f67199f489c54",
-        "size_bytes": 66392
+        "sha256": "80a9d64e48599cebb41dc305ac9cc458666aba0dfd4be8e0c1d50d90f960bf8c",
+        "size_bytes": 80821
       }
     },
     "target_packet_identity": {
@@ -152,7 +152,7 @@
         "repo_count": 120
       },
       "real_frontier": "bench/type4/real_frontier.v1.json",
-      "union_signature": "fec264f35c3f1dedb6c0b750ac6e3320da20d10feb721127775800bd32b81c73"
+      "union_signature": "779a4975ba2b7b27c566d21a9b598f39cf902d60bffcf5c20dd8613c8a7fa88f"
     }
   },
   "schema_version": 1,
@@ -198,6 +198,12 @@
         "candidate_axis": "null_option_presence / null_presence_predicate / nullish_default",
         "case_id": "null-option-presence-focused-controlled",
         "packet_id": "null-option-presence-2026-07-08",
+        "status": "already-covered"
+      },
+      {
+        "candidate_axis": "reduce_minmax_anyall / loops_and_reductions / iteration_contracts",
+        "case_id": "reduction-minmax-anyall-focused-controlled",
+        "packet_id": "reduction-minmax-anyall-2026-07-08",
         "status": "already-covered"
       }
     ],
@@ -902,26 +908,209 @@
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
+        },
+        {
+          "by_expectation": [
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_c_sum_count_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_go_sum_count_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_java_sum_product_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_rust_all_loop_matches_iter_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_rust_all_positive_loop_matches_iter_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_terminal_predicate_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_rust_any_all_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_terminal_predicate_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_rust_any_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_rust_any_loop_matches_iter_any",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seeded_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_seeded_max_loop_matches_fold",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seeded_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_seeded_min_loop_matches_reduce",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seed_domain_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_selection_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_sum_step_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_sum_multilanguage_matches_reduce_and_sum",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_sum_product_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_wrong_seed_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_sum_wrong_seed_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_terminal_predicate_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_ts_any_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_ts_any_loop_matches_some",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_wrong_seed_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_ts_sum_wrong_seed_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seed_domain_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_unseeded_max_default_stays_split",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "covered",
+          "declared_expectation_count": 18,
+          "declared_expectation_ids": [
+            "reduction_c_sum_count_step_stays_split",
+            "reduction_go_sum_count_step_stays_split",
+            "reduction_java_sum_product_step_stays_split",
+            "reduction_rust_all_loop_matches_iter_all",
+            "reduction_rust_all_positive_loop_matches_iter_all",
+            "reduction_rust_any_all_direction_stays_split",
+            "reduction_rust_any_changed_predicate_stays_split",
+            "reduction_rust_any_loop_matches_iter_any",
+            "reduction_seeded_max_loop_matches_fold",
+            "reduction_seeded_min_loop_matches_reduce",
+            "reduction_selection_direction_stays_split",
+            "reduction_sum_multilanguage_matches_reduce_and_sum",
+            "reduction_sum_product_step_stays_split",
+            "reduction_sum_wrong_seed_stays_split",
+            "reduction_ts_any_changed_predicate_stays_split",
+            "reduction_ts_any_loop_matches_some",
+            "reduction_ts_sum_wrong_seed_stays_split",
+            "reduction_unseeded_max_default_stays_split"
+          ],
+          "failed_expectation_count": 0,
+          "failed_expectation_ids": [],
+          "manifest_case_ids": [
+            "reduction_any_all_terminal_positive",
+            "reduction_changed_step_boundary",
+            "reduction_selection_seed_domain_boundary",
+            "reduction_selection_seeded_positive",
+            "reduction_sum_step_positive",
+            "reduction_terminal_predicate_boundary",
+            "reduction_wrong_seed_boundary"
+          ],
+          "manifest_hard_negative_case_ids": [
+            "reduction_changed_step_boundary",
+            "reduction_selection_seed_domain_boundary",
+            "reduction_terminal_predicate_boundary",
+            "reduction_wrong_seed_boundary"
+          ],
+          "manifest_only_case_ids": [],
+          "manifest_positive_case_ids": [
+            "reduction_any_all_terminal_positive",
+            "reduction_selection_seeded_positive",
+            "reduction_sum_step_positive"
+          ],
+          "missing_expectation_count": 0,
+          "missing_expectation_ids": [],
+          "packet_id": "reduction-minmax-anyall-2026-07-08",
+          "passed_expectation_count": 18,
+          "passed_expectation_ids": [
+            "reduction_c_sum_count_step_stays_split",
+            "reduction_go_sum_count_step_stays_split",
+            "reduction_java_sum_product_step_stays_split",
+            "reduction_rust_all_loop_matches_iter_all",
+            "reduction_rust_all_positive_loop_matches_iter_all",
+            "reduction_rust_any_all_direction_stays_split",
+            "reduction_rust_any_changed_predicate_stays_split",
+            "reduction_rust_any_loop_matches_iter_any",
+            "reduction_seeded_max_loop_matches_fold",
+            "reduction_seeded_min_loop_matches_reduce",
+            "reduction_selection_direction_stays_split",
+            "reduction_sum_multilanguage_matches_reduce_and_sum",
+            "reduction_sum_product_step_stays_split",
+            "reduction_sum_wrong_seed_stays_split",
+            "reduction_ts_any_changed_predicate_stays_split",
+            "reduction_ts_any_loop_matches_some",
+            "reduction_ts_sum_wrong_seed_stays_split",
+            "reduction_unseeded_max_default_stays_split"
+          ],
+          "stale_expectation_count": 0,
+          "stale_expectation_ids": []
         }
       ],
       "summary": {
-        "declared_expectation_count": 58,
+        "declared_expectation_count": 76,
         "extra": 0,
         "failed": 0,
-        "fully_covered_packet_count": 6,
+        "fully_covered_packet_count": 7,
         "missing": 0,
         "nose_binary": "nose",
-        "packet_count": 6,
+        "packet_count": 7,
         "packet_count_by_coverage": {
-          "covered": 6
+          "covered": 7
         },
-        "passed": 58,
-        "query_count": 16,
+        "passed": 76,
+        "query_count": 17,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 58,
+        "result_count": 76,
         "stale": 0
       }
     },
@@ -1145,6 +1334,48 @@
           "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates"
         ],
         "semantic_family": "option.presence_default"
+      },
+      {
+        "conventions": [
+          "reduction.identity-empty",
+          "reduction.step-coordinate",
+          "reduction.terminal-predicate",
+          "reduction.short-circuit-direction",
+          "reduction.selection-seed-domain",
+          "numeric.domain",
+          "loop.iterator-identity",
+          "loop.short-circuit",
+          "boolean.effect-safety",
+          "boolean.value-context"
+        ],
+        "group_id": "reduction-minmax-anyall-proof-perimeter",
+        "hard_negative_cases": [
+          "reduction_wrong_seed_boundary",
+          "reduction_changed_step_boundary",
+          "reduction_terminal_predicate_boundary",
+          "reduction_selection_seed_domain_boundary"
+        ],
+        "packet_id": "reduction-minmax-anyall-2026-07-08",
+        "positive_cases": [
+          "reduction_sum_step_positive",
+          "reduction_any_all_terminal_positive",
+          "reduction_selection_seeded_positive"
+        ],
+        "regression_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
+          "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms"
+        ],
+        "semantic_family": "reduction.aggregate"
       }
     ],
     "packets": [
@@ -2783,6 +3014,416 @@
         ],
         "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.",
         "why_now": "null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts."
+      },
+      {
+        "candidate_axis": "reduce_minmax_anyall",
+        "detector_admission": {
+          "capabilities": [
+            "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and focused integer/value-model numeric domain match",
+            "converges Rust any/all terminal forms and TypeScript any/some terminal forms with equivalent early-return loops when predicate and admitted direction evidence match",
+            "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, and selection domain match",
+            "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, min/max direction, unseeded selection, numeric-domain, effect, and unproven receiver/protocol boundaries"
+          ],
+          "hard_negative_gate_count": 7,
+          "positive_gate_count": 9,
+          "remaining_real_pair_gap": "a non-focused real-corpus reduce/min/max/any/all pair still needs separate audit before this packet can claim real-pair admission",
+          "scope": "controlled integer/value-model sum/product, any/all terminal, and seeded min/max selection reductions with source, identity/empty, numeric-domain, step/predicate, short-circuit direction, selection seed/domain, and effect evidence",
+          "status": "controlled-slice-admitted"
+        },
+        "evidence_case_ids": [
+          "reduction-minmax-anyall-focused-controlled"
+        ],
+        "evidence_tier": "frontier-recorded",
+        "executable_witness_coverage": {
+          "by_expectation": [
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_c_sum_count_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_go_sum_count_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_java_sum_product_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_rust_all_loop_matches_iter_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_rust_all_positive_loop_matches_iter_all",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_terminal_predicate_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_rust_any_all_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_terminal_predicate_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_rust_any_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_rust_any_loop_matches_iter_any",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seeded_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_seeded_max_loop_matches_fold",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seeded_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_seeded_min_loop_matches_reduce",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seed_domain_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_selection_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_sum_step_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_sum_multilanguage_matches_reduce_and_sum",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_changed_step_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_sum_product_step_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_wrong_seed_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_sum_wrong_seed_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_terminal_predicate_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_ts_any_changed_predicate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_any_all_terminal_positive",
+              "expect": "same-family",
+              "expectation_id": "reduction_ts_any_loop_matches_some",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_wrong_seed_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_ts_sum_wrong_seed_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction_selection_seed_domain_boundary",
+              "expect": "split",
+              "expectation_id": "reduction_unseeded_max_default_stays_split",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "covered",
+          "declared_expectation_count": 18,
+          "declared_expectation_ids": [
+            "reduction_c_sum_count_step_stays_split",
+            "reduction_go_sum_count_step_stays_split",
+            "reduction_java_sum_product_step_stays_split",
+            "reduction_rust_all_loop_matches_iter_all",
+            "reduction_rust_all_positive_loop_matches_iter_all",
+            "reduction_rust_any_all_direction_stays_split",
+            "reduction_rust_any_changed_predicate_stays_split",
+            "reduction_rust_any_loop_matches_iter_any",
+            "reduction_seeded_max_loop_matches_fold",
+            "reduction_seeded_min_loop_matches_reduce",
+            "reduction_selection_direction_stays_split",
+            "reduction_sum_multilanguage_matches_reduce_and_sum",
+            "reduction_sum_product_step_stays_split",
+            "reduction_sum_wrong_seed_stays_split",
+            "reduction_ts_any_changed_predicate_stays_split",
+            "reduction_ts_any_loop_matches_some",
+            "reduction_ts_sum_wrong_seed_stays_split",
+            "reduction_unseeded_max_default_stays_split"
+          ],
+          "failed_expectation_count": 0,
+          "failed_expectation_ids": [],
+          "manifest_case_ids": [
+            "reduction_any_all_terminal_positive",
+            "reduction_changed_step_boundary",
+            "reduction_selection_seed_domain_boundary",
+            "reduction_selection_seeded_positive",
+            "reduction_sum_step_positive",
+            "reduction_terminal_predicate_boundary",
+            "reduction_wrong_seed_boundary"
+          ],
+          "manifest_hard_negative_case_ids": [
+            "reduction_changed_step_boundary",
+            "reduction_selection_seed_domain_boundary",
+            "reduction_terminal_predicate_boundary",
+            "reduction_wrong_seed_boundary"
+          ],
+          "manifest_only_case_ids": [],
+          "manifest_positive_case_ids": [
+            "reduction_any_all_terminal_positive",
+            "reduction_selection_seeded_positive",
+            "reduction_sum_step_positive"
+          ],
+          "missing_expectation_count": 0,
+          "missing_expectation_ids": [],
+          "packet_id": "reduction-minmax-anyall-2026-07-08",
+          "passed_expectation_count": 18,
+          "passed_expectation_ids": [
+            "reduction_c_sum_count_step_stays_split",
+            "reduction_go_sum_count_step_stays_split",
+            "reduction_java_sum_product_step_stays_split",
+            "reduction_rust_all_loop_matches_iter_all",
+            "reduction_rust_all_positive_loop_matches_iter_all",
+            "reduction_rust_any_all_direction_stays_split",
+            "reduction_rust_any_changed_predicate_stays_split",
+            "reduction_rust_any_loop_matches_iter_any",
+            "reduction_seeded_max_loop_matches_fold",
+            "reduction_seeded_min_loop_matches_reduce",
+            "reduction_selection_direction_stays_split",
+            "reduction_sum_multilanguage_matches_reduce_and_sum",
+            "reduction_sum_product_step_stays_split",
+            "reduction_sum_wrong_seed_stays_split",
+            "reduction_ts_any_changed_predicate_stays_split",
+            "reduction_ts_any_loop_matches_some",
+            "reduction_ts_sum_wrong_seed_stays_split",
+            "reduction_unseeded_max_default_stays_split"
+          ],
+          "stale_expectation_count": 0,
+          "stale_expectation_ids": []
+        },
+        "hard_negative_count": 7,
+        "hard_negative_group_ids": [
+          "reduction-minmax-anyall-proof-perimeter"
+        ],
+        "owner_issue": "#758",
+        "owner_route": "team-a-detector",
+        "packet_id": "reduction-minmax-anyall-2026-07-08",
+        "proof_fact_model": {
+          "fact_count": 8,
+          "fact_ids": [
+            "iteration.same-source-identity",
+            "reduction.identity-empty-behavior",
+            "reduction.step-coordinate-identity",
+            "reduction.terminal-predicate-coordinate",
+            "reduction.short-circuit-direction",
+            "reduction.selection-seed-domain",
+            "effect.pure-predicate",
+            "effect.pure-callback"
+          ],
+          "facts": [
+            {
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-iterator-negative-different-binding",
+                  "python-loop-demorgan-iterator-positive-same-binding"
+                ],
+                "observations": {
+                  "python-loop-demorgan-iterator-negative-different-binding": "different-iterator",
+                  "python-loop-demorgan-iterator-positive-same-binding": "same-iterator"
+                },
+                "passed": 2,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain proof is missing",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "iteration.same-source-identity",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "iteration.source_identity",
+              "title": "Iteration same-source identity"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused sum/product/any/all/selection fixtures: matching seeds and empty-input results converge while wrong seeds and selection APIs with different empty/all-negative behavior stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "reduction.identity-empty-behavior",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "reduction.identity",
+              "title": "Reduction identity and empty-input behavior"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused integer/value-model sum/product/count fixtures: additive sums converge across loops and terminals while product and count contributions stay separate; unproven overflow, float, and NaN domains remain outside this claim",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "reduction.step-coordinate-identity",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "reduction.step",
+              "title": "Reduction step coordinate identity"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "reduction.terminal-predicate-coordinate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "reduction.terminal",
+              "title": "Reduction terminal predicate coordinate"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript currently covers any/some only",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "reduction.short-circuit-direction",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "reduction.terminal",
+              "title": "Reduction any/all short-circuit direction"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for focused Python/Rust seeded min/max fixtures: seeded min/max loops and folds converge while min-vs-max direction and unseeded max().unwrap_or(0) boundaries stay split",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "reduction.selection-seed-domain",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "reduction.selection",
+              "title": "Reduction selection seed/domain"
+            },
+            {
+              "controlled_evidence": {
+                "artifact": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
+                "evidence_ids": [
+                  "python-loop-demorgan-effect-negative-helper-call",
+                  "python-loop-demorgan-effect-negative-observed-loop-effect",
+                  "python-loop-demorgan-effect-positive-pure-local-comparisons"
+                ],
+                "observations": {
+                  "python-loop-demorgan-effect-negative-helper-call": "effectful",
+                  "python-loop-demorgan-effect-negative-observed-loop-effect": "effectful",
+                  "python-loop-demorgan-effect-positive-pure-local-comparisons": "effect-safe"
+                },
+                "passed": 3,
+                "tool_version": "python-loop-demorgan-proof-facts/1"
+              },
+              "current_real_pair_status": "satisfied for controlled terminal predicates; effectful predicates or callbacks remain outside the focused admission claim",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "effect.pure-predicate",
+              "registry_status": "modeled-controlled",
+              "semantic_family": "effect.purity",
+              "title": "Pure predicate/effect safety"
+            },
+            {
+              "controlled_evidence": null,
+              "current_real_pair_status": "satisfied for controlled reduce/fold callbacks; callback effects remain closed without a separate effect proof",
+              "evidence_requirements": [
+                "focused-executable",
+                "source-evidence"
+              ],
+              "fact_id": "effect.pure-callback",
+              "registry_status": "specified-not-modeled",
+              "semantic_family": "effect.purity",
+              "title": "Pure callback/effect safety"
+            }
+          ],
+          "model_status": "modeled-controlled"
+        },
+        "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, stay inside the focused integer/value-model numeric domain when numeric aggregate behavior matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, and unproven receiver/protocol, overflow, float, NaN, or numeric-domain evidence must remain non-equivalent.",
+        "readiness": {
+          "blocking_items": [],
+          "can_open_exact_admission": false,
+          "reason": "proof-backed controlled detector slice is admitted; real-corpus exact admission still needs the remaining proof evidence",
+          "status": "detector-admitted-controlled"
+        },
+        "real_frontier_replay": {
+          "by_replay": [
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-any-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-selection-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-sum-focused-controlled-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 3,
+          "declared_replay_ids": [
+            "reduction-any-focused-controlled-pair",
+            "reduction-selection-focused-controlled-pair",
+            "reduction-sum-focused-controlled-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "reduction-minmax-anyall-2026-07-08",
+          "passed_replay_count": 3,
+          "passed_replay_ids": [
+            "reduction-any-focused-controlled-pair",
+            "reduction-selection-focused-controlled-pair",
+            "reduction-sum-focused-controlled-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
+        },
+        "real_frontier_replay_ids": [
+          "reduction-sum-focused-controlled-pair",
+          "reduction-any-focused-controlled-pair",
+          "reduction-selection-focused-controlled-pair"
+        ],
+        "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, focused integer/value-model numeric domain for numeric aggregates, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, and effect-safe predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus TypeScript any/some terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, and unproven overflow/float/NaN numeric domains remain outside the exact family.",
+        "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
       }
     ],
     "real_frontier_replay": {
@@ -3017,47 +3658,95 @@
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
+        },
+        {
+          "by_replay": [
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-any-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-selection-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "reduction-minmax-anyall-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "reduction-sum-focused-controlled-pair",
+              "status": "passed"
+            }
+          ],
+          "coverage_status": "passed",
+          "declared_replay_count": 3,
+          "declared_replay_ids": [
+            "reduction-any-focused-controlled-pair",
+            "reduction-selection-focused-controlled-pair",
+            "reduction-sum-focused-controlled-pair"
+          ],
+          "failed_replay_count": 0,
+          "failed_replay_ids": [],
+          "missing_replay_count": 0,
+          "missing_replay_ids": [],
+          "packet_id": "reduction-minmax-anyall-2026-07-08",
+          "passed_replay_count": 3,
+          "passed_replay_ids": [
+            "reduction-any-focused-controlled-pair",
+            "reduction-selection-focused-controlled-pair",
+            "reduction-sum-focused-controlled-pair"
+          ],
+          "unavailable_replay_count": 0,
+          "unavailable_replay_ids": []
         }
       ],
       "summary": {
-        "declared_replay_count": 12,
+        "declared_replay_count": 15,
         "failed": 0,
-        "fully_replayed_packet_count": 6,
+        "fully_replayed_packet_count": 7,
         "nose_binary": "nose",
-        "packet_count": 6,
+        "packet_count": 7,
         "packet_count_by_coverage": {
-          "passed": 6
+          "passed": 7
         },
-        "passed": 12,
-        "query_count": 8,
+        "passed": 15,
+        "query_count": 9,
         "report_failed_replay_ids": [],
         "report_missing_replay_ids": [],
         "report_unavailable_replay_ids": [],
-        "result_count": 12,
+        "result_count": 15,
         "unavailable": 0
       }
     },
     "summary": {
       "by_detector_admission": {
-        "controlled-slice-admitted": 3,
+        "controlled-slice-admitted": 4,
         "real-pair-admitted": 3
       },
       "by_executable_witness_coverage": {
-        "covered": 6
+        "covered": 7
       },
       "by_owner_route": {
         "proof-fact-prerequisite": 1,
-        "team-a-detector": 5
+        "team-a-detector": 6
       },
       "by_readiness": {
         "detector-admitted": 3,
-        "detector-admitted-controlled": 3
+        "detector-admitted-controlled": 4
       },
       "by_real_frontier_replay": {
-        "passed": 6
+        "passed": 7
       },
-      "detector_admitted_packet_count": 6,
-      "packet_count": 6,
+      "detector_admitted_packet_count": 7,
+      "packet_count": 7,
       "ready_packet_count": 0
     }
   },

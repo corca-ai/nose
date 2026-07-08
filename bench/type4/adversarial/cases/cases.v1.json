@@ -38,6 +38,13 @@
       "option.fallback-coordinate",
       "option.default-short-circuit"
     ],
+    "reduction": [
+      "reduction.identity-empty",
+      "reduction.step-coordinate",
+      "reduction.terminal-predicate",
+      "reduction.short-circuit-direction",
+      "reduction.selection-seed-domain"
+    ],
     "protocol-boundary": [
       "protocol-boundary.api-identity",
       "protocol-boundary.lifecycle",
@@ -270,6 +277,49 @@
         "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates"
       ],
       "claim": "Null/Option presence and defaulting admission must keep value coordinate, absence channel identity, presence direction, fallback coordinate, nullish-vs-truthy/default timing, and API/channel identity hard negatives beside every nullable or option bridge."
+    },
+    {
+      "id": "reduction-minmax-anyall-proof-perimeter",
+      "semantic_family": "reduction.aggregate",
+      "packet_ids": ["reduction-minmax-anyall-2026-07-08"],
+      "conventions": [
+        "reduction.identity-empty",
+        "reduction.step-coordinate",
+        "reduction.terminal-predicate",
+        "reduction.short-circuit-direction",
+        "reduction.selection-seed-domain",
+        "numeric.domain",
+        "loop.iterator-identity",
+        "loop.short-circuit",
+        "boolean.effect-safety",
+        "boolean.value-context"
+      ],
+      "positive_cases": [
+        "reduction_sum_step_positive",
+        "reduction_any_all_terminal_positive",
+        "reduction_selection_seeded_positive"
+      ],
+      "hard_negative_cases": [
+        "reduction_wrong_seed_boundary",
+        "reduction_changed_step_boundary",
+        "reduction_terminal_predicate_boundary",
+        "reduction_selection_seed_domain_boundary"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
+        "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
+        "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
+        "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+        "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
+        "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms"
+      ],
+      "claim": "Reduction admission must keep identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior, source identity, and effect safety beside every sum/product/any/all/min/max bridge."
     }
   ],
   "cases": [
@@ -1587,6 +1637,398 @@
         "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered_loop.py"
       ],
       "evidence": "Focused equivalence test converges Python filtered any/all generators, JS filtered flatMap().some()/every(), and equivalent Python nested guarded early-return loops."
+    },
+    {
+      "id": "reduction_sum_step_positive",
+      "kind": "positive",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Sum loops, typed reduce/fold terminals, and standard sum APIs can converge in the focused integer/value-model numeric domain when source, identity, empty behavior, and additive step coordinates match.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.js",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_sum_multilanguage_matches_reduce_and_sum",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+              "name": "c_sum_for"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go",
+              "name": "GoSumRange"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+              "name": "javaReduce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+              "name": "py_sum_builtin"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
+              "name": "rust_sum_iter"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+              "name": "tsSumReduce"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused executable fixture reports one semantic family spanning C for/while, Go range/index, Java loop/reduce, JS loop, Python loop/sum, Rust loop/sum, and typed TypeScript loop/reduce surfaces under the detector's focused integer/value-model numeric abstraction."
+    },
+    {
+      "id": "reduction_wrong_seed_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Changing the explicit reduction seed changes empty-input behavior and non-empty aggregate results.",
+      "mutation": "sum seed 0 -> 1",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_sum_wrong_seed_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+              "name": "py_sum_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+              "name": "py_wrong_seed"
+            }
+          ]
+        },
+        {
+          "id": "reduction_ts_sum_wrong_seed_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+              "name": "tsSumReduce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+              "name": "tsWrongSeed"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture keeps the seed-1 Python and TypeScript reductions outside the seed-0 sum family."
+    },
+    {
+      "id": "reduction_changed_step_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Changing the reduction step or contribution expression changes behavior even when traversal is identical.",
+      "mutation": "additive step -> multiplicative step or counted contribution",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_sum_product_step_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+              "name": "py_sum_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+              "name": "py_product_loop"
+            }
+          ]
+        },
+        {
+          "id": "reduction_java_sum_product_step_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+              "name": "javaReduce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+              "name": "javaProduct"
+            }
+          ]
+        },
+        {
+          "id": "reduction_c_sum_count_step_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+              "name": "c_sum_for"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+              "name": "c_count_positive"
+            }
+          ]
+        },
+        {
+          "id": "reduction_go_sum_count_step_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go",
+              "name": "GoSumRange"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go",
+              "name": "GoCountPositive"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture keeps additive sums, products, and positive-count reductions in distinct semantic families."
+    },
+    {
+      "id": "reduction_any_all_terminal_positive",
+      "kind": "positive",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Any/all terminal predicates can converge with equivalent early-return loops when source, predicate, empty result, and short-circuit direction match.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_ts_any_loop_matches_some",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+              "name": "tsAnyLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+              "name": "tsAnySome"
+            }
+          ]
+        },
+        {
+          "id": "reduction_rust_any_loop_matches_iter_any",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_any_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_any_iter"
+            }
+          ]
+        },
+        {
+          "id": "reduction_rust_all_loop_matches_iter_all",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_iter"
+            }
+          ]
+        },
+        {
+          "id": "reduction_rust_all_positive_loop_matches_iter_all",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_positive_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_positive_iter"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused executable fixture reports TypeScript any/some, Rust any/Iterator::any, and Rust all/Iterator::all loop-terminal families with separate changed-predicate and changed-direction siblings."
+    },
+    {
+      "id": "reduction_terminal_predicate_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Changing the any/all terminal predicate or short-circuit direction changes behavior.",
+      "mutation": "x > 0 -> x >= 0 or x < 0; any(x > 0) -> all(x > 0)",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_rust_any_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_any_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_any_wrong_predicate"
+            }
+          ]
+        },
+        {
+          "id": "reduction_ts_any_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+              "name": "tsAnyLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+              "name": "tsAnyWrongPredicate"
+            }
+          ]
+        },
+        {
+          "id": "reduction_rust_any_all_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_any_iter"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_positive_iter"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Rust and TypeScript terminal fixtures keep changed predicates out of the admitted any/all families, and the Rust terminal fixture keeps any(x > 0) separate from all(x > 0)."
+    },
+    {
+      "id": "reduction_selection_seeded_positive",
+      "kind": "positive",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Seeded min/max selection loops and folds can converge when they preserve the same seed, comparator direction, and selection domain.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_seeded_max_loop_matches_fold",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+              "name": "py_max_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+              "name": "rust_max_fold"
+            }
+          ]
+        },
+        {
+          "id": "reduction_seeded_min_loop_matches_reduce",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+              "name": "py_min_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+              "name": "py_min_reduce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+              "name": "rust_min_fold"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused executable fixture reports separate seeded max and seeded min families across Python loops/reduce and Rust loops/folds."
+    },
+    {
+      "id": "reduction_selection_seed_domain_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "reduction.aggregate",
+      "claim": "Selection reductions must preserve comparator direction, explicit seed, and empty/all-negative behavior; unseeded terminal APIs are not the same as clamped seeded loops.",
+      "mutation": "max selection -> min selection; seeded max loop -> unseeded max().unwrap_or(0)",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "reduction_selection_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+              "name": "py_max_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+              "name": "py_changed_selection_direction"
+            }
+          ]
+        },
+        {
+          "id": "reduction_unseeded_max_default_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+              "name": "rust_max_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+              "name": "rust_unseeded_max_default"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture keeps max and min selection directions separate and keeps unseeded max().unwrap_or(0) outside the seeded max family because all-negative non-empty inputs differ."
     },
     {
       "id": "java_stream_flat_map_py_comp",

@@ -309,9 +309,9 @@
       ],
       "why_expected": "The focused Ruby prefix pair is admitted when literal String receiver proof and standard String#start_with? API identity are both satisfied."
     },
-    {
-      "case_id": "null-option-presence-focused-controlled",
-      "expect": "same-family",
+  {
+   "case_id": "null-option-presence-focused-controlled",
+   "expect": "same-family",
       "members": [
         {
           "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
@@ -402,10 +402,111 @@
           "kind": "workspace",
           "path": "bench/type4/adversarial/cases/null_option_presence"
         }
-      ],
-      "why_expected": "The focused nullish/Option defaulting pair is admitted when value coordinate, absence channel, fallback coordinate, short-circuit timing, and API identity facts are satisfied."
+   ],
+   "why_expected": "The focused nullish/Option defaulting pair is admitted when value coordinate, absence channel, fallback coordinate, short-circuit timing, and API identity facts are satisfied."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+     "kind": "workspace",
+     "name": "py_sum_builtin"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+     "kind": "workspace",
+     "name": "tsSumReduce"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
+     "kind": "workspace",
+     "name": "rust_sum_iter"
     }
-  ],
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-sum-focused-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused sum/reduce family is admitted when source identity, additive step coordinate, identity seed, empty behavior, and callback effect facts are satisfied."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_any_loop"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_any_iter"
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-any-focused-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused Rust any terminal pair is admitted when source identity, terminal predicate coordinate, existential short-circuit direction, empty behavior, and predicate purity facts are satisfied."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+     "kind": "workspace",
+     "name": "py_max_loop"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+     "kind": "workspace",
+     "name": "rust_max_fold"
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-selection-focused-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused seeded max selection pair is admitted when seed, comparator direction, selection domain, source identity, and effect facts are satisfied."
+  }
+ ],
   "schema_version": 1,
   "tool_version": "real-frontier-replay/1"
 }

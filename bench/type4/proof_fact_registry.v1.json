@@ -1089,6 +1089,8 @@
       ],
       "fact_id": "reduction.identity-empty-behavior",
       "hard_negative_conventions": [
+        "reduction.identity-empty",
+        "reduction.selection-seed-domain",
         "loop.empty-input",
         "collection.cardinality"
       ],
@@ -1103,7 +1105,7 @@
         "early-return loops with a mismatched fallthrough value"
       ],
       "semantic_family": "reduction.identity",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Aggregate rewrites must preserve the terminal identity, explicit seed, and empty-input behavior before loop and higher-order reductions may converge.",
       "title": "Reduction identity and empty-input behavior"
     },
@@ -1120,23 +1122,124 @@
       ],
       "fact_id": "reduction.step-coordinate-identity",
       "hard_negative_conventions": [
+        "reduction.step-coordinate",
+        "reduction.terminal-predicate",
+        "numeric.domain",
         "value.coordinate",
         "boolean.predicate-coordinate"
       ],
       "implementation_guidance": [
         "Compare reduction step expressions after the flattened element coordinate is established.",
         "For any/all terminals, compare the terminal predicate independently from upstream filters.",
-        "Reject aggregate terminals that observe the outer coordinate, nested row, or a changed predicate without a separate value proof."
+        "Reject aggregate terminals that observe the outer coordinate, nested row, or a changed predicate without a separate value proof.",
+        "Keep numeric overflow, float, NaN, and unproven cross-language number domains outside exact aggregate admission unless a separate numeric-domain proof is present."
       ],
       "rejected_evidence": [
         "terminal any/all predicate changed while traversal is unchanged",
         "reduction contribution changed from the flattened emitted value",
-        "aggregate over nested rows instead of flattened elements"
+        "aggregate over nested rows instead of flattened elements",
+        "cross-language numeric reductions outside the focused integer/value-model slice without finite/integer domain evidence"
       ],
       "semantic_family": "reduction.step",
-      "status": "specified-not-modeled",
+      "status": "modeled-controlled",
       "summary": "Aggregate rewrites must preserve the reduction step, terminal predicate, or contribution expression for every proven flattened element coordinate.",
       "title": "Reduction step coordinate identity"
+    },
+    {
+      "accepted_evidence": [
+        "any/all predicates observe the same element coordinate and comparison predicate",
+        "terminal predicates are compared independently from upstream filter predicates",
+        "focused hard negatives where changed any/all predicates remain split"
+      ],
+      "detector_admission_implication": "Does not admit terminal reduction convergence by itself; source identity, identity/empty behavior, short-circuit direction, and effect facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "reduction.terminal-predicate-coordinate",
+      "hard_negative_conventions": [
+        "reduction.terminal-predicate",
+        "boolean.predicate-coordinate"
+      ],
+      "implementation_guidance": [
+        "Compare any/all terminal predicates after the source element coordinate is established.",
+        "Reject changed comparison operators, thresholds, predicate helpers without purity proof, and predicates moved between filter and terminal coordinates.",
+        "Keep terminal predicates separate from reducer contribution expressions."
+      ],
+      "rejected_evidence": [
+        "any(x > 0) treated as any(x >= 0)",
+        "some/every callback helper calls without purity proof",
+        "an upstream filter predicate substituted for the terminal predicate"
+      ],
+      "semantic_family": "reduction.terminal",
+      "status": "modeled-controlled",
+      "summary": "Any/all terminal rewrites must preserve the terminal predicate coordinate for every proven source element.",
+      "title": "Reduction terminal predicate coordinate"
+    },
+    {
+      "accepted_evidence": [
+        "any/existential loops return true on the first matching element and false after exhaustion",
+        "all/universal loops return false on the first counterexample and true after exhaustion",
+        "focused hard negatives where any/all direction or fallthrough truth changes remain split"
+      ],
+      "detector_admission_implication": "Does not admit any/all convergence by itself; it only closes short-circuit direction after source, predicate, empty-result, and effect facts are satisfied.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "reduction.short-circuit-direction",
+      "hard_negative_conventions": [
+        "reduction.short-circuit-direction",
+        "loop.short-circuit",
+        "loop.empty-input",
+        "boolean.truth-table"
+      ],
+      "implementation_guidance": [
+        "Represent any/existential and all/universal as opposite terminal directions.",
+        "Preserve the first-match or first-counterexample stop point.",
+        "Reject early-return loops whose fallthrough value or branch return value differs."
+      ],
+      "rejected_evidence": [
+        "any and all treated as the same terminal under predicate negation without a proof",
+        "fallthrough true for any or fallthrough false for all",
+        "extra observable effects before the terminal return"
+      ],
+      "semantic_family": "reduction.terminal",
+      "status": "modeled-controlled",
+      "summary": "Any/all terminals and early-return loops must preserve existential versus universal short-circuit direction and fallthrough truth.",
+      "title": "Reduction any/all short-circuit direction"
+    },
+    {
+      "accepted_evidence": [
+        "seeded min/max loops and folds with the same explicit seed and comparator direction",
+        "source evidence that selection occurs over the same element domain",
+        "focused hard negatives where unseeded terminal max/min APIs or opposite comparator directions remain split"
+      ],
+      "detector_admission_implication": "Does not admit selection reduction convergence by itself; source identity, numeric/order domain, comparator coordinate, and effect facts remain separate.",
+      "evidence_requirements": [
+        "focused-executable",
+        "source-evidence"
+      ],
+      "fact_id": "reduction.selection-seed-domain",
+      "hard_negative_conventions": [
+        "reduction.selection-seed-domain",
+        "reduction.identity-empty",
+        "numeric.domain"
+      ],
+      "implementation_guidance": [
+        "Track seeded min/max as max(seed, elements...) or min(seed, elements...) rather than as unseeded collection max/min.",
+        "Reject unseeded terminal APIs with default fallback unless their all-negative/non-empty behavior is proven equivalent.",
+        "Keep comparator direction and numeric/order domain evidence explicit."
+      ],
+      "rejected_evidence": [
+        "zero-seeded max loop compared with max(xs).unwrap_or(0)",
+        "min selection treated as max selection",
+        "untyped relational comparisons used as cross-language numeric proof"
+      ],
+      "semantic_family": "reduction.selection",
+      "status": "modeled-controlled",
+      "summary": "Min/max selection rewrites must preserve the explicit seed, comparator direction, and selection domain, especially for empty or all-negative inputs.",
+      "title": "Reduction selection seed/domain"
     },
     {
       "accepted_evidence": [

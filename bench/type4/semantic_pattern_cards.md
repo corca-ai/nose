@@ -21,6 +21,7 @@ proof-carrying frontier gates required by the linked pattern.
 | `map.default.absence-lookup` | `pattern-carded` | 4 | 5 |
 | `hof.filter-map.option-emission` | `pattern-carded` | 5 | 4 |
 | `hof.flat-map.one-level-flatten` | `pattern-carded` | 5 | 5 |
+| `reduction.aggregate.proven-terminal-identity` | `pattern-carded` | 8 | 8 |
 | `hof.flat-map.aggregate-reduction` | `pattern-carded` | 9 | 5 |
 
 ## `numeric.clamp.proven-integer-bounds`
@@ -219,6 +220,30 @@ One-level flat-map surfaces are equivalent to multi-clause comprehensions or nes
 | Java | Stream.flatMap over a proven inner stream plus pure map callback | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::java_stream_flat_map_py_comp |
 | Swift | Sequence.flatMap after focused one-level flatten and callback-effect evidence | `open` |  |
 | Rust | Iterator::flat_map remains closed for nested element collections until inner-source proof is attached | `closed` |  |
+
+## `reduction.aggregate.proven-terminal-identity`
+
+**Proof-backed aggregate reduction**
+
+Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within a proven numeric/value domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, and close predicate/callback effects.
+
+- status: `pattern-carded`
+- rationale: The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any terminals, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, numeric domain, step, terminal, direction, selection, and effect facts instead of adding spelling-specific reduction shortcuts.
+- required facts: `iteration.same-source-identity`, `effect.pure-predicate`, `effect.pure-callback`, `reduction.identity-empty-behavior`, `reduction.step-coordinate-identity`, `reduction.terminal-predicate-coordinate`, `reduction.short-circuit-direction`, `reduction.selection-seed-domain`
+- hard-negative templates: `reduction.changed-seed`, `reduction.changed-step-coordinate`, `reduction.changed-terminal-predicate`, `reduction.changed-short-circuit-direction`, `reduction.changed-selection-seed-domain`, `numeric.domain`, `iteration.source-identity`, `effect.observed-predicate-effect`, `effect.observed-callback-effect`
+- boundaries: identity seed and empty-input behavior must match; sum/product/count step coordinates are distinct even over the same source; any/all terminal predicates must observe the same element coordinate and preserve existential versus universal direction; min/max selection must preserve explicit seed, comparator direction, and selection domain; numeric aggregates require the focused integer/value-model domain or a separate numeric-domain proof; overflow, float, and NaN-sensitive behavior stays closed; unseeded terminal min/max APIs are not seeded clamped selection loops unless empty and all-negative behavior is proven; predicate, callback, receiver, or reducer effects are behavior-defining
+- evidence: `bench/type4/frontier_target_packets.v1.json::reduction-minmax-anyall-2026-07-08`, `bench/type4/adversarial/cases/cases.v1.json::reduction-minmax-anyall-proof-perimeter`, `bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive`, `bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary`, `bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary`, `bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity`, `bench/type4/proof_fact_registry.v1.json::effect.pure-predicate`, `bench/type4/proof_fact_registry.v1.json::effect.pure-callback`, `bench/type4/proof_fact_registry.v1.json::reduction.identity-empty-behavior`, `bench/type4/proof_fact_registry.v1.json::reduction.step-coordinate-identity`, `bench/type4/proof_fact_registry.v1.json::reduction.terminal-predicate-coordinate`, `bench/type4/proof_fact_registry.v1.json::reduction.short-circuit-direction`, `bench/type4/proof_fact_registry.v1.json::reduction.selection-seed-domain`
+
+| language | surface | status | evidence |
+|---|---|---|---|
+| C | pointer+length for/while sum loops under the strict local extent contract; count and offset variants stay distinct | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive |
+| Go | range and index sum loops over the same slice source; count and changed-step variants stay distinct | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive |
+| Java | array loops and Arrays.stream(...).reduce(seed, lambda) when seed and additive step match | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive |
+| Python | sum loops, builtin sum, functools.reduce with explicit seed, and seeded min/max selection loops | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive |
+| JS/TS | typed TypeScript reduce/some and JS loop sum in the controlled slice; TypeScript all/every direction and untyped relational terminals remain open | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive |
+| Rust | for loops, Iterator::sum/product, fold, any/all, and seeded min/max selection folds with matching source, seed, predicate, and comparator direction | `modeled-controlled` | bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive |
+| Ruby | probe coverage exists for reduce/inject/any?/all?, but receiver/protocol proof remains open for focused admission | `open` | bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall |
+| Swift | probe coverage exists for loops/reduce-style surfaces; focused terminal identity and effect perimeter remain open | `open` | bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall |
 
 ## `hof.flat-map.aggregate-reduction`
 

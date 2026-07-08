@@ -1,26 +1,26 @@
 {
-  "entry_count": 12,
+  "entry_count": 15,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "6d71b1dd1ba01c744a7a3e2c13b3c5ae7ee1801441b62d358a44103e2ccd6650",
-      "size_bytes": 13584
+      "sha256": "f14b2e08aa655acb866237d014bdb7df52afb87f211727e2defd7eabf2d0ea16",
+      "size_bytes": 16597
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "c29144a440edc902998c80821fb4ebcdf578bfaa57b3b738630bf9ed5e711dd0",
-      "size_bytes": 88202
+      "sha256": "5aa19a0db82457aa84169e0a3ddbe0e56e884e7f4d380f4cd89db1e56c110505",
+      "size_bytes": 93519
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "e1f41ad0cdc091f93fae63adcd3edb74b221f49f9f51e9ee240f67199f489c54",
-      "size_bytes": 66392
+      "sha256": "80a9d64e48599cebb41dc305ac9cc458666aba0dfd4be8e0c1d50d90f960bf8c",
+      "size_bytes": 80821
     }
   },
   "nose_binary": "nose",
-  "passed": 12,
-  "query_count": 8,
+  "passed": 15,
+  "query_count": 9,
   "results": [
     {
       "availability": {
@@ -341,6 +341,171 @@
       "ok": true,
       "packet_id": "python-loop-demorgan-all-2026-07-07",
       "replay_id": "python-loop-demorgan-readme-focused-real-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_any_loop",
+            "start": 1
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_any_iter",
+            "start": 10
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-any-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+            "name": "rust_max_loop",
+            "start": 1
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+            "name": "py_max_loop",
+            "start": 4
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+            "name": "rust_max_fold",
+            "start": 11
+          }
+        ],
+        "value": 21.6,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-selection-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 17,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+            "name": "c_sum_while",
+            "start": 9
+          },
+          {
+            "end": 19,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go",
+            "name": "GoSumIndex",
+            "start": 11
+          },
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+            "name": "javaLoop",
+            "start": 4
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.c",
+            "name": "c_sum_for",
+            "start": 1
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.go",
+            "name": "GoSumRange",
+            "start": 3
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.js",
+            "name": "jsSumLoop",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
+            "name": "rust_sum_loop",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+            "name": "tsSumLoop",
+            "start": 1
+          },
+          {
+            "end": 5,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+            "name": "py_sum_loop",
+            "start": 1
+          },
+          {
+            "end": 14,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/Sum.java",
+            "name": "javaReduce",
+            "start": 12
+          },
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
+            "name": "rust_sum_iter",
+            "start": 9
+          },
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+            "name": "tsSumReduce",
+            "start": 9
+          },
+          {
+            "end": 9,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+            "name": "py_sum_builtin",
+            "start": 8
+          }
+        ],
+        "value": 245.03520254071216,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-sum-focused-controlled-pair",
       "status": "passed"
     },
     {

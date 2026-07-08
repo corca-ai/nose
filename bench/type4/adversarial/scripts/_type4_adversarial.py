@@ -25,6 +25,7 @@ HARD_NEGATIVE_CONVENTION_CATEGORIES = {
     "collection",
     "string",
     "option",
+    "reduction",
     "protocol-boundary",
 }
 
