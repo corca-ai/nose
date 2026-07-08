@@ -15,7 +15,7 @@
     "team-a-detector",
     "team-c-product"
   ],
-  "packet_count": 3,
+  "packet_count": 4,
   "packets": [
     {
       "blocked_by": [
@@ -462,6 +462,159 @@
       ],
       "semantic_claim": "A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
       "why_now": "membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces."
+    },
+    {
+      "blocked_by": [],
+      "breadth": {
+        "dev_breadth": 0.8485,
+        "dev_presence": 56,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.8704,
+        "heldout_presence": 47,
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 8,
+        "primary_language_total": 8,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "Swift",
+          "TypeScript"
+        ],
+        "raw_occurrences": 21615,
+        "repo_breadth": 0.8583,
+        "repo_presence": 103,
+        "source_language_breadth": 1.0,
+        "source_language_presence": 8,
+        "source_languages": [
+          "c",
+          "go",
+          "java",
+          "javascript",
+          "python",
+          "ruby",
+          "rust",
+          "typescript"
+        ]
+      },
+      "candidate_axis": "collection_empty_check",
+      "curated": {
+        "implementation_cost": "low",
+        "rationale": "Emptiness predicates lower to value-graph length/size facts; they need receiver-coordinate proof but no #33 fragment substrate.",
+        "soundness_risk": "low",
+        "substrate_required": "none"
+      },
+      "current_detector_result": {
+        "baseline_command": "nose query bench/type4/adversarial/cases/collection_empty_check --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+        "baseline_result": "Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.",
+        "binary_path": "nose",
+        "build_ref": "#755 semantic pattern card",
+        "current_detector_miss": false,
+        "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations.",
+        "nose_version": "nose",
+        "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations."
+      },
+      "detector_admission": {
+        "capabilities": [
+          "converges length-zero or size-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
+          "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction",
+          "preserves collection-vs-string/array/map/custom API domains, cardinality thresholds, wrong receivers, and mutation boundaries"
+        ],
+        "hard_negative_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+          "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks"
+        ],
+        "positive_gates": [
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+          "bench/type4/coverage_evidence.v1.json::collection_empty_check"
+        ],
+        "scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
+        "status": "real-pair-admitted"
+      },
+      "evidence_case_ids": [
+        "collection-empty-focused-controlled",
+        "java-empty-domain-netty-array-queue-string"
+      ],
+      "evidence_tier": "frontier-recorded",
+      "hard_negative_group_ids": [
+        "collection-empty-check-proof-perimeter"
+      ],
+      "hard_negative_siblings": [
+        "length-one or greater-than-one thresholds are not strict emptiness",
+        "the same empty predicate over a different receiver parameter is not equivalent",
+        "Java array length, Java Collection.isEmpty, and String.isEmpty stay split without domain/kind proof",
+        "truthiness over unproven or value-returning domains cannot be folded into collection emptiness",
+        "mutation before the empty check changes the receiver state"
+      ],
+      "locations": [
+        {
+          "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+          "primary_language": "Rust",
+          "repo": "nose",
+          "snippet": "rust_len_empty and rust_named_empty encode the same empty predicate; rust_len_nonempty and rust_named_nonempty encode the same non-empty predicate",
+          "span": "1-15",
+          "split": "focused"
+        },
+        {
+          "path": "common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java",
+          "primary_language": "Java",
+          "repo": "netty",
+          "snippet": "private static boolean isNullOrEmpty(Queue<ScheduledFutureTask<?>> queue) { return queue == null || queue.isEmpty(); }",
+          "span": "147-149",
+          "split": "dev"
+        }
+      ],
+      "notes": "This packet records the current collection-empty perimeter as reusable proof facts. The Java Netty array/Queue/String record remains a hard-negative domain sibling; it must not be used to merge incompatible empty domains without explicit domain/kind proof.",
+      "owner_issue": "#755",
+      "owner_route": "team-a-detector",
+      "packet_id": "collection-empty-check-2026-07-08",
+      "proof_fact_model": {
+        "facts": [
+          {
+            "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+            "fact_id": "collection.empty.receiver-coordinate"
+          },
+          {
+            "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+            "fact_id": "collection.empty.domain-kind-identity"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+            "fact_id": "collection.empty.predicate-direction"
+          },
+          {
+            "current_real_pair_status": "satisfied for focused mutation fixtures: mutating the receiver before the empty check remains distinct from the original empty predicate",
+            "fact_id": "collection.empty.no-intervening-mutation"
+          }
+        ],
+        "focused_tests": [
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+          "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+          "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
+          "bench/type4/coverage_evidence.v1.json::collection_empty_check"
+        ],
+        "model_status": "modeled-controlled"
+      },
+      "proof_invariant": "Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.",
+      "real_frontier_replay_ids": [
+        "collection-empty-focused-controlled-pair",
+        "collection-nonempty-focused-controlled-pair"
+      ],
+      "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+      "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
     }
   ],
   "schema_version": 1,

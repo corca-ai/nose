@@ -112,8 +112,8 @@ CURATED: dict[str, dict] = {
         "implementation_cost": "low",
         "soundness_risk": "low",
         "substrate_required": "none",
-        "rationale": "Emptiness predicates lower to a value-graph length/size fact; no "
-        "fragment substrate or receiver-place proof is involved.",
+        "rationale": "Emptiness predicates lower to value-graph length/size facts; they "
+        "need receiver-coordinate proof but no #33 fragment substrate.",
     },
     "string_prefix_suffix": {
         "implementation_cost": "low",
@@ -1082,6 +1082,98 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/collection_membership/positive.js",
                 "span": "1-3",
                 "snippet": "function jsSetMember(value, other) { return new Set([\"red\", \"blue\"]).has(value); }",
+            },
+        ],
+    },
+    {
+        "packet_id": "collection-empty-check-2026-07-08",
+        "candidate_axis": "collection_empty_check",
+        "evidence_case_ids": [
+            "collection-empty-focused-controlled",
+            "java-empty-domain-netty-array-queue-string",
+        ],
+        "real_frontier_replay_ids": [
+            "collection-empty-focused-controlled-pair",
+            "collection-nonempty-focused-controlled-pair",
+        ],
+        "hard_negative_group_ids": ["collection-empty-check-proof-perimeter"],
+        "owner_route": "team-a-detector",
+        "owner_issue": "#755",
+        "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, "
+        "and a real Java domain-boundary soundness record. The remaining value is to preserve the "
+        "receiver/domain/direction/mutation proof perimeter as reusable neutral facts before "
+        "future empty?/isEmpty/len/size/truthiness expansions add more surfaces.",
+        "proof_fact_model": {
+            "model_status": "modeled-controlled",
+            "facts": [
+                {
+                    "fact_id": "collection.empty.receiver-coordinate",
+                    "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+                },
+                {
+                    "fact_id": "collection.empty.domain-kind-identity",
+                    "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+                },
+                {
+                    "fact_id": "collection.empty.predicate-direction",
+                    "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+                },
+                {
+                    "fact_id": "collection.empty.no-intervening-mutation",
+                    "current_real_pair_status": "satisfied for focused mutation fixtures: mutating the receiver before the empty check remains distinct from the original empty predicate",
+                },
+            ],
+            "focused_tests": [
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+                "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+                "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
+                "bench/type4/coverage_evidence.v1.json::collection_empty_check",
+            ],
+        },
+        "detector_admission": {
+            "status": "real-pair-admitted",
+            "scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
+            "capabilities": [
+                "converges length-zero or size-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
+                "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction",
+                "preserves collection-vs-string/array/map/custom API domains, cardinality thresholds, wrong receivers, and mutation boundaries",
+            ],
+            "positive_gates": [
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
+                "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+                "bench/type4/coverage_evidence.v1.json::collection_empty_check",
+            ],
+            "hard_negative_gates": [
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+                "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
+                "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+            ],
+        },
+        "blocked_by": [],
+        "notes": "This packet records the current collection-empty perimeter as reusable proof facts. "
+        "The Java Netty array/Queue/String record remains a hard-negative domain sibling; it "
+        "must not be used to merge incompatible empty domains without explicit domain/kind proof.",
+        "locations": [
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Rust",
+                "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+                "span": "1-15",
+                "snippet": "rust_len_empty and rust_named_empty encode the same empty predicate; rust_len_nonempty and rust_named_nonempty encode the same non-empty predicate",
+            },
+            {
+                "repo": "netty",
+                "path": "common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java",
+                "span": "147-149",
+                "snippet": "private static boolean isNullOrEmpty(Queue<ScheduledFutureTask<?>> queue) { return queue == null || queue.isEmpty(); }",
             },
         ],
     },

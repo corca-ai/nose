@@ -11,16 +11,16 @@ report keeps the fuller evidence and admission boundary.
 
 **no-exact-admission-ready-packets**
 
-- target packets: 3
+- target packets: 4
 - ready for exact admission: 0
-- detector admitted packets: 3
-- by readiness: `{"detector-admitted": 2, "detector-admitted-controlled": 1}`
-- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 2}`
-- by detector admission: `{"controlled-slice-admitted": 1, "real-pair-admitted": 2}`
-- by executable witness coverage: `{"covered": 3}`
-- by real-frontier replay: `{"passed": 3}`
-- executable expectations: 20/20 passed
-- real-frontier replays: 3/3 passed; 0 unavailable
+- detector admitted packets: 4
+- by readiness: `{"detector-admitted": 3, "detector-admitted-controlled": 1}`
+- by owner route: `{"proof-fact-prerequisite": 1, "team-a-detector": 3}`
+- by detector admission: `{"controlled-slice-admitted": 1, "real-pair-admitted": 3}`
+- by executable witness coverage: `{"covered": 4}`
+- by real-frontier replay: `{"passed": 4}`
+- executable expectations: 25/25 passed
+- real-frontier replays: 5/5 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -42,6 +42,7 @@ report keeps the fuller evidence and admission boundary.
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed (1/1)` | 2 | 4 | 1 |
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed (1/1)` | 5 | 6 | 1 |
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (1/1)` | 4 | 7 | 1 |
+| `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed (2/2)` | 4 | 5 | 1 |
 
 ## Packet Details
 
@@ -74,6 +75,14 @@ report keeps the fuller evidence and admission boundary.
 - real-frontier replay: `passed` (1/1 passed)
 - hard-negative groups: `collection-membership-proof-perimeter`
 
+### `collection-empty-check-2026-07-08`
+
+- detector admission: `real-pair-admitted` over controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof
+- gates: 4 positive, 5 hard-negative
+- executable witness coverage: `covered` (5/5 passed)
+- real-frontier replay: `passed` (2/2 passed)
+- hard-negative groups: `collection-empty-check-proof-perimeter`
+
 ## Hard-Negative Linkage
 
 ### `numeric-clamp-2026-06-06` / `numeric-clamp-proof-perimeter`
@@ -96,6 +105,13 @@ report keeps the fuller evidence and admission boundary.
 - conventions: `collection.receiver-provenance`, `collection.element-coordinate`, `collection.collection-coordinate`, `collection.mutation`, `protocol-boundary.api-identity`, `boolean.truth-table`
 - cases: 1 positive, 4 hard-negative
 - regression gates: 12
+
+### `collection-empty-check-2026-07-08` / `collection-empty-check-proof-perimeter`
+
+- semantic family: `collection.empty_check`
+- conventions: `collection.cardinality`, `collection.receiver-provenance`, `collection.mutation`, `protocol-boundary.api-identity`, `boolean.truth-table`
+- cases: 2 positive, 3 hard-negative
+- regression gates: 7
 
 ## Co-Evolution Guardrails
 

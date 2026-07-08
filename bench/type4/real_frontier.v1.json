@@ -107,6 +107,47 @@
    "notes": "Issue #754 pattern-card evidence. This is a controlled, replayable focused pair; real-corpus unsupported membership leads remain documented separately and should not widen exact admission without their missing source/type facts."
   },
   {
+   "case_id": "collection-empty-focused-controlled",
+   "status": "already-covered",
+   "candidate_axis": "collection_empty_check",
+   "repo": "nose",
+   "language": "rust",
+   "locations": [
+    {
+     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+     "span": "1-7",
+     "snippet": "fn rust_len_empty(items: Vec<i32>, other: Vec<i32>) -> bool { items.len() == 0 } ... fn rust_named_empty(values: Vec<i32>, other: Vec<i32>) -> bool { values.is_empty() }"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+     "span": "9-15",
+     "snippet": "fn rust_len_nonempty(items: Vec<i32>, other: Vec<i32>) -> bool { items.len() != 0 } ... fn rust_named_nonempty(values: Vec<i32>, other: Vec<i32>) -> bool { !values.is_empty() }"
+    }
+   ],
+   "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+   "evidence": "Focused collection_empty_check fixtures are executable: semantic query over bench/type4/adversarial/cases/collection_empty_check reports the Rust len()==0 and is_empty pair in one family, reports len()!=0 and !is_empty in one non-empty family, and keeps length-one, wrong-receiver, and mutated-receiver hard negatives split. Existing coverage_evidence.v1.json records collection_empty_check as covered across C, Go, Java, JavaScript, Python, Ruby, Rust, TypeScript, and Swift probe rows.",
+   "detector": {
+    "current_detector_miss": false,
+    "binary_path": "nose",
+    "nose_version": "nose",
+    "build_ref": "#755 semantic pattern card",
+    "baseline_command": "nose query bench/type4/adversarial/cases/collection_empty_check --mode semantic top=0 --format json --min-size 1 --min-lines 1",
+    "baseline_result": "Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations.",
+    "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations."
+   },
+   "proof_invariant": "Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.",
+   "hard_negative_siblings": [
+    "length-one or greater-than-one thresholds are not strict emptiness",
+    "the same empty predicate over a different receiver parameter is not equivalent",
+    "Java array length, Java Collection.isEmpty, and String.isEmpty stay split without domain/kind proof",
+    "truthiness over unproven or value-returning domains cannot be folded into collection emptiness",
+    "mutation before the empty check changes the receiver state"
+   ],
+   "batch": "2026-07-08-collection-empty-check-pattern-card",
+   "notes": "Issue #755 pattern-card evidence. This is a controlled, replayable focused pair plus an explicit real Java domain-boundary sibling; it records current proof facts without widening detector admission beyond the existing covered empty-check perimeter."
+  },
+  {
    "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
    "status": "unsupported",
    "candidate_axis": "membership_contains / literal_collection_membership",

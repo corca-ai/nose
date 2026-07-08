@@ -45,6 +45,10 @@ packet-specific current status locally.
 | `collection.membership.element-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the searched element coordinate. |
 | `collection.membership.collection-source-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the collection/source receiver coordinate. |
 | `collection.membership.no-intervening-mutation` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
+| `collection.empty.receiver-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the checked receiver coordinate. |
+| `collection.empty.domain-kind-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves compatible collection domain/kind identity. |
+| `collection.empty.predicate-direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves empty versus non-empty boolean direction. |
+| `collection.empty.no-intervening-mutation` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes mutation and stale-receiver boundaries. |
 | `reduction.identity-empty-behavior` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes seed and empty-input behavior for separately proven aggregate facts. |
 | `reduction.step-coordinate-identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves the terminal step, predicate, or contribution observes the same flattened element coordinate. |
 | `hof.flat-map.aggregate-guard-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves outer, inner, and terminal guard placement for flat-map aggregates. |
@@ -80,6 +84,20 @@ element identity, collection/source identity, and receiver mutation closure.
 | `collection.membership.element-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
 | `collection.membership.collection-source-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
 | `collection.membership.no-intervening-mutation` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
+
+## Collection Empty-Check Pattern Matrix
+
+This matrix records the neutral proof perimeter for length-zero, size-zero,
+named-empty, truthiness, and explicit non-empty collection checks. The supported
+surfaces still depend on source evidence for receiver identity, collection
+domain/kind identity, predicate direction, and receiver mutation closure.
+
+| fact | Python | JS/TS | Go | Java | Ruby | Rust | C | Swift |
+|---|---|---|---|---|---|---|---|---|
+| `collection.empty.receiver-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
+| `collection.empty.domain-kind-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
+| `collection.empty.predicate-direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled probe |
+| `collection.empty.no-intervening-mutation` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
 
 ## Universal Quantifier Pattern Matrix
 
