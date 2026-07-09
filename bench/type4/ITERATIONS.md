@@ -417,6 +417,19 @@ The language surface is now `modeled-controlled` in the semantic pattern card, t
 real-frontier replay includes the Swift witness beside the Python literal and JS `Set.has`
 pair, and `open_surface_admission_audit` removes #779 from the current open audit slice.
 
+## Swift Collection Empty-Check Focused Admission
+
+Closed #780 by promoting Swift Array empty checks from probe-only `isEmpty` coverage into
+the focused `collection.empty_check` perimeter. The admitted Swift slice now has executable
+witnesses for `count == 0` / `isEmpty` and the non-empty direction `count != 0` /
+`!isEmpty`, with hard negatives for cardinality thresholds, wrong receiver coordinates,
+String/custom `isEmpty` domains, and intervening `append` mutation.
+
+This slice also fixed the Swift frontend precedence bug where `!values.isEmpty` lowered as
+`(!values).isEmpty` instead of `!(values.isEmpty)`. The semantic card, real-frontier replay,
+target packet, and open-surface audit now treat the Swift Array surface as
+`modeled-controlled` while keeping broader String/custom/ambiguous receiver forms closed.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

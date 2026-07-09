@@ -116,7 +116,7 @@
    "status": "already-covered",
    "candidate_axis": "collection_empty_check",
    "repo": "nose",
-   "language": "rust",
+   "language": "multi-language",
    "locations": [
     {
      "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
@@ -127,17 +127,22 @@
      "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
      "span": "9-15",
      "snippet": "fn rust_len_nonempty(items: Vec<i32>, other: Vec<i32>) -> bool { items.len() != 0 } ... fn rust_named_nonempty(values: Vec<i32>, other: Vec<i32>) -> bool { !values.is_empty() }"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+     "span": "1-15",
+     "snippet": "swiftCountEmpty and swiftNamedEmpty encode the same Array empty predicate; swiftCountNonempty and swiftNamedNonempty encode the same non-empty predicate"
     }
    ],
-   "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
-   "evidence": "Focused collection_empty_check fixtures are executable: semantic query over bench/type4/adversarial/cases/collection_empty_check reports the Rust len()==0 and is_empty pair in one family, reports len()!=0 and !is_empty in one non-empty family, and keeps length-one, wrong-receiver, and mutated-receiver hard negatives split. Existing coverage_evidence.v1.json records collection_empty_check as covered across C, Go, Java, JavaScript, Python, Ruby, Rust, TypeScript, and Swift probe rows.",
+   "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent across Rust and focused Swift Array surfaces when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+   "evidence": "Focused collection_empty_check fixtures are executable: semantic query over bench/type4/adversarial/cases/collection_empty_check reports the Rust len()==0/is_empty and Swift count==0/isEmpty pairs in empty families, reports Rust len()!=0/!is_empty and Swift count!=0/!isEmpty in non-empty families, and keeps length-one, wrong-receiver, String/custom-domain, and mutated-receiver hard negatives split. Existing coverage_evidence.v1.json records collection_empty_check as covered across C, Go, Java, JavaScript, Python, Ruby, Rust, TypeScript, and Swift probe rows.",
    "detector": {
     "current_detector_miss": false,
     "binary_path": "nose",
     "nose_version": "nose",
-    "build_ref": "#755 semantic pattern card",
+    "build_ref": "#780 Swift empty-check admission",
     "baseline_command": "nose query bench/type4/adversarial/cases/collection_empty_check --mode semantic top=0 --format json --min-size 1 --min-lines 1",
-    "baseline_result": "Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.",
+    "baseline_result": "Semantic query reports the Rust length-zero/named-empty pair, the Swift count-zero/named-empty pair, and the Rust/Swift non-empty/negated-named pairs, while threshold, wrong-receiver, wrong-domain, and mutation fixtures stay outside those families.",
     "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations.",
     "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations."
    },

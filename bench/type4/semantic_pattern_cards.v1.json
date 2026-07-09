@@ -265,11 +265,12 @@
         "bench/type4/frontier_target_packets.v1.json::collection-empty-check-2026-07-08",
         "bench/type4/adversarial/cases/cases.v1.json::collection-empty-check-proof-perimeter",
         "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
-        "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
-        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
-        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
-        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
-        "bench/type4/proof_fact_registry.v1.json::collection.empty.receiver-coordinate",
+    "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
+    "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
+    "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+    "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
+    "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+    "bench/type4/proof_fact_registry.v1.json::collection.empty.receiver-coordinate",
         "bench/type4/proof_fact_registry.v1.json::collection.empty.domain-kind-identity",
         "bench/type4/proof_fact_registry.v1.json::collection.empty.predicate-direction",
         "bench/type4/proof_fact_registry.v1.json::collection.empty.no-intervening-mutation"
@@ -325,16 +326,16 @@
           "status": "modeled-controlled",
           "surface": "pointer-length contract zero/nonzero checks when the length parameter is proven to be the collection extent"
         },
-        {
-          "evidence": "bench/type4/coverage_evidence.v1.json::probe:collection_empty_check/swift covers the isEmpty direction probe; receiver/domain/mutation admission still needs focused evidence before modeled-controlled status",
-          "language": "Swift",
-          "status": "open",
-          "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open"
-        }
-      ],
+    {
+      "evidence": "bench/type4/coverage_evidence.v1.json::probe:collection_empty_check/swift covers the isEmpty direction probe; bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive and collection_nonempty_named_positive add focused Swift Array count/isEmpty executable positives; collection_empty_threshold_boundary, collection_empty_wrong_receiver_boundary, collection_empty_wrong_domain_boundary, and collection_empty_mutated_receiver_boundary keep threshold, receiver, String/custom domain, and mutation boundaries split; crates/nose-frontend/src/swift/tests.rs::logical_not_binds_outside_member_access pins !receiver.isEmpty lowering",
+      "language": "Swift",
+      "status": "modeled-controlled",
+      "surface": "Array count == 0, isEmpty, count != 0, and !isEmpty when receiver coordinate, collection domain/kind, predicate direction, and no-mutation proof are present; String/custom isEmpty, wrong receivers, thresholds, and mutations stay split"
+    }
+  ],
       "law": "Collection empty-check surfaces are equivalent only when source evidence proves the same receiver coordinate, compatible collection domain/kind, matching empty or non-empty boolean direction, and stable receiver state.",
       "pattern_id": "collection.empty-check.proven-receiver-domain",
-      "rationale": "The collection_empty_check axis has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record; carding it records the reusable receiver, domain, direction, and mutation facts so future empty?/isEmpty/len/size/truthiness work extends neutral proof facts instead of adding spelling-specific shortcuts.",
+  "rationale": "The collection_empty_check axis has broad controlled coverage, focused Swift Array evidence, and a real Java domain-boundary soundness record; carding it records the reusable receiver, domain, direction, and mutation facts so future empty?/isEmpty/len/size/truthiness work extends neutral proof facts instead of adding spelling-specific shortcuts.",
       "required_facts": [
         "collection.empty.receiver-coordinate",
         "collection.empty.domain-kind-identity",

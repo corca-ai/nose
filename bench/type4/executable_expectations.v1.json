@@ -1,8 +1,8 @@
 {
-  "expectation_count": 111,
+  "expectation_count": 118,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 111,
+  "passed": 118,
   "query_count": 19,
   "results": [
     {
@@ -159,9 +159,59 @@
             "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
             "name": "rust_named_empty",
             "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftCountEmpty",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftNamedEmpty",
+            "start": 5
           }
         ],
-        "value": 3.0,
+        "value": 16.2,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_named_zero_positive",
+      "expect": "same-family",
+      "expectation_id": "collection_empty_swift_count_matches_named",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_len_empty",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_named_empty",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftCountEmpty",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftNamedEmpty",
+            "start": 5
+          }
+        ],
+        "value": 16.2,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -185,9 +235,59 @@
             "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
             "name": "rust_named_nonempty",
             "start": 13
+          },
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftCountNonempty",
+            "start": 9
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftNamedNonempty",
+            "start": 13
           }
         ],
-        "value": 3.0,
+        "value": 16.2,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "collection_nonempty_named_positive",
+      "expect": "same-family",
+      "expectation_id": "collection_nonempty_swift_count_matches_negated_named",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_len_nonempty",
+            "start": 9
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+            "name": "rust_named_nonempty",
+            "start": 13
+          },
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftCountNonempty",
+            "start": 9
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftNamedNonempty",
+            "start": 13
+          }
+        ],
+        "value": 16.2,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -203,6 +303,15 @@
       "ok": true
     },
     {
+      "case_id": "collection_empty_threshold_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_swift_threshold_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
       "case_id": "collection_empty_wrong_receiver_boundary",
       "expect": "split",
       "expectation_id": "collection_empty_wrong_receiver_stays_split",
@@ -212,9 +321,45 @@
       "ok": true
     },
     {
+      "case_id": "collection_empty_wrong_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_swift_wrong_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_wrong_domain_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_swift_string_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_wrong_domain_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_swift_custom_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
       "case_id": "collection_empty_mutated_receiver_boundary",
       "expect": "split",
       "expectation_id": "collection_empty_mutated_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_empty_mutated_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "collection_empty_swift_mutated_receiver_stays_split",
       "fixture": "bench/type4/adversarial/cases/collection_empty_check",
       "matching_family": null,
       "observed": "split",

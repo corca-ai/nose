@@ -19,8 +19,8 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 111/111 passed
-- real-frontier replay expectations: 18/18 passed; 0 unavailable
+- executable expectations: 118/118 passed
+- real-frontier replay expectations: 20/20 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -42,7 +42,7 @@ report keeps the fuller evidence and admission boundary.
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed expectations (1/1)` | 2 | 4 | 1 |
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed expectations (1/1)` | 5 | 6 | 1 |
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (10/10)` | `passed expectations (1/1)` | 4 | 7 | 1 |
-| `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed expectations (2/2)` | 4 | 5 | 1 |
+| `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (12/12)` | `passed expectations (4/4)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed expectations (4/4)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
 | `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed expectations (6/6)` | 10 | 15 | 1 |
@@ -81,9 +81,9 @@ report keeps the fuller evidence and admission boundary.
 ### `collection-empty-check-2026-07-08`
 
 - detector admission: `real-pair-admitted` over controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof
-- gates: 4 positive, 5 hard-negative
-- executable witness coverage: `covered` (5/5 passed)
-- real-frontier replay expectations: `passed` (2/2 expectations passed)
+- gates: 5 positive, 7 hard-negative
+- executable witness coverage: `covered` (12/12 passed)
+- real-frontier replay expectations: `passed` (4/4 expectations passed)
 - hard-negative groups: `collection-empty-check-proof-perimeter`
 
 ### `string-prefix-suffix-2026-07-08`
@@ -146,8 +146,8 @@ report keeps the fuller evidence and admission boundary.
 
 - semantic family: `collection.empty_check`
 - conventions: `collection.cardinality`, `collection.receiver-provenance`, `collection.mutation`, `protocol-boundary.api-identity`, `boolean.truth-table`
-- cases: 2 positive, 3 hard-negative
-- regression gates: 7
+- cases: 2 positive, 4 hard-negative
+- regression gates: 8
 
 ### `string-prefix-suffix-2026-07-08` / `string-affix-proof-perimeter`
 

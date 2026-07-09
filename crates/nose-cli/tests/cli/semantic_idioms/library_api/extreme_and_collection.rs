@@ -76,6 +76,16 @@ fn query_mode_semantic_proves_collection_empty_checks() {
     let dir = std::env::temp_dir().join(format!("nose_collection_empty_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
+    write_collection_empty_baseline_fixtures(&dir);
+    write_swift_collection_empty_fixtures(&dir);
+
+    let semantic = query_min_json(&dir, "semantic");
+    assert_collection_empty_families(&semantic);
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+fn write_collection_empty_baseline_fixtures(dir: &Path) {
     fs::write(
         dir.join("rust_len.rs"),
         "pub fn empty_len(items: &[i32], other: &[i32]) -> bool {\n    items.len() == 0\n}\n",
@@ -116,26 +126,126 @@ fn query_mode_semantic_proves_collection_empty_checks() {
         "def empty_named(values, other)\n  values.empty?\nend\n",
     )
     .unwrap();
+}
 
-    let semantic = query_min_json(&dir, "semantic");
-    let semantic_json = query_json(&semantic);
+fn write_swift_collection_empty_fixtures(dir: &Path) {
+    fs::write(
+        dir.join("swift_count.swift"),
+        "func emptyCount(_ items: [Int], _ other: [Int]) -> Bool {\n    return items.count == 0\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_named.swift"),
+        "func emptyNamed(_ values: [Int], _ other: [Int]) -> Bool {\n    return values.isEmpty\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_count_nonempty.swift"),
+        "func nonemptyCount(_ items: [Int], _ other: [Int]) -> Bool {\n    return items.count != 0\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_named_nonempty.swift"),
+        "func nonemptyNamed(_ values: [Int], _ other: [Int]) -> Bool {\n    return !values.isEmpty\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_threshold_negative.swift"),
+        "func oneItem(_ items: [Int], _ other: [Int]) -> Bool {\n    return items.count == 1\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_receiver_negative.swift"),
+        "func otherEmpty(_ items: [Int], _ other: [Int]) -> Bool {\n    return other.isEmpty\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_string_negative.swift"),
+        "func stringEmpty(_ value: String, _ other: String) -> Bool {\n    return value.isEmpty\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_custom_negative.swift"),
+        "struct EmptyBox {\n    var isEmpty: Bool { return false }\n}\n\nfunc customEmpty(_ value: EmptyBox, _ other: EmptyBox) -> Bool {\n    return value.isEmpty\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_mutation_negative.swift"),
+        "func mutatedEmpty(_ items: [Int], _ other: [Int]) -> Bool {\n    var current = items\n    current.append(1)\n    return current.isEmpty\n}\n",
+    )
+    .unwrap();
+}
+
+fn assert_collection_empty_families(semantic: &str) {
+    let semantic_json = query_json(semantic);
     let semantic_families = query_families(&semantic_json);
     assert!(
         !semantic_families.is_empty(),
         "semantic mode should report collection emptiness families: {semantic}"
     );
     let semantic_text = semantic_json.to_string();
+    let family = |positives: &[&str], negatives: &[&str]| {
+        semantic_families
+            .iter()
+            .map(serde_json::Value::to_string)
+            .find(|text| {
+                positives.iter().all(|name| text.contains(name))
+                    && negatives.iter().all(|name| !text.contains(name))
+            })
+            .unwrap_or_else(|| {
+                panic!(
+                    "semantic mode should report {positives:?} without {negatives:?}: {semantic}"
+                )
+            })
+    };
+    family(
+        &[
+            "rust_len.rs",
+            "rust_named.rs",
+            "java_size.java",
+            "java_named.java",
+            "swift_count.swift",
+            "swift_named.swift",
+        ],
+        &[
+            "rust_threshold_negative.rs",
+            "rust_receiver_negative.rs",
+            "swift_count_nonempty.swift",
+            "swift_named_nonempty.swift",
+            "swift_threshold_negative.swift",
+            "swift_receiver_negative.swift",
+            "swift_string_negative.swift",
+            "swift_custom_negative.swift",
+            "swift_mutation_negative.swift",
+        ],
+    );
+    family(
+        &["swift_count_nonempty.swift", "swift_named_nonempty.swift"],
+        &[
+            "rust_len.rs",
+            "rust_named.rs",
+            "rust_threshold_negative.rs",
+            "rust_receiver_negative.rs",
+            "swift_count.swift",
+            "swift_named.swift",
+            "swift_threshold_negative.swift",
+            "swift_receiver_negative.swift",
+            "swift_string_negative.swift",
+            "swift_custom_negative.swift",
+            "swift_mutation_negative.swift",
+        ],
+    );
     assert!(
         semantic_text.contains("rust_len.rs")
             && semantic_text.contains("rust_named.rs")
             && semantic_text.contains("java_size.java")
             && semantic_text.contains("java_named.java")
+            && semantic_text.contains("swift_count.swift")
+            && semantic_text.contains("swift_named.swift")
+            && semantic_text.contains("swift_count_nonempty.swift")
+            && semantic_text.contains("swift_named_nonempty.swift")
             && !semantic_text.contains("ruby_length.rb")
-            && !semantic_text.contains("ruby_named.rb")
-            && !semantic_text.contains("rust_threshold_negative.rs")
-            && !semantic_text.contains("rust_receiver_negative.rs"),
+            && !semantic_text.contains("ruby_named.rb"),
         "semantic mode must prove collection-empty checks without merging boundaries: {semantic}"
     );
-
-    let _ = fs::remove_dir_all(&dir);
 }

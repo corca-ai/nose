@@ -333,6 +333,41 @@ return !(x >= min)
 }
 
 #[test]
+fn logical_not_binds_outside_member_access() {
+    let (il, interner) = il_with_interner(
+        r#"
+func accepted(_ values: [Int]) -> Bool {
+return !values.isEmpty
+}
+"#,
+    );
+    let is_empty = interner.intern("isEmpty");
+    assert!(il.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::UnOp || node.payload != Payload::Op(Op::Not) {
+            return false;
+        }
+        let kids = il.children(NodeId(idx as u32));
+        matches!(
+            kids,
+            [field]
+                if il.kind(*field) == NodeKind::Field
+                    && il.node(*field).payload == Payload::Name(is_empty)
+        )
+    }));
+    assert!(
+        !il.nodes.iter().enumerate().any(|(idx, node)| {
+            if node.kind != NodeKind::Field || node.payload != Payload::Name(is_empty) {
+                return false;
+            }
+            il.children(NodeId(idx as u32))
+                .first()
+                .is_some_and(|child| il.kind(*child) == NodeKind::UnOp)
+        }),
+        "member access must bind inside Swift logical negation"
+    );
+}
+
+#[test]
 fn dictionary_default_subscript_lowers_with_marker() {
     let (il, interner) = il_with_interner(
         r#"

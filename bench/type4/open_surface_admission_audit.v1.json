@@ -91,14 +91,6 @@
         "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
         "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "string.affix.proven-receiver-coordinate",
         "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
         "surface_status": "open"
@@ -121,46 +113,6 @@
         "likely_blocker": "add surface-specific focused fixtures and executable expectations",
         "pattern_id": "quantifier.universal.counterexample-loop",
         "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      }
-    ],
-    "collection.empty.domain-kind-identity": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      }
-    ],
-    "collection.empty.no-intervening-mutation": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      }
-    ],
-    "collection.empty.predicate-direction": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      }
-    ],
-    "collection.empty.receiver-coordinate": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
         "surface_status": "open"
       }
     ],
@@ -763,14 +715,6 @@
         "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
         "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "string.affix.proven-receiver-coordinate",
         "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
         "surface_status": "open"
@@ -818,16 +762,6 @@
     ]
   },
   "by_pattern": {
-    "collection.empty-check.proven-receiver-domain": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      }
-    ],
     "hof.filter-map.option-emission": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -939,14 +873,6 @@
         "candidate_priority": "probe-to-focused-candidate",
         "language": "Swift",
         "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "collection.empty-check.proven-receiver-domain",
-        "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
         "pattern_id": "string.affix.proven-receiver-coordinate",
         "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
         "surface_status": "open"
@@ -1049,28 +975,12 @@
         },
         {
           "candidate_priority": "probe-to-focused-candidate",
-          "current_candidate_priority": "probe-to-focused-candidate",
-          "current_open_audit_state": "present",
-          "evidence_level": "probe-only",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 780,
           "language": "Swift",
-          "likely_blocker": "promote probe evidence into focused positives and hard negatives",
           "order": 2,
-          "pattern_focused_support": {
-            "hard_negative": 3,
-            "hard_negative_group": 1,
-            "positive": 2
-          },
           "pattern_id": "collection.empty-check.proven-receiver-domain",
           "selector": "collection.empty-check.proven-receiver-domain:Swift:probe-to-focused-candidate",
-          "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [],
           "work": "promote Swift collection empty-check probe evidence into focused admission"
         },
         {
@@ -1398,10 +1308,10 @@
       "setup_issue": 781,
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
-        "current_actionable_open_count": 5,
+        "current_actionable_open_count": 4,
         "current_blocked_open_count": 7,
         "in_scope_count": 6,
-        "in_scope_currently_open": 5,
+        "in_scope_currently_open": 4,
         "out_of_scope_count": 7,
         "out_of_scope_currently_open": 7,
         "unexpected_actionable_open_count": 0,
@@ -1413,65 +1323,6 @@
     }
   },
   "rows": [
-    {
-      "candidate_priority": "probe-to-focused-candidate",
-      "coverage": {
-        "false_merges": 0,
-        "gen_axes": [
-          "probe:collection_empty_check"
-        ],
-        "hard_negatives": 1,
-        "language_components": [
-          "swift"
-        ],
-        "matched_languages": [
-          "swift"
-        ],
-        "missing_languages": [],
-        "positive_hits": 1,
-        "positives": 1,
-        "probe_ready": true,
-        "row_count": 1,
-        "sources": [
-          "probe"
-        ],
-        "statuses": [
-          "covered"
-        ]
-      },
-      "evidence_level": "probe-only",
-      "fact_statuses": {
-        "collection.empty.domain-kind-identity": "modeled-controlled",
-        "collection.empty.no-intervening-mutation": "modeled-controlled",
-        "collection.empty.predicate-direction": "modeled-controlled",
-        "collection.empty.receiver-coordinate": "modeled-controlled"
-      },
-      "language": "Swift",
-      "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-      "pattern_focused_support": {
-        "hard_negative": 3,
-        "hard_negative_group": 1,
-        "positive": 2
-      },
-      "pattern_id": "collection.empty-check.proven-receiver-domain",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "collection.empty.receiver-coordinate",
-        "collection.empty.domain-kind-identity",
-        "collection.empty.predicate-direction",
-        "collection.empty.no-intervening-mutation"
-      ],
-      "surface": "isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open",
-      "surface_evidence": "bench/type4/coverage_evidence.v1.json::probe:collection_empty_check/swift covers the isEmpty direction probe; receiver/domain/mutation admission still needs focused evidence before modeled-controlled status",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [],
-      "unresolved_surface_evidence_refs": []
-    },
     {
       "candidate_priority": "probe-to-focused-candidate",
       "coverage": {
@@ -2013,7 +1864,7 @@
     "by_evidence_level": {
       "coverage-sweep": 1,
       "missing": 7,
-      "probe-only": 3,
+      "probe-only": 2,
       "target-packet": 1
     },
     "by_language": {
@@ -2022,17 +1873,17 @@
       "JavaScript": 1,
       "Ruby": 1,
       "Rust": 1,
-      "Swift": 7
+      "Swift": 6
     },
     "by_priority": {
       "blocked-by-unmodeled-facts": 7,
       "needs-surface-focused-perimeter": 3,
-      "probe-to-focused-candidate": 2
+      "probe-to-focused-candidate": 1
     },
     "by_status": {
-      "open": 12
+      "open": 11
     },
-    "open_surface_count": 12,
+    "open_surface_count": 11,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"

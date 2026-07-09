@@ -104,13 +104,13 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "c6421d00e9fa7de80b1ed3de3e6233ff2e70fe3a6875de762cbc632a23895dbb",
-        "size_bytes": 57243
+        "sha256": "78f65e1306c6e163afba3146c59c7001afb18fa82636b23c6861089da9b37244",
+        "size_bytes": 62107
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "fb53d278ad9c266f7ebe24ddd3156427e1ab8fee5fd32e04a6d8303014ad5fb2",
-        "size_bytes": 150062
+        "sha256": "9060894bbf868f52cdda8d203e2b6be94ef64f10123c7f6298f0cab43991ce3b",
+        "size_bytes": 155450
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
@@ -124,23 +124,23 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "69ba1220ece9e2f1484354ae5a12086898cac125f98e8aee719ccd660920626f",
-        "size_bytes": 102147
+        "sha256": "280954630e557c4408c0923124bf29fbdea813d6273821e20916584765664ba8",
+        "size_bytes": 102635
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "d2cd07a36b8ca51dc68538782cbeacc6309d6b6bd2ea22b08b9588fd95c06a73",
-        "size_bytes": 21599
+        "sha256": "ebf72803b6c45ecf7b723f51fa804bb50cf4e59e88028cd65e7bf06d241c1f40",
+        "size_bytes": 23599
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "184f7efa17b0af329408acfbdf97cd30709c598be1c1fd0920fe9861605736f6",
-        "size_bytes": 21762
+        "sha256": "98a94e268580ecf3029fc097ea5102a19d933f21c4822b70a17ed0c9c8bfdec4",
+        "size_bytes": 23584
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "dd993309b5e000a3b0affb4031546a8fe9027d4e0b01c4793ef8e481f9ec7a4b",
-        "size_bytes": 93801
+        "sha256": "5d97f3f53540c2bf5363beaa3599324e874d4d64365297b8a627acb12988f48b",
+        "size_bytes": 95210
       }
     },
     "target_packet_identity": {
@@ -539,6 +539,42 @@
               "status": "passed"
             },
             {
+              "case_id": "collection_empty_named_zero_positive",
+              "expect": "same-family",
+              "expectation_id": "collection_empty_swift_count_matches_named",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_wrong_domain_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_custom_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_mutated_receiver_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_mutated_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_wrong_domain_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_string_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_threshold_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_threshold_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_wrong_receiver_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_wrong_receiver_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "collection_empty_threshold_boundary",
               "expect": "split",
               "expectation_id": "collection_empty_threshold_stays_split",
@@ -555,16 +591,29 @@
               "expect": "same-family",
               "expectation_id": "collection_nonempty_rust_len_matches_negated_named",
               "status": "passed"
+            },
+            {
+              "case_id": "collection_nonempty_named_positive",
+              "expect": "same-family",
+              "expectation_id": "collection_nonempty_swift_count_matches_negated_named",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 5,
+          "declared_expectation_count": 12,
           "declared_expectation_ids": [
             "collection_empty_mutated_receiver_stays_split",
             "collection_empty_rust_len_matches_named",
+            "collection_empty_swift_count_matches_named",
+            "collection_empty_swift_custom_receiver_stays_split",
+            "collection_empty_swift_mutated_receiver_stays_split",
+            "collection_empty_swift_string_receiver_stays_split",
+            "collection_empty_swift_threshold_stays_split",
+            "collection_empty_swift_wrong_receiver_stays_split",
             "collection_empty_threshold_stays_split",
             "collection_empty_wrong_receiver_stays_split",
-            "collection_nonempty_rust_len_matches_negated_named"
+            "collection_nonempty_rust_len_matches_negated_named",
+            "collection_nonempty_swift_count_matches_negated_named"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
@@ -572,12 +621,14 @@
             "collection_empty_mutated_receiver_boundary",
             "collection_empty_named_zero_positive",
             "collection_empty_threshold_boundary",
+            "collection_empty_wrong_domain_boundary",
             "collection_empty_wrong_receiver_boundary",
             "collection_nonempty_named_positive"
           ],
           "manifest_hard_negative_case_ids": [
             "collection_empty_mutated_receiver_boundary",
             "collection_empty_threshold_boundary",
+            "collection_empty_wrong_domain_boundary",
             "collection_empty_wrong_receiver_boundary"
           ],
           "manifest_only_case_ids": [],
@@ -588,13 +639,20 @@
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "collection-empty-check-2026-07-08",
-          "passed_expectation_count": 5,
+          "passed_expectation_count": 12,
           "passed_expectation_ids": [
             "collection_empty_mutated_receiver_stays_split",
             "collection_empty_rust_len_matches_named",
+            "collection_empty_swift_count_matches_named",
+            "collection_empty_swift_custom_receiver_stays_split",
+            "collection_empty_swift_mutated_receiver_stays_split",
+            "collection_empty_swift_string_receiver_stays_split",
+            "collection_empty_swift_threshold_stays_split",
+            "collection_empty_swift_wrong_receiver_stays_split",
             "collection_empty_threshold_stays_split",
             "collection_empty_wrong_receiver_stays_split",
-            "collection_nonempty_rust_len_matches_negated_named"
+            "collection_nonempty_rust_len_matches_negated_named",
+            "collection_nonempty_swift_count_matches_negated_named"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
@@ -1308,7 +1366,7 @@
         }
       ],
       "summary": {
-        "declared_expectation_count": 111,
+        "declared_expectation_count": 118,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -1318,13 +1376,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 111,
+        "passed": 118,
         "query_count": 19,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 111,
+        "result_count": 118,
         "stale": 0
       }
     },
@@ -1440,6 +1498,7 @@
         "hard_negative_cases": [
           "collection_empty_threshold_boundary",
           "collection_empty_wrong_receiver_boundary",
+          "collection_empty_wrong_domain_boundary",
           "collection_empty_mutated_receiver_boundary"
         ],
         "packet_id": "collection-empty-check-2026-07-08",
@@ -1452,6 +1511,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
           "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string"
@@ -2360,12 +2420,12 @@
         "candidate_axis": "collection_empty_check",
         "detector_admission": {
           "capabilities": [
-            "converges length-zero or size-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
-            "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction",
+            "converges length-zero, size-zero, or Swift count-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
+            "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction, including Swift count != 0 with !isEmpty",
             "preserves collection-vs-string/array/map/custom API domains, cardinality thresholds, wrong receivers, and mutation boundaries"
           ],
-          "hard_negative_gate_count": 5,
-          "positive_gate_count": 4,
+          "hard_negative_gate_count": 7,
+          "positive_gate_count": 5,
           "remaining_real_pair_gap": null,
           "scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
           "status": "real-pair-admitted"
@@ -2390,6 +2450,42 @@
               "status": "passed"
             },
             {
+              "case_id": "collection_empty_named_zero_positive",
+              "expect": "same-family",
+              "expectation_id": "collection_empty_swift_count_matches_named",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_wrong_domain_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_custom_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_mutated_receiver_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_mutated_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_wrong_domain_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_string_receiver_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_threshold_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_threshold_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection_empty_wrong_receiver_boundary",
+              "expect": "split",
+              "expectation_id": "collection_empty_swift_wrong_receiver_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "collection_empty_threshold_boundary",
               "expect": "split",
               "expectation_id": "collection_empty_threshold_stays_split",
@@ -2406,16 +2502,29 @@
               "expect": "same-family",
               "expectation_id": "collection_nonempty_rust_len_matches_negated_named",
               "status": "passed"
+            },
+            {
+              "case_id": "collection_nonempty_named_positive",
+              "expect": "same-family",
+              "expectation_id": "collection_nonempty_swift_count_matches_negated_named",
+              "status": "passed"
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 5,
+          "declared_expectation_count": 12,
           "declared_expectation_ids": [
             "collection_empty_mutated_receiver_stays_split",
             "collection_empty_rust_len_matches_named",
+            "collection_empty_swift_count_matches_named",
+            "collection_empty_swift_custom_receiver_stays_split",
+            "collection_empty_swift_mutated_receiver_stays_split",
+            "collection_empty_swift_string_receiver_stays_split",
+            "collection_empty_swift_threshold_stays_split",
+            "collection_empty_swift_wrong_receiver_stays_split",
             "collection_empty_threshold_stays_split",
             "collection_empty_wrong_receiver_stays_split",
-            "collection_nonempty_rust_len_matches_negated_named"
+            "collection_nonempty_rust_len_matches_negated_named",
+            "collection_nonempty_swift_count_matches_negated_named"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
@@ -2423,12 +2532,14 @@
             "collection_empty_mutated_receiver_boundary",
             "collection_empty_named_zero_positive",
             "collection_empty_threshold_boundary",
+            "collection_empty_wrong_domain_boundary",
             "collection_empty_wrong_receiver_boundary",
             "collection_nonempty_named_positive"
           ],
           "manifest_hard_negative_case_ids": [
             "collection_empty_mutated_receiver_boundary",
             "collection_empty_threshold_boundary",
+            "collection_empty_wrong_domain_boundary",
             "collection_empty_wrong_receiver_boundary"
           ],
           "manifest_only_case_ids": [],
@@ -2439,13 +2550,20 @@
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "collection-empty-check-2026-07-08",
-          "passed_expectation_count": 5,
+          "passed_expectation_count": 12,
           "passed_expectation_ids": [
             "collection_empty_mutated_receiver_stays_split",
             "collection_empty_rust_len_matches_named",
+            "collection_empty_swift_count_matches_named",
+            "collection_empty_swift_custom_receiver_stays_split",
+            "collection_empty_swift_mutated_receiver_stays_split",
+            "collection_empty_swift_string_receiver_stays_split",
+            "collection_empty_swift_threshold_stays_split",
+            "collection_empty_swift_wrong_receiver_stays_split",
             "collection_empty_threshold_stays_split",
             "collection_empty_wrong_receiver_stays_split",
-            "collection_nonempty_rust_len_matches_negated_named"
+            "collection_nonempty_rust_len_matches_negated_named",
+            "collection_nonempty_swift_count_matches_negated_named"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
@@ -2454,7 +2572,7 @@
         "hard_negative_group_ids": [
           "collection-empty-check-proof-perimeter"
         ],
-        "owner_issue": "#755",
+        "owner_issue": "#755/#780",
         "owner_route": "team-a-detector",
         "packet_id": "collection-empty-check-2026-07-08",
         "proof_fact_model": {
@@ -2468,7 +2586,7 @@
           "facts": [
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+              "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/count/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -2480,7 +2598,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+              "current_real_pair_status": "satisfied for controlled empty-check suites, Swift String/custom isEmpty boundaries, and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -2492,7 +2610,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+              "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately for Rust and Swift while length-one and raw cardinality thresholds stay closed",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -2539,35 +2657,57 @@
               "expect": "same-family",
               "observed": "same-family",
               "proof_gap": [],
+              "replay_id": "collection-empty-swift-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection-empty-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
               "replay_id": "collection-nonempty-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection-empty-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "collection-nonempty-swift-focused-controlled-pair",
               "status": "passed"
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 2,
+          "declared_replay_count": 4,
           "declared_replay_ids": [
             "collection-empty-focused-controlled-pair",
-            "collection-nonempty-focused-controlled-pair"
+            "collection-empty-swift-focused-controlled-pair",
+            "collection-nonempty-focused-controlled-pair",
+            "collection-nonempty-swift-focused-controlled-pair"
           ],
           "failed_replay_count": 0,
           "failed_replay_ids": [],
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "collection-empty-check-2026-07-08",
-          "passed_replay_count": 2,
+          "passed_replay_count": 4,
           "passed_replay_ids": [
             "collection-empty-focused-controlled-pair",
-            "collection-nonempty-focused-controlled-pair"
+            "collection-empty-swift-focused-controlled-pair",
+            "collection-nonempty-focused-controlled-pair",
+            "collection-nonempty-swift-focused-controlled-pair"
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
         },
         "real_frontier_replay_ids": [
           "collection-empty-focused-controlled-pair",
-          "collection-nonempty-focused-controlled-pair"
+          "collection-nonempty-focused-controlled-pair",
+          "collection-empty-swift-focused-controlled-pair",
+          "collection-nonempty-swift-focused-controlled-pair"
         ],
-        "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
-        "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
+        "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent across Rust and focused Swift Array surfaces when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+        "why_now": "collection_empty_check has broad controlled coverage, focused Swift Array evidence, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
       },
       {
         "candidate_axis": "string_prefix_suffix",
@@ -4081,25 +4221,45 @@
               "expect": "same-family",
               "observed": "same-family",
               "proof_gap": [],
+              "replay_id": "collection-empty-swift-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection-empty-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
               "replay_id": "collection-nonempty-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "collection-empty-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "collection-nonempty-swift-focused-controlled-pair",
               "status": "passed"
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 2,
+          "declared_replay_count": 4,
           "declared_replay_ids": [
             "collection-empty-focused-controlled-pair",
-            "collection-nonempty-focused-controlled-pair"
+            "collection-empty-swift-focused-controlled-pair",
+            "collection-nonempty-focused-controlled-pair",
+            "collection-nonempty-swift-focused-controlled-pair"
           ],
           "failed_replay_count": 0,
           "failed_replay_ids": [],
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "collection-empty-check-2026-07-08",
-          "passed_replay_count": 2,
+          "passed_replay_count": 4,
           "passed_replay_ids": [
             "collection-empty-focused-controlled-pair",
-            "collection-nonempty-focused-controlled-pair"
+            "collection-empty-swift-focused-controlled-pair",
+            "collection-nonempty-focused-controlled-pair",
+            "collection-nonempty-swift-focused-controlled-pair"
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
@@ -4293,7 +4453,7 @@
         }
       ],
       "summary": {
-        "declared_replay_count": 18,
+        "declared_replay_count": 20,
         "failed": 0,
         "fully_replayed_packet_count": 7,
         "nose_binary": "nose",
@@ -4301,12 +4461,12 @@
         "packet_count_by_coverage": {
           "passed": 7
         },
-        "passed": 18,
-        "query_count": 10,
+        "passed": 20,
+        "query_count": 11,
         "report_failed_replay_ids": [],
         "report_missing_replay_ids": [],
         "report_unavailable_replay_ids": [],
-        "result_count": 18,
+        "result_count": 20,
         "unavailable": 0
       }
     },
