@@ -274,6 +274,10 @@ Use `frontier_target_packets.v1.json`, `real_frontier.v1.json`, focused cases, a
 [`docs/type4-adversarial-coverage.md`](../../docs/type4-adversarial-coverage.md) for the
 current workflow.
 
+Epic closeouts that summarize an admission batch's final replay/blocker disposition live
+beside the frontier artifacts. The #778 audit-ready admission closeout is recorded in
+`issue_778_closeout.v1.json` and `issue_778_closeout.md`.
+
 ## Frontier evidence platform
 
 `frontier_platform.py` is a companion to the prioritizer that ranks axes by **presence

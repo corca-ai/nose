@@ -490,6 +490,20 @@ helpers split. The boltons/fzf replay remains an executable `split` blocker beca
 pair lacks a shared integer-only domain. The open-surface audit now removes #724 from the
 current actionable slice while keeping the real pair as proof-fact-prerequisite evidence.
 
+## Audit-Ready Epic Closeout
+
+Closed #785 by recording the #778 closeout in `issue_778_closeout.v1.json` and
+`issue_778_closeout.md`. The closeout is intentionally conservative: all six in-scope
+audit-ready rows are absent from the current actionable open audit, and every newly
+admitted surface has passing replay evidence or an explicit executable split blocker.
+
+The final replay/blocker matrix keeps Swift collection membership and empty checks as
+replay-backed controlled admissions; Swift string affix, JavaScript `every`, and Rust
+`Iterator::all` as controlled admissions with focused replay plus named boundary splits;
+and Go numeric clamp as a controlled typed-integer bridge while the boltons/fzf real pair
+remains split until fzf-side bound-order and shared integer-domain facts exist. The seven
+remaining open rows stay out of scope as `blocked-by-unmodeled-facts`.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,
