@@ -328,7 +328,9 @@ The committed artifacts are `semantic_pattern_cards.v1.json` and
 for the next proof-backed language-surface admission. It separates rows whose
 neutral facts are modeled from rows that still need surface-specific focused
 positives, adjacent hard negatives, executable expectations, or proof-fact
-modeling.
+modeling. The audit can also carry an epic-specific frozen slice, such as
+`Epic #778 Audit Slice`, so a multi-PR admission batch has one checked source of
+truth for in-scope rows and out-of-scope blocked rows.
 
 ```sh
 python3 bench/type4/open_surface_admission_audit.py

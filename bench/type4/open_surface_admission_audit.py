@@ -38,6 +38,100 @@ PRIORITY_ORDER = {
     "needs-surface-focused-perimeter": 2,
     "blocked-by-unmodeled-facts": 3,
 }
+ACTIONABLE_PRIORITIES = {
+    "proof-fact-ready",
+    "probe-to-focused-candidate",
+    "needs-surface-focused-perimeter",
+}
+
+EPIC_778_ACTIONABLE_ROWS = [
+    {
+        "order": 1,
+        "issue": 779,
+        "pattern_id": "collection.membership.proven-receiver-element",
+        "language": "Swift",
+        "candidate_priority": "probe-to-focused-candidate",
+        "work": "promote Swift collection membership probe evidence into focused admission",
+    },
+    {
+        "order": 2,
+        "issue": 780,
+        "pattern_id": "collection.empty-check.proven-receiver-domain",
+        "language": "Swift",
+        "candidate_priority": "probe-to-focused-candidate",
+        "work": "promote Swift collection empty-check probe evidence into focused admission",
+    },
+    {
+        "order": 3,
+        "issue": 782,
+        "pattern_id": "string.affix.proven-receiver-coordinate",
+        "language": "Swift",
+        "candidate_priority": "probe-to-focused-candidate",
+        "work": "complete the Swift hasPrefix/hasSuffix focused perimeter",
+    },
+    {
+        "order": 4,
+        "issue": 784,
+        "pattern_id": "quantifier.universal.counterexample-loop",
+        "language": "JavaScript",
+        "candidate_priority": "needs-surface-focused-perimeter",
+        "work": "add JavaScript Array.prototype.every focused fixtures and expectations",
+    },
+    {
+        "order": 5,
+        "issue": 783,
+        "pattern_id": "quantifier.universal.counterexample-loop",
+        "language": "Rust",
+        "candidate_priority": "needs-surface-focused-perimeter",
+        "work": "add Rust Iterator::all focused fixtures and expectations",
+    },
+    {
+        "order": 6,
+        "issue": 724,
+        "pattern_id": "numeric.clamp.proven-integer-bounds",
+        "language": "Go",
+        "candidate_priority": "needs-surface-focused-perimeter",
+        "work": "connect Go numeric clamp bound-order and integer-domain proof evidence",
+    },
+]
+
+EPIC_778_OUT_OF_SCOPE_ROWS = [
+    {
+        "pattern_id": "hof.filter-map.option-emission",
+        "language": "Swift",
+        "reason": "needs optional-result channel and callback-effect facts",
+    },
+    {
+        "pattern_id": "hof.flat-map.aggregate-reduction",
+        "language": "Java",
+        "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
+    },
+    {
+        "pattern_id": "hof.flat-map.aggregate-reduction",
+        "language": "Swift",
+        "reason": "needs flat-map source, one-level depth, callback, and aggregate-guard facts",
+    },
+    {
+        "pattern_id": "hof.flat-map.one-level-flatten",
+        "language": "Swift",
+        "reason": "needs one-level flatten, nested-order, emitted-value, and callback facts",
+    },
+    {
+        "pattern_id": "map.default.absence-lookup",
+        "language": "Swift",
+        "reason": "needs dictionary receiver, key/fallback coordinate, and mutation facts",
+    },
+    {
+        "pattern_id": "option.presence-default.proven-channel-coordinate",
+        "language": "Ruby",
+        "reason": "needs absence-channel identity before nil? admission",
+    },
+    {
+        "pattern_id": "option.presence-default.proven-channel-coordinate",
+        "language": "Swift",
+        "reason": "needs absence-channel identity before Optional presence/defaulting admission",
+    },
+]
 
 
 class OpenSurfaceAuditError(RuntimeError):
@@ -476,6 +570,8 @@ def build_report(
         for fact_id in row["required_facts"]:
             by_fact[fact_id].append(entry)
 
+    epic_778_slice = build_epic_778_slice(rows)
+
     return {
         "schema_version": SCHEMA_VERSION,
         "tool_version": TOOL_VERSION,
@@ -493,6 +589,9 @@ def build_report(
         "by_fact": {key: value for key, value in sorted(by_fact.items())},
         "by_language": {key: value for key, value in sorted(by_language.items())},
         "by_surface_status": {key: value for key, value in sorted(by_surface_status.items())},
+        "epic_slices": {
+            "epic_778": epic_778_slice,
+        },
         "rows": rows,
     }
 
@@ -515,6 +614,315 @@ def group_entry_label(entry: dict[str, str]) -> str:
     )
 
 
+def row_selector(pattern_id: str, language: str, candidate_priority_value: str) -> str:
+    return f"{pattern_id}:{language}:{candidate_priority_value}"
+
+
+def row_surface_key(pattern_id: str, language: str) -> str:
+    return f"{pattern_id}:{language}"
+
+
+def epic_row_record(
+    spec: dict[str, Any],
+    row: dict[str, Any] | None,
+    *,
+    current_open_audit_state: str = "present",
+) -> dict[str, Any]:
+    record = {
+        "selector": row_selector(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+        ),
+        "pattern_id": spec["pattern_id"],
+        "language": spec["language"],
+        "candidate_priority": spec["candidate_priority"],
+        "current_open_audit_state": "not-in-current-open-audit",
+    }
+    if "issue" in spec:
+        record["issue"] = spec["issue"]
+    if "order" in spec:
+        record["order"] = spec["order"]
+    if "work" in spec:
+        record["work"] = spec["work"]
+    if "reason" in spec:
+        record["reason"] = spec["reason"]
+    if row is None:
+        return record
+    record.update({
+        "current_open_audit_state": current_open_audit_state,
+        "current_candidate_priority": row["candidate_priority"],
+        "surface_status": row["surface_status"],
+        "surface": row["surface"],
+        "evidence_level": row["evidence_level"],
+        "likely_blocker": row["likely_blocker"],
+        "unmodeled_facts": row["unmodeled_facts"],
+        "surface_focused_support": row["surface_focused_support"],
+        "pattern_focused_support": row["pattern_focused_support"],
+    })
+    return record
+
+
+def build_epic_778_slice(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    rows_by_selector: dict[str, dict[str, Any]] = {}
+    rows_by_surface: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    errors: list[str] = []
+    for row in rows:
+        selector = row_selector(
+            row["pattern_id"],
+            row["language"],
+            row["candidate_priority"],
+        )
+        if selector in rows_by_selector:
+            errors.append(f"duplicate open audit row selector: {selector}")
+        rows_by_selector[selector] = row
+        rows_by_surface[row_surface_key(row["pattern_id"], row["language"])].append(row)
+
+    in_scope: list[dict[str, Any]] = []
+    in_scope_selectors = {
+        row_selector(spec["pattern_id"], spec["language"], spec["candidate_priority"])
+        for spec in EPIC_778_ACTIONABLE_ROWS
+    }
+    in_scope_surface_keys = {
+        row_surface_key(spec["pattern_id"], spec["language"])
+        for spec in EPIC_778_ACTIONABLE_ROWS
+    }
+    for spec in EPIC_778_ACTIONABLE_ROWS:
+        selector = row_selector(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+        )
+        surface_key = row_surface_key(spec["pattern_id"], spec["language"])
+        row = rows_by_selector.get(selector)
+        current_state = "present"
+        if row is None:
+            current_surface_rows = rows_by_surface.get(surface_key, [])
+            if current_surface_rows:
+                row = current_surface_rows[0]
+                current_state = "present-with-different-priority"
+            for current_row in current_surface_rows:
+                if current_row["candidate_priority"] == "blocked-by-unmodeled-facts":
+                    errors.append(
+                        f"epic #778 in-scope row is now blocked by unmodeled facts: "
+                        f"{surface_key}"
+                    )
+        elif row["unmodeled_facts"]:
+            errors.append(
+                f"epic #778 in-scope row has unmodeled facts: {selector}"
+            )
+        in_scope.append(
+            epic_row_record(spec, row, current_open_audit_state=current_state)
+        )
+
+    out_of_scope: list[dict[str, Any]] = []
+    for spec in EPIC_778_OUT_OF_SCOPE_ROWS:
+        spec = {
+            **spec,
+            "candidate_priority": "blocked-by-unmodeled-facts",
+        }
+        selector = row_selector(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+        )
+        row = rows_by_selector.get(selector)
+        current_state = "present"
+        if row is None:
+            current_surface_rows = rows_by_surface.get(
+                row_surface_key(spec["pattern_id"], spec["language"]),
+                [],
+            )
+            if current_surface_rows:
+                row = current_surface_rows[0]
+                current_state = "present-with-different-priority"
+        out_of_scope.append(
+            epic_row_record(spec, row, current_open_audit_state=current_state)
+        )
+
+    current_actionable = [
+        row
+        for row in rows
+        if row["candidate_priority"] in ACTIONABLE_PRIORITIES
+    ]
+    unexpected_actionable = [
+        group_entry(row)
+        for row in current_actionable
+        if row_selector(row["pattern_id"], row["language"], row["candidate_priority"])
+        not in in_scope_selectors
+        and row_surface_key(row["pattern_id"], row["language"])
+        not in in_scope_surface_keys
+    ]
+    current_blocked = [
+        row
+        for row in rows
+        if row["candidate_priority"] == "blocked-by-unmodeled-facts"
+    ]
+    return {
+        "issue": 778,
+        "title": "Audit-ready focused admissions for open Type-4 surfaces",
+        "setup_issue": 781,
+        "closeout_issue": 785,
+        "source": "bench/type4/open_surface_admission_audit.v1.json",
+        "scope_policy": {
+            "in_scope_priorities": [
+                "probe-to-focused-candidate",
+                "needs-surface-focused-perimeter",
+            ],
+            "current_actionable_priorities": sorted(ACTIONABLE_PRIORITIES),
+            "out_of_scope_priorities": ["blocked-by-unmodeled-facts"],
+            "blocked_rows_require_fact_modeling_epic": True,
+        },
+        "summary": {
+            "in_scope_count": len(in_scope),
+            "in_scope_currently_open": sum(
+                1
+                for row in in_scope
+                if row["current_open_audit_state"] != "not-in-current-open-audit"
+            ),
+            "out_of_scope_count": len(out_of_scope),
+            "out_of_scope_currently_open": sum(
+                1
+                for row in out_of_scope
+                if row["current_open_audit_state"] != "not-in-current-open-audit"
+            ),
+            "current_actionable_open_count": len(current_actionable),
+            "current_blocked_open_count": len(current_blocked),
+            "unexpected_actionable_open_count": len(unexpected_actionable),
+            "validation_error_count": len(errors),
+        },
+        "in_scope": sorted(in_scope, key=lambda row: int(row["order"])),
+        "out_of_scope": sorted(
+            out_of_scope,
+            key=lambda row: (row["pattern_id"], row["language"]),
+        ),
+        "unexpected_actionable_open_rows": unexpected_actionable,
+        "validation_errors": errors,
+    }
+
+
+def selftest_row(
+    pattern_id: str,
+    language: str,
+    candidate_priority_value: str,
+    *,
+    unmodeled_facts: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "pattern_id": pattern_id,
+        "language": language,
+        "candidate_priority": candidate_priority_value,
+        "surface_status": "open",
+        "surface": "selftest surface",
+        "evidence_level": "missing",
+        "likely_blocker": "selftest blocker",
+        "unmodeled_facts": unmodeled_facts or [],
+        "surface_focused_support": {
+            "positive": 0,
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+        },
+        "pattern_focused_support": {
+            "positive": 0,
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+        },
+    }
+
+
+def selftest() -> None:
+    rows = [
+        selftest_row(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+        )
+        for spec in EPIC_778_ACTIONABLE_ROWS
+    ] + [
+        selftest_row(
+            spec["pattern_id"],
+            spec["language"],
+            "blocked-by-unmodeled-facts",
+            unmodeled_facts=["selftest.unmodeled-fact"],
+        )
+        for spec in EPIC_778_OUT_OF_SCOPE_ROWS
+    ]
+    slice_report = build_epic_778_slice(rows)
+    if slice_report["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected clean #778 slice, got "
+            + "; ".join(slice_report["validation_errors"])
+        )
+    expected_summary = {
+        "in_scope_count": 6,
+        "in_scope_currently_open": 6,
+        "out_of_scope_count": 7,
+        "out_of_scope_currently_open": 7,
+        "current_actionable_open_count": 6,
+        "current_blocked_open_count": 7,
+        "unexpected_actionable_open_count": 0,
+        "validation_error_count": 0,
+    }
+    if slice_report["summary"] != expected_summary:
+        raise OpenSurfaceAuditError(
+            f"selftest #778 summary drifted: {slice_report['summary']}"
+        )
+
+    resolved_rows = rows[1:]
+    resolved_slice = build_epic_778_slice(resolved_rows)
+    if resolved_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected resolved rows to be allowed, got "
+            + "; ".join(resolved_slice["validation_errors"])
+        )
+
+    changed_priority_rows = rows[1:] + [
+        selftest_row(
+            EPIC_778_ACTIONABLE_ROWS[0]["pattern_id"],
+            EPIC_778_ACTIONABLE_ROWS[0]["language"],
+            "proof-fact-ready",
+        )
+    ]
+    changed_priority_slice = build_epic_778_slice(changed_priority_rows)
+    if changed_priority_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected changed non-blocked priority to be visible, got "
+            + "; ".join(changed_priority_slice["validation_errors"])
+        )
+    changed_priority_entry = changed_priority_slice["in_scope"][0]
+    if (
+        changed_priority_entry["current_open_audit_state"]
+        != "present-with-different-priority"
+        or changed_priority_entry.get("current_candidate_priority") != "proof-fact-ready"
+    ):
+        raise OpenSurfaceAuditError(
+            f"selftest changed priority was not recorded: {changed_priority_entry}"
+        )
+    if changed_priority_slice["summary"]["current_actionable_open_count"] != 6:
+        raise OpenSurfaceAuditError(
+            "selftest proof-fact-ready row was not counted as actionable"
+        )
+    if changed_priority_slice["summary"]["unexpected_actionable_open_count"] != 0:
+        raise OpenSurfaceAuditError(
+            "selftest in-scope proof-fact-ready row was treated as unexpected"
+        )
+
+    regressed_rows = rows[1:] + [
+        selftest_row(
+            EPIC_778_ACTIONABLE_ROWS[0]["pattern_id"],
+            EPIC_778_ACTIONABLE_ROWS[0]["language"],
+            "blocked-by-unmodeled-facts",
+            unmodeled_facts=["selftest.regressed-fact"],
+        )
+    ]
+    regressed_slice = build_epic_778_slice(regressed_rows)
+    if not regressed_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected blocked in-scope regression to fail"
+        )
+    print("selftest OK")
+
+
 def format_value(value: Any) -> str:
     if isinstance(value, list):
         return "[" + ", ".join(str(item) for item in value) + "]"
@@ -531,6 +939,89 @@ def format_count_map(values: dict[str, Any]) -> str:
 
 def markdown_cell(value: Any) -> str:
     return str(value).replace("\n", " ").replace("|", "\\|")
+
+
+def render_epic_778_slice(slice_report: dict[str, Any]) -> list[str]:
+    summary = slice_report["summary"]
+    lines = [
+        "## Epic #778 Audit Slice",
+        "",
+        "This frozen slice tracks the rows selected for #778. It separates the",
+        "current epic's focused-admission work from rows that still require new",
+        "neutral proof facts before admission work is sound.",
+        "",
+        f"- tracker issue: #{slice_report['issue']}",
+        f"- setup issue: #{slice_report['setup_issue']}",
+        f"- closeout issue: #{slice_report['closeout_issue']}",
+        f"- in-scope rows: {summary['in_scope_count']} "
+        f"({summary['in_scope_currently_open']} currently present in the open audit)",
+        f"- out-of-scope blocked rows: {summary['out_of_scope_count']} "
+        f"({summary['out_of_scope_currently_open']} currently present in the open audit)",
+        f"- unexpected actionable open rows: {summary['unexpected_actionable_open_count']}",
+        "",
+        "### In Scope",
+        "",
+        "| order | issue | priority | pattern | language | current state | blocker | work | surface |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for row in slice_report["in_scope"]:
+        current_state = row["current_open_audit_state"]
+        if row.get("current_candidate_priority") != row["candidate_priority"]:
+            current_state = (
+                f"{current_state} (`{row.get('current_candidate_priority', '')}`)"
+            )
+        lines.append(
+            "| "
+            f"{row['order']} | "
+            f"#{row['issue']} | "
+            f"`{row['candidate_priority']}` | "
+            f"`{row['pattern_id']}` | "
+            f"{row['language']} | "
+            f"{current_state} | "
+            f"{markdown_cell(row.get('likely_blocker', ''))} | "
+            f"{markdown_cell(row['work'])} | "
+            f"{markdown_cell(row.get('surface', ''))} |"
+        )
+    lines.extend([
+        "",
+        "### Out Of Scope For #778",
+        "",
+        "| priority | pattern | language | current state | reason | missing facts | surface |",
+        "|---|---|---|---|---|---|---|",
+    ])
+    for row in slice_report["out_of_scope"]:
+        current_state = row["current_open_audit_state"]
+        if row.get("current_candidate_priority") != row["candidate_priority"]:
+            current_state = (
+                f"{current_state} (`{row.get('current_candidate_priority', '')}`)"
+            )
+        lines.append(
+            "| "
+            f"`{row['candidate_priority']}` | "
+            f"`{row['pattern_id']}` | "
+            f"{row['language']} | "
+            f"{current_state} | "
+            f"{markdown_cell(row['reason'])} | "
+            f"{', '.join(f'`{fact}`' for fact in row.get('unmodeled_facts', []))} | "
+            f"{markdown_cell(row.get('surface', ''))} |"
+        )
+    if slice_report["unexpected_actionable_open_rows"]:
+        lines.extend([
+            "",
+            "### Unexpected Actionable Rows",
+            "",
+            "| pattern | language | priority | blocker |",
+            "|---|---|---|---|",
+        ])
+        for row in slice_report["unexpected_actionable_open_rows"]:
+            lines.append(
+                "| "
+                f"`{row['pattern_id']}` | "
+                f"{row['language']} | "
+                f"`{row['candidate_priority']}` | "
+                f"{markdown_cell(row['likely_blocker'])} |"
+            )
+    return lines
 
 
 def render_markdown(report: dict[str, Any]) -> str:
@@ -554,11 +1045,15 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- languages: {format_count_map(summary['by_language'])}",
         f"- unresolved surface evidence refs: {summary['unresolved_surface_evidence_ref_count']}",
         "",
+    ]
+    lines.extend(render_epic_778_slice(report["epic_slices"]["epic_778"]))
+    lines.extend([
+        "",
         "## Candidate Rows",
         "",
         "| priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |",
         "|---|---|---|---|---|---|---|---|---|---|---|",
-    ]
+    ])
     for row in report["rows"]:
         facts = ", ".join(
             f"`{fact}`:{row['fact_statuses'][fact]}" for fact in row["required_facts"]
@@ -704,9 +1199,13 @@ def main() -> int:
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
     parser.add_argument("--markdown-out", type=Path, default=DEFAULT_MARKDOWN_OUT)
     parser.add_argument("--check", action="store_true", help="fail if generated artifacts are stale")
+    parser.add_argument("--selftest", action="store_true", help="run helper self-test")
     args = parser.parse_args()
 
     try:
+        if args.selftest:
+            selftest()
+            return 0
         cards = load_json(args.cards)
         proof_fact_registry = load_json(args.proof_fact_registry)
         focused_cases = load_json(args.focused_cases)
@@ -724,6 +1223,11 @@ def main() -> int:
         if unresolved_ref_count:
             raise OpenSurfaceAuditError(
                 f"{unresolved_ref_count} unresolved open-surface evidence ref(s)"
+            )
+        epic_778_errors = report["epic_slices"]["epic_778"]["validation_errors"]
+        if epic_778_errors:
+            raise OpenSurfaceAuditError(
+                "epic #778 audit slice is invalid: " + "; ".join(epic_778_errors)
             )
         json_text = json.dumps(report, indent=2, sort_keys=True) + "\n"
         markdown = render_markdown(report)

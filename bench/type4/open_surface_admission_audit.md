@@ -16,6 +16,42 @@ surface admission issue without re-triaging every pattern card by hand.
 - languages: Go=1, Java=1, JavaScript=1, Ruby=1, Rust=1, Swift=8
 - unresolved surface evidence refs: 0
 
+## Epic #778 Audit Slice
+
+This frozen slice tracks the rows selected for #778. It separates the
+current epic's focused-admission work from rows that still require new
+neutral proof facts before admission work is sound.
+
+- tracker issue: #778
+- setup issue: #781
+- closeout issue: #785
+- in-scope rows: 6 (6 currently present in the open audit)
+- out-of-scope blocked rows: 7 (7 currently present in the open audit)
+- unexpected actionable open rows: 0
+
+### In Scope
+
+| order | issue | priority | pattern | language | current state | blocker | work | surface |
+|---|---|---|---|---|---|---|---|---|
+| 1 | #779 | `probe-to-focused-candidate` | `collection.membership.proven-receiver-element` | Swift | present | promote probe evidence into focused positives and hard negatives | promote Swift collection membership probe evidence into focused admission | coverage-probe contains over proven collection receivers; mutation closure remains open before full admission |
+| 2 | #780 | `probe-to-focused-candidate` | `collection.empty-check.proven-receiver-domain` | Swift | present | promote probe evidence into focused positives and hard negatives | promote Swift collection empty-check probe evidence into focused admission | isEmpty probe coverage exists for predicate direction; receiver/domain/kind and mutation-proof expansion remains open |
+| 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | present | promote probe evidence into focused positives and hard negatives | complete the Swift hasPrefix/hasSuffix focused perimeter | String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open |
+| 4 | #784 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | present | add surface-specific focused fixtures and executable expectations | add JavaScript Array.prototype.every focused fixtures and expectations | Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed |
+| 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | present | add surface-specific focused fixtures and executable expectations | add Rust Iterator::all focused fixtures and expectations | Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence |
+| 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | present | connect packet evidence to focused executable expectations | connect Go numeric clamp bound-order and integer-domain proof evidence | generic min/max Constrain-style helpers after integer-domain and bound-order proof |
+
+### Out Of Scope For #778
+
+| priority | pattern | language | current state | reason | missing facts | surface |
+|---|---|---|---|---|---|---|
+| `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | present | needs optional-result channel and callback-effect facts | `effect.pure-callback`, `hof.filter-map.drop-condition-coordinate`, `hof.filter-map.emitted-value-coordinate`, `option.absence-channel.identity` | Sequence.compactMap after optional-result channel and callback-effect proof |
+| `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | present | needs flat-map source, one-level depth, callback, and aggregate-guard facts | `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts |
+| `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | present | needs flat-map source, one-level depth, callback, and aggregate-guard facts | `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence |
+| `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | present | needs one-level flatten, nested-order, emitted-value, and callback facts | `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level` | Sequence.flatMap after focused one-level flatten and callback-effect evidence |
+| `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | present | needs dictionary receiver, key/fallback coordinate, and mutation facts | `map.default.absence-fallback`, `map.receiver.source-identity`, `map.default.key-fallback-coordinate`, `map.receiver.no-intervening-mutation` | Dictionary default subscript after receiver-coordinate proof |
+| `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | present | needs absence-channel identity before nil? admission | `option.absence-channel.identity` | nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status |
+| `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | present | needs absence-channel identity before Optional presence/defaulting admission | `option.absence-channel.identity` | Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open |
+
 ## Candidate Rows
 
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |
