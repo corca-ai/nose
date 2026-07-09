@@ -40,22 +40,6 @@
         "pattern_id": "map.default.absence-lookup",
         "surface": "Dictionary default subscript after receiver-coordinate proof",
         "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
       }
     ]
   },
@@ -310,112 +294,6 @@
         "pattern_id": "hof.filter-map.option-emission",
         "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
         "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      }
-    ],
-    "option.api-identity": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      }
-    ],
-    "option.default-fallback-coordinate": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      }
-    ],
-    "option.default-short-circuit": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      }
-    ],
-    "option.presence-direction": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      }
-    ],
-    "option.value-coordinate-identity": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
       }
     ],
     "reduction.identity-empty-behavior": [
@@ -466,16 +344,6 @@
         "surface_status": "open"
       }
     ],
-    "Ruby": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      }
-    ],
     "Swift": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -507,14 +375,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "map.default.absence-lookup",
         "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
         "surface_status": "open"
       }
     ]
@@ -567,24 +427,6 @@
         "surface": "Dictionary default subscript after receiver-coordinate proof",
         "surface_status": "open"
       }
-    ],
-    "option.presence-default.proven-channel-coordinate": [
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-        "surface_status": "open"
-      }
     ]
   },
   "by_surface_status": {
@@ -627,22 +469,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "map.default.absence-lookup",
         "surface": "Dictionary default subscript after receiver-coordinate proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Ruby",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "blocked-by-unmodeled-facts",
-        "language": "Swift",
-        "likely_blocker": "model required facts before detector admission",
-        "pattern_id": "option.presence-default.proven-channel-coordinate",
-        "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
         "surface_status": "open"
       }
     ]
@@ -739,8 +565,7 @@
           "unmodeled_facts": [
             "effect.pure-callback",
             "hof.filter-map.drop-condition-coordinate",
-            "hof.filter-map.emitted-value-coordinate",
-            "option.absence-channel.identity"
+            "hof.filter-map.emitted-value-coordinate"
           ]
         },
         {
@@ -863,55 +688,19 @@
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "coverage-sweep",
+          "current_open_audit_state": "not-in-current-open-audit",
           "language": "Ruby",
-          "likely_blocker": "model required facts before detector admission",
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 1,
-            "positive": 3
-          },
           "pattern_id": "option.presence-default.proven-channel-coordinate",
           "reason": "needs absence-channel identity before nil? admission",
-          "selector": "option.presence-default.proven-channel-coordinate:Ruby:blocked-by-unmodeled-facts",
-          "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "option.absence-channel.identity"
-          ]
+          "selector": "option.presence-default.proven-channel-coordinate:Ruby:blocked-by-unmodeled-facts"
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "probe-only",
+          "current_open_audit_state": "not-in-current-open-audit",
           "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 1,
-            "positive": 3
-          },
           "pattern_id": "option.presence-default.proven-channel-coordinate",
           "reason": "needs absence-channel identity before Optional presence/defaulting admission",
-          "selector": "option.presence-default.proven-channel-coordinate:Swift:blocked-by-unmodeled-facts",
-          "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "option.absence-channel.identity"
-          ]
+          "selector": "option.presence-default.proven-channel-coordinate:Swift:blocked-by-unmodeled-facts"
         }
       ],
       "scope_policy": {
@@ -933,11 +722,11 @@
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
         "current_actionable_open_count": 0,
-        "current_blocked_open_count": 7,
+        "current_blocked_open_count": 5,
         "in_scope_count": 6,
         "in_scope_currently_open": 0,
         "out_of_scope_count": 7,
-        "out_of_scope_currently_open": 7,
+        "out_of_scope_currently_open": 5,
         "unexpected_actionable_open_count": 0,
         "validation_error_count": 0
       },
@@ -950,7 +739,7 @@
       "fact_groups": [
         {
           "fact_statuses": {
-            "option.absence-channel.identity": "specified-not-modeled"
+            "option.absence-channel.identity": "modeled-controlled"
           },
           "facts": [
             "option.absence-channel.identity"
@@ -1106,66 +895,30 @@
       "frozen_rows": [
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "coverage-sweep",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 793,
           "language": "Ruby",
-          "likely_blocker": "model required facts before detector admission",
           "order": 1,
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 1,
-            "positive": 3
-          },
           "pattern_id": "option.presence-default.proven-channel-coordinate",
           "planned_unmodeled_facts": [
             "option.absence-channel.identity"
           ],
           "reason": "only the absence-channel fact is unmodeled, but the focused Ruby nil? perimeter is not sound until that fact lands",
           "selector": "option.presence-default.proven-channel-coordinate:Ruby:blocked-by-unmodeled-facts",
-          "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "option.absence-channel.identity"
-          ],
           "work": "model absence-channel identity before Ruby nil?/nil comparison admission"
         },
         {
           "candidate_priority": "blocked-by-unmodeled-facts",
-          "current_candidate_priority": "blocked-by-unmodeled-facts",
-          "current_open_audit_state": "present",
-          "evidence_level": "probe-only",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 793,
           "language": "Swift",
-          "likely_blocker": "model required facts before detector admission",
           "order": 2,
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 1,
-            "positive": 3
-          },
           "pattern_id": "option.presence-default.proven-channel-coordinate",
           "planned_unmodeled_facts": [
             "option.absence-channel.identity"
           ],
           "reason": "probe evidence exists, but Optional presence/defaulting still needs a proven absence channel before focused admission",
           "selector": "option.presence-default.proven-channel-coordinate:Swift:blocked-by-unmodeled-facts",
-          "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [
-            "option.absence-channel.identity"
-          ],
           "work": "model absence-channel identity before Swift Optional presence/defaulting admission"
         },
         {
@@ -1201,8 +954,7 @@
           "unmodeled_facts": [
             "effect.pure-callback",
             "hof.filter-map.drop-condition-coordinate",
-            "hof.filter-map.emitted-value-coordinate",
-            "option.absence-channel.identity"
+            "hof.filter-map.emitted-value-coordinate"
           ],
           "work": "model Swift compactMap drop-condition and emitted-value coordinates"
         },
@@ -1376,11 +1128,11 @@
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
         "current_actionable_open_count": 0,
-        "current_blocked_open_count": 7,
+        "current_blocked_open_count": 5,
         "fact_group_count": 7,
         "frozen_blocked_count": 7,
-        "frozen_currently_blocked": 7,
-        "frozen_promoted_or_resolved": 0,
+        "frozen_currently_blocked": 5,
+        "frozen_promoted_or_resolved": 2,
         "unexpected_blocked_open_count": 0,
         "validation_error_count": 0
       },
@@ -1399,7 +1151,7 @@
         "hof.filter-map.drop-condition-coordinate": "specified-not-modeled",
         "hof.filter-map.emitted-value-coordinate": "specified-not-modeled",
         "iteration.same-source-identity": "modeled-controlled",
-        "option.absence-channel.identity": "specified-not-modeled"
+        "option.absence-channel.identity": "modeled-controlled"
       },
       "language": "Swift",
       "likely_blocker": "model required facts before detector admission",
@@ -1428,8 +1180,7 @@
       "unmodeled_facts": [
         "effect.pure-callback",
         "hof.filter-map.drop-condition-coordinate",
-        "hof.filter-map.emitted-value-coordinate",
-        "option.absence-channel.identity"
+        "hof.filter-map.emitted-value-coordinate"
       ],
       "unresolved_surface_evidence_refs": []
     },
@@ -1620,136 +1371,6 @@
         "map.receiver.no-intervening-mutation"
       ],
       "unresolved_surface_evidence_refs": []
-    },
-    {
-      "candidate_priority": "blocked-by-unmodeled-facts",
-      "coverage": {
-        "false_merges": 0,
-        "gen_axes": [
-          "null_presence_predicate"
-        ],
-        "hard_negatives": 3,
-        "language_components": [
-          "ruby"
-        ],
-        "matched_languages": [
-          "ruby"
-        ],
-        "missing_languages": [],
-        "positive_hits": 1,
-        "positives": 1,
-        "probe_ready": true,
-        "row_count": 1,
-        "sources": [
-          "sweep"
-        ],
-        "statuses": [
-          "covered"
-        ]
-      },
-      "evidence_level": "coverage-sweep",
-      "fact_statuses": {
-        "option.absence-channel.identity": "specified-not-modeled",
-        "option.api-identity": "modeled-controlled",
-        "option.default-fallback-coordinate": "modeled-controlled",
-        "option.default-short-circuit": "modeled-controlled",
-        "option.presence-direction": "modeled-controlled",
-        "option.value-coordinate-identity": "modeled-controlled"
-      },
-      "language": "Ruby",
-      "likely_blocker": "model required facts before detector admission",
-      "pattern_focused_support": {
-        "hard_negative": 6,
-        "hard_negative_group": 1,
-        "positive": 3
-      },
-      "pattern_id": "option.presence-default.proven-channel-coordinate",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "option.value-coordinate-identity",
-        "option.absence-channel.identity",
-        "option.presence-direction",
-        "option.default-fallback-coordinate",
-        "option.default-short-circuit",
-        "option.api-identity"
-      ],
-      "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-      "surface_evidence": "bench/type4/coverage_evidence.v1.json::null_option_presence/ruby sweep coverage exists, but the focused CLI null-presence family deliberately excludes nil_method.rb",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [
-        "option.absence-channel.identity"
-      ],
-      "unresolved_surface_evidence_refs": []
-    },
-    {
-      "candidate_priority": "blocked-by-unmodeled-facts",
-      "coverage": {
-        "false_merges": 0,
-        "gen_axes": [
-          "probe:null_option_presence"
-        ],
-        "hard_negatives": 1,
-        "language_components": [
-          "swift"
-        ],
-        "matched_languages": [
-          "swift"
-        ],
-        "missing_languages": [],
-        "positive_hits": 1,
-        "positives": 1,
-        "probe_ready": true,
-        "row_count": 1,
-        "sources": [
-          "probe"
-        ],
-        "statuses": [
-          "covered"
-        ]
-      },
-      "evidence_level": "probe-only",
-      "fact_statuses": {
-        "option.absence-channel.identity": "specified-not-modeled",
-        "option.api-identity": "modeled-controlled",
-        "option.default-fallback-coordinate": "modeled-controlled",
-        "option.default-short-circuit": "modeled-controlled",
-        "option.presence-direction": "modeled-controlled",
-        "option.value-coordinate-identity": "modeled-controlled"
-      },
-      "language": "Swift",
-      "likely_blocker": "model required facts before detector admission",
-      "pattern_focused_support": {
-        "hard_negative": 6,
-        "hard_negative_group": 1,
-        "positive": 3
-      },
-      "pattern_id": "option.presence-default.proven-channel-coordinate",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "option.value-coordinate-identity",
-        "option.absence-channel.identity",
-        "option.presence-direction",
-        "option.default-fallback-coordinate",
-        "option.default-short-circuit",
-        "option.api-identity"
-      ],
-      "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
-      "surface_evidence": "bench/type4/coverage_evidence.v1.json::probe:null_option_presence/swift covers a nil-presence probe only",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [
-        "option.absence-channel.identity"
-      ],
-      "unresolved_surface_evidence_refs": []
     }
   ],
   "schema_version": 1,
@@ -1758,22 +1379,19 @@
       "open"
     ],
     "by_evidence_level": {
-      "coverage-sweep": 1,
-      "missing": 5,
-      "probe-only": 1
+      "missing": 5
     },
     "by_language": {
       "Java": 1,
-      "Ruby": 1,
-      "Swift": 5
+      "Swift": 4
     },
     "by_priority": {
-      "blocked-by-unmodeled-facts": 7
+      "blocked-by-unmodeled-facts": 5
     },
     "by_status": {
-      "open": 7
+      "open": 5
     },
-    "open_surface_count": 7,
+    "open_surface_count": 5,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"

@@ -104,18 +104,18 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "4e639e99b4b49b2d4322b5a572b6106980aef9e24866a924814db2c00889dd2a",
-        "size_bytes": 79590
+        "sha256": "549928dcd0d2cc03952bdc1db73de3b13c6f2870d051173abaa43340f4766d61",
+        "size_bytes": 113605
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "5b5e9c5ca243400d3d5eec1fe726f278e5b151e2efc0ef370f54fe5237207365",
-        "size_bytes": 195606
+        "sha256": "99233a00d7a12a081d19cd154a74aa47c1e813e1a548c303774f972cc55feb60",
+        "size_bytes": 259369
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
-        "sha256": "93a484d8aa7870592f6c6e851121575d59b0d70c3d5c2d51770ec08cb5733c7d",
-        "size_bytes": 93932
+        "sha256": "f6a59b02039c2254e4b783afc257682e4a4332aa98ad0e57bd56dabf7b2ac811",
+        "size_bytes": 96334
       },
       "python_loop_demorgan_proof_facts": {
         "path": "bench/type4/python_loop_demorgan_proof_facts.v1.json",
@@ -124,8 +124,8 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "ca93443734d5c5a6944d9b41862afda2e7c616ea564c499713bbba97a43e8d48",
-        "size_bytes": 105706
+        "sha256": "e6a788c39fdacceff97c176b14d9d9358c62b0e86110bfc3acaf7d8b8278aeac",
+        "size_bytes": 108267
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
@@ -134,13 +134,13 @@
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "c2a5acd216bb8a10305e5de7405777aa67f09a0ae2726c3d753309e2bf56fc76",
-        "size_bytes": 34191
+        "sha256": "a301496cca89036293222c5083e1c2b33d2e09344699aba47646086f9291fdfa",
+        "size_bytes": 35184
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "6a8e3adeeb2082643cedd7d02c9b8b4b1575233cb85aa20a9c85ec5f2ec07842",
-        "size_bytes": 106655
+        "sha256": "21e0e8a0142c924851a6544056dfe2c0bccbd517263a1c2c749b341a54f94ed9",
+        "size_bytes": 115528
       }
     },
     "target_packet_identity": {
@@ -1047,6 +1047,504 @@
               "status": "passed"
             },
             {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_alias_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_rebound_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_redefined_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_top_level_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_undef_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "null_option_presence_direction_boundary",
               "expect": "split",
               "expectation_id": "null_option_presence_rust_direction_stays_split",
@@ -1056,6 +1554,36 @@
               "case_id": "null_option_presence_wrong_value_boundary",
               "expect": "split",
               "expectation_id": "null_option_presence_rust_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_custom_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_optional_overloaded_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_rebound_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_wrong_value_stays_split",
               "status": "passed"
             },
             {
@@ -1089,6 +1617,42 @@
               "status": "passed"
             },
             {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_computed_property_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_custom_coalesce_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_effectful_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_optional_custom_coalesce_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_wrong_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "nullish_truthy_default_boundary",
               "expect": "split",
               "expectation_id": "nullish_truthy_default_stays_split",
@@ -1096,29 +1660,125 @@
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 13,
+          "declared_expectation_count": 107,
           "declared_expectation_ids": [
             "null_option_presence_absence_cross_language_matches",
             "null_option_presence_js_direction_stays_split",
             "null_option_presence_present_cross_language_matches",
             "null_option_presence_python_direction_stays_split",
             "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_ruby_alias_nil_stays_split",
+            "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_define_method_nil_stays_split",
+            "null_option_presence_ruby_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_direction_stays_split",
+            "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+            "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_rebound_value_stays_split",
+            "null_option_presence_ruby_redefined_nil_stays_split",
+            "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_singleton_nil_stays_split",
+            "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+            "null_option_presence_ruby_top_level_nil_stays_split",
+            "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+            "null_option_presence_ruby_undef_nil_stays_split",
+            "null_option_presence_ruby_wrong_value_stays_split",
             "null_option_presence_rust_direction_stays_split",
             "null_option_presence_rust_wrong_value_stays_split",
+            "null_option_presence_swift_custom_nil_stays_split",
+            "null_option_presence_swift_direction_stays_split",
+            "null_option_presence_swift_optional_overloaded_nil_stays_split",
+            "null_option_presence_swift_rebound_value_stays_split",
+            "null_option_presence_swift_wrong_value_stays_split",
             "nullish_default_cross_language_matches",
             "nullish_js_wrong_fallback_stays_split",
             "nullish_rust_wrong_fallback_stays_split",
             "nullish_rust_wrong_value_stays_split",
             "nullish_strict_null_stays_split",
+            "nullish_swift_computed_property_fallback_stays_split",
+            "nullish_swift_custom_coalesce_stays_split",
+            "nullish_swift_effectful_fallback_stays_split",
+            "nullish_swift_optional_custom_coalesce_stays_split",
+            "nullish_swift_wrong_fallback_stays_split",
+            "nullish_swift_wrong_value_stays_split",
             "nullish_truthy_default_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
           "manifest_case_ids": [
             "null_option_presence_absence_positive",
+            "null_option_presence_api_mutation_boundary",
             "null_option_presence_direction_boundary",
             "null_option_presence_present_positive",
             "null_option_presence_wrong_value_boundary",
+            "nullish_api_and_short_circuit_boundary",
             "nullish_default_positive",
             "nullish_strict_null_boundary",
             "nullish_truthy_default_boundary",
@@ -1126,8 +1786,10 @@
             "option_result_channel_boundary"
           ],
           "manifest_hard_negative_case_ids": [
+            "null_option_presence_api_mutation_boundary",
             "null_option_presence_direction_boundary",
             "null_option_presence_wrong_value_boundary",
+            "nullish_api_and_short_circuit_boundary",
             "nullish_strict_null_boundary",
             "nullish_truthy_default_boundary",
             "nullish_wrong_coordinate_boundary",
@@ -1144,20 +1806,114 @@
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "null-option-presence-2026-07-08",
-          "passed_expectation_count": 13,
+          "passed_expectation_count": 107,
           "passed_expectation_ids": [
             "null_option_presence_absence_cross_language_matches",
             "null_option_presence_js_direction_stays_split",
             "null_option_presence_present_cross_language_matches",
             "null_option_presence_python_direction_stays_split",
             "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_ruby_alias_nil_stays_split",
+            "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_define_method_nil_stays_split",
+            "null_option_presence_ruby_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_direction_stays_split",
+            "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+            "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_rebound_value_stays_split",
+            "null_option_presence_ruby_redefined_nil_stays_split",
+            "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_singleton_nil_stays_split",
+            "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+            "null_option_presence_ruby_top_level_nil_stays_split",
+            "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+            "null_option_presence_ruby_undef_nil_stays_split",
+            "null_option_presence_ruby_wrong_value_stays_split",
             "null_option_presence_rust_direction_stays_split",
             "null_option_presence_rust_wrong_value_stays_split",
+            "null_option_presence_swift_custom_nil_stays_split",
+            "null_option_presence_swift_direction_stays_split",
+            "null_option_presence_swift_optional_overloaded_nil_stays_split",
+            "null_option_presence_swift_rebound_value_stays_split",
+            "null_option_presence_swift_wrong_value_stays_split",
             "nullish_default_cross_language_matches",
             "nullish_js_wrong_fallback_stays_split",
             "nullish_rust_wrong_fallback_stays_split",
             "nullish_rust_wrong_value_stays_split",
             "nullish_strict_null_stays_split",
+            "nullish_swift_computed_property_fallback_stays_split",
+            "nullish_swift_custom_coalesce_stays_split",
+            "nullish_swift_effectful_fallback_stays_split",
+            "nullish_swift_optional_custom_coalesce_stays_split",
+            "nullish_swift_wrong_fallback_stays_split",
+            "nullish_swift_wrong_value_stays_split",
             "nullish_truthy_default_stays_split"
           ],
           "stale_expectation_count": 0,
@@ -1606,7 +2362,7 @@
         }
       ],
       "summary": {
-        "declared_expectation_count": 157,
+        "declared_expectation_count": 251,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -1616,13 +2372,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 157,
+        "passed": 251,
         "query_count": 20,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 157,
+        "result_count": 251,
         "stale": 0
       }
     },
@@ -1826,6 +2582,8 @@
           "nullish_truthy_default_boundary",
           "nullish_strict_null_boundary",
           "nullish_wrong_coordinate_boundary",
+          "null_option_presence_api_mutation_boundary",
+          "nullish_api_and_short_circuit_boundary",
           "option_result_channel_boundary"
         ],
         "packet_id": "null-option-presence-2026-07-08",
@@ -1843,6 +2601,8 @@
           "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_api_mutation_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::nullish_api_and_short_circuit_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
           "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
           "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
@@ -1850,6 +2610,8 @@
           "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_js_object_guard_nullish_boundary",
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
           "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+          "crates/nose-cli/tests/equivalence/option_boundaries.rs::ruby_nil_predicate_converges_with_null_absence_and_preserves_boundaries",
+          "crates/nose-cli/tests/equivalence/option_boundaries.rs::swift_optional_nil_presence_requires_optional_coordinate",
           "crates/nose-cli/tests/equivalence/option_boundaries.rs::repeated_nullish_default_with_same_fallback_collapses",
           "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
           "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates"
@@ -3587,15 +4349,15 @@
         "candidate_axis": "null_option_presence",
         "detector_admission": {
           "capabilities": [
-            "converges absence predicates across C, Go, Java, JS, TS, Python, and Rust Option surfaces when value evidence and the absence-channel boundary match",
+            "converges absence predicates across C, Go, Java, JS, TS, Python, Ruby core nil?, Swift Optional nil comparisons, and Rust Option surfaces when value evidence and the absence-channel boundary match",
             "converges present predicates separately from absence predicates",
-            "converges JS/TS nullish defaulting and Rust Option::unwrap_or for pure or already-evaluated fallback coordinates",
-            "preserves direction, wrong value, wrong fallback, truthy defaulting, strict-null defaulting, Result-channel, shadowed constructor, effectful fallback timing, and API identity boundaries"
+            "converges JS/TS nullish defaulting, Swift Optional ??, and Rust Option::unwrap_or for pure or already-evaluated fallback coordinates",
+            "preserves direction, wrong value, wrong fallback, truthy defaulting, strict-null defaulting, Result-channel, shadowed constructor, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modification, Swift operator overload, Swift computed-property fallback, effectful fallback timing, and API identity boundaries"
           ],
-          "hard_negative_gate_count": 10,
-          "positive_gate_count": 10,
+          "hard_negative_gate_count": 12,
+          "positive_gate_count": 12,
           "remaining_real_pair_gap": "a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission",
-          "scope": "controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence",
+          "scope": "controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, modeled absence-channel boundary, direction, fallback, default-trigger, and API identity evidence",
           "status": "controlled-slice-admitted"
         },
         "evidence_case_ids": [
@@ -3635,6 +4397,504 @@
               "status": "passed"
             },
             {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_alias_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_rebound_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_redefined_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_top_level_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_undef_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_ruby_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "null_option_presence_direction_boundary",
               "expect": "split",
               "expectation_id": "null_option_presence_rust_direction_stays_split",
@@ -3644,6 +4904,36 @@
               "case_id": "null_option_presence_wrong_value_boundary",
               "expect": "split",
               "expectation_id": "null_option_presence_rust_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_custom_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_direction_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_direction_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_optional_overloaded_nil_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_api_mutation_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_rebound_value_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "null_option_presence_wrong_value_boundary",
+              "expect": "split",
+              "expectation_id": "null_option_presence_swift_wrong_value_stays_split",
               "status": "passed"
             },
             {
@@ -3677,6 +4967,42 @@
               "status": "passed"
             },
             {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_computed_property_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_custom_coalesce_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_effectful_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_api_and_short_circuit_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_optional_custom_coalesce_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_wrong_fallback_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "nullish_wrong_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "nullish_swift_wrong_value_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "nullish_truthy_default_boundary",
               "expect": "split",
               "expectation_id": "nullish_truthy_default_stays_split",
@@ -3684,29 +5010,125 @@
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 13,
+          "declared_expectation_count": 107,
           "declared_expectation_ids": [
             "null_option_presence_absence_cross_language_matches",
             "null_option_presence_js_direction_stays_split",
             "null_option_presence_present_cross_language_matches",
             "null_option_presence_python_direction_stays_split",
             "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_ruby_alias_nil_stays_split",
+            "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_define_method_nil_stays_split",
+            "null_option_presence_ruby_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_direction_stays_split",
+            "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+            "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_rebound_value_stays_split",
+            "null_option_presence_ruby_redefined_nil_stays_split",
+            "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_singleton_nil_stays_split",
+            "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+            "null_option_presence_ruby_top_level_nil_stays_split",
+            "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+            "null_option_presence_ruby_undef_nil_stays_split",
+            "null_option_presence_ruby_wrong_value_stays_split",
             "null_option_presence_rust_direction_stays_split",
             "null_option_presence_rust_wrong_value_stays_split",
+            "null_option_presence_swift_custom_nil_stays_split",
+            "null_option_presence_swift_direction_stays_split",
+            "null_option_presence_swift_optional_overloaded_nil_stays_split",
+            "null_option_presence_swift_rebound_value_stays_split",
+            "null_option_presence_swift_wrong_value_stays_split",
             "nullish_default_cross_language_matches",
             "nullish_js_wrong_fallback_stays_split",
             "nullish_rust_wrong_fallback_stays_split",
             "nullish_rust_wrong_value_stays_split",
             "nullish_strict_null_stays_split",
+            "nullish_swift_computed_property_fallback_stays_split",
+            "nullish_swift_custom_coalesce_stays_split",
+            "nullish_swift_effectful_fallback_stays_split",
+            "nullish_swift_optional_custom_coalesce_stays_split",
+            "nullish_swift_wrong_fallback_stays_split",
+            "nullish_swift_wrong_value_stays_split",
             "nullish_truthy_default_stays_split"
           ],
           "failed_expectation_count": 0,
           "failed_expectation_ids": [],
           "manifest_case_ids": [
             "null_option_presence_absence_positive",
+            "null_option_presence_api_mutation_boundary",
             "null_option_presence_direction_boundary",
             "null_option_presence_present_positive",
             "null_option_presence_wrong_value_boundary",
+            "nullish_api_and_short_circuit_boundary",
             "nullish_default_positive",
             "nullish_strict_null_boundary",
             "nullish_truthy_default_boundary",
@@ -3714,8 +5136,10 @@
             "option_result_channel_boundary"
           ],
           "manifest_hard_negative_case_ids": [
+            "null_option_presence_api_mutation_boundary",
             "null_option_presence_direction_boundary",
             "null_option_presence_wrong_value_boundary",
+            "nullish_api_and_short_circuit_boundary",
             "nullish_strict_null_boundary",
             "nullish_truthy_default_boundary",
             "nullish_wrong_coordinate_boundary",
@@ -3732,26 +5156,120 @@
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "null-option-presence-2026-07-08",
-          "passed_expectation_count": 13,
+          "passed_expectation_count": 107,
           "passed_expectation_ids": [
             "null_option_presence_absence_cross_language_matches",
             "null_option_presence_js_direction_stays_split",
             "null_option_presence_present_cross_language_matches",
             "null_option_presence_python_direction_stays_split",
             "null_option_presence_python_wrong_value_stays_split",
+            "null_option_presence_ruby_alias_nil_stays_split",
+            "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_define_method_nil_stays_split",
+            "null_option_presence_ruby_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_direction_stays_split",
+            "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+            "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+            "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_rebound_value_stays_split",
+            "null_option_presence_ruby_redefined_nil_stays_split",
+            "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_singleton_nil_stays_split",
+            "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+            "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+            "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+            "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+            "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+            "null_option_presence_ruby_top_level_nil_stays_split",
+            "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+            "null_option_presence_ruby_undef_nil_stays_split",
+            "null_option_presence_ruby_wrong_value_stays_split",
             "null_option_presence_rust_direction_stays_split",
             "null_option_presence_rust_wrong_value_stays_split",
+            "null_option_presence_swift_custom_nil_stays_split",
+            "null_option_presence_swift_direction_stays_split",
+            "null_option_presence_swift_optional_overloaded_nil_stays_split",
+            "null_option_presence_swift_rebound_value_stays_split",
+            "null_option_presence_swift_wrong_value_stays_split",
             "nullish_default_cross_language_matches",
             "nullish_js_wrong_fallback_stays_split",
             "nullish_rust_wrong_fallback_stays_split",
             "nullish_rust_wrong_value_stays_split",
             "nullish_strict_null_stays_split",
+            "nullish_swift_computed_property_fallback_stays_split",
+            "nullish_swift_custom_coalesce_stays_split",
+            "nullish_swift_effectful_fallback_stays_split",
+            "nullish_swift_optional_custom_coalesce_stays_split",
+            "nullish_swift_wrong_fallback_stays_split",
+            "nullish_swift_wrong_value_stays_split",
             "nullish_truthy_default_stays_split"
           ],
           "stale_expectation_count": 0,
           "stale_expectation_ids": []
         },
-        "hard_negative_count": 7,
+        "hard_negative_count": 9,
         "hard_negative_group_ids": [
           "null-option-presence-proof-perimeter"
         ],
@@ -3782,14 +5300,30 @@
               "title": "Option value coordinate identity"
             },
             {
-              "controlled_evidence": null,
-              "current_real_pair_status": "specified as the shared channel boundary: falsey present payloads, nested/present values, and custom option-like helpers stay outside exact admission without channel proof; the current slice cites the boundary but does not promote this fact to modeled-controlled",
+              "controlled_evidence": {
+                "artifacts": [
+                  "bench/type4/adversarial/cases/cases.v1.json",
+                  "crates/nose-cli/tests/equivalence/option_boundaries.rs"
+                ],
+                "refs": [
+                  "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+                  "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_api_mutation_boundary",
+                  "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+                  "bench/type4/adversarial/cases/cases.v1.json::nullish_api_and_short_circuit_boundary",
+                  "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+                  "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+                  "crates/nose-cli/tests/equivalence/option_boundaries.rs::ruby_nil_predicate_converges_with_null_absence_and_preserves_boundaries",
+                  "crates/nose-cli/tests/equivalence/option_boundaries.rs::swift_optional_nil_presence_requires_optional_coordinate"
+                ],
+                "validated_ref_count": 8
+              },
+              "current_real_pair_status": "satisfied for focused nullish/null/Option surfaces including Ruby core nil? and Swift Optional nil/??: falsey present payloads, nested/present values, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift operator overloads, Result channels, and custom option-like helpers stay outside exact admission without channel proof",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
               ],
               "fact_id": "option.absence-channel.identity",
-              "registry_status": "specified-not-modeled",
+              "registry_status": "modeled-controlled",
               "semantic_family": "option.absence_channel",
               "title": "Option absence channel identity"
             },
@@ -3807,7 +5341,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused defaulting fixtures: JS/TS/Rust defaulting converges when fallback coordinates match while wrong fallbacks stay split",
+              "current_real_pair_status": "satisfied for focused defaulting fixtures: JS/TS/Swift/Rust defaulting converges when fallback coordinates match while wrong fallbacks stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3819,7 +5353,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused JS/TS/Rust pure/already-evaluated fallback boundaries: nullish/Option defaults stay split from truthy, strict-null, shadowed-undefined, and wrong-default variants; eager/lazy effectful fallback timing remains outside this claim",
+              "current_real_pair_status": "satisfied for focused JS/TS/Swift/Rust pure/already-evaluated fallback boundaries: nullish/Option defaults stay split from truthy, strict-null, shadowed-undefined, wrong-default variants, Swift computed-property fallbacks, and broader eager/lazy effectful fallback timing",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3831,7 +5365,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused standard nullish/null/Option surfaces plus Java Optional type-domain evidence; bare Optional, Result channels, shadowed constructors, and custom same-name helpers stay closed",
+              "current_real_pair_status": "satisfied for focused standard nullish/null/Option surfaces plus Java Optional type-domain evidence, Ruby core nil? identity, and Swift Optional nil/?? evidence; bare Optional, Result channels, shadowed constructors, Ruby literal/dynamic/send/public_send/immediate-or-stored Method#call modified nil?, Swift custom operators, and custom same-name helpers stay closed",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3842,9 +5376,9 @@
               "title": "Option API and channel identity"
             }
           ],
-          "model_status": "modeled-controlled-plus-specified-channel-boundary"
+          "model_status": "modeled-controlled"
         },
-        "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.",
+        "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift custom operator domains, Swift computed-property fallbacks, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and broader effectful fallback expressions must remain non-equivalent.",
         "readiness": {
           "blocking_items": [],
           "can_open_exact_admission": false,
@@ -3904,8 +5438,8 @@
           "null-option-presence-present-focused-controlled-pair",
           "nullish-default-focused-controlled-pair"
         ],
-        "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.",
-        "why_now": "null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts."
+        "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting, Ruby core nil?, Swift Optional nil/??, and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift nil/?? overload or computed fallback domains, and unproven option-like APIs remain outside the exact family.",
+        "why_now": "null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, modeled absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts."
       },
       {
         "candidate_axis": "reduce_minmax_anyall",

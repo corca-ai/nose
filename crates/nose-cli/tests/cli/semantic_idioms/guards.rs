@@ -5,44 +5,44 @@ mod nullish_and_object;
 
 #[test]
 fn query_mode_semantic_proves_null_presence_predicates() {
-    let dir = std::env::temp_dir().join(format!("nose_null_presence_{}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(
-        dir.join("none_compare.py"),
-        "def is_missing(value, other):\n    return value is None\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("null_compare.c"),
-        "#include <stddef.h>\n\nint is_missing(void *value, void *other) {\n    return value == NULL;\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("nil_method.rb"),
-        "def is_missing(value, other)\n  value.nil?\nend\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("none_method.rs"),
-        "pub fn is_missing(value: Option<i32>, other: Option<i32>) -> bool {\n    value.is_none()\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("iflet_none.rs"),
-        "pub fn is_missing(value: Option<i32>, other: Option<i32>) -> bool {\n    if let None = value { true } else { false }\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("some_method.rs"),
-        "pub fn is_present(value: Option<i32>, other: Option<i32>) -> bool {\n    value.is_some()\n}\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("wrong_value.py"),
-        "def wrong_value(value, other):\n    return other is None\n",
-    )
-    .unwrap();
+    let dir = make_temp_dir("null_presence");
+    write_files(
+        &dir,
+        &[
+            (
+                "none_compare.py",
+                "def is_missing(value, other):\n    return value is None\n",
+            ),
+            (
+                "null_compare.c",
+                "#include <stddef.h>\n\nint is_missing(void *value, void *other) {\n    return value == NULL;\n}\n",
+            ),
+            (
+                "nil_method.rb",
+                "def is_missing(value, other)\n  value.nil?\nend\n",
+            ),
+            (
+                "swift_nil.swift",
+                "func isMissing(_ value: Int?, _ other: Int?) -> Bool {\n    return value == nil\n}\n",
+            ),
+            (
+                "none_method.rs",
+                "pub fn is_missing(value: Option<i32>, other: Option<i32>) -> bool {\n    value.is_none()\n}\n",
+            ),
+            (
+                "iflet_none.rs",
+                "pub fn is_missing(value: Option<i32>, other: Option<i32>) -> bool {\n    if let None = value { true } else { false }\n}\n",
+            ),
+            (
+                "some_method.rs",
+                "pub fn is_present(value: Option<i32>, other: Option<i32>) -> bool {\n    value.is_some()\n}\n",
+            ),
+            (
+                "wrong_value.py",
+                "def wrong_value(value, other):\n    return other is None\n",
+            ),
+        ],
+    );
 
     let semantic = query_min_json(&dir, "semantic");
     let semantic_json = query_json(&semantic);
@@ -56,6 +56,8 @@ fn query_mode_semantic_proves_null_presence_predicates() {
     for expected in [
         "none_compare.py",
         "null_compare.c",
+        "nil_method.rb",
+        "swift_nil.swift",
         "none_method.rs",
         "iflet_none.rs",
     ] {
@@ -64,7 +66,7 @@ fn query_mode_semantic_proves_null_presence_predicates() {
             "semantic mode should include {expected}: {semantic}"
         );
     }
-    for unexpected in ["nil_method.rb", "some_method.rs", "wrong_value.py"] {
+    for unexpected in ["some_method.rs", "wrong_value.py"] {
         assert!(
             !semantic_text.contains(unexpected),
             "semantic mode must preserve null-presence boundaries: {semantic}"

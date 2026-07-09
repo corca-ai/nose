@@ -1,5 +1,5 @@
 use super::*;
-use nose_semantics::js_like_lang;
+use nose_semantics::{js_like_lang, ruby_core_nil_predicate_unmodified_in_file};
 
 #[derive(Clone, Copy)]
 pub(super) enum ProvenReceiver {
@@ -48,6 +48,10 @@ pub(super) fn prove_method_receiver(
         }
         MethodReceiverContract::ExactOption => exact_option_receiver(old, interner, domains, base)
             .then_some(ProvenReceiver::Direct(base)),
+        MethodReceiverContract::RubyCoreNilPredicate => {
+            ruby_core_nil_predicate_receiver(old, interner, base)
+                .then_some(ProvenReceiver::Direct(base))
+        }
         MethodReceiverContract::ExactResult => domains
             .receiver_satisfies_domain(base, DomainRequirement::RESULT)
             .then_some(ProvenReceiver::Direct(base)),
@@ -106,6 +110,10 @@ pub(super) fn prove_method_receiver(
             }
         }
     }
+}
+
+fn ruby_core_nil_predicate_receiver(old: &Il, interner: &Interner, base: NodeId) -> bool {
+    ruby_core_nil_predicate_unmodified_in_file(old, interner, old.node(base).span)
 }
 
 pub(super) fn apply_method_contract(

@@ -309,6 +309,7 @@ fn method_receiver_contract_key(receiver: MethodReceiverContract) -> String {
         }
         MethodReceiverContract::ExactSetOrMap => "exact_set_or_map".into(),
         MethodReceiverContract::LiteralString => "literal_string".into(),
+        MethodReceiverContract::RubyCoreNilPredicate => "ruby_core_nil_predicate".into(),
         MethodReceiverContract::UnshadowedGlobal(name) => format!("unshadowed_global:{name}"),
         MethodReceiverContract::ImportedNamespace(module) => {
             format!("imported_namespace:{module}")

@@ -200,6 +200,12 @@ set -euo pipefail
 # delta is representative churn from `44bfd76822ddbe95` to `2fb6d5f9c8c6d045` for the
 # same value-graph collection whole-impl span-noise class. Reviewed in docs/dogfooding-history.md;
 # no new budget is accepted.
+# 30 -> 31 (option absence-channel identity): avoidable null-presence semantic-query
+# fixture scaffolding was deduped with shared temp-project helpers. The remaining delta is
+# representative churn for reviewed semantic-query harness families plus a tiny production
+# enum-projection overlap between MethodReceiverContract's domain-requirement table and
+# stable contract-key table after adding RubyCoreNilPredicate. Reviewed in
+# docs/dogfooding-history.md; accepted as explicit policy-table span noise.
 BIN="${NOSE_BIN:-./target/release/nose}"
 BASELINE="${NOSE_DUP_BASELINE:-scripts/duplication-baseline.json}"
 

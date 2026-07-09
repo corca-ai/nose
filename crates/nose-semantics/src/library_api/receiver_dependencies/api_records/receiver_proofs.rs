@@ -97,6 +97,12 @@ pub(super) fn receiver_contract_dependency_match(
     {
         return true;
     }
+    if contract == MethodReceiverContract::RubyCoreNilPredicate {
+        let Some(interner) = interner else {
+            return false;
+        };
+        return ruby_core_nil_predicate_safe_in_file(il, interner, receiver);
+    }
     if contract == MethodReceiverContract::RustMapGetOrExactOption
         && evidence_depends_on_library_api_contract(
             il,

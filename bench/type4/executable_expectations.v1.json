@@ -1,8 +1,8 @@
 {
-  "expectation_count": 157,
+  "expectation_count": 251,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 157,
+  "passed": 251,
   "query_count": 20,
   "results": [
     {
@@ -862,6 +862,12 @@
           },
           {
             "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+            "name": "rb_missing",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
             "name": "rust_missing",
             "start": 1
@@ -871,6 +877,12 @@
             "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
             "name": "rust_iflet_missing",
             "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+            "name": "swiftMissing",
+            "start": 1
           },
           {
             "end": 3,
@@ -885,7 +897,7 @@
             "start": 1
           }
         ],
-        "value": 81.2,
+        "value": 109.79512146747804,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -923,10 +935,22 @@
             "start": 5
           },
           {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+            "name": "rb_present",
+            "start": 5
+          },
+          {
             "end": 11,
             "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
             "name": "rust_present",
             "start": 9
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+            "name": "swiftPresent",
+            "start": 5
           },
           {
             "end": 7,
@@ -941,7 +965,7 @@
             "start": 5
           }
         ],
-        "value": 69.6,
+        "value": 105.28183258569794,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -980,6 +1004,12 @@
           },
           {
             "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+            "name": "swiftCoalesce",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
             "name": "tsCoalesce",
             "start": 1
@@ -991,7 +1021,7 @@
             "start": 5
           }
         ],
-        "value": 52.0,
+        "value": 81.6,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -1025,6 +1055,24 @@
       "ok": true
     },
     {
+      "case_id": "null_option_presence_direction_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_direction_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_direction_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_swift_direction_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
       "case_id": "null_option_presence_wrong_value_boundary",
       "expect": "split",
       "expectation_id": "null_option_presence_python_wrong_value_stays_split",
@@ -1037,6 +1085,24 @@
       "case_id": "null_option_presence_wrong_value_boundary",
       "expect": "split",
       "expectation_id": "null_option_presence_rust_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_wrong_value_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_wrong_value_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_swift_wrong_value_stays_split",
       "fixture": "bench/type4/adversarial/cases/null_option_presence",
       "matching_family": null,
       "observed": "split",
@@ -1082,6 +1148,816 @@
       "case_id": "nullish_wrong_coordinate_boundary",
       "expect": "split",
       "expectation_id": "nullish_rust_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_wrong_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_swift_wrong_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_wrong_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_swift_wrong_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_redefined_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_rebound_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_singleton_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_top_level_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_alias_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_undef_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_define_singleton_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_swift_custom_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_swift_optional_overloaded_nil_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "null_option_presence_api_mutation_boundary",
+      "expect": "split",
+      "expectation_id": "null_option_presence_swift_rebound_value_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_api_and_short_circuit_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_swift_effectful_fallback_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_api_and_short_circuit_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_swift_custom_coalesce_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_api_and_short_circuit_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_swift_optional_custom_coalesce_stays_split",
+      "fixture": "bench/type4/adversarial/cases/null_option_presence",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "nullish_api_and_short_circuit_boundary",
+      "expect": "split",
+      "expectation_id": "nullish_swift_computed_property_fallback_stays_split",
       "fixture": "bench/type4/adversarial/cases/null_option_presence",
       "matching_family": null,
       "observed": "split",

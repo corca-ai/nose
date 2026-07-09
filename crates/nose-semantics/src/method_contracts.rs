@@ -20,6 +20,7 @@ pub enum MethodReceiverContract {
     ExactCollectionOrJavaKeySet,
     ExactSetOrMap,
     LiteralString,
+    RubyCoreNilPredicate,
     UnshadowedGlobal(&'static str),
     ImportedNamespace(&'static str),
     RustMapGetOrExactOption,
@@ -54,6 +55,7 @@ pub fn method_receiver_domain_requirement(
         }
         MethodReceiverContract::ExactSetOrMap => Some(DomainRequirement::SET_OR_MAP),
         MethodReceiverContract::ExactMapLiteral
+        | MethodReceiverContract::RubyCoreNilPredicate
         | MethodReceiverContract::UnshadowedGlobal(_)
         | MethodReceiverContract::ImportedNamespace(_) => None,
     }
@@ -374,9 +376,12 @@ pub(super) fn method_cardinality_contract_shape(
             Receiver::ExactCollection,
             Args::ReceiverOnly,
         ),
-        (Lang::Ruby, "nil?", 0) | (Lang::Rust, "is_none", 0) => {
-            (Builtin::IsNull, Receiver::ExactOption, Args::ReceiverOnly)
-        }
+        (Lang::Ruby, "nil?", 0) => (
+            Builtin::IsNull,
+            Receiver::RubyCoreNilPredicate,
+            Args::ReceiverOnly,
+        ),
+        (Lang::Rust, "is_none", 0) => (Builtin::IsNull, Receiver::ExactOption, Args::ReceiverOnly),
         (Lang::Java, "isPresent", 0) => (
             Builtin::IsNotNull,
             Receiver::ExactOption,

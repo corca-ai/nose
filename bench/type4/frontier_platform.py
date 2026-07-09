@@ -1376,12 +1376,12 @@ TARGET_PACKETS = [
         "owner_issue": "#757",
         "why_now": "null_option_presence has very broad coverage and the largest raw occurrence "
         "signal in the frontier platform, but this packet records only the controlled proof "
-        "perimeter: value coordinate, specified absence-channel boundary, presence direction, "
+        "perimeter: value coordinate, modeled absence-channel boundary, presence direction, "
         "fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, "
         "Optional, and Option surfaces attach to neutral facts instead of per-language null "
         "selector shortcuts.",
         "proof_fact_model": {
-            "model_status": "modeled-controlled-plus-specified-channel-boundary",
+            "model_status": "modeled-controlled",
             "facts": [
                 {
                     "fact_id": "option.value-coordinate-identity",
@@ -1389,7 +1389,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "option.absence-channel.identity",
-                    "current_real_pair_status": "specified as the shared channel boundary: falsey present payloads, nested/present values, and custom option-like helpers stay outside exact admission without channel proof; the current slice cites the boundary but does not promote this fact to modeled-controlled",
+                    "current_real_pair_status": "satisfied for focused nullish/null/Option surfaces including Ruby core nil? and Swift Optional nil/??: falsey present payloads, nested/present values, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift operator overloads, Result channels, and custom option-like helpers stay outside exact admission without channel proof",
                 },
                 {
                     "fact_id": "option.presence-direction",
@@ -1397,15 +1397,15 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "option.default-fallback-coordinate",
-                    "current_real_pair_status": "satisfied for focused defaulting fixtures: JS/TS/Rust defaulting converges when fallback coordinates match while wrong fallbacks stay split",
+                    "current_real_pair_status": "satisfied for focused defaulting fixtures: JS/TS/Swift/Rust defaulting converges when fallback coordinates match while wrong fallbacks stay split",
                 },
                 {
                     "fact_id": "option.default-short-circuit",
-                    "current_real_pair_status": "satisfied for focused JS/TS/Rust pure/already-evaluated fallback boundaries: nullish/Option defaults stay split from truthy, strict-null, shadowed-undefined, and wrong-default variants; eager/lazy effectful fallback timing remains outside this claim",
+                    "current_real_pair_status": "satisfied for focused JS/TS/Swift/Rust pure/already-evaluated fallback boundaries: nullish/Option defaults stay split from truthy, strict-null, shadowed-undefined, wrong-default variants, Swift computed-property fallbacks, and broader eager/lazy effectful fallback timing",
                 },
                 {
                     "fact_id": "option.api-identity",
-                    "current_real_pair_status": "satisfied for focused standard nullish/null/Option surfaces plus Java Optional type-domain evidence; bare Optional, Result channels, shadowed constructors, and custom same-name helpers stay closed",
+                    "current_real_pair_status": "satisfied for focused standard nullish/null/Option surfaces plus Java Optional type-domain evidence, Ruby core nil? identity, and Swift Optional nil/?? evidence; bare Optional, Result channels, shadowed constructors, Ruby literal/dynamic/send/public_send/immediate-or-stored Method#call modified nil?, Swift custom operators, and custom same-name helpers stay closed",
                 },
             ],
             "focused_tests": [
@@ -1417,12 +1417,16 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_api_mutation_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_api_and_short_circuit_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
                 "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
                 "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
                 "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_strict_nullish_default_boundaries",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
                 "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::ruby_nil_predicate_converges_with_null_absence_and_preserves_boundaries",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::swift_optional_nil_presence_requires_optional_coordinate",
                 "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
                 "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates",
                 "bench/type4/coverage_evidence.v1.json::null_option_presence",
@@ -1431,13 +1435,13 @@ TARGET_PACKETS = [
         },
         "detector_admission": {
             "status": "controlled-slice-admitted",
-            "scope": "controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence",
+            "scope": "controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, modeled absence-channel boundary, direction, fallback, default-trigger, and API identity evidence",
             "remaining_real_pair_gap": "a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission",
             "capabilities": [
-                "converges absence predicates across C, Go, Java, JS, TS, Python, and Rust Option surfaces when value evidence and the absence-channel boundary match",
+                "converges absence predicates across C, Go, Java, JS, TS, Python, Ruby core nil?, Swift Optional nil comparisons, and Rust Option surfaces when value evidence and the absence-channel boundary match",
                 "converges present predicates separately from absence predicates",
-                "converges JS/TS nullish defaulting and Rust Option::unwrap_or for pure or already-evaluated fallback coordinates",
-                "preserves direction, wrong value, wrong fallback, truthy defaulting, strict-null defaulting, Result-channel, shadowed constructor, effectful fallback timing, and API identity boundaries",
+                "converges JS/TS nullish defaulting, Swift Optional ??, and Rust Option::unwrap_or for pure or already-evaluated fallback coordinates",
+                "preserves direction, wrong value, wrong fallback, truthy defaulting, strict-null defaulting, Result-channel, shadowed constructor, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modification, Swift operator overload, Swift computed-property fallback, effectful fallback timing, and API identity boundaries",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
@@ -1447,6 +1451,8 @@ TARGET_PACKETS = [
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
                 "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
                 "crates/nose-cli/tests/equivalence/option_boundaries.rs::repeated_nullish_default_with_same_fallback_collapses",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::ruby_nil_predicate_converges_with_null_absence_and_preserves_boundaries",
+                "crates/nose-cli/tests/equivalence/option_boundaries.rs::swift_optional_nil_presence_requires_optional_coordinate",
                 "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
                 "bench/type4/coverage_evidence.v1.json::null_option_presence",
                 "bench/type4/coverage_evidence.v1.json::nullish_default",
@@ -1457,6 +1463,8 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_api_mutation_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::nullish_api_and_short_circuit_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
                 "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
                 "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_strict_nullish_default_boundaries",
@@ -1466,9 +1474,10 @@ TARGET_PACKETS = [
         },
         "blocked_by": [],
         "notes": "This packet records the current null/Option presence/defaulting perimeter as "
-        "reusable proof facts. It intentionally leaves Ruby nil? focused admission, Swift full "
-        "Optional admission, Rust match-default focused convergence, and effectful fallback "
-        "timing outside the exact claim until separate evidence covers those boundaries.",
+        "reusable proof facts. It admits Ruby core nil? and Swift Optional nil/?? only under "
+        "controlled API identity and same-file safety evidence; Rust match-default focused "
+        "convergence and broader effectful fallback timing remain outside the exact claim "
+        "until separate evidence covers those boundaries.",
         "locations": [
             {
                 "repo": "nose",
@@ -1489,10 +1498,154 @@ TARGET_PACKETS = [
             {
                 "repo": "nose",
                 "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+                "span": "1-16",
+                "snippet": "Ruby core nil? absence/presence plus wrong-value and rebinding representatives",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+                "span": "1-17",
+                "snippet": "Swift Optional nil absence/presence plus wrong-value and rebinding representatives",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
                 "primary_language": "JavaScript",
                 "path": "bench/type4/adversarial/cases/null_option_presence/default.js",
                 "span": "1-26",
                 "snippet": "JS nullish defaulting with truthy, strict-null, and wrong-fallback boundaries",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+                "span": "1-19",
+                "snippet": "Swift Optional ?? defaulting with wrong-value, wrong-fallback, and effectful-fallback boundaries",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/null_option_presence/default_api_boundary.swift",
+                "span": "1-33",
+                "snippet": "Swift custom ?? overload, Optional custom ?? overload, and computed-property fallback hard-negative representatives",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+                "span": "1-54",
+                "snippet": "Ruby nil? redefinition, singleton/top-level method, define_method, define_singleton_method, alias, and undef hard-negative representatives",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_define_method_boundary.rb",
+                "span": "1-8",
+                "snippet": "Ruby nil? dynamic define_method hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_define_singleton_boundary.rb",
+                "span": "1-5",
+                "snippet": "Ruby nil? dynamic define_singleton_method hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_alias_method_boundary.rb",
+                "span": "1-7",
+                "snippet": "Ruby nil? dynamic alias_method hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_define_method_boundary.rb",
+                "span": "1-6",
+                "snippet": "Ruby nil? send(:define_method, ...) hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_define_singleton_boundary.rb",
+                "span": "1-4",
+                "snippet": "Ruby nil? public_send(:define_singleton_method, ...) hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_reflective_define_method_boundary.rb",
+                "span": "1-8",
+                "snippet": "Ruby nil? dynamic send mutator hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_method_call_define_method_boundary.rb",
+                "span": "1-6",
+                "snippet": "Ruby nil? method(:define_method).call(...) hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_method_call_define_singleton_boundary.rb",
+                "span": "1-4",
+                "snippet": "Ruby nil? value.method(:define_singleton_method).call(...) hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_method_call_define_method_boundary.rb",
+                "span": "1-8",
+                "snippet": "Ruby nil? dynamic Method#call mutator hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_define_method_boundary.rb",
+                "span": "1-8",
+                "snippet": "Ruby nil? stored method(:define_method).call(...) hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_define_singleton_boundary.rb",
+                "span": "1-5",
+                "snippet": "Ruby nil? stored value.method(:define_singleton_method).call(...) hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Ruby",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_stored_dynamic_method_call_define_method_boundary.rb",
+                "span": "1-9",
+                "snippet": "Ruby nil? stored dynamic Method#call mutator hard-negative representative",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.swift",
+                "span": "1-21",
+                "snippet": "Swift custom nil-literal/equality and Optional operator overload hard-negative representatives",
             },
         ],
     },

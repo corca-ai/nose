@@ -517,6 +517,21 @@ Swift Dictionary default receiver/fallback facts, and final closeout. The audit 
 new unexpected blocked rows as drift while allowing frozen rows to become actionable or leave
 the open audit as their facts land.
 
+## Option Absence-Channel Focused Admission
+
+Closed #793 by turning `option.absence-channel.identity` from specified-only into a
+modeled-controlled neutral fact. Ruby core `nil?`, Swift Optional `== nil` / `!= nil`,
+and Swift Optional `??` now join the existing null/Option presence/defaulting families
+only through value-coordinate, direction, fallback-coordinate, default-trigger, and
+API/channel identity evidence.
+
+The hard-negative perimeter was extended beside the positives: Ruby same-file `nil?`
+redefinitions, rebound checked values, Swift custom nil-literal/equality domains, custom
+`??` overload domains, wrong checked values, wrong fallbacks, opposite presence direction,
+and effectful nil-coalescing fallbacks all stay split. #791 now shows the Ruby/Swift
+option rows as resolved from the frozen blocked slice, while Swift `compactMap` remains
+blocked on callback purity plus filter-map drop/emitted-value coordinate facts.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

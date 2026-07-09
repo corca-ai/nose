@@ -437,10 +437,60 @@ pub fn admitted_builtin_semantics_at_call_with_interner(
     builtin: Builtin,
 ) -> bool {
     admitted_builtin_semantics_at_call(il, node, builtin)
+        || swift_optional_value_or_default_at_call(il, interner, node, builtin)
         || library_api_dependency_id_for_canonical_builtin_call_with_interner(
             il, interner, node, builtin,
         )
         .is_some()
+}
+
+pub fn swift_operator_overloaded_in_file(
+    il: &Il,
+    interner: &Interner,
+    operator: &str,
+    occurrence_span: Span,
+) -> bool {
+    il.meta.lang == Lang::Swift
+        && il.units.iter().any(|unit| {
+            il.node(unit.root).span.file == occurrence_span.file
+                && matches!(
+                    unit.kind,
+                    nose_il::UnitKind::Function | nose_il::UnitKind::Method
+                )
+                && unit
+                    .name
+                    .is_some_and(|name| interner.resolve(name) == operator)
+        })
+}
+
+fn swift_optional_value_or_default_at_call(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    builtin: Builtin,
+) -> bool {
+    if il.meta.lang != Lang::Swift
+        || builtin != Builtin::ValueOrDefault
+        || il.kind(node) != NodeKind::Call
+        || il.node(node).payload != Payload::Builtin(Builtin::ValueOrDefault)
+    {
+        return false;
+    }
+    let [value, fallback] = il.children(node) else {
+        return false;
+    };
+    if swift_operator_overloaded_in_file(il, interner, "??", il.node(node).span) {
+        return false;
+    }
+    domain_evidence_for_receiver(il, interner, *value) == Some(DomainEvidence::Option)
+        && swift_nil_coalescing_fallback_already_evaluated(il, *fallback)
+}
+
+fn swift_nil_coalescing_fallback_already_evaluated(il: &Il, fallback: NodeId) -> bool {
+    matches!(
+        il.kind(fallback),
+        NodeKind::Lit | NodeKind::Var | NodeKind::Param
+    )
 }
 
 pub fn construct_syntax_proof(il: &Il, node: NodeId) -> bool {

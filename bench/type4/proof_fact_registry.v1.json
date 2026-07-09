@@ -482,7 +482,19 @@
       "accepted_evidence": [
         "language API evidence that distinguishes the option/nullable absence channel from present payload values",
         "falsey payloads such as 0, false, or empty strings that remain emitted when wrapped as present values",
-        "wrapped absence payloads such as Some(None) that remain present values in nested option domains"
+        "wrapped absence payloads such as Some(None) that remain present values in nested option domains",
+        "Ruby core nil? only when same-file class, singleton, top-level, literal, dynamic, send/public_send, immediate or stored Method#call define_method/define_singleton_method, alias/alias_method, undef, or remove-method evidence does not replace the core predicate",
+        "Swift Optional nil comparisons and nil-coalescing only when Optional domain evidence is present and same-file operator overload evidence is absent"
+      ],
+      "controlled_evidence": [
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_absence_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_present_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_default_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_api_mutation_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_api_and_short_circuit_boundary",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::ruby_nil_predicate_converges_with_null_absence_and_preserves_boundaries",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::swift_optional_nil_presence_requires_optional_coordinate",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries"
       ],
       "detector_admission_implication": "Does not admit optional-emission convergence by itself; it only closes the absence-vs-payload channel boundary.",
       "evidence_requirements": [
@@ -499,16 +511,21 @@
       "implementation_guidance": [
         "Model absence by the option/nullable channel, not by payload truthiness.",
         "Preserve falsey present payloads and nested absence payloads as emitted values.",
-        "Require API identity evidence for language-specific helpers such as Rust Option, Swift Optional, Kotlin nullable values, or JS nullish protocols."
+        "Require API identity evidence for language-specific helpers such as Ruby core nil?, Rust Option, Swift Optional, Kotlin nullable values, or JS nullish protocols.",
+        "Admit Swift Optional nil comparisons and nil-coalescing only from explicit Optional domain evidence when same-file operator overload evidence is absent; keep custom nil literal/equality, Optional-typed operator overloads, custom ?? overload domains, and computed-property fallbacks split.",
+        "Admit Ruby nil? only when same-file class, singleton, top-level, literal, dynamic, send/public_send, immediate or stored Method#call define_method/define_singleton_method, alias/alias_method, undef, or remove_method evidence does not replace the core predicate."
       ],
       "rejected_evidence": [
         "truthy filters that drop falsey present payloads",
         "nullish/defaulting idioms that erase present null payload distinctions",
-        "custom option-like helpers without API identity evidence"
+        "custom option-like helpers without API identity evidence",
+        "Ruby nil? after same-file class, singleton, top-level, literal, dynamic, send/public_send, immediate or stored Method#call define_method/define_singleton_method, alias/alias_method, undef, or remove_method modification",
+        "Swift nil comparisons or ?? over non-Optional/custom domains or same-file operator overloads",
+        "Swift nil-coalescing fallbacks with computed-property or effectful evaluation whose timing is not already evaluated"
       ],
       "semantic_family": "option.absence_channel",
-      "status": "specified-not-modeled",
-      "summary": "Optional-emission rewrites may drop only the proven absence channel; falsey and nested present payloads remain behavior-defining values.",
+      "status": "modeled-controlled",
+      "summary": "Option/nullish rewrites may observe or default only on the proven absence channel; falsey, nested, custom, and effectful payload surfaces remain behavior-defining values.",
       "title": "Option absence channel identity"
     },
     {
