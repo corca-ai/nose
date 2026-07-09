@@ -762,6 +762,76 @@
    "why_expected": "The focused TypeScript number[] parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; the array annotation alone is not dense-source proof."
   },
   {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+     "kind": "workspace",
+     "name": "jsAllLoop"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+     "kind": "workspace",
+     "name": "jsAllEvery"
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-javascript-every-dense-literal-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused JavaScript every pair is admitted only for a dense literal source, a one-argument value predicate, same-source traversal, universal short-circuit direction, vacuous truth, and predicate purity."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "split",
+   "members": [
+    {
+     "end_line": 21,
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+     "kind": "workspace",
+     "name": "jsAllParamLoop",
+     "snippet": "function jsAllParamLoop(xs) { for (const x of xs) { if (!(x >= 0)) { return false; } } return true; }",
+     "start_line": 14
+    },
+    {
+     "end_line": 25,
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+     "kind": "workspace",
+     "name": "jsAllParamEvery",
+     "snippet": "function jsAllParamEvery(xs) { return xs.every((x) => x >= 0); }",
+     "start_line": 23
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-javascript-every-array-param-boundary-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused JavaScript array parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; an unproven array parameter is not dense-source proof."
+  },
+  {
    "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
    "expect": "split",
    "members": [

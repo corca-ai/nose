@@ -1499,12 +1499,14 @@ TARGET_PACKETS = [
             "reduction-any-focused-controlled-pair",
             "reduction-typescript-every-dense-literal-controlled-pair",
             "reduction-typescript-every-array-param-boundary-controlled-pair",
+            "reduction-javascript-every-dense-literal-controlled-pair",
+            "reduction-javascript-every-array-param-boundary-controlled-pair",
             "reduction-typescript-every-append-only-flags-drizzle-real-pair",
             "reduction-selection-focused-controlled-pair",
         ],
         "hard_negative_group_ids": ["reduction-minmax-anyall-proof-perimeter"],
         "owner_route": "team-a-detector",
-        "owner_issue": "#758",
+        "owner_issue": "#758/#784",
         "why_now": "reduce_minmax_anyall has all-language probe coverage and already "
         "appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. "
         "The useful work is to record the shared reduction proof perimeter — identity/empty "
@@ -1529,7 +1531,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "iteration.same-source-identity",
-                    "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
+                    "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; dense-literal TypeScript and JavaScript every/for-of slices are admitted, while the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
                 },
                 {
                     "fact_id": "reduction.identity-empty-behavior",
@@ -1541,11 +1543,11 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "reduction.terminal-predicate-coordinate",
-                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including the controlled Ruby Enumerable any?/all? literal receiver slice and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
+                    "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
                 },
                 {
                     "fact_id": "reduction.short-circuit-direction",
-                    "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; Ruby covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; Swift covers eager Array/Collection allSatisfy while changed predicate/source, wrong empty truth, effects, two-argument custom overload callbacks, and .lazy receiver demand semantics remain closed; JavaScript and untyped relational terminals remain open",
+                    "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; JavaScript covers the focused dense-literal, one-argument every/for-of universal slice while array parameters, callback extra args, value-returning predicates, effects, changed predicates/sources, wrong empty truth, and Array.prototype.every replacement remain closed; Ruby covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; Swift covers eager Array/Collection allSatisfy while changed predicate/source, wrong empty truth, effects, two-argument custom overload callbacks, and .lazy receiver demand semantics remain closed; broader untyped relational terminals remain open",
                 },
                 {
                     "fact_id": "reduction.selection-seed-domain",
@@ -1553,7 +1555,7 @@ TARGET_PACKETS = [
                 },
                 {
                     "fact_id": "effect.pure-predicate",
-                    "current_real_pair_status": "satisfied for controlled terminal predicates and Ruby/Swift one-argument quantifier callbacks; effectful predicates, reducers, callbacks, loop bodies, Ruby multi-parameter block destructuring, and Swift two-argument custom overload callbacks remain outside the focused admission claim",
+                    "current_real_pair_status": "satisfied for controlled terminal predicates and TypeScript/JavaScript/Ruby/Swift one-argument quantifier callbacks; effectful predicates, reducers, callbacks, loop bodies, JS/TS callback index/source-array arguments, Ruby multi-parameter block destructuring, and Swift two-argument custom overload callbacks remain outside the focused admission claim",
                 },
             ],
             "focused_tests": [
@@ -1562,6 +1564,15 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_universal_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_sparse_array_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_vacuous_truth_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_changed_predicate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_source_identity_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_side_effect_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_callback_extra_args_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_value_return_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_api_identity_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
@@ -1588,20 +1599,21 @@ TARGET_PACKETS = [
         },
         "detector_admission": {
             "status": "controlled-slice-admitted",
-            "scope": "controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
+            "scope": "controlled integer/value-model sum/product, any/all terminal, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
             "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
             "capabilities": [
                 "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and numeric.aggregate-value-model-domain evidence match",
-                "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
+                "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript/JavaScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
                 "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
                 "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
                 "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, selection domain, and numeric.selection-value-order-domain evidence match",
-                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript every sparse-array parameter, TypeScript every callback index/source-argument, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries",
+                "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript/JavaScript every sparse-array parameter, TypeScript/JavaScript every callback index/source-argument, JavaScript every prototype replacement, JS/TS value-returning predicate, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_universal_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
@@ -1609,6 +1621,7 @@ TARGET_PACKETS = [
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
+                "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_converges_for_dense_literal_source_but_not_array_param",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_converges_with_counterexample_loop",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_extreme_type4_idioms",
@@ -1620,12 +1633,25 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_sparse_array_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_vacuous_truth_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_changed_predicate_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_source_identity_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_side_effect_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_callback_extra_args_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_value_return_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::javascript_every_api_identity_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seed_domain_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
                 "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
                 "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
+                "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_converges_for_dense_literal_source_but_not_array_param",
+                "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_keeps_truth_predicate_and_source_boundaries",
+                "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_keeps_effect_and_value_return_boundaries",
+                "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_keeps_standard_array_api_identity_boundary",
+                "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_keeps_callback_extra_arg_boundaries",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
                 "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifier_monkey_patch_stays_closed",
                 "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_predicate_source_and_empty_truth_boundaries",
@@ -1635,13 +1661,13 @@ TARGET_PACKETS = [
         },
         "blocked_by": [
             "the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources",
-            "the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed",
+            "the current detector has no reusable append-only dense local-array provenance fact, so arbitrary TypeScript or JavaScript array-parameter every/for-of sparse-hole boundaries must stay closed",
             "Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean",
         ],
         "notes": "This packet records the current focused reduction perimeter as reusable proof "
         "facts. The linked Drizzle real-corpus replay is an executable split expectation for the "
         "next TypeScript every source-provenance fact, not a real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, "
-        "untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver "
+        "broader untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver "
         "admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
         "locations": [
             {
@@ -1667,6 +1693,22 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
                 "span": "1-124",
                 "snippet": "TypeScript any/some and dense-literal every/for-of representatives with array-param, callback-extra-arg, predicate, source, effect, and value-returning boundaries",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "JavaScript",
+                "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+                "span": "1-99",
+                "snippet": "JavaScript dense-literal every/for-of representatives with array-param, callback-extra-arg, predicate, source, effect, and value-returning boundaries",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "JavaScript",
+                "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+                "span": "1-35",
+                "snippet": "JavaScript Array.prototype.every assignment and Object.defineProperty API identity boundaries",
             },
             {
                 "repo": "nose",

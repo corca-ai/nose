@@ -95,6 +95,9 @@ pub(super) fn record_receiver_method_library_api(
         },
     )
     .is_some_and(|(arg_count, contract, dependencies)| {
+        if js_ts_builtin_prototype_mutated_in_file(il, interner, contract.id, contract.callee) {
+            return false;
+        }
         if ruby_sequence_hof_method_redefined_in_file(il, interner, contract.id, contract.callee) {
             return false;
         }

@@ -89,6 +89,15 @@
         "bench/type4/adversarial/cases/cases.v1.json::typescript_every_side_effect_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::typescript_every_value_return_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_universal_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_sparse_array_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_vacuous_truth_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_changed_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_source_identity_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_side_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_callback_extra_args_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_value_return_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::javascript_every_api_identity_boundary",
         "bench/type4/proof_fact_registry.v1.json::quantifier.universal.counterexample-loop",
         "bench/type4/proof_fact_registry.v1.json::quantifier.vacuous-truth",
         "bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity",
@@ -141,14 +150,15 @@
           "surface": "dense-literal Array.prototype.every plus a pure for-of counterexample loop over the same source with a one-argument value predicate; sparse-array parameters, index/source callback args, JS/TS value-returning predicates, and effects stay split"
         },
         {
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::javascript_every_universal_positive; bench/type4/adversarial/cases/cases.v1.json::javascript_every_sparse_array_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_vacuous_truth_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_changed_predicate_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_source_identity_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_side_effect_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_callback_extra_args_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_value_return_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_api_identity_boundary",
           "language": "JavaScript",
-          "status": "open",
-          "surface": "Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed"
+          "status": "admitted",
+          "surface": "dense-literal standard Array.prototype.every plus a pure for-of counterexample loop over the same source with a one-argument value predicate; array parameters, index/source callback args, value-returning predicates, changed source/predicate, wrong empty truth, effects, and same-file Array.prototype.every replacements stay split"
         }
       ],
       "law": "Universal quantifier surfaces are equivalent to explicit counterexample loops only when both forms traverse the same source, return true on empty input, stop at the same first counterexample, evaluate a pure boolean predicate, and any boolean rewrites are proven boolean-only over non-overloaded scalar comparison complements.",
       "pattern_id": "quantifier.universal.counterexample-loop",
-      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair, and the TypeScript/Ruby/Swift slices add dense/literal or eager Array/Collection receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, overload, lazy-demand, and changed-predicate boundaries; carding the pattern keeps future all/every/allSatisfy work attached to neutral proof facts instead of language-specific detector branches.",
+      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair, and the TypeScript/JavaScript/Ruby/Swift slices add dense/literal or eager Array/Collection receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, overload, lazy-demand, and changed-predicate boundaries; carding the pattern keeps future all/every/allSatisfy work attached to neutral proof facts instead of language-specific detector branches.",
       "required_facts": [
         "quantifier.universal.counterexample-loop",
         "quantifier.vacuous-truth",
@@ -828,10 +838,10 @@
           "surface": "sum loops, builtin sum, functools.reduce with explicit seed, and seeded min/max selection loops"
         },
         {
-          "evidence": "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive; bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive; bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive; bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive; bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary; bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_universal_positive; bench/type4/adversarial/cases/cases.v1.json::javascript_every_sparse_array_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_callback_extra_args_boundary; bench/type4/adversarial/cases/cases.v1.json::javascript_every_api_identity_boundary",
           "language": "JS/TS",
           "status": "modeled-controlled",
-          "surface": "typed TypeScript reduce/some, dense-literal one-argument TypeScript every, and JS loop sum in the controlled slice; JavaScript every, TypeScript array-param every, callback index/source args, and untyped relational terminals remain open"
+          "surface": "typed TypeScript reduce/some, dense-literal one-argument TypeScript and standard JavaScript every, and JS loop sum in the controlled slice; array-param every, callback index/source args, JavaScript every prototype replacement, value-returning predicates, and broader untyped relational terminals remain open"
         },
         {
           "evidence": "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
