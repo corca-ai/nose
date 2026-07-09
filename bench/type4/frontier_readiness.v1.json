@@ -1,6 +1,6 @@
 {
   "executable_witness_coverage": {
-    "declared_expectation_count": 106,
+    "declared_expectation_count": 111,
     "extra": 0,
     "failed": 0,
     "fully_covered_packet_count": 7,
@@ -10,13 +10,13 @@
     "packet_count_by_coverage": {
       "covered": 7
     },
-    "passed": 106,
+    "passed": 111,
     "query_count": 19,
     "report_extra_expectation_ids": [],
     "report_failed_expectation_ids": [],
     "report_missing_expectation_ids": [],
     "report_stale_expectation_ids": [],
-    "result_count": 106,
+    "result_count": 111,
     "stale": 0
   },
   "group_list": [
@@ -1797,7 +1797,7 @@
           "can_open_exact_admission": false,
           "candidate_axis": "membership_contains",
           "detector_admission_status": "real-pair-admitted",
-          "detector_scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces",
+          "detector_scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and focused Swift collection membership surfaces",
           "evidence_case_ids": [
             "collection-membership-focused-controlled"
           ],
@@ -1823,6 +1823,36 @@
                 "status": "passed"
               },
               {
+                "case_id": "collection_membership_literal_and_typed_positive",
+                "expect": "same-family",
+                "expectation_id": "collection_membership_swift_array_matches_python_literal",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_receiver_api_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_custom_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_mutated_receiver_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_mutated_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_wrong_collection_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_wrong_collection_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_wrong_element_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_wrong_element_stays_split",
+                "status": "passed"
+              },
+              {
                 "case_id": "collection_membership_wrong_collection_boundary",
                 "expect": "split",
                 "expectation_id": "collection_membership_wrong_collection_stays_split",
@@ -1836,11 +1866,16 @@
               }
             ],
             "coverage_status": "covered",
-            "declared_expectation_count": 5,
+            "declared_expectation_count": 10,
             "declared_expectation_ids": [
               "collection_membership_mutated_receiver_stays_split",
               "collection_membership_python_literal_matches_js_set",
               "collection_membership_substring_contains_stays_split",
+              "collection_membership_swift_array_matches_python_literal",
+              "collection_membership_swift_custom_receiver_stays_split",
+              "collection_membership_swift_mutated_receiver_stays_split",
+              "collection_membership_swift_wrong_collection_stays_split",
+              "collection_membership_swift_wrong_element_stays_split",
               "collection_membership_wrong_collection_stays_split",
               "collection_membership_wrong_element_stays_split"
             ],
@@ -1866,11 +1901,16 @@
             "missing_expectation_count": 0,
             "missing_expectation_ids": [],
             "packet_id": "membership-contains-2026-07-08",
-            "passed_expectation_count": 5,
+            "passed_expectation_count": 10,
             "passed_expectation_ids": [
               "collection_membership_mutated_receiver_stays_split",
               "collection_membership_python_literal_matches_js_set",
               "collection_membership_substring_contains_stays_split",
+              "collection_membership_swift_array_matches_python_literal",
+              "collection_membership_swift_custom_receiver_stays_split",
+              "collection_membership_swift_mutated_receiver_stays_split",
+              "collection_membership_swift_wrong_collection_stays_split",
+              "collection_membership_swift_wrong_element_stays_split",
               "collection_membership_wrong_collection_stays_split",
               "collection_membership_wrong_element_stays_split"
             ],
@@ -1898,7 +1938,7 @@
           "proof_facts": [
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused literal/factory/imported/typed membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
+              "current_real_pair_status": "satisfied for focused literal/factory/imported/typed/Swift membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -1910,7 +1950,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, and callback surfaces stay outside the positive family",
+              "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, callback, and Swift surfaces stay outside the positive family",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -1922,7 +1962,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, and typed receivers preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
+              "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, typed receivers, and Swift arrays preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -1934,7 +1974,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, and std-factory mutation fixtures remain distinct from their original membership predicates",
+              "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, std-factory, and Swift append mutation fixtures remain distinct from their original membership predicates",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -1977,7 +2017,7 @@
           },
           "release_note": "membership-contains-2026-07-08: the linked real-corpus detector scope for membership_contains is already admitted or resolved; no new detector behavior is opened from this row.",
           "remaining_real_pair_gap": null,
-          "semantic_claim": "A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
+          "semantic_claim": "A proven literal collection membership predicate, proven standard Set membership predicate, and focused Swift Array.contains predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
           "why_now": "membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces."
         },
         {
@@ -4031,7 +4071,7 @@
           "can_open_exact_admission": false,
           "candidate_axis": "membership_contains",
           "detector_admission_status": "real-pair-admitted",
-          "detector_scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces",
+          "detector_scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and focused Swift collection membership surfaces",
           "evidence_case_ids": [
             "collection-membership-focused-controlled"
           ],
@@ -4057,6 +4097,36 @@
                 "status": "passed"
               },
               {
+                "case_id": "collection_membership_literal_and_typed_positive",
+                "expect": "same-family",
+                "expectation_id": "collection_membership_swift_array_matches_python_literal",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_receiver_api_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_custom_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_mutated_receiver_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_mutated_receiver_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_wrong_collection_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_wrong_collection_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "collection_membership_wrong_element_boundary",
+                "expect": "split",
+                "expectation_id": "collection_membership_swift_wrong_element_stays_split",
+                "status": "passed"
+              },
+              {
                 "case_id": "collection_membership_wrong_collection_boundary",
                 "expect": "split",
                 "expectation_id": "collection_membership_wrong_collection_stays_split",
@@ -4070,11 +4140,16 @@
               }
             ],
             "coverage_status": "covered",
-            "declared_expectation_count": 5,
+            "declared_expectation_count": 10,
             "declared_expectation_ids": [
               "collection_membership_mutated_receiver_stays_split",
               "collection_membership_python_literal_matches_js_set",
               "collection_membership_substring_contains_stays_split",
+              "collection_membership_swift_array_matches_python_literal",
+              "collection_membership_swift_custom_receiver_stays_split",
+              "collection_membership_swift_mutated_receiver_stays_split",
+              "collection_membership_swift_wrong_collection_stays_split",
+              "collection_membership_swift_wrong_element_stays_split",
               "collection_membership_wrong_collection_stays_split",
               "collection_membership_wrong_element_stays_split"
             ],
@@ -4100,11 +4175,16 @@
             "missing_expectation_count": 0,
             "missing_expectation_ids": [],
             "packet_id": "membership-contains-2026-07-08",
-            "passed_expectation_count": 5,
+            "passed_expectation_count": 10,
             "passed_expectation_ids": [
               "collection_membership_mutated_receiver_stays_split",
               "collection_membership_python_literal_matches_js_set",
               "collection_membership_substring_contains_stays_split",
+              "collection_membership_swift_array_matches_python_literal",
+              "collection_membership_swift_custom_receiver_stays_split",
+              "collection_membership_swift_mutated_receiver_stays_split",
+              "collection_membership_swift_wrong_collection_stays_split",
+              "collection_membership_swift_wrong_element_stays_split",
               "collection_membership_wrong_collection_stays_split",
               "collection_membership_wrong_element_stays_split"
             ],
@@ -4132,7 +4212,7 @@
           "proof_facts": [
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused literal/factory/imported/typed membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
+              "current_real_pair_status": "satisfied for focused literal/factory/imported/typed/Swift membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -4144,7 +4224,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, and callback surfaces stay outside the positive family",
+              "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, callback, and Swift surfaces stay outside the positive family",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -4156,7 +4236,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, and typed receivers preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
+              "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, typed receivers, and Swift arrays preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -4168,7 +4248,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, and std-factory mutation fixtures remain distinct from their original membership predicates",
+              "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, std-factory, and Swift append mutation fixtures remain distinct from their original membership predicates",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -4211,7 +4291,7 @@
           },
           "release_note": "membership-contains-2026-07-08: the linked real-corpus detector scope for membership_contains is already admitted or resolved; no new detector behavior is opened from this row.",
           "remaining_real_pair_gap": null,
-          "semantic_claim": "A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
+          "semantic_claim": "A proven literal collection membership predicate, proven standard Set membership predicate, and focused Swift Array.contains predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
           "why_now": "membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces."
         },
         {
@@ -4560,13 +4640,13 @@
     },
     "executable_expectations": {
       "path": "bench/type4/executable_expectations.v1.json",
-      "sha256": "564e5ba0ff33c7888ea060c893ed3b5f73f7101c3b869b21465dbffde5c6f029",
-      "size_bytes": 54649
+      "sha256": "c6421d00e9fa7de80b1ed3de3e6233ff2e70fe3a6875de762cbc632a23895dbb",
+      "size_bytes": 57243
     },
     "focused_cases": {
       "path": "bench/type4/adversarial/cases/cases.v1.json",
-      "sha256": "c72bb219557b065f059e7e2840aff6a91e69ba43240e7aa0c313cf1d8f3cde5e",
-      "size_bytes": 146715
+      "sha256": "fb53d278ad9c266f7ebe24ddd3156427e1ab8fee5fd32e04a6d8303014ad5fb2",
+      "size_bytes": 150062
     },
     "proof_fact_registry": {
       "path": "bench/type4/proof_fact_registry.v1.json",
@@ -4580,23 +4660,23 @@
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "51823b404c10cfdce8815a60818d90621e6c56d5a23446a19cebf2ad20710025",
-      "size_bytes": 101768
+      "sha256": "69ba1220ece9e2f1484354ae5a12086898cac125f98e8aee719ccd660920626f",
+      "size_bytes": 102147
     },
     "real_frontier_replay": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "cfea900df092f8e0f497115594c4891e19b19186e3d4ca46f2ce137492f2abbc",
-      "size_bytes": 21277
+      "sha256": "d2cd07a36b8ca51dc68538782cbeacc6309d6b6bd2ea22b08b9588fd95c06a73",
+      "size_bytes": 21599
     },
     "real_frontier_replay_status": {
       "path": "bench/type4/real_frontier_replay_status.v1.json",
-      "sha256": "fe159e75089d622d264adf20319a1b498210597082c1c8c698d80917efce544d",
-      "size_bytes": 21547
+      "sha256": "184f7efa17b0af329408acfbdf97cd30709c598be1c1fd0920fe9861605736f6",
+      "size_bytes": 21762
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "df40afea8fee9d8246857c6c3f138e5bc6b45eea2b3b7474e159ec67b489aef2",
-      "size_bytes": 93150
+      "sha256": "dd993309b5e000a3b0affb4031546a8fe9027d4e0b01c4793ef8e481f9ec7a4b",
+      "size_bytes": 93801
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",

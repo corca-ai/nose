@@ -229,10 +229,10 @@
           "surface": "Array include?/member? and Set.new include?/member? when require/import and mutation boundaries are proven"
         },
         {
-          "evidence": "bench/type4/coverage_probes/membership_contains/swift/pos; bench/type4/coverage_probes/membership_contains/swift/neg-element",
+          "evidence": "crates/nose-cli/tests/cli/semantic_idioms/literal_membership.rs::query_mode_semantic_proves_literal_collection_membership; crates/nose-cli/tests/cli/semantic_idioms/dynamic_membership.rs::query_mode_semantic_proves_typed_dynamic_collection_membership; crates/nose-cli/tests/equivalence/collection_membership.rs::collection_membership_set_construction_converges_with_boundaries; bench/type4/adversarial/cases/cases.v1.json::collection_membership_literal_and_typed_positive; bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_element_boundary; bench/type4/adversarial/cases/cases.v1.json::collection_membership_wrong_collection_boundary; bench/type4/adversarial/cases/cases.v1.json::collection_membership_receiver_api_boundary; bench/type4/adversarial/cases/cases.v1.json::collection_membership_mutated_receiver_boundary",
           "language": "Swift",
-          "status": "open",
-          "surface": "coverage-probe contains over proven collection receivers; mutation closure remains open before full admission"
+          "status": "modeled-controlled",
+          "surface": "Array contains over inline, local, and typed collection receivers when receiver/source, element, API identity, and mutation-closure proof hold"
         },
         {
           "language": "C",

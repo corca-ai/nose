@@ -1,8 +1,8 @@
 {
-  "expectation_count": 106,
+  "expectation_count": 111,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 106,
+  "passed": 111,
   "query_count": 19,
   "results": [
     {
@@ -12,6 +12,12 @@
       "fixture": "bench/type4/adversarial/cases/collection_membership",
       "matching_family": {
         "locations": [
+          {
+            "end": 4,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+            "name": "swiftArrayMember",
+            "start": 1
+          },
           {
             "end": 3,
             "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
@@ -25,7 +31,39 @@
             "start": 1
           }
         ],
-        "value": 3.6,
+        "value": 15.600000000000001,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_literal_and_typed_positive",
+      "expect": "same-family",
+      "expectation_id": "collection_membership_swift_array_matches_python_literal",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 4,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+            "name": "swiftArrayMember",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
+            "name": "jsSetMember",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.py",
+            "name": "py_literal_member",
+            "start": 1
+          }
+        ],
+        "value": 15.600000000000001,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -41,9 +79,27 @@
       "ok": true
     },
     {
+      "case_id": "collection_membership_wrong_element_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_swift_wrong_element_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
       "case_id": "collection_membership_wrong_collection_boundary",
       "expect": "split",
       "expectation_id": "collection_membership_wrong_collection_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_wrong_collection_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_swift_wrong_collection_stays_split",
       "fixture": "bench/type4/adversarial/cases/collection_membership",
       "matching_family": null,
       "observed": "split",
@@ -59,9 +115,27 @@
       "ok": true
     },
     {
+      "case_id": "collection_membership_receiver_api_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_swift_custom_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
       "case_id": "collection_membership_mutated_receiver_boundary",
       "expect": "split",
       "expectation_id": "collection_membership_mutated_receiver_stays_split",
+      "fixture": "bench/type4/adversarial/cases/collection_membership",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "collection_membership_mutated_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "collection_membership_swift_mutated_receiver_stays_split",
       "fixture": "bench/type4/adversarial/cases/collection_membership",
       "matching_family": null,
       "observed": "split",

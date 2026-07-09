@@ -134,6 +134,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let rust_std_hashset = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
     let rust_std_btreeset = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
     let rust_std_vecdeque = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::VecDeque::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
+    let swift_array_literal = "func f(_ value: String, _ other: String) -> Bool {\n    return [\"red\", \"blue\"].contains(value)\n}\n";
+    let swift_local_array = "func f(_ value: String, _ other: String) -> Bool {\n    let values = [\"red\", \"blue\"]\n    return values.contains(value)\n}\n";
     let java_wrong_element = "import java.util.List;\n\nclass C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(other); } }";
     let java_wrong_collection = "import java.util.Set;\n\nclass C { static boolean f(String value, String other) { return Set.of(\"green\", \"blue\").contains(value); } }";
     let java_shadowed_list = "class C { static boolean f(Object List, String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
@@ -167,6 +169,10 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let rust_std_wrong_collection = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"green\", \"blue\"]);\n    values.contains(&value)\n}\n";
     let rust_std_mutated = "pub fn f(value: &str, other: &str) -> bool {\n    let mut values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.insert(\"green\");\n    values.contains(&value)\n}\n";
     let rust_std_shadowed = "mod std { pub mod collections { pub struct HashSet; } }\npub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
+    let swift_wrong_element = "func f(_ value: String, _ other: String) -> Bool {\n    let values = [\"red\", \"blue\"]\n    return values.contains(other)\n}\n";
+    let swift_wrong_collection = "func f(_ value: String, _ other: String) -> Bool {\n    let values = [\"green\", \"blue\"]\n    return values.contains(value)\n}\n";
+    let swift_mutated = "func f(_ value: String, _ other: String) -> Bool {\n    var values = [\"red\", \"blue\"]\n    values.append(\"green\")\n    return values.contains(value)\n}\n";
+    let swift_custom_receiver = "struct Values { func contains(_ value: String) -> Bool { return false } }\nfunc f(_ value: String, _ other: String) -> Bool {\n    let values = Values()\n    return values.contains(value)\n}\n";
     let ruby_set_wrong_element =
         "require \"set\"\n\ndef f(value, other)\n  Set.new([\"red\", \"blue\"]).include?(other)\nend\n";
     let ruby_set_wrong_collection =
@@ -270,6 +276,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, rust_std_hashset, Lang::Rust));
     assert_eq!(literal_fp, value_fp(&i, rust_std_btreeset, Lang::Rust));
     assert_eq!(literal_fp, value_fp(&i, rust_std_vecdeque, Lang::Rust));
+    assert_eq!(literal_fp, value_fp(&i, swift_array_literal, Lang::Swift));
+    assert_eq!(literal_fp, value_fp(&i, swift_local_array, Lang::Swift));
     assert_ne!(
         literal_fp,
         value_fp_named(&i, rust_std_shadowed, Lang::Rust, "f"),
@@ -533,6 +541,16 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         value_fp(&i, rust_std_wrong_collection, Lang::Rust)
     );
     assert_ne!(literal_fp, value_fp(&i, rust_std_mutated, Lang::Rust));
+    assert_ne!(literal_fp, value_fp(&i, swift_wrong_element, Lang::Swift));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, swift_wrong_collection, Lang::Swift)
+    );
+    assert_ne!(literal_fp, value_fp(&i, swift_mutated, Lang::Swift));
+    assert_ne!(
+        literal_fp,
+        value_fp_named(&i, swift_custom_receiver, Lang::Swift, "f")
+    );
     assert_ne!(literal_fp, value_fp(&i, ruby_set_wrong_element, Lang::Ruby));
     assert_ne!(
         literal_fp,

@@ -4,18 +4,18 @@
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "cfea900df092f8e0f497115594c4891e19b19186e3d4ca46f2ce137492f2abbc",
-      "size_bytes": 21277
+      "sha256": "d2cd07a36b8ca51dc68538782cbeacc6309d6b6bd2ea22b08b9588fd95c06a73",
+      "size_bytes": 21599
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "51823b404c10cfdce8815a60818d90621e6c56d5a23446a19cebf2ad20710025",
-      "size_bytes": 101768
+      "sha256": "69ba1220ece9e2f1484354ae5a12086898cac125f98e8aee719ccd660920626f",
+      "size_bytes": 102147
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "df40afea8fee9d8246857c6c3f138e5bc6b45eea2b3b7474e159ec67b489aef2",
-      "size_bytes": 93150
+      "sha256": "dd993309b5e000a3b0affb4031546a8fe9027d4e0b01c4793ef8e481f9ec7a4b",
+      "size_bytes": 93801
     }
   },
   "nose_binary": "nose",
@@ -63,6 +63,12 @@
       "matching_family": {
         "locations": [
           {
+            "end": 4,
+            "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+            "name": "swiftArrayMember",
+            "start": 1
+          },
+          {
             "end": 3,
             "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
             "name": "jsSetMember",
@@ -75,7 +81,7 @@
             "start": 1
           }
         ],
-        "value": 3.6,
+        "value": 15.600000000000001,
         "witness": "exact"
       },
       "observed": "same-family",

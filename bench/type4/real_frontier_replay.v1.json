@@ -95,6 +95,11 @@
           "file": "bench/type4/adversarial/cases/collection_membership/positive.js",
           "kind": "workspace",
           "name": "jsSetMember"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+          "kind": "workspace",
+          "name": "swiftArrayMember"
         }
       ],
       "packet_id": "membership-contains-2026-07-08",
@@ -114,9 +119,13 @@
         {
           "kind": "workspace",
           "path": "bench/type4/adversarial/cases/collection_membership/positive.js"
+        },
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_membership/positive.swift"
         }
       ],
-      "why_expected": "The focused collection-membership pair is admitted when the receiver API/domain, searched element, collection/source coordinate, and receiver mutation facts are all satisfied."
+      "why_expected": "The focused collection-membership witnesses are admitted when the receiver API/domain, searched element, collection/source coordinate, and receiver mutation facts are all satisfied."
     },
     {
       "case_id": "collection-empty-focused-controlled",
