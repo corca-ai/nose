@@ -66,22 +66,27 @@
       ],
       "positive_cases": [
         "clamp_ternary_minmax_bridge",
-        "clamp_library_method_bridge"
+        "clamp_library_method_bridge",
+        "clamp_go_minmax_bridge"
       ],
       "hard_negative_cases": [
         "clamp_unordered_bounds",
         "clamp_float_nan_boundary",
-        "clamp_method_name_only_boundary"
+        "clamp_method_name_only_boundary",
+        "clamp_go_proof_boundary"
       ],
       "regression_gates": [
         "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
         "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
+        "crates/nose-cli/tests/equivalence/numeric_scalars.rs::go_numeric_clamp_minmax_requires_integer_bound_proof",
         "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_go_minmax_bridge",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
-        "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary"
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_go_proof_boundary"
       ],
       "claim": "Numeric clamp admission must keep bound-order, numeric-domain, shape, and library/API identity hard negatives beside every positive bridge."
     },
@@ -3846,6 +3851,33 @@
       "evidence": "Focused equivalence tests prove literal ordered Rust .clamp converges with literal min/max Clamp, and guarded Rust .clamp converges with guarded Rust x.max(lo).min(hi) under the same lo<=hi proof. The bridge corpus verifies that unproven, custom-method, and float boundaries stay split."
     },
     {
+      "id": "clamp_go_minmax_bridge",
+      "kind": "positive",
+      "semantic_family": "numeric.clamp",
+      "claim": "Go typed integer min/max clamp compositions can converge when an exiting inverse guard proves lo<=hi.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go"
+      ],
+      "executable_expectations": [
+        {
+          "id": "clamp_go_guarded_minmax_matches_maxmin",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMaxMinGuarded"
+            }
+          ]
+        }
+      ],
+      "evidence": "Focused equivalence tests prove Go typed-int min/max clamp compositions converge only when the same exiting inverse guard proves lo<=hi."
+    },
+    {
       "id": "clamp_method_name_only_boundary",
       "kind": "hard-negative",
       "semantic_family": "numeric.clamp",
@@ -3887,6 +3919,109 @@
         }
       ],
       "evidence": "Focused equivalence tests keep unproven Rust x.clamp(lo, hi) and custom Wrap::clamp forms split from literal/proof-backed Clamp values; the bridge corpus verifies with 0 false merges."
+    },
+    {
+      "id": "clamp_go_proof_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "numeric.clamp",
+      "claim": "Go clamp-shaped min/max helpers need integer-domain and bound-order proof; generic ordered helpers and wrong shapes stay split.",
+      "mutation": "remove the guard, swap bounds, use wrong nesting, float domain, or generic cmp.Ordered domain",
+      "fixtures": [
+        "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go"
+      ],
+      "executable_expectations": [
+        {
+          "id": "clamp_go_unproven_bounds_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMaxMinUnproven"
+            }
+          ]
+        },
+        {
+          "id": "clamp_go_swapped_bounds_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoSwappedBounds"
+            }
+          ]
+        },
+        {
+          "id": "clamp_go_wrong_nesting_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoWrongNesting"
+            }
+          ]
+        },
+        {
+          "id": "clamp_go_float_domain_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoFloatGuarded"
+            }
+          ]
+        },
+        {
+          "id": "clamp_go_generic_ordered_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoGenericOrdered"
+            }
+          ]
+        },
+        {
+          "id": "clamp_go_guarded_generic_ordered_stays_split",
+          "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoMinMaxGuarded"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+              "name": "clampGoGenericOrderedGuarded"
+            }
+          ]
+        }
+      ],
+      "evidence": "Go focused tests keep unguarded parameter bounds, swapped bounds, wrong nesting, float domains, and both unguarded and guarded cmp.Ordered generic helpers outside the integer Clamp canon."
     },
     {
       "id": "python_loop_demorgan_all_readme",

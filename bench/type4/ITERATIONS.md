@@ -474,6 +474,22 @@ semantic card, replay evidence, target packet, and open-surface audit now treat 
 Rust `Iterator::all` as admitted while keeping broader iterator mutation, custom adapter,
 and source-provenance expansions outside this claim.
 
+## Go Numeric Clamp Focused Evidence
+
+Closed #724's audit-ready part by connecting Go numeric clamp to the existing
+`numeric.clamp.proven-integer-bounds` proof perimeter without admitting the unsound
+boltons/fzf real pair. Go `min`/`max` are now recognized as predeclared free-function
+builtins, but Clamp canonicalization still requires integer-domain operands and a proven
+`lo <= hi` bound-order fact.
+
+The admitted Go slice is deliberately controlled: typed integer min/max clamp
+compositions converge only behind an exiting inverse guard. Hard negatives keep unguarded
+parameter bounds, swapped bounds, wrong nesting, float domains, and generic `cmp.Ordered`
+helpers split. The boltons/fzf replay remains an executable `split` blocker because fzf
+`Constrain(val, minimum, maximum)` names bound roles without proving bound order, and the
+pair lacks a shared integer-only domain. The open-surface audit now removes #724 from the
+current actionable slice while keeping the real pair as proof-fact-prerequisite evidence.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

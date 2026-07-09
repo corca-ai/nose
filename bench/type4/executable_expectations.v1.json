@@ -1,9 +1,9 @@
 {
-  "expectation_count": 150,
+  "expectation_count": 157,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 150,
-  "query_count": 19,
+  "passed": 157,
+  "query_count": 20,
   "results": [
     {
       "case_id": "collection_membership_literal_and_typed_positive",
@@ -2224,6 +2224,32 @@
       "ok": true
     },
     {
+      "case_id": "clamp_go_minmax_bridge",
+      "expect": "same-family",
+      "expectation_id": "clamp_go_guarded_minmax_matches_maxmin",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 10,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+            "name": "clampGoMinMaxGuarded",
+            "start": 5
+          },
+          {
+            "end": 17,
+            "file": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+            "name": "clampGoMaxMinGuarded",
+            "start": 12
+          }
+        ],
+        "value": 6.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
       "case_id": "clamp_method_name_only_boundary",
       "expect": "split",
       "expectation_id": "clamp_rust_unproven_method_stays_split",
@@ -2237,6 +2263,60 @@
       "expect": "split",
       "expectation_id": "clamp_rust_custom_method_stays_split",
       "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_go_proof_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_go_unproven_bounds_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_go_proof_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_go_swapped_bounds_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_go_proof_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_go_wrong_nesting_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_go_proof_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_go_float_domain_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_go_proof_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_go_generic_ordered_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "clamp_go_proof_boundary",
+      "expect": "split",
+      "expectation_id": "clamp_go_guarded_generic_ordered_stays_split",
+      "fixture": "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.go",
       "matching_family": null,
       "observed": "split",
       "ok": true

@@ -410,6 +410,8 @@ fn library_free_function_builtin_callee_contracts_for_id(
         (Lang::Python, Builtin::Len) => Some(("len", 1)),
         (Lang::Go, Builtin::Len) => Some(("len", 1)),
         (Lang::Go, Builtin::Append) => Some(("append", 2)),
+        (Lang::Go, Builtin::Min) => Some(("min", 2)),
+        (Lang::Go, Builtin::Max) => Some(("max", 2)),
         (Lang::Python, Builtin::Print) => Some(("print", 0)),
         (Lang::Python, Builtin::Range) => Some(("range", 1)),
         (Lang::Python, Builtin::Sum) => Some(("sum", 1)),

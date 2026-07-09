@@ -19,7 +19,7 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 150/150 passed
+- executable expectations: 157/157 passed
 - real-frontier replay expectations: 29/29 passed; 0 unavailable
 
 ## Admission Policy
@@ -39,7 +39,7 @@ report keeps the fuller evidence and admission boundary.
 
 | packet | axis | route | readiness | exec witnesses | real replay expectations | proof facts | hard negatives | groups |
 |---|---|---|---|---|---|---:|---:|---:|
-| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed expectations (1/1)` | 2 | 4 | 1 |
+| `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (15/15)` | `passed expectations (1/1)` | 2 | 4 | 1 |
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed expectations (1/1)` | 5 | 6 | 1 |
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (10/10)` | `passed expectations (1/1)` | 4 | 7 | 1 |
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (12/12)` | `passed expectations (4/4)` | 4 | 5 | 1 |
@@ -52,14 +52,14 @@ report keeps the fuller evidence and admission boundary.
 ### `numeric-clamp-2026-06-06`
 
 - detector admission: `controlled-slice-admitted` over proof-backed controlled integer clamp surfaces
-- remaining real-pair gap: the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss
-- gates: 5 positive, 6 hard-negative
-- executable witness coverage: `covered` (8/8 passed)
+- remaining real-pair gap: the boltons/fzf real-corpus pair is now an executable split blocker: typed Go integer clamp is covered by focused evidence, but fzf Constrain still lacks fzf-side bound-order evidence and shared integer-only domain evidence
+- gates: 7 positive, 8 hard-negative
+- executable witness coverage: `covered` (15/15 passed)
 - real-frontier replay expectations: `passed` (1/1 expectations passed)
 - proof fact model: `modeled-for-controlled-evidence`; facts: `numeric-clamp.integer-domain` (modeled-controlled), `numeric-clamp.bound-order` (modeled-controlled)
 - blocked by:
-  - the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
-  - the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries
+  - the current fzf member has no modeled bound-order evidence; the focused Go proof boundary verifies that parameter naming such as `Constrain(val, minimum, maximum)` is not a proof
+  - the current boltons/fzf pair has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and Go `cmp.Ordered` remains a float/NaN-sensitive boundary
 - hard-negative groups: `numeric-clamp-proof-perimeter`
 
 ### `python-loop-demorgan-all-2026-07-07`
@@ -126,8 +126,8 @@ report keeps the fuller evidence and admission boundary.
 
 - semantic family: `numeric.clamp`
 - conventions: `numeric.domain`, `numeric.precondition`, `numeric.shape`, `protocol-boundary.api-identity`
-- cases: 2 positive, 3 hard-negative
-- regression gates: 8
+- cases: 3 positive, 4 hard-negative
+- regression gates: 11
 
 ### `python-loop-demorgan-all-2026-07-07` / `python-loop-demorgan-all-proof-perimeter`
 

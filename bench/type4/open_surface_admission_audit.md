@@ -10,10 +10,10 @@ surface admission issue without re-triaging every pattern card by hand.
 ## Summary
 
 - audited surface statuses: open
-- open surfaces: 8
-- priorities: blocked-by-unmodeled-facts=7, needs-surface-focused-perimeter=1
-- evidence levels: coverage-sweep=1, missing=5, probe-only=1, target-packet=1
-- languages: Go=1, Java=1, Ruby=1, Swift=5
+- open surfaces: 7
+- priorities: blocked-by-unmodeled-facts=7
+- evidence levels: coverage-sweep=1, missing=5, probe-only=1
+- languages: Java=1, Ruby=1, Swift=5
 - unresolved surface evidence refs: 0
 
 ## Epic #778 Audit Slice
@@ -25,7 +25,7 @@ neutral proof facts before admission work is sound.
 - tracker issue: #778
 - setup issue: #781
 - closeout issue: #785
-- in-scope rows: 6 (1 currently present in the open audit)
+- in-scope rows: 6 (0 currently present in the open audit)
 - out-of-scope blocked rows: 7 (7 currently present in the open audit)
 - unexpected actionable open rows: 0
 
@@ -38,7 +38,7 @@ neutral proof facts before admission work is sound.
 | 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | not-in-current-open-audit (``) |  | complete the Swift hasPrefix/hasSuffix focused perimeter |  |
 | 4 | #784 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | not-in-current-open-audit (``) |  | add JavaScript Array.prototype.every focused fixtures and expectations |  |
 | 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | not-in-current-open-audit (``) |  | add Rust Iterator::all focused fixtures and expectations |  |
-| 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | present | connect packet evidence to focused executable expectations | connect Go numeric clamp bound-order and integer-domain proof evidence | generic min/max Constrain-style helpers after integer-domain and bound-order proof |
+| 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | not-in-current-open-audit (``) |  | connect Go numeric clamp bound-order and integer-domain proof evidence |  |
 
 ### Out Of Scope For #778
 
@@ -56,7 +56,6 @@ neutral proof facts before admission work is sound.
 
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | generic min/max Constrain-style helpers after integer-domain and bound-order proof | `open` | `target-packet`<br>bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06 | connect packet evidence to focused executable expectations | `numeric-clamp.integer-domain`:modeled-controlled, `numeric-clamp.bound-order`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=3, hard_negative=3, group=1 |  |
 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | Sequence.compactMap after optional-result channel and callback-effect proof | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:specified-not-modeled, `hof.filter-map.drop-condition-coordinate`:specified-not-modeled, `hof.filter-map.emitted-value-coordinate`:specified-not-modeled, `option.absence-channel.identity`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=2, hard_negative=5, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:specified-not-modeled, `effect.pure-predicate`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled, `reduction.identity-empty-behavior`:modeled-controlled, `reduction.step-coordinate-identity`:modeled-controlled, `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=4, hard_negative=6, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:specified-not-modeled, `effect.pure-predicate`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled, `reduction.identity-empty-behavior`:modeled-controlled, `reduction.step-coordinate-identity`:modeled-controlled, `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=4, hard_negative=6, group=0 |  |
@@ -73,21 +72,18 @@ neutral proof facts before admission work is sound.
 | `hof.flat-map.aggregate-reduction` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.one-level-flatten` | hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.default.absence-lookup` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `numeric.clamp.proven-integer-bounds` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | `option.presence-default.proven-channel-coordinate` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Blocker
 
 | blocker | open surfaces |
 |---|---|
-| connect packet evidence to focused executable expectations | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | model required facts before detector admission | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Language
 
 | language | open surfaces |
 |---|---|
-| Go | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | Java | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | Ruby | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | Swift | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
@@ -96,7 +92,7 @@ neutral proof facts before admission work is sound.
 
 | status | open surfaces |
 |---|---|
-| `open` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `open` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Proof Fact
 
@@ -115,8 +111,6 @@ neutral proof facts before admission work is sound.
 | `map.default.key-fallback-coordinate` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.receiver.no-intervening-mutation` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.receiver.source-identity` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `numeric-clamp.bound-order` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
-| `numeric-clamp.integer-domain` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | `option.absence-channel.identity` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `option.api-identity` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `option.default-fallback-coordinate` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |

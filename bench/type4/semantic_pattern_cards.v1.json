@@ -13,9 +13,11 @@
         "bench/type4/adversarial/cases/cases.v1.json::clamp_minmax_guarded_bounds",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_go_minmax_bridge",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::clamp_go_proof_boundary",
         "bench/type4/proof_fact_registry.v1.json::numeric-clamp.integer-domain",
         "bench/type4/proof_fact_registry.v1.json::numeric-clamp.bound-order"
       ],
@@ -40,10 +42,10 @@
           "surface": "integer .clamp(lo, hi) when literal or guard evidence proves lo <= hi"
         },
         {
-          "evidence": "bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::clamp_go_minmax_bridge; bench/type4/adversarial/cases/cases.v1.json::clamp_go_proof_boundary; the fzf cmp.Ordered real pair remains replayed as split in bench/type4/real_frontier_replay.v1.json::numeric-clamp-boltons-fzf-real-pair",
           "language": "Go",
-          "status": "open",
-          "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof"
+          "status": "modeled-controlled",
+          "surface": "typed integer min/max clamp helpers when an exiting inverse guard proves lo <= hi"
         },
         {
           "language": "JS/TS",

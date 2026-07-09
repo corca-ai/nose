@@ -109,11 +109,11 @@ fn assert_python_free_name_occurrences(interner: &Interner) {
 
 fn assert_go_and_rust_free_name_occurrences(interner: &Interner) {
     let go = lower_fixture(
-            "builtin.go",
-            b"package p\nfunc f(xs []int, x int) int { return len(xs) }\nfunc g(xs []int, x int) []int { return append(xs, x) }\n",
-            Lang::Go,
-            interner,
-        );
+        "builtin.go",
+        b"package p\nfunc f(xs []int, x int) int { return len(xs) }\nfunc g(xs []int, x int) []int { return append(xs, x) }\nfunc h(a int, b int) int { return min(a, b) + max(a, b) }\n",
+        Lang::Go,
+        interner,
+    );
     let go_len_contract = library_free_function_builtin_contract(Lang::Go, "len", 1).unwrap();
     assert_eq!(
         contract_api_count(&go.evidence, go_len_contract.id, go_len_contract.callee),
@@ -126,6 +126,16 @@ fn assert_go_and_rust_free_name_occurrences(interner: &Interner) {
             go_append_contract.id,
             go_append_contract.callee
         ),
+        1
+    );
+    let go_min_contract = library_free_function_builtin_contract(Lang::Go, "min", 2).unwrap();
+    assert_eq!(
+        contract_api_count(&go.evidence, go_min_contract.id, go_min_contract.callee),
+        1
+    );
+    let go_max_contract = library_free_function_builtin_contract(Lang::Go, "max", 2).unwrap();
+    assert_eq!(
+        contract_api_count(&go.evidence, go_max_contract.id, go_max_contract.callee),
         1
     );
 

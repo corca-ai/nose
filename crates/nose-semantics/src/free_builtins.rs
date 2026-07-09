@@ -118,6 +118,8 @@ const FREE_FUNCTION_BUILTINS: &[FreeFunctionBuiltinRow] = &[
     free_function_builtin_row(PY, "len", Builtin::Len, FIRST_ARG, ARITY_ONE),
     free_function_builtin_row(GO, "len", Builtin::Len, FIRST_ARG, ARITY_ONE),
     free_function_builtin_row(GO, "append", Builtin::Append, ALL_ARGS, ARITY_AT_LEAST_TWO),
+    free_function_builtin_row(GO, "min", Builtin::Min, ALL_ARGS, ARITY_AT_LEAST_TWO),
+    free_function_builtin_row(GO, "max", Builtin::Max, ALL_ARGS, ARITY_AT_LEAST_TWO),
     free_function_builtin_row(PY, "print", Builtin::Print, ALL_ARGS, ARITY_ANY),
     free_function_builtin_row(PY, "range", Builtin::Range, ALL_ARGS, ARITY_ONE_TO_THREE),
     free_function_builtin_row(PY, "sum", Builtin::Sum, FIRST_ARG, ARITY_ONE),
