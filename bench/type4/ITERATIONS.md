@@ -504,6 +504,19 @@ and Go numeric clamp as a controlled typed-integer bridge while the boltons/fzf 
 remains split until fzf-side bound-order and shared integer-domain facts exist. The seven
 remaining open rows stay out of scope as `blocked-by-unmodeled-facts`.
 
+## Neutral-Fact Blocked Admission Slice
+
+Started #791 through #792 by freezing the seven remaining open
+`blocked-by-unmodeled-facts` rows in `open_surface_admission_audit`. Unlike #778, this batch
+is not a surface-admission queue yet: the selected Ruby, Swift, Java, and map/HOF rows must
+first be grouped by reusable neutral proof facts.
+
+The frozen order is now option absence-channel identity, HOF callback purity, filter-map
+coordinates, one-level flat-map source/flatten facts, flat-map aggregate guard coordinates,
+Swift Dictionary default receiver/fallback facts, and final closeout. The audit check treats
+new unexpected blocked rows as drift while allowing frozen rows to become actionable or leave
+the open audit as their facts land.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

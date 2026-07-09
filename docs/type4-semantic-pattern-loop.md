@@ -111,11 +111,13 @@ adjacent hard negatives, and executable expectations. Leave
 modeled-controlled.
 
 When an epic selects multiple audit rows, freeze that selection in the audit
-artifact itself. The `Epic #778 Audit Slice` section records the chosen
-in-scope rows, the rows intentionally left out because they need new neutral
-facts, and the issue numbers that own each step. Later PRs should update that
-section by regenerating `open_surface_admission_audit.py` as rows leave the
-open audit instead of hand-editing the Markdown or re-triaging the whole queue.
+artifact itself. The epic slice records the chosen rows, the issue numbers that
+own each step, and the rows intentionally left open. For fact-modeling epics,
+such as `Epic #791 Neutral-Fact Blocked Slice`, group the work by reusable proof
+fact before language spelling and mark unexpected `blocked-by-unmodeled-facts`
+rows as drift. Later PRs should update the section by regenerating
+`open_surface_admission_audit.py` as rows leave the open audit instead of
+hand-editing the Markdown or re-triaging the whole queue.
 
 ## Eight-step loop
 
