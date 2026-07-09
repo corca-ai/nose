@@ -687,9 +687,9 @@
       },
       "current_detector_result": {
         "baseline_command": "nose query crates/nose-cli/tests/fixtures/string_affix_550 all top=0 --mode semantic --format json --min-size 1 --min-lines 1; nose query crates/nose-cli/tests/fixtures/string_affix_551 all top=0 --mode semantic --format json --min-size 1 --min-lines 1; nose query crates/nose-cli/tests/fixtures/string_affix_552 all top=0 --mode semantic --format json --min-size 1 --min-lines 1",
-        "baseline_result": "Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role parameter, and immutable binding families while adjacent hard negatives stay outside those families.",
+        "baseline_result": "Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role prefix/suffix parameter, and immutable binding families including focused Swift witnesses while adjacent hard negatives stay outside those families.",
         "binary_path": "nose",
-        "build_ref": "#756 semantic pattern card",
+        "build_ref": "#756 semantic pattern card, #782 Swift affix admission",
         "current_detector_miss": false,
         "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations.",
         "nose_version": "nose",
@@ -697,10 +697,10 @@
       },
       "detector_admission": {
         "capabilities": [
-          "converges standard case-sensitive prefix predicates across proven string receiver/API surfaces",
-          "converges standard case-sensitive suffix predicates separately from prefix predicates",
-          "converges same-role parameter affixes and immutable literal/local/module binding affixes",
-          "preserves receiver, API identity, affix coordinate, direction, offset, multi-affix, and mutation boundaries"
+          "converges standard case-sensitive prefix predicates across proven string receiver/API surfaces, including Swift String.hasPrefix",
+          "converges standard case-sensitive suffix predicates separately from prefix predicates, including Swift String.hasSuffix",
+          "converges same-role prefix/suffix parameter affixes and immutable literal/local/module binding affixes, including Swift bindings",
+          "preserves receiver, API identity, affix coordinate, direction, offset, multi-affix, mutation, substring/custom, and case-normalized boundaries"
         ],
         "hard_negative_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_direction_boundary",
@@ -709,6 +709,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_dynamic_or_mutated_affix_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_api_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::string_affix_swift_api_boundary",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_hardens_js_ts_string_affix_receivers",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_admits_only_proven_ruby_string_affix_receivers",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_preserves_string_affix_coordinate_boundaries",
@@ -766,28 +767,44 @@
           "snippet": "Ruby String#start_with? literal receiver proof representative",
           "span": "1-3",
           "split": "focused"
+        },
+        {
+          "path": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+          "primary_language": "Swift",
+          "repo": "nose",
+          "snippet": "Swift String.hasPrefix literal prefix representative for the focused cross-language affix family",
+          "span": "1-3",
+          "split": "focused"
+        },
+        {
+          "path": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_swift.swift",
+          "primary_language": "Swift",
+          "repo": "nose",
+          "snippet": "Swift immutable local binding affix coordinate representative",
+          "span": "1-4",
+          "split": "focused"
         }
       ],
       "notes": "This packet records the current string-affix perimeter as reusable proof facts. It intentionally leaves case-insensitive, locale-sensitive, offset, and multi-affix semantics outside exact admission until their extra proof facts exist.",
-      "owner_issue": "#756",
+      "owner_issue": "#756/#782",
       "owner_route": "team-a-detector",
       "packet_id": "string-prefix-suffix-2026-07-08",
       "proof_fact_model": {
         "facts": [
           {
-            "current_real_pair_status": "satisfied for focused string-affix fixtures: typed, literal, and Ruby String receivers converge while untyped, nullable, boxed/custom, and wrong receivers stay split",
+            "current_real_pair_status": "satisfied for focused string-affix fixtures: typed, literal, Ruby String, and Swift String receivers converge while untyped, nullable, boxed/custom, and wrong receivers stay split",
             "fact_id": "string.affix.receiver-identity"
           },
           {
-            "current_real_pair_status": "satisfied for focused literal, same-role parameter, and immutable binding fixtures; wrong, dynamic, and mutated affix coordinates stay split",
+            "current_real_pair_status": "satisfied for focused literal, same-role prefix/suffix parameter, and immutable binding fixtures including Swift; wrong, dynamic, and mutated affix coordinates stay split",
             "fact_id": "string.affix.affix-coordinate"
           },
           {
-            "current_real_pair_status": "satisfied for standard case-sensitive receiver and namespace helpers; custom same-name, borrowed prototype, missing import, and monkey-patched API boundaries stay split",
+            "current_real_pair_status": "satisfied for standard case-sensitive receiver and namespace helpers including Swift hasPrefix/hasSuffix; custom same-name, borrowed prototype, missing import, substring/contains, case-normalized, and monkey-patched API boundaries stay split",
             "fact_id": "string.affix.api-identity"
           },
           {
-            "current_real_pair_status": "satisfied for Go strings namespace ownership and immutable affix binding fixtures; missing, shadowed, or mutated source evidence remains closed",
+            "current_real_pair_status": "satisfied for Go strings namespace ownership and Python/Swift immutable affix binding fixtures; missing, shadowed, or mutated source evidence remains closed",
             "fact_id": "string.affix.import-source-identity"
           },
           {
@@ -811,6 +828,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_dynamic_or_mutated_affix_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_api_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::string_affix_swift_api_boundary",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_hardens_js_ts_string_affix_receivers",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_admits_only_proven_ruby_string_affix_receivers",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_preserves_string_affix_coordinate_boundaries",
@@ -824,10 +842,14 @@
         "string-affix-prefix-focused-controlled-pair",
         "string-affix-suffix-focused-controlled-pair",
         "string-affix-parameter-coordinate-controlled-pair",
-        "string-affix-ruby-prefix-controlled-pair"
+        "string-affix-ruby-prefix-controlled-pair",
+        "string-affix-swift-prefix-focused-controlled-pair",
+        "string-affix-swift-suffix-focused-controlled-pair",
+        "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
+        "string-affix-swift-literal-binding-controlled-pair"
       ],
       "semantic_claim": "Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver coordinate, the same literal/parameter/imported affix coordinate, standard API or imported namespace identity, the same prefix-versus-suffix direction, and a whole-string single-affix shape. Parameter affixes and immutable local/module affix bindings may join literal affixes under those facts; offset overloads, tuple/multi-affix disjunctions, custom same-name methods, monkey patches, untyped receivers, wrong receivers, and mutated affix bindings remain outside the exact family.",
-      "why_now": "string_prefix_suffix has broad controlled coverage across core languages, a Swift probe row, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces."
+      "why_now": "string_prefix_suffix has broad controlled coverage across core languages, focused Swift hasPrefix/hasSuffix evidence, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces."
     },
     {
       "blocked_by": [],

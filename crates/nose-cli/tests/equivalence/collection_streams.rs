@@ -87,36 +87,95 @@ fn swift_foreach_and_standard_apis_join_existing_semantic_families() {
 #[test]
 fn string_affix_coordinate_sources_keep_safe_boundaries() {
     let i = Interner::new();
+    let param_fp = assert_string_affix_parameter_prefix_boundaries(&i);
+    assert_string_affix_parameter_suffix_boundaries(&i, &param_fp);
+    let literal_fp = assert_string_affix_literal_binding_boundaries(&i);
+    assert_string_affix_shape_and_swift_api_boundaries(&i, &literal_fp);
+}
+
+fn assert_string_affix_parameter_prefix_boundaries(i: &Interner) -> Vec<u64> {
     let ts_param = "function f(subject: string, prefix: string, other: string): boolean {\n    return subject.startsWith(prefix);\n}\n";
     let swift_param = "func f(_ subject: String, _ prefix: String, _ other: String) -> Bool {\n    return subject.hasPrefix(prefix)\n}\n";
     let py_param = "def f(subject: str, prefix: str, other: str) -> bool:\n    return subject.startswith(prefix)\n";
     let ts_wrong_param = "function f(subject: string, prefix: string, other: string): boolean {\n    return subject.startsWith(other);\n}\n";
+    let swift_wrong_param = "func f(_ subject: String, _ prefix: String, _ other: String) -> Bool {\n    return subject.hasPrefix(other)\n}\n";
     let ts_dynamic = "function f(subject: string, prefix: string): boolean {\n    const normalized = prefix.trim();\n    return subject.startsWith(normalized);\n}\n";
+    let swift_dynamic = "func f(_ subject: String, _ prefix: String) -> Bool {\n    let normalized = prefix.trimmingCharacters(in: .whitespaces)\n    return subject.hasPrefix(normalized)\n}\n";
 
-    let param_fp = value_fp(&i, ts_param, Lang::TypeScript);
-    assert_eq!(param_fp, value_fp(&i, swift_param, Lang::Swift));
-    assert_eq!(param_fp, value_fp(&i, py_param, Lang::Python));
-    assert_ne!(param_fp, value_fp(&i, ts_wrong_param, Lang::TypeScript));
-    assert_ne!(param_fp, value_fp(&i, ts_dynamic, Lang::TypeScript));
+    let param_fp = value_fp(i, ts_param, Lang::TypeScript);
+    assert_eq!(param_fp, value_fp(i, swift_param, Lang::Swift));
+    assert_eq!(param_fp, value_fp(i, py_param, Lang::Python));
+    assert_ne!(param_fp, value_fp(i, ts_wrong_param, Lang::TypeScript));
+    assert_ne!(param_fp, value_fp(i, swift_wrong_param, Lang::Swift));
+    assert_ne!(param_fp, value_fp(i, ts_dynamic, Lang::TypeScript));
+    assert_ne!(param_fp, value_fp(i, swift_dynamic, Lang::Swift));
+    param_fp
+}
 
+fn assert_string_affix_parameter_suffix_boundaries(i: &Interner, prefix_param_fp: &[u64]) {
+    let swift_param_suffix = "func f(_ subject: String, _ suffix: String, _ other: String) -> Bool {\n    return subject.hasSuffix(suffix)\n}\n";
+    let ts_param_suffix = "function f(subject: string, suffix: string, other: string): boolean {\n    return subject.endsWith(suffix);\n}\n";
+    let py_param_suffix = "def f(subject: str, suffix: str, other: str) -> bool:\n    return subject.endswith(suffix)\n";
+    let swift_suffix_dynamic = "func f(_ subject: String, _ suffix: String) -> Bool {\n    let normalized = suffix.trimmingCharacters(in: .whitespaces)\n    return subject.hasSuffix(normalized)\n}\n";
+    let suffix_param_fp = value_fp(i, ts_param_suffix, Lang::TypeScript);
+    assert_eq!(
+        suffix_param_fp,
+        value_fp(i, swift_param_suffix, Lang::Swift)
+    );
+    assert_eq!(suffix_param_fp, value_fp(i, py_param_suffix, Lang::Python));
+    assert_ne!(prefix_param_fp, suffix_param_fp);
+    assert_ne!(
+        suffix_param_fp,
+        value_fp(i, swift_suffix_dynamic, Lang::Swift)
+    );
+}
+
+fn assert_string_affix_literal_binding_boundaries(i: &Interner) -> Vec<u64> {
     let py_literal = "def f(subject: str) -> bool:\n    return subject.startswith(\"pre\")\n";
     let ts_local = "function f(subject: string): boolean {\n    const prefix = \"pre\";\n    return subject.startsWith(prefix);\n}\n";
+    let swift_literal =
+        "func f(_ subject: String) -> Bool {\n    return subject.hasPrefix(\"pre\")\n}\n";
+    let swift_local =
+        "func f(_ subject: String) -> Bool {\n    let prefix = \"pre\"\n    return subject.hasPrefix(prefix)\n}\n";
+    let swift_module =
+        "let PREFIX = \"pre\"\nfunc f(_ subject: String) -> Bool {\n    return subject.hasPrefix(PREFIX)\n}\n";
     let py_module =
         "PREFIX = \"pre\"\ndef f(subject: str) -> bool:\n    return subject.startswith(PREFIX)\n";
     let ts_mutated = "let PREFIX = \"pre\";\nPREFIX = \"other\";\nfunction f(subject: string): boolean {\n    return subject.startsWith(PREFIX);\n}\n";
-    let literal_fp = value_fp(&i, py_literal, Lang::Python);
-    assert_eq!(literal_fp, value_fp(&i, ts_local, Lang::TypeScript));
-    assert_eq!(literal_fp, value_fp(&i, py_module, Lang::Python));
-    assert_ne!(literal_fp, value_fp(&i, ts_mutated, Lang::TypeScript));
+    let swift_mutated =
+        "func f(_ subject: String) -> Bool {\n    var prefix = \"pre\"\n    prefix = \"other\"\n    return subject.hasPrefix(prefix)\n}\n";
+    let swift_suffix_mutated =
+        "func f(_ subject: String) -> Bool {\n    var suffix = \"pre\"\n    suffix = \"other\"\n    return subject.hasSuffix(suffix)\n}\n";
+    let literal_fp = value_fp(i, py_literal, Lang::Python);
+    assert_eq!(literal_fp, value_fp(i, swift_literal, Lang::Swift));
+    assert_eq!(literal_fp, value_fp(i, ts_local, Lang::TypeScript));
+    assert_eq!(literal_fp, value_fp(i, swift_local, Lang::Swift));
+    assert_eq!(literal_fp, value_fp(i, py_module, Lang::Python));
+    assert_eq!(literal_fp, value_fp(i, swift_module, Lang::Swift));
+    assert_ne!(literal_fp, value_fp(i, ts_mutated, Lang::TypeScript));
+    assert_ne!(literal_fp, value_fp(i, swift_mutated, Lang::Swift));
+    assert_ne!(literal_fp, value_fp(i, swift_suffix_mutated, Lang::Swift));
+    literal_fp
+}
 
+fn assert_string_affix_shape_and_swift_api_boundaries(i: &Interner, literal_fp: &[u64]) {
     let py_tuple =
         "def f(subject: str) -> bool:\n    return subject.startswith((\"pre\", \"alt\"))\n";
     let js_offset = "function f(subject) {\n    return subject.startsWith(\"pre\", 1);\n}\n";
     let java_offset =
         "class C { boolean f(String subject) { return subject.startsWith(\"pre\", 1); } }\n";
-    assert_ne!(literal_fp, value_fp(&i, py_tuple, Lang::Python));
-    assert_ne!(literal_fp, value_fp(&i, js_offset, Lang::JavaScript));
-    assert_ne!(literal_fp, value_fp(&i, java_offset, Lang::Java));
+    let swift_wrong_receiver =
+        "func f(_ subject: String, _ other: String) -> Bool {\n    return other.hasPrefix(\"pre\")\n}\n";
+    let swift_contains =
+        "func f(_ subject: String) -> Bool {\n    return subject.contains(\"pre\")\n}\n";
+    let swift_case_insensitive =
+        "func f(_ subject: String) -> Bool {\n    return subject.lowercased().hasPrefix(\"pre\")\n}\n";
+    assert_ne!(literal_fp, value_fp(i, py_tuple, Lang::Python));
+    assert_ne!(literal_fp, value_fp(i, js_offset, Lang::JavaScript));
+    assert_ne!(literal_fp, value_fp(i, java_offset, Lang::Java));
+    assert_ne!(literal_fp, value_fp(i, swift_wrong_receiver, Lang::Swift));
+    assert_ne!(literal_fp, value_fp(i, swift_contains, Lang::Swift));
+    assert_ne!(literal_fp, value_fp(i, swift_case_insensitive, Lang::Swift));
 }
 
 #[test]

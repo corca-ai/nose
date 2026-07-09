@@ -1,25 +1,25 @@
 {
-  "entry_count": 20,
+  "entry_count": 24,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "ebf72803b6c45ecf7b723f51fa804bb50cf4e59e88028cd65e7bf06d241c1f40",
-      "size_bytes": 23599
+      "sha256": "9bf94a06b25f11d5cb92e57598a5d9c1823cfb26ac363e4ab6e489e39deb5eda",
+      "size_bytes": 28191
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "280954630e557c4408c0923124bf29fbdea813d6273821e20916584765664ba8",
-      "size_bytes": 102635
+      "sha256": "fd7bfa0ffec73b49407c564274a4981536522ee7088a10804559bb3049c3d1c3",
+      "size_bytes": 103461
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "5d97f3f53540c2bf5363beaa3599324e874d4d64365297b8a627acb12988f48b",
-      "size_bytes": 95210
+      "sha256": "7b9e8b7a1f6a1af3070cd407b4d15562ca260476af803db1d81e4a3cbbf67942",
+      "size_bytes": 96691
     }
   },
   "nose_binary": "nose",
-  "passed": 20,
+  "passed": 24,
   "query_count": 11,
   "results": [
     {
@@ -701,6 +701,12 @@
           },
           {
             "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts",
             "name": "prefix",
             "start": 1
@@ -718,7 +724,7 @@
             "start": 1
           }
         ],
-        "value": 67.5,
+        "value": 95.39999999999999,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -769,6 +775,12 @@
         "locations": [
           {
             "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+            "name": "suffix",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
             "name": "suffix",
             "start": 1
@@ -780,13 +792,197 @@
             "start": 1
           }
         ],
-        "value": 3.6,
+        "value": 10.4,
         "witness": "exact"
       },
       "observed": "same-family",
       "ok": true,
       "packet_id": "string-prefix-suffix-2026-07-08",
       "replay_id": "string-affix-suffix-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 4,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_swift.swift",
+            "name": "localBindingPrefix",
+            "start": 1
+          },
+          {
+            "end": 4,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_ts.ts",
+            "name": "localBindingPrefix",
+            "start": 1
+          },
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_swift.swift",
+            "name": "moduleBindingPrefix",
+            "start": 3
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/literal_py.py",
+            "name": "literal_prefix",
+            "start": 1
+          },
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_py.py",
+            "name": "module_binding_prefix",
+            "start": 4
+          }
+        ],
+        "value": 38.400000000000006,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-swift-literal-binding-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.java",
+            "name": "Prefix",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.go",
+            "name": "Prefix",
+            "start": 5
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.rs",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 6,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/shadowed_constructor_patch.ts",
+            "name": "shadowedPatch",
+            "start": 4
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.py",
+            "name": "prefix",
+            "start": 1
+          }
+        ],
+        "value": 95.39999999999999,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-swift-prefix-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+            "name": "suffix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
+            "name": "suffix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.py",
+            "name": "suffix",
+            "start": 1
+          }
+        ],
+        "value": 10.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-swift-suffix-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_swift.swift",
+            "name": "paramSuffix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_ts.ts",
+            "name": "paramSuffix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_python.py",
+            "name": "param_suffix",
+            "start": 1
+          }
+        ],
+        "value": 10.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "replay_id": "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
       "status": "passed"
     }
   ],

@@ -174,26 +174,36 @@
      "span": "1-3",
      "snippet": "function prefix(value: string, other: string): boolean { return value.startsWith(\"pre\"); }"
     },
-    {
-     "path": "crates/nose-cli/tests/fixtures/string_affix_552/param_ts.ts",
-     "span": "1-3",
-     "snippet": "function paramPrefix(subject: string, prefix: string, other: string): boolean { return subject.startsWith(prefix); }"
-    },
-    {
-     "path": "crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb",
-     "span": "1-3",
+     {
+      "path": "crates/nose-cli/tests/fixtures/string_affix_552/param_ts.ts",
+      "span": "1-3",
+      "snippet": "function paramPrefix(subject: string, prefix: string, other: string): boolean { return subject.startsWith(prefix); }"
+     },
+     {
+      "path": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+      "span": "1-3",
+      "snippet": "func prefix(_ value: String, _ other: String) -> Bool { return value.hasPrefix(\"pre\") }"
+     },
+     {
+      "path": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_swift.swift",
+      "span": "1-4",
+      "snippet": "func localBindingPrefix(_ subject: String) -> Bool { let prefix = \"pre\"; return subject.hasPrefix(prefix) }"
+     },
+     {
+      "path": "crates/nose-cli/tests/fixtures/string_affix_551/prefix.rb",
+      "span": "1-3",
      "snippet": "def ruby_prefix_one; \"prelude\".start_with?(\"pre\"); end"
     }
    ],
    "semantic_claim": "Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver coordinate, the same literal/parameter/imported affix coordinate, standard API or imported namespace identity, the same prefix-versus-suffix direction, and a whole-string single-affix shape. Parameter affixes and immutable local/module affix bindings may join literal affixes under those facts; offset overloads, tuple/multi-affix disjunctions, custom same-name methods, monkey patches, untyped receivers, wrong receivers, and mutated affix bindings remain outside the exact family.",
-   "evidence": "Focused string_affix_550, string_affix_551, and string_affix_552 fixtures are executable: semantic query reports cross-language prefix predicates in one family, suffix predicates in a separate family, same-role parameter affixes in one family, immutable literal/local/module binding affixes in one family, and Ruby literal String prefix/suffix families; it keeps prefix-vs-suffix, untyped/wrong receivers, wrong/dynamic/mutated affix coordinates, offset overloads, tuple/multi-affix forms, custom APIs, and monkey-patched Ruby String APIs split. coverage_evidence.v1.json records string_prefix_suffix as covered across Go, Java, JavaScript, Python, Ruby, Rust, TypeScript, and a Swift probe row.",
+   "evidence": "Focused string_affix_550, string_affix_551, and string_affix_552 fixtures are executable: semantic query reports cross-language prefix predicates including Swift hasPrefix in one family, suffix predicates including Swift hasSuffix in a separate family, same-role prefix and suffix parameter affixes including Swift in their families, immutable literal/local/module binding affixes including Swift in one family, and Ruby literal String prefix/suffix families; it keeps prefix-vs-suffix, untyped/wrong receivers, wrong/dynamic/mutated affix coordinates, offset overloads, tuple/multi-affix forms, Swift contains/custom/case-normalized APIs, custom JS/Ruby APIs, and monkey-patched Ruby String APIs split. coverage_evidence.v1.json records string_prefix_suffix as covered across Go, Java, JavaScript, Python, Ruby, Rust, TypeScript, and a Swift probe row promoted by focused #782 evidence.",
    "detector": {
     "current_detector_miss": false,
     "binary_path": "nose",
     "nose_version": "nose",
-    "build_ref": "#756 semantic pattern card",
+    "build_ref": "#756 semantic pattern card, #782 Swift affix admission",
     "baseline_command": "nose query crates/nose-cli/tests/fixtures/string_affix_550 all top=0 --mode semantic --format json --min-size 1 --min-lines 1; nose query crates/nose-cli/tests/fixtures/string_affix_551 all top=0 --mode semantic --format json --min-size 1 --min-lines 1; nose query crates/nose-cli/tests/fixtures/string_affix_552 all top=0 --mode semantic --format json --min-size 1 --min-lines 1",
-    "baseline_result": "Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role parameter, and immutable binding families while adjacent hard negatives stay outside those families.",
+    "baseline_result": "Semantic queries report the expected prefix, suffix, Ruby prefix/suffix, same-role prefix/suffix parameter, and immutable binding families including focused Swift witnesses while adjacent hard negatives stay outside those families.",
     "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations.",
     "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations."
    },
@@ -208,7 +218,7 @@
     "case-insensitive or locale-sensitive variants stay outside case-sensitive affix proof"
    ],
    "batch": "2026-07-08-string-affix-pattern-card",
-   "notes": "Issue #756 pattern-card evidence. This packet records the current string-affix perimeter as reusable neutral proof facts and keeps Swift at probe coverage unless future focused evidence covers the full receiver/API/coordinate/mutation perimeter."
+   "notes": "Issue #756 pattern-card evidence, extended by #782 for focused Swift String.hasPrefix/hasSuffix admission. This packet records the current string-affix perimeter as reusable neutral proof facts while keeping case-insensitive, locale-sensitive, offset, multi-affix, substring/contains, and custom API variants closed."
   },
   {
    "case_id": "null-option-presence-focused-controlled",

@@ -19,8 +19,8 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 118/118 passed
-- real-frontier replay expectations: 20/20 passed; 0 unavailable
+- executable expectations: 129/129 passed
+- real-frontier replay expectations: 24/24 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -43,7 +43,7 @@ report keeps the fuller evidence and admission boundary.
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed expectations (1/1)` | 5 | 6 | 1 |
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (10/10)` | `passed expectations (1/1)` | 4 | 7 | 1 |
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (12/12)` | `passed expectations (4/4)` | 4 | 5 | 1 |
-| `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed expectations (4/4)` | 6 | 7 | 1 |
+| `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (31/31)` | `passed expectations (8/8)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
 | `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed expectations (6/6)` | 10 | 15 | 1 |
 
@@ -90,9 +90,9 @@ report keeps the fuller evidence and admission boundary.
 
 - detector admission: `controlled-slice-admitted` over controlled case-sensitive whole-string prefix/suffix predicates with receiver, API/import, affix coordinate, direction, and arity proof
 - remaining real-pair gap: a non-focused real-corpus string-affix pair still needs separate audit before this packet can claim real-pair admission
-- gates: 6 positive, 10 hard-negative
-- executable witness coverage: `covered` (20/20 passed)
-- real-frontier replay expectations: `passed` (4/4 expectations passed)
+- gates: 6 positive, 11 hard-negative
+- executable witness coverage: `covered` (31/31 passed)
+- real-frontier replay expectations: `passed` (8/8 expectations passed)
 - hard-negative groups: `string-affix-proof-perimeter`
 
 ### `null-option-presence-2026-07-08`
@@ -153,8 +153,8 @@ report keeps the fuller evidence and admission boundary.
 
 - semantic family: `string.affix`
 - conventions: `string.receiver-coordinate`, `string.affix-coordinate`, `string.affix-direction`, `string.offset-or-multi-affix`, `protocol-boundary.api-identity`
-- cases: 5 positive, 6 hard-negative
-- regression gates: 15
+- cases: 5 positive, 7 hard-negative
+- regression gates: 16
 
 ### `null-option-presence-2026-07-08` / `null-option-presence-proof-perimeter`
 

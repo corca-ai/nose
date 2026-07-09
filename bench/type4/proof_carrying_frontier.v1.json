@@ -104,13 +104,13 @@
       },
       "executable_expectations": {
         "path": "bench/type4/executable_expectations.v1.json",
-        "sha256": "78f65e1306c6e163afba3146c59c7001afb18fa82636b23c6861089da9b37244",
-        "size_bytes": 62107
+        "sha256": "69a2c54dd53abb4469415d2687539ec80867bbb58f0dc49b823419693fd6fb07",
+        "size_bytes": 67105
       },
       "focused_cases": {
         "path": "bench/type4/adversarial/cases/cases.v1.json",
-        "sha256": "9060894bbf868f52cdda8d203e2b6be94ef64f10123c7f6298f0cab43991ce3b",
-        "size_bytes": 155450
+        "sha256": "4818366918b5c44a52eef324ddc2e79e4cf08dcf095e1f8e908216e720c26689",
+        "size_bytes": 163330
       },
       "proof_fact_registry": {
         "path": "bench/type4/proof_fact_registry.v1.json",
@@ -124,23 +124,23 @@
       },
       "real_frontier": {
         "path": "bench/type4/real_frontier.v1.json",
-        "sha256": "280954630e557c4408c0923124bf29fbdea813d6273821e20916584765664ba8",
-        "size_bytes": 102635
+        "sha256": "fd7bfa0ffec73b49407c564274a4981536522ee7088a10804559bb3049c3d1c3",
+        "size_bytes": 103461
       },
       "real_frontier_replay": {
         "path": "bench/type4/real_frontier_replay.v1.json",
-        "sha256": "ebf72803b6c45ecf7b723f51fa804bb50cf4e59e88028cd65e7bf06d241c1f40",
-        "size_bytes": 23599
+        "sha256": "9bf94a06b25f11d5cb92e57598a5d9c1823cfb26ac363e4ab6e489e39deb5eda",
+        "size_bytes": 28191
       },
       "real_frontier_replay_status": {
         "path": "bench/type4/real_frontier_replay_status.v1.json",
-        "sha256": "98a94e268580ecf3029fc097ea5102a19d933f21c4822b70a17ed0c9c8bfdec4",
-        "size_bytes": 23584
+        "sha256": "dd53b70bf3b31411c92e1efb69d1050bcd1339fb1882b22799d84804a9f3d751",
+        "size_bytes": 29483
       },
       "target_packets": {
         "path": "bench/type4/frontier_target_packets.v1.json",
-        "sha256": "5d97f3f53540c2bf5363beaa3599324e874d4d64365297b8a627acb12988f48b",
-        "size_bytes": 95210
+        "sha256": "7b9e8b7a1f6a1af3070cd407b4d15562ca260476af803db1d81e4a3cbbf67942",
+        "size_bytes": 96691
       }
     },
     "target_packet_identity": {
@@ -750,6 +750,72 @@
               "status": "passed"
             },
             {
+              "case_id": "string_affix_parameter_coordinate_positive",
+              "expect": "same-family",
+              "expectation_id": "string_affix_suffix_parameter_coordinate_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_swift_api_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_case_insensitive_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_swift_api_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_contains_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_swift_api_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_custom_api_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_dynamic_parameter_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_mutated_binding_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_direction_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_prefix_suffix_stay_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_suffix_dynamic_parameter_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_suffix_mutated_binding_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_wrong_affix_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_wrong_parameter_coordinate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_unproven_receiver_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_wrong_receiver_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "string_affix_offset_or_multi_boundary",
               "expect": "split",
               "expectation_id": "string_affix_tuple_multi_stays_split",
@@ -781,7 +847,7 @@
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 20,
+          "declared_expectation_count": 31,
           "declared_expectation_ids": [
             "string_affix_dynamic_parameter_stays_split",
             "string_affix_java_offset_stays_split",
@@ -798,6 +864,17 @@
             "string_affix_ruby_prefix_suffix_stay_split",
             "string_affix_ruby_suffix_matches",
             "string_affix_suffix_matches",
+            "string_affix_suffix_parameter_coordinate_matches",
+            "string_affix_swift_case_insensitive_stays_split",
+            "string_affix_swift_contains_stays_split",
+            "string_affix_swift_custom_api_stays_split",
+            "string_affix_swift_dynamic_parameter_stays_split",
+            "string_affix_swift_mutated_binding_stays_split",
+            "string_affix_swift_prefix_suffix_stay_split",
+            "string_affix_swift_suffix_dynamic_parameter_stays_split",
+            "string_affix_swift_suffix_mutated_binding_stays_split",
+            "string_affix_swift_wrong_parameter_coordinate_stays_split",
+            "string_affix_swift_wrong_receiver_stays_split",
             "string_affix_tuple_multi_stays_split",
             "string_affix_untyped_js_receiver_stays_split",
             "string_affix_wrong_literal_coordinate_stays_split",
@@ -816,6 +893,7 @@
             "string_affix_ruby_api_boundary",
             "string_affix_ruby_positive",
             "string_affix_suffix_positive",
+            "string_affix_swift_api_boundary",
             "string_affix_unproven_receiver_boundary",
             "string_affix_wrong_affix_coordinate_boundary"
           ],
@@ -824,6 +902,7 @@
             "string_affix_dynamic_or_mutated_affix_boundary",
             "string_affix_offset_or_multi_boundary",
             "string_affix_ruby_api_boundary",
+            "string_affix_swift_api_boundary",
             "string_affix_unproven_receiver_boundary",
             "string_affix_wrong_affix_coordinate_boundary"
           ],
@@ -838,7 +917,7 @@
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "string-prefix-suffix-2026-07-08",
-          "passed_expectation_count": 20,
+          "passed_expectation_count": 31,
           "passed_expectation_ids": [
             "string_affix_dynamic_parameter_stays_split",
             "string_affix_java_offset_stays_split",
@@ -855,6 +934,17 @@
             "string_affix_ruby_prefix_suffix_stay_split",
             "string_affix_ruby_suffix_matches",
             "string_affix_suffix_matches",
+            "string_affix_suffix_parameter_coordinate_matches",
+            "string_affix_swift_case_insensitive_stays_split",
+            "string_affix_swift_contains_stays_split",
+            "string_affix_swift_custom_api_stays_split",
+            "string_affix_swift_dynamic_parameter_stays_split",
+            "string_affix_swift_mutated_binding_stays_split",
+            "string_affix_swift_prefix_suffix_stay_split",
+            "string_affix_swift_suffix_dynamic_parameter_stays_split",
+            "string_affix_swift_suffix_mutated_binding_stays_split",
+            "string_affix_swift_wrong_parameter_coordinate_stays_split",
+            "string_affix_swift_wrong_receiver_stays_split",
             "string_affix_tuple_multi_stays_split",
             "string_affix_untyped_js_receiver_stays_split",
             "string_affix_wrong_literal_coordinate_stays_split",
@@ -1366,7 +1456,7 @@
         }
       ],
       "summary": {
-        "declared_expectation_count": 118,
+        "declared_expectation_count": 129,
         "extra": 0,
         "failed": 0,
         "fully_covered_packet_count": 7,
@@ -1376,13 +1466,13 @@
         "packet_count_by_coverage": {
           "covered": 7
         },
-        "passed": 118,
+        "passed": 129,
         "query_count": 19,
         "report_extra_expectation_ids": [],
         "report_failed_expectation_ids": [],
         "report_missing_expectation_ids": [],
         "report_stale_expectation_ids": [],
-        "result_count": 118,
+        "result_count": 129,
         "stale": 0
       }
     },
@@ -1533,7 +1623,8 @@
           "string_affix_wrong_affix_coordinate_boundary",
           "string_affix_dynamic_or_mutated_affix_boundary",
           "string_affix_offset_or_multi_boundary",
-          "string_affix_ruby_api_boundary"
+          "string_affix_ruby_api_boundary",
+          "string_affix_swift_api_boundary"
         ],
         "packet_id": "string-prefix-suffix-2026-07-08",
         "positive_cases": [
@@ -1555,6 +1646,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_dynamic_or_mutated_affix_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_api_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::string_affix_swift_api_boundary",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_hardens_js_ts_string_affix_receivers",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_admits_only_proven_ruby_string_affix_receivers",
           "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_preserves_string_affix_coordinate_boundaries",
@@ -2713,12 +2805,12 @@
         "candidate_axis": "string_prefix_suffix",
         "detector_admission": {
           "capabilities": [
-            "converges standard case-sensitive prefix predicates across proven string receiver/API surfaces",
-            "converges standard case-sensitive suffix predicates separately from prefix predicates",
-            "converges same-role parameter affixes and immutable literal/local/module binding affixes",
-            "preserves receiver, API identity, affix coordinate, direction, offset, multi-affix, and mutation boundaries"
+            "converges standard case-sensitive prefix predicates across proven string receiver/API surfaces, including Swift String.hasPrefix",
+            "converges standard case-sensitive suffix predicates separately from prefix predicates, including Swift String.hasSuffix",
+            "converges same-role prefix/suffix parameter affixes and immutable literal/local/module binding affixes, including Swift bindings",
+            "preserves receiver, API identity, affix coordinate, direction, offset, multi-affix, mutation, substring/custom, and case-normalized boundaries"
           ],
-          "hard_negative_gate_count": 10,
+          "hard_negative_gate_count": 11,
           "positive_gate_count": 6,
           "remaining_real_pair_gap": "a non-focused real-corpus string-affix pair still needs separate audit before this packet can claim real-pair admission",
           "scope": "controlled case-sensitive whole-string prefix/suffix predicates with receiver, API/import, affix coordinate, direction, and arity proof",
@@ -2821,6 +2913,72 @@
               "status": "passed"
             },
             {
+              "case_id": "string_affix_parameter_coordinate_positive",
+              "expect": "same-family",
+              "expectation_id": "string_affix_suffix_parameter_coordinate_matches",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_swift_api_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_case_insensitive_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_swift_api_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_contains_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_swift_api_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_custom_api_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_dynamic_parameter_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_mutated_binding_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_direction_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_prefix_suffix_stay_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_suffix_dynamic_parameter_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_suffix_mutated_binding_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_wrong_affix_coordinate_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_wrong_parameter_coordinate_stays_split",
+              "status": "passed"
+            },
+            {
+              "case_id": "string_affix_unproven_receiver_boundary",
+              "expect": "split",
+              "expectation_id": "string_affix_swift_wrong_receiver_stays_split",
+              "status": "passed"
+            },
+            {
               "case_id": "string_affix_offset_or_multi_boundary",
               "expect": "split",
               "expectation_id": "string_affix_tuple_multi_stays_split",
@@ -2852,7 +3010,7 @@
             }
           ],
           "coverage_status": "covered",
-          "declared_expectation_count": 20,
+          "declared_expectation_count": 31,
           "declared_expectation_ids": [
             "string_affix_dynamic_parameter_stays_split",
             "string_affix_java_offset_stays_split",
@@ -2869,6 +3027,17 @@
             "string_affix_ruby_prefix_suffix_stay_split",
             "string_affix_ruby_suffix_matches",
             "string_affix_suffix_matches",
+            "string_affix_suffix_parameter_coordinate_matches",
+            "string_affix_swift_case_insensitive_stays_split",
+            "string_affix_swift_contains_stays_split",
+            "string_affix_swift_custom_api_stays_split",
+            "string_affix_swift_dynamic_parameter_stays_split",
+            "string_affix_swift_mutated_binding_stays_split",
+            "string_affix_swift_prefix_suffix_stay_split",
+            "string_affix_swift_suffix_dynamic_parameter_stays_split",
+            "string_affix_swift_suffix_mutated_binding_stays_split",
+            "string_affix_swift_wrong_parameter_coordinate_stays_split",
+            "string_affix_swift_wrong_receiver_stays_split",
             "string_affix_tuple_multi_stays_split",
             "string_affix_untyped_js_receiver_stays_split",
             "string_affix_wrong_literal_coordinate_stays_split",
@@ -2887,6 +3056,7 @@
             "string_affix_ruby_api_boundary",
             "string_affix_ruby_positive",
             "string_affix_suffix_positive",
+            "string_affix_swift_api_boundary",
             "string_affix_unproven_receiver_boundary",
             "string_affix_wrong_affix_coordinate_boundary"
           ],
@@ -2895,6 +3065,7 @@
             "string_affix_dynamic_or_mutated_affix_boundary",
             "string_affix_offset_or_multi_boundary",
             "string_affix_ruby_api_boundary",
+            "string_affix_swift_api_boundary",
             "string_affix_unproven_receiver_boundary",
             "string_affix_wrong_affix_coordinate_boundary"
           ],
@@ -2909,7 +3080,7 @@
           "missing_expectation_count": 0,
           "missing_expectation_ids": [],
           "packet_id": "string-prefix-suffix-2026-07-08",
-          "passed_expectation_count": 20,
+          "passed_expectation_count": 31,
           "passed_expectation_ids": [
             "string_affix_dynamic_parameter_stays_split",
             "string_affix_java_offset_stays_split",
@@ -2926,6 +3097,17 @@
             "string_affix_ruby_prefix_suffix_stay_split",
             "string_affix_ruby_suffix_matches",
             "string_affix_suffix_matches",
+            "string_affix_suffix_parameter_coordinate_matches",
+            "string_affix_swift_case_insensitive_stays_split",
+            "string_affix_swift_contains_stays_split",
+            "string_affix_swift_custom_api_stays_split",
+            "string_affix_swift_dynamic_parameter_stays_split",
+            "string_affix_swift_mutated_binding_stays_split",
+            "string_affix_swift_prefix_suffix_stay_split",
+            "string_affix_swift_suffix_dynamic_parameter_stays_split",
+            "string_affix_swift_suffix_mutated_binding_stays_split",
+            "string_affix_swift_wrong_parameter_coordinate_stays_split",
+            "string_affix_swift_wrong_receiver_stays_split",
             "string_affix_tuple_multi_stays_split",
             "string_affix_untyped_js_receiver_stays_split",
             "string_affix_wrong_literal_coordinate_stays_split",
@@ -2939,7 +3121,7 @@
         "hard_negative_group_ids": [
           "string-affix-proof-perimeter"
         ],
-        "owner_issue": "#756",
+        "owner_issue": "#756/#782",
         "owner_route": "team-a-detector",
         "packet_id": "string-prefix-suffix-2026-07-08",
         "proof_fact_model": {
@@ -2955,7 +3137,7 @@
           "facts": [
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused string-affix fixtures: typed, literal, and Ruby String receivers converge while untyped, nullable, boxed/custom, and wrong receivers stay split",
+              "current_real_pair_status": "satisfied for focused string-affix fixtures: typed, literal, Ruby String, and Swift String receivers converge while untyped, nullable, boxed/custom, and wrong receivers stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -2967,7 +3149,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for focused literal, same-role parameter, and immutable binding fixtures; wrong, dynamic, and mutated affix coordinates stay split",
+              "current_real_pair_status": "satisfied for focused literal, same-role prefix/suffix parameter, and immutable binding fixtures including Swift; wrong, dynamic, and mutated affix coordinates stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -2979,7 +3161,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for standard case-sensitive receiver and namespace helpers; custom same-name, borrowed prototype, missing import, and monkey-patched API boundaries stay split",
+              "current_real_pair_status": "satisfied for standard case-sensitive receiver and namespace helpers including Swift hasPrefix/hasSuffix; custom same-name, borrowed prototype, missing import, substring/contains, case-normalized, and monkey-patched API boundaries stay split",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -2991,7 +3173,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "satisfied for Go strings namespace ownership and immutable affix binding fixtures; missing, shadowed, or mutated source evidence remains closed",
+              "current_real_pair_status": "satisfied for Go strings namespace ownership and Python/Swift immutable affix binding fixtures; missing, shadowed, or mutated source evidence remains closed",
               "evidence_requirements": [
                 "focused-executable",
                 "source-evidence"
@@ -3068,27 +3250,67 @@
               "proof_gap": [],
               "replay_id": "string-affix-suffix-focused-controlled-pair",
               "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-literal-binding-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-prefix-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-suffix-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
+              "status": "passed"
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 4,
+          "declared_replay_count": 8,
           "declared_replay_ids": [
             "string-affix-parameter-coordinate-controlled-pair",
             "string-affix-prefix-focused-controlled-pair",
             "string-affix-ruby-prefix-controlled-pair",
-            "string-affix-suffix-focused-controlled-pair"
+            "string-affix-suffix-focused-controlled-pair",
+            "string-affix-swift-literal-binding-controlled-pair",
+            "string-affix-swift-prefix-focused-controlled-pair",
+            "string-affix-swift-suffix-focused-controlled-pair",
+            "string-affix-swift-suffix-parameter-coordinate-controlled-pair"
           ],
           "failed_replay_count": 0,
           "failed_replay_ids": [],
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "string-prefix-suffix-2026-07-08",
-          "passed_replay_count": 4,
+          "passed_replay_count": 8,
           "passed_replay_ids": [
             "string-affix-parameter-coordinate-controlled-pair",
             "string-affix-prefix-focused-controlled-pair",
             "string-affix-ruby-prefix-controlled-pair",
-            "string-affix-suffix-focused-controlled-pair"
+            "string-affix-suffix-focused-controlled-pair",
+            "string-affix-swift-literal-binding-controlled-pair",
+            "string-affix-swift-prefix-focused-controlled-pair",
+            "string-affix-swift-suffix-focused-controlled-pair",
+            "string-affix-swift-suffix-parameter-coordinate-controlled-pair"
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
@@ -3097,10 +3319,14 @@
           "string-affix-prefix-focused-controlled-pair",
           "string-affix-suffix-focused-controlled-pair",
           "string-affix-parameter-coordinate-controlled-pair",
-          "string-affix-ruby-prefix-controlled-pair"
+          "string-affix-ruby-prefix-controlled-pair",
+          "string-affix-swift-prefix-focused-controlled-pair",
+          "string-affix-swift-suffix-focused-controlled-pair",
+          "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
+          "string-affix-swift-literal-binding-controlled-pair"
         ],
         "semantic_claim": "Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver coordinate, the same literal/parameter/imported affix coordinate, standard API or imported namespace identity, the same prefix-versus-suffix direction, and a whole-string single-affix shape. Parameter affixes and immutable local/module affix bindings may join literal affixes under those facts; offset overloads, tuple/multi-affix disjunctions, custom same-name methods, monkey patches, untyped receivers, wrong receivers, and mutated affix bindings remain outside the exact family.",
-        "why_now": "string_prefix_suffix has broad controlled coverage across core languages, a Swift probe row, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces."
+        "why_now": "string_prefix_suffix has broad controlled coverage across core languages, focused Swift hasPrefix/hasSuffix evidence, and closeout evidence for Go ownership, Ruby receiver proof, and affix-coordinate boundaries. The remaining value is to preserve the receiver/API/affix/direction/arity perimeter as reusable neutral facts before future case-insensitive, locale, offset, or multi-affix expansions add more surfaces."
       },
       {
         "candidate_axis": "null_option_presence",
@@ -4297,27 +4523,67 @@
               "proof_gap": [],
               "replay_id": "string-affix-suffix-focused-controlled-pair",
               "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-literal-binding-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-prefix-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-suffix-focused-controlled-pair",
+              "status": "passed"
+            },
+            {
+              "case_id": "string-affix-focused-controlled",
+              "expect": "same-family",
+              "observed": "same-family",
+              "proof_gap": [],
+              "replay_id": "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
+              "status": "passed"
             }
           ],
           "coverage_status": "passed",
-          "declared_replay_count": 4,
+          "declared_replay_count": 8,
           "declared_replay_ids": [
             "string-affix-parameter-coordinate-controlled-pair",
             "string-affix-prefix-focused-controlled-pair",
             "string-affix-ruby-prefix-controlled-pair",
-            "string-affix-suffix-focused-controlled-pair"
+            "string-affix-suffix-focused-controlled-pair",
+            "string-affix-swift-literal-binding-controlled-pair",
+            "string-affix-swift-prefix-focused-controlled-pair",
+            "string-affix-swift-suffix-focused-controlled-pair",
+            "string-affix-swift-suffix-parameter-coordinate-controlled-pair"
           ],
           "failed_replay_count": 0,
           "failed_replay_ids": [],
           "missing_replay_count": 0,
           "missing_replay_ids": [],
           "packet_id": "string-prefix-suffix-2026-07-08",
-          "passed_replay_count": 4,
+          "passed_replay_count": 8,
           "passed_replay_ids": [
             "string-affix-parameter-coordinate-controlled-pair",
             "string-affix-prefix-focused-controlled-pair",
             "string-affix-ruby-prefix-controlled-pair",
-            "string-affix-suffix-focused-controlled-pair"
+            "string-affix-suffix-focused-controlled-pair",
+            "string-affix-swift-literal-binding-controlled-pair",
+            "string-affix-swift-prefix-focused-controlled-pair",
+            "string-affix-swift-suffix-focused-controlled-pair",
+            "string-affix-swift-suffix-parameter-coordinate-controlled-pair"
           ],
           "unavailable_replay_count": 0,
           "unavailable_replay_ids": []
@@ -4453,7 +4719,7 @@
         }
       ],
       "summary": {
-        "declared_replay_count": 20,
+        "declared_replay_count": 24,
         "failed": 0,
         "fully_replayed_packet_count": 7,
         "nose_binary": "nose",
@@ -4461,12 +4727,12 @@
         "packet_count_by_coverage": {
           "passed": 7
         },
-        "passed": 20,
+        "passed": 24,
         "query_count": 11,
         "report_failed_replay_ids": [],
         "report_missing_replay_ids": [],
         "report_unavailable_replay_ids": [],
-        "result_count": 20,
+        "result_count": 24,
         "unavailable": 0
       }
     },

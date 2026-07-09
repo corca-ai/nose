@@ -40,13 +40,14 @@ fn assert_proved_string_affix_families(semantic_json: &serde_json::Value, semant
                 "prefix.go",
                 "prefix.rs",
                 "prefix.java",
+                "prefix.swift",
                 "shadowed_constructor_patch.ts",
             ],
         ),
         "semantic mode should report the proved prefix affix family: {semantic}"
     );
     assert!(
-        family_contains_all(semantic_json, &["suffix.py", "suffix.ts"]),
+        family_contains_all(semantic_json, &["suffix.py", "suffix.ts", "suffix.swift"]),
         "semantic mode should report the proved suffix affix family: {semantic}"
     );
     assert!(
@@ -82,9 +83,22 @@ fn assert_proved_affix_coordinate_families(semantic_json: &serde_json::Value, se
         family_contains_all(
             semantic_json,
             &[
+                "param_suffix_ts.ts",
+                "param_suffix_swift.swift",
+                "param_suffix_python.py",
+            ],
+        ),
+        "semantic mode should report the same-role suffix parameter coordinate family: {semantic}"
+    );
+    assert!(
+        family_contains_all(
+            semantic_json,
+            &[
                 "literal_py.py",
                 "local_binding_ts.ts",
-                "module_binding_py.py"
+                "local_binding_swift.swift",
+                "module_binding_py.py",
+                "module_binding_swift.swift",
             ]
         ),
         "semantic mode should report immutable literal binding affix coordinates: {semantic}"
@@ -110,10 +124,15 @@ fn assert_string_affix_hard_negatives(semantic_json: &serde_json::Value, semanti
         "block_scoped_object_then_define_property.ts",
         "affix_negative.py",
         "receiver_negative.rs",
+        "swift_wrong_receiver.swift",
+        "swift_contains.swift",
+        "swift_custom_same_name.swift",
+        "swift_case_insensitive.swift",
     ] {
         assert!(
             !family_contains_all(semantic_json, &["prefix.py", unexpected])
-                && !family_contains_all(semantic_json, &["prefix.ts", unexpected]),
+                && !family_contains_all(semantic_json, &["prefix.ts", unexpected])
+                && !family_contains_all(semantic_json, &["prefix.swift", unexpected]),
             "semantic mode must keep {unexpected} out of the proved affix family: {semantic}"
         );
     }
@@ -122,8 +141,13 @@ fn assert_string_affix_hard_negatives(semantic_json: &serde_json::Value, semanti
 fn assert_affix_coordinate_hard_negatives(semantic_json: &serde_json::Value, semantic: &str) {
     for unexpected in [
         "param_wrong_ts.ts",
+        "param_wrong_swift.swift",
         "param_dynamic_ts.ts",
+        "param_dynamic_swift.swift",
+        "param_suffix_dynamic_swift.swift",
         "binding_mutated_ts.ts",
+        "binding_mutated_swift.swift",
+        "binding_suffix_mutated_swift.swift",
         "python_tuple_affix.py",
         "ruby_multi_affix.rb",
     ] {

@@ -1,8 +1,8 @@
 {
-  "expectation_count": 118,
+  "expectation_count": 129,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 118,
+  "passed": 129,
   "query_count": 19,
   "results": [
     {
@@ -392,6 +392,12 @@
           },
           {
             "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+            "name": "prefix",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.ts",
             "name": "prefix",
             "start": 1
@@ -409,7 +415,7 @@
             "start": 1
           }
         ],
-        "value": 67.5,
+        "value": 95.39999999999999,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -424,6 +430,12 @@
         "locations": [
           {
             "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+            "name": "suffix",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
             "name": "suffix",
             "start": 1
@@ -435,7 +447,7 @@
             "start": 1
           }
         ],
-        "value": 3.6,
+        "value": 10.4,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -474,6 +486,38 @@
       "ok": true
     },
     {
+      "case_id": "string_affix_parameter_coordinate_positive",
+      "expect": "same-family",
+      "expectation_id": "string_affix_suffix_parameter_coordinate_matches",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_swift.swift",
+            "name": "paramSuffix",
+            "start": 1
+          },
+          {
+            "end": 3,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_ts.ts",
+            "name": "paramSuffix",
+            "start": 1
+          },
+          {
+            "end": 2,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_python.py",
+            "name": "param_suffix",
+            "start": 1
+          }
+        ],
+        "value": 10.4,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
       "case_id": "string_affix_literal_binding_coordinate_positive",
       "expect": "same-family",
       "expectation_id": "string_affix_literal_binding_coordinate_matches",
@@ -482,9 +526,21 @@
         "locations": [
           {
             "end": 4,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_swift.swift",
+            "name": "localBindingPrefix",
+            "start": 1
+          },
+          {
+            "end": 4,
             "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_ts.ts",
             "name": "localBindingPrefix",
             "start": 1
+          },
+          {
+            "end": 5,
+            "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_swift.swift",
+            "name": "moduleBindingPrefix",
+            "start": 3
           },
           {
             "end": 2,
@@ -499,7 +555,7 @@
             "start": 4
           }
         ],
-        "value": 8.4,
+        "value": 38.400000000000006,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -569,6 +625,15 @@
     {
       "case_id": "string_affix_direction_boundary",
       "expect": "split",
+      "expectation_id": "string_affix_swift_prefix_suffix_stay_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_direction_boundary",
+      "expect": "split",
       "expectation_id": "string_affix_ruby_prefix_suffix_stay_split",
       "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
       "matching_family": null,
@@ -594,9 +659,27 @@
       "ok": true
     },
     {
+      "case_id": "string_affix_unproven_receiver_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_wrong_receiver_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
       "case_id": "string_affix_wrong_affix_coordinate_boundary",
       "expect": "split",
       "expectation_id": "string_affix_wrong_parameter_coordinate_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_wrong_affix_coordinate_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_wrong_parameter_coordinate_stays_split",
       "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
       "matching_family": null,
       "observed": "split",
@@ -623,7 +706,43 @@
     {
       "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
       "expect": "split",
+      "expectation_id": "string_affix_swift_dynamic_parameter_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_suffix_dynamic_parameter_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+      "expect": "split",
       "expectation_id": "string_affix_mutated_binding_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_mutated_binding_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_dynamic_or_mutated_affix_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_suffix_mutated_binding_stays_split",
       "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
       "matching_family": null,
       "observed": "split",
@@ -679,6 +798,33 @@
       "expect": "split",
       "expectation_id": "string_affix_ruby_monkey_patch_stays_split",
       "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_swift_api_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_contains_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_swift_api_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_custom_api_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "string_affix_swift_api_boundary",
+      "expect": "split",
+      "expectation_id": "string_affix_swift_case_insensitive_stays_split",
+      "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
       "matching_family": null,
       "observed": "split",
       "ok": true

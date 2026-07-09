@@ -85,16 +85,6 @@
         "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
         "surface_status": "open"
       }
-    ],
-    "promote probe evidence into focused positives and hard negatives": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
     ]
   },
   "by_fact": {
@@ -597,66 +587,6 @@
         "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
         "surface_status": "open"
       }
-    ],
-    "string.affix.affix-coordinate": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
-    ],
-    "string.affix.api-identity": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
-    ],
-    "string.affix.direction": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
-    ],
-    "string.affix.import-source-identity": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
-    ],
-    "string.affix.receiver-identity": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
-    ],
-    "string.affix.whole-string-single-affix": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
     ]
   },
   "by_language": {
@@ -711,14 +641,6 @@
       }
     ],
     "Swift": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      },
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Swift",
@@ -855,28 +777,10 @@
         "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
         "surface_status": "open"
       }
-    ],
-    "string.affix.proven-receiver-coordinate": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      }
     ]
   },
   "by_surface_status": {
     "open": [
-      {
-        "candidate_priority": "probe-to-focused-candidate",
-        "language": "Swift",
-        "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-        "pattern_id": "string.affix.proven-receiver-coordinate",
-        "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-        "surface_status": "open"
-      },
       {
         "candidate_priority": "needs-surface-focused-perimeter",
         "language": "Go",
@@ -985,28 +889,12 @@
         },
         {
           "candidate_priority": "probe-to-focused-candidate",
-          "current_candidate_priority": "probe-to-focused-candidate",
-          "current_open_audit_state": "present",
-          "evidence_level": "probe-only",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 782,
           "language": "Swift",
-          "likely_blocker": "promote probe evidence into focused positives and hard negatives",
           "order": 3,
-          "pattern_focused_support": {
-            "hard_negative": 6,
-            "hard_negative_group": 1,
-            "positive": 5
-          },
           "pattern_id": "string.affix.proven-receiver-coordinate",
           "selector": "string.affix.proven-receiver-coordinate:Swift:probe-to-focused-candidate",
-          "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 1
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [],
           "work": "complete the Swift hasPrefix/hasSuffix focused perimeter"
         },
         {
@@ -1308,10 +1196,10 @@
       "setup_issue": 781,
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
-        "current_actionable_open_count": 4,
+        "current_actionable_open_count": 3,
         "current_blocked_open_count": 7,
         "in_scope_count": 6,
-        "in_scope_currently_open": 4,
+        "in_scope_currently_open": 3,
         "out_of_scope_count": 7,
         "out_of_scope_currently_open": 7,
         "unexpected_actionable_open_count": 0,
@@ -1323,69 +1211,6 @@
     }
   },
   "rows": [
-    {
-      "candidate_priority": "probe-to-focused-candidate",
-      "coverage": {
-        "false_merges": 0,
-        "gen_axes": [
-          "probe:string_prefix_suffix"
-        ],
-        "hard_negatives": 1,
-        "language_components": [
-          "swift"
-        ],
-        "matched_languages": [
-          "swift"
-        ],
-        "missing_languages": [],
-        "positive_hits": 1,
-        "positives": 1,
-        "probe_ready": true,
-        "row_count": 1,
-        "sources": [
-          "probe"
-        ],
-        "statuses": [
-          "covered"
-        ]
-      },
-      "evidence_level": "probe-only",
-      "fact_statuses": {
-        "string.affix.affix-coordinate": "modeled-controlled",
-        "string.affix.api-identity": "modeled-controlled",
-        "string.affix.direction": "modeled-controlled",
-        "string.affix.import-source-identity": "modeled-controlled",
-        "string.affix.receiver-identity": "modeled-controlled",
-        "string.affix.whole-string-single-affix": "modeled-controlled"
-      },
-      "language": "Swift",
-      "likely_blocker": "promote probe evidence into focused positives and hard negatives",
-      "pattern_focused_support": {
-        "hard_negative": 6,
-        "hard_negative_group": 1,
-        "positive": 5
-      },
-      "pattern_id": "string.affix.proven-receiver-coordinate",
-      "pattern_status": "pattern-carded",
-      "required_facts": [
-        "string.affix.receiver-identity",
-        "string.affix.affix-coordinate",
-        "string.affix.api-identity",
-        "string.affix.import-source-identity",
-        "string.affix.direction",
-        "string.affix.whole-string-single-affix"
-      ],
-      "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open",
-      "surface_evidence": "bench/type4/coverage_evidence.v1.json::probe:string_prefix_suffix/swift covered 1/1 positive and 0/1 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_parameter_coordinate_positive covers hasPrefix parameter direction only",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 1
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [],
-      "unresolved_surface_evidence_refs": []
-    },
     {
       "candidate_priority": "needs-surface-focused-perimeter",
       "coverage": {},
@@ -1864,7 +1689,7 @@
     "by_evidence_level": {
       "coverage-sweep": 1,
       "missing": 7,
-      "probe-only": 2,
+      "probe-only": 1,
       "target-packet": 1
     },
     "by_language": {
@@ -1873,17 +1698,16 @@
       "JavaScript": 1,
       "Ruby": 1,
       "Rust": 1,
-      "Swift": 6
+      "Swift": 5
     },
     "by_priority": {
       "blocked-by-unmodeled-facts": 7,
-      "needs-surface-focused-perimeter": 3,
-      "probe-to-focused-candidate": 1
+      "needs-surface-focused-perimeter": 3
     },
     "by_status": {
-      "open": 11
+      "open": 10
     },
-    "open_surface_count": 11,
+    "open_surface_count": 10,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"
