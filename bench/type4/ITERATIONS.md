@@ -405,6 +405,18 @@ already modeled or whose probe evidence only needs focused positives, adjacent h
 negatives, and executable expectations. Rows marked `blocked-by-unmodeled-facts` are not
 admission targets for this epic unless a separate PR models the missing neutral facts first.
 
+## Swift Collection Membership Focused Admission
+
+Closed #779 by promoting Swift `Array.contains` from probe-only coverage into the focused
+`collection.membership` perimeter. The admitted Swift slice now has executable witnesses
+for inline/local Array membership and typed dynamic `[String]` receivers, plus adjacent
+hard negatives for wrong element, wrong collection/source, custom same-name receivers, and
+intervening `append` mutation.
+
+The language surface is now `modeled-controlled` in the semantic pattern card, the
+real-frontier replay includes the Swift witness beside the Python literal and JS `Set.has`
+pair, and `open_surface_admission_audit` removes #779 from the current open audit slice.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

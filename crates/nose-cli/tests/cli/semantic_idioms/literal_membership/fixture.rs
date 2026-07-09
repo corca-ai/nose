@@ -78,6 +78,11 @@ pub(super) fn write_literal_membership_fixtures(dir: &Path) {
     )
     .unwrap();
     fs::write(
+        dir.join("membership.swift"),
+        "func membership(_ value: String, _ other: String) -> Bool {\n    return [\"red\", \"blue\"].contains(value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("membership.rb"),
         "def membership(value, other)\n  [\"red\", \"blue\"].include?(value)\nend\n",
     )
@@ -253,6 +258,11 @@ pub(super) fn write_literal_membership_fixtures(dir: &Path) {
     )
     .unwrap();
     fs::write(
+        dir.join("swift_local_array.swift"),
+        "func swiftLocalArray(_ value: String, _ other: String) -> Bool {\n    let values = [\"red\", \"blue\"]\n    return values.contains(value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("rust_std_hashset.rs"),
         "pub fn rust_std_hashset(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n",
     )
@@ -275,6 +285,16 @@ pub(super) fn write_literal_membership_fixtures(dir: &Path) {
     fs::write(
         dir.join("wrong_collection.js"),
         "function wrongCollection(value, other) {\n  return [\"green\", \"blue\"].includes(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_wrong_element.swift"),
+        "func swiftWrongElement(_ value: String, _ other: String) -> Bool {\n    let values = [\"red\", \"blue\"]\n    return values.contains(other)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_wrong_collection.swift"),
+        "func swiftWrongCollection(_ value: String, _ other: String) -> Bool {\n    let values = [\"green\", \"blue\"]\n    return values.contains(value)\n}\n",
     )
     .unwrap();
     fs::write(
@@ -445,6 +465,16 @@ pub(super) fn write_literal_membership_fixtures(dir: &Path) {
     fs::write(
         dir.join("rust_local_mutated.rs"),
         "pub fn rust_local_mutated(value: &str, other: &str) -> bool {\n    let mut values = vec![\"red\", \"blue\"];\n    values.push(\"green\");\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_local_mutated.swift"),
+        "func swiftLocalMutated(_ value: String, _ other: String) -> Bool {\n    var values = [\"red\", \"blue\"]\n    values.append(\"green\")\n    return values.contains(value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("swift_custom_receiver.swift"),
+        "struct Values {\n    func contains(_ value: String) -> Bool {\n        return false\n    }\n}\n\nfunc swiftCustomReceiver(_ value: String, _ other: String) -> Bool {\n    let values = Values()\n    return values.contains(value)\n}\n",
     )
     .unwrap();
     fs::write(

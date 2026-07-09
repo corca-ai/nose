@@ -19,7 +19,7 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 106/106 passed
+- executable expectations: 111/111 passed
 - real-frontier replay expectations: 18/18 passed; 0 unavailable
 
 ## Admission Policy
@@ -41,7 +41,7 @@ report keeps the fuller evidence and admission boundary.
 |---|---|---|---|---|---|---:|---:|---:|
 | `numeric-clamp-2026-06-06` | `numeric_clamp` | `proof-fact-prerequisite` | `detector-admitted-controlled` | `covered (8/8)` | `passed expectations (1/1)` | 2 | 4 | 1 |
 | `python-loop-demorgan-all-2026-07-07` | `python_loop_demorgan_all` | `team-a-detector` | `detector-admitted` | `covered (7/7)` | `passed expectations (1/1)` | 5 | 6 | 1 |
-| `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed expectations (1/1)` | 4 | 7 | 1 |
+| `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (10/10)` | `passed expectations (1/1)` | 4 | 7 | 1 |
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (5/5)` | `passed expectations (2/2)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (20/20)` | `passed expectations (4/4)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
@@ -72,9 +72,9 @@ report keeps the fuller evidence and admission boundary.
 
 ### `membership-contains-2026-07-08`
 
-- detector admission: `real-pair-admitted` over controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces
+- detector admission: `real-pair-admitted` over controlled literal, factory-backed, imported immutable, typed dynamic, and focused Swift collection membership surfaces
 - gates: 7 positive, 7 hard-negative
-- executable witness coverage: `covered` (5/5 passed)
+- executable witness coverage: `covered` (10/10 passed)
 - real-frontier replay expectations: `passed` (1/1 expectations passed)
 - hard-negative groups: `collection-membership-proof-perimeter`
 

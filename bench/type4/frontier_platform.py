@@ -1006,19 +1006,19 @@ TARGET_PACKETS = [
             "facts": [
                 {
                     "fact_id": "collection.membership.api-domain-identity",
-                    "current_real_pair_status": "satisfied for focused literal/factory/imported/typed membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
+                    "current_real_pair_status": "satisfied for focused literal/factory/imported/typed/Swift membership suites: standard membership API/domain positives converge while substring, JavaScript `in`, raw index/count, loose equality, shadowed constructor, missing import, and custom receiver hard negatives stay closed",
                 },
                 {
                     "fact_id": "collection.membership.element-coordinate",
-                    "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, and callback surfaces stay outside the positive family",
+                    "current_real_pair_status": "satisfied for focused membership suites: wrong-element fixtures across literal, factory, typed, imported, Set, callback, and Swift surfaces stay outside the positive family",
                 },
                 {
                     "fact_id": "collection.membership.collection-source-coordinate",
-                    "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, and typed receivers preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
+                    "current_real_pair_status": "satisfied for focused membership suites: literal items, factory inputs, imported providers, package/static fields, typed receivers, and Swift arrays preserve collection/source coordinates while wrong-collection and unproven provenance fixtures stay split",
                 },
                 {
                     "fact_id": "collection.membership.no-intervening-mutation",
-                    "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, and std-factory mutation fixtures remain distinct from their original membership predicates",
+                    "current_real_pair_status": "satisfied for focused membership suites: module, local, provider, importer, std-factory, and Swift append mutation fixtures remain distinct from their original membership predicates",
                 },
             ],
             "focused_tests": [
@@ -1038,10 +1038,11 @@ TARGET_PACKETS = [
         },
         "detector_admission": {
             "status": "real-pair-admitted",
-            "scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces",
+            "scope": "controlled literal, factory-backed, imported immutable, typed dynamic, and focused Swift collection membership surfaces",
             "capabilities": [
                 "converges literal collection membership with standard factory and Set/contains APIs when receiver/source and element coordinates match",
                 "converges typed dynamic collection receivers across supported languages with element-coordinate proof",
+                "converges Swift Array.contains when receiver/source, element, API identity, and mutation-closure proof hold",
                 "preserves imported/module/provider collection provenance and mutation boundaries",
             ],
             "positive_gates": [
@@ -1084,6 +1085,14 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/collection_membership/positive.js",
                 "span": "1-3",
                 "snippet": "function jsSetMember(value, other) { return new Set([\"red\", \"blue\"]).has(value); }",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+                "span": "1-4",
+                "snippet": "func swiftArrayMember(_ value: String, _ other: String) -> Bool { let values = [\"red\", \"blue\"]; return values.contains(value) }",
             },
         ],
     },

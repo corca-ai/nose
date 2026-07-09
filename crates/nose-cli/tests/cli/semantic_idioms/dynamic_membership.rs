@@ -70,6 +70,11 @@ fn query_mode_semantic_proves_typed_dynamic_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("membership.swift"),
+        "func f(_ values: [String], _ value: String, _ other: String) -> Bool {\n    return values.contains(value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("membership_tuple.py"),
         "def f(values: tuple[str, ...], value: str, other: str) -> bool:\n    return value in values\n",
     )
@@ -102,6 +107,26 @@ fn query_mode_semantic_proves_typed_dynamic_collection_membership() {
     fs::write(
         dir.join("wrong_element.ts"),
         "function f(values: string[], value: string, other: string): boolean {\n  return values.includes(other);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_element.swift"),
+        "func f(_ values: [String], _ value: String, _ other: String) -> Bool {\n    return values.contains(other)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_receiver.swift"),
+        "func f(_ values: [String], _ value: String, _ other: String, _ otherValues: [String]) -> Bool {\n    return otherValues.contains(value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("custom_receiver.swift"),
+        "struct Values {\n    func contains(_ value: String) -> Bool {\n        return false\n    }\n}\n\nfunc f(_ values: Values, _ value: String, _ other: String) -> Bool {\n    return values.contains(value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("mutated_receiver.swift"),
+        "func f(_ value: String, _ other: String) -> Bool {\n    var values = [\"red\", \"blue\"]\n    values.append(\"green\")\n    return values.contains(value)\n}\n",
     )
     .unwrap();
     fs::write(
@@ -139,6 +164,7 @@ fn query_mode_semantic_proves_typed_dynamic_collection_membership() {
         "membership.go",
         "membership.rs",
         "membership.java",
+        "membership.swift",
         "membership_tuple.py",
         "membership_alias_sequence.py",
         "membership_alias_container.py",
@@ -166,6 +192,10 @@ fn query_mode_semantic_proves_typed_dynamic_collection_membership() {
     }
     for unexpected in [
         "wrong_element.ts",
+        "wrong_element.swift",
+        "wrong_receiver.swift",
+        "custom_receiver.swift",
+        "mutated_receiver.swift",
         "membership_alias_wrong_element.py",
         "membership_alias_wrong_receiver.py",
         "membership_alias_unresolved.py",

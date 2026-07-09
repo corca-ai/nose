@@ -76,23 +76,28 @@
      "snippet": "def py_literal_member(value, other): return value in [\"red\", \"blue\"]"
     },
     {
-     "path": "bench/type4/adversarial/cases/collection_membership/positive.js",
-     "span": "1-3",
-     "snippet": "function jsSetMember(value, other) { return new Set([\"red\", \"blue\"]).has(value); }"
+      "path": "bench/type4/adversarial/cases/collection_membership/positive.js",
+      "span": "1-3",
+      "snippet": "function jsSetMember(value, other) { return new Set([\"red\", \"blue\"]).has(value); }"
+    },
+    {
+      "path": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+      "span": "1-4",
+      "snippet": "func swiftArrayMember(_ value: String, _ other: String) -> Bool { let values = [\"red\", \"blue\"]; return values.contains(value) }"
     }
-   ],
-   "semantic_claim": "A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
-   "evidence": "Focused membership suites already cover literal, factory-backed, imported immutable, typed dynamic, and probe membership surfaces across Python, JS/TS, Go, Java, Ruby, Rust, and Swift with zero false-merge boundaries; the replay fixture records the minimal Python literal and JS Set bridge.",
+  ],
+  "semantic_claim": "A proven literal collection membership predicate, proven standard Set membership predicate, and focused Swift Array.contains predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.",
+  "evidence": "Focused membership suites already cover literal, factory-backed, imported immutable, typed dynamic, and Swift membership surfaces across Python, JS/TS, Go, Java, Ruby, Rust, and Swift with zero false-merge boundaries; the replay fixture records the minimal Python literal, JS Set, and Swift Array bridge.",
    "detector": {
     "current_detector_miss": false,
     "binary_path": "nose",
     "nose_version": "nose",
     "build_ref": "#754 semantic pattern card",
     "baseline_command": "nose query bench/type4/adversarial/cases/collection_membership --mode semantic top=0 --format json --min-size 1 --min-lines 1",
-    "baseline_result": "Semantic query reports a family containing py_literal_member and jsSetMember.",
-    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports the Python literal membership and JS Set.has membership functions in the same family.",
-    "default_query_result": "Default query also reports the same semantic family for the focused pair."
-   },
+    "baseline_result": "Semantic query reports a family containing py_literal_member, jsSetMember, and swiftArrayMember.",
+    "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports the Python literal membership, JS Set.has, and Swift Array.contains functions in the same family.",
+    "default_query_result": "Default query also reports the same semantic family for the focused Python, JS, and Swift witnesses."
+  },
    "proof_invariant": "Open collection-membership convergence only when source evidence proves the receiver is a collection-membership domain, the searched element coordinate is identical, the collection/source coordinate is identical across literals/factories/imports/typed receivers, and no mutation changes the receiver before membership. Substring/regex contains, map-key or value membership, raw index/count payloads, loose equality, NaN-sensitive equality, missing imports, shadowed constructors, custom contains receivers, and mutated providers/importers must remain non-equivalent.",
    "hard_negative_siblings": [
     "wrong searched element: contains(value) is not contains(other)",

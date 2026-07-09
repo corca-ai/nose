@@ -61,7 +61,7 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 
 - **owner route**: `team-a-detector` (#754) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `none`
 - **breadth**: repo 88% · primary-language 100% (8/8) · dev 56 · held-out 49 · both-splits
-- **semantic claim**: A proven literal collection membership predicate and a proven standard Set membership predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.
+- **semantic claim**: A proven literal collection membership predicate, proven standard Set membership predicate, and focused Swift Array.contains predicate are equivalent when they share the same searched element and collection/source coordinates and the receiver is not mutated.
 - **proof invariant**: Open collection-membership convergence only when source evidence proves the receiver is a collection-membership domain, the searched element coordinate is identical, the collection/source coordinate is identical across literals/factories/imports/typed receivers, and no mutation changes the receiver before membership. Substring/regex contains, map-key or value membership, raw index/count payloads, loose equality, NaN-sensitive equality, missing imports, shadowed constructors, custom contains receivers, and mutated providers/importers must remain non-equivalent.
 - **hard negatives**:
   - wrong searched element: contains(value) is not contains(other)
@@ -76,8 +76,9 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 - **representative locations**:
   - `nose` (focused, Python) `bench/type4/adversarial/cases/collection_membership/positive.py:1-2`
   - `nose` (focused, JavaScript) `bench/type4/adversarial/cases/collection_membership/positive.js:1-3`
-- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#754 semanti` — Semantic query reports a family containing py_literal_member and jsSetMember.
-- **detector admission**: `real-pair-admitted` · controlled literal, factory-backed, imported immutable, typed dynamic, and probe collection membership surfaces
+  - `nose` (focused, Swift) `bench/type4/adversarial/cases/collection_membership/positive.swift:1-4`
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#754 semanti` — Semantic query reports a family containing py_literal_member, jsSetMember, and swiftArrayMember.
+- **detector admission**: `real-pair-admitted` · controlled literal, factory-backed, imported immutable, typed dynamic, and focused Swift collection membership surfaces
 - **remaining real-pair gap**: none
 - **why now**: membership_contains is the top breadth frontier axis and already has multi-language controlled coverage. The remaining value is to preserve the receiver/element/collection/mutation proof perimeter as reusable neutral facts before future contains/has/include expansions add more language surfaces.
 - **blocked by**: nothing

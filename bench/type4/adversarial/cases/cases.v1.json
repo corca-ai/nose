@@ -387,7 +387,8 @@
       "claim": "Literal, factory-backed, imported immutable, and typed dynamic collection membership surfaces can converge when they prove the same searched element and collection receiver/source coordinates.",
       "fixtures": [
         "bench/type4/adversarial/cases/collection_membership/positive.py",
-        "bench/type4/adversarial/cases/collection_membership/positive.js"
+        "bench/type4/adversarial/cases/collection_membership/positive.js",
+        "bench/type4/adversarial/cases/collection_membership/positive.swift"
       ],
       "executable_expectations": [
         {
@@ -404,9 +405,24 @@
               "name": "jsSetMember"
             }
           ]
+        },
+        {
+          "id": "collection_membership_swift_array_matches_python_literal",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.py",
+              "name": "py_literal_member"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+              "name": "swiftArrayMember"
+            }
+          ]
         }
       ],
-      "evidence": "The executable replay fixture proves the minimal Python literal membership to JS Set.has bridge; the proof perimeter regression gates cite the broader literal, factory-backed, imported immutable, typed dynamic, and Swift probe membership suites."
+      "evidence": "The executable replay fixture proves the minimal Python literal membership to JS Set.has bridge and the focused Swift Array.contains bridge; the proof perimeter regression gates cite the broader literal, factory-backed, imported immutable, typed dynamic, and Swift membership suites."
     },
     {
       "id": "collection_membership_wrong_element_boundary",
@@ -415,7 +431,8 @@
       "claim": "Membership over a different searched element is a different proof coordinate even when the collection receiver is identical.",
       "mutation": "contains(value) -> contains(other)",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_membership/wrong_element.js"
+        "bench/type4/adversarial/cases/collection_membership/wrong_element.js",
+        "bench/type4/adversarial/cases/collection_membership/wrong_element.swift"
       ],
       "executable_expectations": [
         {
@@ -432,9 +449,24 @@
               "name": "jsSetWrongElement"
             }
           ]
+        },
+        {
+          "id": "collection_membership_swift_wrong_element_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+              "name": "swiftArrayMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/wrong_element.swift",
+              "name": "swiftWrongElement"
+            }
+          ]
         }
       ],
-      "evidence": "Literal, typed dynamic, imported, and Set/factory membership tests keep wrong-element fixtures out of the positive membership family."
+      "evidence": "Literal, typed dynamic, imported, Set/factory, and focused Swift membership tests keep wrong-element fixtures out of the positive membership family."
     },
     {
       "id": "collection_membership_wrong_collection_boundary",
@@ -443,7 +475,8 @@
       "claim": "Membership over different static items, imported providers, or receiver sources changes the collection coordinate.",
       "mutation": "[\"red\", \"blue\"].contains(value) -> [\"green\", \"blue\"].contains(value)",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_membership/wrong_collection.js"
+        "bench/type4/adversarial/cases/collection_membership/wrong_collection.js",
+        "bench/type4/adversarial/cases/collection_membership/wrong_collection.swift"
       ],
       "executable_expectations": [
         {
@@ -460,9 +493,24 @@
               "name": "jsSetWrongCollection"
             }
           ]
+        },
+        {
+          "id": "collection_membership_swift_wrong_collection_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+              "name": "swiftArrayMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/wrong_collection.swift",
+              "name": "swiftWrongCollection"
+            }
+          ]
         }
       ],
-      "evidence": "The membership suites keep wrong-collection literals, factories, imports, package slices, and local bindings split."
+      "evidence": "The membership suites keep wrong-collection literals, factories, imports, package slices, Swift local arrays, and local bindings split."
     },
     {
       "id": "collection_membership_receiver_api_boundary",
@@ -471,7 +519,8 @@
       "claim": "A contains/has/include-shaped call is not collection membership without a proven receiver domain and API identity.",
       "mutation": "collection membership API -> substring contains, JavaScript `in`, raw index/count payload, loose equality, missing import, or shadowed factory",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_membership/substring.js"
+        "bench/type4/adversarial/cases/collection_membership/substring.js",
+        "bench/type4/adversarial/cases/collection_membership/custom_receiver.swift"
       ],
       "executable_expectations": [
         {
@@ -488,9 +537,24 @@
               "name": "jsSubstringContains"
             }
           ]
+        },
+        {
+          "id": "collection_membership_swift_custom_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+              "name": "swiftArrayMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/custom_receiver.swift",
+              "name": "swiftCustomContains"
+            }
+          ]
         }
       ],
-      "evidence": "The focused membership tests reject substring receivers, JavaScript `in`, raw indexOf/findIndex/filter length payloads, loose equality predicates, missing imports, shadowed constructors, custom contains receivers, and untyped dynamic `has` calls."
+      "evidence": "The focused membership tests reject substring receivers, JavaScript `in`, raw indexOf/findIndex/filter length payloads, loose equality predicates, missing imports, shadowed constructors, Swift custom contains receivers, and untyped dynamic `has` calls."
     },
     {
       "id": "collection_membership_mutated_receiver_boundary",
@@ -499,7 +563,8 @@
       "claim": "A collection binding mutated after construction/import no longer proves the original membership predicate.",
       "mutation": "construct/import collection -> mutate/add/append/fill/copyWithin/push/insert before membership",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_membership/mutated_receiver.js"
+        "bench/type4/adversarial/cases/collection_membership/mutated_receiver.js",
+        "bench/type4/adversarial/cases/collection_membership/mutated_receiver.swift"
       ],
       "executable_expectations": [
         {
@@ -516,9 +581,24 @@
               "name": "jsMutatedSetMember"
             }
           ]
+        },
+        {
+          "id": "collection_membership_swift_mutated_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_membership",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/positive.swift",
+              "name": "swiftArrayMember"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_membership/mutated_receiver.swift",
+              "name": "swiftMutatedArrayMember"
+            }
+          ]
         }
       ],
-      "evidence": "Module, local, provider, importer, and std-factory mutation fixtures across Python, JS/TS, Go, Java, Ruby, and Rust stay split from the original literal membership family."
+      "evidence": "Module, local, provider, importer, and std-factory mutation fixtures across Python, JS/TS, Go, Java, Ruby, Rust, and Swift stay split from the original literal membership family."
     },
     {
       "id": "collection_empty_named_zero_positive",
