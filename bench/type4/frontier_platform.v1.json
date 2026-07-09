@@ -577,7 +577,7 @@
           {
             "candidate_axis": "null_option_presence / null_presence_predicate / nullish_default",
             "case_id": "null-option-presence-focused-controlled",
-            "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.",
+            "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift custom operator domains, Swift computed-property fallbacks, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and broader effectful fallback expressions must remain non-equivalent.",
             "status": "already-covered"
           }
         ],

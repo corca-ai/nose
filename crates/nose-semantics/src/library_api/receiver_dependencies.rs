@@ -274,6 +274,9 @@ pub(in crate::library_api) fn receiver_dependency_ids(
         MethodReceiverContract::LiteralString => {
             matches!(il.node(receiver).payload, Payload::LitStr(_)).then_some(Vec::new())
         }
+        MethodReceiverContract::RubyCoreNilPredicate => {
+            ruby_core_nil_predicate_safe_in_file(il, interner, receiver).then_some(Vec::new())
+        }
         MethodReceiverContract::UnshadowedGlobal(global) => {
             Some(vec![symbol_dependency_id_for_node(
                 il,
@@ -345,6 +348,14 @@ pub(in crate::library_api) fn receiver_dependency_ids(
             },
         ),
     }
+}
+
+pub(in crate::library_api) fn ruby_core_nil_predicate_safe_in_file(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+) -> bool {
+    ruby_core_nil_predicate_unmodified_in_file(il, interner, il.node(receiver).span)
 }
 
 pub(in crate::library_api) fn collection_receiver_dependency_ids(

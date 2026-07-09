@@ -150,6 +150,9 @@ impl<'a> Builder<'a> {
         if let Some(v) = self.eval_len_zero_comparison(op, &kids, env) {
             return v;
         }
+        if let Some(v) = self.eval_swift_optional_nil_comparison(expr, op, &kids, env) {
+            return v;
+        }
         if let Payload::Op(op_kind) = payload {
             if let Some(v) = self.eval_static_index_membership_comparison(op_kind, &kids, env) {
                 return v;
@@ -202,6 +205,56 @@ impl<'a> Builder<'a> {
             self.mk(ValOp::Bin(op), a)
         }
     }
+
+    fn eval_swift_optional_nil_comparison(
+        &mut self,
+        expr: NodeId,
+        op: u32,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::Swift
+            || !matches!(op_from_code(op), Some(Op::Eq | Op::Ne))
+            || kids.len() != 2
+        {
+            return None;
+        }
+        let (value_node, nil_node) = if self.source_node_is_null(kids[0]) {
+            (kids[1], kids[0])
+        } else if self.source_node_is_null(kids[1]) {
+            (kids[0], kids[1])
+        } else {
+            return None;
+        };
+        let value = self.eval(value_node, env);
+        let nil = self.eval(nil_node, env);
+        if self.domain_evidence_of_expr(value_node) == Some(DomainEvidence::Option)
+            && !swift_operator_overloaded_in_file(
+                self.il,
+                self.interner,
+                "==",
+                self.il.node(expr).span,
+            )
+            && !swift_operator_overloaded_in_file(
+                self.il,
+                self.interner,
+                "!=",
+                self.il.node(expr).span,
+            )
+        {
+            return Some(self.mk(ValOp::Bin(op), vec![value, nil]));
+        }
+        let salt = combine(
+            self.source_salted_hash(expr, SWIFT_UNPROVEN_NIL_COMPARISON_TAG),
+            op as u64,
+        );
+        Some(self.mk(ValOp::Opaque(salt), vec![value, nil]))
+    }
+
+    fn source_node_is_null(&self, node: NodeId) -> bool {
+        matches!(self.il.node(node).payload, Payload::Lit(LitClass::Null))
+    }
+
     fn eval_sub_chain(&mut self, kids: &[NodeId], env: &FxHashMap<u32, ValueId>) -> ValueId {
         let a = self.eval(kids[0], env);
         let b = self.eval(kids[1], env);

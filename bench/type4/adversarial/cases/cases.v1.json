@@ -275,6 +275,8 @@
         "nullish_truthy_default_boundary",
         "nullish_strict_null_boundary",
         "nullish_wrong_coordinate_boundary",
+        "null_option_presence_api_mutation_boundary",
+        "nullish_api_and_short_circuit_boundary",
         "option_result_channel_boundary"
       ],
       "regression_gates": [
@@ -286,6 +288,8 @@
         "bench/type4/adversarial/cases/cases.v1.json::nullish_truthy_default_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::nullish_strict_null_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::nullish_wrong_coordinate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::null_option_presence_api_mutation_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::nullish_api_and_short_circuit_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::option_result_channel_boundary",
         "crates/nose-cli/tests/cli/semantic_idioms/guards.rs::query_mode_semantic_proves_null_presence_predicates",
         "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_distinguishes_nullish_from_truthy_defaults",
@@ -293,6 +297,8 @@
         "crates/nose-cli/tests/cli/semantic_idioms/guards/nullish_and_object.rs::query_mode_semantic_pins_js_object_guard_nullish_boundary",
         "crates/nose-cli/tests/cli/semantic_idioms/library_api/java_optional.rs::cli_normalized_il_proves_java_optional_value_channel",
         "crates/nose-cli/tests/equivalence/option_boundaries.rs::option_defaulting_converges_with_nullish_default_boundaries",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::ruby_nil_predicate_converges_with_null_absence_and_preserves_boundaries",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs::swift_optional_nil_presence_requires_optional_coordinate",
         "crates/nose-cli/tests/equivalence/option_boundaries.rs::repeated_nullish_default_with_same_fallback_collapses",
         "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_option_presence_converges_with_option_predicates",
         "crates/nose-cli/tests/equivalence/option_boundaries.rs::rust_if_let_result_channels_converge_with_result_predicates"
@@ -1610,6 +1616,14 @@
               "name": "tsMissing"
             },
             {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftMissing"
+            },
+            {
               "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
               "name": "rust_missing"
             },
@@ -1620,7 +1634,7 @@
           ]
         }
       ],
-      "evidence": "The focused executable fixture reports one absence family across C, Go, Java, JS, TS, Python, and Rust Option::is_none/if-let None surfaces."
+      "evidence": "The focused executable fixture reports one absence family across C, Go, Java, JS, TS, Python, Ruby nil?, Swift Optional == nil, and Rust Option::is_none/if-let None surfaces."
     },
     {
       "id": "null_option_presence_present_positive",
@@ -1661,13 +1675,21 @@
               "name": "tsPresent"
             },
             {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_present"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftPresent"
+            },
+            {
               "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
               "name": "rust_present"
             }
           ]
         }
       ],
-      "evidence": "The focused executable fixture reports a separate present family across C, Go, Java, JS, TS, Python, and Rust Option::is_some surfaces."
+      "evidence": "The focused executable fixture reports a separate present family across C, Go, Java, JS, TS, Python, Ruby !nil?, Swift Optional != nil, and Rust Option::is_some surfaces."
     },
     {
       "id": "nullish_default_positive",
@@ -1706,11 +1728,15 @@
             {
               "file": "bench/type4/adversarial/cases/null_option_presence/default.rs",
               "name": "rust_unwrap_or"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
             }
           ]
         }
       ],
-      "evidence": "The focused executable fixture reports JS `??`, loose-nullish ternary, guard default, TS `??`/ternary, and Rust Option::unwrap_or in one family; Rust match default remains outside this focused query claim."
+      "evidence": "The focused executable fixture reports JS `??`, loose-nullish ternary, guard default, TS `??`/ternary, Swift Optional `??`, and Rust Option::unwrap_or in one family; Rust match default remains outside this focused query claim."
     },
     {
       "id": "null_option_presence_direction_boundary",
@@ -1766,9 +1792,39 @@
               "name": "jsPresent"
             }
           ]
+        },
+        {
+          "id": "null_option_presence_ruby_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_present"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_swift_direction_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftPresent"
+            }
+          ]
         }
       ],
-      "evidence": "The focused fixture reports absence and present predicates in separate semantic families."
+      "evidence": "The focused fixture reports absence and present predicates in separate semantic families, including Ruby nil?/!nil? and Swift == nil/!= nil directions."
     },
     {
       "id": "null_option_presence_wrong_value_boundary",
@@ -1809,9 +1865,39 @@
               "name": "rust_wrong_value"
             }
           ]
+        },
+        {
+          "id": "null_option_presence_ruby_wrong_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_wrong_value"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_swift_wrong_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftWrongValue"
+            }
+          ]
         }
       ],
-      "evidence": "The focused fixture keeps same-shaped presence tests over `other` out of the `value` presence family."
+      "evidence": "The focused fixture keeps same-shaped presence tests over `other` out of the `value` presence family, including Ruby nil? and Swift Optional nil comparisons."
     },
     {
       "id": "nullish_truthy_default_boundary",
@@ -1923,9 +2009,1387 @@
               "name": "rust_wrong_value"
             }
           ]
+        },
+        {
+          "id": "nullish_swift_wrong_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftWrongFallback"
+            }
+          ]
+        },
+        {
+          "id": "nullish_swift_wrong_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftWrongValue"
+            }
+          ]
         }
       ],
-      "evidence": "Focused defaulting and option-boundary equivalence tests keep wrong-value and wrong-fallback coordinates split from the proved default family."
+      "evidence": "Focused defaulting and option-boundary equivalence tests keep wrong-value and wrong-fallback coordinates split from the proved default family, including Swift Optional `??`."
+    },
+    {
+      "id": "null_option_presence_api_mutation_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Ruby nil? and Swift nil comparisons must require standard API/channel identity and the original checked coordinate.",
+      "mutation": "standard nil?/Optional == nil over value -> redefined nil?, custom nil-literal equality, or rebound checked value",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "null_option_presence_ruby_redefined_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_rebound_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_rebound"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_singleton_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_singleton_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_top_level_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_top_level_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_alias_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_alias_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_undef_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_undef_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_define_singleton_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb",
+              "name": "rb_define_singleton_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_define_method_boundary.rb",
+              "name": "rb_dynamic_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_define_singleton_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_define_singleton_boundary.rb",
+              "name": "rb_dynamic_define_singleton_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_alias_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_alias_method_boundary.rb",
+              "name": "rb_dynamic_alias_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_define_method_boundary.rb",
+              "name": "rb_reflective_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_define_singleton_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_define_singleton_boundary.rb",
+              "name": "rb_reflective_define_singleton_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_reflective_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_reflective_define_method_boundary.rb",
+              "name": "rb_dynamic_reflective_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_call_define_method_boundary.rb",
+              "name": "rb_method_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_call_define_singleton_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_call_define_singleton_boundary.rb",
+              "name": "rb_method_call_define_singleton_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_method_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_method_call_define_method_boundary.rb",
+              "name": "rb_dynamic_method_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_method_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_define_method_boundary.rb",
+              "name": "rb_stored_method_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_method_call_define_singleton_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_define_singleton_boundary.rb",
+              "name": "rb_stored_method_call_define_singleton_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_dynamic_method_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_dynamic_method_call_define_method_boundary.rb",
+              "name": "rb_stored_dynamic_method_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_method_index_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_index_define_method_boundary.rb",
+              "name": "rb_stored_method_index_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_method_call_shorthand_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_shorthand_define_method_boundary.rb",
+              "name": "rb_stored_method_call_shorthand_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_method_to_proc_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_method_to_proc_call_define_method_boundary.rb",
+              "name": "rb_stored_method_to_proc_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_aliased_method_to_proc_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_aliased_method_to_proc_call_define_method_boundary.rb",
+              "name": "rb_aliased_method_to_proc_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_explicit_method_index_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_explicit_method_index_define_method_boundary.rb",
+              "name": "rb_explicit_method_index_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_explicit_method_case_eq_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_explicit_method_case_eq_define_method_boundary.rb",
+              "name": "rb_explicit_method_case_eq_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_method_call_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_method_call_define_method_boundary.rb",
+              "name": "rb_reflective_method_call_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_to_proc_yield_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_to_proc_yield_define_method_boundary.rb",
+              "name": "rb_to_proc_yield_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_curry_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_curry_define_method_boundary.rb",
+              "name": "rb_method_curry_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_to_proc_curry_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_to_proc_curry_define_method_boundary.rb",
+              "name": "rb_to_proc_curry_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_unbind_bind_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_unbind_bind_define_method_boundary.rb",
+              "name": "rb_unbind_bind_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_clone_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_clone_define_method_boundary.rb",
+              "name": "rb_method_clone_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_itself_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_itself_define_method_boundary.rb",
+              "name": "rb_method_itself_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_tap_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_tap_define_method_boundary.rb",
+              "name": "rb_method_tap_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_array_transferred_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_array_transferred_method_define_method_boundary.rb",
+              "name": "rb_array_transferred_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_hash_transferred_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_hash_transferred_method_define_method_boundary.rb",
+              "name": "rb_hash_transferred_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_tap_block_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_tap_block_method_define_method_boundary.rb",
+              "name": "rb_tap_block_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_then_block_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_then_block_method_define_method_boundary.rb",
+              "name": "rb_then_block_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_send_acquired_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_send_acquired_method_define_method_boundary.rb",
+              "name": "rb_send_acquired_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_public_send_acquired_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_public_send_acquired_method_define_method_boundary.rb",
+              "name": "rb_public_send_acquired_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_send_acquired_unbound_method_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_send_acquired_unbound_method_define_method_boundary.rb",
+              "name": "rb_send_acquired_unbound_method_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_eval_string_define_method_boundary.rb",
+              "name": "rb_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_module_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_module_eval_string_define_method_boundary.rb",
+              "name": "rb_module_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_class_eval_string_alias_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_class_eval_string_alias_method_boundary.rb",
+              "name": "rb_class_eval_string_alias_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_eval_string_define_method_boundary.rb",
+              "name": "rb_reflective_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_module_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_module_eval_string_define_method_boundary.rb",
+              "name": "rb_reflective_module_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_class_eval_string_alias_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_class_eval_string_alias_method_boundary.rb",
+              "name": "rb_reflective_class_eval_string_alias_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_reflective_instance_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_reflective_instance_eval_string_define_method_boundary.rb",
+              "name": "rb_reflective_instance_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_reflective_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_reflective_eval_string_define_method_boundary.rb",
+              "name": "rb_dynamic_reflective_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_eval_string_define_method_boundary.rb",
+              "name": "rb_method_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_method_module_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_method_module_eval_string_define_method_boundary.rb",
+              "name": "rb_method_module_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_method_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_method_eval_string_define_method_boundary.rb",
+              "name": "rb_dynamic_method_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_splat_reflective_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_splat_reflective_eval_string_define_method_boundary.rb",
+              "name": "rb_splat_reflective_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_splat_reflective_module_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_splat_reflective_module_eval_string_define_method_boundary.rb",
+              "name": "rb_splat_reflective_module_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_splat_reflective_class_eval_string_alias_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_splat_reflective_class_eval_string_alias_method_boundary.rb",
+              "name": "rb_splat_reflective_class_eval_string_alias_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_dynamic_splat_reflective_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_dynamic_splat_reflective_eval_string_define_method_boundary.rb",
+              "name": "rb_dynamic_splat_reflective_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_splat_method_send_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_splat_method_send_eval_string_define_method_boundary.rb",
+              "name": "rb_splat_method_send_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_splat_send_acquired_method_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_splat_send_acquired_method_eval_string_define_method_boundary.rb",
+              "name": "rb_splat_send_acquired_method_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_instruction_sequence_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_instruction_sequence_eval_string_define_method_boundary.rb",
+              "name": "rb_stored_instruction_sequence_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_send_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_send_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_send_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_splat_send_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_splat_send_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_splat_send_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_itself_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_itself_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_itself_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_then_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_then_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_then_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_array_first_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_array_first_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_array_first_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_load_from_binary_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_load_from_binary_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_load_from_binary_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_method_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_method_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_method_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_public_method_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_public_method_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_public_method_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_send_acquired_method_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_send_acquired_method_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_send_acquired_method_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_const_get_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_const_get_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_const_get_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_public_send_const_get_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_public_send_const_get_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_public_send_const_get_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_object_const_get_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_object_const_get_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_object_const_get_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_nested_object_const_get_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_nested_object_const_get_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_nested_object_const_get_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_method_compile_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_method_compile_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_stored_instruction_sequence_method_compile_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_stored_instruction_sequence_method_compile_eval_string_define_method_boundary.rb",
+              "name": "rb_stored_instruction_sequence_method_compile_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_then_block_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_then_block_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_then_block_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_instance_exec_block_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_instance_exec_block_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_instance_exec_block_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_symbol_to_proc_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_symbol_to_proc_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_symbol_to_proc_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_array_each_block_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_array_each_block_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_array_each_block_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_method_index_compile_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_method_index_compile_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_method_index_compile_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_ruby_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+              "name": "rb_missing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_boundary.rb",
+              "name": "rb_instruction_sequence_unbound_method_bind_compile_eval_string_define_method_redefined"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_swift_custom_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.swift",
+              "name": "swiftCustomNil"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_swift_optional_overloaded_nil_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.swift",
+              "name": "swiftOptionalOverloadedNil"
+            }
+          ]
+        },
+        {
+          "id": "null_option_presence_swift_rebound_value_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftMissing"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+              "name": "swiftRebound"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture and option-boundaries equivalence tests keep Ruby same-file class/singleton/top-level nil? methods, literal, dynamic, send/public_send, immediate Method#call, and stored Method#call define_method/define_singleton_method nil? changes, literal and dynamic nil? alias/undef changes, Swift custom nil-literal/equality overloads including Optional-typed overloads, and rebound checked values outside the standard absence family."
+    },
+    {
+      "id": "nullish_api_and_short_circuit_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "option.presence_default",
+      "claim": "Swift nil-coalescing admission must require Optional API identity and an already-evaluated fallback coordinate.",
+      "mutation": "Optional value ?? fallback -> custom ?? overload or value ?? expensive()",
+      "fixtures": [
+        "bench/type4/adversarial/cases/null_option_presence",
+        "crates/nose-cli/tests/equivalence/option_boundaries.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "nullish_swift_effectful_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftEffectfulFallback"
+            }
+          ]
+        },
+        {
+          "id": "nullish_swift_custom_coalesce_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default_api_boundary.swift",
+              "name": "swiftCustomCoalesce"
+            }
+          ]
+        },
+        {
+          "id": "nullish_swift_optional_custom_coalesce_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default_api_boundary.swift",
+              "name": "swiftOptionalCustomCoalesce"
+            }
+          ]
+        },
+        {
+          "id": "nullish_swift_computed_property_fallback_stays_split",
+          "fixture": "bench/type4/adversarial/cases/null_option_presence",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+              "name": "swiftCoalesce"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/null_option_presence/default_api_boundary.swift",
+              "name": "swiftComputedPropertyFallback"
+            }
+          ]
+        }
+      ],
+      "evidence": "The focused fixture and option-boundaries equivalence tests admit Swift `??` only for Optional-typed checked values with literal, variable, or parameter fallbacks; effectful call fallbacks, computed property fallbacks, and custom overload domains including Optional-typed overloads stay split."
     },
     {
       "id": "option_result_channel_boundary",

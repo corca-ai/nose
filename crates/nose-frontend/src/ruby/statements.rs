@@ -153,8 +153,7 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "next" => Some(lo.add(NodeKind::Continue, Payload::None, span, &[])),
         // `begin … rescue … ensure … end` → Try (body + handler/ensure blocks).
         "begin" | "do" => Some(lower_begin(lo, node)),
-        // `alias new old` carries no behavior to dedupe.
-        "alias" | "undef" => None,
+        "alias" | "undef" => ruby_alias_or_undef_marker(lo, node),
         // Guard-clause modifiers: `stmt if cond` / `stmt unless cond` → `If` so they
         // converge with the block forms and other languages' guards.
         "if_modifier" | "unless_modifier" => Some(lower_modifier(lo, node)),
@@ -170,6 +169,19 @@ pub(super) fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
     }
 }
+
+fn ruby_alias_or_undef_marker(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+    let text = lo.text(node);
+    text.contains("nil?").then(|| {
+        lo.add(
+            NodeKind::Seq,
+            Payload::Name(lo.sym("ruby_nil_predicate_alias_or_undef")),
+            lo.span(node),
+            &[],
+        )
+    })
+}
+
 pub(super) fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));

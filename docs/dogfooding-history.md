@@ -1055,3 +1055,19 @@ collection span-noise class, now represented by a broad
 `collections/cardinality.rs` impl span and a small `collections/reductions.rs`
 span with only two shared lines. This is still detector span noise, not a
 useful collection-policy abstraction. No new budget is accepted.
+
+The option absence-channel identity slice moves the reviewed default-surface
+count from 30 to 31. The first pass surfaced an avoidable null-presence semantic
+query fixture scaffold; switching that test to the shared `make_temp_dir` /
+`write_files` helpers removed it before baseline update. Two remaining deltas
+are representative churn for already reviewed semantic-query harness families:
+`98f5617cbcf09658` moves to `1c3ae05377f90f1c` for the `typeof`/literal-key
+boundary scaffold, and `e91ec2b8c9d99c30` moves to `b59e5826da2acff8` for the
+sequence/import/static-builtin scaffold. The only new family is
+`770bd29db214f114`, a tiny production match-shape overlap between
+`method_receiver_domain_requirement` and `method_receiver_contract_key` after
+adding `RubyCoreNilPredicate`. Those functions intentionally project the same
+closed enum into different domains: semantic receiver requirements versus
+stable LibraryApi contract keys. Sharing them would couple two separate policy
+tables and make exhaustiveness less explicit. The budget is raised to 31 for
+this reviewed enum-projection span, not for avoidable duplication.

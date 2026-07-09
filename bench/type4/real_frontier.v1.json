@@ -238,6 +238,16 @@
      "snippet": "rust_missing, rust_iflet_missing, rust_present, and rust_wrong_value pin Rust Option presence direction and value-coordinate boundaries"
     },
     {
+     "path": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+     "span": "1-16",
+     "snippet": "rb_missing, rb_present, rb_wrong_value, and rb_rebound pin Ruby core nil? direction, value-coordinate, and rebinding boundaries with separate nil? modification fixtures"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+     "span": "1-17",
+     "snippet": "swiftMissing, swiftPresent, swiftWrongValue, and swiftRebound pin Swift Optional nil direction, value-coordinate, and rebinding boundaries with separate overload fixtures"
+    },
+    {
      "path": "bench/type4/adversarial/cases/null_option_presence/default.js",
      "span": "1-26",
      "snippet": "jsCoalesce, jsTernary, jsGuard, jsTruthy, jsWrongFallback, and jsStrictNull pin nullish defaulting and adjacent boundaries"
@@ -246,10 +256,20 @@
      "path": "bench/type4/adversarial/cases/null_option_presence/default.rs",
      "span": "1-31",
      "snippet": "rust_unwrap_or plus wrong-value and wrong-fallback Option defaulting boundaries"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+     "span": "1-19",
+     "snippet": "swiftCoalesce plus wrong-value, wrong-fallback, and effectful-fallback defaulting boundaries"
+    },
+    {
+     "path": "bench/type4/adversarial/cases/null_option_presence/default_api_boundary.swift",
+     "span": "1-33",
+     "snippet": "swiftCustomCoalesce, swiftOptionalCustomCoalesce, and swiftComputedPropertyFallback pin custom ?? overload and computed-property fallback hard negatives"
     }
    ],
-   "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.",
-   "evidence": "Focused null_option_presence fixtures are executable: semantic query reports an absence family across C, Go, Java, JS, TS, Python, and Rust Option::is_none/if-let None; a separate present family across the same language set except Rust if-let present in this fixture; and a nullish/default family containing JS `??`, loose-nullish ternary, guard default, TS `??`/ternary, and Rust Option::unwrap_or. Existing CLI and equivalence tests keep truthy, strict-null, wrong-value, wrong-fallback, shadowed-undefined, Java Optional type-domain, Option Some/None, and Result Ok/Err boundaries explicit.",
+   "semantic_claim": "Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting, Ruby core nil?, Swift Optional nil/??, and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift nil/?? overload or computed fallback domains, and unproven option-like APIs remain outside the exact family.",
+   "evidence": "Focused null_option_presence fixtures are executable: semantic query reports an absence family across C, Go, Java, JS, TS, Python, Ruby core nil?, Swift Optional == nil, and Rust Option::is_none/if-let None; a separate present family across C, Go, Java, JS, TS, Python, Ruby !nil?, Swift Optional != nil, and Rust Option::is_some; and a nullish/default family containing JS `??`, loose-nullish ternary, guard default, TS `??`/ternary, Swift Optional `??`, and Rust Option::unwrap_or. Existing CLI and equivalence tests keep truthy, strict-null, wrong-value, wrong-fallback, shadowed-undefined, Java Optional type-domain, Ruby nil? class/singleton/top-level/literal, dynamic, send/public_send, immediate Method#call, and stored Method#call define_method/define_singleton_method/alias/alias_method/undef modifications, Swift custom nil/?? overload domains including Optional-typed overloads, Swift computed-property fallbacks, Option Some/None, and Result Ok/Err boundaries explicit.",
    "detector": {
     "current_detector_miss": false,
     "binary_path": "nose",
@@ -260,7 +280,7 @@
     "semantic_query_result": "`--mode semantic top=0 --format json --min-size 1 --min-lines 1` reports expected same-family and split outcomes for the focused executable expectations.",
     "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations."
    },
-   "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.",
+   "proof_invariant": "Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift custom operator domains, Swift computed-property fallbacks, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and broader effectful fallback expressions must remain non-equivalent.",
    "hard_negative_siblings": [
     "absence and present predicates are opposite directions and must stay split",
     "checking `other` instead of `value` changes the nullable/Option value coordinate",
@@ -268,10 +288,12 @@
     "strict-null-only defaulting is not loose nullish defaulting because undefined handling differs",
     "wrong fallback/default coordinates change defaulting behavior",
     "Java Optional needs fully-qualified java.util.Optional type-domain proof; bare Optional and custom option-like helpers are not enough",
+    "Ruby nil? requires core API identity; same-file class, singleton, top-level, literal/dynamic/send/public_send/immediate-or-stored Method#call define_method, literal/dynamic/send/public_send/immediate-or-stored Method#call define_singleton_method, alias/alias_method, and undef changes plus rebound checked values stay split",
+    "Swift Optional comparisons and ?? require Optional domain evidence and no same-file operator overload; custom nil-literal/equality, custom ?? domains, Optional-typed operator overloads, rebound values, computed-property fallbacks, and effectful fallbacks stay split",
     "Rust Result Ok/Err channels and shadowed Some/None constructors are not Option Some/None channel proof"
    ],
    "batch": "2026-07-08-null-option-presence-pattern-card",
-   "notes": "Issue #757 pattern-card evidence. This is a controlled, replayable focused slice. It intentionally does not claim Ruby nil? focused admission, Swift full Optional admission, or Rust match-default focused convergence until those proof perimeters are separately covered."
+   "notes": "Issue #757 pattern-card evidence plus #793 absence-channel modeling. This is a controlled, replayable focused slice for Ruby core nil? and Swift Optional nil/?? with same-file API-modification guards; it intentionally does not claim Rust match-default focused convergence or broader effectful fallback timing until those proof perimeters are separately covered."
   },
   {
    "case_id": "reduction-minmax-anyall-focused-controlled",

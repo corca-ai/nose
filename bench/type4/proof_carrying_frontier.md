@@ -19,7 +19,7 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 157/157 passed
+- executable expectations: 251/251 passed
 - real-frontier replay expectations: 29/29 passed; 0 unavailable
 
 ## Admission Policy
@@ -44,7 +44,7 @@ report keeps the fuller evidence and admission boundary.
 | `membership-contains-2026-07-08` | `membership_contains` | `team-a-detector` | `detector-admitted` | `covered (10/10)` | `passed expectations (1/1)` | 4 | 7 | 1 |
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (12/12)` | `passed expectations (4/4)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (31/31)` | `passed expectations (8/8)` | 6 | 7 | 1 |
-| `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
+| `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (107/107)` | `passed expectations (3/3)` | 6 | 9 | 1 |
 | `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (47/47)` | `passed expectations (11/11)` | 10 | 17 | 2 |
 
 ## Packet Details
@@ -97,10 +97,10 @@ report keeps the fuller evidence and admission boundary.
 
 ### `null-option-presence-2026-07-08`
 
-- detector admission: `controlled-slice-admitted` over controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence
+- detector admission: `controlled-slice-admitted` over controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, modeled absence-channel boundary, direction, fallback, default-trigger, and API identity evidence
 - remaining real-pair gap: a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission
-- gates: 10 positive, 10 hard-negative
-- executable witness coverage: `covered` (13/13 passed)
+- gates: 12 positive, 12 hard-negative
+- executable witness coverage: `covered` (107/107 passed)
 - real-frontier replay expectations: `passed` (3/3 expectations passed)
 - manifest-only cases: `option_result_channel_boundary`
 - hard-negative groups: `null-option-presence-proof-perimeter`
@@ -161,8 +161,8 @@ report keeps the fuller evidence and admission boundary.
 
 - semantic family: `option.presence_default`
 - conventions: `option.value-coordinate`, `option.absence-channel`, `option.presence-direction`, `option.fallback-coordinate`, `option.default-short-circuit`, `protocol-boundary.api-identity`, `boolean.value-context`
-- cases: 3 positive, 6 hard-negative
-- regression gates: 18
+- cases: 3 positive, 8 hard-negative
+- regression gates: 22
 
 ### `reduction-minmax-anyall-2026-07-08` / `reduction-minmax-anyall-proof-perimeter`
 

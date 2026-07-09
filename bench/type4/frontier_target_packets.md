@@ -142,8 +142,8 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 
 - **owner route**: `team-a-detector` (#757) · evidence tier: `frontier-recorded` · cost `medium` · risk `medium` · substrate `none`
 - **breadth**: repo 82% · primary-language 100% (8/8) · dev 53 · held-out 46 · both-splits
-- **semantic claim**: Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, and unproven option-like APIs remain outside the exact family.
-- **proof invariant**: Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and effectful fallback expressions must remain non-equivalent.
+- **semantic claim**: Null/Option absence predicates, present predicates, and pure or already-evaluated fallback defaulting surfaces can converge only when they prove the same checked value coordinate, absence-channel boundary, presence direction or fallback coordinate, and standard nullish/Option API identity. JS/TS nullish defaulting, Ruby core nil?, Swift Optional nil/??, and Rust Option::unwrap_or converge for the focused slice; truthy defaults, strict-null-only defaults, effectful fallback timing, wrong checked values, wrong fallbacks, Result channels, shadowed constructors, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift nil/?? overload or computed fallback domains, and unproven option-like APIs remain outside the exact family.
+- **proof invariant**: Open null/Option presence and defaulting convergence only when source evidence proves the checked value coordinate, the absence-channel boundary, the presence-vs-absence direction or fallback/default coordinate, standard nullish/Option API identity, and a pure or already-evaluated fallback default trigger. Falsey present payloads, strict-null-only defaulting behavior, shadowed undefined, wrong value coordinates, wrong fallback coordinates, Ruby nil? literal/dynamic/send/public_send/immediate-or-stored Method#call modifications, Swift custom operator domains, Swift computed-property fallbacks, custom same-name option helpers, bare Java Optional without type-domain proof, Rust Result channels, shadowed constructors, and broader effectful fallback expressions must remain non-equivalent.
 - **hard negatives**:
   - absence and present predicates are opposite directions and must stay split
   - checking `other` instead of `value` changes the nullable/Option value coordinate
@@ -151,19 +151,39 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - strict-null-only defaulting is not loose nullish defaulting because undefined handling differs
   - wrong fallback/default coordinates change defaulting behavior
   - Java Optional needs fully-qualified java.util.Optional type-domain proof; bare Optional and custom option-like helpers are not enough
+  - Ruby nil? requires core API identity; same-file class, singleton, top-level, literal/dynamic/send/public_send/immediate-or-stored Method#call define_method, literal/dynamic/send/public_send/immediate-or-stored Method#call define_singleton_method, alias/alias_method, and undef changes plus rebound checked values stay split
+  - Swift Optional comparisons and ?? require Optional domain evidence and no same-file operator overload; custom nil-literal/equality, custom ?? domains, Optional-typed operator overloads, rebound values, computed-property fallbacks, and effectful fallbacks stay split
   - Rust Result Ok/Err channels and shadowed Some/None constructors are not Option Some/None channel proof
 - **evidence**: `null-option-presence-focused-controlled` (`real_frontier.v1.json`)
 - **real frontier replay**: `null-option-presence-absence-focused-controlled-pair`, `null-option-presence-present-focused-controlled-pair`, `nullish-default-focused-controlled-pair` (`real_frontier_replay.v1.json`)
 - **representative locations**:
   - `nose` (focused, Python) `bench/type4/adversarial/cases/null_option_presence/presence.py:1-9`
   - `nose` (focused, Rust) `bench/type4/adversarial/cases/null_option_presence/presence.rs:1-15`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence.rb:1-16`
+  - `nose` (focused, Swift) `bench/type4/adversarial/cases/null_option_presence/presence.swift:1-17`
   - `nose` (focused, JavaScript) `bench/type4/adversarial/cases/null_option_presence/default.js:1-26`
+  - `nose` (focused, Swift) `bench/type4/adversarial/cases/null_option_presence/default.swift:1-19`
+  - `nose` (focused, Swift) `bench/type4/adversarial/cases/null_option_presence/default_api_boundary.swift:1-33`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.rb:1-54`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_dynamic_define_method_boundary.rb:1-8`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_dynamic_define_singleton_boundary.rb:1-5`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_dynamic_alias_method_boundary.rb:1-7`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_reflective_define_method_boundary.rb:1-6`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_reflective_define_singleton_boundary.rb:1-4`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_dynamic_reflective_define_method_boundary.rb:1-8`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_method_call_define_method_boundary.rb:1-6`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_method_call_define_singleton_boundary.rb:1-4`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_dynamic_method_call_define_method_boundary.rb:1-8`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_define_method_boundary.rb:1-8`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_stored_method_call_define_singleton_boundary.rb:1-5`
+  - `nose` (focused, Ruby) `bench/type4/adversarial/cases/null_option_presence/presence_stored_dynamic_method_call_define_method_boundary.rb:1-9`
+  - `nose` (focused, Swift) `bench/type4/adversarial/cases/null_option_presence/presence_api_boundary.swift:1-21`
 - **current detector result (primary linked evidence)**: miss=False · `nose` @ `#757 semanti` — Semantic query reports distinct absence, present, and defaulting families while direction, wrong-value, truthy-default, strict-null, and wrong-coordinate hard negatives stay outside those families.
-- **detector admission**: `controlled-slice-admitted` · controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, specified channel boundary, direction, fallback, default-trigger, and API identity evidence
+- **detector admission**: `controlled-slice-admitted` · controlled null/Option absence, present, and pure/already-evaluated fallback defaulting predicates with value-coordinate, modeled absence-channel boundary, direction, fallback, default-trigger, and API identity evidence
 - **remaining real-pair gap**: a non-focused real-corpus null/Option/defaulting pair still needs separate audit before this packet can claim real-pair admission
-- **why now**: null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, specified absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts.
+- **why now**: null_option_presence has very broad coverage and the largest raw occurrence signal in the frontier platform, but this packet records only the controlled proof perimeter: value coordinate, modeled absence-channel boundary, presence direction, fallback coordinate, pure/default trigger, and API/channel identity. That makes future nullable, Optional, and Option surfaces attach to neutral facts instead of per-language null selector shortcuts.
 - **blocked by**: nothing
-- **notes**: This packet records the current null/Option presence/defaulting perimeter as reusable proof facts. It intentionally leaves Ruby nil? focused admission, Swift full Optional admission, Rust match-default focused convergence, and effectful fallback timing outside the exact claim until separate evidence covers those boundaries.
+- **notes**: This packet records the current null/Option presence/defaulting perimeter as reusable proof facts. It admits Ruby core nil? and Swift Optional nil/?? only under controlled API identity and same-file safety evidence; Rust match-default focused convergence and broader effectful fallback timing remain outside the exact claim until separate evidence covers those boundaries.
 
 ## `reduction-minmax-anyall-2026-07-08` — axis `reduce_minmax_anyall`
 

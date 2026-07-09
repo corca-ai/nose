@@ -287,6 +287,10 @@ pub(super) const JS_STRICT_NULL_CMP_TAG: u64 = 0x4A53_534E_4351;
 /// check; other loose equality uses JS coercions and must not merge with `===`.
 pub(super) const JS_LOOSE_EQ_CMP_TAG: u64 = 0x4A53_4C45_4351;
 pub(super) const JS_LOOSE_NE_CMP_TAG: u64 = 0x4A53_4C4E_4351;
+/// Salt for Swift nil comparisons whose left side is not proven Optional. Swift
+/// nil-literal and equality overloads can make these custom API predicates, so
+/// they must not enter the language-neutral absence channel.
+pub(super) const SWIFT_UNPROVEN_NIL_COMPARISON_TAG: u64 = 0x5357_4E49_4C43;
 /// Salt for JS `instanceof`. The frontend lowers it through an equality-shaped
 /// BinOp so structural consumers can still see a binary predicate, but the
 /// value graph must keep prototype-chain type membership distinct from equality.

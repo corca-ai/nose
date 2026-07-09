@@ -40,7 +40,7 @@ packet-specific current status locally.
 | `effect.pure-callback` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes callback effect/timing boundaries for separately proven HoF facts. |
 | `hof.filter-map.drop-condition-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that both surfaces drop the same source elements. |
 | `hof.filter-map.emitted-value-coordinate` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only proves that present branches, maps, or guarded pushes emit the same value. |
-| `option.absence-channel.identity` | `specified-not-modeled` | `focused-executable`, `source-evidence` | Only closes absence-vs-payload channel boundaries. |
+| `option.absence-channel.identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only closes absence-vs-payload channel boundaries. |
 | `option.value-coordinate-identity` | `modeled-controlled` | `focused-executable`, `source-evidence` | Requires absence-channel identity, direction, fallback coordinate, pure/default-trigger, and API identity facts. |
 | `option.presence-direction` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only preserves absence versus present boolean direction. |
 | `option.default-fallback-coordinate` | `modeled-controlled` | `focused-executable`, `source-evidence` | Only proves the fallback/default coordinate. |
@@ -97,12 +97,12 @@ direction, fallback coordinate, pure/default trigger, and API identity.
 
 | fact | Python | JS/TS | Go | Java | Rust | C | Ruby | Swift |
 |---|---|---|---|---|---|---|---|---|
-| `option.value-coordinate-identity` | modeled-controlled presence | modeled-controlled presence/defaulting | modeled-controlled presence | modeled-controlled presence; Optional fq evidence | modeled-controlled presence/defaulting | modeled-controlled presence | open sweep-only | open probe-only |
-| `option.absence-channel.identity` | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled | specified-not-modeled |
-| `option.presence-direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open sweep-only | open probe-only |
-| `option.default-fallback-coordinate` | not-applicable | modeled-controlled | not-applicable | modeled-controlled Optional fq evidence | modeled-controlled unwrap_or | not-applicable | not-applicable | open |
-| `option.default-short-circuit` | not-applicable | modeled-controlled for pure/already-evaluated fallbacks | not-applicable | modeled-controlled Optional fq evidence for pure/already-evaluated fallbacks | modeled-controlled unwrap_or with already-evaluated fallback | not-applicable | not-applicable | open |
-| `option.api-identity` | modeled-controlled for built-in None | modeled-controlled for nullish protocol | modeled-controlled nil comparison | modeled-controlled null and fq java.util.Optional | modeled-controlled Option; Result closed | modeled-controlled NULL | open for nil? focused evidence | open probe-only |
+| `option.value-coordinate-identity` | modeled-controlled presence | modeled-controlled presence/defaulting | modeled-controlled presence | modeled-controlled presence; Optional fq evidence | modeled-controlled presence/defaulting | modeled-controlled presence | modeled-controlled nil? | modeled-controlled presence/defaulting |
+| `option.absence-channel.identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
+| `option.presence-direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
+| `option.default-fallback-coordinate` | not-applicable | modeled-controlled | not-applicable | modeled-controlled Optional fq evidence | modeled-controlled unwrap_or | not-applicable | not-applicable | modeled-controlled Optional ?? |
+| `option.default-short-circuit` | not-applicable | modeled-controlled for pure/already-evaluated fallbacks | not-applicable | modeled-controlled Optional fq evidence for pure/already-evaluated fallbacks | modeled-controlled unwrap_or with already-evaluated fallback | not-applicable | not-applicable | modeled-controlled for already-evaluated fallback |
+| `option.api-identity` | modeled-controlled for built-in None | modeled-controlled for nullish protocol | modeled-controlled nil comparison | modeled-controlled null and fq java.util.Optional | modeled-controlled Option; Result closed | modeled-controlled NULL | modeled-controlled core nil?; redefinitions closed | modeled-controlled Optional; custom nil/?? closed |
 
 ## Collection Membership Pattern Matrix
 

@@ -9,13 +9,13 @@
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "ca93443734d5c5a6944d9b41862afda2e7c616ea564c499713bbba97a43e8d48",
-      "size_bytes": 105706
+      "sha256": "e6a788c39fdacceff97c176b14d9d9358c62b0e86110bfc3acaf7d8b8278aeac",
+      "size_bytes": 108267
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "6a8e3adeeb2082643cedd7d02c9b8b4b1575233cb85aa20a9c85ec5f2ec07842",
-      "size_bytes": 106655
+      "sha256": "21e0e8a0142c924851a6544056dfe2c0bccbd517263a1c2c749b341a54f94ed9",
+      "size_bytes": 115528
     }
   },
   "nose_binary": "nose",
@@ -218,6 +218,12 @@
           },
           {
             "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+            "name": "rb_missing",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
             "name": "rust_missing",
             "start": 1
@@ -227,6 +233,12 @@
             "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
             "name": "rust_iflet_missing",
             "start": 5
+          },
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+            "name": "swiftMissing",
+            "start": 1
           },
           {
             "end": 3,
@@ -241,7 +253,7 @@
             "start": 1
           }
         ],
-        "value": 81.2,
+        "value": 109.79512146747804,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -284,10 +296,22 @@
             "start": 5
           },
           {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.rb",
+            "name": "rb_present",
+            "start": 5
+          },
+          {
             "end": 11,
             "file": "bench/type4/adversarial/cases/null_option_presence/presence.rs",
             "name": "rust_present",
             "start": 9
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/null_option_presence/presence.swift",
+            "name": "swiftPresent",
+            "start": 5
           },
           {
             "end": 7,
@@ -302,7 +326,7 @@
             "start": 5
           }
         ],
-        "value": 69.6,
+        "value": 105.28183258569794,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -346,6 +370,12 @@
           },
           {
             "end": 3,
+            "file": "bench/type4/adversarial/cases/null_option_presence/default.swift",
+            "name": "swiftCoalesce",
+            "start": 1
+          },
+          {
+            "end": 3,
             "file": "bench/type4/adversarial/cases/null_option_presence/default.ts",
             "name": "tsCoalesce",
             "start": 1
@@ -357,7 +387,7 @@
             "start": 5
           }
         ],
-        "value": 52.0,
+        "value": 81.6,
         "witness": "exact"
       },
       "observed": "same-family",
