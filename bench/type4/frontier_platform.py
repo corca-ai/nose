@@ -837,18 +837,21 @@ TARGET_PACKETS = [
             "facts": [
                 {
                     "fact_id": "numeric-clamp.integer-domain",
-                    "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
+                    "current_real_pair_status": "satisfied for focused Python/Rust/Go controlled fixtures; unsatisfied for the boltons/fzf real pair because boltons documents mixed int/float/comparable values and fzf uses generic cmp.Ordered",
                 },
                 {
                     "fact_id": "numeric-clamp.bound-order",
-                    "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
+                    "current_real_pair_status": "satisfied for focused Python/Rust/Go guarded fixtures; unsatisfied for the fzf real pair because Constrain only names minimum/maximum and has no modeled order proof",
                 },
             ],
             "focused_tests": [
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::go_numeric_clamp_minmax_requires_integer_bound_proof",
                 "crates/nose-normalize/src/value_graph/tests/clamp.rs::literal_bound_order_is_proof_backed_only_when_ordered",
                 "crates/nose-normalize/src/value_graph/tests/clamp.rs::guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence",
                 "crates/nose-normalize/src/value_graph/tests/clamp.rs::positive_branch_bound_order_is_proof_backed_inside_branch",
                 "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_go_minmax_bridge",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_go_proof_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
             ],
@@ -860,37 +863,43 @@ TARGET_PACKETS = [
                 "proven min(max(x, lo), hi) and max(min(x, hi), lo) min/max compositions",
                 "proof-backed two-comparison ternary clamp",
                 "literal ordered and Guard(BoundOrder)-backed Rust scalar integer .clamp",
+                "Guard(BoundOrder)-backed Go typed integer min/max clamp compositions",
             ],
             "positive_gates": [
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::go_numeric_clamp_minmax_requires_integer_bound_proof",
                 "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
                 "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
                 "crates/nose-normalize/src/value_graph/tests/clamp.rs::guarded_bound_order_requires_asserted_exiting_inverse_guard_evidence",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_go_minmax_bridge",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_ternary_minmax_bridge",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_library_method_bridge",
             ],
             "hard_negative_gates": [
+                "crates/nose-cli/tests/equivalence/numeric_scalars.rs::go_numeric_clamp_minmax_requires_integer_bound_proof",
                 "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_minmax_compositions_require_bound_proof",
                 "crates/nose-cli/tests/equivalence/numeric_scalars.rs::numeric_clamp_surface_bridge_requires_bound_proof",
                 "crates/nose-normalize/src/value_graph/tests/clamp.rs::proof_rejects_floatish_number_and_wrong_shapes",
+                "bench/type4/adversarial/cases/cases.v1.json::clamp_go_proof_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_unordered_bounds",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_float_nan_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::clamp_method_name_only_boundary",
             ],
             "remaining_real_pair_gap": (
-                "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence "
-                "and shared integer-only domain evidence, so it remains a real miss"
+                "the boltons/fzf real-corpus pair is now an executable split blocker: "
+                "typed Go integer clamp is covered by focused evidence, but fzf Constrain "
+                "still lacks fzf-side bound-order evidence and shared integer-only domain evidence"
             ),
         },
         "blocked_by": [
-            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
-            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries",
+            "the current fzf member has no modeled bound-order evidence; the focused Go proof boundary verifies that parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and Go `cmp.Ordered` remains a float/NaN-sensitive boundary",
         ],
         "notes": "The proof-backed integer Clamp canon now covers min/max composition plus "
-        "controlled two-comparison and library method bridge surfaces when literal or "
+        "controlled two-comparison, library method, and Go typed integer bridge surfaces when literal or "
         "asserted Guard(BoundOrder) evidence proves lo<=hi and integer-domain evidence excludes "
-        "float/NaN behavior. The remaining packet is still routed "
-        "proof-fact-prerequisite because the real fzf member lacks modeled order evidence "
-        "and the cross-language pair lacks a shared integer-only domain proof.",
+        "float/NaN behavior. The linked boltons/fzf real pair remains routed "
+        "proof-fact-prerequisite with an executable split expectation because the real fzf member "
+        "lacks modeled order evidence and the cross-language pair lacks a shared integer-only domain proof.",
         # Representative corpus locations (repo-explicit; split/primary-language enriched below).
         "locations": [
             {"repo": "boltons", "path": "boltons/mathutils.py", "span": "40-69",

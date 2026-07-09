@@ -336,6 +336,25 @@ fn free_function_builtin_contracts_are_language_and_shadow_constrained() {
         })
     );
     assert_eq!(free_function_builtin_contract(Lang::Go, "append", 1), None);
+    assert_eq!(
+        free_function_builtin_contract(Lang::Go, "min", 2),
+        Some(FreeFunctionBuiltinContract {
+            name: "min",
+            builtin: Builtin::Min,
+            args: BuiltinArgContract::All,
+            requires_unshadowed: true,
+        })
+    );
+    assert_eq!(
+        free_function_builtin_contract(Lang::Go, "max", 2),
+        Some(FreeFunctionBuiltinContract {
+            name: "max",
+            builtin: Builtin::Max,
+            args: BuiltinArgContract::All,
+            requires_unshadowed: true,
+        })
+    );
+    assert_eq!(free_function_builtin_contract(Lang::Go, "min", 1), None);
     assert_eq!(free_function_builtin_contract(Lang::C, "fmaxf", 2), None);
     assert_eq!(
         free_function_builtin_contract(Lang::Python, "fmaxf", 2),

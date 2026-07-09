@@ -1,6 +1,6 @@
 {
   "executable_witness_coverage": {
-    "declared_expectation_count": 150,
+    "declared_expectation_count": 157,
     "extra": 0,
     "failed": 0,
     "fully_covered_packet_count": 7,
@@ -10,13 +10,13 @@
     "packet_count_by_coverage": {
       "covered": 7
     },
-    "passed": 150,
-    "query_count": 19,
+    "passed": 157,
+    "query_count": 20,
     "report_extra_expectation_ids": [],
     "report_failed_expectation_ids": [],
     "report_missing_expectation_ids": [],
     "report_stale_expectation_ids": [],
-    "result_count": 150,
+    "result_count": 157,
     "stale": 0
   },
   "group_list": [
@@ -356,8 +356,8 @@
         },
         {
           "blockers": [
-            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
-            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
+            "the current fzf member has no modeled bound-order evidence; the focused Go proof boundary verifies that parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and Go `cmp.Ordered` remains a float/NaN-sensitive boundary"
           ],
           "can_open_exact_admission": false,
           "candidate_axis": "numeric_clamp",
@@ -373,6 +373,48 @@
                 "case_id": "clamp_float_nan_boundary",
                 "expect": "split",
                 "expectation_id": "clamp_float_ternary_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_float_domain_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_generic_ordered_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_guarded_generic_ordered_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_minmax_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_go_guarded_minmax_matches_maxmin",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_swapped_bounds_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_unproven_bounds_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_wrong_nesting_stays_split",
                 "status": "passed"
               },
               {
@@ -419,9 +461,16 @@
               }
             ],
             "coverage_status": "covered",
-            "declared_expectation_count": 8,
+            "declared_expectation_count": 15,
             "declared_expectation_ids": [
               "clamp_float_ternary_stays_split",
+              "clamp_go_float_domain_stays_split",
+              "clamp_go_generic_ordered_stays_split",
+              "clamp_go_guarded_generic_ordered_stays_split",
+              "clamp_go_guarded_minmax_matches_maxmin",
+              "clamp_go_swapped_bounds_stays_split",
+              "clamp_go_unproven_bounds_stays_split",
+              "clamp_go_wrong_nesting_stays_split",
               "clamp_python_guarded_ternary_matches_minmax",
               "clamp_rust_custom_method_stays_split",
               "clamp_rust_guarded_method_matches_guarded_minmax",
@@ -434,6 +483,8 @@
             "failed_expectation_ids": [],
             "manifest_case_ids": [
               "clamp_float_nan_boundary",
+              "clamp_go_minmax_bridge",
+              "clamp_go_proof_boundary",
               "clamp_library_method_bridge",
               "clamp_method_name_only_boundary",
               "clamp_ternary_minmax_bridge",
@@ -441,20 +492,29 @@
             ],
             "manifest_hard_negative_case_ids": [
               "clamp_float_nan_boundary",
+              "clamp_go_proof_boundary",
               "clamp_method_name_only_boundary",
               "clamp_unordered_bounds"
             ],
             "manifest_only_case_ids": [],
             "manifest_positive_case_ids": [
+              "clamp_go_minmax_bridge",
               "clamp_library_method_bridge",
               "clamp_ternary_minmax_bridge"
             ],
             "missing_expectation_count": 0,
             "missing_expectation_ids": [],
             "packet_id": "numeric-clamp-2026-06-06",
-            "passed_expectation_count": 8,
+            "passed_expectation_count": 15,
             "passed_expectation_ids": [
               "clamp_float_ternary_stays_split",
+              "clamp_go_float_domain_stays_split",
+              "clamp_go_generic_ordered_stays_split",
+              "clamp_go_guarded_generic_ordered_stays_split",
+              "clamp_go_guarded_minmax_matches_maxmin",
+              "clamp_go_swapped_bounds_stays_split",
+              "clamp_go_unproven_bounds_stays_split",
+              "clamp_go_wrong_nesting_stays_split",
               "clamp_python_guarded_ternary_matches_minmax",
               "clamp_rust_custom_method_stays_split",
               "clamp_rust_guarded_method_matches_guarded_minmax",
@@ -468,7 +528,7 @@
           },
           "group": "admitted/resolved",
           "hard_negative_count": 4,
-          "hard_negative_gate_count": 6,
+          "hard_negative_gate_count": 8,
           "hard_negative_group_ids": [
             "numeric-clamp-proof-perimeter"
           ],
@@ -476,7 +536,7 @@
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "numeric-clamp-2026-06-06",
           "planning_summary": "Do not widen this detector row from the readiness queue; use the remaining real-pair gap as proof follow-up.",
-          "positive_gate_count": 5,
+          "positive_gate_count": 7,
           "proof_fact_ids": [
             "numeric-clamp.integer-domain",
             "numeric-clamp.bound-order"
@@ -485,7 +545,7 @@
           "proof_facts": [
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
+              "current_real_pair_status": "satisfied for focused Python/Rust/Go controlled fixtures; unsatisfied for the boltons/fzf real pair because boltons documents mixed int/float/comparable values and fzf uses generic cmp.Ordered",
               "evidence_requirements": [
                 "formal-or-mechanized",
                 "focused-executable",
@@ -498,7 +558,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
+              "current_real_pair_status": "satisfied for focused Python/Rust/Go guarded fixtures; unsatisfied for the fzf real pair because Constrain only names minimum/maximum and has no modeled order proof",
               "evidence_requirements": [
                 "formal-or-mechanized",
                 "focused-executable",
@@ -520,7 +580,7 @@
                 "observed": "split",
                 "proof_gap": [
                   "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
-                  "the boltons/fzf pair still has no shared integer-only domain proof"
+                  "the boltons/fzf pair still has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and fzf uses cmp.Ordered"
                 ],
                 "replay_id": "numeric-clamp-boltons-fzf-real-pair",
                 "status": "passed"
@@ -543,8 +603,8 @@
             "unavailable_replay_count": 0,
             "unavailable_replay_ids": []
           },
-          "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss.",
-          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
+          "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair is now an executable split blocker: typed Go integer clamp is covered by focused evidence, but fzf Constrain still lacks fzf-side bound-order evidence and shared integer-only domain evidence.",
+          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair is now an executable split blocker: typed Go integer clamp is covered by focused evidence, but fzf Constrain still lacks fzf-side bound-order evidence and shared integer-only domain evidence",
           "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
           "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
         },
@@ -2979,8 +3039,8 @@
         },
         {
           "blockers": [
-            "the current fzf member has no modeled bound-order evidence; parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
-            "the current boltons/fzf pair has no shared integer-only domain proof; Python dynamic parameters and Go `cmp.Ordered` remain float/NaN-sensitive boundaries"
+            "the current fzf member has no modeled bound-order evidence; the focused Go proof boundary verifies that parameter naming such as `Constrain(val, minimum, maximum)` is not a proof",
+            "the current boltons/fzf pair has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and Go `cmp.Ordered` remains a float/NaN-sensitive boundary"
           ],
           "can_open_exact_admission": false,
           "candidate_axis": "numeric_clamp",
@@ -2996,6 +3056,48 @@
                 "case_id": "clamp_float_nan_boundary",
                 "expect": "split",
                 "expectation_id": "clamp_float_ternary_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_float_domain_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_generic_ordered_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_guarded_generic_ordered_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_minmax_bridge",
+                "expect": "same-family",
+                "expectation_id": "clamp_go_guarded_minmax_matches_maxmin",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_swapped_bounds_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_unproven_bounds_stays_split",
+                "status": "passed"
+              },
+              {
+                "case_id": "clamp_go_proof_boundary",
+                "expect": "split",
+                "expectation_id": "clamp_go_wrong_nesting_stays_split",
                 "status": "passed"
               },
               {
@@ -3042,9 +3144,16 @@
               }
             ],
             "coverage_status": "covered",
-            "declared_expectation_count": 8,
+            "declared_expectation_count": 15,
             "declared_expectation_ids": [
               "clamp_float_ternary_stays_split",
+              "clamp_go_float_domain_stays_split",
+              "clamp_go_generic_ordered_stays_split",
+              "clamp_go_guarded_generic_ordered_stays_split",
+              "clamp_go_guarded_minmax_matches_maxmin",
+              "clamp_go_swapped_bounds_stays_split",
+              "clamp_go_unproven_bounds_stays_split",
+              "clamp_go_wrong_nesting_stays_split",
               "clamp_python_guarded_ternary_matches_minmax",
               "clamp_rust_custom_method_stays_split",
               "clamp_rust_guarded_method_matches_guarded_minmax",
@@ -3057,6 +3166,8 @@
             "failed_expectation_ids": [],
             "manifest_case_ids": [
               "clamp_float_nan_boundary",
+              "clamp_go_minmax_bridge",
+              "clamp_go_proof_boundary",
               "clamp_library_method_bridge",
               "clamp_method_name_only_boundary",
               "clamp_ternary_minmax_bridge",
@@ -3064,20 +3175,29 @@
             ],
             "manifest_hard_negative_case_ids": [
               "clamp_float_nan_boundary",
+              "clamp_go_proof_boundary",
               "clamp_method_name_only_boundary",
               "clamp_unordered_bounds"
             ],
             "manifest_only_case_ids": [],
             "manifest_positive_case_ids": [
+              "clamp_go_minmax_bridge",
               "clamp_library_method_bridge",
               "clamp_ternary_minmax_bridge"
             ],
             "missing_expectation_count": 0,
             "missing_expectation_ids": [],
             "packet_id": "numeric-clamp-2026-06-06",
-            "passed_expectation_count": 8,
+            "passed_expectation_count": 15,
             "passed_expectation_ids": [
               "clamp_float_ternary_stays_split",
+              "clamp_go_float_domain_stays_split",
+              "clamp_go_generic_ordered_stays_split",
+              "clamp_go_guarded_generic_ordered_stays_split",
+              "clamp_go_guarded_minmax_matches_maxmin",
+              "clamp_go_swapped_bounds_stays_split",
+              "clamp_go_unproven_bounds_stays_split",
+              "clamp_go_wrong_nesting_stays_split",
               "clamp_python_guarded_ternary_matches_minmax",
               "clamp_rust_custom_method_stays_split",
               "clamp_rust_guarded_method_matches_guarded_minmax",
@@ -3091,7 +3211,7 @@
           },
           "group": "admitted/resolved",
           "hard_negative_count": 4,
-          "hard_negative_gate_count": 6,
+          "hard_negative_gate_count": 8,
           "hard_negative_group_ids": [
             "numeric-clamp-proof-perimeter"
           ],
@@ -3099,7 +3219,7 @@
           "owner_route": "proof-fact-prerequisite",
           "packet_id": "numeric-clamp-2026-06-06",
           "planning_summary": "Do not widen this detector row from the readiness queue; use the remaining real-pair gap as proof follow-up.",
-          "positive_gate_count": 5,
+          "positive_gate_count": 7,
           "proof_fact_ids": [
             "numeric-clamp.integer-domain",
             "numeric-clamp.bound-order"
@@ -3108,7 +3228,7 @@
           "proof_facts": [
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "unsatisfied: neither the boltons Python function nor the fzf Go generic helper carries shared integer-only evidence",
+              "current_real_pair_status": "satisfied for focused Python/Rust/Go controlled fixtures; unsatisfied for the boltons/fzf real pair because boltons documents mixed int/float/comparable values and fzf uses generic cmp.Ordered",
               "evidence_requirements": [
                 "formal-or-mechanized",
                 "focused-executable",
@@ -3121,7 +3241,7 @@
             },
             {
               "controlled_evidence": null,
-              "current_real_pair_status": "partially satisfiable: boltons has an exiting inverse guard that can be represented by Guard(BoundOrder); fzf Constrain only names minimum/maximum and has no modeled order proof",
+              "current_real_pair_status": "satisfied for focused Python/Rust/Go guarded fixtures; unsatisfied for the fzf real pair because Constrain only names minimum/maximum and has no modeled order proof",
               "evidence_requirements": [
                 "formal-or-mechanized",
                 "focused-executable",
@@ -3143,7 +3263,7 @@
                 "observed": "split",
                 "proof_gap": [
                   "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
-                  "the boltons/fzf pair still has no shared integer-only domain proof"
+                  "the boltons/fzf pair still has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and fzf uses cmp.Ordered"
                 ],
                 "replay_id": "numeric-clamp-boltons-fzf-real-pair",
                 "status": "passed"
@@ -3166,8 +3286,8 @@
             "unavailable_replay_count": 0,
             "unavailable_replay_ids": []
           },
-          "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss.",
-          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair still lacks fzf-side bound-order evidence and shared integer-only domain evidence, so it remains a real miss",
+          "release_note": "numeric-clamp-2026-06-06: a controlled detector slice is admitted for numeric_clamp (proof-backed controlled integer clamp surfaces); linked real-corpus exact admission remains closed because the boltons/fzf real-corpus pair is now an executable split blocker: typed Go integer clamp is covered by focused evidence, but fzf Constrain still lacks fzf-side bound-order evidence and shared integer-only domain evidence.",
+          "remaining_real_pair_gap": "the boltons/fzf real-corpus pair is now an executable split blocker: typed Go integer clamp is covered by focused evidence, but fzf Constrain still lacks fzf-side bound-order evidence and shared integer-only domain evidence",
           "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
           "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is broad and generalizing \u2014 present in 7 of the 8 corpus primary-language buckets, with hits in both the dev and held-out splits. The proof-backed min/max plus controlled two-comparison/library bridge slices are implemented; the remaining value is identifying the next real-corpus bound-order proof without weakening the hard-negative boundary."
         },
@@ -5338,13 +5458,13 @@
     },
     "executable_expectations": {
       "path": "bench/type4/executable_expectations.v1.json",
-      "sha256": "90e6c5ee7da94af38fd8fb528586b45642c3289147581cae707b13ddeeb92127",
-      "size_bytes": 76921
+      "sha256": "4e639e99b4b49b2d4322b5a572b6106980aef9e24866a924814db2c00889dd2a",
+      "size_bytes": 79590
     },
     "focused_cases": {
       "path": "bench/type4/adversarial/cases/cases.v1.json",
-      "sha256": "17e03cc85c107dfdf3ff67c5f1147c775ee1e3171d9d4304057d19f1b345fd8d",
-      "size_bytes": 190013
+      "sha256": "5b5e9c5ca243400d3d5eec1fe726f278e5b151e2efc0ef370f54fe5237207365",
+      "size_bytes": 195606
     },
     "proof_fact_registry": {
       "path": "bench/type4/proof_fact_registry.v1.json",
@@ -5358,23 +5478,23 @@
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "9957fe7cbedbc515f8c2764c7d44c95fc91a94a972337528aaa668e444680542",
-      "size_bytes": 105453
+      "sha256": "ca93443734d5c5a6944d9b41862afda2e7c616ea564c499713bbba97a43e8d48",
+      "size_bytes": 105706
     },
     "real_frontier_replay": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "174b09c1408f1ee7d21ebb6f3ab1ecf9ab7059bec60a5897ce24dd997176f18d",
-      "size_bytes": 34159
+      "sha256": "329eb836e234346c372d60f7629884f102ae525f0f3bc10345802e34b6498e7e",
+      "size_bytes": 36257
     },
     "real_frontier_replay_status": {
       "path": "bench/type4/real_frontier_replay_status.v1.json",
-      "sha256": "6c9d0efac6c95615cdef73e110ccdc94588989525336dda767729a7d24bdc258",
+      "sha256": "c2a5acd216bb8a10305e5de7405777aa67f09a0ae2726c3d753309e2bf56fc76",
       "size_bytes": 34191
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "eee509c3878871a27b10a163583f2bab79339ff726d2c809da70bdd8e5aaa63f",
-      "size_bytes": 105557
+      "sha256": "6a8e3adeeb2082643cedd7d02c9b8b4b1575233cb85aa20a9c85ec5f2ec07842",
+      "size_bytes": 106655
     }
   },
   "source_report_verdict": "no-exact-admission-ready-packets",

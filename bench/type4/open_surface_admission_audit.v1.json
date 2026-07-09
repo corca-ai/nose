@@ -1,15 +1,5 @@
 {
   "by_blocker": {
-    "connect packet evidence to focused executable expectations": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Go",
-        "likely_blocker": "connect packet evidence to focused executable expectations",
-        "pattern_id": "numeric.clamp.proven-integer-bounds",
-        "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      }
-    ],
     "model required facts before detector admission": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -312,26 +302,6 @@
         "surface_status": "open"
       }
     ],
-    "numeric-clamp.bound-order": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Go",
-        "likely_blocker": "connect packet evidence to focused executable expectations",
-        "pattern_id": "numeric.clamp.proven-integer-bounds",
-        "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      }
-    ],
-    "numeric-clamp.integer-domain": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Go",
-        "likely_blocker": "connect packet evidence to focused executable expectations",
-        "pattern_id": "numeric.clamp.proven-integer-bounds",
-        "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      }
-    ],
     "option.absence-channel.identity": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -486,16 +456,6 @@
     ]
   },
   "by_language": {
-    "Go": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Go",
-        "likely_blocker": "connect packet evidence to focused executable expectations",
-        "pattern_id": "numeric.clamp.proven-integer-bounds",
-        "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      }
-    ],
     "Java": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -608,16 +568,6 @@
         "surface_status": "open"
       }
     ],
-    "numeric.clamp.proven-integer-bounds": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Go",
-        "likely_blocker": "connect packet evidence to focused executable expectations",
-        "pattern_id": "numeric.clamp.proven-integer-bounds",
-        "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      }
-    ],
     "option.presence-default.proven-channel-coordinate": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -639,14 +589,6 @@
   },
   "by_surface_status": {
     "open": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Go",
-        "likely_blocker": "connect packet evidence to focused executable expectations",
-        "pattern_id": "numeric.clamp.proven-integer-bounds",
-        "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      },
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Swift",
@@ -761,28 +703,12 @@
         },
         {
           "candidate_priority": "needs-surface-focused-perimeter",
-          "current_candidate_priority": "needs-surface-focused-perimeter",
-          "current_open_audit_state": "present",
-          "evidence_level": "target-packet",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 724,
           "language": "Go",
-          "likely_blocker": "connect packet evidence to focused executable expectations",
           "order": 6,
-          "pattern_focused_support": {
-            "hard_negative": 3,
-            "hard_negative_group": 1,
-            "positive": 3
-          },
           "pattern_id": "numeric.clamp.proven-integer-bounds",
           "selector": "numeric.clamp.proven-integer-bounds:Go:needs-surface-focused-perimeter",
-          "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [],
           "work": "connect Go numeric clamp bound-order and integer-domain proof evidence"
         }
       ],
@@ -1006,10 +932,10 @@
       "setup_issue": 781,
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
-        "current_actionable_open_count": 1,
+        "current_actionable_open_count": 0,
         "current_blocked_open_count": 7,
         "in_scope_count": 6,
-        "in_scope_currently_open": 1,
+        "in_scope_currently_open": 0,
         "out_of_scope_count": 7,
         "out_of_scope_currently_open": 7,
         "unexpected_actionable_open_count": 0,
@@ -1021,38 +947,6 @@
     }
   },
   "rows": [
-    {
-      "candidate_priority": "needs-surface-focused-perimeter",
-      "coverage": {},
-      "evidence_level": "target-packet",
-      "fact_statuses": {
-        "numeric-clamp.bound-order": "modeled-controlled",
-        "numeric-clamp.integer-domain": "modeled-controlled"
-      },
-      "language": "Go",
-      "likely_blocker": "connect packet evidence to focused executable expectations",
-      "pattern_focused_support": {
-        "hard_negative": 3,
-        "hard_negative_group": 1,
-        "positive": 3
-      },
-      "pattern_id": "numeric.clamp.proven-integer-bounds",
-      "pattern_status": "controlled-slice-admitted",
-      "required_facts": [
-        "numeric-clamp.integer-domain",
-        "numeric-clamp.bound-order"
-      ],
-      "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-      "surface_evidence": "bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [],
-      "unresolved_surface_evidence_refs": []
-    },
     {
       "candidate_priority": "blocked-by-unmodeled-facts",
       "coverage": {},
@@ -1423,23 +1317,20 @@
     "by_evidence_level": {
       "coverage-sweep": 1,
       "missing": 5,
-      "probe-only": 1,
-      "target-packet": 1
+      "probe-only": 1
     },
     "by_language": {
-      "Go": 1,
       "Java": 1,
       "Ruby": 1,
       "Swift": 5
     },
     "by_priority": {
-      "blocked-by-unmodeled-facts": 7,
-      "needs-surface-focused-perimeter": 1
+      "blocked-by-unmodeled-facts": 7
     },
     "by_status": {
-      "open": 8
+      "open": 7
     },
-    "open_surface_count": 8,
+    "open_surface_count": 7,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"

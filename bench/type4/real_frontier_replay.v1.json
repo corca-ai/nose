@@ -5,29 +5,29 @@
       "case_id": "numeric-clamp-minmax-ternary-real-miss",
       "expect": "split",
       "members": [
-    {
-     "end_line": 69,
-     "file": "boltons/mathutils.py",
-     "kind": "repo",
-     "label": "boltons clamp",
-     "repo": "boltons",
-     "snippet": "return min(max(x, lower), upper)",
-     "start_line": 40
-    },
-    {
-     "end_line": 65,
-     "file": "src/util/util.go",
-     "kind": "repo",
-     "label": "fzf Constrain",
-     "repo": "fzf",
-     "snippet": "func Constrain[T cmp.Ordered](val, minimum, maximum T) T { return max(min(val, maximum), minimum) }",
-     "start_line": 63
-    }
+        {
+          "end_line": 69,
+          "file": "boltons/mathutils.py",
+          "kind": "repo",
+          "label": "boltons clamp",
+          "repo": "boltons",
+          "snippet": "return min(max(x, lower), upper)",
+          "start_line": 40
+        },
+        {
+          "end_line": 65,
+          "file": "src/util/util.go",
+          "kind": "repo",
+          "label": "fzf Constrain",
+          "repo": "fzf",
+          "snippet": "func Constrain[T cmp.Ordered](val, minimum, maximum T) T { return max(min(val, maximum), minimum) }",
+          "start_line": 63
+        }
       ],
       "packet_id": "numeric-clamp-2026-06-06",
       "proof_gap": [
         "fzf Constrain still has no modeled bound-order evidence; parameter names are not proof",
-        "the boltons/fzf pair still has no shared integer-only domain proof"
+        "the boltons/fzf pair still has no shared integer-only domain proof; boltons documents mixed int/float/comparable values and fzf uses cmp.Ordered"
       ],
       "query": {
         "min_lines": 1,
@@ -48,7 +48,7 @@
           "repo": "fzf"
         }
       ],
-      "why_expected": "The controlled integer clamp slice is admitted, but this real boltons/fzf pair must remain split until #724 supplies fzf-side bound-order evidence and a shared integer-domain fact."
+      "why_expected": "The controlled integer clamp slice now includes Go typed-int min/max helpers, but this real boltons/fzf pair must remain split until a future fact supplies fzf-side bound-order evidence and a shared integer-domain proof for the actual cmp.Ordered helper."
     },
     {
       "case_id": "python-loop-demorgan-all-readme-real-miss",
@@ -127,9 +127,9 @@
       ],
       "why_expected": "The focused collection-membership witnesses are admitted when the receiver API/domain, searched element, collection/source coordinate, and receiver mutation facts are all satisfied."
     },
-  {
-   "case_id": "collection-empty-focused-controlled",
-   "expect": "same-family",
+    {
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
       "members": [
         {
           "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
@@ -188,74 +188,74 @@
           "kind": "workspace",
           "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
         }
-   ],
-   "why_expected": "The focused collection non-empty pair is admitted when the same receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts are all satisfied."
-  },
-  {
-   "case_id": "collection-empty-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
-     "kind": "workspace",
-     "name": "swiftCountEmpty"
+      ],
+      "why_expected": "The focused collection non-empty pair is admitted when the same receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts are all satisfied."
     },
     {
-     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
-     "kind": "workspace",
-     "name": "swiftNamedEmpty"
-    }
-   ],
-   "packet_id": "collection-empty-check-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "collection-empty-swift-focused-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
-    }
-   ],
-   "why_expected": "The focused Swift Array empty pair is admitted when count == 0 and isEmpty share receiver coordinate, collection domain/kind, empty predicate direction, and receiver mutation facts."
-  },
-  {
-   "case_id": "collection-empty-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
-     "kind": "workspace",
-     "name": "swiftCountNonempty"
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+          "kind": "workspace",
+          "name": "swiftCountEmpty"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+          "kind": "workspace",
+          "name": "swiftNamedEmpty"
+        }
+      ],
+      "packet_id": "collection-empty-check-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "collection-empty-swift-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
+        }
+      ],
+      "why_expected": "The focused Swift Array empty pair is admitted when count == 0 and isEmpty share receiver coordinate, collection domain/kind, empty predicate direction, and receiver mutation facts."
     },
     {
-     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
-     "kind": "workspace",
-     "name": "swiftNamedNonempty"
-    }
-   ],
-   "packet_id": "collection-empty-check-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "collection-nonempty-swift-focused-controlled-pair",
-   "sources": [
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+          "kind": "workspace",
+          "name": "swiftCountNonempty"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+          "kind": "workspace",
+          "name": "swiftNamedNonempty"
+        }
+      ],
+      "packet_id": "collection-empty-check-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "collection-nonempty-swift-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
+        }
+      ],
+      "why_expected": "The focused Swift Array non-empty pair is admitted when count != 0 and !isEmpty share receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts."
+    },
     {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
-    }
-   ],
-   "why_expected": "The focused Swift Array non-empty pair is admitted when count != 0 and !isEmpty share receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts."
-  },
-  {
       "case_id": "string-affix-focused-controlled",
       "expect": "same-family",
       "members": [
@@ -526,9 +526,9 @@
       ],
       "why_expected": "The focused Swift immutable local/module affix bindings are admitted with direct literal affix proof when the bound value coordinate is stable."
     },
-  {
-   "case_id": "null-option-presence-focused-controlled",
-   "expect": "same-family",
+    {
+      "case_id": "null-option-presence-focused-controlled",
+      "expect": "same-family",
       "members": [
         {
           "file": "bench/type4/adversarial/cases/null_option_presence/presence.py",
@@ -619,417 +619,417 @@
           "kind": "workspace",
           "path": "bench/type4/adversarial/cases/null_option_presence"
         }
-   ],
-   "why_expected": "The focused nullish/Option defaulting pair is admitted when value coordinate, absence channel, fallback coordinate, short-circuit timing, and API identity facts are satisfied."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
-     "kind": "workspace",
-     "name": "py_sum_builtin"
+      ],
+      "why_expected": "The focused nullish/Option defaulting pair is admitted when value coordinate, absence channel, fallback coordinate, short-circuit timing, and API identity facts are satisfied."
     },
     {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
-     "kind": "workspace",
-     "name": "tsSumReduce"
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.py",
+          "kind": "workspace",
+          "name": "py_sum_builtin"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.ts",
+          "kind": "workspace",
+          "name": "tsSumReduce"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
+          "kind": "workspace",
+          "name": "rust_sum_iter"
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-sum-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused sum/reduce family is admitted when source identity, additive step coordinate, identity seed, empty behavior, and callback effect facts are satisfied."
     },
     {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/sum.rs",
-     "kind": "workspace",
-     "name": "rust_sum_iter"
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-sum-focused-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused sum/reduce family is admitted when source identity, additive step coordinate, identity seed, empty behavior, and callback effect facts are satisfied."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_any_loop"
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_any_loop"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_any_iter"
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-any-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused Rust any terminal pair is admitted when source identity, terminal predicate coordinate, existential short-circuit direction, empty behavior, and predicate purity facts are satisfied."
     },
     {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_any_iter"
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-any-focused-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused Rust any terminal pair is admitted when source identity, terminal predicate coordinate, existential short-circuit direction, empty behavior, and predicate purity facts are satisfied."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_all_loop"
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_all_loop"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_all_iter"
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-rust-all-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused Rust Iterator::all pair is admitted when source identity, universal short-circuit direction, vacuous truth, terminal predicate coordinate, and predicate purity facts are satisfied."
     },
     {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_all_iter"
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-rust-all-focused-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused Rust Iterator::all pair is admitted when source identity, universal short-circuit direction, vacuous truth, terminal predicate coordinate, and predicate purity facts are satisfied."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "split",
-   "members": [
-    {
-     "end_line": 83,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_all_pure_with_log",
-     "snippet": "pub fn rust_all_pure_with_log(xs: &[i64], log: &mut Vec<i64>) -> bool { let _ = log.len(); xs.iter().copied().all(|x| x < 100) }",
-     "start_line": 80
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "members": [
+        {
+          "end_line": 83,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_all_pure_with_log",
+          "snippet": "pub fn rust_all_pure_with_log(xs: &[i64], log: &mut Vec<i64>) -> bool { let _ = log.len(); xs.iter().copied().all(|x| x < 100) }",
+          "start_line": 80
+        },
+        {
+          "end_line": 90,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_all_callback_effect",
+          "snippet": "pub fn rust_all_callback_effect(xs: &[i64], log: &mut Vec<i64>) -> bool { xs.iter().copied().all(|x| { log.push(x); x < 100 }) }",
+          "start_line": 85
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-rust-all-effect-boundary-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused Rust Iterator::all callback-effect boundary stays split because observed callback effects are behavior-defining under short-circuit traversal."
     },
     {
-     "end_line": 90,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_all_callback_effect",
-     "snippet": "pub fn rust_all_callback_effect(xs: &[i64], log: &mut Vec<i64>) -> bool { xs.iter().copied().all(|x| { log.push(x); x < 100 }) }",
-     "start_line": 85
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-rust-all-effect-boundary-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused Rust Iterator::all callback-effect boundary stays split because observed callback effects are behavior-defining under short-circuit traversal."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "split",
-   "members": [
-    {
-     "end_line": 104,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_all_pure_mutable",
-     "snippet": "pub fn rust_all_pure_mutable(xs: &mut [i64]) -> bool { xs.iter().copied().all(|x| x < 100) }",
-     "start_line": 102
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "members": [
+        {
+          "end_line": 104,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_all_pure_mutable",
+          "snippet": "pub fn rust_all_pure_mutable(xs: &mut [i64]) -> bool { xs.iter().copied().all(|x| x < 100) }",
+          "start_line": 102
+        },
+        {
+          "end_line": 111,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+          "kind": "workspace",
+          "name": "rust_all_mutating_borrow",
+          "snippet": "pub fn rust_all_mutating_borrow(xs: &mut [i64]) -> bool { xs.iter_mut().all(|x| { *x += 1; *x < 100 }) }",
+          "start_line": 106
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-rust-all-mutating-borrow-boundary-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused Rust Iterator::all mutating-borrow boundary stays split because mutating the receiver during traversal changes the observed value coordinate."
     },
     {
-     "end_line": 111,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
-     "kind": "workspace",
-     "name": "rust_all_mutating_borrow",
-     "snippet": "pub fn rust_all_mutating_borrow(xs: &mut [i64]) -> bool { xs.iter_mut().all(|x| { *x += 1; *x < 100 }) }",
-     "start_line": 106
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-rust-all-mutating-borrow-boundary-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused Rust Iterator::all mutating-borrow boundary stays split because mutating the receiver during traversal changes the observed value coordinate."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
-     "kind": "workspace",
-     "name": "tsAllLoop"
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+          "kind": "workspace",
+          "name": "tsAllLoop"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+          "kind": "workspace",
+          "name": "tsAllEvery"
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-typescript-every-dense-literal-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused TypeScript every pair is admitted only for a dense literal source, a one-argument value predicate, same-source traversal, universal short-circuit direction, vacuous truth, and predicate purity."
     },
     {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
-     "kind": "workspace",
-     "name": "tsAllEvery"
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-typescript-every-dense-literal-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused TypeScript every pair is admitted only for a dense literal source, a one-argument value predicate, same-source traversal, universal short-circuit direction, vacuous truth, and predicate purity."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "split",
-   "members": [
-    {
-     "end_line": 40,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
-     "kind": "workspace",
-     "name": "tsAllParamLoop",
-     "snippet": "function tsAllParamLoop(xs: number[]): boolean { for (const x of xs) { if (!(x >= 0)) { return false; } } return true; }",
-     "start_line": 33
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "members": [
+        {
+          "end_line": 40,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+          "kind": "workspace",
+          "name": "tsAllParamLoop",
+          "snippet": "function tsAllParamLoop(xs: number[]): boolean { for (const x of xs) { if (!(x >= 0)) { return false; } } return true; }",
+          "start_line": 33
+        },
+        {
+          "end_line": 44,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+          "kind": "workspace",
+          "name": "tsAllParamEvery",
+          "snippet": "function tsAllParamEvery(xs: number[]): boolean { return xs.every((x) => x >= 0); }",
+          "start_line": 42
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-typescript-every-array-param-boundary-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused TypeScript number[] parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; the array annotation alone is not dense-source proof."
     },
     {
-     "end_line": 44,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
-     "kind": "workspace",
-     "name": "tsAllParamEvery",
-     "snippet": "function tsAllParamEvery(xs: number[]): boolean { return xs.every((x) => x >= 0); }",
-     "start_line": 42
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-typescript-every-array-param-boundary-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused TypeScript number[] parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; the array annotation alone is not dense-source proof."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
-     "kind": "workspace",
-     "name": "jsAllLoop"
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+          "kind": "workspace",
+          "name": "jsAllLoop"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+          "kind": "workspace",
+          "name": "jsAllEvery"
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-javascript-every-dense-literal-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused JavaScript every pair is admitted only for a dense literal source, a one-argument value predicate, same-source traversal, universal short-circuit direction, vacuous truth, and predicate purity."
     },
     {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
-     "kind": "workspace",
-     "name": "jsAllEvery"
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-javascript-every-dense-literal-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused JavaScript every pair is admitted only for a dense literal source, a one-argument value predicate, same-source traversal, universal short-circuit direction, vacuous truth, and predicate purity."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "split",
-   "members": [
-    {
-     "end_line": 21,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
-     "kind": "workspace",
-     "name": "jsAllParamLoop",
-     "snippet": "function jsAllParamLoop(xs) { for (const x of xs) { if (!(x >= 0)) { return false; } } return true; }",
-     "start_line": 14
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "members": [
+        {
+          "end_line": 21,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+          "kind": "workspace",
+          "name": "jsAllParamLoop",
+          "snippet": "function jsAllParamLoop(xs) { for (const x of xs) { if (!(x >= 0)) { return false; } } return true; }",
+          "start_line": 14
+        },
+        {
+          "end_line": 25,
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+          "kind": "workspace",
+          "name": "jsAllParamEvery",
+          "snippet": "function jsAllParamEvery(xs) { return xs.every((x) => x >= 0); }",
+          "start_line": 23
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-javascript-every-array-param-boundary-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused JavaScript array parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; an unproven array parameter is not dense-source proof."
     },
     {
-     "end_line": 25,
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
-     "kind": "workspace",
-     "name": "jsAllParamEvery",
-     "snippet": "function jsAllParamEvery(xs) { return xs.every((x) => x >= 0); }",
-     "start_line": 23
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-javascript-every-array-param-boundary-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused JavaScript array parameter pair stays split because Array.every skips sparse holes while a for-of loop can observe them; an unproven array parameter is not dense-source proof."
-  },
-  {
-   "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
-   "expect": "split",
-   "members": [
-    {
-     "end_line": 38,
-     "file": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
-     "kind": "repo",
-     "label": "Drizzle mysql flags.every(Boolean) terminal",
-     "repo": "drizzle-orm",
-     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
-     "start_line": 35
+      "case_id": "reduction-typescript-every-append-only-flags-drizzle-real-miss",
+      "expect": "split",
+      "members": [
+        {
+          "end_line": 38,
+          "file": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+          "kind": "repo",
+          "label": "Drizzle mysql flags.every(Boolean) terminal",
+          "repo": "drizzle-orm",
+          "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+          "start_line": 35
+        },
+        {
+          "end_line": 44,
+          "file": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+          "kind": "repo",
+          "label": "Drizzle sqlite flags.every(Boolean) terminal",
+          "repo": "drizzle-orm",
+          "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+          "start_line": 41
+        },
+        {
+          "end_line": 85,
+          "file": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+          "kind": "repo",
+          "label": "Drizzle sqlite push flags.every(Boolean) terminal",
+          "repo": "drizzle-orm",
+          "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
+          "start_line": 82
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [
+        "the real pair uses an append-only local boolean array, but the current TypeScript every admission only proves dense literal sources",
+        "the detector has no reusable source fact yet for fresh local arrays populated by pushes before a terminal every(Boolean) check"
+      ],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-typescript-every-append-only-flags-drizzle-real-pair",
+      "sources": [
+        {
+          "kind": "repo",
+          "path": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
+          "repo": "drizzle-orm"
+        },
+        {
+          "kind": "repo",
+          "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
+          "repo": "drizzle-orm"
+        }
+      ],
+      "why_expected": "The focused dense-literal TypeScript every/for-of slice is admitted, but this real Drizzle pair must remain split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled."
     },
     {
-     "end_line": 44,
-     "file": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
-     "kind": "repo",
-     "label": "Drizzle sqlite flags.every(Boolean) terminal",
-     "repo": "drizzle-orm",
-     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
-     "start_line": 41
-    },
-    {
-     "end_line": 85,
-     "file": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
-     "kind": "repo",
-     "label": "Drizzle sqlite push flags.every(Boolean) terminal",
-     "repo": "drizzle-orm",
-     "snippet": "if (flags.length > 0) { return flags.every(Boolean); } return false;",
-     "start_line": 82
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
+          "kind": "workspace",
+          "name": "py_max_loop"
+        },
+        {
+          "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
+          "kind": "workspace",
+          "name": "rust_max_fold"
+        }
+      ],
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "reduction-selection-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+        }
+      ],
+      "why_expected": "The focused seeded max selection pair is admitted when seed, comparator direction, selection domain, source identity, and effect facts are satisfied."
     }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [
-    "the real pair uses an append-only local boolean array, but the current TypeScript every admission only proves dense literal sources",
-    "the detector has no reusable source fact yet for fresh local arrays populated by pushes before a terminal every(Boolean) check"
-   ],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-typescript-every-append-only-flags-drizzle-real-pair",
-   "sources": [
-    {
-     "kind": "repo",
-     "path": "drizzle-kit/src/cli/commands/mysqlIntrospect.ts",
-     "repo": "drizzle-orm"
-    },
-    {
-     "kind": "repo",
-     "path": "drizzle-kit/src/cli/commands/sqliteIntrospect.ts",
-     "repo": "drizzle-orm"
-    }
-   ],
-   "why_expected": "The focused dense-literal TypeScript every/for-of slice is admitted, but this real Drizzle pair must remain split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled."
-  },
-  {
-   "case_id": "reduction-minmax-anyall-focused-controlled",
-   "expect": "same-family",
-   "members": [
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.py",
-     "kind": "workspace",
-     "name": "py_max_loop"
-    },
-    {
-     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/selection.rs",
-     "kind": "workspace",
-     "name": "rust_max_fold"
-    }
-   ],
-   "packet_id": "reduction-minmax-anyall-2026-07-08",
-   "proof_gap": [],
-   "query": {
-    "min_lines": 1,
-    "min_size": 1,
-    "mode": "semantic",
-    "top": 0
-   },
-   "replay_id": "reduction-selection-focused-controlled-pair",
-   "sources": [
-    {
-     "kind": "workspace",
-     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
-    }
-   ],
-   "why_expected": "The focused seeded max selection pair is admitted when seed, comparator direction, selection domain, source identity, and effect facts are satisfied."
-  }
- ],
+  ],
   "schema_version": 1,
   "tool_version": "real-frontier-replay/1"
 }
