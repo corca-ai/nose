@@ -46,6 +46,8 @@ mod branch_selection;
 mod call_binding_boundaries;
 #[path = "equivalence/collection_builders.rs"]
 mod collection_builders;
+#[path = "equivalence/collection_empty.rs"]
+mod collection_empty;
 #[path = "equivalence/collection_membership.rs"]
 mod collection_membership;
 #[path = "equivalence/collection_streams.rs"]

@@ -139,10 +139,37 @@ pub(super) fn lower_navigation(lo: &mut Lowering, node: TsNode) -> NodeId {
     let Some(target) = node.child_by_field_name("target") else {
         return lo.raw(node.kind(), span, &[]);
     };
-    let mut base = lower_expr(lo, target);
     let Some(suffix) = node.child_by_field_name("suffix") else {
-        return base;
+        return lower_expr(lo, target);
     };
+    if let Some(inner_target) = logical_not_prefix_target(lo, target) {
+        let base = lower_expr(lo, inner_target);
+        let value = lower_navigation_suffix(lo, span, base, suffix);
+        return lo.add(NodeKind::UnOp, Payload::Op(Op::Not), span, &[value]);
+    }
+    let base = lower_expr(lo, target);
+    lower_navigation_suffix(lo, span, base, suffix)
+}
+
+fn logical_not_prefix_target<'tree>(
+    lo: &Lowering<'_>,
+    node: TsNode<'tree>,
+) -> Option<TsNode<'tree>> {
+    if node.kind() != "prefix_expression" {
+        return None;
+    }
+    let target = node
+        .child_by_field_name("target")
+        .or_else(|| first_expr_child(node))?;
+    (swift_prefix_operator_text(lo, node, Some(target)) == "!").then_some(target)
+}
+
+fn lower_navigation_suffix(
+    lo: &mut Lowering,
+    span: Span,
+    mut base: NodeId,
+    suffix: TsNode,
+) -> NodeId {
     let suffix_value = suffix
         .child_by_field_name("suffix")
         .or_else(|| Lowering::named_children(suffix).into_iter().next());

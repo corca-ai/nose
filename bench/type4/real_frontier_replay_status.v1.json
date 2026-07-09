@@ -1,26 +1,26 @@
 {
-  "entry_count": 18,
+  "entry_count": 20,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "d2cd07a36b8ca51dc68538782cbeacc6309d6b6bd2ea22b08b9588fd95c06a73",
-      "size_bytes": 21599
+      "sha256": "ebf72803b6c45ecf7b723f51fa804bb50cf4e59e88028cd65e7bf06d241c1f40",
+      "size_bytes": 23599
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "69ba1220ece9e2f1484354ae5a12086898cac125f98e8aee719ccd660920626f",
-      "size_bytes": 102147
+      "sha256": "280954630e557c4408c0923124bf29fbdea813d6273821e20916584765664ba8",
+      "size_bytes": 102635
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "dd993309b5e000a3b0affb4031546a8fe9027d4e0b01c4793ef8e481f9ec7a4b",
-      "size_bytes": 93801
+      "sha256": "5d97f3f53540c2bf5363beaa3599324e874d4d64365297b8a627acb12988f48b",
+      "size_bytes": 95210
     }
   },
   "nose_binary": "nose",
-  "passed": 18,
-  "query_count": 10,
+  "passed": 20,
+  "query_count": 11,
   "results": [
     {
       "availability": {
@@ -51,6 +51,37 @@
       "ok": true,
       "packet_id": "collection-empty-check-2026-07-08",
       "replay_id": "collection-empty-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 3,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftCountEmpty",
+            "start": 1
+          },
+          {
+            "end": 7,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftNamedEmpty",
+            "start": 5
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "collection-empty-check-2026-07-08",
+      "replay_id": "collection-empty-swift-focused-controlled-pair",
       "status": "passed"
     },
     {
@@ -119,6 +150,37 @@
       "ok": true,
       "packet_id": "collection-empty-check-2026-07-08",
       "replay_id": "collection-nonempty-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "collection-empty-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 11,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftCountNonempty",
+            "start": 9
+          },
+          {
+            "end": 15,
+            "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+            "name": "swiftNamedNonempty",
+            "start": 13
+          }
+        ],
+        "value": 3.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "collection-empty-check-2026-07-08",
+      "replay_id": "collection-nonempty-swift-focused-controlled-pair",
       "status": "passed"
     },
     {

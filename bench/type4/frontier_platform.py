@@ -1106,11 +1106,13 @@ TARGET_PACKETS = [
         "real_frontier_replay_ids": [
             "collection-empty-focused-controlled-pair",
             "collection-nonempty-focused-controlled-pair",
+            "collection-empty-swift-focused-controlled-pair",
+            "collection-nonempty-swift-focused-controlled-pair",
         ],
         "hard_negative_group_ids": ["collection-empty-check-proof-perimeter"],
         "owner_route": "team-a-detector",
-        "owner_issue": "#755",
-        "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, "
+        "owner_issue": "#755/#780",
+        "why_now": "collection_empty_check has broad controlled coverage, focused Swift Array evidence, "
         "and a real Java domain-boundary soundness record. The remaining value is to preserve the "
         "receiver/domain/direction/mutation proof perimeter as reusable neutral facts before "
         "future empty?/isEmpty/len/size/truthiness expansions add more surfaces.",
@@ -1119,15 +1121,15 @@ TARGET_PACKETS = [
             "facts": [
                 {
                     "fact_id": "collection.empty.receiver-coordinate",
-                    "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+                    "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/count/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
                 },
                 {
                     "fact_id": "collection.empty.domain-kind-identity",
-                    "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+                    "current_real_pair_status": "satisfied for controlled empty-check suites, Swift String/custom isEmpty boundaries, and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
                 },
                 {
                     "fact_id": "collection.empty.predicate-direction",
-                    "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+                    "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately for Rust and Swift while length-one and raw cardinality thresholds stay closed",
                 },
                 {
                     "fact_id": "collection.empty.no-intervening-mutation",
@@ -1139,8 +1141,11 @@ TARGET_PACKETS = [
                 "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+                "crates/nose-frontend/src/swift/tests.rs::logical_not_binds_outside_member_access",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+                "crates/nose-cli/tests/equivalence/collection_empty.rs::swift_collection_empty_checks_converge_with_boundaries",
                 "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
                 "bench/type4/coverage_evidence.v1.json::collection_empty_check",
             ],
@@ -1149,20 +1154,23 @@ TARGET_PACKETS = [
             "status": "real-pair-admitted",
             "scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
             "capabilities": [
-                "converges length-zero or size-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
-                "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction",
+                "converges length-zero, size-zero, or Swift count-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
+                "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction, including Swift count != 0 with !isEmpty",
                 "preserves collection-vs-string/array/map/custom API domains, cardinality thresholds, wrong receivers, and mutation boundaries",
             ],
             "positive_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
                 "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+                "crates/nose-cli/tests/equivalence/collection_empty.rs::swift_collection_empty_checks_converge_with_boundaries",
                 "bench/type4/coverage_evidence.v1.json::collection_empty_check",
             ],
             "hard_negative_gates": [
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+                "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
                 "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+                "crates/nose-frontend/src/swift/tests.rs::logical_not_binds_outside_member_access",
                 "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
                 "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
             ],
@@ -1179,6 +1187,14 @@ TARGET_PACKETS = [
                 "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
                 "span": "1-15",
                 "snippet": "rust_len_empty and rust_named_empty encode the same empty predicate; rust_len_nonempty and rust_named_nonempty encode the same non-empty predicate",
+            },
+            {
+                "repo": "nose",
+                "split": "focused",
+                "primary_language": "Swift",
+                "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+                "span": "1-15",
+                "snippet": "swiftCountEmpty and swiftNamedEmpty encode the same Array empty predicate; swiftCountNonempty and swiftNamedNonempty encode the same non-empty predicate",
             },
             {
                 "repo": "netty",

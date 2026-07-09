@@ -86,9 +86,9 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
 
 ## `collection-empty-check-2026-07-08` — axis `collection_empty_check`
 
-- **owner route**: `team-a-detector` (#755) · evidence tier: `frontier-recorded` · cost `low` · risk `low` · substrate `none`
+- **owner route**: `team-a-detector` (#755/#780) · evidence tier: `frontier-recorded` · cost `low` · risk `low` · substrate `none`
 - **breadth**: repo 86% · primary-language 100% (8/8) · dev 56 · held-out 47 · both-splits
-- **semantic claim**: A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.
+- **semantic claim**: A proven collection length-zero predicate and a named empty predicate are equivalent across Rust and focused Swift Array surfaces when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.
 - **proof invariant**: Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.
 - **hard negatives**:
   - length-one or greater-than-one thresholds are not strict emptiness
@@ -97,14 +97,15 @@ status) and adds team routing. See [frontier-platform](../../docs/frontier-platf
   - truthiness over unproven or value-returning domains cannot be folded into collection emptiness
   - mutation before the empty check changes the receiver state
 - **evidence**: `collection-empty-focused-controlled`, `java-empty-domain-netty-array-queue-string` (`real_frontier.v1.json`)
-- **real frontier replay**: `collection-empty-focused-controlled-pair`, `collection-nonempty-focused-controlled-pair` (`real_frontier_replay.v1.json`)
+- **real frontier replay**: `collection-empty-focused-controlled-pair`, `collection-nonempty-focused-controlled-pair`, `collection-empty-swift-focused-controlled-pair`, `collection-nonempty-swift-focused-controlled-pair` (`real_frontier_replay.v1.json`)
 - **representative locations**:
   - `nose` (focused, Rust) `bench/type4/adversarial/cases/collection_empty_check/positive.rs:1-15`
+  - `nose` (focused, Swift) `bench/type4/adversarial/cases/collection_empty_check/positive.swift:1-15`
   - `netty` (dev, Java) `common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java:147-149`
-- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#755 semanti` — Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.
+- **current detector result (primary linked evidence)**: miss=False · `nose` @ `#780 Swift e` — Semantic query reports the Rust length-zero/named-empty pair, the Swift count-zero/named-empty pair, and the Rust/Swift non-empty/negated-named pairs, while threshold, wrong-receiver, wrong-domain, and mutation fixtures stay outside those families.
 - **detector admission**: `real-pair-admitted` · controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof
 - **remaining real-pair gap**: none
-- **why now**: collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces.
+- **why now**: collection_empty_check has broad controlled coverage, focused Swift Array evidence, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces.
 - **blocked by**: nothing
 - **notes**: This packet records the current collection-empty perimeter as reusable proof facts. The Java Netty array/Queue/String record remains a hard-negative domain sibling; it must not be used to merge incompatible empty domains without explicit domain/kind proof.
 

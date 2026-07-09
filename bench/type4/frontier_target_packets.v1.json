@@ -519,9 +519,9 @@
       },
       "current_detector_result": {
         "baseline_command": "nose query bench/type4/adversarial/cases/collection_empty_check --mode semantic top=0 --format json --min-size 1 --min-lines 1",
-        "baseline_result": "Semantic query reports the Rust length-zero/named-empty pair and the Rust non-empty/negated-named pair, while threshold, wrong-receiver, and mutation fixtures stay outside those families.",
+        "baseline_result": "Semantic query reports the Rust length-zero/named-empty pair, the Swift count-zero/named-empty pair, and the Rust/Swift non-empty/negated-named pairs, while threshold, wrong-receiver, wrong-domain, and mutation fixtures stay outside those families.",
         "binary_path": "nose",
-        "build_ref": "#755 semantic pattern card",
+        "build_ref": "#780 Swift empty-check admission",
         "current_detector_miss": false,
         "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations.",
         "nose_version": "nose",
@@ -529,14 +529,16 @@
       },
       "detector_admission": {
         "capabilities": [
-          "converges length-zero or size-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
-          "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction",
+          "converges length-zero, size-zero, or Swift count-zero predicates with named-empty predicates when receiver and domain/kind evidence match",
+          "converges explicit non-empty comparisons with negated named-empty predicates as the opposite boolean direction, including Swift count != 0 with !isEmpty",
           "preserves collection-vs-string/array/map/custom API domains, cardinality thresholds, wrong receivers, and mutation boundaries"
         ],
         "hard_negative_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+          "crates/nose-frontend/src/swift/tests.rs::logical_not_binds_outside_member_access",
           "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks"
         ],
@@ -544,6 +546,7 @@
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_named_zero_positive",
           "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+          "crates/nose-cli/tests/equivalence/collection_empty.rs::swift_collection_empty_checks_converge_with_boundaries",
           "bench/type4/coverage_evidence.v1.json::collection_empty_check"
         ],
         "scope": "controlled length-zero, named-empty, and non-empty collection checks with receiver, domain/kind, direction, and mutation proof",
@@ -574,6 +577,14 @@
           "split": "focused"
         },
         {
+          "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+          "primary_language": "Swift",
+          "repo": "nose",
+          "snippet": "swiftCountEmpty and swiftNamedEmpty encode the same Array empty predicate; swiftCountNonempty and swiftNamedNonempty encode the same non-empty predicate",
+          "span": "1-15",
+          "split": "focused"
+        },
+        {
           "path": "common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java",
           "primary_language": "Java",
           "repo": "netty",
@@ -583,21 +594,21 @@
         }
       ],
       "notes": "This packet records the current collection-empty perimeter as reusable proof facts. The Java Netty array/Queue/String record remains a hard-negative domain sibling; it must not be used to merge incompatible empty domains without explicit domain/kind proof.",
-      "owner_issue": "#755",
+      "owner_issue": "#755/#780",
       "owner_route": "team-a-detector",
       "packet_id": "collection-empty-check-2026-07-08",
       "proof_fact_model": {
         "facts": [
           {
-            "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
+            "current_real_pair_status": "satisfied for focused empty-check fixtures: len/size/count/named-empty positives converge only when the checked receiver coordinate matches; wrong-receiver fixtures stay split",
             "fact_id": "collection.empty.receiver-coordinate"
           },
           {
-            "current_real_pair_status": "satisfied for controlled empty-check suites and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
+            "current_real_pair_status": "satisfied for controlled empty-check suites, Swift String/custom isEmpty boundaries, and the Netty domain-boundary record: collection, array, map, string, and custom empty APIs remain split without compatible domain/kind proof",
             "fact_id": "collection.empty.domain-kind-identity"
           },
           {
-            "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately while length-one and raw cardinality thresholds stay closed",
+            "current_real_pair_status": "satisfied for focused empty and non-empty fixtures: zero/named-empty and nonzero/negated-empty directions converge separately for Rust and Swift while length-one and raw cardinality thresholds stay closed",
             "fact_id": "collection.empty.predicate-direction"
           },
           {
@@ -610,8 +621,11 @@
           "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
+          "crates/nose-frontend/src/swift/tests.rs::logical_not_binds_outside_member_access",
           "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
+          "crates/nose-cli/tests/equivalence/collection_empty.rs::swift_collection_empty_checks_converge_with_boundaries",
           "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string",
           "bench/type4/coverage_evidence.v1.json::collection_empty_check"
         ],
@@ -620,10 +634,12 @@
       "proof_invariant": "Open collection-empty convergence only when source evidence proves the receiver coordinate, compatible collection domain and kind, the empty versus non-empty boolean direction, and no intervening receiver mutation. Length-one/cardinality thresholds, raw length payloads, string/custom empty APIs, incompatible array/map domains, wrong receivers, and stale mutated receivers must remain non-equivalent.",
       "real_frontier_replay_ids": [
         "collection-empty-focused-controlled-pair",
-        "collection-nonempty-focused-controlled-pair"
+        "collection-nonempty-focused-controlled-pair",
+        "collection-empty-swift-focused-controlled-pair",
+        "collection-nonempty-swift-focused-controlled-pair"
       ],
-      "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
-      "why_now": "collection_empty_check has broad controlled coverage, a Swift probe row, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
+      "semantic_claim": "A proven collection length-zero predicate and a named empty predicate are equivalent across Rust and focused Swift Array surfaces when they read the same receiver coordinate, collection domain/kind, empty direction, and unmutated receiver state; the same holds for the explicitly negated non-empty direction.",
+      "why_now": "collection_empty_check has broad controlled coverage, focused Swift Array evidence, and a real Java domain-boundary soundness record. The remaining value is to preserve the receiver/domain/direction/mutation proof perimeter as reusable neutral facts before future empty?/isEmpty/len/size/truthiness expansions add more surfaces."
     },
     {
       "blocked_by": [],

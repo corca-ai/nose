@@ -180,6 +180,7 @@
       "hard_negative_cases": [
         "collection_empty_threshold_boundary",
         "collection_empty_wrong_receiver_boundary",
+        "collection_empty_wrong_domain_boundary",
         "collection_empty_mutated_receiver_boundary"
       ],
       "regression_gates": [
@@ -187,6 +188,7 @@
         "bench/type4/adversarial/cases/cases.v1.json::collection_nonempty_named_positive",
         "bench/type4/adversarial/cases/cases.v1.json::collection_empty_threshold_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_receiver_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::collection_empty_wrong_domain_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::collection_empty_mutated_receiver_boundary",
         "crates/nose-cli/tests/cli/semantic_idioms/library_api/extreme_and_collection.rs::query_mode_semantic_proves_collection_empty_checks",
         "bench/type4/real_frontier.v1.json::java-empty-domain-netty-array-queue-string"
@@ -606,7 +608,8 @@
       "semantic_family": "collection.empty_check",
       "claim": "Length-zero comparisons and named emptiness predicates converge when they prove the same collection receiver coordinate and empty direction.",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
+        "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+        "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
       ],
       "executable_expectations": [
         {
@@ -623,9 +626,24 @@
               "name": "rust_named_empty"
             }
           ]
+        },
+        {
+          "id": "collection_empty_swift_count_matches_named",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftCountEmpty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftNamedEmpty"
+            }
+          ]
         }
       ],
-      "evidence": "The executable fixture proves the minimal Rust Vec length-zero to is_empty bridge; the proof perimeter regression gates cite broader generated coverage and the Rust/Java CLI empty-check suite."
+      "evidence": "The executable fixture proves the minimal Rust Vec length-zero to is_empty bridge and the Swift Array count == 0 to isEmpty bridge; the proof perimeter regression gates cite broader generated coverage and the Rust/Java/Swift CLI empty-check suite."
     },
     {
       "id": "collection_nonempty_named_positive",
@@ -633,7 +651,8 @@
       "semantic_family": "collection.empty_check",
       "claim": "Negated named emptiness and nonzero length comparisons converge only as the non-empty direction of the same receiver proof.",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
+        "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
+        "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
       ],
       "executable_expectations": [
         {
@@ -650,9 +669,24 @@
               "name": "rust_named_nonempty"
             }
           ]
+        },
+        {
+          "id": "collection_nonempty_swift_count_matches_negated_named",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftCountNonempty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftNamedNonempty"
+            }
+          ]
         }
       ],
-      "evidence": "The executable fixture records the non-empty direction separately so truthiness/non-emptiness admission cannot be confused with an empty predicate."
+      "evidence": "The executable fixture records the non-empty direction separately for Rust and Swift so truthiness/non-emptiness admission cannot be confused with an empty predicate."
     },
     {
       "id": "collection_empty_threshold_boundary",
@@ -661,7 +695,8 @@
       "claim": "A length-one threshold is not strict emptiness, even though it has the same receiver and length surface.",
       "mutation": "len(receiver) == 0 -> len(receiver) == 1",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_empty_check/threshold.rs"
+        "bench/type4/adversarial/cases/collection_empty_check/threshold.rs",
+        "bench/type4/adversarial/cases/collection_empty_check/threshold.swift"
       ],
       "executable_expectations": [
         {
@@ -678,9 +713,24 @@
               "name": "rust_one_item"
             }
           ]
+        },
+        {
+          "id": "collection_empty_swift_threshold_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftCountEmpty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/threshold.swift",
+              "name": "swiftOneItem"
+            }
+          ]
         }
       ],
-      "evidence": "Generated collection_empty_check negatives and the focused fixture keep zero-length predicates distinct from one-length/cardinality thresholds."
+      "evidence": "Generated collection_empty_check negatives and the focused Rust/Swift fixtures keep zero-length predicates distinct from one-length/cardinality thresholds."
     },
     {
       "id": "collection_empty_wrong_receiver_boundary",
@@ -689,7 +739,8 @@
       "claim": "Emptiness over a different collection parameter is a different receiver coordinate.",
       "mutation": "items.is_empty() -> other.is_empty()",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_empty_check/wrong_receiver.rs"
+        "bench/type4/adversarial/cases/collection_empty_check/wrong_receiver.rs",
+        "bench/type4/adversarial/cases/collection_empty_check/wrong_receiver.swift"
       ],
       "executable_expectations": [
         {
@@ -706,9 +757,68 @@
               "name": "rust_other_empty"
             }
           ]
+        },
+        {
+          "id": "collection_empty_swift_wrong_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftNamedEmpty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/wrong_receiver.swift",
+              "name": "swiftOtherEmpty"
+            }
+          ]
         }
       ],
-      "evidence": "Generated wrong-receiver negatives and the focused fixture keep same-shaped emptiness predicates split when the collection coordinate changes."
+      "evidence": "Generated wrong-receiver negatives and the focused Rust/Swift fixtures keep same-shaped emptiness predicates split when the collection coordinate changes."
+    },
+    {
+      "id": "collection_empty_wrong_domain_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "collection.empty_check",
+      "claim": "String and custom isEmpty surfaces are not collection empty-check evidence without compatible receiver domain/kind proof.",
+      "mutation": "Array.isEmpty -> String.isEmpty or custom isEmpty property",
+      "fixtures": [
+        "bench/type4/adversarial/cases/collection_empty_check/string_receiver.swift",
+        "bench/type4/adversarial/cases/collection_empty_check/custom_receiver.swift"
+      ],
+      "executable_expectations": [
+        {
+          "id": "collection_empty_swift_string_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftNamedEmpty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/string_receiver.swift",
+              "name": "swiftStringEmpty"
+            }
+          ]
+        },
+        {
+          "id": "collection_empty_swift_custom_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftNamedEmpty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/custom_receiver.swift",
+              "name": "swiftCustomEmpty"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Swift focused fixtures keep String.isEmpty and a custom isEmpty property outside Array empty-check admission unless a compatible collection domain/kind proof exists."
     },
     {
       "id": "collection_empty_mutated_receiver_boundary",
@@ -717,7 +827,8 @@
       "claim": "A collection mutated before the emptiness predicate no longer proves the original receiver state.",
       "mutation": "read receiver emptiness -> mutate receiver, then read emptiness",
       "fixtures": [
-        "bench/type4/adversarial/cases/collection_empty_check/mutated_receiver.rs"
+        "bench/type4/adversarial/cases/collection_empty_check/mutated_receiver.rs",
+        "bench/type4/adversarial/cases/collection_empty_check/mutated_receiver.swift"
       ],
       "executable_expectations": [
         {
@@ -734,9 +845,24 @@
               "name": "rust_mutated_empty"
             }
           ]
+        },
+        {
+          "id": "collection_empty_swift_mutated_receiver_stays_split",
+          "fixture": "bench/type4/adversarial/cases/collection_empty_check",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+              "name": "swiftNamedEmpty"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/collection_empty_check/mutated_receiver.swift",
+              "name": "swiftMutatedEmpty"
+            }
+          ]
         }
       ],
-      "evidence": "The focused fixture pins mutation closure so future empty-check expansion cannot treat a stale receiver proof as current state."
+      "evidence": "The focused Rust/Swift fixtures pin mutation closure so future empty-check expansion cannot treat a stale receiver proof as current state."
     },
     {
       "id": "string_affix_prefix_positive",

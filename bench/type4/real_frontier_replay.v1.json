@@ -127,9 +127,9 @@
       ],
       "why_expected": "The focused collection-membership witnesses are admitted when the receiver API/domain, searched element, collection/source coordinate, and receiver mutation facts are all satisfied."
     },
-    {
-      "case_id": "collection-empty-focused-controlled",
-      "expect": "same-family",
+  {
+   "case_id": "collection-empty-focused-controlled",
+   "expect": "same-family",
       "members": [
         {
           "file": "bench/type4/adversarial/cases/collection_empty_check/positive.rs",
@@ -188,10 +188,74 @@
           "kind": "workspace",
           "path": "bench/type4/adversarial/cases/collection_empty_check/positive.rs"
         }
-      ],
-      "why_expected": "The focused collection non-empty pair is admitted when the same receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts are all satisfied."
+   ],
+   "why_expected": "The focused collection non-empty pair is admitted when the same receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts are all satisfied."
+  },
+  {
+   "case_id": "collection-empty-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+     "kind": "workspace",
+     "name": "swiftCountEmpty"
     },
     {
+     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+     "kind": "workspace",
+     "name": "swiftNamedEmpty"
+    }
+   ],
+   "packet_id": "collection-empty-check-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "collection-empty-swift-focused-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
+    }
+   ],
+   "why_expected": "The focused Swift Array empty pair is admitted when count == 0 and isEmpty share receiver coordinate, collection domain/kind, empty predicate direction, and receiver mutation facts."
+  },
+  {
+   "case_id": "collection-empty-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
+     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+     "kind": "workspace",
+     "name": "swiftCountNonempty"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/collection_empty_check/positive.swift",
+     "kind": "workspace",
+     "name": "swiftNamedNonempty"
+    }
+   ],
+   "packet_id": "collection-empty-check-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "collection-nonempty-swift-focused-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/collection_empty_check/positive.swift"
+    }
+   ],
+   "why_expected": "The focused Swift Array non-empty pair is admitted when count != 0 and !isEmpty share receiver coordinate, collection domain/kind, non-empty predicate direction, and receiver mutation facts."
+  },
+  {
       "case_id": "string-affix-focused-controlled",
       "expect": "same-family",
       "members": [
