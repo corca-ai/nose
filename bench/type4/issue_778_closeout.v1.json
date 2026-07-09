@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "tool_version": "manual-closeout/1",
+  "closeout_date": "2026-07-09",
+  "epic_issue": 778,
+  "closeout_issue": 785,
+  "status": "complete-with-replay-or-executable-blockers",
+  "source_artifacts": [
+    "bench/type4/open_surface_admission_audit.v1.json",
+    "bench/type4/proof_carrying_frontier.v1.json",
+    "bench/type4/frontier_readiness.v1.json",
+    "bench/type4/frontier_target_packets.v1.json",
+    "bench/type4/real_frontier.v1.json",
+    "bench/type4/real_frontier_replay.v1.json",
+    "bench/type4/real_frontier_replay_status.v1.json",
+    "bench/type4/executable_expectations.v1.json"
+  ],
+  "audit_summary": {
+    "current_actionable_open_count": 0,
+    "in_scope_count": 6,
+    "in_scope_currently_open": 0,
+    "out_of_scope_blocked_open_count": 7,
+    "unexpected_actionable_open_count": 0,
+    "validation_error_count": 0
+  },
+  "real_frontier_replay_summary": {
+    "entry_count": 29,
+    "passed": 29,
+    "failed": 0,
+    "unavailable": 0,
+    "query_count": 11
+  },
+  "executable_expectation_summary": {
+    "expectation_count": 157,
+    "passed": 157,
+    "failed": 0,
+    "query_count": 20
+  },
+  "proof_carrying_frontier_verdict": "no-exact-admission-ready-packets",
+  "in_scope_dispositions": [
+    {
+      "issue": 779,
+      "surface": "Swift Array.contains collection membership",
+      "packet_id": "membership-contains-2026-07-08",
+      "disposition": "replay-backed-controlled-admission",
+      "replay_ids": [
+        "collection-membership-focused-controlled-pair"
+      ],
+      "blocked_exact_real_pair": false
+    },
+    {
+      "issue": 780,
+      "surface": "Swift Array isEmpty/count empty and non-empty checks",
+      "packet_id": "collection-empty-check-2026-07-08",
+      "disposition": "replay-backed-controlled-admission",
+      "replay_ids": [
+        "collection-empty-focused-controlled-pair",
+        "collection-empty-swift-focused-controlled-pair",
+        "collection-nonempty-focused-controlled-pair",
+        "collection-nonempty-swift-focused-controlled-pair"
+      ],
+      "blocked_exact_real_pair": false
+    },
+    {
+      "issue": 782,
+      "surface": "Swift String.hasPrefix/hasSuffix and affix-coordinate bindings",
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "disposition": "controlled-admission-with-focused-replay",
+      "replay_ids": [
+        "string-affix-prefix-focused-controlled-pair",
+        "string-affix-suffix-focused-controlled-pair",
+        "string-affix-parameter-coordinate-controlled-pair",
+        "string-affix-swift-prefix-focused-controlled-pair",
+        "string-affix-swift-suffix-focused-controlled-pair",
+        "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
+        "string-affix-swift-literal-binding-controlled-pair"
+      ],
+      "blocked_exact_real_pair": true,
+      "blocker": "non-focused real-corpus string-affix pairs still require separate audit before exact real-pair admission"
+    },
+    {
+      "issue": 784,
+      "surface": "JavaScript dense-literal Array.prototype.every versus counterexample loop",
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "disposition": "controlled-admission-with-focused-replay-and-boundary-splits",
+      "replay_ids": [
+        "reduction-javascript-every-dense-literal-controlled-pair",
+        "reduction-javascript-every-array-param-boundary-controlled-pair"
+      ],
+      "blocked_exact_real_pair": true,
+      "blocker": "array-parameter, callback-argument, value-returning predicate, and append-only local-array facts remain closed unless separately modeled"
+    },
+    {
+      "issue": 783,
+      "surface": "Rust Iterator::all versus counterexample loop",
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "disposition": "controlled-admission-with-focused-replay-and-boundary-splits",
+      "replay_ids": [
+        "reduction-rust-all-focused-controlled-pair",
+        "reduction-rust-all-effect-boundary-controlled-pair",
+        "reduction-rust-all-mutating-borrow-boundary-controlled-pair"
+      ],
+      "blocked_exact_real_pair": true,
+      "blocker": "effectful callbacks, loop effects, consumed iterators, mutating borrows, and broader source-provenance expansions remain outside the admitted slice"
+    },
+    {
+      "issue": 724,
+      "surface": "Go typed integer min/max clamp bridge",
+      "packet_id": "numeric-clamp-2026-06-06",
+      "disposition": "controlled-admission-with-executable-real-pair-blocker",
+      "replay_ids": [
+        "numeric-clamp-boltons-fzf-real-pair"
+      ],
+      "blocked_exact_real_pair": true,
+      "blocker": "the boltons/fzf real pair remains split until fzf-side bound-order evidence and a shared integer-only domain proof exist"
+    }
+  ],
+  "out_of_scope_blocked_selectors": [
+    "hof.filter-map.option-emission:Swift:blocked-by-unmodeled-facts",
+    "hof.flat-map.aggregate-reduction:Java:blocked-by-unmodeled-facts",
+    "hof.flat-map.aggregate-reduction:Swift:blocked-by-unmodeled-facts",
+    "hof.flat-map.one-level-flatten:Swift:blocked-by-unmodeled-facts",
+    "map.default.absence-lookup:Swift:blocked-by-unmodeled-facts",
+    "option.presence-default.proven-channel-coordinate:Ruby:blocked-by-unmodeled-facts",
+    "option.presence-default.proven-channel-coordinate:Swift:blocked-by-unmodeled-facts"
+  ],
+  "done_criteria": [
+    "every #778 in-scope row is absent from the current actionable open audit",
+    "every #778 in-scope admitted surface has a passing real-frontier replay or an explicit executable split blocker",
+    "no unsupported real pair was forced into same-family admission",
+    "the remaining open audit rows are blocked by unmodeled neutral facts and are out of scope for #778"
+  ],
+  "validation_commands": [
+    "python3 -m json.tool bench/type4/issue_778_closeout.v1.json >/dev/null",
+    "jq -n -e --slurpfile closeout bench/type4/issue_778_closeout.v1.json --slurpfile audit bench/type4/open_surface_admission_audit.v1.json --slurpfile replay bench/type4/real_frontier_replay_status.v1.json --slurpfile exec bench/type4/executable_expectations.v1.json '($closeout[0].audit_summary.current_actionable_open_count == $audit[0].epic_slices.epic_778.summary.current_actionable_open_count) and ($closeout[0].real_frontier_replay_summary.passed == $replay[0].passed) and ($closeout[0].executable_expectation_summary.passed == $exec[0].passed)'",
+    "python3 bench/type4/real_frontier_replay.py --selftest",
+    "python3 bench/type4/real_frontier_replay.py --stable-report --check",
+    "python3 bench/type4/proof_carrying_frontier.py --check",
+    "python3 bench/type4/open_surface_admission_audit.py --check",
+    "bench/type4/adversarial/scripts/type4-check",
+    "bench/type4/adversarial/scripts/type4-exec-check --stable-report --json-out bench/type4/executable_expectations.v1.json",
+    "./scripts/check-docs.sh",
+    "./scripts/check-ci-local.sh --fast"
+  ]
+}
