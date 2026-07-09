@@ -1,8 +1,8 @@
 {
-  "expectation_count": 141,
+  "expectation_count": 150,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 141,
+  "passed": 150,
   "query_count": 19,
   "results": [
     {
@@ -1319,16 +1319,16 @@
       "matching_family": {
         "locations": [
           {
-            "end": 34,
+            "end": 59,
             "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
             "name": "rust_all_positive_loop",
-            "start": 27
+            "start": 52
           },
           {
-            "end": 38,
+            "end": 63,
             "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
             "name": "rust_all_positive_iter",
-            "start": 36
+            "start": 61
           }
         ],
         "value": 5.0,
@@ -1639,6 +1639,121 @@
       "case_id": "javascript_every_api_identity_boundary",
       "expect": "split",
       "expectation_id": "javascript_every_define_property_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_universal_positive",
+      "expect": "same-family",
+      "expectation_id": "rust_iterator_all_loop_matches_iter_all",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 21,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_all_loop",
+            "start": 14
+          },
+          {
+            "end": 25,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_all_iter",
+            "start": 23
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_universal_positive",
+      "expect": "same-family",
+      "expectation_id": "rust_iterator_all_empty_loop_matches_iter_all",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 35,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_all_empty_loop",
+            "start": 27
+          },
+          {
+            "end": 40,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_all_empty_iter",
+            "start": 37
+          }
+        ],
+        "value": 6.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_vacuous_truth_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_wrong_empty_truth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_changed_predicate_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_changed_predicate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_source_identity_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_different_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_effect_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_callback_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_effect_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_loop_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_consumed_iterator_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_consumed_iterator_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "rust_iterator_all_mutating_borrow_boundary",
+      "expect": "split",
+      "expectation_id": "rust_iterator_all_mutating_borrow_stays_split",
       "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
       "matching_family": null,
       "observed": "split",

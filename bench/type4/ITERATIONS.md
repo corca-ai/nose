@@ -459,6 +459,21 @@ open-surface audit now treat the focused JavaScript every surface as admitted wh
 append-only local arrays, `Boolean` callback real pairs, and broader untyped relational
 terminal admission open.
 
+## Rust Iterator::all Focused Admission
+
+Closed #783 by promoting Rust `Iterator::all` into the focused
+`quantifier.universal.counterexample-loop` perimeter. The admitted slice is the
+standard `Iterator::all` terminal over an unconsumed same-source iterator with a pure
+one-argument boolean callback, paired with the explicit counterexample loop that returns
+`false` on the first failing predicate and `true` after exhaustion.
+
+The hard-negative perimeter preserves wrong vacuous truth, changed predicates, different
+sources, consumed iterators, callback and loop effects, mutating `iter_mut` borrows, and
+the Rust type-level boundary that `Iterator::all` callbacks must return `bool`. The
+semantic card, replay evidence, target packet, and open-surface audit now treat focused
+Rust `Iterator::all` as admitted while keeping broader iterator mutation, custom adapter,
+and source-provenance expansions outside this claim.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

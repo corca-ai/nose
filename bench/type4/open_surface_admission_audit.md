@@ -10,10 +10,10 @@ surface admission issue without re-triaging every pattern card by hand.
 ## Summary
 
 - audited surface statuses: open
-- open surfaces: 9
-- priorities: blocked-by-unmodeled-facts=7, needs-surface-focused-perimeter=2
-- evidence levels: coverage-sweep=1, missing=6, probe-only=1, target-packet=1
-- languages: Go=1, Java=1, Ruby=1, Rust=1, Swift=5
+- open surfaces: 8
+- priorities: blocked-by-unmodeled-facts=7, needs-surface-focused-perimeter=1
+- evidence levels: coverage-sweep=1, missing=5, probe-only=1, target-packet=1
+- languages: Go=1, Java=1, Ruby=1, Swift=5
 - unresolved surface evidence refs: 0
 
 ## Epic #778 Audit Slice
@@ -25,7 +25,7 @@ neutral proof facts before admission work is sound.
 - tracker issue: #778
 - setup issue: #781
 - closeout issue: #785
-- in-scope rows: 6 (2 currently present in the open audit)
+- in-scope rows: 6 (1 currently present in the open audit)
 - out-of-scope blocked rows: 7 (7 currently present in the open audit)
 - unexpected actionable open rows: 0
 
@@ -37,7 +37,7 @@ neutral proof facts before admission work is sound.
 | 2 | #780 | `probe-to-focused-candidate` | `collection.empty-check.proven-receiver-domain` | Swift | not-in-current-open-audit (``) |  | promote Swift collection empty-check probe evidence into focused admission |  |
 | 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | not-in-current-open-audit (``) |  | complete the Swift hasPrefix/hasSuffix focused perimeter |  |
 | 4 | #784 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | not-in-current-open-audit (``) |  | add JavaScript Array.prototype.every focused fixtures and expectations |  |
-| 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | present | add surface-specific focused fixtures and executable expectations | add Rust Iterator::all focused fixtures and expectations | Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence |
+| 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | not-in-current-open-audit (``) |  | add Rust Iterator::all focused fixtures and expectations |  |
 | 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | present | connect packet evidence to focused executable expectations | connect Go numeric clamp bound-order and integer-domain proof evidence | generic min/max Constrain-style helpers after integer-domain and bound-order proof |
 
 ### Out Of Scope For #778
@@ -57,7 +57,6 @@ neutral proof facts before admission work is sound.
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | generic min/max Constrain-style helpers after integer-domain and bound-order proof | `open` | `target-packet`<br>bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06 | connect packet evidence to focused executable expectations | `numeric-clamp.integer-domain`:modeled-controlled, `numeric-clamp.bound-order`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=3, hard_negative=3, group=1 |  |
-| `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence | `open` | `missing` | add surface-specific focused fixtures and executable expectations | `quantifier.universal.counterexample-loop`:modeled-controlled, `quantifier.vacuous-truth`:modeled-controlled, `iteration.same-source-identity`:modeled-controlled, `effect.pure-predicate`:modeled-controlled, `boolean.demorgan.proven-bool-operands`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=7, hard_negative=38, group=1 |  |
 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | Sequence.compactMap after optional-result channel and callback-effect proof | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:specified-not-modeled, `hof.filter-map.drop-condition-coordinate`:specified-not-modeled, `hof.filter-map.emitted-value-coordinate`:specified-not-modeled, `option.absence-channel.identity`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=2, hard_negative=5, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:specified-not-modeled, `effect.pure-predicate`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled, `reduction.identity-empty-behavior`:modeled-controlled, `reduction.step-coordinate-identity`:modeled-controlled, `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=4, hard_negative=6, group=0 |  |
 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence | `open` | `missing` | model required facts before detector admission | `iteration.same-source-identity`:modeled-controlled, `effect.pure-callback`:specified-not-modeled, `effect.pure-predicate`:modeled-controlled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled, `collection.flatten-depth.one-level`:specified-not-modeled, `reduction.identity-empty-behavior`:modeled-controlled, `reduction.step-coordinate-identity`:modeled-controlled, `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | positive=0, hard_negative=0, group=0 | positive=4, hard_negative=6, group=0 |  |
@@ -76,13 +75,11 @@ neutral proof facts before admission work is sound.
 | `map.default.absence-lookup` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `numeric.clamp.proven-integer-bounds` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | `option.presence-default.proven-channel-coordinate` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `quantifier.universal.counterexample-loop` | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 
 ## By Blocker
 
 | blocker | open surfaces |
 |---|---|
-| add surface-specific focused fixtures and executable expectations | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | connect packet evidence to focused executable expectations | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | model required facts before detector admission | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
@@ -93,29 +90,27 @@ neutral proof facts before admission work is sound.
 | Go | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | Java | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | Ruby | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| Rust | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | Swift | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Surface Status
 
 | status | open surfaces |
 |---|---|
-| `open` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations, quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `open` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Proof Fact
 
 | proof fact | open surfaces |
 |---|---|
-| `boolean.demorgan.proven-bool-operands` | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | `collection.flatten-depth.one-level` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `effect.pure-callback` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `effect.pure-predicate` | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `effect.pure-predicate` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.filter-map.drop-condition-coordinate` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.filter-map.emitted-value-coordinate` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.aggregate-guard-coordinate` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.emitted-value-coordinate` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `hof.flat-map.nested-iteration-order` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `iteration.same-source-identity` | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `iteration.same-source-identity` | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.default.absence-fallback` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.default.key-fallback-coordinate` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `map.receiver.no-intervening-mutation` | map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
@@ -128,8 +123,6 @@ neutral proof facts before admission work is sound.
 | `option.default-short-circuit` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `option.presence-direction` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `option.value-coordinate-identity` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `quantifier.universal.counterexample-loop` | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
-| `quantifier.vacuous-truth` | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | `reduction.identity-empty-behavior` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `reduction.step-coordinate-identity` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 

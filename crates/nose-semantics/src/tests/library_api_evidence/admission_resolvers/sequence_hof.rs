@@ -13,22 +13,36 @@ fn sequence_hof_call_il(method: &str, arg_count: usize) -> (Il, Interner, NodeId
         sp(181),
         &[receiver],
     );
-    let args = (0..arg_count)
-        .map(|idx| {
-            b.add(
-                NodeKind::Var,
-                Payload::Cid(1 + idx as u32),
-                sp(182 + idx as u32),
-                &[],
-            )
-        })
-        .collect::<Vec<_>>();
+    let args = if arg_count == 1 && matches!(method, "any" | "all") {
+        vec![inline_bool_predicate_callback(&mut b)]
+    } else {
+        (0..arg_count)
+            .map(|idx| {
+                b.add(
+                    NodeKind::Var,
+                    Payload::Cid(1 + idx as u32),
+                    sp(182 + idx as u32),
+                    &[],
+                )
+            })
+            .collect::<Vec<_>>()
+    };
     let mut children = Vec::with_capacity(args.len() + 1);
     children.push(callee);
     children.extend(args);
     let call = b.add(NodeKind::Call, Payload::None, sp(190), &children);
     let root = b.add(NodeKind::Func, Payload::None, sp(191), &[call]);
     (finish_il(b, root, Lang::Rust), interner, call, receiver)
+}
+
+fn inline_bool_predicate_callback(b: &mut IlBuilder) -> NodeId {
+    let param = b.add(NodeKind::Param, Payload::Cid(1), sp(182), &[]);
+    let var = b.add(NodeKind::Var, Payload::Cid(1), sp(183), &[]);
+    let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp(184), &[]);
+    let pred = b.add(NodeKind::BinOp, Payload::Op(Op::Ge), sp(185), &[var, zero]);
+    let expr = b.add(NodeKind::ExprStmt, Payload::None, sp(186), &[pred]);
+    let block = b.add(NodeKind::Block, Payload::None, sp(187), &[expr]);
+    b.add(NodeKind::Lambda, Payload::None, sp(188), &[param, block])
 }
 
 fn push_protocol_receiver_dependency(il: &mut Il, receiver: NodeId) {

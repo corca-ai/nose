@@ -98,6 +98,15 @@
         "bench/type4/adversarial/cases/cases.v1.json::javascript_every_callback_extra_args_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::javascript_every_value_return_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::javascript_every_api_identity_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust-iterator-all-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_value_return_type_boundary",
         "bench/type4/proof_fact_registry.v1.json::quantifier.universal.counterexample-loop",
         "bench/type4/proof_fact_registry.v1.json::quantifier.vacuous-truth",
         "bench/type4/proof_fact_registry.v1.json::iteration.same-source-identity",
@@ -134,8 +143,9 @@
         },
         {
           "language": "Rust",
-          "status": "open",
-          "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence"
+          "status": "admitted",
+          "surface": "standard Iterator::all over an unconsumed same-source iterator plus a pure counterexample loop; changed predicates/sources, wrong vacuous truth, consumed iterators, callback or loop effects, mutating borrows, and value-returning predicates stay split or closed at the type boundary",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_value_return_type_boundary"
         },
         {
           "language": "Swift",
@@ -158,7 +168,7 @@
       ],
       "law": "Universal quantifier surfaces are equivalent to explicit counterexample loops only when both forms traverse the same source, return true on empty input, stop at the same first counterexample, evaluate a pure boolean predicate, and any boolean rewrites are proven boolean-only over non-overloaded scalar comparison complements.",
       "pattern_id": "quantifier.universal.counterexample-loop",
-      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair, and the TypeScript/JavaScript/Ruby/Swift slices add dense/literal or eager Array/Collection receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, overload, lazy-demand, and changed-predicate boundaries; carding the pattern keeps future all/every/allSatisfy work attached to neutral proof facts instead of language-specific detector branches.",
+      "rationale": "The Python loop/De Morgan packet admits the README-shaped real pair, and the TypeScript/JavaScript/Ruby/Swift/Rust slices add dense/literal, eager Array/Collection, or standard iterator receiver proof with executable vacuous-truth, source-identity, effect, callback/value, receiver, overload, lazy-demand, consumed-iterator, mutating-borrow, and changed-predicate boundaries; carding the pattern keeps future all/every/allSatisfy work attached to neutral proof facts instead of language-specific detector branches.",
       "required_facts": [
         "quantifier.universal.counterexample-loop",
         "quantifier.vacuous-truth",
@@ -798,7 +808,16 @@
         "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive",
         "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_positive",
-        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary"
+        "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust-iterator-all-proof-perimeter",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_value_return_type_boundary"
       ],
       "hard_negative_templates": [
         "reduction.changed-seed",
@@ -844,10 +863,10 @@
           "surface": "typed TypeScript reduce/some, dense-literal one-argument TypeScript and standard JavaScript every, and JS loop sum in the controlled slice; array-param every, callback index/source args, JavaScript every prototype replacement, value-returning predicates, and broader untyped relational terminals remain open"
         },
         {
-          "evidence": "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
+          "evidence": "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive; bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary; bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary",
           "language": "Rust",
           "status": "modeled-controlled",
-          "surface": "for loops, Iterator::sum/product, fold, any/all, and seeded min/max selection folds with matching source, seed, predicate, and comparator direction"
+          "surface": "for loops, Iterator::sum/product, fold, any/all, focused Iterator::all universal loops, and seeded min/max selection folds with matching source, seed, predicate, and comparator direction; wrong empty truth, changed predicate/source, consumed iterator, effectful callback or loop body, and mutating-borrow boundaries stay split"
         },
         {
           "evidence": "bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_positive; bench/type4/adversarial/cases/cases.v1.json::ruby_enumerable_quantifier_proof_boundary; bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall",
@@ -864,7 +883,7 @@
       ],
       "law": "Reduction surfaces are equivalent only when they traverse the same source, preserve identity seed and empty-input behavior, apply the same step or terminal predicate coordinate within the appropriate aggregate value-model or selection value-order domain when numeric behavior matters, preserve any/all short-circuit direction, preserve seeded min/max selection domain, prove receiver/API identity for protocol methods, and close predicate, reducer, or block effects.",
       "pattern_id": "reduction.aggregate.proven-terminal-identity",
-      "rationale": "The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus TypeScript any/every terminals, Ruby literal-receiver any?/all?, Swift eager Array/Collection allSatisfy, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, aggregate value-model and selection value-order numeric facts, float-special-value boundaries, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.",
+      "rationale": "The reduce_minmax_anyall axis has all-language probe coverage and focused executable evidence for sum, typed reduce, Rust any/all plus focused Iterator::all, TypeScript any/every terminals, Ruby literal-receiver any?/all?, Swift eager Array/Collection allSatisfy, and seeded min/max selection. Carding the reduction layer records the neutral proof perimeter so future languages extend source, identity, aggregate value-model and selection value-order numeric facts, float-special-value boundaries, step, terminal, direction, selection, receiver/API, and predicate/reducer effect facts instead of adding spelling-specific reduction shortcuts.",
       "required_facts": [
         "iteration.same-source-identity",
         "effect.pure-predicate",

@@ -1,25 +1,25 @@
 {
-  "entry_count": 26,
+  "entry_count": 29,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "6c5a1e01d5e9224cd8e0858c901c926122660e8b5fd2134fe10504ba554746a4",
-      "size_bytes": 30499
+      "sha256": "174b09c1408f1ee7d21ebb6f3ab1ecf9ab7059bec60a5897ce24dd997176f18d",
+      "size_bytes": 34159
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "0cc761d93461e0c383f306079b0749e9b5d44de8cb3a595e064c2ee7630f1ee3",
-      "size_bytes": 104558
+      "sha256": "9957fe7cbedbc515f8c2764c7d44c95fc91a94a972337528aaa668e444680542",
+      "size_bytes": 105453
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "3f6f5c7278196c4a5494f990f66d273bebd480ccf5d92f396c41d18367a0dfc4",
-      "size_bytes": 101157
+      "sha256": "eee509c3878871a27b10a163583f2bab79339ff726d2c809da70bdd8e5aaa63f",
+      "size_bytes": 105557
     }
   },
   "nose_binary": "nose",
-  "passed": 26,
+  "passed": 29,
   "query_count": 11,
   "results": [
     {
@@ -509,6 +509,65 @@
       "ok": true,
       "packet_id": "reduction-minmax-anyall-2026-07-08",
       "replay_id": "reduction-javascript-every-dense-literal-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-rust-all-effect-boundary-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 21,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_all_loop",
+            "start": 14
+          },
+          {
+            "end": 25,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+            "name": "rust_all_iter",
+            "start": 23
+          }
+        ],
+        "value": 5.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-rust-all-focused-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-rust-all-mutating-borrow-boundary-controlled-pair",
       "status": "passed"
     },
     {

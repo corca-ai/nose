@@ -1095,9 +1095,9 @@
       },
       "current_detector_result": {
         "baseline_command": "nose query bench/type4/adversarial/cases/reduction_minmax_anyall --mode semantic top=0 --format json --min-size 1 --min-lines 1; nose query bench/type4/adversarial/cases/swift_all_satisfy --mode semantic top=0 --format json --min-size 1 --min-lines 1",
-        "baseline_result": "Semantic queries report a broad sum/reduce family, TypeScript any/some, dense-literal one-argument TypeScript and JavaScript every/for-of, Swift eager allSatisfy/loop, plus Rust any/all terminal families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, TypeScript/JavaScript array-param every, TypeScript/JavaScript every callback-extra-argument, JavaScript Array.prototype.every replacement, Swift changed predicate/source, wrong empty truth, effect, two-argument custom overload, lazy receiver, Rust any-vs-all direction, and unseeded selection boundaries stay outside those families.",
+        "baseline_result": "Semantic queries report a broad sum/reduce family, TypeScript any/some, dense-literal one-argument TypeScript and JavaScript every/for-of, Swift eager allSatisfy/loop, Rust any/all terminal families, focused Rust Iterator::all universal loop families, and seeded selection families while wrong-seed, changed product/count step, changed-predicate, TypeScript/JavaScript array-param every, TypeScript/JavaScript every callback-extra-argument, JavaScript Array.prototype.every replacement, Swift changed predicate/source, wrong empty truth, effect, two-argument custom overload, lazy receiver, Rust any-vs-all direction, Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback/loop effect, mutating borrow, and unseeded selection boundaries stay outside those families.",
         "binary_path": "nose",
-        "build_ref": "#769 Swift allSatisfy admission",
+        "build_ref": "#783 Rust Iterator::all admission",
         "current_detector_miss": false,
         "default_query_result": "No default-query perimeter claim is made for this packet; the focused proof gates are scoped to semantic-mode executable expectations.",
         "nose_version": "nose",
@@ -1106,16 +1106,23 @@
       "detector_admission": {
         "capabilities": [
           "converges sum loops and typed reduce/sum APIs across the focused C, Go, Java, JavaScript-loop, Python, Rust, and TypeScript surfaces when additive step, seed, and numeric.aggregate-value-model-domain evidence match",
-          "converges Rust any/all terminal forms, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript/JavaScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
+          "converges Rust any/all terminal forms, focused Rust Iterator::all universal loops, TypeScript any/some terminal forms, and dense-literal one-argument TypeScript/JavaScript every/for-of terminal forms with equivalent early-return loops when predicate/direction evidence match",
           "converges controlled Ruby Enumerable any?/all? terminal forms with literal Array receiver proof, same-source loop proof, pure one-argument blocks, vacuous all? behavior for empty literal arrays, and standard Array/Enumerable API identity",
           "converges controlled Swift allSatisfy terminal forms with eager Array/Collection receiver proof, same-source loop proof, pure inline one-argument predicates, vacuous truth, unary callback shape, and standard Swift Collection API identity",
           "converges Python/Rust seeded min/max selection loops and folds when seed, comparator direction, selection domain, and numeric.selection-value-order-domain evidence match",
-          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, TypeScript/JavaScript every sparse-array parameter, TypeScript/JavaScript every callback index/source-argument, JavaScript every prototype replacement, JS/TS value-returning predicate, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries"
+          "preserves wrong seed, changed product/count step, changed terminal predicate, Rust any/all direction, Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback or loop effect, mutating borrow, TypeScript/JavaScript every sparse-array parameter, TypeScript/JavaScript every callback index/source-argument, JavaScript every prototype replacement, JS/TS value-returning predicate, Ruby receiver-parameter, multi-parameter block, no-block, monkey-patch, module_eval patch, block-effect, Swift changed predicate/source, wrong empty truth, callback/loop effect, two-argument custom overload callback, lazy receiver, min/max direction, unseeded selection, numeric-domain, float-special-value, effect, and unproven receiver/protocol boundaries"
         ],
         "hard_negative_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_wrong_seed_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_changed_step_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_terminal_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_value_return_type_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::javascript_every_sparse_array_boundary",
@@ -1131,6 +1138,10 @@
           "bench/type4/adversarial/cases/cases.v1.json::swift_all_satisfy_proof_boundary",
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_any_keeps_effect_and_borrow_boundaries",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_keeps_predicate_source_empty_and_consumption_boundaries",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_keeps_effect_and_borrow_boundaries",
+          "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof.rs::admitted_rust_iterator_hof_pack_covers_lazy_adapters_and_terminals",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
           "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_converges_for_dense_literal_source_but_not_array_param",
           "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_keeps_truth_predicate_and_source_boundaries",
@@ -1146,6 +1157,7 @@
         "positive_gates": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive",
           "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
           "bench/type4/adversarial/cases/cases.v1.json::javascript_every_universal_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_selection_seeded_positive",
@@ -1154,6 +1166,7 @@
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_converges_with_counterexample_loop",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
           "crates/nose-cli/tests/equivalence/typescript_every.rs::javascript_every_converges_for_dense_literal_source_but_not_array_param",
           "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
@@ -1162,7 +1175,7 @@
           "bench/type4/coverage_evidence.v1.json::reduce_minmax_anyall"
         ],
         "remaining_real_pair_gap": "the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit",
-        "scope": "controlled integer/value-model sum/product, any/all terminal, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
+        "scope": "controlled integer/value-model sum/product, any/all terminal, focused Rust Iterator::all universal loops, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence",
         "status": "controlled-slice-admitted"
       },
       "evidence_case_ids": [
@@ -1171,13 +1184,15 @@
       ],
       "evidence_tier": "frontier-recorded",
       "hard_negative_group_ids": [
-        "reduction-minmax-anyall-proof-perimeter"
+        "reduction-minmax-anyall-proof-perimeter",
+        "rust-iterator-all-proof-perimeter"
       ],
       "hard_negative_siblings": [
         "seed 0 versus seed 1 changes empty-input behavior and every non-empty sum",
         "additive sum, multiplicative product, and positive-count contributions are distinct step coordinates",
         "any/all terminal predicates such as x > 0, x >= 0, and x < 0 are distinct coordinates",
         "any and all have opposite short-circuit direction and fallthrough truth values",
+        "Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback or loop effects, and mutating borrows are outside the focused universal proof",
         "TypeScript/JavaScript array parameters do not prove dense Array.every sources because sparse holes are skipped by every but observable to for-of iteration",
         "TypeScript/JavaScript Array.every callbacks that observe index or source-array arguments are outside the value-only predicate proof",
         "JavaScript Array.prototype.every assignment or defineProperty replacement breaks standard API identity",
@@ -1204,8 +1219,8 @@
           "path": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
           "primary_language": "Rust",
           "repo": "nose",
-          "snippet": "Rust any/all loop and Iterator terminal representatives plus same-predicate direction boundary",
-          "span": "1-42",
+          "snippet": "Rust any/all loop and Iterator terminal representatives plus focused Iterator::all vacuous-truth, source, effect, consumed-iterator, mutating-borrow, and same-predicate direction boundaries",
+          "span": "1-115",
           "split": "focused"
         },
         {
@@ -1290,7 +1305,7 @@
         }
       ],
       "notes": "This packet records the current focused reduction perimeter as reusable proof facts. The linked Drizzle real-corpus replay is an executable split expectation for the next TypeScript every source-provenance fact, not a real-pair admission. It intentionally does not claim a new non-focused real-corpus admission, broader untyped JS relational reduction admission, Ruby parameter/custom Enumerable receiver admission, Swift reduce, Swift contains(where:), or Swift lazy allSatisfy admission until those proof perimeters are separately covered.",
-      "owner_issue": "#758/#784",
+      "owner_issue": "#758/#784/#783",
       "owner_route": "team-a-detector",
       "packet_id": "reduction-minmax-anyall-2026-07-08",
       "proof_fact_model": {
@@ -1308,7 +1323,7 @@
             "fact_id": "numeric.float-special-value-boundary"
           },
           {
-            "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; dense-literal TypeScript and JavaScript every/for-of slices are admitted, while the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
+            "current_real_pair_status": "satisfied for focused reduction fixtures and existing iteration_contracts tests: loop and terminal forms traverse the same source or stay split when source/domain or receiver proof is missing; focused Rust Iterator::all keeps changed source and consumed-iterator boundaries split; dense-literal TypeScript and JavaScript every/for-of slices are admitted, while the Drizzle flags.every(Boolean) real pair remains unsatisfied because append-only dense local-array provenance is not yet modeled",
             "fact_id": "iteration.same-source-identity"
           },
           {
@@ -1320,11 +1335,11 @@
             "fact_id": "reduction.step-coordinate-identity"
           },
           {
-            "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
+            "current_real_pair_status": "satisfied for focused any/all fixtures: terminal predicates are compared independently from traversal and changed predicates stay split, including focused Rust Iterator::all, controlled dense-literal TypeScript/JavaScript every slices, Ruby Enumerable any?/all? literal receiver slice, and Swift eager Array/Collection allSatisfy slice; the Drizzle real pair is blocked until Boolean-as-value-only predicate evidence is tied to proven local-array source evidence",
             "fact_id": "reduction.terminal-predicate-coordinate"
           },
           {
-            "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures plus Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; JavaScript covers the focused dense-literal, one-argument every/for-of universal slice while array parameters, callback extra args, value-returning predicates, effects, changed predicates/sources, wrong empty truth, and Array.prototype.every replacement remain closed; Ruby covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; Swift covers eager Array/Collection allSatisfy while changed predicate/source, wrong empty truth, effects, two-argument custom overload callbacks, and .lazy receiver demand semantics remain closed; broader untyped relational terminals remain open",
+            "current_real_pair_status": "satisfied for focused Rust any/all direction fixtures, focused Rust Iterator::all universal loops, and Python loop/De Morgan evidence: any/existential and all/universal fallthrough directions remain distinct; Rust Iterator::all preserves vacuous truth while wrong empty truth stays split; TypeScript covers any/some plus the focused dense-literal, one-argument every/for-of universal slice; JavaScript covers the focused dense-literal, one-argument every/for-of universal slice while array parameters, callback extra args, value-returning predicates, effects, changed predicates/sources, wrong empty truth, and Array.prototype.every replacement remain closed; Ruby covers literal Array receiver any?/all? while receiver parameters, multi-parameter blocks, monkey patches, module_eval patches, no-block calls, and effectful blocks remain closed; Swift covers eager Array/Collection allSatisfy while changed predicate/source, wrong empty truth, effects, two-argument custom overload callbacks, and .lazy receiver demand semantics remain closed; broader untyped relational terminals remain open",
             "fact_id": "reduction.short-circuit-direction"
           },
           {
@@ -1332,13 +1347,21 @@
             "fact_id": "reduction.selection-seed-domain"
           },
           {
-            "current_real_pair_status": "satisfied for controlled terminal predicates and TypeScript/JavaScript/Ruby/Swift one-argument quantifier callbacks; effectful predicates, reducers, callbacks, loop bodies, JS/TS callback index/source-array arguments, Ruby multi-parameter block destructuring, and Swift two-argument custom overload callbacks remain outside the focused admission claim",
+            "current_real_pair_status": "satisfied for controlled terminal predicates and Rust/TypeScript/JavaScript/Ruby/Swift one-argument quantifier callbacks; focused Rust Iterator::all keeps callback effects, loop effects, and mutating borrows split; effectful predicates, reducers, callbacks, loop bodies, JS/TS callback index/source-array arguments, Ruby multi-parameter block destructuring, and Swift two-argument custom overload callbacks remain outside the focused admission claim",
             "fact_id": "effect.pure-predicate"
           }
         ],
         "focused_tests": [
           "bench/type4/adversarial/cases/cases.v1.json::reduction_sum_step_positive",
           "bench/type4/adversarial/cases/cases.v1.json::reduction_any_all_terminal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary",
+          "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_value_return_type_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::typescript_every_universal_positive",
           "bench/type4/adversarial/cases/cases.v1.json::typescript_every_sparse_array_boundary",
           "bench/type4/adversarial/cases/cases.v1.json::typescript_every_callback_extra_args_boundary",
@@ -1363,6 +1386,11 @@
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::loop_converges_with_reduce_and_comprehension",
           "crates/nose-cli/tests/equivalence/loops_and_reductions.rs::filtered_method_reduce_converges_with_guarded_loop",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_any_all_predicates_converge_with_early_return_loops",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_any_keeps_effect_and_borrow_boundaries",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_converges_with_counterexample_loop",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_keeps_predicate_source_empty_and_consumption_boundaries",
+          "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_keeps_effect_and_borrow_boundaries",
+          "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof.rs::admitted_rust_iterator_hof_pack_covers_lazy_adapters_and_terminals",
           "crates/nose-cli/tests/equivalence/iteration_contracts.rs::selection_reduction_loops_converge_cross_language",
           "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_any_all_converge_for_literal_receivers_but_not_params",
           "crates/nose-cli/tests/equivalence/ruby_enumerable_quantifier.rs::ruby_quantifiers_keep_predicate_source_and_block_boundaries",
@@ -1376,10 +1404,13 @@
         ],
         "model_status": "modeled-controlled"
       },
-      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, TypeScript/JavaScript Array.every callbacks observing index or source-array arguments, JavaScript Array.prototype.every replacement, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
+      "proof_invariant": "Open reduction convergence only when the compared forms traverse the same source in the same order, preserve the identity seed and empty-input behavior, satisfy numeric.aggregate-value-model-domain when controlled aggregate arithmetic matters, satisfy numeric.selection-value-order-domain when controlled min/max or relational selection matters, apply the same reducer contribution or terminal predicate to the same element coordinate, preserve any/all short-circuit direction and fallthrough result, prove receiver/API identity for protocol methods, require value-only predicate callback shape, and for min/max preserve the same explicit seed and selection domain. Predicate/callback effects, consumed iterators, mutating borrows, TypeScript/JavaScript Array.every callbacks observing index or source-array arguments, JavaScript Array.prototype.every replacement, Swift two-argument custom allSatisfy overloads, Swift lazy allSatisfy receiver demand semantics, wrong seeds, changed contributions, changed terminal predicates, all-vs-any direction changes, wrong empty truth, unseeded terminal selection APIs, broad runtime no-overflow or total-order claims, and unproven receiver/protocol, overflow, float, NaN, signed-zero, or numeric-domain evidence must remain non-equivalent.",
       "real_frontier_replay_ids": [
         "reduction-sum-focused-controlled-pair",
         "reduction-any-focused-controlled-pair",
+        "reduction-rust-all-focused-controlled-pair",
+        "reduction-rust-all-effect-boundary-controlled-pair",
+        "reduction-rust-all-mutating-borrow-boundary-controlled-pair",
         "reduction-typescript-every-dense-literal-controlled-pair",
         "reduction-typescript-every-array-param-boundary-controlled-pair",
         "reduction-javascript-every-dense-literal-controlled-pair",
@@ -1387,7 +1418,7 @@
         "reduction-typescript-every-append-only-flags-drizzle-real-pair",
         "reduction-selection-focused-controlled-pair"
       ],
-      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all, TypeScript any/some, dense-literal one-argument TypeScript and JavaScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, TypeScript/JavaScript array-param every sparse-hole boundaries, TypeScript/JavaScript every callbacks observing index/source-array arguments, JavaScript Array.prototype.every prototype replacement, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",
+      "semantic_claim": "Reduction surfaces can converge only when source evidence proves the same traversal source, identity and empty-input behavior, numeric.aggregate-value-model-domain for controlled aggregate arithmetic, numeric.selection-value-order-domain for controlled min/max or relational selection, reduction step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior for min/max, receiver/API identity for protocol methods, and effect-safe value-only predicates or callbacks. The focused slice admits sum loops and typed reduce/sum APIs across C, Go, Java, JS loop, Python, Rust, and TypeScript; Rust any/all plus focused Iterator::all universal terminal bridges, TypeScript any/some, dense-literal one-argument TypeScript and JavaScript every/for-of terminal bridges; Swift eager Array/Collection allSatisfy terminal bridges; and Python/Rust seeded min/max selection loops/folds. Wrong seeds, changed additive/product/count steps, changed terminal predicates, any-vs-all direction changes, Rust Iterator::all wrong empty truth, changed source, consumed iterator, callback or loop effect, mutating borrow, TypeScript/JavaScript array-param every sparse-hole boundaries, TypeScript/JavaScript every callbacks observing index/source-array arguments, JavaScript Array.prototype.every prototype replacement, Swift changed predicate/source, wrong empty truth, callback or loop effects, two-argument custom allSatisfy overloads, lazy allSatisfy demand semantics, max-vs-min direction changes, unseeded selection APIs with different all-negative behavior, broad runtime no-overflow or total-order claims, and unproven overflow/float/NaN/signed-zero numeric domains remain outside the exact family through numeric.float-special-value-boundary.",
       "why_now": "reduce_minmax_anyall has all-language probe coverage and already appears in loops_and_reductions, iteration_contracts, and semantic idiom tests. The useful work is to record the shared reduction proof perimeter \u2014 identity/empty behavior, aggregate value-model closure for arithmetic reductions, selection value-order closure for min/max, step or terminal predicate coordinate, short-circuit direction, selection seed/domain, source identity, and predicate or reducer effect closure \u2014 so future reduce, any/all, and min/max surfaces extend neutral facts instead of per-language spellings."
     }
   ],

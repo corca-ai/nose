@@ -696,6 +696,114 @@
    "expect": "same-family",
    "members": [
     {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_all_loop"
+    },
+    {
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_all_iter"
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-rust-all-focused-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused Rust Iterator::all pair is admitted when source identity, universal short-circuit direction, vacuous truth, terminal predicate coordinate, and predicate purity facts are satisfied."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "split",
+   "members": [
+    {
+     "end_line": 83,
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_all_pure_with_log",
+     "snippet": "pub fn rust_all_pure_with_log(xs: &[i64], log: &mut Vec<i64>) -> bool { let _ = log.len(); xs.iter().copied().all(|x| x < 100) }",
+     "start_line": 80
+    },
+    {
+     "end_line": 90,
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_all_callback_effect",
+     "snippet": "pub fn rust_all_callback_effect(xs: &[i64], log: &mut Vec<i64>) -> bool { xs.iter().copied().all(|x| { log.push(x); x < 100 }) }",
+     "start_line": 85
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-rust-all-effect-boundary-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused Rust Iterator::all callback-effect boundary stays split because observed callback effects are behavior-defining under short-circuit traversal."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "split",
+   "members": [
+    {
+     "end_line": 104,
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_all_pure_mutable",
+     "snippet": "pub fn rust_all_pure_mutable(xs: &mut [i64]) -> bool { xs.iter().copied().all(|x| x < 100) }",
+     "start_line": 102
+    },
+    {
+     "end_line": 111,
+     "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+     "kind": "workspace",
+     "name": "rust_all_mutating_borrow",
+     "snippet": "pub fn rust_all_mutating_borrow(xs: &mut [i64]) -> bool { xs.iter_mut().all(|x| { *x += 1; *x < 100 }) }",
+     "start_line": 106
+    }
+   ],
+   "packet_id": "reduction-minmax-anyall-2026-07-08",
+   "proof_gap": [],
+   "query": {
+    "min_lines": 1,
+    "min_size": 1,
+    "mode": "semantic",
+    "top": 0
+   },
+   "replay_id": "reduction-rust-all-mutating-borrow-boundary-controlled-pair",
+   "sources": [
+    {
+     "kind": "workspace",
+     "path": "bench/type4/adversarial/cases/reduction_minmax_anyall"
+    }
+   ],
+   "why_expected": "The focused Rust Iterator::all mutating-borrow boundary stays split because mutating the receiver during traversal changes the observed value coordinate."
+  },
+  {
+   "case_id": "reduction-minmax-anyall-focused-controlled",
+   "expect": "same-family",
+   "members": [
+    {
      "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
      "kind": "workspace",
      "name": "tsAllLoop"

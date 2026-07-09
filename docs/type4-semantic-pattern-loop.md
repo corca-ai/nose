@@ -54,10 +54,10 @@ language_surfaces:
     status: admitted
     evidence: python-loop-demorgan-all-2026-07-07
   ruby:
-    status: open
+    status: admitted
     surface: Enumerable#all?
   rust:
-    status: open
+    status: admitted
     surface: Iterator::all
   typescript:
     status: admitted
@@ -79,11 +79,11 @@ surfaces:
 
 | fact | Python | TypeScript | JavaScript | Ruby | Rust |
 |---|---|---|---|---|---|
-| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of | admitted for dense-literal one-arg every/for-of | open | open |
-| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | admitted for standard dense-literal one-arg every/for-of; array param, callback extra args, and prototype replacement stay split | open | open |
-| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | admitted for same dense-literal source | open | open |
-| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | admitted for pure comparison predicates | open | open |
-| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | admitted for boolean comparison results; value-returning && remains closed | open | open |
+| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of | admitted for dense-literal one-arg every/for-of | admitted for empty literal all? | admitted for Iterator::all fallthrough true |
+| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | admitted for standard dense-literal one-arg every/for-of; array param, callback extra args, and prototype replacement stay split | admitted for literal Array all?; receiver/block boundaries stay split | admitted for standard Iterator::all; changed source, consumed iterator, effect, and mutating-borrow boundaries stay split |
+| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | admitted for same dense-literal source | admitted for literal receiver source | admitted for same unconsumed iterator source |
+| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | admitted for pure comparison predicates | admitted for pure one-arg blocks | admitted for pure one-arg callbacks; callback effects and mutating borrows stay split |
+| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | admitted for boolean comparison results; value-returning && remains closed | not-applicable for the literal receiver slice | not-applicable for the focused Iterator::all slice |
 
 Use vocabulary like `open`, `modeled-controlled`, `admitted`, and
 `not-applicable`. Do not mark a language surface admitted because another
