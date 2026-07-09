@@ -10,10 +10,10 @@ surface admission issue without re-triaging every pattern card by hand.
 ## Summary
 
 - audited surface statuses: open
-- open surfaces: 11
-- priorities: blocked-by-unmodeled-facts=7, needs-surface-focused-perimeter=3, probe-to-focused-candidate=1
-- evidence levels: coverage-sweep=1, missing=7, probe-only=2, target-packet=1
-- languages: Go=1, Java=1, JavaScript=1, Ruby=1, Rust=1, Swift=6
+- open surfaces: 10
+- priorities: blocked-by-unmodeled-facts=7, needs-surface-focused-perimeter=3
+- evidence levels: coverage-sweep=1, missing=7, probe-only=1, target-packet=1
+- languages: Go=1, Java=1, JavaScript=1, Ruby=1, Rust=1, Swift=5
 - unresolved surface evidence refs: 0
 
 ## Epic #778 Audit Slice
@@ -25,7 +25,7 @@ neutral proof facts before admission work is sound.
 - tracker issue: #778
 - setup issue: #781
 - closeout issue: #785
-- in-scope rows: 6 (4 currently present in the open audit)
+- in-scope rows: 6 (3 currently present in the open audit)
 - out-of-scope blocked rows: 7 (7 currently present in the open audit)
 - unexpected actionable open rows: 0
 
@@ -35,7 +35,7 @@ neutral proof facts before admission work is sound.
 |---|---|---|---|---|---|---|---|---|
 | 1 | #779 | `probe-to-focused-candidate` | `collection.membership.proven-receiver-element` | Swift | not-in-current-open-audit (``) |  | promote Swift collection membership probe evidence into focused admission |  |
 | 2 | #780 | `probe-to-focused-candidate` | `collection.empty-check.proven-receiver-domain` | Swift | not-in-current-open-audit (``) |  | promote Swift collection empty-check probe evidence into focused admission |  |
-| 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | present | promote probe evidence into focused positives and hard negatives | complete the Swift hasPrefix/hasSuffix focused perimeter | String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open |
+| 3 | #782 | `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | not-in-current-open-audit (``) |  | complete the Swift hasPrefix/hasSuffix focused perimeter |  |
 | 4 | #784 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | present | add surface-specific focused fixtures and executable expectations | add JavaScript Array.prototype.every focused fixtures and expectations | Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed |
 | 5 | #783 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | present | add surface-specific focused fixtures and executable expectations | add Rust Iterator::all focused fixtures and expectations | Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence |
 | 6 | #724 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | present | connect packet evidence to focused executable expectations | connect Go numeric clamp bound-order and integer-domain proof evidence | generic min/max Constrain-style helpers after integer-domain and bound-order proof |
@@ -56,7 +56,6 @@ neutral proof facts before admission work is sound.
 
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `probe-to-focused-candidate` | `string.affix.proven-receiver-coordinate` | Swift | String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open | `open` | `probe-only`<br>bench/type4/coverage_evidence.v1.json::probe:string_prefix_suffix/swift covered 1/1 positive and 0/1 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_parameter_coordinate_positive covers hasPrefix parameter direction only | promote probe evidence into focused positives and hard negatives | `string.affix.receiver-identity`:modeled-controlled, `string.affix.affix-coordinate`:modeled-controlled, `string.affix.api-identity`:modeled-controlled, `string.affix.import-source-identity`:modeled-controlled, `string.affix.direction`:modeled-controlled, `string.affix.whole-string-single-affix`:modeled-controlled | positive=1, hard_negative=0, group=0 | positive=5, hard_negative=6, group=1 | row_count=1, statuses=[covered], sources=[probe], gen_axes=[probe:string_prefix_suffix], language_components=[swift], matched_languages=[swift], missing_languages=[], positive_hits=1, positives=1, hard_negatives=1, false_merges=0, probe_ready=true |
 | `needs-surface-focused-perimeter` | `numeric.clamp.proven-integer-bounds` | Go | generic min/max Constrain-style helpers after integer-domain and bound-order proof | `open` | `target-packet`<br>bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06 | connect packet evidence to focused executable expectations | `numeric-clamp.integer-domain`:modeled-controlled, `numeric-clamp.bound-order`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=3, hard_negative=3, group=1 |  |
 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | JavaScript | Array.prototype.every plus a pure counterexample loop after exact Array receiver, value-returning, and callback-effect boundaries are closed | `open` | `missing` | add surface-specific focused fixtures and executable expectations | `quantifier.universal.counterexample-loop`:modeled-controlled, `quantifier.vacuous-truth`:modeled-controlled, `iteration.same-source-identity`:modeled-controlled, `effect.pure-predicate`:modeled-controlled, `boolean.demorgan.proven-bool-operands`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=5, hard_negative=22, group=1 |  |
 | `needs-surface-focused-perimeter` | `quantifier.universal.counterexample-loop` | Rust | Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence | `open` | `missing` | add surface-specific focused fixtures and executable expectations | `quantifier.universal.counterexample-loop`:modeled-controlled, `quantifier.vacuous-truth`:modeled-controlled, `iteration.same-source-identity`:modeled-controlled, `effect.pure-predicate`:modeled-controlled, `boolean.demorgan.proven-bool-operands`:modeled-controlled | positive=0, hard_negative=0, group=0 | positive=5, hard_negative=22, group=1 |  |
@@ -79,7 +78,6 @@ neutral proof facts before admission work is sound.
 | `numeric.clamp.proven-integer-bounds` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | `option.presence-default.proven-channel-coordinate` | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `quantifier.universal.counterexample-loop` | quantifier.universal.counterexample-loop:JavaScript:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
-| `string.affix.proven-receiver-coordinate` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
 
 ## By Blocker
 
@@ -88,7 +86,6 @@ neutral proof facts before admission work is sound.
 | add surface-specific focused fixtures and executable expectations | quantifier.universal.counterexample-loop:JavaScript:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | connect packet evidence to focused executable expectations | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations |
 | model required facts before detector admission | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| promote probe evidence into focused positives and hard negatives | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
 
 ## By Language
 
@@ -99,13 +96,13 @@ neutral proof facts before admission work is sound.
 | JavaScript | quantifier.universal.counterexample-loop:JavaScript:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | Ruby | option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | Rust | quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
-| Swift | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| Swift | hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Surface Status
 
 | status | open surfaces |
 |---|---|
-| `open` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives, numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations, quantifier.universal.counterexample-loop:JavaScript:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
+| `open` | numeric.clamp.proven-integer-bounds:Go:open:needs-surface-focused-perimeter:connect packet evidence to focused executable expectations, quantifier.universal.counterexample-loop:JavaScript:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, hof.filter-map.option-emission:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.one-level-flatten:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, map.default.absence-lookup:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Ruby:open:blocked-by-unmodeled-facts:model required facts before detector admission, option.presence-default.proven-channel-coordinate:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 
 ## By Proof Fact
 
@@ -137,12 +134,6 @@ neutral proof facts before admission work is sound.
 | `quantifier.vacuous-truth` | quantifier.universal.counterexample-loop:JavaScript:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations, quantifier.universal.counterexample-loop:Rust:open:needs-surface-focused-perimeter:add surface-specific focused fixtures and executable expectations |
 | `reduction.identity-empty-behavior` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
 | `reduction.step-coordinate-identity` | hof.flat-map.aggregate-reduction:Java:open:blocked-by-unmodeled-facts:model required facts before detector admission, hof.flat-map.aggregate-reduction:Swift:open:blocked-by-unmodeled-facts:model required facts before detector admission |
-| `string.affix.affix-coordinate` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
-| `string.affix.api-identity` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
-| `string.affix.direction` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
-| `string.affix.import-source-identity` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
-| `string.affix.receiver-identity` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
-| `string.affix.whole-string-single-affix` | string.affix.proven-receiver-coordinate:Swift:open:probe-to-focused-candidate:promote probe evidence into focused positives and hard negatives |
 
 ## How To Use
 

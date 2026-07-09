@@ -388,6 +388,144 @@
       ],
       "why_expected": "The focused Ruby prefix pair is admitted when literal String receiver proof and standard String#start_with? API identity are both satisfied."
     },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.py",
+          "kind": "workspace",
+          "name": "prefix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+          "kind": "workspace",
+          "name": "prefix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-swift-prefix-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_550"
+        }
+      ],
+      "why_expected": "The focused Swift hasPrefix prefix pair is admitted when String receiver identity, standard API identity, literal affix coordinate, prefix direction, and whole-string arity facts are all satisfied."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
+          "kind": "workspace",
+          "name": "suffix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+          "kind": "workspace",
+          "name": "suffix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-swift-suffix-focused-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_550"
+        }
+      ],
+      "why_expected": "The focused Swift hasSuffix suffix pair is admitted separately from prefix direction under the same receiver, API, affix, and arity proof perimeter."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_ts.ts",
+          "kind": "workspace",
+          "name": "paramSuffix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_swift.swift",
+          "kind": "workspace",
+          "name": "paramSuffix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_python.py",
+          "kind": "workspace",
+          "name": "param_suffix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-swift-suffix-parameter-coordinate-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_552"
+        }
+      ],
+      "why_expected": "The focused Swift hasSuffix parameter affix family is admitted when the subject receiver and suffix parameter coordinates both match."
+    },
+    {
+      "case_id": "string-affix-focused-controlled",
+      "expect": "same-family",
+      "members": [
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/literal_py.py",
+          "kind": "workspace",
+          "name": "literal_prefix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_swift.swift",
+          "kind": "workspace",
+          "name": "localBindingPrefix"
+        },
+        {
+          "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_swift.swift",
+          "kind": "workspace",
+          "name": "moduleBindingPrefix"
+        }
+      ],
+      "packet_id": "string-prefix-suffix-2026-07-08",
+      "proof_gap": [],
+      "query": {
+        "min_lines": 1,
+        "min_size": 1,
+        "mode": "semantic",
+        "top": 0
+      },
+      "replay_id": "string-affix-swift-literal-binding-controlled-pair",
+      "sources": [
+        {
+          "kind": "workspace",
+          "path": "crates/nose-cli/tests/fixtures/string_affix_552"
+        }
+      ],
+      "why_expected": "The focused Swift immutable local/module affix bindings are admitted with direct literal affix proof when the bound value coordinate is stable."
+    },
   {
    "case_id": "null-option-presence-focused-controlled",
    "expect": "same-family",

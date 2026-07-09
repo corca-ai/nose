@@ -141,12 +141,12 @@ and single-affix arity.
 
 | fact | Python | JS/TS | Go | Java | Ruby | Rust | Swift |
 |---|---|---|---|---|---|---|---|
-| `string.affix.receiver-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
-| `string.affix.affix-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open partial parameter |
-| `string.affix.api-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
-| `string.affix.import-source-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open for imported affix constants |
-| `string.affix.direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open probe-only |
-| `string.affix.whole-string-single-affix` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | open |
+| `string.affix.receiver-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
+| `string.affix.affix-coordinate` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
+| `string.affix.api-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
+| `string.affix.import-source-identity` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled immutable binding |
+| `string.affix.direction` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
+| `string.affix.whole-string-single-affix` | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled | modeled-controlled |
 
 ## Reduction Pattern Matrix
 

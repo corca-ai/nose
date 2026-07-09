@@ -430,6 +430,19 @@ This slice also fixed the Swift frontend precedence bug where `!values.isEmpty` 
 target packet, and open-surface audit now treat the Swift Array surface as
 `modeled-controlled` while keeping broader String/custom/ambiguous receiver forms closed.
 
+## Swift String Affix Focused Admission
+
+Closed #782 by promoting Swift `String.hasPrefix` / `String.hasSuffix` from probe and partial
+parameter coverage into the focused `string.affix` perimeter. The admitted Swift slice now has
+executable witnesses for literal prefix/suffix predicates, same-role prefix and suffix parameter
+affixes, and immutable local/module affix bindings.
+
+The hard-negative perimeter covers prefix/suffix direction swaps, wrong receiver coordinates,
+wrong affix parameters, dynamic and mutated affix values, substring `contains`, custom same-name
+`hasPrefix` APIs, and case-normalized checks. The semantic card, real-frontier replay, target
+packet, and open-surface audit now treat the Swift String surface as `modeled-controlled` while
+leaving locale/case-insensitive, offset, multi-affix, substring, and custom API variants closed.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

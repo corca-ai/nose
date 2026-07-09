@@ -368,6 +368,7 @@
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_dynamic_or_mutated_affix_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_api_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_swift_api_boundary",
         "bench/type4/proof_fact_registry.v1.json::string.affix.receiver-identity",
         "bench/type4/proof_fact_registry.v1.json::string.affix.affix-coordinate",
         "bench/type4/proof_fact_registry.v1.json::string.affix.api-identity",
@@ -422,10 +423,10 @@
           "surface": "str starts_with/ends_with with exact receiver and affix coordinate proof"
         },
         {
-          "evidence": "bench/type4/coverage_evidence.v1.json::probe:string_prefix_suffix/swift covered 1/1 positive and 0/1 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_parameter_coordinate_positive covers hasPrefix parameter direction only",
+          "evidence": "bench/type4/coverage_evidence.v1.json::probe:string_prefix_suffix/swift covered 1/1 positive and 0/1 hard-negative false merges; bench/type4/adversarial/cases/cases.v1.json::string_affix_prefix_positive, string_affix_suffix_positive, string_affix_parameter_coordinate_positive, string_affix_literal_binding_coordinate_positive, string_affix_direction_boundary, string_affix_unproven_receiver_boundary, string_affix_wrong_affix_coordinate_boundary, string_affix_dynamic_or_mutated_affix_boundary, and string_affix_swift_api_boundary add focused Swift hasPrefix/hasSuffix positives and hard negatives for receiver, API, affix coordinate, direction, mutation, substring/custom, and case-normalized boundaries",
           "language": "Swift",
-          "status": "open",
-          "surface": "String.hasPrefix/hasSuffix probe coverage exists, with a focused hasPrefix parameter positive; full literal/suffix/import/mutation perimeter remains open"
+          "status": "modeled-controlled",
+          "surface": "String.hasPrefix/hasSuffix with exact String receiver, standard case-sensitive API identity, literal/same-role parameter/immutable binding affix coordinate, prefix/suffix direction, and whole-string single-affix proof; contains, custom same-name APIs, case-normalized variants, wrong receivers, wrong/dynamic/mutated affixes remain closed"
         }
       ],
       "law": "Case-sensitive string prefix/suffix predicates are equivalent only when source evidence proves the same string receiver, standard affix API identity, the same affix coordinate, the same prefix or suffix direction, and a whole-string single-affix shape.",

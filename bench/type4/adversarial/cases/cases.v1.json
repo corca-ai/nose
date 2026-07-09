@@ -221,7 +221,8 @@
         "string_affix_wrong_affix_coordinate_boundary",
         "string_affix_dynamic_or_mutated_affix_boundary",
         "string_affix_offset_or_multi_boundary",
-        "string_affix_ruby_api_boundary"
+        "string_affix_ruby_api_boundary",
+        "string_affix_swift_api_boundary"
       ],
       "regression_gates": [
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_prefix_positive",
@@ -235,6 +236,7 @@
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_dynamic_or_mutated_affix_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_offset_or_multi_boundary",
         "bench/type4/adversarial/cases/cases.v1.json::string_affix_ruby_api_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::string_affix_swift_api_boundary",
         "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_hardens_js_ts_string_affix_receivers",
         "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_admits_only_proven_ruby_string_affix_receivers",
         "crates/nose-cli/tests/cli/semantic_idioms/string_affix.rs::query_mode_semantic_preserves_string_affix_coordinate_boundaries",
@@ -897,11 +899,15 @@
             {
               "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.java",
               "name": "Prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+              "name": "prefix"
             }
           ]
         }
       ],
-      "evidence": "The string_affix_550 CLI fixture proves Python, TypeScript, Go, Rust, and Java prefix predicates under exact string receiver, API identity, and literal affix evidence."
+      "evidence": "The string_affix_550 CLI fixture proves Python, TypeScript, Go, Rust, Java, and Swift prefix predicates under exact string receiver, API identity, and literal affix evidence."
     },
     {
       "id": "string_affix_suffix_positive",
@@ -924,11 +930,15 @@
             {
               "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.ts",
               "name": "suffix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+              "name": "suffix"
             }
           ]
         }
       ],
-      "evidence": "The string_affix_550 CLI fixture records suffix direction separately from prefix direction."
+      "evidence": "The string_affix_550 CLI fixture records Python, TypeScript, and Swift suffix direction separately from prefix direction."
     },
     {
       "id": "string_affix_parameter_coordinate_positive",
@@ -957,9 +967,28 @@
               "name": "param_prefix"
             }
           ]
+        },
+        {
+          "id": "string_affix_suffix_parameter_coordinate_matches",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_ts.ts",
+              "name": "paramSuffix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_swift.swift",
+              "name": "paramSuffix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_python.py",
+              "name": "param_suffix"
+            }
+          ]
         }
       ],
-      "evidence": "The string_affix_552 coordinate fixture proves TypeScript, Swift, and Python parameter affixes when the same parameter role is used."
+      "evidence": "The string_affix_552 coordinate fixture proves TypeScript, Swift, and Python parameter affixes for both prefix and suffix directions when the same parameter role is used."
     },
     {
       "id": "string_affix_literal_binding_coordinate_positive",
@@ -984,13 +1013,21 @@
               "name": "localBindingPrefix"
             },
             {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/local_binding_swift.swift",
+              "name": "localBindingPrefix"
+            },
+            {
               "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_py.py",
               "name": "module_binding_prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/module_binding_swift.swift",
+              "name": "moduleBindingPrefix"
             }
           ]
         }
       ],
-      "evidence": "The string_affix_552 coordinate fixture proves immutable literal/local/module binding affixes against direct literal affixes."
+      "evidence": "The string_affix_552 coordinate fixture proves immutable Python and Swift literal/local/module binding affixes against direct literal affixes."
     },
     {
       "id": "string_affix_ruby_positive",
@@ -1061,6 +1098,21 @@
           ]
         },
         {
+          "id": "string_affix_swift_prefix_suffix_stay_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+              "name": "prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+              "name": "suffix"
+            }
+          ]
+        },
+        {
           "id": "string_affix_ruby_prefix_suffix_stay_split",
           "fixture": "crates/nose-cli/tests/fixtures/string_affix_551",
           "expect": "split",
@@ -1076,7 +1128,7 @@
           ]
         }
       ],
-      "evidence": "The JS/TS/Python and Ruby fixtures keep prefix and suffix directions in separate semantic families."
+      "evidence": "The JS/TS/Python, Swift, and Ruby fixtures keep prefix and suffix directions in separate semantic families."
     },
     {
       "id": "string_affix_unproven_receiver_boundary",
@@ -1117,9 +1169,24 @@
               "name": "prefix_other"
             }
           ]
+        },
+        {
+          "id": "string_affix_swift_wrong_receiver_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+              "name": "prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/swift_wrong_receiver.swift",
+              "name": "swiftWrongReceiver"
+            }
+          ]
         }
       ],
-      "evidence": "JS/TS receiver hard negatives and wrong-receiver Rust fixtures remain outside the proved prefix family."
+      "evidence": "JS/TS receiver hard negatives and wrong-receiver Rust/Swift fixtures remain outside the proved prefix family."
     },
     {
       "id": "string_affix_wrong_affix_coordinate_boundary",
@@ -1148,6 +1215,21 @@
           ]
         },
         {
+          "id": "string_affix_swift_wrong_parameter_coordinate_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_swift.swift",
+              "name": "paramPrefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_wrong_swift.swift",
+              "name": "wrongParamPrefix"
+            }
+          ]
+        },
+        {
           "id": "string_affix_wrong_literal_coordinate_stays_split",
           "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
           "expect": "split",
@@ -1163,7 +1245,7 @@
           ]
         }
       ],
-      "evidence": "The coordinate fixture keeps wrong parameter roles and changed literal affixes out of proved affix families."
+      "evidence": "The coordinate fixture keeps wrong TypeScript/Swift parameter roles and changed literal affixes out of proved affix families."
     },
     {
       "id": "string_affix_dynamic_or_mutated_affix_boundary",
@@ -1191,6 +1273,36 @@
           ]
         },
         {
+          "id": "string_affix_swift_dynamic_parameter_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_swift.swift",
+              "name": "paramPrefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_dynamic_swift.swift",
+              "name": "dynamicParamPrefix"
+            }
+          ]
+        },
+        {
+          "id": "string_affix_swift_suffix_dynamic_parameter_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_swift.swift",
+              "name": "paramSuffix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/param_suffix_dynamic_swift.swift",
+              "name": "dynamicParamSuffix"
+            }
+          ]
+        },
+        {
           "id": "string_affix_mutated_binding_stays_split",
           "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
           "expect": "split",
@@ -1204,9 +1316,39 @@
               "name": "mutatedBindingPrefix"
             }
           ]
+        },
+        {
+          "id": "string_affix_swift_mutated_binding_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/literal_py.py",
+              "name": "literal_prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/binding_mutated_swift.swift",
+              "name": "mutatedBindingPrefix"
+            }
+          ]
+        },
+        {
+          "id": "string_affix_swift_suffix_mutated_binding_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_552",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/suffix.swift",
+              "name": "suffix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_552/binding_suffix_mutated_swift.swift",
+              "name": "mutatedBindingSuffix"
+            }
+          ]
         }
       ],
-      "evidence": "The coordinate fixture keeps dynamic parameter transformations and mutated affix bindings outside immutable-coordinate proof."
+      "evidence": "The coordinate fixture keeps TypeScript/Swift dynamic parameter transformations and mutated prefix/suffix affix bindings outside immutable-coordinate proof."
     },
     {
       "id": "string_affix_offset_or_multi_boundary",
@@ -1323,6 +1465,64 @@
         }
       ],
       "evidence": "The Ruby fixture keeps custom same-name methods and same-file String monkey patches out of the proved Ruby prefix family."
+    },
+    {
+      "id": "string_affix_swift_api_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "string.affix",
+      "claim": "Swift String.hasPrefix/hasSuffix admission requires the standard case-sensitive String API over the original receiver; substring, custom same-name, and case-normalized variants are not exact affix predicates.",
+      "mutation": "standard Swift String.hasPrefix -> contains/custom/case-normalized predicate",
+      "fixtures": [
+        "crates/nose-cli/tests/fixtures/string_affix_550"
+      ],
+      "executable_expectations": [
+        {
+          "id": "string_affix_swift_contains_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+              "name": "prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/swift_contains.swift",
+              "name": "swiftContains"
+            }
+          ]
+        },
+        {
+          "id": "string_affix_swift_custom_api_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+              "name": "prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/swift_custom_same_name.swift",
+              "name": "swiftCustomSameName"
+            }
+          ]
+        },
+        {
+          "id": "string_affix_swift_case_insensitive_stays_split",
+          "fixture": "crates/nose-cli/tests/fixtures/string_affix_550",
+          "expect": "split",
+          "members": [
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/prefix.swift",
+              "name": "prefix"
+            },
+            {
+              "file": "crates/nose-cli/tests/fixtures/string_affix_550/swift_case_insensitive.swift",
+              "name": "swiftCaseInsensitive"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Swift string_affix_550 fixture keeps substring contains, custom same-name hasPrefix methods, and lowercased case-insensitive checks outside the standard case-sensitive String.hasPrefix family."
     },
     {
       "id": "null_option_presence_absence_positive",
