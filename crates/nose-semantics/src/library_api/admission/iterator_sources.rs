@@ -91,6 +91,9 @@ fn method_hof_callback_obligation_required(lang: Lang, id: LibraryApiContractId)
         LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
             Builtin::Any | Builtin::All,
         )) if lang == Lang::Ruby => true,
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+            Builtin::Any | Builtin::All,
+        )) if lang == Lang::Rust => true,
         _ => false,
     }
 }

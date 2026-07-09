@@ -172,23 +172,22 @@ and effect closure.
 ## Universal Quantifier Pattern Matrix
 
 This matrix records capability by language surface. Python is admitted through
-`python-loop-demorgan-all-2026-07-07`; TypeScript is admitted for the focused
-dense-literal one-argument `Array.prototype.every` plus `for-of` counterexample-loop slice,
-and JavaScript is admitted for the same dense-literal one-argument
-`Array.prototype.every` plus `for-of` counterexample-loop slice. Plain array
-parameters and callbacks that observe index/source-array arguments remain split
-because they do not prove the value-only dense-source perimeter. JavaScript
-same-file `Array.prototype.every` replacement also remains split because it
-breaks standard API identity. Other columns are open candidates until they have
-their own evidence producer, focused replay, hard negatives, and PCF/readiness
-admission.
+`python-loop-demorgan-all-2026-07-07`; TypeScript and JavaScript are admitted
+for focused dense-literal one-argument `Array.prototype.every` plus
+`for-of` counterexample-loop slices; Ruby is admitted for literal Array
+`Enumerable#all?`; and Rust is admitted for standard `Iterator::all` over an
+unconsumed same-source iterator. Plain JS/TS array parameters, callbacks that
+observe index/source-array arguments, JavaScript same-file `Array.prototype.every`
+replacement, Ruby receiver/block ambiguity, Rust consumed iterators, and Rust
+callback, loop, or mutating-borrow effects remain split until separate evidence
+proves those perimeters.
 
 | fact | Python `all(...)` + loop | TypeScript `every` + loop | JavaScript `every` + loop | Ruby `Enumerable#all?` | Rust `Iterator::all` |
 |---|---|---|---|---|---|
-| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | admitted for standard dense-literal one-arg every/for-of; array param, callback extra args, and prototype replacement stay split | open | open |
-| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for fallthrough true | admitted for fallthrough true | open | open |
-| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | admitted for same dense-literal source | open | open |
-| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | admitted for pure comparison predicates | open | open |
-| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | admitted for boolean comparison results; value-returning && remains closed | open | open |
+| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | admitted for standard dense-literal one-arg every/for-of; array param, callback extra args, and prototype replacement stay split | admitted for literal Array all?; receiver/block boundaries stay split | admitted for standard Iterator::all; changed source, consumed iterator, effect, and mutating-borrow boundaries stay split |
+| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for fallthrough true | admitted for fallthrough true | admitted for empty literal all? | admitted for Iterator::all fallthrough true |
+| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | admitted for same dense-literal source | admitted for literal receiver source | admitted for same unconsumed iterator source |
+| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | admitted for pure comparison predicates | admitted for pure one-arg blocks | admitted for pure one-arg callbacks; callback effects and mutating borrows stay split |
+| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | admitted for boolean comparison results; value-returning && remains closed | not-applicable for the literal receiver slice | not-applicable for the focused Iterator::all slice |
 
 Registry entries guide implementation work; they are not detector admission.

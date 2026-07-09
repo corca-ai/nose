@@ -1,15 +1,5 @@
 {
   "by_blocker": {
-    "add surface-specific focused fixtures and executable expectations": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      }
-    ],
     "connect packet evidence to focused executable expectations": [
       {
         "candidate_priority": "needs-surface-focused-perimeter",
@@ -80,16 +70,6 @@
     ]
   },
   "by_fact": {
-    "boolean.demorgan.proven-bool-operands": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      }
-    ],
     "collection.flatten-depth.one-level": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -151,14 +131,6 @@
       }
     ],
     "effect.pure-predicate": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      },
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Java",
@@ -267,14 +239,6 @@
       }
     ],
     "iteration.same-source-identity": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      },
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
         "language": "Swift",
@@ -484,26 +448,6 @@
         "surface_status": "open"
       }
     ],
-    "quantifier.universal.counterexample-loop": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      }
-    ],
-    "quantifier.vacuous-truth": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      }
-    ],
     "reduction.identity-empty-behavior": [
       {
         "candidate_priority": "blocked-by-unmodeled-facts",
@@ -569,16 +513,6 @@
         "likely_blocker": "model required facts before detector admission",
         "pattern_id": "option.presence-default.proven-channel-coordinate",
         "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
-        "surface_status": "open"
-      }
-    ],
-    "Rust": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
         "surface_status": "open"
       }
     ],
@@ -701,16 +635,6 @@
         "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
         "surface_status": "open"
       }
-    ],
-    "quantifier.universal.counterexample-loop": [
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-        "surface_status": "open"
-      }
     ]
   },
   "by_surface_status": {
@@ -721,14 +645,6 @@
         "likely_blocker": "connect packet evidence to focused executable expectations",
         "pattern_id": "numeric.clamp.proven-integer-bounds",
         "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
-        "surface_status": "open"
-      },
-      {
-        "candidate_priority": "needs-surface-focused-perimeter",
-        "language": "Rust",
-        "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-        "pattern_id": "quantifier.universal.counterexample-loop",
-        "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
         "surface_status": "open"
       },
       {
@@ -835,28 +751,12 @@
         },
         {
           "candidate_priority": "needs-surface-focused-perimeter",
-          "current_candidate_priority": "needs-surface-focused-perimeter",
-          "current_open_audit_state": "present",
-          "evidence_level": "missing",
+          "current_open_audit_state": "not-in-current-open-audit",
           "issue": 783,
           "language": "Rust",
-          "likely_blocker": "add surface-specific focused fixtures and executable expectations",
           "order": 5,
-          "pattern_focused_support": {
-            "hard_negative": 38,
-            "hard_negative_group": 1,
-            "positive": 7
-          },
           "pattern_id": "quantifier.universal.counterexample-loop",
           "selector": "quantifier.universal.counterexample-loop:Rust:needs-surface-focused-perimeter",
-          "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-          "surface_focused_support": {
-            "hard_negative": 0,
-            "hard_negative_group": 0,
-            "positive": 0
-          },
-          "surface_status": "open",
-          "unmodeled_facts": [],
           "work": "add Rust Iterator::all focused fixtures and expectations"
         },
         {
@@ -1106,10 +1006,10 @@
       "setup_issue": 781,
       "source": "bench/type4/open_surface_admission_audit.v1.json",
       "summary": {
-        "current_actionable_open_count": 2,
+        "current_actionable_open_count": 1,
         "current_blocked_open_count": 7,
         "in_scope_count": 6,
-        "in_scope_currently_open": 2,
+        "in_scope_currently_open": 1,
         "out_of_scope_count": 7,
         "out_of_scope_currently_open": 7,
         "unexpected_actionable_open_count": 0,
@@ -1144,44 +1044,6 @@
       ],
       "surface": "generic min/max Constrain-style helpers after integer-domain and bound-order proof",
       "surface_evidence": "bench/type4/frontier_target_packets.v1.json::numeric-clamp-2026-06-06",
-      "surface_focused_support": {
-        "hard_negative": 0,
-        "hard_negative_group": 0,
-        "positive": 0
-      },
-      "surface_status": "open",
-      "unmodeled_facts": [],
-      "unresolved_surface_evidence_refs": []
-    },
-    {
-      "candidate_priority": "needs-surface-focused-perimeter",
-      "coverage": {},
-      "evidence_level": "missing",
-      "fact_statuses": {
-        "boolean.demorgan.proven-bool-operands": "modeled-controlled",
-        "effect.pure-predicate": "modeled-controlled",
-        "iteration.same-source-identity": "modeled-controlled",
-        "quantifier.universal.counterexample-loop": "modeled-controlled",
-        "quantifier.vacuous-truth": "modeled-controlled"
-      },
-      "language": "Rust",
-      "likely_blocker": "add surface-specific focused fixtures and executable expectations",
-      "pattern_focused_support": {
-        "hard_negative": 38,
-        "hard_negative_group": 1,
-        "positive": 7
-      },
-      "pattern_id": "quantifier.universal.counterexample-loop",
-      "pattern_status": "real-pair-admitted",
-      "required_facts": [
-        "quantifier.universal.counterexample-loop",
-        "quantifier.vacuous-truth",
-        "iteration.same-source-identity",
-        "effect.pure-predicate",
-        "boolean.demorgan.proven-bool-operands"
-      ],
-      "surface": "Iterator::all plus a pure counterexample loop after iterator-source and closure-effect evidence",
-      "surface_evidence": "",
       "surface_focused_support": {
         "hard_negative": 0,
         "hard_negative_group": 0,
@@ -1560,7 +1422,7 @@
     ],
     "by_evidence_level": {
       "coverage-sweep": 1,
-      "missing": 6,
+      "missing": 5,
       "probe-only": 1,
       "target-packet": 1
     },
@@ -1568,17 +1430,16 @@
       "Go": 1,
       "Java": 1,
       "Ruby": 1,
-      "Rust": 1,
       "Swift": 5
     },
     "by_priority": {
       "blocked-by-unmodeled-facts": 7,
-      "needs-surface-focused-perimeter": 2
+      "needs-surface-focused-perimeter": 1
     },
     "by_status": {
-      "open": 9
+      "open": 8
     },
-    "open_surface_count": 9,
+    "open_surface_count": 8,
     "unresolved_surface_evidence_ref_count": 0
   },
   "tool_version": "open-surface-admission-audit/1"

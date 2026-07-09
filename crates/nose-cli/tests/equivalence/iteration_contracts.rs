@@ -89,6 +89,239 @@ fn rust_any_all_predicates_converge_with_early_return_loops() {
 }
 
 #[test]
+fn rust_iterator_all_converges_with_counterexample_loop() {
+    let i = Interner::new();
+    let same_source = "\
+fn rustAllLoop(xs: &[i64]) -> bool {
+    for &x in xs {
+        if !(x >= 0) {
+            return false;
+        }
+    }
+    true
+}
+
+fn rustAllIter(xs: &[i64]) -> bool {
+    xs.iter().copied().all(|x| x >= 0)
+}
+";
+    assert_eq!(
+        value_fp_named(&i, same_source, Lang::Rust, "rustAllLoop"),
+        value_fp_named(&i, same_source, Lang::Rust, "rustAllIter"),
+        "Rust Iterator::all should converge with a pure same-source counterexample loop"
+    );
+
+    let empty_truth = "\
+fn rustAllEmptyLoop() -> bool {
+    let xs: [i64; 0] = [];
+    for &x in &xs {
+        if !(x >= 0) {
+            return false;
+        }
+    }
+    true
+}
+
+fn rustAllEmptyIter() -> bool {
+    let xs: [i64; 0] = [];
+    xs.iter().copied().all(|x| x >= 0)
+}
+";
+    assert_eq!(
+        value_fp_named(&i, empty_truth, Lang::Rust, "rustAllEmptyLoop"),
+        value_fp_named(&i, empty_truth, Lang::Rust, "rustAllEmptyIter"),
+        "Rust Iterator::all and the loop must share vacuous truth on empty sources"
+    );
+}
+
+#[test]
+fn rust_iterator_all_keeps_predicate_source_empty_and_consumption_boundaries() {
+    let i = Interner::new();
+    let changed_predicate = "\
+fn rustAllLoop(xs: &[i64]) -> bool {
+    for &x in xs {
+        if !(x >= 0) {
+            return false;
+        }
+    }
+    true
+}
+
+fn rustAllChangedPredicate(xs: &[i64]) -> bool {
+    xs.iter().copied().all(|x| x > 0)
+}
+";
+    let loop_fp = value_fp_named(&i, changed_predicate, Lang::Rust, "rustAllLoop");
+    assert_ne!(
+        loop_fp,
+        value_fp_named(&i, changed_predicate, Lang::Rust, "rustAllChangedPredicate"),
+        "changing the Iterator::all predicate must stay distinct"
+    );
+
+    let different_source = "\
+fn rustAllLoop(xs: &[i64], ys: &[i64]) -> bool {
+    for &x in xs {
+        if !(x >= 0) {
+            return false;
+        }
+    }
+    true
+}
+
+fn rustAllDifferentSource(xs: &[i64], ys: &[i64]) -> bool {
+    ys.iter().copied().all(|y| y >= 0)
+}
+";
+    assert_ne!(
+        value_fp_named(&i, different_source, Lang::Rust, "rustAllLoop"),
+        value_fp_named(&i, different_source, Lang::Rust, "rustAllDifferentSource"),
+        "Rust Iterator::all admission requires the loop and terminal to traverse the same source"
+    );
+
+    let wrong_empty_truth = "\
+fn rustAllEmptyIter() -> bool {
+    let xs: [i64; 0] = [];
+    xs.iter().copied().all(|x| x >= 0)
+}
+
+fn rustAllWrongEmptyTruth() -> bool {
+    let xs: [i64; 0] = [];
+    for &x in &xs {
+        if !(x >= 0) {
+            return false;
+        }
+    }
+    false
+}
+";
+    assert_ne!(
+        value_fp_named(&i, wrong_empty_truth, Lang::Rust, "rustAllEmptyIter"),
+        value_fp_named(&i, wrong_empty_truth, Lang::Rust, "rustAllWrongEmptyTruth"),
+        "changing Rust Iterator::all empty-input truth must stay distinct"
+    );
+
+    let consumed_iterator = "\
+fn rustAllLoop(xs: &[i64]) -> bool {
+    for &x in xs {
+        if !(x >= 0) {
+            return false;
+        }
+    }
+    true
+}
+
+fn rustAllConsumedIterator(xs: &[i64]) -> bool {
+    let mut iter = xs.iter().copied();
+    let _ = iter.next();
+    iter.all(|x| x >= 0)
+}
+";
+    assert_ne!(
+        value_fp_named(&i, consumed_iterator, Lang::Rust, "rustAllLoop"),
+        value_fp_named(&i, consumed_iterator, Lang::Rust, "rustAllConsumedIterator"),
+        "an already-advanced Rust iterator skips an element and must not match the full-source loop"
+    );
+}
+
+#[test]
+fn rust_iterator_all_keeps_effect_and_borrow_boundaries() {
+    let i = Interner::new();
+    let effect_boundary = "\
+fn rustAllPureWithLog(xs: &[i64], log: &mut Vec<i64>) -> bool {
+    let _ = log.len();
+    xs.iter().copied().all(|x| x >= 0)
+}
+
+fn rustAllCallbackEffect(xs: &[i64], log: &mut Vec<i64>) -> bool {
+    xs.iter().copied().all(|x| {
+        log.push(x);
+        x >= 0
+    })
+}
+
+fn rustAllLoopEffect(xs: &[i64], log: &mut Vec<i64>) -> bool {
+    for &x in xs {
+        if !(x >= 0) {
+            log.push(x);
+            return false;
+        }
+    }
+    true
+}
+";
+    let pure_fp = value_fp_named(&i, effect_boundary, Lang::Rust, "rustAllPureWithLog");
+    assert_ne!(
+        pure_fp,
+        value_fp_named(&i, effect_boundary, Lang::Rust, "rustAllCallbackEffect"),
+        "observable closure effects must stay outside Rust Iterator::all admission"
+    );
+    assert_ne!(
+        pure_fp,
+        value_fp_named(&i, effect_boundary, Lang::Rust, "rustAllLoopEffect"),
+        "observable loop effects must stay outside Rust Iterator::all admission"
+    );
+
+    let mutating_borrow = "\
+fn rustAllPureMutable(xs: &mut [i64]) -> bool {
+    xs.iter().copied().all(|x| x >= 0)
+}
+
+fn rustAllMutatingBorrow(xs: &mut [i64]) -> bool {
+    xs.iter_mut().all(|x| {
+        *x += 1;
+        *x >= 0
+    })
+}
+";
+    assert_ne!(
+        value_fp_named(&i, mutating_borrow, Lang::Rust, "rustAllPureMutable"),
+        value_fp_named(&i, mutating_borrow, Lang::Rust, "rustAllMutatingBorrow"),
+        "iter_mut predicates that write through borrowed elements are behavior-defining"
+    );
+}
+
+#[test]
+fn rust_iterator_any_keeps_effect_and_borrow_boundaries() {
+    let i = Interner::new();
+    let effect_boundary = "\
+fn rustAnyPureWithLog(xs: &[i64], log: &mut Vec<i64>) -> bool {
+    let _ = log.len();
+    xs.iter().copied().any(|x| x > 0)
+}
+
+fn rustAnyCallbackEffect(xs: &[i64], log: &mut Vec<i64>) -> bool {
+    xs.iter().copied().any(|x| {
+        log.push(x);
+        x > 0
+    })
+}
+";
+    assert_ne!(
+        value_fp_named(&i, effect_boundary, Lang::Rust, "rustAnyPureWithLog"),
+        value_fp_named(&i, effect_boundary, Lang::Rust, "rustAnyCallbackEffect"),
+        "observable closure effects must stay outside Rust Iterator::any admission"
+    );
+
+    let mutating_borrow = "\
+fn rustAnyPureMutable(xs: &mut [i64]) -> bool {
+    xs.iter().copied().any(|x| x > 0)
+}
+
+fn rustAnyMutatingBorrow(xs: &mut [i64]) -> bool {
+    xs.iter_mut().any(|x| {
+        *x += 1;
+        *x > 0
+    })
+}
+";
+    assert_ne!(
+        value_fp_named(&i, mutating_borrow, Lang::Rust, "rustAnyPureMutable"),
+        value_fp_named(&i, mutating_borrow, Lang::Rust, "rustAnyMutatingBorrow"),
+        "iter_mut predicates that write through borrowed elements are behavior-defining for Iterator::any"
+    );
+}
+
+#[test]
 fn python_math_prod_converges_with_product_loop() {
     let i = Interner::new();
     let loop_py = "def f(xs):\n    product = 1\n    for x in xs:\n        if x > 0:\n            product *= x\n    return product\n";

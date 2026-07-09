@@ -725,13 +725,14 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `copied`/`cloned` and Java `.stream()` prove `Iterator`, Rust `to_vec` proves
   `Collection`, and Rust `collect` deliberately emits no fixed domain because
   the target type is caller-selected. Rust iterator
-  `map`/`filter`/`filter_map`/`flat_map` HOF adapters and
-  `any`/`all`/`count` terminals with
-  `nose.protocols.sequence_hof_adapters` provenance when protocol receiver proof
-  is present, and Swift `map`/`filter`/`flatMap` HOFs with the same provenance
-  when Array/Collection receiver proof and inline effect-closed callback proof
-  are present, and Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject`
-  HOFs with the same provenance when Array/Collection receiver proof and inline
+  `map`/`filter`/`filter_map`/`flat_map` HOF adapters and `count` terminals
+  with `nose.protocols.sequence_hof_adapters` provenance when protocol receiver
+  proof is present, Rust `any`/`all` terminals with the same provenance when
+  protocol receiver proof and inline effect-closed callback proof are present,
+  and Swift `map`/`filter`/`flatMap` HOFs with the same provenance when
+  Array/Collection receiver proof and inline effect-closed callback proof are
+  present, and Ruby Enumerable `map`/`collect`/`select`/`filter`/`reject` HOFs
+  with the same provenance when Array/Collection receiver proof and inline
   effect-closed block proof are present, generic method-call and namespace-call builtin semantics with
   `nose.protocols.builtin_method_calls` provenance when no narrower pack owns
   the row, Go `strings.HasPrefix`/`HasSuffix` namespace calls with

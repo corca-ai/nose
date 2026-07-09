@@ -19,8 +19,8 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 141/141 passed
-- real-frontier replay expectations: 26/26 passed; 0 unavailable
+- executable expectations: 150/150 passed
+- real-frontier replay expectations: 29/29 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -45,7 +45,7 @@ report keeps the fuller evidence and admission boundary.
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (12/12)` | `passed expectations (4/4)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (31/31)` | `passed expectations (8/8)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
-| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed expectations (8/8)` | 10 | 16 | 1 |
+| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (47/47)` | `passed expectations (11/11)` | 10 | 17 | 2 |
 
 ## Packet Details
 
@@ -107,17 +107,18 @@ report keeps the fuller evidence and admission boundary.
 
 ### `reduction-minmax-anyall-2026-07-08`
 
-- detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
+- detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, focused Rust Iterator::all universal loops, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
 - remaining real-pair gap: the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit
-- gates: 16 positive, 29 hard-negative
-- executable witness coverage: `covered` (38/38 passed)
-- real-frontier replay expectations: `passed` (8/8 expectations passed)
+- gates: 18 positive, 40 hard-negative
+- executable witness coverage: `covered` (47/47 passed)
+- real-frontier replay expectations: `passed` (11/11 expectations passed)
+- manifest-only cases: `rust_iterator_all_value_return_type_boundary`
 - proof fact model: `modeled-controlled`; facts: `numeric.aggregate-value-model-domain` (modeled-controlled), `numeric.selection-value-order-domain` (modeled-controlled), `numeric.float-special-value-boundary` (modeled-controlled), `iteration.same-source-identity` (modeled-controlled), `reduction.identity-empty-behavior` (modeled-controlled), `reduction.step-coordinate-identity` (modeled-controlled), `reduction.terminal-predicate-coordinate` (modeled-controlled), `reduction.short-circuit-direction` (modeled-controlled), `reduction.selection-seed-domain` (modeled-controlled), `effect.pure-predicate` (modeled-controlled)
 - blocked by:
   - the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources
   - the current detector has no reusable append-only dense local-array provenance fact, so arbitrary TypeScript or JavaScript array-parameter every/for-of sparse-hole boundaries must stay closed
   - Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean
-- hard-negative groups: `reduction-minmax-anyall-proof-perimeter`
+- hard-negative groups: `reduction-minmax-anyall-proof-perimeter`, `rust-iterator-all-proof-perimeter`
 
 ## Hard-Negative Linkage
 
@@ -169,6 +170,13 @@ report keeps the fuller evidence and admission boundary.
 - conventions: `reduction.identity-empty`, `reduction.step-coordinate`, `reduction.terminal-predicate`, `reduction.short-circuit-direction`, `reduction.selection-seed-domain`, `numeric.domain`, `loop.iterator-identity`, `loop.short-circuit`, `boolean.effect-safety`, `boolean.value-context`, `protocol-boundary.api-identity`
 - cases: 5 positive, 6 hard-negative
 - regression gates: 23
+
+### `reduction-minmax-anyall-2026-07-08` / `rust-iterator-all-proof-perimeter`
+
+- semantic family: `quantifier.universal.counterexample-loop`
+- conventions: `loop.empty-input`, `loop.short-circuit`, `loop.iterator-identity`, `boolean.effect-safety`, `boolean.value-context`, `protocol-boundary.callback-effect`
+- cases: 1 positive, 7 hard-negative
+- regression gates: 12
 
 ## Co-Evolution Guardrails
 

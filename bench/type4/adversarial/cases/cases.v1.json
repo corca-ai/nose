@@ -354,6 +354,48 @@
         "crates/nose-cli/tests/equivalence/swift_all_satisfy.rs::swift_all_satisfy_keeps_custom_overload_callback_shape_boundary"
       ],
       "claim": "Reduction admission must keep identity/empty behavior, numeric-domain closure for numeric aggregates, step or terminal predicate coordinate, any/all short-circuit direction, selection seed/domain behavior, source identity, receiver/API identity, and effect safety beside every sum/product/any/all/min/max bridge."
+    },
+    {
+      "id": "rust-iterator-all-proof-perimeter",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "packet_ids": [
+        "reduction-minmax-anyall-2026-07-08"
+      ],
+      "conventions": [
+        "loop.empty-input",
+        "loop.short-circuit",
+        "loop.iterator-identity",
+        "boolean.effect-safety",
+        "boolean.value-context",
+        "protocol-boundary.callback-effect"
+      ],
+      "positive_cases": [
+        "rust_iterator_all_universal_positive"
+      ],
+      "hard_negative_cases": [
+        "rust_iterator_all_vacuous_truth_boundary",
+        "rust_iterator_all_changed_predicate_boundary",
+        "rust_iterator_all_source_identity_boundary",
+        "rust_iterator_all_effect_boundary",
+        "rust_iterator_all_consumed_iterator_boundary",
+        "rust_iterator_all_mutating_borrow_boundary",
+        "rust_iterator_all_value_return_type_boundary"
+      ],
+      "regression_gates": [
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_universal_positive",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_vacuous_truth_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_changed_predicate_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_source_identity_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_effect_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_consumed_iterator_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_mutating_borrow_boundary",
+        "bench/type4/adversarial/cases/cases.v1.json::rust_iterator_all_value_return_type_boundary",
+        "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_converges_with_counterexample_loop",
+        "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_keeps_predicate_source_empty_and_consumption_boundaries",
+        "crates/nose-cli/tests/equivalence/iteration_contracts.rs::rust_iterator_all_keeps_effect_and_borrow_boundaries",
+        "crates/nose-semantics/src/tests/library_api_evidence/admission_resolvers/sequence_hof.rs::admitted_rust_iterator_hof_pack_covers_lazy_adapters_and_terminals"
+      ],
+      "claim": "Rust Iterator::all admission must keep same-source traversal, vacuous truth, first-counterexample short-circuit direction, pure bool-returning predicates, unconsumed iterator identity, and non-mutating borrow boundaries beside every loop/terminal positive."
     }
   ],
   "cases": [
@@ -2937,6 +2979,242 @@
         }
       ],
       "evidence": "Same-file Array.prototype.every assignment and Object.defineProperty(Array.prototype, \"every\", ...) can replace the standard terminal API, so the loop/every proof must stay closed when those writes are present."
+    },
+    {
+      "id": "rust_iterator_all_universal_positive",
+      "kind": "positive",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "A Rust Iterator::all(...) terminal can converge with a same-source counterexample loop when the receiver is proven as the same iterator source, the predicate is pure and bool-returning, the loop returns false at the first failing predicate, and both forms preserve vacuous truth.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_loop_matches_iter_all",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_iter"
+            }
+          ]
+        },
+        {
+          "id": "rust_iterator_all_empty_loop_matches_iter_all",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_empty_loop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_empty_iter"
+            }
+          ]
+        }
+      ],
+      "evidence": "The Rust fixture admits the standard `xs.iter().copied().all(|x| x >= 0)` surface and its empty-source sibling only when the loop scans the same source and falls through to true after exhaustion."
+    },
+    {
+      "id": "rust_iterator_all_vacuous_truth_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Changing the loop fallthrough result breaks Rust Iterator::all(...) vacuous truth.",
+      "mutation": "fallthrough return true -> false",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_wrong_empty_truth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_empty_iter"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_wrong_empty_truth"
+            }
+          ]
+        }
+      ],
+      "evidence": "rust_all_wrong_empty_truth returns false for empty input while Iterator::all(...) returns true."
+    },
+    {
+      "id": "rust_iterator_all_changed_predicate_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Changing the Rust Iterator::all(...) predicate changes behavior even when the surface remains universal.",
+      "mutation": "x >= 0 -> x > 0",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_iter"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_positive_iter"
+            }
+          ]
+        }
+      ],
+      "evidence": "rust_all_positive_iter rejects zero while rust_all_iter accepts it, so predicate-coordinate identity is required independently from the universal surface spelling."
+    },
+    {
+      "id": "rust_iterator_all_source_identity_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "The Rust Iterator::all(...) receiver and counterexample loop source must be the same collection or iterator source.",
+      "mutation": "terminal traverses ys while the positive source traverses xs",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_different_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_iter_two_sources"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_different_source"
+            }
+          ]
+        }
+      ],
+      "evidence": "Both functions keep the same `(xs, ys)` surface, but one terminal traverses xs and the other traverses ys."
+    },
+    {
+      "id": "rust_iterator_all_effect_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Closure or loop-body effects prevent treating Rust Iterator::all(...) and a counterexample loop as a pure boolean rewrite.",
+      "mutation": "insert observed log.push(x) in the callback or failing loop branch",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_callback_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_pure_with_log"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_callback_effect"
+            }
+          ]
+        },
+        {
+          "id": "rust_iterator_all_loop_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_pure_with_log"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_loop_effect"
+            }
+          ]
+        }
+      ],
+      "evidence": "All three functions expose the same `log` parameter; only the callback or failing loop branch mutates it."
+    },
+    {
+      "id": "rust_iterator_all_consumed_iterator_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "A Rust iterator that has already been advanced is not the same full-source traversal as the counterexample loop.",
+      "mutation": "fresh xs.iter().copied() -> iter.next(); iter.all(...)",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_consumed_iterator_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_iter"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_consumed_iterator"
+            }
+          ]
+        }
+      ],
+      "evidence": "rust_all_consumed_iterator skips the first element before calling all, so iterator identity must include consumption state rather than just the source name."
+    },
+    {
+      "id": "rust_iterator_all_mutating_borrow_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Rust Iterator::all(...) over iter_mut with writes through borrowed elements is behavior-defining and must stay outside the pure predicate perimeter.",
+      "mutation": "iter().copied() pure predicate -> iter_mut() predicate that writes *x",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "executable_expectations": [
+        {
+          "id": "rust_iterator_all_mutating_borrow_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_pure_mutable"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs",
+              "name": "rust_all_mutating_borrow"
+            }
+          ]
+        }
+      ],
+      "evidence": "rust_all_mutating_borrow changes the borrowed slice through `*x += 1`; the Rust terminal callback admission now requires the callback body to be effect-closed before it can normalize to a pure all reduction."
+    },
+    {
+      "id": "rust_iterator_all_value_return_type_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Rust has no JS/TS-style value-returning Iterator::all predicate surface: the standard callback type is bool-returning, so value-payload truthiness is closed at the type boundary.",
+      "mutation": "bool-returning predicate -> non-bool value-returning predicate",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.rs"
+      ],
+      "evidence": "No valid executable Rust Iterator::all pair exists for this boundary because `Iterator::all` requires `FnMut(Self::Item) -> bool`; the executable siblings above cover the remaining behavior-defining predicate-coordinate and effect boundaries."
     },
     {
       "id": "reduction_selection_seeded_positive",

@@ -60,8 +60,9 @@ through `nose.protocols.iterator_builtins` with unshadowed builtin proof,
 iterable-source proof, and a lambda callback shape. Rust
 iterator HOF rows require
 `nose.protocols.sequence_hof_adapters` occurrence provenance on a proven
-protocol receiver; `any`/`all` and `count` terminal rows use the same provenance
-boundary, while Swift `map`/`filter`/`flatMap` rows use the same pack only on
+protocol receiver; `count` terminal rows use the same receiver provenance
+boundary, while Rust `any`/`all` terminals additionally require inline
+effect-closed callback proof. Swift `map`/`filter`/`flatMap` rows use the same pack only on
 proven Array/Collection receivers with inline effect-closed callbacks. Ruby
 Enumerable rows use the same pack only on proven Array/Collection receivers with
 inline effect-closed blocks; no-block Enumerator returns, lazy enumerators,
