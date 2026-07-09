@@ -133,6 +133,222 @@ EPIC_778_OUT_OF_SCOPE_ROWS = [
     },
 ]
 
+EPIC_791_BLOCKED_ROWS = [
+    {
+        "order": 1,
+        "issue": 793,
+        "pattern_id": "option.presence-default.proven-channel-coordinate",
+        "language": "Ruby",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": ["option.absence-channel.identity"],
+        "work": "model absence-channel identity before Ruby nil?/nil comparison admission",
+        "reason": "only the absence-channel fact is unmodeled, but the focused Ruby nil? perimeter is not sound until that fact lands",
+    },
+    {
+        "order": 2,
+        "issue": 793,
+        "pattern_id": "option.presence-default.proven-channel-coordinate",
+        "language": "Swift",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": ["option.absence-channel.identity"],
+        "work": "model absence-channel identity before Swift Optional presence/defaulting admission",
+        "reason": "probe evidence exists, but Optional presence/defaulting still needs a proven absence channel before focused admission",
+    },
+    {
+        "order": 3,
+        "issue": 795,
+        "pattern_id": "hof.filter-map.option-emission",
+        "language": "Swift",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.filter-map.drop-condition-coordinate",
+            "hof.filter-map.emitted-value-coordinate",
+            "option.absence-channel.identity",
+        ],
+        "work": "model Swift compactMap drop-condition and emitted-value coordinates",
+        "reason": "after option channel and callback purity, compactMap still needs filter-map coordinate facts before admission",
+    },
+    {
+        "order": 4,
+        "issue": 796,
+        "pattern_id": "hof.flat-map.one-level-flatten",
+        "language": "Swift",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+        ],
+        "work": "model one-level flatten, nested-order, and emitted-value facts for Swift flatMap",
+        "reason": "Sequence.flatMap admission requires a reusable one-level flatten proof, not Swift API spelling alone",
+    },
+    {
+        "order": 5,
+        "issue": 797,
+        "pattern_id": "hof.flat-map.aggregate-reduction",
+        "language": "Java",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate",
+        ],
+        "work": "connect Java Stream.flatMap aggregate reductions after flat-map source facts land",
+        "reason": "aggregate reduction facts are modeled, but flat-map traversal and guard-coordinate facts are still missing",
+    },
+    {
+        "order": 6,
+        "issue": 797,
+        "pattern_id": "hof.flat-map.aggregate-reduction",
+        "language": "Swift",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate",
+        ],
+        "work": "connect Swift flatMap terminal aggregates after one-level flatten facts land",
+        "reason": "terminal aggregate identity is reusable only after the flattened element stream and guard coordinates are proven",
+    },
+    {
+        "order": 7,
+        "issue": 798,
+        "pattern_id": "map.default.absence-lookup",
+        "language": "Swift",
+        "candidate_priority": "blocked-by-unmodeled-facts",
+        "planned_unmodeled_facts": [
+            "map.default.absence-fallback",
+            "map.receiver.source-identity",
+            "map.default.key-fallback-coordinate",
+            "map.receiver.no-intervening-mutation",
+        ],
+        "work": "model Swift Dictionary default lookup receiver, key, fallback, and mutation facts",
+        "reason": "default subscript admission needs absent-key fallback and receiver-coordinate proof instead of subscript spelling",
+    },
+]
+
+EPIC_791_FACT_GROUPS = [
+    {
+        "order": 1,
+        "issue": 793,
+        "group_id": "option.absence-channel",
+        "title": "Option absence-channel identity",
+        "facts": ["option.absence-channel.identity"],
+        "unblocks": [
+            "option.presence-default.proven-channel-coordinate:Ruby",
+            "option.presence-default.proven-channel-coordinate:Swift",
+            "hof.filter-map.option-emission:Swift",
+        ],
+        "focused_admission_after_group_lands": [
+            "option.presence-default.proven-channel-coordinate:Ruby",
+            "option.presence-default.proven-channel-coordinate:Swift",
+        ],
+        "still_open_until": [
+            "hof.filter-map.option-emission:Swift waits for callback purity and filter-map coordinates",
+        ],
+    },
+    {
+        "order": 2,
+        "issue": 794,
+        "group_id": "effect.hof-callback-purity",
+        "title": "Higher-order callback effect safety",
+        "facts": ["effect.pure-callback"],
+        "unblocks": [
+            "hof.filter-map.option-emission:Swift",
+            "hof.flat-map.one-level-flatten:Swift",
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift",
+        ],
+        "focused_admission_after_group_lands": [],
+        "still_open_until": [
+            "compactMap waits for option-emission coordinate facts",
+            "flatMap waits for one-level flatten and nested traversal facts",
+        ],
+    },
+    {
+        "order": 3,
+        "issue": 795,
+        "group_id": "hof.filter-map.coordinates",
+        "title": "Filter-map drop and emitted-value coordinates",
+        "facts": [
+            "hof.filter-map.drop-condition-coordinate",
+            "hof.filter-map.emitted-value-coordinate",
+        ],
+        "unblocks": ["hof.filter-map.option-emission:Swift"],
+        "focused_admission_after_group_lands": ["hof.filter-map.option-emission:Swift"],
+        "still_open_until": [],
+    },
+    {
+        "order": 4,
+        "issue": 796,
+        "group_id": "hof.flat-map.one-level-stream",
+        "title": "One-level flat-map source and emitted stream",
+        "facts": [
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+        ],
+        "unblocks": [
+            "hof.flat-map.one-level-flatten:Swift",
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift",
+        ],
+        "focused_admission_after_group_lands": ["hof.flat-map.one-level-flatten:Swift"],
+        "still_open_until": [
+            "flat-map aggregate reductions wait for aggregate guard-coordinate proof",
+        ],
+    },
+    {
+        "order": 5,
+        "issue": 797,
+        "group_id": "hof.flat-map.aggregate-guard",
+        "title": "Flat-map aggregate guard coordinate",
+        "facts": ["hof.flat-map.aggregate-guard-coordinate"],
+        "unblocks": [
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift",
+        ],
+        "focused_admission_after_group_lands": [
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift",
+        ],
+        "still_open_until": [],
+    },
+    {
+        "order": 6,
+        "issue": 798,
+        "group_id": "map.default.receiver-fallback",
+        "title": "Map default receiver and fallback coordinates",
+        "facts": [
+            "map.default.absence-fallback",
+            "map.receiver.source-identity",
+            "map.default.key-fallback-coordinate",
+            "map.receiver.no-intervening-mutation",
+        ],
+        "unblocks": ["map.default.absence-lookup:Swift"],
+        "focused_admission_after_group_lands": ["map.default.absence-lookup:Swift"],
+        "still_open_until": [],
+    },
+    {
+        "order": 7,
+        "issue": 799,
+        "group_id": "blocked-surface-closeout",
+        "title": "Blocked-surface closeout and replay evidence",
+        "facts": [],
+        "unblocks": [],
+        "focused_admission_after_group_lands": [],
+        "still_open_until": [
+            "any row still open after #793-#798 must carry stronger blocker or replay evidence",
+        ],
+    },
+]
+
 
 class OpenSurfaceAuditError(RuntimeError):
     pass
@@ -571,6 +787,7 @@ def build_report(
             by_fact[fact_id].append(entry)
 
     epic_778_slice = build_epic_778_slice(rows)
+    epic_791_slice = build_epic_791_slice(rows, fact_status_by_id)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -591,6 +808,7 @@ def build_report(
         "by_surface_status": {key: value for key, value in sorted(by_surface_status.items())},
         "epic_slices": {
             "epic_778": epic_778_slice,
+            "epic_791": epic_791_slice,
         },
         "rows": rows,
     }
@@ -647,6 +865,8 @@ def epic_row_record(
         record["work"] = spec["work"]
     if "reason" in spec:
         record["reason"] = spec["reason"]
+    if "planned_unmodeled_facts" in spec:
+        record["planned_unmodeled_facts"] = spec["planned_unmodeled_facts"]
     if row is None:
         return record
     record.update({
@@ -801,6 +1021,194 @@ def build_epic_778_slice(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def build_epic_791_slice(
+    rows: list[dict[str, Any]],
+    fact_status_by_id: dict[str, str],
+) -> dict[str, Any]:
+    rows_by_selector: dict[str, dict[str, Any]] = {}
+    rows_by_surface: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    errors: list[str] = []
+    for row in rows:
+        selector = row_selector(
+            row["pattern_id"],
+            row["language"],
+            row["candidate_priority"],
+        )
+        if selector in rows_by_selector:
+            errors.append(f"duplicate open audit row selector: {selector}")
+        rows_by_selector[selector] = row
+        rows_by_surface[row_surface_key(row["pattern_id"], row["language"])].append(row)
+
+    frozen_selectors: set[str] = set()
+    frozen_surface_keys: set[str] = set()
+    planned_facts_by_surface: dict[str, set[str]] = {}
+    planned_fact_ids = {
+        fact_id
+        for group in EPIC_791_FACT_GROUPS
+        for fact_id in group["facts"]
+    }
+    for spec in EPIC_791_BLOCKED_ROWS:
+        selector = row_selector(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+        )
+        surface_key = row_surface_key(spec["pattern_id"], spec["language"])
+        if selector in frozen_selectors:
+            errors.append(f"duplicate epic #791 frozen selector: {selector}")
+        if surface_key in frozen_surface_keys:
+            errors.append(f"duplicate epic #791 frozen surface: {surface_key}")
+        frozen_selectors.add(selector)
+        frozen_surface_keys.add(surface_key)
+        planned_row_facts = set(spec.get("planned_unmodeled_facts", []))
+        unplanned_spec_facts = sorted(planned_row_facts - planned_fact_ids)
+        if unplanned_spec_facts:
+            errors.append(
+                f"epic #791 row {surface_key} references facts outside planned "
+                f"fact groups: {', '.join(unplanned_spec_facts)}"
+            )
+        planned_facts_by_surface[surface_key] = planned_row_facts
+    frozen_rows: list[dict[str, Any]] = []
+    for spec in EPIC_791_BLOCKED_ROWS:
+        selector = row_selector(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+        )
+        surface_key = row_surface_key(spec["pattern_id"], spec["language"])
+        row = rows_by_selector.get(selector)
+        current_state = "present"
+        if row is None:
+            current_surface_rows = rows_by_surface.get(surface_key, [])
+            if current_surface_rows:
+                row = current_surface_rows[0]
+                current_state = "present-with-different-priority"
+        if row is not None and row["candidate_priority"] == "blocked-by-unmodeled-facts":
+            current_unmodeled_facts = set(row.get("unmodeled_facts", []))
+            planned_row_facts = planned_facts_by_surface[surface_key]
+            facts_outside_plan = sorted(current_unmodeled_facts - planned_row_facts)
+            if facts_outside_plan:
+                errors.append(
+                    f"epic #791 row {surface_key} is blocked by unplanned fact(s): "
+                    + ", ".join(facts_outside_plan)
+                )
+            modeled_blockers = sorted(
+                fact_id
+                for fact_id in current_unmodeled_facts
+                if fact_status_by_id.get(fact_id) in MODELED_FACT_STATUSES
+            )
+            if modeled_blockers:
+                errors.append(
+                    f"epic #791 row {surface_key} is still blocked by modeled fact(s): "
+                    + ", ".join(modeled_blockers)
+                )
+        frozen_rows.append(
+            epic_row_record(spec, row, current_open_audit_state=current_state)
+        )
+
+    current_blocked = [
+        row
+        for row in rows
+        if row["candidate_priority"] == "blocked-by-unmodeled-facts"
+    ]
+    current_actionable = [
+        row
+        for row in rows
+        if row["candidate_priority"] in ACTIONABLE_PRIORITIES
+    ]
+    unexpected_blocked = [
+        group_entry(row)
+        for row in current_blocked
+        if row_selector(row["pattern_id"], row["language"], row["candidate_priority"])
+        not in frozen_selectors
+        and row_surface_key(row["pattern_id"], row["language"])
+        not in frozen_surface_keys
+    ]
+    if unexpected_blocked:
+        errors.extend(
+            "unexpected blocked open row outside epic #791 slice: "
+            + group_entry_label(row)
+            for row in unexpected_blocked
+        )
+
+    fact_groups: list[dict[str, Any]] = []
+    for group in EPIC_791_FACT_GROUPS:
+        for fact_id in group["facts"]:
+            if fact_id not in fact_status_by_id:
+                errors.append(
+                    f"epic #791 fact group {group['group_id']} references "
+                    f"unknown proof fact: {fact_id}"
+                )
+        for surface_key in (
+            group["unblocks"] + group["focused_admission_after_group_lands"]
+        ):
+            if surface_key not in frozen_surface_keys:
+                errors.append(
+                    f"epic #791 fact group {group['group_id']} references "
+                    f"unknown frozen surface: {surface_key}"
+                )
+        if group["facts"]:
+            group_fact_ids = set(group["facts"])
+            for surface_key in group["unblocks"]:
+                planned_row_facts = planned_facts_by_surface.get(surface_key, set())
+                if surface_key in frozen_surface_keys and not (
+                    group_fact_ids & planned_row_facts
+                ):
+                    errors.append(
+                        f"epic #791 fact group {group['group_id']} does not "
+                        f"cover any planned blocker for {surface_key}"
+                    )
+        fact_groups.append({
+            **group,
+            "fact_statuses": {
+                fact_id: fact_status_by_id.get(fact_id, "missing")
+                for fact_id in group["facts"]
+            },
+        })
+
+    return {
+        "issue": 791,
+        "title": "Model neutral facts for blocked Type-4 surfaces",
+        "setup_issue": 792,
+        "closeout_issue": 799,
+        "predecessor_issue": 778,
+        "source": "bench/type4/open_surface_admission_audit.v1.json",
+        "scope_policy": {
+            "frozen_priority": "blocked-by-unmodeled-facts",
+            "predecessor_must_be_closed": 778,
+            "group_by": "neutral proof fact before language surface",
+            "unexpected_blocked_rows_are_errors": True,
+            "resolved_or_promoted_rows_are_allowed": True,
+        },
+        "summary": {
+            "frozen_blocked_count": len(frozen_rows),
+            "frozen_currently_blocked": sum(
+                1
+                for row in frozen_rows
+                if row["current_open_audit_state"] == "present"
+                and row.get("current_candidate_priority")
+                == "blocked-by-unmodeled-facts"
+            ),
+            "frozen_promoted_or_resolved": sum(
+                1
+                for row in frozen_rows
+                if row["current_open_audit_state"] != "present"
+                or row.get("current_candidate_priority")
+                != "blocked-by-unmodeled-facts"
+            ),
+            "current_blocked_open_count": len(current_blocked),
+            "current_actionable_open_count": len(current_actionable),
+            "unexpected_blocked_open_count": len(unexpected_blocked),
+            "fact_group_count": len(fact_groups),
+            "validation_error_count": len(errors),
+        },
+        "frozen_rows": sorted(frozen_rows, key=lambda row: int(row["order"])),
+        "fact_groups": sorted(fact_groups, key=lambda group: int(group["order"])),
+        "unexpected_blocked_open_rows": unexpected_blocked,
+        "validation_errors": errors,
+    }
+
+
 def selftest_row(
     pattern_id: str,
     language: str,
@@ -920,6 +1328,148 @@ def selftest() -> None:
         raise OpenSurfaceAuditError(
             "selftest expected blocked in-scope regression to fail"
         )
+
+    fact_status_by_id = {
+        fact_id: "specified-not-modeled"
+        for group in EPIC_791_FACT_GROUPS
+        for fact_id in group["facts"]
+    }
+    blocked_fact_rows = [
+        selftest_row(
+            spec["pattern_id"],
+            spec["language"],
+            spec["candidate_priority"],
+            unmodeled_facts=list(spec["planned_unmodeled_facts"]),
+        )
+        for spec in EPIC_791_BLOCKED_ROWS
+    ]
+    blocked_fact_slice = build_epic_791_slice(blocked_fact_rows, fact_status_by_id)
+    if blocked_fact_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected clean #791 slice, got "
+            + "; ".join(blocked_fact_slice["validation_errors"])
+        )
+    expected_blocked_summary = {
+        "frozen_blocked_count": 7,
+        "frozen_currently_blocked": 7,
+        "frozen_promoted_or_resolved": 0,
+        "current_blocked_open_count": 7,
+        "current_actionable_open_count": 0,
+        "unexpected_blocked_open_count": 0,
+        "fact_group_count": 7,
+        "validation_error_count": 0,
+    }
+    if blocked_fact_slice["summary"] != expected_blocked_summary:
+        raise OpenSurfaceAuditError(
+            f"selftest #791 summary drifted: {blocked_fact_slice['summary']}"
+        )
+
+    resolved_blocked_rows = blocked_fact_rows[:-1]
+    resolved_blocked_slice = build_epic_791_slice(
+        resolved_blocked_rows,
+        fact_status_by_id,
+    )
+    if resolved_blocked_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected resolved #791 rows to be allowed, got "
+            + "; ".join(resolved_blocked_slice["validation_errors"])
+        )
+    if resolved_blocked_slice["summary"]["frozen_promoted_or_resolved"] != 1:
+        raise OpenSurfaceAuditError(
+            "selftest #791 resolved row was not counted as promoted/resolved"
+        )
+
+    promoted_spec = EPIC_791_BLOCKED_ROWS[-1]
+    promoted_surface_key = row_surface_key(
+        promoted_spec["pattern_id"],
+        promoted_spec["language"],
+    )
+    promoted_blocked_rows = [
+        row
+        for row in blocked_fact_rows
+        if row_surface_key(row["pattern_id"], row["language"]) != promoted_surface_key
+    ] + [
+        selftest_row(
+            promoted_spec["pattern_id"],
+            promoted_spec["language"],
+            "proof-fact-ready",
+        )
+    ]
+    promoted_blocked_slice = build_epic_791_slice(
+        promoted_blocked_rows,
+        fact_status_by_id,
+    )
+    if promoted_blocked_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected promoted #791 row to be allowed, got "
+            + "; ".join(promoted_blocked_slice["validation_errors"])
+        )
+    promoted_entry = promoted_blocked_slice["frozen_rows"][-1]
+    if (
+        promoted_entry["current_open_audit_state"]
+        != "present-with-different-priority"
+        or promoted_entry.get("current_candidate_priority") != "proof-fact-ready"
+    ):
+        raise OpenSurfaceAuditError(
+            f"selftest #791 promoted row was not recorded: {promoted_entry}"
+        )
+
+    unexpected_blocked_rows = blocked_fact_rows + [
+        selftest_row(
+            "selftest.unexpected-pattern",
+            "Swift",
+            "blocked-by-unmodeled-facts",
+            unmodeled_facts=["selftest.unexpected-fact"],
+        )
+    ]
+    unexpected_blocked_slice = build_epic_791_slice(
+        unexpected_blocked_rows,
+        fact_status_by_id,
+    )
+    if not unexpected_blocked_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected unexpected #791 blocked row to fail"
+        )
+
+    unplanned_blocker_rows = [
+        {
+            **blocked_fact_rows[0],
+            "unmodeled_facts": ["selftest.unplanned-fact"],
+        }
+    ] + blocked_fact_rows[1:]
+    unplanned_blocker_slice = build_epic_791_slice(
+        unplanned_blocker_rows,
+        fact_status_by_id,
+    )
+    if not unplanned_blocker_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected unplanned #791 blocker fact to fail"
+        )
+
+    modeled_fact_status_by_id = {
+        fact_id: "modeled-controlled"
+        for group in EPIC_791_FACT_GROUPS
+        for fact_id in group["facts"]
+    }
+    modeled_blocker_slice = build_epic_791_slice(
+        blocked_fact_rows,
+        modeled_fact_status_by_id,
+    )
+    if not modeled_blocker_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected modeled #791 blocker fact to fail"
+        )
+
+    missing_fact_status_by_id = dict(fact_status_by_id)
+    missing_fact_status_by_id.pop("option.absence-channel.identity")
+    missing_fact_slice = build_epic_791_slice(
+        blocked_fact_rows,
+        missing_fact_status_by_id,
+    )
+    if not missing_fact_slice["validation_errors"]:
+        raise OpenSurfaceAuditError(
+            "selftest expected unknown #791 fact group id to fail"
+        )
     print("selftest OK")
 
 
@@ -1024,6 +1574,97 @@ def render_epic_778_slice(slice_report: dict[str, Any]) -> list[str]:
     return lines
 
 
+def format_selector_items(items: list[str]) -> str:
+    if not items:
+        return ""
+    return ", ".join(f"`{item}`" for item in items)
+
+
+def render_epic_791_slice(slice_report: dict[str, Any]) -> list[str]:
+    summary = slice_report["summary"]
+    lines = [
+        "## Epic #791 Neutral-Fact Blocked Slice",
+        "",
+        "This frozen slice tracks the open rows that are intentionally blocked",
+        "until missing language-neutral proof facts are modeled. It is grouped by",
+        "reusable proof fact stage before language surface so the next PRs do not",
+        "admit Ruby, Swift, Java, or map/HOF spellings directly.",
+        "",
+        f"- tracker issue: #{slice_report['issue']}",
+        f"- setup issue: #{slice_report['setup_issue']}",
+        f"- predecessor issue: #{slice_report['predecessor_issue']}",
+        f"- closeout issue: #{slice_report['closeout_issue']}",
+        f"- frozen blocked rows: {summary['frozen_blocked_count']} "
+        f"({summary['frozen_currently_blocked']} currently blocked)",
+        f"- promoted or resolved frozen rows: {summary['frozen_promoted_or_resolved']}",
+        f"- current blocked open rows: {summary['current_blocked_open_count']}",
+        f"- unexpected blocked open rows: {summary['unexpected_blocked_open_count']}",
+        "",
+        "### Fact Groups And Admission Order",
+        "",
+        "| order | issue | fact group | fact statuses | unblocks | focused admission candidates after group lands | intentionally still open |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for group in slice_report["fact_groups"]:
+        statuses = ", ".join(
+            f"`{fact}`:{status}"
+            for fact, status in group["fact_statuses"].items()
+        )
+        lines.append(
+            "| "
+            f"{group['order']} | "
+            f"#{group['issue']} | "
+            f"`{group['group_id']}` {markdown_cell(group['title'])} | "
+            f"{statuses} | "
+            f"{format_selector_items(group['unblocks'])} | "
+            f"{format_selector_items(group['focused_admission_after_group_lands'])} | "
+            f"{markdown_cell('; '.join(group['still_open_until']))} |"
+        )
+    lines.extend([
+        "",
+        "### Frozen Rows",
+        "",
+        "| order | issue | priority | pattern | language | current state | blocker | missing facts | work | surface |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ])
+    for row in slice_report["frozen_rows"]:
+        current_state = row["current_open_audit_state"]
+        if row.get("current_candidate_priority") != row["candidate_priority"]:
+            current_state = (
+                f"{current_state} (`{row.get('current_candidate_priority', '')}`)"
+            )
+        lines.append(
+            "| "
+            f"{row['order']} | "
+            f"#{row['issue']} | "
+            f"`{row['candidate_priority']}` | "
+            f"`{row['pattern_id']}` | "
+            f"{row['language']} | "
+            f"{current_state} | "
+            f"{markdown_cell(row.get('likely_blocker', ''))} | "
+            f"{', '.join(f'`{fact}`' for fact in row.get('unmodeled_facts', []))} | "
+            f"{markdown_cell(row['work'])} | "
+            f"{markdown_cell(row.get('surface', ''))} |"
+        )
+    if slice_report["unexpected_blocked_open_rows"]:
+        lines.extend([
+            "",
+            "### Unexpected Blocked Rows",
+            "",
+            "| pattern | language | priority | blocker |",
+            "|---|---|---|---|",
+        ])
+        for row in slice_report["unexpected_blocked_open_rows"]:
+            lines.append(
+                "| "
+                f"`{row['pattern_id']}` | "
+                f"{row['language']} | "
+                f"`{row['candidate_priority']}` | "
+                f"{markdown_cell(row['likely_blocker'])} |"
+            )
+    return lines
+
+
 def render_markdown(report: dict[str, Any]) -> str:
     summary = report["summary"]
     lines = [
@@ -1047,6 +1688,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
     ]
     lines.extend(render_epic_778_slice(report["epic_slices"]["epic_778"]))
+    lines.extend([""])
+    lines.extend(render_epic_791_slice(report["epic_slices"]["epic_791"]))
     lines.extend([
         "",
         "## Candidate Rows",
@@ -1228,6 +1871,11 @@ def main() -> int:
         if epic_778_errors:
             raise OpenSurfaceAuditError(
                 "epic #778 audit slice is invalid: " + "; ".join(epic_778_errors)
+            )
+        epic_791_errors = report["epic_slices"]["epic_791"]["validation_errors"]
+        if epic_791_errors:
+            raise OpenSurfaceAuditError(
+                "epic #791 audit slice is invalid: " + "; ".join(epic_791_errors)
             )
         json_text = json.dumps(report, indent=2, sort_keys=True) + "\n"
         markdown = render_markdown(report)

@@ -52,6 +52,46 @@ neutral proof facts before admission work is sound.
 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | present | needs absence-channel identity before nil? admission | `option.absence-channel.identity` | nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status |
 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | present | needs absence-channel identity before Optional presence/defaulting admission | `option.absence-channel.identity` | Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open |
 
+## Epic #791 Neutral-Fact Blocked Slice
+
+This frozen slice tracks the open rows that are intentionally blocked
+until missing language-neutral proof facts are modeled. It is grouped by
+reusable proof fact stage before language surface so the next PRs do not
+admit Ruby, Swift, Java, or map/HOF spellings directly.
+
+- tracker issue: #791
+- setup issue: #792
+- predecessor issue: #778
+- closeout issue: #799
+- frozen blocked rows: 7 (7 currently blocked)
+- promoted or resolved frozen rows: 0
+- current blocked open rows: 7
+- unexpected blocked open rows: 0
+
+### Fact Groups And Admission Order
+
+| order | issue | fact group | fact statuses | unblocks | focused admission candidates after group lands | intentionally still open |
+|---|---|---|---|---|---|---|
+| 1 | #793 | `option.absence-channel` Option absence-channel identity | `option.absence-channel.identity`:specified-not-modeled | `option.presence-default.proven-channel-coordinate:Ruby`, `option.presence-default.proven-channel-coordinate:Swift`, `hof.filter-map.option-emission:Swift` | `option.presence-default.proven-channel-coordinate:Ruby`, `option.presence-default.proven-channel-coordinate:Swift` | hof.filter-map.option-emission:Swift waits for callback purity and filter-map coordinates |
+| 2 | #794 | `effect.hof-callback-purity` Higher-order callback effect safety | `effect.pure-callback`:specified-not-modeled | `hof.filter-map.option-emission:Swift`, `hof.flat-map.one-level-flatten:Swift`, `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` |  | compactMap waits for option-emission coordinate facts; flatMap waits for one-level flatten and nested traversal facts |
+| 3 | #795 | `hof.filter-map.coordinates` Filter-map drop and emitted-value coordinates | `hof.filter-map.drop-condition-coordinate`:specified-not-modeled, `hof.filter-map.emitted-value-coordinate`:specified-not-modeled | `hof.filter-map.option-emission:Swift` | `hof.filter-map.option-emission:Swift` |  |
+| 4 | #796 | `hof.flat-map.one-level-stream` One-level flat-map source and emitted stream | `collection.flatten-depth.one-level`:specified-not-modeled, `hof.flat-map.nested-iteration-order`:specified-not-modeled, `hof.flat-map.emitted-value-coordinate`:specified-not-modeled | `hof.flat-map.one-level-flatten:Swift`, `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` | `hof.flat-map.one-level-flatten:Swift` | flat-map aggregate reductions wait for aggregate guard-coordinate proof |
+| 5 | #797 | `hof.flat-map.aggregate-guard` Flat-map aggregate guard coordinate | `hof.flat-map.aggregate-guard-coordinate`:specified-not-modeled | `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` | `hof.flat-map.aggregate-reduction:Java`, `hof.flat-map.aggregate-reduction:Swift` |  |
+| 6 | #798 | `map.default.receiver-fallback` Map default receiver and fallback coordinates | `map.default.absence-fallback`:specified-not-modeled, `map.receiver.source-identity`:specified-not-modeled, `map.default.key-fallback-coordinate`:specified-not-modeled, `map.receiver.no-intervening-mutation`:specified-not-modeled | `map.default.absence-lookup:Swift` | `map.default.absence-lookup:Swift` |  |
+| 7 | #799 | `blocked-surface-closeout` Blocked-surface closeout and replay evidence |  |  |  | any row still open after #793-#798 must carry stronger blocker or replay evidence |
+
+### Frozen Rows
+
+| order | issue | priority | pattern | language | current state | blocker | missing facts | work | surface |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Ruby | present | model required facts before detector admission | `option.absence-channel.identity` | model absence-channel identity before Ruby nil?/nil comparison admission | nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status |
+| 2 | #793 | `blocked-by-unmodeled-facts` | `option.presence-default.proven-channel-coordinate` | Swift | present | model required facts before detector admission | `option.absence-channel.identity` | model absence-channel identity before Swift Optional presence/defaulting admission | Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open |
+| 3 | #795 | `blocked-by-unmodeled-facts` | `hof.filter-map.option-emission` | Swift | present | model required facts before detector admission | `effect.pure-callback`, `hof.filter-map.drop-condition-coordinate`, `hof.filter-map.emitted-value-coordinate`, `option.absence-channel.identity` | model Swift compactMap drop-condition and emitted-value coordinates | Sequence.compactMap after optional-result channel and callback-effect proof |
+| 4 | #796 | `blocked-by-unmodeled-facts` | `hof.flat-map.one-level-flatten` | Swift | present | model required facts before detector admission | `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level` | model one-level flatten, nested-order, and emitted-value facts for Swift flatMap | Sequence.flatMap after focused one-level flatten and callback-effect evidence |
+| 5 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Java | present | model required facts before detector admission | `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | connect Java Stream.flatMap aggregate reductions after flat-map source facts land | Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts |
+| 6 | #797 | `blocked-by-unmodeled-facts` | `hof.flat-map.aggregate-reduction` | Swift | present | model required facts before detector admission | `effect.pure-callback`, `hof.flat-map.nested-iteration-order`, `hof.flat-map.emitted-value-coordinate`, `collection.flatten-depth.one-level`, `hof.flat-map.aggregate-guard-coordinate` | connect Swift flatMap terminal aggregates after one-level flatten facts land | Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence |
+| 7 | #798 | `blocked-by-unmodeled-facts` | `map.default.absence-lookup` | Swift | present | model required facts before detector admission | `map.default.absence-fallback`, `map.receiver.source-identity`, `map.default.key-fallback-coordinate`, `map.receiver.no-intervening-mutation` | model Swift Dictionary default lookup receiver, key, fallback, and mutation facts | Dictionary default subscript after receiver-coordinate proof |
+
 ## Candidate Rows
 
 | priority | pattern | language | surface | status | evidence | blocker | facts | surface focused | pattern perimeter | coverage |

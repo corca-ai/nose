@@ -944,6 +944,449 @@
       "title": "Audit-ready focused admissions for open Type-4 surfaces",
       "unexpected_actionable_open_rows": [],
       "validation_errors": []
+    },
+    "epic_791": {
+      "closeout_issue": 799,
+      "fact_groups": [
+        {
+          "fact_statuses": {
+            "option.absence-channel.identity": "specified-not-modeled"
+          },
+          "facts": [
+            "option.absence-channel.identity"
+          ],
+          "focused_admission_after_group_lands": [
+            "option.presence-default.proven-channel-coordinate:Ruby",
+            "option.presence-default.proven-channel-coordinate:Swift"
+          ],
+          "group_id": "option.absence-channel",
+          "issue": 793,
+          "order": 1,
+          "still_open_until": [
+            "hof.filter-map.option-emission:Swift waits for callback purity and filter-map coordinates"
+          ],
+          "title": "Option absence-channel identity",
+          "unblocks": [
+            "option.presence-default.proven-channel-coordinate:Ruby",
+            "option.presence-default.proven-channel-coordinate:Swift",
+            "hof.filter-map.option-emission:Swift"
+          ]
+        },
+        {
+          "fact_statuses": {
+            "effect.pure-callback": "specified-not-modeled"
+          },
+          "facts": [
+            "effect.pure-callback"
+          ],
+          "focused_admission_after_group_lands": [],
+          "group_id": "effect.hof-callback-purity",
+          "issue": 794,
+          "order": 2,
+          "still_open_until": [
+            "compactMap waits for option-emission coordinate facts",
+            "flatMap waits for one-level flatten and nested traversal facts"
+          ],
+          "title": "Higher-order callback effect safety",
+          "unblocks": [
+            "hof.filter-map.option-emission:Swift",
+            "hof.flat-map.one-level-flatten:Swift",
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift"
+          ]
+        },
+        {
+          "fact_statuses": {
+            "hof.filter-map.drop-condition-coordinate": "specified-not-modeled",
+            "hof.filter-map.emitted-value-coordinate": "specified-not-modeled"
+          },
+          "facts": [
+            "hof.filter-map.drop-condition-coordinate",
+            "hof.filter-map.emitted-value-coordinate"
+          ],
+          "focused_admission_after_group_lands": [
+            "hof.filter-map.option-emission:Swift"
+          ],
+          "group_id": "hof.filter-map.coordinates",
+          "issue": 795,
+          "order": 3,
+          "still_open_until": [],
+          "title": "Filter-map drop and emitted-value coordinates",
+          "unblocks": [
+            "hof.filter-map.option-emission:Swift"
+          ]
+        },
+        {
+          "fact_statuses": {
+            "collection.flatten-depth.one-level": "specified-not-modeled",
+            "hof.flat-map.emitted-value-coordinate": "specified-not-modeled",
+            "hof.flat-map.nested-iteration-order": "specified-not-modeled"
+          },
+          "facts": [
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate"
+          ],
+          "focused_admission_after_group_lands": [
+            "hof.flat-map.one-level-flatten:Swift"
+          ],
+          "group_id": "hof.flat-map.one-level-stream",
+          "issue": 796,
+          "order": 4,
+          "still_open_until": [
+            "flat-map aggregate reductions wait for aggregate guard-coordinate proof"
+          ],
+          "title": "One-level flat-map source and emitted stream",
+          "unblocks": [
+            "hof.flat-map.one-level-flatten:Swift",
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift"
+          ]
+        },
+        {
+          "fact_statuses": {
+            "hof.flat-map.aggregate-guard-coordinate": "specified-not-modeled"
+          },
+          "facts": [
+            "hof.flat-map.aggregate-guard-coordinate"
+          ],
+          "focused_admission_after_group_lands": [
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift"
+          ],
+          "group_id": "hof.flat-map.aggregate-guard",
+          "issue": 797,
+          "order": 5,
+          "still_open_until": [],
+          "title": "Flat-map aggregate guard coordinate",
+          "unblocks": [
+            "hof.flat-map.aggregate-reduction:Java",
+            "hof.flat-map.aggregate-reduction:Swift"
+          ]
+        },
+        {
+          "fact_statuses": {
+            "map.default.absence-fallback": "specified-not-modeled",
+            "map.default.key-fallback-coordinate": "specified-not-modeled",
+            "map.receiver.no-intervening-mutation": "specified-not-modeled",
+            "map.receiver.source-identity": "specified-not-modeled"
+          },
+          "facts": [
+            "map.default.absence-fallback",
+            "map.receiver.source-identity",
+            "map.default.key-fallback-coordinate",
+            "map.receiver.no-intervening-mutation"
+          ],
+          "focused_admission_after_group_lands": [
+            "map.default.absence-lookup:Swift"
+          ],
+          "group_id": "map.default.receiver-fallback",
+          "issue": 798,
+          "order": 6,
+          "still_open_until": [],
+          "title": "Map default receiver and fallback coordinates",
+          "unblocks": [
+            "map.default.absence-lookup:Swift"
+          ]
+        },
+        {
+          "fact_statuses": {},
+          "facts": [],
+          "focused_admission_after_group_lands": [],
+          "group_id": "blocked-surface-closeout",
+          "issue": 799,
+          "order": 7,
+          "still_open_until": [
+            "any row still open after #793-#798 must carry stronger blocker or replay evidence"
+          ],
+          "title": "Blocked-surface closeout and replay evidence",
+          "unblocks": []
+        }
+      ],
+      "frozen_rows": [
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "coverage-sweep",
+          "issue": 793,
+          "language": "Ruby",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 1,
+          "pattern_focused_support": {
+            "hard_negative": 6,
+            "hard_negative_group": 1,
+            "positive": 3
+          },
+          "pattern_id": "option.presence-default.proven-channel-coordinate",
+          "planned_unmodeled_facts": [
+            "option.absence-channel.identity"
+          ],
+          "reason": "only the absence-channel fact is unmodeled, but the focused Ruby nil? perimeter is not sound until that fact lands",
+          "selector": "option.presence-default.proven-channel-coordinate:Ruby:blocked-by-unmodeled-facts",
+          "surface": "nil comparison coverage exists in the sweep; Ruby nil? admission still needs a focused proof perimeter before modeled-controlled status",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "option.absence-channel.identity"
+          ],
+          "work": "model absence-channel identity before Ruby nil?/nil comparison admission"
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "probe-only",
+          "issue": 793,
+          "language": "Swift",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 2,
+          "pattern_focused_support": {
+            "hard_negative": 6,
+            "hard_negative_group": 1,
+            "positive": 3
+          },
+          "pattern_id": "option.presence-default.proven-channel-coordinate",
+          "planned_unmodeled_facts": [
+            "option.absence-channel.identity"
+          ],
+          "reason": "probe evidence exists, but Optional presence/defaulting still needs a proven absence channel before focused admission",
+          "selector": "option.presence-default.proven-channel-coordinate:Swift:blocked-by-unmodeled-facts",
+          "surface": "Optional nil presence probe coverage exists; defaulting and full API/coordinate/mutation perimeter remain open",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "option.absence-channel.identity"
+          ],
+          "work": "model absence-channel identity before Swift Optional presence/defaulting admission"
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "missing",
+          "issue": 795,
+          "language": "Swift",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 3,
+          "pattern_focused_support": {
+            "hard_negative": 5,
+            "hard_negative_group": 0,
+            "positive": 2
+          },
+          "pattern_id": "hof.filter-map.option-emission",
+          "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.filter-map.drop-condition-coordinate",
+            "hof.filter-map.emitted-value-coordinate",
+            "option.absence-channel.identity"
+          ],
+          "reason": "after option channel and callback purity, compactMap still needs filter-map coordinate facts before admission",
+          "selector": "hof.filter-map.option-emission:Swift:blocked-by-unmodeled-facts",
+          "surface": "Sequence.compactMap after optional-result channel and callback-effect proof",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.filter-map.drop-condition-coordinate",
+            "hof.filter-map.emitted-value-coordinate",
+            "option.absence-channel.identity"
+          ],
+          "work": "model Swift compactMap drop-condition and emitted-value coordinates"
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "missing",
+          "issue": 796,
+          "language": "Swift",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 4,
+          "pattern_focused_support": {
+            "hard_negative": 5,
+            "hard_negative_group": 0,
+            "positive": 2
+          },
+          "pattern_id": "hof.flat-map.one-level-flatten",
+          "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level"
+          ],
+          "reason": "Sequence.flatMap admission requires a reusable one-level flatten proof, not Swift API spelling alone",
+          "selector": "hof.flat-map.one-level-flatten:Swift:blocked-by-unmodeled-facts",
+          "surface": "Sequence.flatMap after focused one-level flatten and callback-effect evidence",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level"
+          ],
+          "work": "model one-level flatten, nested-order, and emitted-value facts for Swift flatMap"
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "missing",
+          "issue": 797,
+          "language": "Java",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 5,
+          "pattern_focused_support": {
+            "hard_negative": 6,
+            "hard_negative_group": 0,
+            "positive": 4
+          },
+          "pattern_id": "hof.flat-map.aggregate-reduction",
+          "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate"
+          ],
+          "reason": "aggregate reduction facts are modeled, but flat-map traversal and guard-coordinate facts are still missing",
+          "selector": "hof.flat-map.aggregate-reduction:Java:blocked-by-unmodeled-facts",
+          "surface": "Stream.flatMap terminal reductions after flat-map source proof is connected to stream aggregate facts",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate"
+          ],
+          "work": "connect Java Stream.flatMap aggregate reductions after flat-map source facts land"
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "missing",
+          "issue": 797,
+          "language": "Swift",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 6,
+          "pattern_focused_support": {
+            "hard_negative": 6,
+            "hard_negative_group": 0,
+            "positive": 4
+          },
+          "pattern_id": "hof.flat-map.aggregate-reduction",
+          "planned_unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate"
+          ],
+          "reason": "terminal aggregate identity is reusable only after the flattened element stream and guard coordinates are proven",
+          "selector": "hof.flat-map.aggregate-reduction:Swift:blocked-by-unmodeled-facts",
+          "surface": "Sequence.flatMap terminal aggregates after one-level flatten and terminal identity evidence",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "effect.pure-callback",
+            "hof.flat-map.nested-iteration-order",
+            "hof.flat-map.emitted-value-coordinate",
+            "collection.flatten-depth.one-level",
+            "hof.flat-map.aggregate-guard-coordinate"
+          ],
+          "work": "connect Swift flatMap terminal aggregates after one-level flatten facts land"
+        },
+        {
+          "candidate_priority": "blocked-by-unmodeled-facts",
+          "current_candidate_priority": "blocked-by-unmodeled-facts",
+          "current_open_audit_state": "present",
+          "evidence_level": "missing",
+          "issue": 798,
+          "language": "Swift",
+          "likely_blocker": "model required facts before detector admission",
+          "order": 7,
+          "pattern_focused_support": {
+            "hard_negative": 2,
+            "hard_negative_group": 0,
+            "positive": 4
+          },
+          "pattern_id": "map.default.absence-lookup",
+          "planned_unmodeled_facts": [
+            "map.default.absence-fallback",
+            "map.receiver.source-identity",
+            "map.default.key-fallback-coordinate",
+            "map.receiver.no-intervening-mutation"
+          ],
+          "reason": "default subscript admission needs absent-key fallback and receiver-coordinate proof instead of subscript spelling",
+          "selector": "map.default.absence-lookup:Swift:blocked-by-unmodeled-facts",
+          "surface": "Dictionary default subscript after receiver-coordinate proof",
+          "surface_focused_support": {
+            "hard_negative": 0,
+            "hard_negative_group": 0,
+            "positive": 0
+          },
+          "surface_status": "open",
+          "unmodeled_facts": [
+            "map.default.absence-fallback",
+            "map.receiver.source-identity",
+            "map.default.key-fallback-coordinate",
+            "map.receiver.no-intervening-mutation"
+          ],
+          "work": "model Swift Dictionary default lookup receiver, key, fallback, and mutation facts"
+        }
+      ],
+      "issue": 791,
+      "predecessor_issue": 778,
+      "scope_policy": {
+        "frozen_priority": "blocked-by-unmodeled-facts",
+        "group_by": "neutral proof fact before language surface",
+        "predecessor_must_be_closed": 778,
+        "resolved_or_promoted_rows_are_allowed": true,
+        "unexpected_blocked_rows_are_errors": true
+      },
+      "setup_issue": 792,
+      "source": "bench/type4/open_surface_admission_audit.v1.json",
+      "summary": {
+        "current_actionable_open_count": 0,
+        "current_blocked_open_count": 7,
+        "fact_group_count": 7,
+        "frozen_blocked_count": 7,
+        "frozen_currently_blocked": 7,
+        "frozen_promoted_or_resolved": 0,
+        "unexpected_blocked_open_count": 0,
+        "validation_error_count": 0
+      },
+      "title": "Model neutral facts for blocked Type-4 surfaces",
+      "unexpected_blocked_open_rows": [],
+      "validation_errors": []
     }
   },
   "rows": [
