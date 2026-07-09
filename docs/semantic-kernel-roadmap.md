@@ -1511,9 +1511,11 @@ repeated registry walks on hot paths. Binary size changed 20,181,712 ->
   effectful callbacks, generic Collection receiver proof, generic method-pack
   provenance, missing receiver proof, wrong Array producer provenance,
   `find`/`findIndex`, and `reduce` remain closed until those semantics are
-  explicitly modeled. Pre-call monkey-patching and receiver mutation remain
-  outside this slice until receiver place/effect proof is modeled for JS Array
-  HOFs. Inventory before/after against `main@2613ec11`: builtin
+  explicitly modeled. Same-file `Array.prototype` replacement of admitted HOF
+  methods is fail-closed; broader receiver mutation, aliasing, and cross-file
+  place/effect proof remain outside this slice until receiver place/effect
+  proof is modeled for JS Array HOFs. Inventory before/after against
+  `main@2613ec11`: builtin
   packs 48 -> 48, exact-capable packs 38 -> 38, evidence producers 57 -> 57,
   contracts 67 -> 69, positive fixtures 164 -> 169, hard negatives 116 -> 124,
   conformance refs 280 -> 293, unsupported refs 16 -> 16. JS Array pack

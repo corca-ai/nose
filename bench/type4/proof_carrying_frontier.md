@@ -19,8 +19,8 @@ report keeps the fuller evidence and admission boundary.
 - by detector admission: `{"controlled-slice-admitted": 4, "real-pair-admitted": 3}`
 - by executable witness coverage: `{"covered": 7}`
 - by real-frontier replay expectations: `{"passed": 7}`
-- executable expectations: 129/129 passed
-- real-frontier replay expectations: 24/24 passed; 0 unavailable
+- executable expectations: 141/141 passed
+- real-frontier replay expectations: 26/26 passed; 0 unavailable
 
 ## Admission Policy
 
@@ -45,7 +45,7 @@ report keeps the fuller evidence and admission boundary.
 | `collection-empty-check-2026-07-08` | `collection_empty_check` | `team-a-detector` | `detector-admitted` | `covered (12/12)` | `passed expectations (4/4)` | 4 | 5 | 1 |
 | `string-prefix-suffix-2026-07-08` | `string_prefix_suffix` | `team-a-detector` | `detector-admitted-controlled` | `covered (31/31)` | `passed expectations (8/8)` | 6 | 7 | 1 |
 | `null-option-presence-2026-07-08` | `null_option_presence` | `team-a-detector` | `detector-admitted-controlled` | `covered (13/13)` | `passed expectations (3/3)` | 6 | 7 | 1 |
-| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed expectations (6/6)` | 10 | 15 | 1 |
+| `reduction-minmax-anyall-2026-07-08` | `reduce_minmax_anyall` | `team-a-detector` | `detector-admitted-controlled` | `covered (38/38)` | `passed expectations (8/8)` | 10 | 16 | 1 |
 
 ## Packet Details
 
@@ -107,15 +107,15 @@ report keeps the fuller evidence and admission boundary.
 
 ### `reduction-minmax-anyall-2026-07-08`
 
-- detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
+- detector admission: `controlled-slice-admitted` over controlled integer/value-model sum/product, any/all terminal, dense-literal TypeScript/JavaScript every, Swift eager allSatisfy, and seeded min/max selection reductions with source, identity/empty, aggregate value-model numeric-domain, selection value-order numeric-domain, float-special-value boundary, step/predicate, short-circuit direction, selection seed/domain, receiver/API identity, and predicate/reducer effect evidence
 - remaining real-pair gap: the linked Drizzle real-corpus TypeScript every(Boolean) pair is replayed as split until append-only dense local-array provenance and value-only Boolean predicate facts are modeled; broader reduce/min/max/any/all real-pair admission still needs separate audit
-- gates: 14 positive, 16 hard-negative
+- gates: 16 positive, 29 hard-negative
 - executable witness coverage: `covered` (38/38 passed)
-- real-frontier replay expectations: `passed` (6/6 expectations passed)
+- real-frontier replay expectations: `passed` (8/8 expectations passed)
 - proof fact model: `modeled-controlled`; facts: `numeric.aggregate-value-model-domain` (modeled-controlled), `numeric.selection-value-order-domain` (modeled-controlled), `numeric.float-special-value-boundary` (modeled-controlled), `iteration.same-source-identity` (modeled-controlled), `reduction.identity-empty-behavior` (modeled-controlled), `reduction.step-coordinate-identity` (modeled-controlled), `reduction.terminal-predicate-coordinate` (modeled-controlled), `reduction.short-circuit-direction` (modeled-controlled), `reduction.selection-seed-domain` (modeled-controlled), `effect.pure-predicate` (modeled-controlled)
 - blocked by:
   - the Drizzle flags.every(Boolean) real pair uses a local array populated by pushes; the current TypeScript every proof facts only admit dense literal sources
-  - the current detector has no reusable append-only dense local-array provenance fact, so arbitrary array-parameter every/for-of sparse-hole boundaries must stay closed
+  - the current detector has no reusable append-only dense local-array provenance fact, so arbitrary TypeScript or JavaScript array-parameter every/for-of sparse-hole boundaries must stay closed
   - Boolean-as-callback is value-only only when the binding is the standard Boolean function and all pushed values are proven boolean
 - hard-negative groups: `reduction-minmax-anyall-proof-perimeter`
 

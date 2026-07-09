@@ -29,6 +29,7 @@ mod evidence;
 mod free_builtins;
 mod guard_evidence;
 mod import_facts;
+mod js_ts_prototype_mutations;
 mod language_profile;
 mod library_api;
 mod map_statics;
@@ -67,6 +68,7 @@ use evidence::{
 pub use free_builtins::*;
 pub use guard_evidence::*;
 pub use import_facts::*;
+pub use js_ts_prototype_mutations::*;
 pub(crate) use language_profile::language_core_evidence_provenance_hashes;
 pub use language_profile::{
     builtin_language_pack_id, is_builtin_language_pack_hash, js_like_lang,

@@ -17,7 +17,14 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         },
     )
     .is_some_and(|(arg_count, contract, dependencies)| {
-        if js_ts_string_affix_prototype_mutated_in_file(il, interner, contract) {
+        if nose_semantics::js_ts_builtin_prototype_mutated_in_file(
+            il,
+            interner,
+            contract.id,
+            contract.callee,
+            post_lower_top_level_statements(il),
+            post_lower_module_unshadowed_var_name,
+        ) {
             return false;
         }
         if ruby_string_affix_redefined_in_file(il, interner, contract) {
@@ -122,105 +129,6 @@ fn ruby_class_instance_method_redefined_in_file(
     )
 }
 
-fn js_ts_string_affix_prototype_mutated_in_file(
-    il: &Il,
-    interner: &Interner,
-    contract: LibraryReceiverMethodApiContract,
-) -> bool {
-    if !matches!(il.meta.lang, Lang::JavaScript | Lang::TypeScript) {
-        return false;
-    }
-    let LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
-        Builtin::StartsWith | Builtin::EndsWith,
-    )) = contract.id
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::Method { method, .. } = contract.callee else {
-        return false;
-    };
-    post_lower_top_level_statements(il)
-        .into_iter()
-        .any(|stmt| string_prototype_method_mutation_in_module_scope(il, interner, stmt, method))
-}
-
-fn string_prototype_method_mutation_in_module_scope(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-    expected_method: &str,
-) -> bool {
-    if matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda) {
-        return false;
-    }
-    string_prototype_method_write(il, interner, node, expected_method)
-        || object_define_property_string_prototype_method(il, interner, node, expected_method)
-        || il.children(node).iter().copied().any(|child| {
-            string_prototype_method_mutation_in_module_scope(il, interner, child, expected_method)
-        })
-}
-
-fn string_prototype_method_write(
-    il: &Il,
-    interner: &Interner,
-    stmt: NodeId,
-    expected_method: &str,
-) -> bool {
-    let assign = if il.kind(stmt) == NodeKind::ExprStmt {
-        il.children(stmt).first().copied().unwrap_or(stmt)
-    } else {
-        stmt
-    };
-    if il.kind(assign) != NodeKind::Assign {
-        return false;
-    }
-    let Some(&target) = il.children(assign).first() else {
-        return false;
-    };
-    field_name(il, interner, target) == Some(expected_method)
-        && il
-            .children(target)
-            .first()
-            .copied()
-            .is_some_and(|prototype| string_prototype_object(il, interner, prototype))
-}
-
-fn object_define_property_string_prototype_method(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-    expected_method: &str,
-) -> bool {
-    let call = if il.kind(node) == NodeKind::ExprStmt {
-        il.children(node).first().copied().unwrap_or(node)
-    } else {
-        node
-    };
-    if il.kind(call) != NodeKind::Call {
-        return false;
-    }
-    let [callee, target, property, ..] = il.children(call) else {
-        return false;
-    };
-    field_name(il, interner, *callee) == Some("defineProperty")
-        && il
-            .children(*callee)
-            .first()
-            .copied()
-            .is_some_and(|base| post_lower_module_unshadowed_var_name(il, interner, base, "Object"))
-        && string_prototype_object(il, interner, *target)
-        && string_literal(il, *property, expected_method)
-}
-
-fn string_prototype_object(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    field_name(il, interner, node) == Some("prototype")
-        && il
-            .children(node)
-            .first()
-            .copied()
-            .is_some_and(|base| post_lower_module_unshadowed_var_name(il, interner, base, "String"))
-}
-
 fn post_lower_module_unshadowed_var_name(
     il: &Il,
     interner: &Interner,
@@ -257,20 +165,6 @@ fn post_lower_module_scope_statement_defines_name(
         }),
         _ => false,
     }
-}
-
-fn string_literal(il: &Il, node: NodeId, expected: &str) -> bool {
-    matches!(il.node(node).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(expected))
-}
-
-fn field_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
-    if il.kind(node) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(symbol) = il.node(node).payload else {
-        return None;
-    };
-    Some(interner.resolve(symbol))
 }
 
 fn seed_post_lower_receiver_method_dependencies(

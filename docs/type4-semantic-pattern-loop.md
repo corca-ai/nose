@@ -63,8 +63,8 @@ language_surfaces:
     status: admitted
     surface: dense-literal one-argument Array.prototype.every
   javascript:
-    status: open
-    surface: Array.prototype.every
+    status: admitted
+    surface: dense-literal one-argument standard Array.prototype.every
 ```
 
 Keep the card short enough to review in a PR. The detailed evidence still lives
@@ -79,11 +79,11 @@ surfaces:
 
 | fact | Python | TypeScript | JavaScript | Ruby | Rust |
 |---|---|---|---|---|---|
-| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of | open | open | open |
-| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | open | open | open |
-| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | open | open | open |
-| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | open | open | open |
-| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | open | open | open |
+| `quantifier.vacuous-truth` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of | admitted for dense-literal one-arg every/for-of | open | open |
+| `quantifier.universal.counterexample-loop` | modeled-controlled; packet admitted | admitted for dense-literal one-arg every/for-of; number[] param and callback extra args stay split | admitted for standard dense-literal one-arg every/for-of; array param, callback extra args, and prototype replacement stay split | open | open |
+| `iteration.same-source-identity` | modeled-controlled; packet admitted | admitted for same dense-literal source | admitted for same dense-literal source | open | open |
+| `effect.pure-predicate` | modeled-controlled; packet admitted | admitted for pure comparison predicates | admitted for pure comparison predicates | open | open |
+| `boolean.demorgan.proven-bool-operands` | modeled-controlled; packet admitted | admitted for boolean comparison results; value-returning && remains closed | admitted for boolean comparison results; value-returning && remains closed | open | open |
 
 Use vocabulary like `open`, `modeled-controlled`, `admitted`, and
 `not-applicable`. Do not mark a language surface admitted because another

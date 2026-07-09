@@ -1,8 +1,8 @@
 {
-  "expectation_count": 129,
+  "expectation_count": 141,
   "failed": 0,
   "nose_binary": "nose",
-  "passed": 129,
+  "passed": 141,
   "query_count": 19,
   "results": [
     {
@@ -1372,10 +1372,34 @@
       "matching_family": {
         "locations": [
           {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllLoop",
+            "start": 1
+          },
+          {
             "end": 27,
             "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
             "name": "tsAllLoop",
             "start": 20
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllPatchedPrototypeLoop",
+            "start": 5
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllDefinePropertyLoop",
+            "start": 24
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllEvery",
+            "start": 10
           },
           {
             "end": 31,
@@ -1384,7 +1408,7 @@
             "start": 29
           }
         ],
-        "value": 5.0,
+        "value": 63.0,
         "witness": "exact"
       },
       "observed": "same-family",
@@ -1466,6 +1490,155 @@
       "case_id": "typescript_every_value_return_boundary",
       "expect": "split",
       "expectation_id": "typescript_every_value_returning_and_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_universal_positive",
+      "expect": "same-family",
+      "expectation_id": "javascript_every_loop_matches_every",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllLoop",
+            "start": 1
+          },
+          {
+            "end": 27,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllLoop",
+            "start": 20
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllPatchedPrototypeLoop",
+            "start": 5
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllDefinePropertyLoop",
+            "start": 24
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllEvery",
+            "start": 10
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllEvery",
+            "start": 29
+          }
+        ],
+        "value": 63.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_sparse_array_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_array_param_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_vacuous_truth_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_wrong_empty_truth_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_changed_predicate_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_changed_predicate_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_source_identity_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_different_source_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_side_effect_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_callback_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_side_effect_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_loop_effect_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_callback_extra_args_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_index_callback_arg_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_callback_extra_args_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_source_callback_arg_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_value_return_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_value_returning_and_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_api_identity_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_prototype_assignment_stays_split",
+      "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true
+    },
+    {
+      "case_id": "javascript_every_api_identity_boundary",
+      "expect": "split",
+      "expectation_id": "javascript_every_define_property_stays_split",
       "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
       "matching_family": null,
       "observed": "split",

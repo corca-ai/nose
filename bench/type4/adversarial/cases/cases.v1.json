@@ -2643,6 +2643,302 @@
       "evidence": "tsEveryValueReturningAnd uses `x && ...`, whose left operand is a value/truthiness payload rather than a proven boolean comparison result."
     },
     {
+      "id": "javascript_every_universal_positive",
+      "kind": "positive",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "A JavaScript Array.every(...) universal predicate can converge with a same-source for-of counterexample loop when dense literal source evidence closes sparse-hole behavior, the callback observes only the element value, the loop returns false on the first failing boolean predicate, and true after exhaustion.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_loop_matches_every",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "same-family",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEvery"
+            }
+          ]
+        }
+      ],
+      "evidence": "The JavaScript fixture admits only the dense-literal Array.every surface whose for-of loop traverses the same parameterized literal source [a, b, c], returns false on the first counterexample against min, preserves vacuous truth, and uses a one-argument comparison predicate; arbitrary JavaScript array parameters remain outside the dense-source proof."
+    },
+    {
+      "id": "javascript_every_sparse_array_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "A JavaScript array parameter is not dense-source proof for Array.every(...) because sparse array holes are skipped by every but can be observed by for-of iteration.",
+      "mutation": "dense literal source evidence -> plain array parameter",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_array_param_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllParamLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllParamEvery"
+            }
+          ]
+        }
+      ],
+      "evidence": "For a sparse runtime array such as new Array(1), Array.every skips the hole and returns true while the for-of loop can visit undefined and reject the comparison; an unproven JavaScript array parameter does not rule that out."
+    },
+    {
+      "id": "javascript_every_vacuous_truth_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Changing the for-of loop fallthrough result breaks JavaScript Array.every(...) vacuous truth.",
+      "mutation": "fallthrough return true -> false",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_wrong_empty_truth_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEvery"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllWrongEmptyTruth"
+            }
+          ]
+        }
+      ],
+      "evidence": "jsAllWrongEmptyTruth returns false for empty input while Array.every(...) returns true."
+    },
+    {
+      "id": "javascript_every_changed_predicate_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Changing the JavaScript Array.every(...) predicate changes behavior even when the surface remains universal.",
+      "mutation": "x >= min -> x > min",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_changed_predicate_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEvery"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllChangedPredicate"
+            }
+          ]
+        }
+      ],
+      "evidence": "jsAllChangedPredicate uses a strict threshold coordinate, so values equal to min are accepted by jsAllEvery and rejected by the changed predicate."
+    },
+    {
+      "id": "javascript_every_source_identity_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "The JavaScript Array.every(...) receiver and for-of loop source must be the same collection.",
+      "mutation": "loop traverses ys while every traverses xs",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_different_source_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEvery"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllDifferentSource"
+            }
+          ]
+        }
+      ],
+      "evidence": "jsAllDifferentSource has the same predicate and vacuous-truth shape but iterates [a, b, d] while jsAllEvery traverses [a, b, c], so source-coordinate identity is behavior-defining."
+    },
+    {
+      "id": "javascript_every_side_effect_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "Callback or loop-body effects prevent treating JavaScript Array.every(...) and a counterexample loop as a pure boolean rewrite.",
+      "mutation": "insert observed seen.push(x) in the callback or counterexample branch",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_callback_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEveryPureWithSeen"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEveryCallbackEffect"
+            }
+          ]
+        },
+        {
+          "id": "javascript_every_loop_effect_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllEveryPureWithSeen"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsAllLoopWithObservedEffect"
+            }
+          ]
+        }
+      ],
+      "evidence": "Both hard negatives keep the same `(seen, bad, ok)` signature; only the callback or the failing loop branch can observe a push effect."
+    },
+    {
+      "id": "javascript_every_callback_extra_args_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "JavaScript Array.every(...) callbacks that observe the index or source-array arguments stay outside the value-only universal predicate proof.",
+      "mutation": "one-argument element predicate -> callback observes index or source array",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_index_callback_arg_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsEveryIndexShort"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsEveryIndexLong"
+            }
+          ]
+        },
+        {
+          "id": "javascript_every_source_callback_arg_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsEverySourceArrayShort"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsEverySourceArrayLong"
+            }
+          ]
+        }
+      ],
+      "evidence": "jsEveryIndexLong can fail solely because the third index is observable, and jsEverySourceArrayLong can fail solely because the callback source array has length 3; the admitted value-only proof binds only the element coordinate."
+    },
+    {
+      "id": "javascript_every_value_return_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "JavaScript value-returning && operands are not boolean-only predicate evidence.",
+      "mutation": "proven comparison predicate conjunction -> value-returning x && comparison",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_value_returning_and_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsEveryBooleanAnd"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+              "name": "jsEveryValueReturningAnd"
+            }
+          ]
+        }
+      ],
+      "evidence": "jsEveryValueReturningAnd uses `x && ...`, whose left operand is a value/truthiness payload rather than a proven boolean comparison result."
+    },
+    {
+      "id": "javascript_every_api_identity_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "quantifier.universal.counterexample-loop",
+      "claim": "JavaScript Array.every(...) admission requires standard Array.prototype.every API identity in the same file.",
+      "mutation": "standard Array.prototype.every -> same-file prototype replacement",
+      "fixtures": [
+        "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js"
+      ],
+      "executable_expectations": [
+        {
+          "id": "javascript_every_prototype_assignment_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+              "name": "jsAllPatchedPrototypeLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+              "name": "jsAllPatchedPrototypeEvery"
+            }
+          ]
+        },
+        {
+          "id": "javascript_every_define_property_stays_split",
+          "fixture": "bench/type4/adversarial/cases/reduction_minmax_anyall",
+          "expect": "split",
+          "members": [
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+              "name": "jsAllDefinePropertyLoop"
+            },
+            {
+              "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+              "name": "jsAllDefinePropertyEvery"
+            }
+          ]
+        }
+      ],
+      "evidence": "Same-file Array.prototype.every assignment and Object.defineProperty(Array.prototype, \"every\", ...) can replace the standard terminal API, so the loop/every proof must stay closed when those writes are present."
+    },
+    {
       "id": "reduction_selection_seeded_positive",
       "kind": "positive",
       "semantic_family": "reduction.aggregate",

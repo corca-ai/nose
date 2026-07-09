@@ -443,6 +443,22 @@ wrong affix parameters, dynamic and mutated affix values, substring `contains`, 
 packet, and open-surface audit now treat the Swift String surface as `modeled-controlled` while
 leaving locale/case-insensitive, offset, multi-affix, substring, and custom API variants closed.
 
+## JavaScript Every Focused Admission
+
+Closed #784 by promoting JavaScript `Array.prototype.every` into the focused
+`quantifier.universal.counterexample-loop` perimeter. The admitted slice mirrors the
+TypeScript dense-literal proof: a one-argument pure predicate over the same dense literal
+source, a `for-of` counterexample loop that returns `false` on the first failing predicate,
+and preserved vacuous truth after exhaustion.
+
+The hard-negative perimeter keeps JavaScript array parameters split because sparse holes are
+observable, and also preserves wrong empty truth, changed predicates, different sources,
+callback and loop effects, callback index/source-array observation, and value-returning
+truthiness predicates. The semantic card, replay evidence, target packet, and
+open-surface audit now treat the focused JavaScript every surface as admitted while leaving
+append-only local arrays, `Boolean` callback real pairs, and broader untyped relational
+terminal admission open.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,

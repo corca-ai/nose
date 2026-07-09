@@ -1,6 +1,8 @@
+mod js_ts_prototype_mutations;
 mod recording;
 mod ruby_redefinitions;
 mod static_globals;
+use js_ts_prototype_mutations::js_ts_builtin_prototype_mutated_in_file;
 use recording::*;
 use ruby_redefinitions::ruby_sequence_hof_method_redefined_in_file;
 use static_globals::record_static_global_method_library_api;
@@ -34,6 +36,8 @@ use nose_semantics::{
 };
 use rustc_hash::FxHashMap;
 use std::cell::RefCell;
+
+use crate::module_facts::top_level_statements_for;
 
 #[derive(Default)]
 struct FileDefinitionVisibilityCache {

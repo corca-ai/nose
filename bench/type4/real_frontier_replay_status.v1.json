@@ -1,25 +1,25 @@
 {
-  "entry_count": 24,
+  "entry_count": 26,
   "failed": 0,
   "input_artifacts": {
     "manifest": {
       "path": "bench/type4/real_frontier_replay.v1.json",
-      "sha256": "9bf94a06b25f11d5cb92e57598a5d9c1823cfb26ac363e4ab6e489e39deb5eda",
-      "size_bytes": 28191
+      "sha256": "6c5a1e01d5e9224cd8e0858c901c926122660e8b5fd2134fe10504ba554746a4",
+      "size_bytes": 30499
     },
     "real_frontier": {
       "path": "bench/type4/real_frontier.v1.json",
-      "sha256": "fd7bfa0ffec73b49407c564274a4981536522ee7088a10804559bb3049c3d1c3",
-      "size_bytes": 103461
+      "sha256": "0cc761d93461e0c383f306079b0749e9b5d44de8cb3a595e064c2ee7630f1ee3",
+      "size_bytes": 104558
     },
     "target_packets": {
       "path": "bench/type4/frontier_target_packets.v1.json",
-      "sha256": "7b9e8b7a1f6a1af3070cd407b4d15562ca260476af803db1d81e4a3cbbf67942",
-      "size_bytes": 96691
+      "sha256": "3f6f5c7278196c4a5494f990f66d273bebd480ccf5d92f396c41d18367a0dfc4",
+      "size_bytes": 101157
     }
   },
   "nose_binary": "nose",
-  "passed": 24,
+  "passed": 26,
   "query_count": 11,
   "results": [
     {
@@ -448,6 +448,75 @@
         "status": "available"
       },
       "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "split",
+      "matching_family": null,
+      "observed": "split",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-javascript-every-array-param-boundary-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
+      "expect": "same-family",
+      "matching_family": {
+        "locations": [
+          {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllLoop",
+            "start": 1
+          },
+          {
+            "end": 27,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllLoop",
+            "start": 20
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllPatchedPrototypeLoop",
+            "start": 5
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllDefinePropertyLoop",
+            "start": 24
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllEvery",
+            "start": 10
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
+            "name": "tsAllEvery",
+            "start": 29
+          }
+        ],
+        "value": 63.0,
+        "witness": "exact"
+      },
+      "observed": "same-family",
+      "ok": true,
+      "packet_id": "reduction-minmax-anyall-2026-07-08",
+      "replay_id": "reduction-javascript-every-dense-literal-controlled-pair",
+      "status": "passed"
+    },
+    {
+      "availability": {
+        "missing": [],
+        "status": "available"
+      },
+      "case_id": "reduction-minmax-anyall-focused-controlled",
       "expect": "same-family",
       "matching_family": {
         "locations": [
@@ -614,10 +683,34 @@
       "matching_family": {
         "locations": [
           {
+            "end": 8,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllLoop",
+            "start": 1
+          },
+          {
             "end": 27,
             "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.ts",
             "name": "tsAllLoop",
             "start": 20
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllPatchedPrototypeLoop",
+            "start": 5
+          },
+          {
+            "end": 31,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/every_patch.js",
+            "name": "jsAllDefinePropertyLoop",
+            "start": 24
+          },
+          {
+            "end": 12,
+            "file": "bench/type4/adversarial/cases/reduction_minmax_anyall/any_all.js",
+            "name": "jsAllEvery",
+            "start": 10
           },
           {
             "end": 31,
@@ -626,7 +719,7 @@
             "start": 29
           }
         ],
-        "value": 5.0,
+        "value": 63.0,
         "witness": "exact"
       },
       "observed": "same-family",
