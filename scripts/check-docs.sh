@@ -22,6 +22,7 @@ if command -v python3 >/dev/null 2>&1; then
     python3 scripts/check-divergent-history-artifacts.py
     python3 bench/type4/frontier_platform.py --check
     python3 bench/type4/semantic_pattern_cards.py --check
+    python3 bench/type4/open_surface_admission_audit.py --selftest
     python3 bench/type4/open_surface_admission_audit.py --check
     python3 bench/type4/python_loop_demorgan_proof_facts.py --selftest
     python3 bench/type4/python_loop_demorgan_proof_facts.py --check

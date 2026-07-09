@@ -110,6 +110,13 @@ adjacent hard negatives, and executable expectations. Leave
 `blocked-by-unmodeled-facts` rows open until their neutral facts become
 modeled-controlled.
 
+When an epic selects multiple audit rows, freeze that selection in the audit
+artifact itself. The `Epic #778 Audit Slice` section records the chosen
+in-scope rows, the rows intentionally left out because they need new neutral
+facts, and the issue numbers that own each step. Later PRs should update that
+section by regenerating `open_surface_admission_audit.py` as rows leave the
+open audit instead of hand-editing the Markdown or re-triaging the whole queue.
+
 ## Eight-step loop
 
 1. Pick a frontier candidate from corpus evidence.

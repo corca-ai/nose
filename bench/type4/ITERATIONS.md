@@ -387,6 +387,24 @@ custom overloads, and `.lazy.allSatisfy` demand semantics. The packet and semant
 Array/Collection `allSatisfy` as modeled-controlled while leaving Swift `reduce`,
 `contains(where:)`, custom overloads, lazy receivers, and broader Sequence/AnySequence admission open.
 
+## Audit-Ready Focused Admission Epic
+
+The next admission epic is tracked by #778 and starts from the checked
+`open_surface_admission_audit` queue instead of another manual sweep. The frozen slice is
+recorded in `open_surface_admission_audit.md` and `open_surface_admission_audit.v1.json`:
+
+- in scope: Swift collection membership, Swift collection empty-check, Swift string affix,
+  JavaScript universal quantifier, Rust universal quantifier, and Go numeric clamp focused
+  perimeter;
+- out of scope: Swift compactMap, Java/Swift flat-map reductions, Swift flatMap one-level
+  flattening, Swift dictionary default lookup, and Ruby/Swift option presence/defaulting
+  rows that still need unmodeled neutral facts.
+
+The purpose of this batch is to repeat the #765 loop over rows whose neutral facts are
+already modeled or whose probe evidence only needs focused positives, adjacent hard
+negatives, and executable expectations. Rows marked `blocked-by-unmodeled-facts` are not
+admission targets for this epic unless a separate PR models the missing neutral facts first.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,
