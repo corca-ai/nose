@@ -179,6 +179,14 @@ def validate_v2_report(
                 raise CheckFailed(f"{label}.corpus: incomplete expected subset state provenance")
             require_string(corpus, "expected_corpus_state", f"{label}.corpus")
             require_hex(corpus, "expected_corpus_state_sha256", 64, f"{label}.corpus")
+        if require_corpus_provenance:
+            required_state_keys = state_keys | expected_state_keys
+            missing_state_keys = sorted(required_state_keys - corpus.keys())
+            if missing_state_keys:
+                raise CheckFailed(
+                    f"{label}.corpus: checked subset provenance is required; "
+                    f"missing {missing_state_keys}"
+                )
 
     environment = require_object(report, "environment", label)
     for key in ("architecture", "os", "os_release", "python_version"):
@@ -821,10 +829,19 @@ def sample_report(
         "corpus": {
             "corpus_manifest": "bench/goldens/corpus.json",
             "corpus_manifest_sha256": "1" * 64,
+            "corpus_state": "/tmp/repos/.nose-corpus-state.json",
+            "corpus_state_sha256": "5" * 64,
+            "expected_corpus_state": "bench/semantic_regression_corpus.v1.json",
+            "expected_corpus_state_sha256": "6" * 64,
             "prune_manifest": "bench/labels/prune_manifest.json",
             "prune_manifest_sha256": "2" * 64,
             "repositories": [{"commit": "3" * 40, "repo": "repo-a"}],
             "selection_sha256": "4" * 64,
+            "subset_digest_after_prune": {
+                "bytes": 1234,
+                "files": 12,
+                "hex": "7" * 64,
+            },
         },
         "provenance": {
             "baseline_binary": "/tmp/base/nose",
@@ -918,6 +935,7 @@ def run_self_test() -> None:
     generic = sample_report()
     generic["corpus"] = None
     assert evaluate_gate(generic)["status"] == "pass"
+    assert evaluate_gate(sample_report(), require_corpus_provenance=True)["status"] == "pass"
     try:
         evaluate_gate(generic, require_corpus_provenance=True)
     except CheckFailed as error:
@@ -932,6 +950,21 @@ def run_self_test() -> None:
         assert "missing `corpus` field" in str(error)
     else:
         raise AssertionError("v2 reports must declare whether corpus provenance is present")
+    unchecked_corpus = sample_report()
+    for key in (
+        "corpus_state",
+        "corpus_state_sha256",
+        "expected_corpus_state",
+        "expected_corpus_state_sha256",
+        "subset_digest_after_prune",
+    ):
+        del unchecked_corpus["corpus"][key]
+    try:
+        evaluate_gate(unchecked_corpus, require_corpus_provenance=True)
+    except CheckFailed as error:
+        assert "checked subset provenance is required" in str(error)
+    else:
+        raise AssertionError("semantic smoke mode must require checked subset provenance")
     legacy = sample_report()
     for key in ("schema", "measurement", "environment", "execution", "corpus"):
         del legacy[key]

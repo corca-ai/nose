@@ -145,9 +145,10 @@ scripts/semantic-regression-smoke.sh \
   --skip-setup
 ```
 
-`--skip-setup` deliberately trusts that checkout and therefore omits the checked
-post-prune state when its repos root has no `.nose-corpus-state.json`; do not use
-that shortcut as merge evidence.
+`--skip-setup` may reuse a checkout only when its repos root already contains the
+matching `.nose-corpus-state.json`. The strict checker rejects a root without that
+checked post-prune state. For an exploratory comparison without checked corpus
+state, invoke the generic harness/checker mode directly; it is not merge evidence.
 
 Use the broader 120-repository query regression and the
 [runtime triage runbook](runtime-triage.md) when the bounded smoke identifies a
