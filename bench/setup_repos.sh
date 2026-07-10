@@ -74,8 +74,10 @@ PY
   fi
   echo "clone $id @ ${commit:0:12}"
   rm -rf "$dst"
-  git clone --quiet "$url" "$dst"
-  git -C "$dst" checkout --quiet "$commit"
+  git init --quiet "$dst"
+  git -C "$dst" remote add origin "$url"
+  git -C "$dst" fetch --quiet --depth 1 origin "$commit"
+  git -C "$dst" checkout --quiet --detach FETCH_HEAD
 done
 
 # Prune generated and vendored files. These are not source a developer would refactor;
