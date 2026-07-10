@@ -8,19 +8,61 @@
 # clones are reset to the exact commit before pruning is applied again.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+repos_root="bench/repos"
+selected_repos=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)
+      [[ $# -ge 2 ]] || { echo "--repo requires an id" >&2; exit 2; }
+      selected_repos+=("$2")
+      shift 2
+      ;;
+    --repos-root)
+      [[ $# -ge 2 ]] || { echo "--repos-root requires a path" >&2; exit 2; }
+      repos_root="$2"
+      shift 2
+      ;;
+    -h|--help)
+      cat <<'EOF'
+usage: bench/setup_repos.sh [--repos-root PATH] [--repo ID ...]
+
+Without --repo, reconstruct the full pinned corpus in bench/repos. Repeated
+--repo flags reconstruct only that pinned subset, which is useful for the
+semantic regression smoke.
+EOF
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
 if [ ! -f bench/prune_corpus.py ]; then
   echo "missing bench/prune_corpus.py; cannot prune the benchmark corpus reproducibly" >&2
   exit 1
 fi
-mkdir -p bench/repos
-python3 bench/prune_corpus.py --clean-unpinned-repos
+mkdir -p "$repos_root"
+python3 bench/prune_corpus.py --clean-unpinned-repos --repos-root "$repos_root"
 
-python3 - <<'PY' | while IFS=$'\t' read -r id url commit; do
+python3 - "${selected_repos[@]}" <<'PY' | while IFS=$'\t' read -r id url commit; do
 import json
-for r in json.load(open("bench/goldens/corpus.json"))["repositories"]:
+import sys
+
+repositories = json.load(open("bench/goldens/corpus.json"))["repositories"]
+selected = set(sys.argv[1:])
+known = {row["id"] for row in repositories}
+unknown = sorted(selected - known)
+if unknown:
+    raise SystemExit("unknown pinned repo id(s): " + ", ".join(unknown))
+for r in repositories:
+    if selected and r["id"] not in selected:
+        continue
     print(f"{r['id']}\t{r.get('url','')}\t{r.get('commit','')}")
 PY
-  dst="bench/repos/$id"
+  dst="$repos_root/$id"
   if [ -d "$dst/.git" ]; then
     have=$(git -C "$dst" rev-parse HEAD 2>/dev/null || echo none)
     if [ "${have:0:12}" = "${commit:0:12}" ]; then
@@ -32,8 +74,10 @@ PY
   fi
   echo "clone $id @ ${commit:0:12}"
   rm -rf "$dst"
-  git clone --quiet "$url" "$dst"
-  git -C "$dst" checkout --quiet "$commit"
+  git init --quiet "$dst"
+  git -C "$dst" remote add origin "$url"
+  git -C "$dst" fetch --quiet --depth 1 origin "$commit"
+  git -C "$dst" checkout --quiet --detach FETCH_HEAD
 done
 
 # Prune generated and vendored files. These are not source a developer would refactor;
@@ -43,16 +87,16 @@ done
 # cross-language gold target — so `cdn` is intentionally absent from the dir list below.
 prune_corpus_dirs() {
   # whole dirs: vendored deps, build output, generated doc sites
-  find bench/repos -type d \( \
+  find "$repos_root" -type d \( \
       -name node_modules -o -name vendor -o -name third_party -o -name third-party \
       -o -name _site -o -name apidocs -o -name dist -o -path '*/website/public' \
     \) -prune -exec rm -rf {} + 2>/dev/null || true
   # minified / bundled files
-  find bench/repos -type f \( -name '*.min.js' -o -name '*.min.css' -o -name '*.bundle.js' \) \
+  find "$repos_root" -type f \( -name '*.min.js' -o -name '*.min.css' -o -name '*.bundle.js' \) \
     -delete 2>/dev/null || true
   # local filesystem metadata is not part of the pinned corpus and can otherwise
   # perturb the post-prune digest on macOS workstations.
-  find bench/repos -type f -name '.DS_Store' -delete 2>/dev/null || true
+  find "$repos_root" -type f -name '.DS_Store' -delete 2>/dev/null || true
 }
 prune_corpus_dirs
 # File-level generated/vendored prune. A Python pass (bench/prune_corpus.py) replaces the
@@ -61,5 +105,13 @@ prune_corpus_dirs
 # scans ALL source extensions in the banner zone and CROSS-CHECKS every removal against
 # the protected gold set (frozen duplicates ∪ worthy labels) — a protected file is never
 # removed. Writes bench/labels/prune_manifest.json for audit.
-python3 bench/prune_corpus.py --apply
-echo "corpus ready under bench/repos (generated/vendored files pruned)"
+if [[ ${#selected_repos[@]} -eq 0 && "$repos_root" == "bench/repos" ]]; then
+  python3 bench/prune_corpus.py --apply
+else
+  python3 bench/prune_corpus.py \
+    --apply-checked-manifest \
+    --repos-root "$repos_root" \
+    --manifest bench/labels/prune_manifest.json \
+    --state-output "$repos_root/.nose-corpus-state.json"
+fi
+echo "corpus ready under $repos_root (generated/vendored files pruned)"

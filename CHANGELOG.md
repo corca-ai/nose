@@ -6,6 +6,12 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Added a bounded base/head semantic regression CI gate with a pinned seven-repository
+  language-balanced corpus, exact intentional-output declarations, same-binary noise
+  controls, 5%/5 ms repository and stage thresholds, automatic focused reruns, raw
+  provenance artifacts, and a deterministic Ruby superlinear-scan tripwire.
+
 ### Fixed
 - Restored the v5 product-quality evaluation workflow against query JSON schema v7,
   added a strict live schema-drift check, refreshed dev/held-out precision and recall,

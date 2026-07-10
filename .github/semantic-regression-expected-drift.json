@@ -1,0 +1,75 @@
+{
+  "entries": [
+    {
+      "baseline_source_sha": "d28d82d79508a3f22c613ba60a5f9dc0fa5d8be3",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            69328
+          ],
+          "current": [
+            70299
+          ]
+        },
+        "families": {
+          "baseline": [
+            28
+          ],
+          "current": [
+            29
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "de3835c488b0a6968cabaaa992b2ad73d573ceb5c03a7b1c1f9f1dadb54bd5ad"
+          ],
+          "current": [
+            "1ae7d4d8063a6ca0225d0d2d197507959446e7a24c3529eec1dfe4c55c8f4c64"
+          ]
+        },
+        "surface_counts": {
+          "baseline": [
+            {
+              "default": 15,
+              "hidden": 13
+            }
+          ],
+          "current": [
+            {
+              "default": 15,
+              "hidden": 14
+            }
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/804",
+      "reason": "Ruby core nil? absence-channel admission intentionally added one hidden family",
+      "repo": "fastlane"
+    },
+    {
+      "baseline_source_sha": "d28d82d79508a3f22c613ba60a5f9dc0fa5d8be3",
+      "changed": {
+        "bytes": {
+          "baseline": [
+            31952
+          ],
+          "current": [
+            31950
+          ]
+        },
+        "hashes": {
+          "baseline": [
+            "8c4e668d1b6183ffa62c1d3e948776f2bfb49209130c0d05c1617994f0733cb2"
+          ],
+          "current": [
+            "5133c74d522bc8fba782c4c244b8e65c756357aea7d671023befcbdd60aa5a5f"
+          ]
+        }
+      },
+      "issue": "https://github.com/corca-ai/nose/issues/804",
+      "reason": "Ruby core nil? proof metadata intentionally changed the serialized family witness",
+      "repo": "sidekiq"
+    }
+  ],
+  "schema": "nose.semantic_regression_expected_drift.v1"
+}

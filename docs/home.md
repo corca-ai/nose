@@ -65,6 +65,7 @@ fundamentals; the rest is grouped by area.
 - [architecture](architecture.md) — the crates and the lower → normalize → detect → rank pipeline.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
 - [refactoring-ratchets](refactoring-ratchets.md) — repository quality ratchets for incremental design cleanup, including Rust file-length and the CLI prelude guard.
+- [semantic-regression-smoke](semantic-regression-smoke.md) — base/head semantic output and runtime tripwire, exact intentional-drift declarations, focused reruns, and pinned evidence.
 
 ### Repository workflow
 

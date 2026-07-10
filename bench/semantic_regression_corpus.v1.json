@@ -1,0 +1,20 @@
+{
+  "corpus_manifest_sha256": "87b3defc02c87e53f5ce20d10b68afdbc7190a6db5d5bfdb6b655b305bbc7ba8",
+  "prune_manifest_sha256": "70e3ba6446202ee76dcc781e59aa4e976936bc7b4f12841fcb3d4eb4fbc7579d",
+  "repositories": [
+    "alacritty",
+    "asciidoctor",
+    "fastlane",
+    "junit5",
+    "prettier",
+    "requests",
+    "sidekiq"
+  ],
+  "schema": "nose.semantic_regression_corpus.v1",
+  "subset_digest_after_prune": {
+    "algorithm": "sha256(repo_path NUL kind NUL size NUL file_or_symlink_sha256 LF)",
+    "bytes": 167532402,
+    "files": 15656,
+    "hex": "130a6d85610bfbd4e4303c997ff0172800baf1b2833ae8db4ecdde6d17235168"
+  }
+}

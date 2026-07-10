@@ -475,6 +475,76 @@ def manifest_path_to_file(entry: dict, project_root: Path, repos_root: Path) -> 
     return repos_root / entry["repo_path"]
 
 
+def apply_checked_manifest(
+    project_root: Path, repos_root: Path, manifest_path: Path
+) -> tuple[int, int, dict]:
+    """Apply exactly the checked manifest entries for repos present in a subset."""
+    expected = json.loads(manifest_path.read_text())
+    removals: list[Path] = []
+    failures: list[str] = []
+    removed_entries = expected.get("removed", [])
+    protected_entries = expected.get("protected_skipped", [])
+    if not isinstance(removed_entries, list) or not isinstance(protected_entries, list):
+        raise SystemExit("checked prune manifest entries must be arrays")
+    if any(not isinstance(entry, dict) for entry in [*removed_entries, *protected_entries]):
+        raise SystemExit("checked prune manifest entries must be objects")
+    expected_by_repo_path = {
+        entry["repo_path"]: entry for entry in [*removed_entries, *protected_entries]
+    }
+    if len(expected_by_repo_path) != len(removed_entries) + len(protected_entries):
+        raise SystemExit("checked prune manifest has duplicate repo_path entries")
+
+    def validate_content(path: Path, entry: dict) -> None:
+        actual_size = path.stat().st_size
+        actual_sha256 = sha256_file(path)
+        if actual_size != entry.get("size") or actual_sha256 != entry.get("sha256"):
+            failures.append(
+                f"manifest content mismatch: {entry['path']} "
+                f"size={actual_size} sha256={actual_sha256}"
+            )
+
+    for entry in removed_entries:
+        repo_root = repo_root_for_manifest_entry(entry, repos_root)
+        if repo_root is None or not repo_root.exists():
+            continue
+        path = manifest_path_to_file(entry, project_root, repos_root)
+        if path.exists() or path.is_symlink():
+            validate_content(path, entry)
+            removals.append(path)
+    protected_count = 0
+    for entry in protected_entries:
+        repo_root = repo_root_for_manifest_entry(entry, repos_root)
+        if repo_root is None or not repo_root.exists():
+            continue
+        protected_count += 1
+        path = manifest_path_to_file(entry, project_root, repos_root)
+        if not path.exists():
+            failures.append(f"protected source is missing: {entry['path']}")
+        else:
+            validate_content(path, entry)
+    for path in iter_source_files(repos_root):
+        reason = prune_reason(path, repos_root)
+        if reason is None:
+            continue
+        actual = candidate_entry(path, reason, project_root, repos_root)
+        declared = expected_by_repo_path.get(actual["repo_path"])
+        if declared is None:
+            failures.append(f"new undeclared prune candidate: {actual['repo_path']}")
+            continue
+        for key in ("repo", "repo_path", "reason", "detail", "size", "sha256"):
+            if actual.get(key) != declared.get(key):
+                failures.append(
+                    f"manifest field mismatch: {actual['path']} `{key}` "
+                    f"{actual.get(key)!r} != {declared.get(key)!r}"
+                )
+    if failures:
+        for failure in failures:
+            print(f"error: {failure}", file=sys.stderr)
+        raise SystemExit(1)
+    remove_paths(removals)
+    return len(removals), protected_count, corpus_digest(repos_root, set())
+
+
 def check_manifest(project_root: Path, repos_root: Path, labels_path: Path, manifest_path: Path) -> None:
     expected = json.loads(manifest_path.read_text())
     failures: list[str] = []
