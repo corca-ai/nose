@@ -88,8 +88,10 @@ The broader refactoring policy lives in [refactoring-ratchets](refactoring-ratch
 ### Runtime regression triage
 
 For semantic-kernel, lowering, normalization, query, or corpus-scale behavior
-changes, run the broad query-regression gate before treating a runtime delta as a
-bug or an optimization target. If the broad run shows a meaningful increase, use
+changes, run the bounded [semantic regression smoke](semantic-regression-smoke.md)
+against the PR base. The CI job uses the same script, exact output-drift ledger,
+same-binary control, and focused-rerun policy as local reproduction. If the smoke
+shows a meaningful increase, run the broad query-regression gate and use
 the [runtime triage runbook](runtime-triage.md) to classify the affected repos
 as noise, capability-growth cost, lower/front-end cost, value-graph cost, or a mixed
 hot path.

@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 import json
+import os
+import platform
+import re
 import shlex
 import statistics
 import subprocess
@@ -16,6 +20,8 @@ from typing import Any
 
 
 DEFAULT_QUERY_ARGS = ("query", "{repo}", "all", "top=0", "--mode", "semantic", "--format", "json")
+SCHEMA = "nose.query_regression_harness.v2"
+TIME_RE = re.compile(r"\[time\]\s+([a-zA-Z0-9_+\-]+)\s+([0-9.]+)ms")
 
 
 def sha256_file(path: Path) -> str:
@@ -37,6 +43,49 @@ def git_output(args: list[str]) -> str:
     if result.returncode != 0:
         return f"<git {' '.join(args)} failed: {result.stderr.strip()}>"
     return result.stdout.strip()
+
+
+def optional_command_output(args: list[str]) -> str | None:
+    try:
+        result = subprocess.run(
+            args,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def physical_memory_bytes() -> int | None:
+    if sys.platform == "darwin":
+        raw = optional_command_output(["sysctl", "-n", "hw.memsize"])
+        return int(raw) if raw and raw.isdigit() else None
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (AttributeError, KeyError, OSError, TypeError, ValueError):
+        return None
+
+
+def measurement_environment() -> dict[str, Any]:
+    return {
+        "architecture": platform.machine(),
+        "logical_cpu_count": os.cpu_count(),
+        "machine_model": (
+            optional_command_output(["sysctl", "-n", "hw.model"])
+            if sys.platform == "darwin"
+            else None
+        ),
+        "memory_bytes": physical_memory_bytes(),
+        "os": platform.system(),
+        "os_release": platform.release(),
+        "python_version": platform.python_version(),
+        "rustc_version": optional_command_output(["rustc", "--version"]),
+    }
 
 
 def parse_query_args(raw: str) -> tuple[str, ...]:
@@ -72,16 +121,40 @@ def command_for(binary: Path, repo: Path, query_args: tuple[str, ...]) -> list[s
     return [str(binary), *[repo.as_posix() if arg == "{repo}" else arg for arg in query_args]]
 
 
-def family_count(stdout: bytes) -> int:
+def query_observations(stdout: bytes, *, source: str) -> dict[str, Any]:
     try:
         payload = json.loads(stdout)
-    except json.JSONDecodeError:
-        return 0
-    if isinstance(payload, dict) and isinstance(payload.get("families"), list):
-        return len(payload["families"])
-    if isinstance(payload, list):
-        return len(payload)
-    return 0
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"{source}: invalid query JSON: {error}") from error
+    if not isinstance(payload, dict) or not isinstance(payload.get("families"), list):
+        raise SystemExit(f"{source}: query JSON must be an object with a families array")
+    surfaces: Counter[str] = Counter()
+    for index, family in enumerate(payload["families"]):
+        if not isinstance(family, dict) or not isinstance(family.get("surface"), str):
+            raise SystemExit(f"{source}: families[{index}].surface must be a string")
+        surfaces[family["surface"]] += 1
+    schema_version = payload.get("schema_version")
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int):
+        raise SystemExit(f"{source}: schema_version must be an integer")
+    return {
+        "families": len(payload["families"]),
+        "schema_version": schema_version,
+        "surface_counts": dict(sorted(surfaces.items())),
+    }
+
+
+def parse_stage_timings(stderr: bytes) -> dict[str, float]:
+    text = stderr.decode(errors="replace")
+    return {match.group(1): float(match.group(2)) for match in TIME_RE.finditer(text)}
+
+
+def canonical_output(stdout: bytes, repo_path: Path) -> bytes:
+    repo_bytes = repo_path.as_posix().encode()
+    if repo_bytes not in stdout:
+        raise SystemExit("query JSON did not contain the expected repository path")
+    # The absolute root appears in both the top-level path and generated `next`
+    # commands. Replace every occurrence while retaining the exact wire format.
+    return stdout.replace(repo_bytes, b"<repo>")
 
 
 def run_once(
@@ -94,12 +167,14 @@ def run_once(
     query_args: tuple[str, ...],
 ) -> dict[str, Any]:
     command = command_for(binary, repo_path, query_args)
+    env = dict(os.environ, NOSE_TIME="1")
     start = time.perf_counter()
     result = subprocess.run(
         command,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=env,
     )
     elapsed_ms = (time.perf_counter() - start) * 1000.0
     if result.returncode != 0:
@@ -107,35 +182,43 @@ def run_once(
             f"{label} {repo_name} iteration {iteration} failed: "
             f"{result.stderr.decode(errors='replace')}"
         )
+    observations = query_observations(
+        result.stdout, source=f"{label} {repo_name} iteration {iteration}"
+    )
+    canonical_stdout = canonical_output(result.stdout, repo_path)
     return {
-        "bytes": len(result.stdout),
+        "bytes": len(canonical_stdout),
         "elapsed_ms": elapsed_ms,
-        "families": family_count(result.stdout),
+        **observations,
         "iteration": iteration,
         "label": label,
         "repo": repo_name,
-        "sha256": hashlib.sha256(result.stdout).hexdigest(),
+        "raw_bytes": len(result.stdout),
+        "raw_sha256": hashlib.sha256(result.stdout).hexdigest(),
+        "sha256": hashlib.sha256(canonical_stdout).hexdigest(),
+        "stages_ms": parse_stage_timings(result.stderr),
     }
 
 
 def warmup(
     *,
-    binary: Path,
-    label: str,
+    binaries: dict[str, Path],
     repos: list[tuple[str, Path]],
     warmups: int,
     query_args: tuple[str, ...],
 ) -> None:
     for iteration in range(1, warmups + 1):
-        for repo_name, repo_path in repos:
-            run_once(
-                binary=binary,
-                label=label,
-                repo_name=repo_name,
-                repo_path=repo_path,
-                iteration=-iteration,
-                query_args=query_args,
-            )
+        order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
+        for label in order:
+            for repo_name, repo_path in repos:
+                run_once(
+                    binary=binaries[label],
+                    label=label,
+                    repo_name=repo_name,
+                    repo_path=repo_path,
+                    iteration=-iteration,
+                    query_args=query_args,
+                )
 
 
 def summarize(runs: list[dict[str, Any]], repos: list[str]) -> dict[str, Any]:
@@ -144,11 +227,25 @@ def summarize(runs: list[dict[str, Any]], repos: list[str]) -> dict[str, Any]:
         by_repo[repo] = {}
         for label in ("baseline", "current"):
             rows = [row for row in runs if row["repo"] == repo and row["label"] == label]
+            stage_names = sorted({name for row in rows for name in row["stages_ms"]})
             by_repo[repo][label] = {
                 "bytes": sorted({row["bytes"] for row in rows}),
                 "families": sorted({row["families"] for row in rows}),
                 "hashes": sorted({row["sha256"] for row in rows}),
                 "median_ms": statistics.median(row["elapsed_ms"] for row in rows),
+                "raw_bytes": sorted({row["raw_bytes"] for row in rows}),
+                "raw_hashes": sorted({row["raw_sha256"] for row in rows}),
+                "schema_versions": sorted({row["schema_version"] for row in rows}),
+                "stages_median_ms": {
+                    name: statistics.median(row["stages_ms"].get(name, 0.0) for row in rows)
+                    for name in stage_names
+                },
+                "surface_counts": [
+                    json.loads(value)
+                    for value in sorted(
+                        {json.dumps(row["surface_counts"], sort_keys=True) for row in rows}
+                    )
+                ],
             }
 
     aggregate_baseline = sum(by_repo[repo]["baseline"]["median_ms"] for repo in repos)
@@ -161,6 +258,7 @@ def summarize(runs: list[dict[str, Any]], repos: list[str]) -> dict[str, Any]:
     return {
         "aggregate_baseline_median_ms": aggregate_baseline,
         "aggregate_current_median_ms": aggregate_current,
+        "aggregate_delta_ms": aggregate_current - aggregate_baseline,
         "aggregate_delta_pct": delta_pct,
         "by_repo": by_repo,
         "hashes_identical_by_repo": {
@@ -170,17 +268,86 @@ def summarize(runs: list[dict[str, Any]], repos: list[str]) -> dict[str, Any]:
     }
 
 
+def repo_git_sha(repo_path: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo_path), "rev-parse", "HEAD"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise SystemExit(f"{repo_path}: cannot resolve pinned corpus revision: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def corpus_provenance(
+    repos: list[tuple[str, Path]], corpus_manifest: Path, prune_manifest: Path
+) -> dict[str, Any]:
+    try:
+        corpus = json.loads(corpus_manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit(f"cannot read corpus manifest {corpus_manifest}: {error}") from error
+    pinned = {
+        row["id"]: row["commit"]
+        for row in corpus.get("repositories", [])
+        if isinstance(row, dict) and isinstance(row.get("id"), str)
+    }
+    revisions = []
+    for repo_name, repo_path in repos:
+        expected = pinned.get(repo_name)
+        if not isinstance(expected, str):
+            raise SystemExit(f"{repo_name}: missing from {corpus_manifest}")
+        actual = repo_git_sha(repo_path)
+        if actual != expected:
+            raise SystemExit(f"{repo_name}: corpus revision {actual} != pinned {expected}")
+        revisions.append({"repo": repo_name, "commit": actual})
+    return {
+        "corpus_manifest": corpus_manifest.as_posix(),
+        "corpus_manifest_sha256": sha256_file(corpus_manifest),
+        "prune_manifest": prune_manifest.as_posix(),
+        "prune_manifest_sha256": sha256_file(prune_manifest),
+        "repositories": revisions,
+        "selection_sha256": hashlib.sha256(
+            json.dumps(revisions, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    }
+
+
 def run_self_test() -> None:
+    def row(repo: str, label: str, elapsed_ms: float, size: int, stage_ms: float) -> dict[str, Any]:
+        return {
+            "repo": repo,
+            "label": label,
+            "elapsed_ms": elapsed_ms,
+            "bytes": size,
+            "raw_bytes": size + 1,
+            "families": size,
+            "sha256": repo,
+            "raw_sha256": "raw-" + repo,
+            "schema_version": 7,
+            "surface_counts": {"default": size},
+            "stages_ms": {"lower": stage_ms},
+        }
+
     rows = [
-        {"repo": "a", "label": "baseline", "elapsed_ms": 10.0, "bytes": 1, "families": 1, "sha256": "x"},
-        {"repo": "a", "label": "current", "elapsed_ms": 12.0, "bytes": 1, "families": 1, "sha256": "x"},
-        {"repo": "b", "label": "baseline", "elapsed_ms": 20.0, "bytes": 2, "families": 2, "sha256": "y"},
-        {"repo": "b", "label": "current", "elapsed_ms": 18.0, "bytes": 2, "families": 2, "sha256": "y"},
+        row("a", "baseline", 10.0, 1, 2.0),
+        row("a", "current", 12.0, 1, 3.0),
+        row("b", "baseline", 20.0, 2, 4.0),
+        row("b", "current", 18.0, 2, 4.0),
     ]
     summary = summarize(rows, ["a", "b"])
     assert summary["aggregate_baseline_median_ms"] == 30.0
     assert summary["aggregate_current_median_ms"] == 30.0
     assert summary["hashes_identical_by_repo"] == {"a": True, "b": True}
+    assert summary["by_repo"]["a"]["current"]["stages_median_ms"]["lower"] == 3.0
+    parsed = query_observations(
+        b'{"schema_version":7,"families":[{"surface":"default"}]}', source="self-test"
+    )
+    assert parsed == {"families": 1, "schema_version": 7, "surface_counts": {"default": 1}}
+    assert canonical_output(b'{"path":"/one/repo"}', Path("/one/repo")) == canonical_output(
+        b'{"path":"/two/repo"}', Path("/two/repo")
+    )
     assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
     print("query regression harness self-test passed")
 
@@ -199,6 +366,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--iterations", type=int, default=9)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
+    parser.add_argument("--corpus-manifest", type=Path)
+    parser.add_argument("--prune-manifest", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--self-test", action="store_true")
     return parser.parse_args()
@@ -218,15 +387,30 @@ def main() -> int:
     current_binary = args.current_binary.resolve()
     repos = selected_repos(args)
     query_args = parse_query_args(args.query_args)
+    if (args.corpus_manifest is None) != (args.prune_manifest is None):
+        raise SystemExit("--corpus-manifest and --prune-manifest must be provided together")
+    corpus = (
+        corpus_provenance(
+            repos,
+            args.corpus_manifest.resolve(),
+            args.prune_manifest.resolve(),
+        )
+        if args.corpus_manifest is not None and args.prune_manifest is not None
+        else None
+    )
     working_tree_status_before_measurement = git_output(["status", "--short"])
 
-    warmup(binary=baseline_binary, label="baseline", repos=repos, warmups=args.warmups, query_args=query_args)
-    warmup(binary=current_binary, label="current", repos=repos, warmups=args.warmups, query_args=query_args)
+    binaries = {"baseline": baseline_binary, "current": current_binary}
+    warmup(
+        binaries=binaries,
+        repos=repos,
+        warmups=args.warmups,
+        query_args=query_args,
+    )
 
     runs: list[dict[str, Any]] = []
     for iteration in range(1, args.iterations + 1):
         order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
-        binaries = {"baseline": baseline_binary, "current": current_binary}
         for label in order:
             for repo_name, repo_path in repos:
                 runs.append(
@@ -242,7 +426,11 @@ def main() -> int:
 
     repo_names = [repo for repo, _ in repos]
     output = {
+        "schema": SCHEMA,
         "command": "nose " + " ".join(query_args).replace("{repo}", "<repo>"),
+        "corpus": corpus,
+        "environment": measurement_environment(),
+        "measurement": {"iterations": args.iterations, "warmups": args.warmups},
         "provenance": {
             "baseline_binary": baseline_binary.as_posix(),
             "baseline_binary_sha256": sha256_file(baseline_binary),
@@ -253,7 +441,7 @@ def main() -> int:
             "current_source_ref": args.current_source_ref,
             "current_source_sha": args.current_source_sha or git_output(["rev-parse", args.current_source_ref]),
             "harness": "scripts/query-regression-harness.py",
-            "harness_command": " ".join(sys.argv),
+            "harness_command": shlex.join(["python3", *sys.argv]),
             "working_tree_status_before_measurement": working_tree_status_before_measurement,
         },
         "repos": repo_names,

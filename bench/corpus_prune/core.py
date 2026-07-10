@@ -475,6 +475,37 @@ def manifest_path_to_file(entry: dict, project_root: Path, repos_root: Path) -> 
     return repos_root / entry["repo_path"]
 
 
+def apply_checked_manifest(
+    project_root: Path, repos_root: Path, manifest_path: Path
+) -> tuple[int, int]:
+    """Apply exactly the checked manifest entries for repos present in a subset."""
+    expected = json.loads(manifest_path.read_text())
+    removals: list[Path] = []
+    failures: list[str] = []
+    for entry in expected.get("removed", []):
+        repo_root = repo_root_for_manifest_entry(entry, repos_root)
+        if repo_root is None or not repo_root.exists():
+            continue
+        path = manifest_path_to_file(entry, project_root, repos_root)
+        if path.exists() or path.is_symlink():
+            removals.append(path)
+    protected_count = 0
+    for entry in expected.get("protected_skipped", []):
+        repo_root = repo_root_for_manifest_entry(entry, repos_root)
+        if repo_root is None or not repo_root.exists():
+            continue
+        protected_count += 1
+        path = manifest_path_to_file(entry, project_root, repos_root)
+        if not path.exists():
+            failures.append(f"protected source is missing: {entry['path']}")
+    if failures:
+        for failure in failures:
+            print(f"error: {failure}", file=sys.stderr)
+        raise SystemExit(1)
+    remove_paths(removals)
+    return len(removals), protected_count
+
+
 def check_manifest(project_root: Path, repos_root: Path, labels_path: Path, manifest_path: Path) -> None:
     expected = json.loads(manifest_path.read_text())
     failures: list[str] = []

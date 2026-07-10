@@ -10,6 +10,10 @@ Run this process when a PR, release candidate, or post-release follow-up changes
 admission, lowering, normalization, query ranking/filtering, or corpus-scale analysis
 behavior and the broad query-regression run reports a meaningful runtime increase.
 
+Start with the PR-sized [semantic regression smoke](semantic-regression-smoke.md).
+It owns the automatic 5%/5 ms base/head decision and focused rerun; this runbook is
+the deeper classification step after that bounded gate identifies a material signal.
+
 The broad gate answers whether product output or runtime moved. Run
 `scripts/check-query-regression.py` on that artifact to make the no-behavior-change
 decision mechanical: hashes, byte counts, and family counts must stay identical, while
