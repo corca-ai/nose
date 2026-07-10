@@ -88,10 +88,10 @@ The machine-readable artifacts include the exact harness commands, source SHAs,
 binary SHA-256 values, raw runs, medians, stage timings, family counts, byte counts,
 and output hashes:
 
-- [original focused regression](../bench/recall_loss/ruby-redefinition-runtime-regression-2026-07-10.v1.json)
-- [15-iteration parent-versus-fix comparison](../bench/recall_loss/ruby-redefinition-runtime-focused-2026-07-10.v1.json)
-- [15-iteration same-binary control](../bench/recall_loss/ruby-redefinition-runtime-same-binary-2026-07-10.v1.json)
-- [all-120 product-query comparison](../bench/recall_loss/ruby-redefinition-query-regression-all-repos-2026-07-10.v1.json)
+- [original focused regression](../bench/recall_loss/ruby-redefinition-runtime-regression-2026-07-10.v1.json) records the parent-to-#804 failure boundary.
+- [15-iteration parent-versus-fix comparison](../bench/recall_loss/ruby-redefinition-runtime-focused-2026-07-10.v1.json) records the residual cost after indexing.
+- [15-iteration same-binary control](../bench/recall_loss/ruby-redefinition-runtime-same-binary-2026-07-10.v1.json) records local timing noise.
+- [all-120 product-query comparison](../bench/recall_loss/ruby-redefinition-query-regression-all-repos-2026-07-10.v1.json) proves product-output preservation.
 
 The broad artifact was checked with:
 
