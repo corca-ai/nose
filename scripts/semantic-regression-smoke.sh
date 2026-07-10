@@ -191,10 +191,10 @@ scaling_rc=$?
 set -e
 
 run_harness \
-  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 1 0 \
+  "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 2 0 \
   "${repo_args[@]}"
 run_harness \
-  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 1 0 \
+  "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 2 0 \
   "${repo_args[@]}"
 
 checker_args=(

@@ -65,9 +65,10 @@ declares its cost acceptable.
 
 ## Runtime policy
 
-The first pass alternates base/head execution order and runs a base-vs-base
-same-binary control on the same corpus. It records wall time and every stage emitted
-by `NOSE_TIME=1`. A signal crosses the material threshold only when its
+The first pass takes two measurements with opposite base/head execution order and
+runs a base-vs-base same-binary control on the same corpus. It records wall time
+and every stage emitted by `NOSE_TIME=1`. A signal crosses the material threshold
+only when its
 control-adjusted increase is both:
 
 - greater than 5%; and
@@ -94,7 +95,7 @@ The #804 failure boundary validates both layers:
 
 | Comparison | Result |
 | --- | --- |
-| `d28d82d7` → `f968dcbd`, seven-repo first pass | 1,547.41 ms → 42,850.91 ms; +2,673.32% after same-binary adjustment; focused rerun required |
+| `d28d82d7` → `f968dcbd`, seven-repo one-iteration validation probe | 1,547.41 ms → 42,850.91 ms; +2,673.32% after same-binary adjustment; focused rerun required |
 | `d28d82d7` → `f968dcbd`, five-iteration Ruby rerun | 391.56 ms → 27,744.71 ms; +6,984.01% after same-binary adjustment; confirmed hard failure |
 | Intentional output ledger | `fastlane` and `sidekiq` changes accepted exactly; zero unexpected drifts; runtime still blocked |
 | Ruby scaling, fixed/current implementation | growth exponent 0.70; passes |
