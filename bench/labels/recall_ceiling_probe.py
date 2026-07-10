@@ -7,7 +7,8 @@ GENERALIZATION of the two shipped partial-clone mechanisms (#82: shared heavy
 anchors in `near` candidate mode, single-return pure inlining in the value
 graph) could plausibly recover it:
 
-- arm0  — the default product surface (`syntax,semantic`).
+- arm0  — the historical exact-only reference surface (`syntax,semantic`), pinned
+          explicitly so a CLI default-mode change cannot rewrite the experiment.
 - arm1  — the maximal current surface (`syntax,semantic,near`, `--min-value 0`),
           i.e. everything already reachable today, including anchor partials.
 - sub-DAG ceiling — for labels arm1 misses, the value-fingerprint multiset
@@ -218,7 +219,7 @@ def main():
         labs = by_repo[rid]
         split = labs[0]["split"]
         lang = lang_of.get(rid, "?")
-        arm0 = run_query(args.nose, repo_dir, [])
+        arm0 = run_query(args.nose, repo_dir, ["--mode", "syntax,semantic"])
         arm1 = run_query(
             args.nose,
             repo_dir,
