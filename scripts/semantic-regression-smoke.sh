@@ -2,6 +2,7 @@
 # Build and compare base/head release binaries on the pinned semantic smoke corpus.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+runner_command="$(printf '%q ' "$0" "$@")"
 
 base_ref="origin/main"
 head_ref="HEAD"
@@ -62,11 +63,13 @@ head_sha="$(git rev-parse --verify "$head_ref^{commit}")"
 is_relevant_path() {
   case "$1" in
     Cargo.toml|Cargo.lock|rust-toolchain.toml|crates/*|\
-    bench/goldens/corpus.json|bench/labels/prune_manifest.json|bench/setup_repos.sh|\
+    bench/goldens/corpus.json|bench/labels/prune_manifest.json|\
+    bench/semantic_regression_corpus.v1.json|bench/setup_repos.sh|\
     bench/prune_corpus.py|bench/corpus_prune/*|\
     .github/semantic-regression-expected-drift.json|.github/workflows/ci.yml|\
     scripts/query-regression-harness.py|scripts/check-query-regression.py|\
-    scripts/ruby-redefinition-scaling.py|scripts/semantic-regression-smoke.sh)
+    scripts/ruby-redefinition-scaling.py|scripts/semantic-regression-smoke.sh|\
+    scripts/semantic-regression-summary.py)
       return 0
       ;;
     *)
@@ -111,6 +114,7 @@ rm -f \
   "$artifact_dir/focused.json" \
   "$artifact_dir/focused-control.json" \
   "$artifact_dir/check-status.json" \
+  "$artifact_dir/context.json" \
   "$artifact_dir/ruby-scaling.json" \
   "$artifact_dir/summary.md"
 
@@ -118,6 +122,7 @@ worktree_root=""
 cleanup() {
   if [[ -n "$worktree_root" ]]; then
     git worktree remove --force "$worktree_root/base" >/dev/null 2>&1 || true
+    git worktree remove --force "$worktree_root/head" >/dev/null 2>&1 || true
     rm -rf "$worktree_root"
   fi
 }
@@ -126,6 +131,7 @@ trap cleanup EXIT
 if [[ -z "$baseline_binary" ]]; then
   worktree_root="$(mktemp -d "${TMPDIR:-/tmp}/nose-semantic-regression.XXXXXX")"
   git worktree add --detach "$worktree_root/base" "$base_sha"
+  git worktree add --detach "$worktree_root/head" "$head_sha"
   cargo_target="$(pwd)/target/semantic-regression/cargo"
   (
     cd "$worktree_root/base"
@@ -133,9 +139,21 @@ if [[ -z "$baseline_binary" ]]; then
   )
   baseline_binary="$(pwd)/target/semantic-regression/baseline-nose"
   cp "$cargo_target/release/nose" "$baseline_binary"
-  cargo build --release --locked --target-dir "$cargo_target"
+  (
+    cd "$worktree_root/head"
+    cargo build --release --locked --target-dir "$cargo_target"
+  )
   current_binary="$(pwd)/target/semantic-regression/current-nose"
   cp "$cargo_target/release/nose" "$current_binary"
+  build_mode="worktrees"
+  base_build_cwd="$worktree_root/base"
+  head_build_cwd="$worktree_root/head"
+  build_command="cargo build --release --locked --target-dir $cargo_target"
+else
+  build_mode="prebuilt"
+  base_build_cwd=""
+  head_build_cwd=""
+  build_command=""
 fi
 
 baseline_binary="$(cd "$(dirname "$baseline_binary")" && pwd)/$(basename "$baseline_binary")"
@@ -152,10 +170,56 @@ if ! $skip_setup; then
   bench/setup_repos.sh "${setup_args[@]}"
 fi
 
+NOSE_RUNNER_COMMAND="$runner_command" \
+NOSE_BUILD_MODE="$build_mode" \
+NOSE_BASE_BUILD_CWD="$base_build_cwd" \
+NOSE_HEAD_BUILD_CWD="$head_build_cwd" \
+NOSE_BUILD_COMMAND="$build_command" \
+NOSE_COMPARISON_BASE_SHA="$base_sha" \
+NOSE_COMPARISON_HEAD_SHA="$head_sha" \
+NOSE_BASE_BINARY="$baseline_binary" \
+NOSE_HEAD_BINARY="$current_binary" \
+python3 - "$artifact_dir/context.json" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+def optional(name):
+    return os.environ.get(name) or None
+
+context = {
+    "schema": "nose.semantic_regression_context.v1",
+    "runner_command": os.environ["NOSE_RUNNER_COMMAND"],
+    "comparison_base_sha": os.environ["NOSE_COMPARISON_BASE_SHA"],
+    "comparison_head_sha": os.environ["NOSE_COMPARISON_HEAD_SHA"],
+    "pull_request_head_sha": optional("NOSE_PR_HEAD_SHA"),
+    "github": {
+        "event_name": optional("GITHUB_EVENT_NAME"),
+        "workflow_sha": optional("GITHUB_SHA"),
+    },
+    "build": {
+        "mode": os.environ["NOSE_BUILD_MODE"],
+        "command": optional("NOSE_BUILD_COMMAND"),
+        "base_cwd": optional("NOSE_BASE_BUILD_CWD"),
+        "head_cwd": optional("NOSE_HEAD_BUILD_CWD"),
+        "baseline_binary": os.environ["NOSE_BASE_BINARY"],
+        "current_binary": os.environ["NOSE_HEAD_BINARY"],
+    },
+}
+Path(sys.argv[1]).write_text(json.dumps(context, indent=2, sort_keys=True) + "\n")
+PY
+
 corpus_args=(
   --corpus-manifest "$(pwd)/bench/goldens/corpus.json"
   --prune-manifest "$(pwd)/bench/labels/prune_manifest.json"
 )
+if [[ -f "$repos_root/.nose-corpus-state.json" ]]; then
+  corpus_args+=(
+    --corpus-state "$repos_root/.nose-corpus-state.json"
+    --expected-corpus-state "$(pwd)/bench/semantic_regression_corpus.v1.json"
+  )
+fi
 repo_args=()
 for repo in "${repos[@]}"; do
   repo_args+=(--repo "$repo")
@@ -167,14 +231,18 @@ run_harness() {
   local head_binary="$3"
   local iterations="$4"
   local warmups="$5"
-  shift 5
+  local source_base_ref="$6"
+  local source_head_ref="$7"
+  local source_base_sha="$8"
+  local source_head_sha="$9"
+  shift 9
   python3 scripts/query-regression-harness.py \
     --baseline-binary "$base_binary" \
     --current-binary "$head_binary" \
-    --baseline-source-ref "$base_ref" \
-    --current-source-ref "$head_ref" \
-    --baseline-source-sha "$base_sha" \
-    --current-source-sha "$head_sha" \
+    --baseline-source-ref "$source_base_ref" \
+    --current-source-ref "$source_head_ref" \
+    --baseline-source-sha "$source_base_sha" \
+    --current-source-sha "$source_head_sha" \
     --repos-root "$repos_root" \
     --iterations "$iterations" \
     --warmups "$warmups" \
@@ -192,9 +260,11 @@ set -e
 
 run_harness \
   "$artifact_dir/primary.json" "$baseline_binary" "$current_binary" 2 0 \
+  "$base_ref" "$head_ref" "$base_sha" "$head_sha" \
   "${repo_args[@]}"
 run_harness \
   "$artifact_dir/primary-control.json" "$baseline_binary" "$baseline_binary" 2 0 \
+  "$base_ref" "$base_ref" "$base_sha" "$base_sha" \
   "${repo_args[@]}"
 
 checker_args=(
@@ -231,9 +301,11 @@ PY
   done
   run_harness \
     "$artifact_dir/focused.json" "$baseline_binary" "$current_binary" 5 1 \
+    "$base_ref" "$head_ref" "$base_sha" "$head_sha" \
     "${focused_repo_args[@]}"
   run_harness \
     "$artifact_dir/focused-control.json" "$baseline_binary" "$baseline_binary" 5 1 \
+    "$base_ref" "$base_ref" "$base_sha" "$base_sha" \
     "${focused_repo_args[@]}"
   set +e
   python3 scripts/check-query-regression.py \
@@ -244,21 +316,12 @@ PY
   set -e
 fi
 
-python3 - "$artifact_dir/ruby-scaling.json" "$artifact_dir/summary.md" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-scaling = json.load(open(sys.argv[1]))
-evaluation = scaling["evaluation"]
-with Path(sys.argv[2]).open("a", encoding="utf-8") as summary:
-    summary.write(
-        "\nRuby scaling: "
-        f"`{evaluation['status']}`; growth exponent "
-        f"{evaluation['growth_exponent']:.2f} "
-        f"(limit {evaluation['max_growth_exponent']:.2f}).\n"
-    )
-PY
+python3 scripts/semantic-regression-summary.py \
+  --scaling-report "$artifact_dir/ruby-scaling.json" \
+  --summary "$artifact_dir/summary.md" \
+  --status "$artifact_dir/check-status.json" \
+  --scaling-return-code "$scaling_rc" \
+  --checker-return-code "$checker_rc"
 
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   cat "$artifact_dir/summary.md" >>"$GITHUB_STEP_SUMMARY"

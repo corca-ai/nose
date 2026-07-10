@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,9 @@ from typing import Any
 
 STATUS_SCHEMA = "nose.semantic_regression_check.v1"
 EXPECTED_DRIFT_SCHEMA = "nose.semantic_regression_expected_drift.v1"
+REPORT_SCHEMA = "nose.query_regression_harness.v2"
 OUTPUT_KEYS = ("hashes", "bytes", "families", "schema_versions", "surface_counts")
+HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 
 class CheckFailed(Exception):
@@ -79,6 +82,170 @@ def require_repos(report: dict[str, Any], label: str) -> list[str]:
     return repos
 
 
+def require_string(parent: dict[str, Any], key: str, label: str, *, allow_empty: bool = False) -> str:
+    value = parent.get(key)
+    if not isinstance(value, str) or (not allow_empty and not value):
+        raise CheckFailed(f"{label}.{key}: expected a string")
+    return value
+
+
+def require_hex(parent: dict[str, Any], key: str, length: int, label: str) -> str:
+    value = require_string(parent, key, label)
+    if len(value) != length or HEX_RE.fullmatch(value) is None:
+        raise CheckFailed(f"{label}.{key}: expected {length} lowercase hex characters")
+    return value
+
+
+def require_nonnegative_int(parent: dict[str, Any], key: str, label: str) -> int:
+    value = parent.get(key)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise CheckFailed(f"{label}.{key}: expected a non-negative integer")
+    return value
+
+
+def validate_v2_report(report: dict[str, Any], label: str) -> None:
+    repos = require_repos(report, label)
+    require_string(report, "command", label)
+    measurement = require_object(report, "measurement", label)
+    iterations = require_nonnegative_int(measurement, "iterations", f"{label}.measurement")
+    if iterations == 0:
+        raise CheckFailed(f"{label}.measurement.iterations: expected a positive integer")
+    require_nonnegative_int(measurement, "warmups", f"{label}.measurement")
+
+    provenance = require_provenance(report, label)
+    for key in ("baseline_binary_sha256", "current_binary_sha256"):
+        require_hex(provenance, key, 64, f"{label}.provenance")
+    for key in ("baseline_source_sha", "current_source_sha"):
+        require_hex(provenance, key, 40, f"{label}.provenance")
+    for key in (
+        "baseline_binary",
+        "current_binary",
+        "baseline_source_ref",
+        "current_source_ref",
+        "harness",
+        "harness_command",
+    ):
+        require_string(provenance, key, f"{label}.provenance")
+    require_string(
+        provenance,
+        "working_tree_status_before_measurement",
+        f"{label}.provenance",
+        allow_empty=True,
+    )
+    if provenance["harness"] != "scripts/query-regression-harness.py":
+        raise CheckFailed(f"{label}.provenance.harness: unexpected harness")
+
+    corpus = require_object(report, "corpus", label)
+    for key in ("corpus_manifest_sha256", "prune_manifest_sha256", "selection_sha256"):
+        require_hex(corpus, key, 64, f"{label}.corpus")
+    require_string(corpus, "corpus_manifest", f"{label}.corpus")
+    require_string(corpus, "prune_manifest", f"{label}.corpus")
+    revisions = corpus.get("repositories")
+    if not isinstance(revisions, list):
+        raise CheckFailed(f"{label}.corpus.repositories: expected an array")
+    revision_repos = []
+    for index, revision in enumerate(revisions):
+        if not isinstance(revision, dict):
+            raise CheckFailed(f"{label}.corpus.repositories[{index}]: expected an object")
+        revision_repos.append(require_string(revision, "repo", f"{label}.corpus.repositories[{index}]"))
+        require_hex(revision, "commit", 40, f"{label}.corpus.repositories[{index}]")
+    if revision_repos != repos:
+        raise CheckFailed(f"{label}.corpus.repositories: selection does not match repos")
+    state_keys = {"corpus_state", "corpus_state_sha256", "subset_digest_after_prune"}
+    if state_keys & corpus.keys():
+        if not state_keys <= corpus.keys():
+            raise CheckFailed(f"{label}.corpus: incomplete checked subset state provenance")
+        require_string(corpus, "corpus_state", f"{label}.corpus")
+        require_hex(corpus, "corpus_state_sha256", 64, f"{label}.corpus")
+        digest = require_object(corpus, "subset_digest_after_prune", f"{label}.corpus")
+        require_hex(digest, "hex", 64, f"{label}.corpus.subset_digest_after_prune")
+        require_nonnegative_int(digest, "files", f"{label}.corpus.subset_digest_after_prune")
+        require_nonnegative_int(digest, "bytes", f"{label}.corpus.subset_digest_after_prune")
+    expected_state_keys = {"expected_corpus_state", "expected_corpus_state_sha256"}
+    if expected_state_keys & corpus.keys():
+        if not expected_state_keys <= corpus.keys():
+            raise CheckFailed(f"{label}.corpus: incomplete expected subset state provenance")
+        require_string(corpus, "expected_corpus_state", f"{label}.corpus")
+        require_hex(corpus, "expected_corpus_state_sha256", 64, f"{label}.corpus")
+
+    environment = require_object(report, "environment", label)
+    for key in ("architecture", "os", "os_release", "python_version"):
+        require_string(environment, key, f"{label}.environment")
+    cpu_count = require_nonnegative_int(environment, "logical_cpu_count", f"{label}.environment")
+    if cpu_count == 0:
+        raise CheckFailed(f"{label}.environment.logical_cpu_count: expected a positive integer")
+    execution = require_object(report, "execution", label)
+    require_string(execution, "working_directory", f"{label}.execution")
+    if require_string(execution, "repo_argument", f"{label}.execution") != "<repo-id>":
+        raise CheckFailed(f"{label}.execution.repo_argument: expected stable <repo-id>")
+
+    runs = report.get("runs")
+    if not isinstance(runs, list):
+        raise CheckFailed(f"{label}.runs: expected an array")
+    expected_runs = {
+        (repo, run_label, iteration)
+        for repo in repos
+        for run_label in ("baseline", "current")
+        for iteration in range(1, iterations + 1)
+    }
+    observed_runs = set()
+    for index, run in enumerate(runs):
+        run_label = f"{label}.runs[{index}]"
+        if not isinstance(run, dict):
+            raise CheckFailed(f"{run_label}: expected an object")
+        identity = (
+            require_string(run, "repo", run_label),
+            require_string(run, "label", run_label),
+            require_nonnegative_int(run, "iteration", run_label),
+        )
+        if identity in observed_runs:
+            raise CheckFailed(f"{run_label}: duplicate measurement identity {identity}")
+        observed_runs.add(identity)
+        require_nonnegative_int(run, "bytes", run_label)
+        require_nonnegative_int(run, "families", run_label)
+        require_nonnegative_int(run, "schema_version", run_label)
+        require_hex(run, "sha256", 64, run_label)
+        if finite_number(run.get("elapsed_ms"), f"{run_label}.elapsed_ms") <= 0:
+            raise CheckFailed(f"{run_label}.elapsed_ms: expected a positive number")
+        surfaces = require_object(run, "surface_counts", run_label)
+        for surface, count in surfaces.items():
+            if not isinstance(surface, str) or not surface:
+                raise CheckFailed(f"{run_label}.surface_counts: invalid surface name")
+            finite_count = count if isinstance(count, int) and not isinstance(count, bool) else -1
+            if finite_count < 0:
+                raise CheckFailed(f"{run_label}.surface_counts.{surface}: invalid count")
+        stages = require_object(run, "stages_ms", run_label)
+        for stage, value in stages.items():
+            if not isinstance(stage, str) or not stage:
+                raise CheckFailed(f"{run_label}.stages_ms: invalid stage name")
+            if finite_number(value, f"{run_label}.stages_ms.{stage}") < 0:
+                raise CheckFailed(f"{run_label}.stages_ms.{stage}: expected non-negative time")
+    if observed_runs != expected_runs:
+        raise CheckFailed(f"{label}.runs: measurements do not match repos/iterations")
+
+
+def validate_report_contract(report: dict[str, Any], label: str) -> str:
+    schema = report.get("schema")
+    if schema == REPORT_SCHEMA:
+        validate_v2_report(report, label)
+        return "v2"
+    if schema is not None:
+        raise CheckFailed(f"{label}.schema: unsupported query regression schema {schema!r}")
+    forbidden = {"measurement", "environment", "execution", "corpus"} & report.keys()
+    if forbidden:
+        raise CheckFailed(f"{label}: schema-less report contains v2 fields: {sorted(forbidden)}")
+    summary = require_summary(report, label)
+    for repo, rows in summary["by_repo"].items():
+        for run_label in ("baseline", "current"):
+            row = require_object(rows, run_label, f"{label}.{repo}")
+            v2_fields = {"schema_versions", "surface_counts", "stages_median_ms"} & row.keys()
+            if v2_fields:
+                raise CheckFailed(
+                    f"{label}.{repo}.{run_label}: schema-less report contains v2 fields"
+                )
+    return "legacy"
+
+
 def output_drift_repos(summary: dict[str, Any]) -> list[dict[str, Any]]:
     drifts = []
     for repo, rows in sorted(summary["by_repo"].items()):
@@ -102,11 +269,15 @@ def output_drift_repos(summary: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def validate_same_binary_control(report: dict[str, Any], control: dict[str, Any]) -> None:
+    report_kind = validate_report_contract(report, "report")
+    control_kind = validate_report_contract(control, "same-binary control")
+    if report_kind != control_kind:
+        raise CheckFailed("same-binary control report schema does not match report")
     if report.get("command") != control.get("command"):
         raise CheckFailed("same-binary control command does not match report command")
     if require_repos(report, "report") != require_repos(control, "same-binary control"):
         raise CheckFailed("same-binary control repo set does not match report repo set")
-    if report.get("schema") == "nose.query_regression_harness.v2":
+    if report.get("schema") == REPORT_SCHEMA:
         if control.get("schema") != report.get("schema"):
             raise CheckFailed("same-binary control harness schema does not match report")
         if report.get("measurement") != control.get("measurement"):
@@ -130,12 +301,31 @@ def validate_same_binary_control(report: dict[str, Any], control: dict[str, Any]
         raise CheckFailed(
             "same-binary control binary sha256 must match the report baseline or current binary"
         )
+    if report_kind == "v2":
+        control_base_source = control_provenance.get("baseline_source_sha")
+        control_current_source = control_provenance.get("current_source_sha")
+        if control_base_source != control_current_source:
+            raise CheckFailed("same-binary control must record one source SHA on both sides")
+        matching_source_shas = set()
+        if baseline_sha == report_provenance.get("baseline_binary_sha256"):
+            matching_source_shas.add(report_provenance.get("baseline_source_sha"))
+        if baseline_sha == report_provenance.get("current_binary_sha256"):
+            matching_source_shas.add(report_provenance.get("current_source_sha"))
+        if control_base_source not in matching_source_shas:
+            raise CheckFailed("same-binary control source SHA does not match its report binary")
     report_corpus = report.get("corpus")
     control_corpus = control.get("corpus")
     if isinstance(report_corpus, dict) or isinstance(control_corpus, dict):
         if not isinstance(report_corpus, dict) or not isinstance(control_corpus, dict):
             raise CheckFailed("same-binary control corpus provenance does not match report")
-        for key in ("selection_sha256", "corpus_manifest_sha256", "prune_manifest_sha256"):
+        for key in (
+            "selection_sha256",
+            "corpus_manifest_sha256",
+            "prune_manifest_sha256",
+            "corpus_state_sha256",
+            "expected_corpus_state_sha256",
+            "subset_digest_after_prune",
+        ):
             if report_corpus.get(key) != control_corpus.get(key):
                 raise CheckFailed(f"same-binary control corpus `{key}` does not match report")
     control_drifts = output_drift_repos(require_summary(control, "same-binary control"))
@@ -266,7 +456,7 @@ def runtime_signals(
     ]
     # Historical v1 artifacts were explicitly aggregate-only. Keep those
     # reproducible; the v2 CI contract adds per-repo and per-stage enforcement.
-    if report.get("schema") != "nose.query_regression_harness.v2":
+    if report.get("schema") != REPORT_SCHEMA:
         return signals
     for repo, rows in sorted(summary["by_repo"].items()):
         baseline = require_object(rows, "baseline", repo)
@@ -343,6 +533,10 @@ def runtime_signals(
 def validate_focused_report(
     primary: dict[str, Any], focused: dict[str, Any], expected_repos: list[str], min_iterations: int
 ) -> None:
+    primary_kind = validate_report_contract(primary, "primary report")
+    focused_kind = validate_report_contract(focused, "focused report")
+    if primary_kind != focused_kind:
+        raise CheckFailed("focused rerun report schema does not match primary report")
     if focused.get("command") != primary.get("command"):
         raise CheckFailed("focused rerun command does not match primary report")
     if sorted(focused.get("repos", [])) != expected_repos:
@@ -362,7 +556,13 @@ def validate_focused_report(
     if isinstance(primary_corpus, dict) or isinstance(focused_corpus, dict):
         if not isinstance(primary_corpus, dict) or not isinstance(focused_corpus, dict):
             raise CheckFailed("focused rerun corpus provenance does not match primary report")
-        for key in ("selection_sha256", "corpus_manifest_sha256", "prune_manifest_sha256"):
+        for key in (
+            "corpus_manifest_sha256",
+            "prune_manifest_sha256",
+            "corpus_state_sha256",
+            "expected_corpus_state_sha256",
+            "subset_digest_after_prune",
+        ):
             if focused_corpus.get(key) != primary_corpus.get(key):
                 raise CheckFailed(f"focused rerun corpus `{key}` does not match primary report")
     measurement = require_object(focused, "measurement", "focused report")
@@ -384,6 +584,7 @@ def report_phase(
     max_delta_pct: float,
     min_delta_ms: float,
 ) -> dict[str, Any]:
+    validate_report_contract(report, "report")
     require_repos(report, "report")
     if control is not None:
         validate_same_binary_control(report, control)
@@ -501,18 +702,72 @@ def check_report(report: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
     return evaluate_gate(report, **kwargs)
 
 
-def sample_report(*, hash_current: str = "h", delta: float = 2.0, iterations: int = 1) -> dict[str, Any]:
+SAMPLE_BASE_BINARY = "a" * 64
+SAMPLE_CURRENT_BINARY = "b" * 64
+SAMPLE_BASE_SOURCE = "c" * 40
+SAMPLE_CURRENT_SOURCE = "d" * 40
+SAMPLE_OUTPUT_HASH = "e" * 64
+SAMPLE_CHANGED_HASH = "f" * 64
+
+
+def sample_report(
+    *, hash_current: str = SAMPLE_OUTPUT_HASH, delta: float = 2.0, iterations: int = 1
+) -> dict[str, Any]:
+    runs = []
+    for iteration in range(1, iterations + 1):
+        for label, elapsed_ms in (
+            ("baseline", 100.0),
+            ("current", 100.0 + delta),
+        ):
+            runs.append(
+                {
+                    "bytes": 123,
+                    "elapsed_ms": elapsed_ms,
+                    "families": 2,
+                    "iteration": iteration,
+                    "label": label,
+                    "repo": "repo-a",
+                    "schema_version": 7,
+                    "sha256": SAMPLE_OUTPUT_HASH if label == "baseline" else hash_current,
+                    "stages_ms": {"lower": 50.0 if label == "baseline" else 50.0 + delta},
+                    "surface_counts": {"default": 2},
+                }
+            )
     return {
-        "schema": "nose.query_regression_harness.v2",
+        "schema": REPORT_SCHEMA,
         "command": "nose query <repo> all top=0 --mode semantic --format json",
         "repos": ["repo-a"],
         "measurement": {"iterations": iterations, "warmups": 0},
-        "provenance": {
-            "baseline_binary_sha256": "baseline",
-            "current_binary_sha256": "current",
-            "baseline_source_sha": "base-sha",
-            "current_source_sha": "head-sha",
+        "execution": {"repo_argument": "<repo-id>", "working_directory": "/tmp/repos"},
+        "environment": {
+            "architecture": "test-arch",
+            "logical_cpu_count": 2,
+            "os": "TestOS",
+            "os_release": "1",
+            "python_version": "3.14",
         },
+        "corpus": {
+            "corpus_manifest": "bench/goldens/corpus.json",
+            "corpus_manifest_sha256": "1" * 64,
+            "prune_manifest": "bench/labels/prune_manifest.json",
+            "prune_manifest_sha256": "2" * 64,
+            "repositories": [{"commit": "3" * 40, "repo": "repo-a"}],
+            "selection_sha256": "4" * 64,
+        },
+        "provenance": {
+            "baseline_binary": "/tmp/base/nose",
+            "baseline_binary_sha256": SAMPLE_BASE_BINARY,
+            "baseline_source_ref": "base",
+            "baseline_source_sha": SAMPLE_BASE_SOURCE,
+            "current_binary": "/tmp/head/nose",
+            "current_binary_sha256": SAMPLE_CURRENT_BINARY,
+            "current_source_ref": "head",
+            "current_source_sha": SAMPLE_CURRENT_SOURCE,
+            "harness": "scripts/query-regression-harness.py",
+            "harness_command": "python3 scripts/query-regression-harness.py ...",
+            "working_tree_status_before_measurement": "",
+        },
+        "runs": runs,
         "summary": {
             "aggregate_baseline_median_ms": 100.0,
             "aggregate_current_median_ms": 100.0 + delta,
@@ -521,7 +776,7 @@ def sample_report(*, hash_current: str = "h", delta: float = 2.0, iterations: in
                     "baseline": {
                         "bytes": [123],
                         "families": [2],
-                        "hashes": ["h"],
+                        "hashes": [SAMPLE_OUTPUT_HASH],
                         "median_ms": 100.0,
                         "schema_versions": [7],
                         "stages_median_ms": {"lower": 50.0},
@@ -544,21 +799,26 @@ def sample_report(*, hash_current: str = "h", delta: float = 2.0, iterations: in
 
 def sample_control(*, delta: float = 2.0, iterations: int = 1) -> dict[str, Any]:
     report = sample_report(delta=delta, iterations=iterations)
-    report["provenance"]["baseline_binary_sha256"] = "current"
-    report["provenance"]["current_binary_sha256"] = "current"
+    report["provenance"]["baseline_binary_sha256"] = SAMPLE_CURRENT_BINARY
+    report["provenance"]["current_binary_sha256"] = SAMPLE_CURRENT_BINARY
+    report["provenance"]["baseline_source_sha"] = SAMPLE_CURRENT_SOURCE
+    report["provenance"]["current_source_sha"] = SAMPLE_CURRENT_SOURCE
+    report["provenance"]["baseline_source_ref"] = "head"
     return report
 
 
-def expected_manifest(hash_current: str = "changed") -> dict[str, Any]:
+def expected_manifest(hash_current: str = SAMPLE_CHANGED_HASH) -> dict[str, Any]:
     return {
         "schema": EXPECTED_DRIFT_SCHEMA,
         "entries": [
             {
-                "baseline_source_sha": "base-sha",
+                "baseline_source_sha": SAMPLE_BASE_SOURCE,
                 "repo": "repo-a",
                 "reason": "intentional fixture change",
                 "issue": "#self-test",
-                "changed": {"hashes": {"baseline": ["h"], "current": [hash_current]}},
+                "changed": {
+                    "hashes": {"baseline": [SAMPLE_OUTPUT_HASH], "current": [hash_current]}
+                },
             }
         ],
     }
@@ -566,9 +826,26 @@ def expected_manifest(hash_current: str = "changed") -> dict[str, Any]:
 
 def run_self_test() -> None:
     evaluate_gate(sample_report())
+    for schema in ("typo", None):
+        malformed = json.loads(json.dumps(sample_report()))
+        malformed["schema"] = schema
+        try:
+            evaluate_gate(malformed)
+        except CheckFailed as error:
+            assert "schema" in str(error)
+        else:
+            raise AssertionError("unknown or removed v2 schema must fail closed")
+    missing_provenance = json.loads(json.dumps(sample_report()))
+    del missing_provenance["provenance"]["current_source_sha"]
+    try:
+        evaluate_gate(missing_provenance)
+    except CheckFailed as error:
+        assert "current_source_sha" in str(error)
+    else:
+        raise AssertionError("v2 source provenance must be mandatory")
     identical = sample_report(delta=50.0)
-    identical["provenance"]["baseline_binary_sha256"] = "same"
-    identical["provenance"]["current_binary_sha256"] = "same"
+    identical["provenance"]["baseline_binary_sha256"] = "0" * 64
+    identical["provenance"]["current_binary_sha256"] = "0" * 64
     assert evaluate_gate(identical)["status"] == "pass"
     assert time_signal(
         scope="repo", repo="a", stage=None,
@@ -583,13 +860,13 @@ def run_self_test() -> None:
         max_delta_pct=4.0, min_delta_ms=5.0,
     )["triggered"]
     try:
-        evaluate_gate(sample_report(hash_current="changed"))
+        evaluate_gate(sample_report(hash_current=SAMPLE_CHANGED_HASH))
     except CheckFailed as error:
         assert "unexpected product output drift" in str(error)
     else:
         raise AssertionError("unexpected output drift must fail")
     evaluate_gate(
-        sample_report(hash_current="changed"), expected_drift_manifest=expected_manifest()
+        sample_report(hash_current=SAMPLE_CHANGED_HASH), expected_drift_manifest=expected_manifest()
     )
     try:
         evaluate_gate(sample_report(), expected_drift_manifest=expected_manifest())
@@ -598,7 +875,7 @@ def run_self_test() -> None:
     else:
         raise AssertionError("an active declaration without drift must fail")
     invalid_control = sample_control()
-    invalid_control["provenance"]["current_binary_sha256"] = "different"
+    invalid_control["provenance"]["current_binary_sha256"] = "9" * 64
     try:
         evaluate_gate(sample_report(), same_binary_control=invalid_control)
     except CheckFailed as error:
@@ -621,6 +898,19 @@ def run_self_test() -> None:
         focused_same_binary_control=focused_control,
     )
     assert status["status"] == "pass"
+    malformed_focused = sample_report(delta=12.0, iterations=5)
+    malformed_focused["schema"] = "typo"
+    try:
+        evaluate_gate(
+            sample_report(delta=12.0),
+            same_binary_control=sample_control(delta=2.0),
+            focused_report=malformed_focused,
+            focused_same_binary_control=focused_control,
+        )
+    except CheckFailed as error:
+        assert "schema" in str(error)
+    else:
+        raise AssertionError("focused rerun schema must match the primary report")
     try:
         evaluate_gate(
             sample_report(delta=12.0),

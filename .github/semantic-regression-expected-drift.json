@@ -5,10 +5,10 @@
       "changed": {
         "bytes": {
           "baseline": [
-            71530
+            69328
           ],
           "current": [
-            72537
+            70299
           ]
         },
         "families": {
@@ -21,10 +21,10 @@
         },
         "hashes": {
           "baseline": [
-            "f5dede9fa6f3c1223d40fdcc8dfa0bcadeaaf7e5d52602fa73ad497f17b68c69"
+            "de3835c488b0a6968cabaaa992b2ad73d573ceb5c03a7b1c1f9f1dadb54bd5ad"
           ],
           "current": [
-            "e54456d7fbac05e4d4403ea84edf5721b6e71681625687c3ef1a9a5b1e544487"
+            "1ae7d4d8063a6ca0225d0d2d197507959446e7a24c3529eec1dfe4c55c8f4c64"
           ]
         },
         "surface_counts": {
@@ -51,18 +51,18 @@
       "changed": {
         "bytes": {
           "baseline": [
-            32129
+            31952
           ],
           "current": [
-            32127
+            31950
           ]
         },
         "hashes": {
           "baseline": [
-            "092ad0cfcce3e8f08412aaf577fb0304e093e5ed000aaac34117489368359566"
+            "8c4e668d1b6183ffa62c1d3e948776f2bfb49209130c0d05c1617994f0733cb2"
           ],
           "current": [
-            "19f51ac1c49b310f8a6335215517578d7b45fe6a040b23b5de4be5f77be682bf"
+            "5133c74d522bc8fba782c4c244b8e65c756357aea7d671023befcbdd60aa5a5f"
           ]
         }
       },

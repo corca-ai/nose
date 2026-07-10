@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -34,6 +34,7 @@ jobs:
           python3 bench/labels/query_schema.py --self-test
           python3 scripts/query-regression-harness.py --self-test
           python3 scripts/ruby-redefinition-scaling.py --self-test
+          python3 scripts/semantic-regression-summary.py --self-test
           python3 scripts/recall-loss-diff.py --self-test
           python3 scripts/check-query-regression.py --self-test
           python3 scripts/check-recall-loss-baselines.py --self-test
@@ -115,6 +116,10 @@ jobs:
           if [ -z "$base" ]; then
             base="$PUSH_BEFORE"
           fi
+          if [ -n "$base" ] && ! [[ "$base" =~ ^0+$ ]] && \
+             ! git rev-parse --verify -q "$base^{commit}" >/dev/null; then
+            git fetch --no-tags --depth=1 origin "$base" || true
+          fi
           if [ -z "$base" ] || [[ "$base" =~ ^0+$ ]] || \
              ! git rev-parse --verify -q "$base^{commit}" >/dev/null; then
             base="HEAD^"
@@ -132,13 +137,15 @@ jobs:
         uses: actions/cache@v6
         with:
           path: bench/semantic-regression-repos
-          key: semantic-regression-corpus-${{ hashFiles('bench/goldens/corpus.json', 'bench/setup_repos.sh', 'bench/prune_corpus.py', 'bench/corpus_prune/**/*.py', 'bench/labels/prune_manifest.json') }}
+          key: semantic-regression-corpus-${{ hashFiles('bench/goldens/corpus.json', 'bench/semantic_regression_corpus.v1.json', 'bench/setup_repos.sh', 'bench/prune_corpus.py', 'bench/corpus_prune/**/*.py', 'bench/labels/prune_manifest.json') }}
 
       - if: steps.route.outputs.relevant == 'true'
         uses: Swatinem/rust-cache@v2
 
       - name: compare base and head on pinned subset
         if: steps.route.outputs.relevant == 'true'
+        env:
+          NOSE_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           scripts/semantic-regression-smoke.sh \
             --base-ref "${{ steps.route.outputs.base }}" \

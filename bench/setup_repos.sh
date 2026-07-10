@@ -111,6 +111,7 @@ else
   python3 bench/prune_corpus.py \
     --apply-checked-manifest \
     --repos-root "$repos_root" \
-    --manifest bench/labels/prune_manifest.json
+    --manifest bench/labels/prune_manifest.json \
+    --state-output "$repos_root/.nose-corpus-state.json"
 fi
 echo "corpus ready under $repos_root (generated/vendored files pruned)"

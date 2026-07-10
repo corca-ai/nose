@@ -117,8 +117,8 @@ def selected_repos(args: argparse.Namespace) -> list[tuple[str, Path]]:
     return repos
 
 
-def command_for(binary: Path, repo: Path, query_args: tuple[str, ...]) -> list[str]:
-    return [str(binary), *[repo.as_posix() if arg == "{repo}" else arg for arg in query_args]]
+def command_for(binary: Path, repo_argument: str, query_args: tuple[str, ...]) -> list[str]:
+    return [str(binary), *[repo_argument if arg == "{repo}" else arg for arg in query_args]]
 
 
 def query_observations(stdout: bytes, *, source: str) -> dict[str, Any]:
@@ -148,15 +148,6 @@ def parse_stage_timings(stderr: bytes) -> dict[str, float]:
     return {match.group(1): float(match.group(2)) for match in TIME_RE.finditer(text)}
 
 
-def canonical_output(stdout: bytes, repo_path: Path) -> bytes:
-    repo_bytes = repo_path.as_posix().encode()
-    if repo_bytes not in stdout:
-        raise SystemExit("query JSON did not contain the expected repository path")
-    # The absolute root appears in both the top-level path and generated `next`
-    # commands. Replace every occurrence while retaining the exact wire format.
-    return stdout.replace(repo_bytes, b"<repo>")
-
-
 def run_once(
     *,
     binary: Path,
@@ -166,7 +157,10 @@ def run_once(
     iteration: int,
     query_args: tuple[str, ...],
 ) -> dict[str, Any]:
-    command = command_for(binary, repo_path, query_args)
+    # Invoke every checkout as its repo id from the repos-root directory. Family
+    # and member ids include path identity, so this stable relative argument is
+    # what makes exact output hashes portable across local and CI workspaces.
+    command = command_for(binary, repo_name, query_args)
     env = dict(os.environ, NOSE_TIME="1")
     start = time.perf_counter()
     result = subprocess.run(
@@ -175,6 +169,7 @@ def run_once(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
+        cwd=repo_path.parent,
     )
     elapsed_ms = (time.perf_counter() - start) * 1000.0
     if result.returncode != 0:
@@ -185,17 +180,14 @@ def run_once(
     observations = query_observations(
         result.stdout, source=f"{label} {repo_name} iteration {iteration}"
     )
-    canonical_stdout = canonical_output(result.stdout, repo_path)
     return {
-        "bytes": len(canonical_stdout),
+        "bytes": len(result.stdout),
         "elapsed_ms": elapsed_ms,
         **observations,
         "iteration": iteration,
         "label": label,
         "repo": repo_name,
-        "raw_bytes": len(result.stdout),
-        "raw_sha256": hashlib.sha256(result.stdout).hexdigest(),
-        "sha256": hashlib.sha256(canonical_stdout).hexdigest(),
+        "sha256": hashlib.sha256(result.stdout).hexdigest(),
         "stages_ms": parse_stage_timings(result.stderr),
     }
 
@@ -233,8 +225,6 @@ def summarize(runs: list[dict[str, Any]], repos: list[str]) -> dict[str, Any]:
                 "families": sorted({row["families"] for row in rows}),
                 "hashes": sorted({row["sha256"] for row in rows}),
                 "median_ms": statistics.median(row["elapsed_ms"] for row in rows),
-                "raw_bytes": sorted({row["raw_bytes"] for row in rows}),
-                "raw_hashes": sorted({row["raw_sha256"] for row in rows}),
                 "schema_versions": sorted({row["schema_version"] for row in rows}),
                 "stages_median_ms": {
                     name: statistics.median(row["stages_ms"].get(name, 0.0) for row in rows)
@@ -282,7 +272,11 @@ def repo_git_sha(repo_path: Path) -> str:
 
 
 def corpus_provenance(
-    repos: list[tuple[str, Path]], corpus_manifest: Path, prune_manifest: Path
+    repos: list[tuple[str, Path]],
+    corpus_manifest: Path,
+    prune_manifest: Path,
+    corpus_state: Path | None,
+    expected_corpus_state: Path | None,
 ) -> dict[str, Any]:
     try:
         corpus = json.loads(corpus_manifest.read_text(encoding="utf-8"))
@@ -302,7 +296,7 @@ def corpus_provenance(
         if actual != expected:
             raise SystemExit(f"{repo_name}: corpus revision {actual} != pinned {expected}")
         revisions.append({"repo": repo_name, "commit": actual})
-    return {
+    provenance = {
         "corpus_manifest": corpus_manifest.as_posix(),
         "corpus_manifest_sha256": sha256_file(corpus_manifest),
         "prune_manifest": prune_manifest.as_posix(),
@@ -312,6 +306,60 @@ def corpus_provenance(
             json.dumps(revisions, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest(),
     }
+    if corpus_state is not None:
+        try:
+            state = json.loads(corpus_state.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise SystemExit(f"cannot read corpus state {corpus_state}: {error}") from error
+        if state.get("schema") != "nose.pinned_corpus_subset.v1":
+            raise SystemExit(f"{corpus_state}: unsupported pinned-corpus state schema")
+        if state.get("manifest_sha256") != provenance["prune_manifest_sha256"]:
+            raise SystemExit(f"{corpus_state}: prune manifest hash does not match")
+        state_repos = state.get("repositories")
+        selected_repos = sorted(repo for repo, _ in repos)
+        if (
+            not isinstance(state_repos, list)
+            or state_repos != sorted(set(state_repos))
+            or not set(selected_repos) <= set(state_repos)
+        ):
+            raise SystemExit(f"{corpus_state}: repository selection is not in checked subset")
+        digest = state.get("subset_digest_after_prune")
+        if not isinstance(digest, dict) or not isinstance(digest.get("hex"), str):
+            raise SystemExit(f"{corpus_state}: missing post-prune subset digest")
+        provenance.update(
+            {
+                "corpus_state": corpus_state.as_posix(),
+                "corpus_state_sha256": sha256_file(corpus_state),
+                "subset_digest_after_prune": digest,
+            }
+        )
+    if expected_corpus_state is not None:
+        if corpus_state is None:
+            raise SystemExit("--expected-corpus-state requires --corpus-state")
+        try:
+            expected_state = json.loads(expected_corpus_state.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise SystemExit(
+                f"cannot read expected corpus state {expected_corpus_state}: {error}"
+            ) from error
+        if expected_state.get("schema") != "nose.semantic_regression_corpus.v1":
+            raise SystemExit(f"{expected_corpus_state}: unsupported expected state schema")
+        checks = {
+            "corpus_manifest_sha256": provenance["corpus_manifest_sha256"],
+            "prune_manifest_sha256": provenance["prune_manifest_sha256"],
+            "repositories": state["repositories"],
+            "subset_digest_after_prune": state["subset_digest_after_prune"],
+        }
+        for key, actual in checks.items():
+            if expected_state.get(key) != actual:
+                raise SystemExit(f"{expected_corpus_state}: checked `{key}` does not match")
+        provenance.update(
+            {
+                "expected_corpus_state": expected_corpus_state.as_posix(),
+                "expected_corpus_state_sha256": sha256_file(expected_corpus_state),
+            }
+        )
+    return provenance
 
 
 def run_self_test() -> None:
@@ -321,10 +369,8 @@ def run_self_test() -> None:
             "label": label,
             "elapsed_ms": elapsed_ms,
             "bytes": size,
-            "raw_bytes": size + 1,
             "families": size,
             "sha256": repo,
-            "raw_sha256": "raw-" + repo,
             "schema_version": 7,
             "surface_counts": {"default": size},
             "stages_ms": {"lower": stage_ms},
@@ -345,9 +391,6 @@ def run_self_test() -> None:
         b'{"schema_version":7,"families":[{"surface":"default"}]}', source="self-test"
     )
     assert parsed == {"families": 1, "schema_version": 7, "surface_counts": {"default": 1}}
-    assert canonical_output(b'{"path":"/one/repo"}', Path("/one/repo")) == canonical_output(
-        b'{"path":"/two/repo"}', Path("/two/repo")
-    )
     assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
     print("query regression harness self-test passed")
 
@@ -368,6 +411,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--query-args", default=" ".join(DEFAULT_QUERY_ARGS))
     parser.add_argument("--corpus-manifest", type=Path)
     parser.add_argument("--prune-manifest", type=Path)
+    parser.add_argument("--corpus-state", type=Path)
+    parser.add_argument("--expected-corpus-state", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--self-test", action="store_true")
     return parser.parse_args()
@@ -389,11 +434,17 @@ def main() -> int:
     query_args = parse_query_args(args.query_args)
     if (args.corpus_manifest is None) != (args.prune_manifest is None):
         raise SystemExit("--corpus-manifest and --prune-manifest must be provided together")
+    if args.corpus_state is not None and args.corpus_manifest is None:
+        raise SystemExit("--corpus-state requires --corpus-manifest and --prune-manifest")
+    if args.expected_corpus_state is not None and args.corpus_state is None:
+        raise SystemExit("--expected-corpus-state requires --corpus-state")
     corpus = (
         corpus_provenance(
             repos,
             args.corpus_manifest.resolve(),
             args.prune_manifest.resolve(),
+            args.corpus_state.resolve() if args.corpus_state else None,
+            args.expected_corpus_state.resolve() if args.expected_corpus_state else None,
         )
         if args.corpus_manifest is not None and args.prune_manifest is not None
         else None
@@ -431,6 +482,10 @@ def main() -> int:
         "corpus": corpus,
         "environment": measurement_environment(),
         "measurement": {"iterations": args.iterations, "warmups": args.warmups},
+        "execution": {
+            "repo_argument": "<repo-id>",
+            "working_directory": args.repos_root.resolve().as_posix(),
+        },
         "provenance": {
             "baseline_binary": baseline_binary.as_posix(),
             "baseline_binary_sha256": sha256_file(baseline_binary),

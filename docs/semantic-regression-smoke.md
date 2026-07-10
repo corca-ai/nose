@@ -21,7 +21,10 @@ corpus and prune machinery, this gate, or its workflow run the full smoke.
 
 The smoke reconstructs seven repositories at the exact commits in
 `bench/goldens/corpus.json` and applies the checked
-`bench/labels/prune_manifest.json` removals without rewriting the manifest:
+`bench/labels/prune_manifest.json` removals without rewriting the manifest.
+`bench/semantic_regression_corpus.v1.json` also pins the selected repository ids
+and the post-prune content digest, so a wrong removal hash, changed protected file,
+new undeclared prune candidate, or different final subset fails before measurement:
 
 | Language | Repositories | Purpose |
 | --- | --- | --- |
@@ -31,9 +34,10 @@ The smoke reconstructs seven repositories at the exact commits in
 | Java | `junit5` | JVM/front-end control. |
 | JavaScript | `prettier` | Large parser/tooling control. |
 
-Every report records the selected repository commits, corpus and prune manifest
-SHA-256 values, base/head source SHAs, release-binary SHA-256 values, execution
-environment, exact harness command, and raw measurements.
+Every full smoke report records the selected repository commits, corpus, prune,
+and subset-state SHA-256 values, post-prune content digest, base/head source SHAs,
+release-binary SHA-256 values, execution environment, exact harness command, and
+raw measurements.
 
 ## Output policy
 
@@ -43,12 +47,12 @@ The harness runs the pinned semantic product query:
 nose query <repo> all top=0 --mode semantic --format json
 ```
 
-It compares path-canonicalized output SHA-256 and byte count, family count, query
-schema version, and family counts by product surface for every repository. The
-raw, non-canonicalized output hash and byte count remain in the artifact; replacing
-the checkout-specific absolute repository root with `<repo>` makes an exact drift
-declaration portable between a workstation and GitHub Actions. Unexpected drift
-fails.
+It compares the raw output SHA-256 and byte count, family count, query schema
+version, and family counts by product surface for every repository. The harness
+runs from the selected corpus root and always passes the stable repository id (for
+example, `fastlane`) to nose. Since family/member ids include path identity, this
+stable relative invocation is what makes exact output declarations portable between
+a workstation and GitHub Actions. Unexpected drift fails.
 
 An intentional change passes only when
 `.github/semantic-regression-expected-drift.json` contains an exact declaration
@@ -109,10 +113,18 @@ rerun fails.
 
 GitHub uploads `target/semantic-regression/artifacts`, including:
 
+- `context.json`, which distinguishes the compared checkout SHA (the PR merge SHA
+  on `pull_request`) from the event's PR head SHA and records both worktree build
+  commands;
 - `primary.json` and `primary-control.json`;
 - `focused.json` and `focused-control.json` when the first pass triggers;
 - `check-status.json`, `ruby-scaling.json`, and the compact `summary.md` shown in
   the job summary.
+
+Both base and head releases are built from detached worktrees at their recorded
+SHAs. The base-vs-base control records the base source SHA on both sides. This keeps
+the artifact truthful when the runner is invoked with a non-`HEAD` head ref or from
+a dirty orchestration checkout.
 
 To investigate historical or already-built binaries without rebuilding or cloning,
 reuse the same runner and checker path:
@@ -127,6 +139,10 @@ scripts/semantic-regression-smoke.sh \
   --repos-root bench/repos \
   --skip-setup
 ```
+
+`--skip-setup` deliberately trusts that checkout and therefore omits the checked
+post-prune state when its repos root has no `.nose-corpus-state.json`; do not use
+that shortcut as merge evidence.
 
 Use the broader 120-repository query regression and the
 [runtime triage runbook](runtime-triage.md) when the bounded smoke identifies a

@@ -115,6 +115,7 @@ run_regression_checker_selftests() {
     python3 bench/labels/query_schema.py --self-test
     python3 scripts/query-regression-harness.py --self-test
     python3 scripts/ruby-redefinition-scaling.py --self-test
+    python3 scripts/semantic-regression-summary.py --self-test
     python3 scripts/recall-loss-diff.py --self-test
     python3 scripts/check-query-regression.py --self-test
     python3 scripts/check-recall-loss-baselines.py --self-test

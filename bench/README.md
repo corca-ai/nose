@@ -25,7 +25,9 @@ comparable over time. There are two layers, both over the same corpus split.
   checkout with `python3 bench/prune_corpus.py --check-manifest`.
 - `setup_repos.sh --repos-root <path> --repo <id> ...` reconstructs only a selected
   pinned subset and applies exactly the checked file-removal manifest. The semantic
-  regression smoke uses this form so PR jobs do not clone the full 120-repository corpus.
+  regression smoke uses this form so PR jobs do not clone the full 120-repository
+  corpus. `semantic_regression_corpus.v1.json` pins that smoke's repository ids,
+  manifest hashes, and post-prune content digest.
 
 ## Primary metric — the refactoring-family labelset (current)
 
