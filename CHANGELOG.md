@@ -7,6 +7,9 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Restored the v5 product-quality evaluation workflow against query JSON schema v7,
+  added a strict live schema-drift check, refreshed dev/held-out precision and recall,
+  and made frozen-label coverage explicit in a reproducible artifact.
 - Restored Ruby query performance after the option absence-channel expansion by
   indexing same-file method-redefinition facts, memoizing InstructionSequence
   resolution, and reusing first-party occurrence evidence without changing product

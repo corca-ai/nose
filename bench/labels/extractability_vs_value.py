@@ -2,12 +2,12 @@
 """One-off: does the shipped `extractability` default beat `value` on worthy-P@10?
 Reuses eval_by_language's matching helpers; ranks by nose's NATIVE output order
 (= extractability, the default) vs value order."""
-import importlib.util, json, subprocess
+import importlib.util, json
 from collections import defaultdict
 
 spec = importlib.util.spec_from_file_location("ev", "bench/labels/eval_by_language.py")
 ev = importlib.util.module_from_spec(spec); spec.loader.exec_module(ev)
-ROOT, NOSE = ev.ROOT, ev.NOSE
+ROOT, NOSE = ev.ROOT, ev.DEFAULT_NOSE
 
 labels = json.loads((ROOT/"bench/labels/refactoring_families.v5.json").read_text())["families"]
 corpus = {r["id"]: r for r in json.loads((ROOT/"bench/goldens/corpus.json").read_text())["repositories"]}
@@ -19,9 +19,7 @@ for rid, labs in by_repo.items():
     repo = ROOT/"bench"/"repos"/rid
     if not repo.is_dir(): continue
     lang, split = corpus[rid]["primary_language"], corpus[rid]["split"]
-    r = subprocess.run([str(NOSE), "query", str(repo), "all", "top=1000000", "--format", "json"],
-                       cwd=ROOT, capture_output=True, text=True, timeout=300)
-    fams = json.loads(r.stdout or "[]")           # native order == extractability (default)
+    fams = ev.query_repo(repo, nose=NOSE)          # native order == extractability (default)
     val_order = sorted(fams, key=lambda f: -f["value"])
     def flags(order):
         out=[]

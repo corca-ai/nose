@@ -112,10 +112,16 @@ run_type4_executable_expectations() {
 
 run_regression_checker_selftests() {
     need_cmd python3
+    python3 bench/labels/query_schema.py --self-test
     python3 scripts/query-regression-harness.py --self-test
     python3 scripts/recall-loss-diff.py --self-test
     python3 scripts/check-query-regression.py --self-test
     python3 scripts/check-recall-loss-baselines.py --self-test
+}
+
+run_product_query_schema_live_check() {
+    need_cmd python3
+    python3 bench/labels/query_schema.py --self-test --nose "$1"
 }
 
 run_shell_script_lint() {
@@ -176,8 +182,11 @@ if [[ "$mode" == "fast" ]]; then
     step "nose-cli tests"
     cargo test -p nose-cli
 
-    step "Type-4 executable focused expectations"
+    step "product query JSON schema"
     cargo build -p nose-cli
+    run_product_query_schema_live_check target/debug/nose
+
+    step "Type-4 executable focused expectations"
     run_type4_executable_expectations target/debug/nose
 
     step "docs wiki connectivity (awiki)"
@@ -192,6 +201,9 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace --quiet
 
 step "build (release)"
 cargo build --release
+
+step "product query JSON schema"
+run_product_query_schema_live_check target/release/nose
 
 step "semantic-pack example conformance"
 target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
