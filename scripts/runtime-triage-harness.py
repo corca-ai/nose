@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os
+import platform
 import re
 import shlex
 import statistics
@@ -62,6 +63,49 @@ def git_output(args: list[str]) -> str:
     if result.returncode != 0:
         return f"<git {' '.join(args)} failed: {result.stderr.strip()}>"
     return result.stdout.strip()
+
+
+def optional_command_output(args: list[str]) -> str | None:
+    try:
+        result = subprocess.run(
+            args,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    output = result.stdout.strip()
+    return output or None
+
+
+def physical_memory_bytes() -> int | None:
+    if sys.platform == "darwin":
+        raw = optional_command_output(["sysctl", "-n", "hw.memsize"])
+        return int(raw) if raw and raw.isdigit() else None
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (AttributeError, KeyError, OSError, TypeError, ValueError):
+        return None
+
+
+def measurement_environment() -> dict[str, Any]:
+    machine_model = None
+    if sys.platform == "darwin":
+        machine_model = optional_command_output(["sysctl", "-n", "hw.model"])
+    return {
+        "architecture": platform.machine(),
+        "logical_cpu_count": os.cpu_count(),
+        "machine_model": machine_model,
+        "memory_bytes": physical_memory_bytes(),
+        "os": platform.system(),
+        "os_release": platform.release(),
+        "python_version": platform.python_version(),
+        "rustc_version": optional_command_output(["rustc", "--version"]),
+    }
 
 
 def parse_query_args(raw: str) -> tuple[str, ...]:
@@ -379,6 +423,11 @@ def run_self_test() -> None:
     assert summary["by_repo"]["a"]["classification"]["kind"] == "capability-growth"
     assert summary["by_repo"]["b"]["classification"]["kind"] == "no-family-growth-value-hot-path"
     assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
+    environment = measurement_environment()
+    assert environment["architecture"]
+    assert environment["logical_cpu_count"]
+    assert environment["os"]
+    assert environment["python_version"]
     print("runtime triage harness self-test passed")
 
 
@@ -452,6 +501,7 @@ def main() -> int:
         "schema": SCHEMA,
         "command": "nose " + " ".join(query_args).replace("{repo}", "<repo>"),
         "classification_policy": policy.as_json(),
+        "environment": measurement_environment(),
         "provenance": {
             "baseline_binary": baseline_binary.as_posix(),
             "baseline_binary_sha256": sha256_file(baseline_binary),
@@ -462,7 +512,7 @@ def main() -> int:
             "current_source_ref": args.current_source_ref,
             "current_source_sha": args.current_source_sha or git_output(["rev-parse", args.current_source_ref]),
             "harness": "scripts/runtime-triage-harness.py",
-            "harness_command": " ".join(sys.argv),
+            "harness_command": shlex.join(["python3", *sys.argv]),
             "working_tree_status_before_measurement": working_tree_status_before_measurement,
         },
         "repos": repo_names,
