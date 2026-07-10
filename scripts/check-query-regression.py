@@ -103,7 +103,9 @@ def require_nonnegative_int(parent: dict[str, Any], key: str, label: str) -> int
     return value
 
 
-def validate_v2_report(report: dict[str, Any], label: str) -> None:
+def validate_v2_report(
+    report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
+) -> None:
     repos = require_repos(report, label)
     require_string(report, "command", label)
     measurement = require_object(report, "measurement", label)
@@ -135,38 +137,48 @@ def validate_v2_report(report: dict[str, Any], label: str) -> None:
     if provenance["harness"] != "scripts/query-regression-harness.py":
         raise CheckFailed(f"{label}.provenance.harness: unexpected harness")
 
-    corpus = require_object(report, "corpus", label)
-    for key in ("corpus_manifest_sha256", "prune_manifest_sha256", "selection_sha256"):
-        require_hex(corpus, key, 64, f"{label}.corpus")
-    require_string(corpus, "corpus_manifest", f"{label}.corpus")
-    require_string(corpus, "prune_manifest", f"{label}.corpus")
-    revisions = corpus.get("repositories")
-    if not isinstance(revisions, list):
-        raise CheckFailed(f"{label}.corpus.repositories: expected an array")
-    revision_repos = []
-    for index, revision in enumerate(revisions):
-        if not isinstance(revision, dict):
-            raise CheckFailed(f"{label}.corpus.repositories[{index}]: expected an object")
-        revision_repos.append(require_string(revision, "repo", f"{label}.corpus.repositories[{index}]"))
-        require_hex(revision, "commit", 40, f"{label}.corpus.repositories[{index}]")
-    if revision_repos != repos:
-        raise CheckFailed(f"{label}.corpus.repositories: selection does not match repos")
-    state_keys = {"corpus_state", "corpus_state_sha256", "subset_digest_after_prune"}
-    if state_keys & corpus.keys():
-        if not state_keys <= corpus.keys():
-            raise CheckFailed(f"{label}.corpus: incomplete checked subset state provenance")
-        require_string(corpus, "corpus_state", f"{label}.corpus")
-        require_hex(corpus, "corpus_state_sha256", 64, f"{label}.corpus")
-        digest = require_object(corpus, "subset_digest_after_prune", f"{label}.corpus")
-        require_hex(digest, "hex", 64, f"{label}.corpus.subset_digest_after_prune")
-        require_nonnegative_int(digest, "files", f"{label}.corpus.subset_digest_after_prune")
-        require_nonnegative_int(digest, "bytes", f"{label}.corpus.subset_digest_after_prune")
-    expected_state_keys = {"expected_corpus_state", "expected_corpus_state_sha256"}
-    if expected_state_keys & corpus.keys():
-        if not expected_state_keys <= corpus.keys():
-            raise CheckFailed(f"{label}.corpus: incomplete expected subset state provenance")
-        require_string(corpus, "expected_corpus_state", f"{label}.corpus")
-        require_hex(corpus, "expected_corpus_state_sha256", 64, f"{label}.corpus")
+    if "corpus" not in report:
+        raise CheckFailed(f"{label}: missing `corpus` field")
+    corpus = report["corpus"]
+    if corpus is None:
+        if require_corpus_provenance:
+            raise CheckFailed(f"{label}: corpus provenance is required")
+    elif not isinstance(corpus, dict):
+        raise CheckFailed(f"{label}.corpus: expected an object or null")
+    else:
+        for key in ("corpus_manifest_sha256", "prune_manifest_sha256", "selection_sha256"):
+            require_hex(corpus, key, 64, f"{label}.corpus")
+        require_string(corpus, "corpus_manifest", f"{label}.corpus")
+        require_string(corpus, "prune_manifest", f"{label}.corpus")
+        revisions = corpus.get("repositories")
+        if not isinstance(revisions, list):
+            raise CheckFailed(f"{label}.corpus.repositories: expected an array")
+        revision_repos = []
+        for index, revision in enumerate(revisions):
+            if not isinstance(revision, dict):
+                raise CheckFailed(f"{label}.corpus.repositories[{index}]: expected an object")
+            revision_repos.append(
+                require_string(revision, "repo", f"{label}.corpus.repositories[{index}]")
+            )
+            require_hex(revision, "commit", 40, f"{label}.corpus.repositories[{index}]")
+        if revision_repos != repos:
+            raise CheckFailed(f"{label}.corpus.repositories: selection does not match repos")
+        state_keys = {"corpus_state", "corpus_state_sha256", "subset_digest_after_prune"}
+        if state_keys & corpus.keys():
+            if not state_keys <= corpus.keys():
+                raise CheckFailed(f"{label}.corpus: incomplete checked subset state provenance")
+            require_string(corpus, "corpus_state", f"{label}.corpus")
+            require_hex(corpus, "corpus_state_sha256", 64, f"{label}.corpus")
+            digest = require_object(corpus, "subset_digest_after_prune", f"{label}.corpus")
+            require_hex(digest, "hex", 64, f"{label}.corpus.subset_digest_after_prune")
+            require_nonnegative_int(digest, "files", f"{label}.corpus.subset_digest_after_prune")
+            require_nonnegative_int(digest, "bytes", f"{label}.corpus.subset_digest_after_prune")
+        expected_state_keys = {"expected_corpus_state", "expected_corpus_state_sha256"}
+        if expected_state_keys & corpus.keys():
+            if not expected_state_keys <= corpus.keys():
+                raise CheckFailed(f"{label}.corpus: incomplete expected subset state provenance")
+            require_string(corpus, "expected_corpus_state", f"{label}.corpus")
+            require_hex(corpus, "expected_corpus_state_sha256", 64, f"{label}.corpus")
 
     environment = require_object(report, "environment", label)
     for key in ("architecture", "os", "os_release", "python_version"):
@@ -224,10 +236,14 @@ def validate_v2_report(report: dict[str, Any], label: str) -> None:
         raise CheckFailed(f"{label}.runs: measurements do not match repos/iterations")
 
 
-def validate_report_contract(report: dict[str, Any], label: str) -> str:
+def validate_report_contract(
+    report: dict[str, Any], label: str, *, require_corpus_provenance: bool = False
+) -> str:
     schema = report.get("schema")
     if schema == REPORT_SCHEMA:
-        validate_v2_report(report, label)
+        validate_v2_report(
+            report, label, require_corpus_provenance=require_corpus_provenance
+        )
         return "v2"
     if schema is not None:
         raise CheckFailed(f"{label}.schema: unsupported query regression schema {schema!r}")
@@ -268,9 +284,20 @@ def output_drift_repos(summary: dict[str, Any]) -> list[dict[str, Any]]:
     return drifts
 
 
-def validate_same_binary_control(report: dict[str, Any], control: dict[str, Any]) -> None:
-    report_kind = validate_report_contract(report, "report")
-    control_kind = validate_report_contract(control, "same-binary control")
+def validate_same_binary_control(
+    report: dict[str, Any],
+    control: dict[str, Any],
+    *,
+    require_corpus_provenance: bool = False,
+) -> None:
+    report_kind = validate_report_contract(
+        report, "report", require_corpus_provenance=require_corpus_provenance
+    )
+    control_kind = validate_report_contract(
+        control,
+        "same-binary control",
+        require_corpus_provenance=require_corpus_provenance,
+    )
     if report_kind != control_kind:
         raise CheckFailed("same-binary control report schema does not match report")
     if report.get("command") != control.get("command"):
@@ -531,10 +558,23 @@ def runtime_signals(
 
 
 def validate_focused_report(
-    primary: dict[str, Any], focused: dict[str, Any], expected_repos: list[str], min_iterations: int
+    primary: dict[str, Any],
+    focused: dict[str, Any],
+    expected_repos: list[str],
+    min_iterations: int,
+    *,
+    require_corpus_provenance: bool = False,
 ) -> None:
-    primary_kind = validate_report_contract(primary, "primary report")
-    focused_kind = validate_report_contract(focused, "focused report")
+    primary_kind = validate_report_contract(
+        primary,
+        "primary report",
+        require_corpus_provenance=require_corpus_provenance,
+    )
+    focused_kind = validate_report_contract(
+        focused,
+        "focused report",
+        require_corpus_provenance=require_corpus_provenance,
+    )
     if primary_kind != focused_kind:
         raise CheckFailed("focused rerun report schema does not match primary report")
     if focused.get("command") != primary.get("command"):
@@ -583,11 +623,18 @@ def report_phase(
     *,
     max_delta_pct: float,
     min_delta_ms: float,
+    require_corpus_provenance: bool = False,
 ) -> dict[str, Any]:
-    validate_report_contract(report, "report")
+    validate_report_contract(
+        report, "report", require_corpus_provenance=require_corpus_provenance
+    )
     require_repos(report, "report")
     if control is not None:
-        validate_same_binary_control(report, control)
+        validate_same_binary_control(
+            report,
+            control,
+            require_corpus_provenance=require_corpus_provenance,
+        )
     drifts = output_drift_repos(require_summary(report, "report"))
     authorized, unexpected, unused = authorize_drifts(report, drifts, manifest)
     signals = runtime_signals(
@@ -617,7 +664,22 @@ def evaluate_gate(
     min_runtime_delta_ms: float = 5.0,
     min_focused_iterations: int = 5,
     require_same_binary_control: bool = False,
+    require_corpus_provenance: bool = False,
 ) -> dict[str, Any]:
+    max_runtime_delta_pct = finite_number(
+        max_runtime_delta_pct, "max_runtime_delta_pct"
+    )
+    min_runtime_delta_ms = finite_number(min_runtime_delta_ms, "min_runtime_delta_ms")
+    if max_runtime_delta_pct < 0:
+        raise CheckFailed("max_runtime_delta_pct: expected a non-negative number")
+    if min_runtime_delta_ms < 0:
+        raise CheckFailed("min_runtime_delta_ms: expected a non-negative number")
+    if (
+        isinstance(min_focused_iterations, bool)
+        or not isinstance(min_focused_iterations, int)
+        or min_focused_iterations <= 0
+    ):
+        raise CheckFailed("min_focused_iterations: expected a positive integer")
     if require_same_binary_control and same_binary_control is None:
         raise CheckFailed("same-binary control is required")
     primary = report_phase(
@@ -626,6 +688,7 @@ def evaluate_gate(
         expected_drift_manifest,
         max_delta_pct=max_runtime_delta_pct,
         min_delta_ms=min_runtime_delta_ms,
+        require_corpus_provenance=require_corpus_provenance,
     )
     status = {
         "schema": STATUS_SCHEMA,
@@ -669,7 +732,13 @@ def evaluate_gate(
             status=status,
             exit_code=3,
         )
-    validate_focused_report(report, focused_report, focused_repos, min_focused_iterations)
+    validate_focused_report(
+        report,
+        focused_report,
+        focused_repos,
+        min_focused_iterations,
+        require_corpus_provenance=require_corpus_provenance,
+    )
     if require_same_binary_control and focused_same_binary_control is None:
         raise CheckFailed("focused same-binary control is required", status=status)
     focused = report_phase(
@@ -678,6 +747,7 @@ def evaluate_gate(
         expected_drift_manifest,
         max_delta_pct=max_runtime_delta_pct,
         min_delta_ms=min_runtime_delta_ms,
+        require_corpus_provenance=require_corpus_provenance,
     )
     status["focused"] = focused
     focused_output = focused["output"]
@@ -843,6 +913,35 @@ def run_self_test() -> None:
         assert "current_source_sha" in str(error)
     else:
         raise AssertionError("v2 source provenance must be mandatory")
+    generic = sample_report()
+    generic["corpus"] = None
+    assert evaluate_gate(generic)["status"] == "pass"
+    try:
+        evaluate_gate(generic, require_corpus_provenance=True)
+    except CheckFailed as error:
+        assert "corpus provenance is required" in str(error)
+    else:
+        raise AssertionError("semantic smoke mode must require corpus provenance")
+    missing_corpus = sample_report()
+    del missing_corpus["corpus"]
+    try:
+        evaluate_gate(missing_corpus)
+    except CheckFailed as error:
+        assert "missing `corpus` field" in str(error)
+    else:
+        raise AssertionError("v2 reports must declare whether corpus provenance is present")
+    for threshold_name, kwargs in (
+        ("max_runtime_delta_pct", {"max_runtime_delta_pct": math.nan}),
+        ("min_runtime_delta_ms", {"min_runtime_delta_ms": math.nan}),
+        ("max_runtime_delta_pct", {"max_runtime_delta_pct": -1.0}),
+        ("min_runtime_delta_ms", {"min_runtime_delta_ms": -1.0}),
+    ):
+        try:
+            evaluate_gate(sample_report(delta=50.0), **kwargs)
+        except CheckFailed as error:
+            assert threshold_name in str(error)
+        else:
+            raise AssertionError(f"invalid {threshold_name} must fail closed")
     identical = sample_report(delta=50.0)
     identical["provenance"]["baseline_binary_sha256"] = "0" * 64
     identical["provenance"]["current_binary_sha256"] = "0" * 64
@@ -989,6 +1088,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-runtime-delta-ms", type=float, default=5.0)
     parser.add_argument("--min-focused-iterations", type=int, default=5)
     parser.add_argument("--require-same-binary-control", action="store_true")
+    parser.add_argument("--require-corpus-provenance", action="store_true")
     parser.add_argument("--status-output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--print-json", action="store_true")
@@ -1021,6 +1121,7 @@ def main() -> int:
         "min_runtime_delta_ms": args.min_runtime_delta_ms,
         "min_focused_iterations": args.min_focused_iterations,
         "require_same_binary_control": args.require_same_binary_control,
+        "require_corpus_provenance": args.require_corpus_provenance,
     }
     try:
         status = evaluate_gate(report, **kwargs)

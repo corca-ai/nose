@@ -272,6 +272,7 @@ checker_args=(
   --same-binary-control "$artifact_dir/primary-control.json"
   --expected-drift-manifest "$expected_drift_manifest"
   --require-same-binary-control
+  --require-corpus-provenance
   --max-runtime-delta-pct 5
   --min-runtime-delta-ms 5
   --status-output "$artifact_dir/check-status.json"

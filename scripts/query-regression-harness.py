@@ -14,6 +14,7 @@ import shlex
 import statistics
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -153,7 +154,7 @@ def run_once(
     binary: Path,
     label: str,
     repo_name: str,
-    repo_path: Path,
+    repos_root: Path,
     iteration: int,
     query_args: tuple[str, ...],
 ) -> dict[str, Any]:
@@ -169,7 +170,7 @@ def run_once(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        cwd=repo_path.parent,
+        cwd=repos_root,
     )
     elapsed_ms = (time.perf_counter() - start) * 1000.0
     if result.returncode != 0:
@@ -196,18 +197,19 @@ def warmup(
     *,
     binaries: dict[str, Path],
     repos: list[tuple[str, Path]],
+    repos_root: Path,
     warmups: int,
     query_args: tuple[str, ...],
 ) -> None:
     for iteration in range(1, warmups + 1):
         order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
         for label in order:
-            for repo_name, repo_path in repos:
+            for repo_name, _ in repos:
                 run_once(
                     binary=binaries[label],
                     label=label,
                     repo_name=repo_name,
-                    repo_path=repo_path,
+                    repos_root=repos_root,
                     iteration=-iteration,
                     query_args=query_args,
                 )
@@ -392,6 +394,24 @@ def run_self_test() -> None:
     )
     assert parsed == {"families": 1, "schema_version": 7, "surface_counts": {"default": 1}}
     assert parse_query_args("query '{repo}' all top=0 --mode semantic --format json")[1] == "{repo}"
+    with tempfile.TemporaryDirectory() as temporary:
+        repos_root = Path(temporary)
+        nested_repo = repos_root / "crates/nose-cli/src"
+        nested_repo.mkdir(parents=True)
+        probe = (
+            "import json,pathlib,sys; "
+            "assert pathlib.Path(sys.argv[1]).is_dir(); "
+            "print(json.dumps({'schema_version': 7, 'families': []}))"
+        )
+        observation = run_once(
+            binary=Path(sys.executable),
+            label="baseline",
+            repo_name="crates/nose-cli/src",
+            repos_root=repos_root,
+            iteration=1,
+            query_args=("-c", probe, "{repo}"),
+        )
+        assert observation["families"] == 0
     print("query regression harness self-test passed")
 
 
@@ -430,6 +450,7 @@ def main() -> int:
 
     baseline_binary = args.baseline_binary.resolve()
     current_binary = args.current_binary.resolve()
+    repos_root = args.repos_root.resolve()
     repos = selected_repos(args)
     query_args = parse_query_args(args.query_args)
     if (args.corpus_manifest is None) != (args.prune_manifest is None):
@@ -455,6 +476,7 @@ def main() -> int:
     warmup(
         binaries=binaries,
         repos=repos,
+        repos_root=repos_root,
         warmups=args.warmups,
         query_args=query_args,
     )
@@ -463,13 +485,13 @@ def main() -> int:
     for iteration in range(1, args.iterations + 1):
         order = ("baseline", "current") if iteration % 2 else ("current", "baseline")
         for label in order:
-            for repo_name, repo_path in repos:
+            for repo_name, _ in repos:
                 runs.append(
                     run_once(
                         binary=binaries[label],
                         label=label,
                         repo_name=repo_name,
-                        repo_path=repo_path,
+                        repos_root=repos_root,
                         iteration=iteration,
                         query_args=query_args,
                     )
@@ -484,7 +506,7 @@ def main() -> int:
         "measurement": {"iterations": args.iterations, "warmups": args.warmups},
         "execution": {
             "repo_argument": "<repo-id>",
-            "working_directory": args.repos_root.resolve().as_posix(),
+            "working_directory": repos_root.as_posix(),
         },
         "provenance": {
             "baseline_binary": baseline_binary.as_posix(),

@@ -39,6 +39,11 @@ and subset-state SHA-256 values, post-prune content digest, base/head source SHA
 release-binary SHA-256 values, execution environment, exact harness command, and
 raw measurements.
 
+The harness also supports exploratory runs without corpus manifests; those reports
+explicitly record `corpus: null`, and the checker accepts them in its generic mode.
+The merge smoke invokes the checker with `--require-corpus-provenance`, so an
+exploratory report cannot be substituted for pinned-corpus CI evidence.
+
 ## Output policy
 
 The harness runs the pinned semantic product query:
