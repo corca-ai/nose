@@ -6,6 +6,12 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- Restored Ruby query performance after the option absence-channel expansion by
+  indexing same-file method-redefinition facts, memoizing InstructionSequence
+  resolution, and reusing first-party occurrence evidence without changing product
+  output across the pinned 120-repository corpus.
+
 ## [0.18.0] - 2026-07-06
 
 ### Added

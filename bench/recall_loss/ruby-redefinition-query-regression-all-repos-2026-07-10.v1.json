@@ -1,0 +1,5549 @@
+{
+  "command": "nose query <repo> all top=0 --mode semantic --format json",
+  "provenance": {
+    "baseline_binary": "/private/tmp/nose-807-head/target/release/nose",
+    "baseline_binary_sha256": "f5eaa164afbf444aeb32ecf7601e63ef014e5f0fe7ae210faff2cf9eb717afa0",
+    "baseline_source_ref": "f968dcbd",
+    "baseline_source_sha": "f968dcbdeb59a5e8f12973c3ee8b05a07c032b85",
+    "current_binary": "/Users/ak/prjs/cc/nose/target/release/nose",
+    "current_binary_sha256": "a0a210b9527353b65bbf253c1ee483f9a435e69e4b9587b432eefdcbdba52128",
+    "current_source_ref": "96c37985",
+    "current_source_sha": "96c37985a0cb0648a10d8dbc57e6779af18b09ad",
+    "harness": "scripts/query-regression-harness.py",
+    "harness_command": "scripts/query-regression-harness.py --baseline-binary /tmp/nose-807-head/target/release/nose --current-binary target/release/nose --baseline-source-ref f968dcbd --current-source-ref 96c37985 --baseline-source-sha f968dcbdeb59a5e8f12973c3ee8b05a07c032b85 --current-source-sha 96c37985a0cb0648a10d8dbc57e6779af18b09ad --all-repos --iterations 1 --warmups 0 --output bench/recall_loss/ruby-redefinition-query-regression-all-repos-2026-07-10.v1.json",
+    "working_tree_status_before_measurement": "?? bench/recall_loss/ruby-redefinition-runtime-focused-2026-07-10.v1.json\n?? bench/recall_loss/ruby-redefinition-runtime-regression-2026-07-10.v1.json\n?? bench/recall_loss/ruby-redefinition-runtime-same-binary-2026-07-10.v1.json"
+  },
+  "repos": [
+    "alacritty",
+    "alamofire",
+    "antlr4",
+    "arrow",
+    "asciidoctor",
+    "axios",
+    "badger",
+    "bat",
+    "black",
+    "boltons",
+    "chi",
+    "clap",
+    "click",
+    "cmark",
+    "cobra",
+    "commons-lang",
+    "curl",
+    "date-fns",
+    "delve",
+    "devise",
+    "drizzle-orm",
+    "esbuild",
+    "etcd",
+    "execa",
+    "faraday",
+    "fastlane",
+    "fd",
+    "flask",
+    "fzf",
+    "gin",
+    "git",
+    "gorm",
+    "graphhopper",
+    "gson",
+    "guava",
+    "h2database",
+    "httpie",
+    "httpx",
+    "hugo",
+    "hyperfine",
+    "image",
+    "jackson-core",
+    "jedis",
+    "jekyll",
+    "jest",
+    "jq",
+    "jsoup",
+    "junit5",
+    "kingfisher",
+    "kramdown",
+    "ky",
+    "libgdx",
+    "libsodium",
+    "libuv",
+    "liquid",
+    "lua",
+    "marked",
+    "marshmallow",
+    "meilisearch",
+    "minio",
+    "mockito",
+    "nats-server",
+    "netty",
+    "nginx",
+    "nimble",
+    "nushell",
+    "packaging",
+    "pixijs",
+    "poetry",
+    "prettier",
+    "prometheus",
+    "pry",
+    "puma",
+    "quick",
+    "rack",
+    "radash",
+    "raylib",
+    "redis",
+    "regex",
+    "requests",
+    "retrofit",
+    "rich",
+    "ripgrep",
+    "rspec-core",
+    "rubocop",
+    "rustls",
+    "rxjava",
+    "rxjs",
+    "rxswift",
+    "scrapy",
+    "serde_json",
+    "sidekiq",
+    "sinatra",
+    "sled",
+    "sqlalchemy",
+    "sqlite",
+    "swift-algorithms",
+    "swift-argument-parser",
+    "swift-collections",
+    "swift-composable-architecture",
+    "swift-log",
+    "swift-metrics",
+    "swift-nio",
+    "swift-service-lifecycle",
+    "swiftlint",
+    "swr",
+    "sympy",
+    "thor",
+    "tmux",
+    "tokei",
+    "tokio",
+    "trpc",
+    "urfave-cli",
+    "vapor",
+    "vim",
+    "wrk",
+    "zap",
+    "zod",
+    "zstd",
+    "zustand"
+  ],
+  "runs": [
+    {
+      "bytes": 30552,
+      "elapsed_ms": 136.38216700201156,
+      "families": 2,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "alacritty",
+      "sha256": "68545142fb610425c3fb581e61c6c587e79a3d88f6ceeb16870e33066a26b113"
+    },
+    {
+      "bytes": 21155006,
+      "elapsed_ms": 831.4933330002532,
+      "families": 3488,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "alamofire",
+      "sha256": "8daaf0cbb27fde45cdb6b0ea35f56a43350f5e7b369a1ad8e9265b91851eacc9"
+    },
+    {
+      "bytes": 279174,
+      "elapsed_ms": 264.5955000007234,
+      "families": 197,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "antlr4",
+      "sha256": "c6f9653abcd36080f95a008fb652216d2acb4f1898a1dc490ce5771733b8c9c1"
+    },
+    {
+      "bytes": 27867,
+      "elapsed_ms": 94.27395800230443,
+      "families": 2,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "arrow",
+      "sha256": "4e344c72f2bdf06472bb2b3c78691adc8f58111f58778d96be3c9b408cfbf6a5"
+    },
+    {
+      "bytes": 234578,
+      "elapsed_ms": 12858.286334001605,
+      "families": 148,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "asciidoctor",
+      "sha256": "7632181030f1620703b5d86dcd4dc6b7a6778c6bcd9233bda8db5cdc1618b3af"
+    },
+    {
+      "bytes": 44590,
+      "elapsed_ms": 166.13533300187555,
+      "families": 18,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "axios",
+      "sha256": "4ef8e448b4d34b04c2834e17cc1d4a5dfabeb57159bc688ec36dfd3d0a235e86"
+    },
+    {
+      "bytes": 32276,
+      "elapsed_ms": 61.57758299741545,
+      "families": 8,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "badger",
+      "sha256": "ff6cb1cf5923cd6c3c16ead99fa21e86c5a86897394fb502171f692c0136891d"
+    },
+    {
+      "bytes": 31779,
+      "elapsed_ms": 160.3647500014631,
+      "families": 5,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "bat",
+      "sha256": "5795ccee68e8418250b56ebf396e17c62cd824f7c79db5514cb16de5a0d3d584"
+    },
+    {
+      "bytes": 57327,
+      "elapsed_ms": 204.36454100126866,
+      "families": 19,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "black",
+      "sha256": "2d8b140ce3e491d94e930544b1a86b77c49ac149f34aa6d2b5c5a765f5d6dca6"
+    },
+    {
+      "bytes": 70069,
+      "elapsed_ms": 53.2896670010814,
+      "families": 41,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "boltons",
+      "sha256": "8bb2183629fd85215ec9c396212b4bcebe8a6da9cb3129b6673f24e403645c4a"
+    },
+    {
+      "bytes": 29758,
+      "elapsed_ms": 36.26133299985668,
+      "families": 4,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "chi",
+      "sha256": "9290250680ab242df0431e093bfa1c1a259d00a897b1a8ce3a0f195ae46a93a3"
+    },
+    {
+      "bytes": 42192,
+      "elapsed_ms": 137.56341699991026,
+      "families": 11,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "clap",
+      "sha256": "536594790b57bc08c916c444e0c1f77dea90c42783ccb8384e08a36fbc8ceb12"
+    },
+    {
+      "bytes": 60344,
+      "elapsed_ms": 64.86783400032436,
+      "families": 34,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "click",
+      "sha256": "5aec3e28a2abf31168b91527f29a6ebf9a1fbb68463fb50c75bcda6c80437181"
+    },
+    {
+      "bytes": 37347,
+      "elapsed_ms": 55.930458001967054,
+      "families": 10,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "cmark",
+      "sha256": "f206c1825691e046f892f87c46d68008edaac27293b25fc860554e7d9bf3a9c2"
+    },
+    {
+      "bytes": 32106,
+      "elapsed_ms": 43.839999998454005,
+      "families": 6,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "cobra",
+      "sha256": "f7da88f4625ca077b0fdd59e5325caf6f7432ba3d2b078424cecd0cbab3a8749"
+    },
+    {
+      "bytes": 255227,
+      "elapsed_ms": 243.35795799925108,
+      "families": 156,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "commons-lang",
+      "sha256": "c136b619746abbc1721815879470120d319b00982fc126f5adb1017484f2738b"
+    },
+    {
+      "bytes": 173509,
+      "elapsed_ms": 224.67233299903455,
+      "families": 115,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "curl",
+      "sha256": "2b9c68545c11b1db7d45e99219ae8a60814dc3bc9cd24249d6732c766d6b6f46"
+    },
+    {
+      "bytes": 64050,
+      "elapsed_ms": 206.6723340030876,
+      "families": 27,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "date-fns",
+      "sha256": "023f01cc3c52c042f74502c14b7a6c6831c16307529c5bce9c1fbc812a2d8f12"
+    },
+    {
+      "bytes": 65064,
+      "elapsed_ms": 200.2612920005049,
+      "families": 29,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "delve",
+      "sha256": "40a6b330b7576d5d7fde74c04a0de3267e9ff63e9885ea92471e3b4583f238a6"
+    },
+    {
+      "bytes": 31155,
+      "elapsed_ms": 64.65245800063713,
+      "families": 3,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "devise",
+      "sha256": "cd0136fb9c707238968357d8a92e4c5c5c45b0864eaba90df75a61a36aa7c1fc"
+    },
+    {
+      "bytes": 116840,
+      "elapsed_ms": 379.93258299684385,
+      "families": 63,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "drizzle-orm",
+      "sha256": "0d3d1770c91f13fa8b263235a3e5707f9c151fa4bd82f9dcdf46b3b351b47049"
+    },
+    {
+      "bytes": 54599,
+      "elapsed_ms": 975.0484169999254,
+      "families": 22,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "esbuild",
+      "sha256": "076166419f99576486eeeec09bc8ff3da75ed4c7e6ecf7831b96b735275da58d"
+    },
+    {
+      "bytes": 63385,
+      "elapsed_ms": 203.32437499746447,
+      "families": 32,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "etcd",
+      "sha256": "a5ae888d86e1945f8ac0a66f1a6a98bbe78c8dc16ffd8bd47f61c25f4ea8e88d"
+    },
+    {
+      "bytes": 33322,
+      "elapsed_ms": 83.3093330002157,
+      "families": 9,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "execa",
+      "sha256": "b9b6ab7c069d0f243824d12729d7335854e8356393f98e1c001bcbe69f31d0d7"
+    },
+    {
+      "bytes": 27093,
+      "elapsed_ms": 52.076916999794776,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "faraday",
+      "sha256": "aedd1be1aa9037239deb262886cfd5f4e84f2703f0d7c6d075a13ed37d30a8c0"
+    },
+    {
+      "bytes": 72648,
+      "elapsed_ms": 25596.057292001205,
+      "families": 29,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "fastlane",
+      "sha256": "956741aec6955f3318d5dc4b78fde5dee606ee4c1bf1840fbdff07160054d3b0"
+    },
+    {
+      "bytes": 25951,
+      "elapsed_ms": 31.106166999961715,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "fd",
+      "sha256": "6f5fef95249defbf30b092faf4d6aa8e93ccd43e26ff3f7794df2d9ae7ed0119"
+    },
+    {
+      "bytes": 48054,
+      "elapsed_ms": 43.27899999771034,
+      "families": 22,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "flask",
+      "sha256": "5faac354fef6f827b4ec3ea5cbd6564548a017b747967413f39b697dfd976ca3"
+    },
+    {
+      "bytes": 30077,
+      "elapsed_ms": 228.4268749972398,
+      "families": 5,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "fzf",
+      "sha256": "96d6cedd8981467754d7090706ef7d608f174383642ed57a6c82828b43e57bc4"
+    },
+    {
+      "bytes": 28981,
+      "elapsed_ms": 53.204874999210006,
+      "families": 3,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "gin",
+      "sha256": "8b523024b725809b5f9ac92bf63b4b7adc870889aa54fb707ce9b5d2cbac65f5"
+    },
+    {
+      "bytes": 147615,
+      "elapsed_ms": 350.45937500035507,
+      "families": 111,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "git",
+      "sha256": "7034fea3c29a6aa3d5db33aa3500805f2ae7323979d1d082a8198bcc9a6efed1"
+    },
+    {
+      "bytes": 36406,
+      "elapsed_ms": 65.81800000276417,
+      "families": 13,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "gorm",
+      "sha256": "43716ed78ae0f1ec47efb8fc9f574f4217656ae77f479a7bac3a4948d4b41505"
+    },
+    {
+      "bytes": 307191,
+      "elapsed_ms": 300.14579099952243,
+      "families": 245,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "graphhopper",
+      "sha256": "a81300aeb492994b0e5cebef53bdc63df00e6677cb97eb81ac4a597fe64b7fe5"
+    },
+    {
+      "bytes": 115379,
+      "elapsed_ms": 105.09633400215534,
+      "families": 79,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "gson",
+      "sha256": "a442017fda42ddff59a8b756e10ab20579fb72b598e57d56041ddf2bd8c7eaf0"
+    },
+    {
+      "bytes": 2574446,
+      "elapsed_ms": 1087.6902909985802,
+      "families": 1796,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "guava",
+      "sha256": "8c58f4a05931dc1fc45f8b75f045424bdcad6532dddd4ee113d007701cd642e3"
+    },
+    {
+      "bytes": 650060,
+      "elapsed_ms": 593.4185000005527,
+      "families": 515,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "h2database",
+      "sha256": "58880f057b2e0f8e795d157926094d47d80ea1142fadd67ad2e567f53d98e94c"
+    },
+    {
+      "bytes": 42215,
+      "elapsed_ms": 46.7095829990285,
+      "families": 17,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "httpie",
+      "sha256": "84e4431b36b618b941a1848925a3e992e65d2170c676f6bab1beb0a9cddf936e"
+    },
+    {
+      "bytes": 41185,
+      "elapsed_ms": 46.00645800019265,
+      "families": 16,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "httpx",
+      "sha256": "8c8bfaae765b7acc786b59ac5a53ea306c982b516cee97286a480ff84d1cba85"
+    },
+    {
+      "bytes": 220447,
+      "elapsed_ms": 271.52166700034286,
+      "families": 51,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "hugo",
+      "sha256": "33af01603fa6b6a7e9cb7952b3115000bba6ca06823c99ea75147b1aacc61971"
+    },
+    {
+      "bytes": 25972,
+      "elapsed_ms": 27.352082997822436,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "hyperfine",
+      "sha256": "2b0c513f4797ad5dfdd401bdb6986800a08bfa1116ad744a4f98ef3b03bbae9e"
+    },
+    {
+      "bytes": 33344,
+      "elapsed_ms": 104.6499159965606,
+      "families": 7,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "image",
+      "sha256": "70834663db496c215d79eab59210c635f1ce7b71fd9b4555777fb3d58b3a728b"
+    },
+    {
+      "bytes": 136865,
+      "elapsed_ms": 145.42387500114273,
+      "families": 84,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "jackson-core",
+      "sha256": "09e2a9cfcd378a488a2156f64134ffbec75d6b76027f508592e572ff2392d448"
+    },
+    {
+      "bytes": 329711,
+      "elapsed_ms": 539.3562080025731,
+      "families": 267,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "jedis",
+      "sha256": "69878480d025abf3bfe893e10c51f049f5d20a232643c51191f84c0a65f2eafd"
+    },
+    {
+      "bytes": 35027,
+      "elapsed_ms": 113.21083399889176,
+      "families": 9,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "jekyll",
+      "sha256": "13a029a9f92f81d599c6d251f61eccfcb9b17659b9a27903f2e94a7b05858578"
+    },
+    {
+      "bytes": 74900,
+      "elapsed_ms": 239.63050000020303,
+      "families": 45,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "jest",
+      "sha256": "69597e459ae86ba376926f047967d01600d5dbb76cb7143b15f4378fe9abf1d4"
+    },
+    {
+      "bytes": 26681,
+      "elapsed_ms": 51.587583002401516,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "jq",
+      "sha256": "27ca7e83766ba304e45cdf9b5c0e4ae3c392120683689f32457953bedef2ff93"
+    },
+    {
+      "bytes": 113185,
+      "elapsed_ms": 117.18679100158624,
+      "families": 64,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "jsoup",
+      "sha256": "e7a4571b2e4c74fdaa0a24fa965276fea0f424e7e0d80cbf191ee5d7867f18b6"
+    },
+    {
+      "bytes": 514636,
+      "elapsed_ms": 384.84970800345764,
+      "families": 327,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "junit5",
+      "sha256": "2154434f9a6668d0e642e3a0c02dc7d8676d89539827973fa97b5a15e3ea58e4"
+    },
+    {
+      "bytes": 31195,
+      "elapsed_ms": 69.53620800049976,
+      "families": 5,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "kingfisher",
+      "sha256": "d57453e031f2dd9385e40d46aa9aa40b4091072a6a3c6dc1a0b1a78e6ebe29bf"
+    },
+    {
+      "bytes": 114735,
+      "elapsed_ms": 75.98862500162795,
+      "families": 62,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "kramdown",
+      "sha256": "5f9d171cc65e9714066a26040a80a1ccefc17376f25e08682903b7a1f3b0d22d"
+    },
+    {
+      "bytes": 27472,
+      "elapsed_ms": 48.14270899805706,
+      "families": 2,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "ky",
+      "sha256": "a927245bca3dff73a3259265232a05bfba33900b73a786093f89b2330a73afe2"
+    },
+    {
+      "bytes": 2126164,
+      "elapsed_ms": 879.9617089971434,
+      "families": 1068,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "libgdx",
+      "sha256": "ebcd004fa569fcfd33e484a28eed982203bd5c7db9fcf044ac70732059aa1074"
+    },
+    {
+      "bytes": 52625,
+      "elapsed_ms": 294.8988329990243,
+      "families": 22,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "libsodium",
+      "sha256": "b25683c30515696c97115f90700a39e8343957fcbb928819d4c48100f5eef223"
+    },
+    {
+      "bytes": 55324,
+      "elapsed_ms": 100.65654199934215,
+      "families": 31,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "libuv",
+      "sha256": "bc45e3598603aab1b40e15b83493b4702cffa4820aa3b6764182c069318d712d"
+    },
+    {
+      "bytes": 29342,
+      "elapsed_ms": 62.25658300172654,
+      "families": 4,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "liquid",
+      "sha256": "58efa8b9c47a69b8839ecad98bfc84e642d02daf2561386a96ba6e236ff6d134"
+    },
+    {
+      "bytes": 27093,
+      "elapsed_ms": 60.293250000540866,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "lua",
+      "sha256": "8163ac7f281314292973848ce20f93370e7933e9948eae0b5b8288d0f8eee8d8"
+    },
+    {
+      "bytes": 192560,
+      "elapsed_ms": 53.880207997281104,
+      "families": 113,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "marked",
+      "sha256": "603e1943da3c926879ab85752c9919e0c3566df81f7661e8916822d8cc9448f0"
+    },
+    {
+      "bytes": 44437,
+      "elapsed_ms": 50.42141699959757,
+      "families": 17,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "marshmallow",
+      "sha256": "a373c3b2346f602ffec7a463d2b2216aed7f2b8774114e2be1a759ada7fd0e48"
+    },
+    {
+      "bytes": 52737,
+      "elapsed_ms": 315.1862919985433,
+      "families": 15,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "meilisearch",
+      "sha256": "6202f286a92f8264e2c78c3e1d8b65f87fb8a908969758d3bbbc49a45d53309b"
+    },
+    {
+      "bytes": 84761,
+      "elapsed_ms": 348.9911670003494,
+      "families": 54,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "minio",
+      "sha256": "aad7d9ab3ddf8f9578491668a9ddf9d8012f8da357e79c7d49a08f693fc485dd"
+    },
+    {
+      "bytes": 148904,
+      "elapsed_ms": 177.1035000019765,
+      "families": 102,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "mockito",
+      "sha256": "f3c5289c886820933437ea14863418589bf7f4bbbdb011dda2bafd0c989d8d7e"
+    },
+    {
+      "bytes": 64019,
+      "elapsed_ms": 618.9728339995781,
+      "families": 27,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "nats-server",
+      "sha256": "942fc7317c800bb0dbd5e2e6c44158227dc31daddbd92d599a024b4db6f9805b"
+    },
+    {
+      "bytes": 1321539,
+      "elapsed_ms": 914.2847090006399,
+      "families": 879,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "netty",
+      "sha256": "fd5b7b330b2beaf16bddbf0b8ec9b26e1d9837f6447dcad4c7624cbc121bfc5a"
+    },
+    {
+      "bytes": 65918,
+      "elapsed_ms": 168.4957920006127,
+      "families": 44,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "nginx",
+      "sha256": "a45ba01b0c03496ece170c4bcded7507b511c4c77d3a4d479ce97299e073fe69"
+    },
+    {
+      "bytes": 28485,
+      "elapsed_ms": 48.523208002734464,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "nimble",
+      "sha256": "6cf2c4eabbaaa8d261752c193427f6365a567890e88e8384146692922d1845dc"
+    },
+    {
+      "bytes": 116070,
+      "elapsed_ms": 589.7105420008302,
+      "families": 59,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "nushell",
+      "sha256": "d08ddadc541f3e03ed9c7cc1ea1b2d7433972a3af3d270b387081b49166d39de"
+    },
+    {
+      "bytes": 51585,
+      "elapsed_ms": 67.42045799910557,
+      "families": 29,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "packaging",
+      "sha256": "c91dede591acf751c6d7baf8bafb7ee893270a6a8a4ee66d9b49ea6603b8e98b"
+    },
+    {
+      "bytes": 83612,
+      "elapsed_ms": 420.52174999844283,
+      "families": 52,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "pixijs",
+      "sha256": "41f7427a4a99dceeac2118920d811f5b1f26cd43374829ec5432a5f3715b2b4c"
+    },
+    {
+      "bytes": 198324,
+      "elapsed_ms": 132.00266599960742,
+      "families": 168,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "poetry",
+      "sha256": "b95b2941b2b0c5d2e901e19a6827e2f277afd5c3c6b771476d7fb2fcf75130fa"
+    },
+    {
+      "bytes": 241230,
+      "elapsed_ms": 583.6436660028994,
+      "families": 151,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "prettier",
+      "sha256": "451898ed30ef887b3f4b3e67a09469c4a85968c55b4fc6d70fe4cffd04cae854"
+    },
+    {
+      "bytes": 148149,
+      "elapsed_ms": 365.79100000017206,
+      "families": 66,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "prometheus",
+      "sha256": "089de1b45ace409a8f885bb3faf48a71d3395a026772afe39ab08a566d618ef9"
+    },
+    {
+      "bytes": 31685,
+      "elapsed_ms": 60.305250000965316,
+      "families": 7,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "pry",
+      "sha256": "ed0654e8d4f7c30ec48ba5b5852fc5ea38948a98b848274c7247a60d347b87bf"
+    },
+    {
+      "bytes": 34593,
+      "elapsed_ms": 458.52675000060117,
+      "families": 7,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "puma",
+      "sha256": "af2d1625965b63a70c5752a80d34f6a80c8a00349936cf7d673cbea84745c11b"
+    },
+    {
+      "bytes": 1355479,
+      "elapsed_ms": 118.56954199902248,
+      "families": 428,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "quick",
+      "sha256": "972c357b40472039fe88cd81766a8968389f0388bd14cfd3445488120e17eb84"
+    },
+    {
+      "bytes": 28232,
+      "elapsed_ms": 1296.7068750003818,
+      "families": 3,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rack",
+      "sha256": "d381b7767e3ede755e78eca9c74a817d224ed7da9eeaf1a4875d009dc9b8e9eb"
+    },
+    {
+      "bytes": 60570,
+      "elapsed_ms": 42.06245800014585,
+      "families": 37,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "radash",
+      "sha256": "edd68c8da5283f6f68e0c0cb7a4d4ed834c3d986b35ee0ec143501a29742e70d"
+    },
+    {
+      "bytes": 244815,
+      "elapsed_ms": 1741.8411250000645,
+      "families": 148,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "raylib",
+      "sha256": "17b33cc4f516189c2cff8c136f26bf7cf657c299fc17bd7997f51a93170fe7a8"
+    },
+    {
+      "bytes": 58341,
+      "elapsed_ms": 298.19887499979814,
+      "families": 29,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "redis",
+      "sha256": "f9172a8eab266200c6184105ecf72369c4ced23f8540eb6629082efa2529592a"
+    },
+    {
+      "bytes": 70161,
+      "elapsed_ms": 204.5525000030466,
+      "families": 34,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "regex",
+      "sha256": "79917221b56cff91dd46ff906250329cc3edc8884036f4f418b819c795b5c932"
+    },
+    {
+      "bytes": 34891,
+      "elapsed_ms": 50.728125002933666,
+      "families": 9,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "requests",
+      "sha256": "7706b8fe585687d0ee4097fac29ba83933ca72ba1d59833a86c509afb1adbd3a"
+    },
+    {
+      "bytes": 124169,
+      "elapsed_ms": 86.38783399874228,
+      "families": 81,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "retrofit",
+      "sha256": "f0d35800d52e10df20cb9baf65817192099b87832f7cc8d1faa873ea5832dcb7"
+    },
+    {
+      "bytes": 50546,
+      "elapsed_ms": 80.09733300059452,
+      "families": 22,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rich",
+      "sha256": "f902537f5afa06397825f1d407ab0be5129d4e581ef20e51229f6573669af301"
+    },
+    {
+      "bytes": 33574,
+      "elapsed_ms": 364.37295799987623,
+      "families": 8,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "ripgrep",
+      "sha256": "9a8d38eabee777f38a9256d15cb0150a236a0106a07966c1168b9714fbd56125"
+    },
+    {
+      "bytes": 35452,
+      "elapsed_ms": 465.5874580021191,
+      "families": 8,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rspec-core",
+      "sha256": "609c719a4775257487643ee0e108bbd6bcae0953cf69c1ef9be3495934e856e5"
+    },
+    {
+      "bytes": 138810,
+      "elapsed_ms": 457.8596250030387,
+      "families": 104,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rubocop",
+      "sha256": "9cb00c79f5489ba8b824862023b24e7894f2f8725dc2ce41e0150516f7b9f7e0"
+    },
+    {
+      "bytes": 51848,
+      "elapsed_ms": 130.61204200130305,
+      "families": 20,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rustls",
+      "sha256": "2cbf1d619f1559167603e199be03463ff1afa0f4532505f9370ef9e645b63248"
+    },
+    {
+      "bytes": 1169728,
+      "elapsed_ms": 559.411917001853,
+      "families": 618,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rxjava",
+      "sha256": "9b1e535c52fad1f86cba0ed2b80a7e4653890bff07182bd509f9e5a6e087d554"
+    },
+    {
+      "bytes": 71630,
+      "elapsed_ms": 131.8109590029053,
+      "families": 33,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rxjs",
+      "sha256": "17af812d484e3e1ccb097fa057919762033759b7a8e94ab6da815db29358ee23"
+    },
+    {
+      "bytes": 1589012,
+      "elapsed_ms": 260.7851249995292,
+      "families": 426,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "rxswift",
+      "sha256": "2f627e51cdd270c935f377800be395e1d250f251976930c7d55bd277b2c07fbc"
+    },
+    {
+      "bytes": 169140,
+      "elapsed_ms": 126.90154200026882,
+      "families": 134,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "scrapy",
+      "sha256": "6c9cc19499f1e5957dc2066e0b8ebbaae07d07bb2a819c401241c9ec86436f30"
+    },
+    {
+      "bytes": 39884,
+      "elapsed_ms": 87.02825000000303,
+      "families": 12,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "serde_json",
+      "sha256": "fde996484ed166e303b0755aa7c6aa5710f88f5a35d31e260a011b6f6a6569a8"
+    },
+    {
+      "bytes": 32235,
+      "elapsed_ms": 2109.5531249993655,
+      "families": 6,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sidekiq",
+      "sha256": "7100bce2ce90aa8b26ac1525686039346e59e274cc3674aed13f77f9de77df4b"
+    },
+    {
+      "bytes": 27177,
+      "elapsed_ms": 71.87762499961536,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sinatra",
+      "sha256": "ad6777d621e8e5d62797bdbcbf406f262ca8a768605789f799bec872cd46b0f1"
+    },
+    {
+      "bytes": 26733,
+      "elapsed_ms": 54.29687500145519,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sled",
+      "sha256": "c08af78dd000aa53dbfc35ffc3f18c93f100d0aae405c3e45decb5a9c6ea7cde"
+    },
+    {
+      "bytes": 517222,
+      "elapsed_ms": 474.7581670017098,
+      "families": 391,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sqlalchemy",
+      "sha256": "80b4298bd8a49dab6c3a4a73d8d0080d1e3aa23e1f80ea099ed1be3b6943a678"
+    },
+    {
+      "bytes": 159393,
+      "elapsed_ms": 407.28737500103307,
+      "families": 112,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sqlite",
+      "sha256": "4e81f6abea00a58e4458028f95700be8b2d2f7345467e73de4270fcd9ce1ed25"
+    },
+    {
+      "bytes": 37862,
+      "elapsed_ms": 37.063750001834705,
+      "families": 9,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-algorithms",
+      "sha256": "8243fc8e57d474e311f8c97876e046ab67a89b88d3e2630e36aa1aeea2e6ae72"
+    },
+    {
+      "bytes": 27225,
+      "elapsed_ms": 51.14108299676445,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-argument-parser",
+      "sha256": "cc1e05be6e6b7d69214f187526a029bf9cb6d5b0e11928b2fc281b67488750fd"
+    },
+    {
+      "bytes": 105222,
+      "elapsed_ms": 165.94595899732667,
+      "families": 51,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-collections",
+      "sha256": "ecfcbdb77e5e083ac87b7c909bf651bffa1007f94622aa4a9134f388a53610c6"
+    },
+    {
+      "bytes": 32913,
+      "elapsed_ms": 134.6568330009177,
+      "families": 6,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-composable-architecture",
+      "sha256": "9c4302b2c98f813ac47c4f2b7067cb67baa5bbf9d0a2a2d2f4d7b7ad5953b6df"
+    },
+    {
+      "bytes": 25972,
+      "elapsed_ms": 30.719209000380943,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-log",
+      "sha256": "f572d4667f74ed557bd40b599d43f9b6248302d8fef947fb5b0c6b3d08ef086b"
+    },
+    {
+      "bytes": 32765,
+      "elapsed_ms": 33.58266600116622,
+      "families": 5,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-metrics",
+      "sha256": "108c950f3f09ac5d59bdba0ddc5b2819e5c1e185649961f2fa0165595c1297c3"
+    },
+    {
+      "bytes": 111694,
+      "elapsed_ms": 206.79862500037416,
+      "families": 52,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-nio",
+      "sha256": "a5fc758694cbf573bcb3302ad7e8a2941666cd5b50cbfb442a0cf689817ef36e"
+    },
+    {
+      "bytes": 27152,
+      "elapsed_ms": 35.14891599843395,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swift-service-lifecycle",
+      "sha256": "7de7fb5fcbfa34ca4ef16921113d8c6d512d0bc4fa22341a6acdc26a49214329"
+    },
+    {
+      "bytes": 34093,
+      "elapsed_ms": 114.52283300241106,
+      "families": 8,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swiftlint",
+      "sha256": "3fc17a5f1a3faab638dfc6fa63e745d8bbb5b29da94fbb4ae2f1bea90e06f7a3"
+    },
+    {
+      "bytes": 119283,
+      "elapsed_ms": 66.41312500141794,
+      "families": 49,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "swr",
+      "sha256": "ae278d9812205cbcac44e0fe1d7d0150aab132a2b3c27ee65bc5b90c38451e80"
+    },
+    {
+      "bytes": 853198,
+      "elapsed_ms": 1017.2190000012051,
+      "families": 645,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "sympy",
+      "sha256": "61cca70c5d7448d8b87f30f9be6e5141b51aaf21f819ac9338ad099587b7af79"
+    },
+    {
+      "bytes": 28324,
+      "elapsed_ms": 53.144833000260405,
+      "families": 3,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "thor",
+      "sha256": "ea159cdd86500f23a44fdab0f317c5e7978877bd6da475dbff4c9ff1706a555d"
+    },
+    {
+      "bytes": 51015,
+      "elapsed_ms": 106.91600000063772,
+      "families": 29,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "tmux",
+      "sha256": "9221e7d8e0cadafba684f9777dee26b7b97965e5138892868f8669ab9cd3cedd"
+    },
+    {
+      "bytes": 25960,
+      "elapsed_ms": 29.13708399864845,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "tokei",
+      "sha256": "2f49031d8e3bcf2e2ad8b73c10d613b4e2a646bfe4fcf86a9b8a468dea54247c"
+    },
+    {
+      "bytes": 75904,
+      "elapsed_ms": 198.81104199885158,
+      "families": 37,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "tokio",
+      "sha256": "1a079b780e54a624c4ba35046dd110f47b4b88fcaae30a5b5863f12a39855a46"
+    },
+    {
+      "bytes": 128760,
+      "elapsed_ms": 168.96879200066905,
+      "families": 64,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "trpc",
+      "sha256": "29eb21a6059cc102629d4d6732eb139be7f954c8c2878ad24d078dc046399b60"
+    },
+    {
+      "bytes": 25975,
+      "elapsed_ms": 42.34049999649869,
+      "families": 0,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "urfave-cli",
+      "sha256": "d6a76d161f5394e860634c069f69dfcf8ea01907a923b01a1ba8b91e4cc03e85"
+    },
+    {
+      "bytes": 27156,
+      "elapsed_ms": 63.279542002419475,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "vapor",
+      "sha256": "e61f49e2c7489aa541edb005791af081f4f60e8fd495ce351136bf0fcc8dab1f"
+    },
+    {
+      "bytes": 72267,
+      "elapsed_ms": 455.1227919982921,
+      "families": 39,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "vim",
+      "sha256": "260d7828117ef99fd87696f899a902655d764fec5e4611e6f351dcc654cea4d7"
+    },
+    {
+      "bytes": 26686,
+      "elapsed_ms": 30.7719160009583,
+      "families": 1,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "wrk",
+      "sha256": "2f56ee89296b793a6a5f29f1e3e644d7559a2195b28805e5131f9f2dc6db4cf9"
+    },
+    {
+      "bytes": 32782,
+      "elapsed_ms": 42.44391700194683,
+      "families": 5,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "zap",
+      "sha256": "2bfb0dd14b6e69cf3285bc73b1def815f2e2c4ae43eae049a2d9bd5e010fd519"
+    },
+    {
+      "bytes": 49195,
+      "elapsed_ms": 166.56241699820384,
+      "families": 21,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "zod",
+      "sha256": "7c145abcb67cb5ddf2c789fba3507ac8d972a49e15b194cd4a7382332e18e933"
+    },
+    {
+      "bytes": 76464,
+      "elapsed_ms": 149.05699999872013,
+      "families": 39,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "zstd",
+      "sha256": "8649e491edd5ccc6a272c7d2675176234f78d9bcbfeea401b5f35f00ce512515"
+    },
+    {
+      "bytes": 41646,
+      "elapsed_ms": 53.365499999927124,
+      "families": 9,
+      "iteration": 1,
+      "label": "baseline",
+      "repo": "zustand",
+      "sha256": "0bb1aa722b9f95062e66a4eeb38756de4cb45ff15dd611190e3f451cd9c9ae7c"
+    },
+    {
+      "bytes": 30552,
+      "elapsed_ms": 133.90333400093368,
+      "families": 2,
+      "iteration": 1,
+      "label": "current",
+      "repo": "alacritty",
+      "sha256": "68545142fb610425c3fb581e61c6c587e79a3d88f6ceeb16870e33066a26b113"
+    },
+    {
+      "bytes": 21155006,
+      "elapsed_ms": 843.596582999453,
+      "families": 3488,
+      "iteration": 1,
+      "label": "current",
+      "repo": "alamofire",
+      "sha256": "8daaf0cbb27fde45cdb6b0ea35f56a43350f5e7b369a1ad8e9265b91851eacc9"
+    },
+    {
+      "bytes": 279174,
+      "elapsed_ms": 248.69337500058464,
+      "families": 197,
+      "iteration": 1,
+      "label": "current",
+      "repo": "antlr4",
+      "sha256": "c6f9653abcd36080f95a008fb652216d2acb4f1898a1dc490ce5771733b8c9c1"
+    },
+    {
+      "bytes": 27867,
+      "elapsed_ms": 99.07124999881489,
+      "families": 2,
+      "iteration": 1,
+      "label": "current",
+      "repo": "arrow",
+      "sha256": "4e344c72f2bdf06472bb2b3c78691adc8f58111f58778d96be3c9b408cfbf6a5"
+    },
+    {
+      "bytes": 234578,
+      "elapsed_ms": 94.27758299716515,
+      "families": 148,
+      "iteration": 1,
+      "label": "current",
+      "repo": "asciidoctor",
+      "sha256": "7632181030f1620703b5d86dcd4dc6b7a6778c6bcd9233bda8db5cdc1618b3af"
+    },
+    {
+      "bytes": 44590,
+      "elapsed_ms": 168.43333299766527,
+      "families": 18,
+      "iteration": 1,
+      "label": "current",
+      "repo": "axios",
+      "sha256": "4ef8e448b4d34b04c2834e17cc1d4a5dfabeb57159bc688ec36dfd3d0a235e86"
+    },
+    {
+      "bytes": 32276,
+      "elapsed_ms": 59.73433299732278,
+      "families": 8,
+      "iteration": 1,
+      "label": "current",
+      "repo": "badger",
+      "sha256": "ff6cb1cf5923cd6c3c16ead99fa21e86c5a86897394fb502171f692c0136891d"
+    },
+    {
+      "bytes": 31779,
+      "elapsed_ms": 157.52675000112504,
+      "families": 5,
+      "iteration": 1,
+      "label": "current",
+      "repo": "bat",
+      "sha256": "5795ccee68e8418250b56ebf396e17c62cd824f7c79db5514cb16de5a0d3d584"
+    },
+    {
+      "bytes": 57327,
+      "elapsed_ms": 228.47466700113728,
+      "families": 19,
+      "iteration": 1,
+      "label": "current",
+      "repo": "black",
+      "sha256": "2d8b140ce3e491d94e930544b1a86b77c49ac149f34aa6d2b5c5a765f5d6dca6"
+    },
+    {
+      "bytes": 70069,
+      "elapsed_ms": 54.71312499867054,
+      "families": 41,
+      "iteration": 1,
+      "label": "current",
+      "repo": "boltons",
+      "sha256": "8bb2183629fd85215ec9c396212b4bcebe8a6da9cb3129b6673f24e403645c4a"
+    },
+    {
+      "bytes": 29758,
+      "elapsed_ms": 33.26983299848507,
+      "families": 4,
+      "iteration": 1,
+      "label": "current",
+      "repo": "chi",
+      "sha256": "9290250680ab242df0431e093bfa1c1a259d00a897b1a8ce3a0f195ae46a93a3"
+    },
+    {
+      "bytes": 42192,
+      "elapsed_ms": 128.18562499887776,
+      "families": 11,
+      "iteration": 1,
+      "label": "current",
+      "repo": "clap",
+      "sha256": "536594790b57bc08c916c444e0c1f77dea90c42783ccb8384e08a36fbc8ceb12"
+    },
+    {
+      "bytes": 60344,
+      "elapsed_ms": 59.911540996836266,
+      "families": 34,
+      "iteration": 1,
+      "label": "current",
+      "repo": "click",
+      "sha256": "5aec3e28a2abf31168b91527f29a6ebf9a1fbb68463fb50c75bcda6c80437181"
+    },
+    {
+      "bytes": 37347,
+      "elapsed_ms": 55.14233299982152,
+      "families": 10,
+      "iteration": 1,
+      "label": "current",
+      "repo": "cmark",
+      "sha256": "f206c1825691e046f892f87c46d68008edaac27293b25fc860554e7d9bf3a9c2"
+    },
+    {
+      "bytes": 32106,
+      "elapsed_ms": 42.03925000183517,
+      "families": 6,
+      "iteration": 1,
+      "label": "current",
+      "repo": "cobra",
+      "sha256": "f7da88f4625ca077b0fdd59e5325caf6f7432ba3d2b078424cecd0cbab3a8749"
+    },
+    {
+      "bytes": 255227,
+      "elapsed_ms": 275.9997920002206,
+      "families": 156,
+      "iteration": 1,
+      "label": "current",
+      "repo": "commons-lang",
+      "sha256": "c136b619746abbc1721815879470120d319b00982fc126f5adb1017484f2738b"
+    },
+    {
+      "bytes": 173509,
+      "elapsed_ms": 232.04941700169002,
+      "families": 115,
+      "iteration": 1,
+      "label": "current",
+      "repo": "curl",
+      "sha256": "2b9c68545c11b1db7d45e99219ae8a60814dc3bc9cd24249d6732c766d6b6f46"
+    },
+    {
+      "bytes": 64050,
+      "elapsed_ms": 199.51066700014053,
+      "families": 27,
+      "iteration": 1,
+      "label": "current",
+      "repo": "date-fns",
+      "sha256": "023f01cc3c52c042f74502c14b7a6c6831c16307529c5bce9c1fbc812a2d8f12"
+    },
+    {
+      "bytes": 65064,
+      "elapsed_ms": 207.93883299847948,
+      "families": 29,
+      "iteration": 1,
+      "label": "current",
+      "repo": "delve",
+      "sha256": "40a6b330b7576d5d7fde74c04a0de3267e9ff63e9885ea92471e3b4583f238a6"
+    },
+    {
+      "bytes": 31155,
+      "elapsed_ms": 44.65408300166018,
+      "families": 3,
+      "iteration": 1,
+      "label": "current",
+      "repo": "devise",
+      "sha256": "cd0136fb9c707238968357d8a92e4c5c5c45b0864eaba90df75a61a36aa7c1fc"
+    },
+    {
+      "bytes": 116840,
+      "elapsed_ms": 415.1331670000218,
+      "families": 63,
+      "iteration": 1,
+      "label": "current",
+      "repo": "drizzle-orm",
+      "sha256": "0d3d1770c91f13fa8b263235a3e5707f9c151fa4bd82f9dcdf46b3b351b47049"
+    },
+    {
+      "bytes": 54599,
+      "elapsed_ms": 1049.1446250016452,
+      "families": 22,
+      "iteration": 1,
+      "label": "current",
+      "repo": "esbuild",
+      "sha256": "076166419f99576486eeeec09bc8ff3da75ed4c7e6ecf7831b96b735275da58d"
+    },
+    {
+      "bytes": 63385,
+      "elapsed_ms": 201.32087499951012,
+      "families": 32,
+      "iteration": 1,
+      "label": "current",
+      "repo": "etcd",
+      "sha256": "a5ae888d86e1945f8ac0a66f1a6a98bbe78c8dc16ffd8bd47f61c25f4ea8e88d"
+    },
+    {
+      "bytes": 33322,
+      "elapsed_ms": 82.83562500218977,
+      "families": 9,
+      "iteration": 1,
+      "label": "current",
+      "repo": "execa",
+      "sha256": "b9b6ab7c069d0f243824d12729d7335854e8356393f98e1c001bcbe69f31d0d7"
+    },
+    {
+      "bytes": 27093,
+      "elapsed_ms": 35.197458000766346,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "faraday",
+      "sha256": "aedd1be1aa9037239deb262886cfd5f4e84f2703f0d7c6d075a13ed37d30a8c0"
+    },
+    {
+      "bytes": 72648,
+      "elapsed_ms": 378.20962499972666,
+      "families": 29,
+      "iteration": 1,
+      "label": "current",
+      "repo": "fastlane",
+      "sha256": "956741aec6955f3318d5dc4b78fde5dee606ee4c1bf1840fbdff07160054d3b0"
+    },
+    {
+      "bytes": 25951,
+      "elapsed_ms": 28.626499999518273,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "fd",
+      "sha256": "6f5fef95249defbf30b092faf4d6aa8e93ccd43e26ff3f7794df2d9ae7ed0119"
+    },
+    {
+      "bytes": 48054,
+      "elapsed_ms": 50.87724999975762,
+      "families": 22,
+      "iteration": 1,
+      "label": "current",
+      "repo": "flask",
+      "sha256": "5faac354fef6f827b4ec3ea5cbd6564548a017b747967413f39b697dfd976ca3"
+    },
+    {
+      "bytes": 30077,
+      "elapsed_ms": 231.40649999913876,
+      "families": 5,
+      "iteration": 1,
+      "label": "current",
+      "repo": "fzf",
+      "sha256": "96d6cedd8981467754d7090706ef7d608f174383642ed57a6c82828b43e57bc4"
+    },
+    {
+      "bytes": 28981,
+      "elapsed_ms": 48.67012500108103,
+      "families": 3,
+      "iteration": 1,
+      "label": "current",
+      "repo": "gin",
+      "sha256": "8b523024b725809b5f9ac92bf63b4b7adc870889aa54fb707ce9b5d2cbac65f5"
+    },
+    {
+      "bytes": 147615,
+      "elapsed_ms": 330.846124998061,
+      "families": 111,
+      "iteration": 1,
+      "label": "current",
+      "repo": "git",
+      "sha256": "7034fea3c29a6aa3d5db33aa3500805f2ae7323979d1d082a8198bcc9a6efed1"
+    },
+    {
+      "bytes": 36406,
+      "elapsed_ms": 60.83466700147255,
+      "families": 13,
+      "iteration": 1,
+      "label": "current",
+      "repo": "gorm",
+      "sha256": "43716ed78ae0f1ec47efb8fc9f574f4217656ae77f479a7bac3a4948d4b41505"
+    },
+    {
+      "bytes": 307191,
+      "elapsed_ms": 322.1019580014399,
+      "families": 245,
+      "iteration": 1,
+      "label": "current",
+      "repo": "graphhopper",
+      "sha256": "a81300aeb492994b0e5cebef53bdc63df00e6677cb97eb81ac4a597fe64b7fe5"
+    },
+    {
+      "bytes": 115379,
+      "elapsed_ms": 116.1125409998931,
+      "families": 79,
+      "iteration": 1,
+      "label": "current",
+      "repo": "gson",
+      "sha256": "a442017fda42ddff59a8b756e10ab20579fb72b598e57d56041ddf2bd8c7eaf0"
+    },
+    {
+      "bytes": 2574446,
+      "elapsed_ms": 1095.2417499975127,
+      "families": 1796,
+      "iteration": 1,
+      "label": "current",
+      "repo": "guava",
+      "sha256": "8c58f4a05931dc1fc45f8b75f045424bdcad6532dddd4ee113d007701cd642e3"
+    },
+    {
+      "bytes": 650060,
+      "elapsed_ms": 583.1532920019527,
+      "families": 515,
+      "iteration": 1,
+      "label": "current",
+      "repo": "h2database",
+      "sha256": "58880f057b2e0f8e795d157926094d47d80ea1142fadd67ad2e567f53d98e94c"
+    },
+    {
+      "bytes": 42215,
+      "elapsed_ms": 46.55954199915868,
+      "families": 17,
+      "iteration": 1,
+      "label": "current",
+      "repo": "httpie",
+      "sha256": "84e4431b36b618b941a1848925a3e992e65d2170c676f6bab1beb0a9cddf936e"
+    },
+    {
+      "bytes": 41185,
+      "elapsed_ms": 46.09024999808753,
+      "families": 16,
+      "iteration": 1,
+      "label": "current",
+      "repo": "httpx",
+      "sha256": "8c8bfaae765b7acc786b59ac5a53ea306c982b516cee97286a480ff84d1cba85"
+    },
+    {
+      "bytes": 220447,
+      "elapsed_ms": 287.667667002097,
+      "families": 51,
+      "iteration": 1,
+      "label": "current",
+      "repo": "hugo",
+      "sha256": "33af01603fa6b6a7e9cb7952b3115000bba6ca06823c99ea75147b1aacc61971"
+    },
+    {
+      "bytes": 25972,
+      "elapsed_ms": 23.419917000865098,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "hyperfine",
+      "sha256": "2b0c513f4797ad5dfdd401bdb6986800a08bfa1116ad744a4f98ef3b03bbae9e"
+    },
+    {
+      "bytes": 33344,
+      "elapsed_ms": 112.6422499983164,
+      "families": 7,
+      "iteration": 1,
+      "label": "current",
+      "repo": "image",
+      "sha256": "70834663db496c215d79eab59210c635f1ce7b71fd9b4555777fb3d58b3a728b"
+    },
+    {
+      "bytes": 136865,
+      "elapsed_ms": 145.1273749989923,
+      "families": 84,
+      "iteration": 1,
+      "label": "current",
+      "repo": "jackson-core",
+      "sha256": "09e2a9cfcd378a488a2156f64134ffbec75d6b76027f508592e572ff2392d448"
+    },
+    {
+      "bytes": 329711,
+      "elapsed_ms": 541.5288750009495,
+      "families": 267,
+      "iteration": 1,
+      "label": "current",
+      "repo": "jedis",
+      "sha256": "69878480d025abf3bfe893e10c51f049f5d20a232643c51191f84c0a65f2eafd"
+    },
+    {
+      "bytes": 35027,
+      "elapsed_ms": 57.21554100091453,
+      "families": 9,
+      "iteration": 1,
+      "label": "current",
+      "repo": "jekyll",
+      "sha256": "13a029a9f92f81d599c6d251f61eccfcb9b17659b9a27903f2e94a7b05858578"
+    },
+    {
+      "bytes": 74900,
+      "elapsed_ms": 242.04233300042688,
+      "families": 45,
+      "iteration": 1,
+      "label": "current",
+      "repo": "jest",
+      "sha256": "69597e459ae86ba376926f047967d01600d5dbb76cb7143b15f4378fe9abf1d4"
+    },
+    {
+      "bytes": 26681,
+      "elapsed_ms": 53.9861249999376,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "jq",
+      "sha256": "27ca7e83766ba304e45cdf9b5c0e4ae3c392120683689f32457953bedef2ff93"
+    },
+    {
+      "bytes": 113185,
+      "elapsed_ms": 110.92595800073468,
+      "families": 64,
+      "iteration": 1,
+      "label": "current",
+      "repo": "jsoup",
+      "sha256": "e7a4571b2e4c74fdaa0a24fa965276fea0f424e7e0d80cbf191ee5d7867f18b6"
+    },
+    {
+      "bytes": 514636,
+      "elapsed_ms": 393.7812080002914,
+      "families": 327,
+      "iteration": 1,
+      "label": "current",
+      "repo": "junit5",
+      "sha256": "2154434f9a6668d0e642e3a0c02dc7d8676d89539827973fa97b5a15e3ea58e4"
+    },
+    {
+      "bytes": 31195,
+      "elapsed_ms": 71.17337499948917,
+      "families": 5,
+      "iteration": 1,
+      "label": "current",
+      "repo": "kingfisher",
+      "sha256": "d57453e031f2dd9385e40d46aa9aa40b4091072a6a3c6dc1a0b1a78e6ebe29bf"
+    },
+    {
+      "bytes": 114735,
+      "elapsed_ms": 60.22362500152667,
+      "families": 62,
+      "iteration": 1,
+      "label": "current",
+      "repo": "kramdown",
+      "sha256": "5f9d171cc65e9714066a26040a80a1ccefc17376f25e08682903b7a1f3b0d22d"
+    },
+    {
+      "bytes": 27472,
+      "elapsed_ms": 48.11404200154357,
+      "families": 2,
+      "iteration": 1,
+      "label": "current",
+      "repo": "ky",
+      "sha256": "a927245bca3dff73a3259265232a05bfba33900b73a786093f89b2330a73afe2"
+    },
+    {
+      "bytes": 2126164,
+      "elapsed_ms": 895.5644170018786,
+      "families": 1068,
+      "iteration": 1,
+      "label": "current",
+      "repo": "libgdx",
+      "sha256": "ebcd004fa569fcfd33e484a28eed982203bd5c7db9fcf044ac70732059aa1074"
+    },
+    {
+      "bytes": 52625,
+      "elapsed_ms": 312.9222080024192,
+      "families": 22,
+      "iteration": 1,
+      "label": "current",
+      "repo": "libsodium",
+      "sha256": "b25683c30515696c97115f90700a39e8343957fcbb928819d4c48100f5eef223"
+    },
+    {
+      "bytes": 55324,
+      "elapsed_ms": 97.39137499855133,
+      "families": 31,
+      "iteration": 1,
+      "label": "current",
+      "repo": "libuv",
+      "sha256": "bc45e3598603aab1b40e15b83493b4702cffa4820aa3b6764182c069318d712d"
+    },
+    {
+      "bytes": 29342,
+      "elapsed_ms": 45.96862499965937,
+      "families": 4,
+      "iteration": 1,
+      "label": "current",
+      "repo": "liquid",
+      "sha256": "58efa8b9c47a69b8839ecad98bfc84e642d02daf2561386a96ba6e236ff6d134"
+    },
+    {
+      "bytes": 27093,
+      "elapsed_ms": 54.98049999732757,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "lua",
+      "sha256": "8163ac7f281314292973848ce20f93370e7933e9948eae0b5b8288d0f8eee8d8"
+    },
+    {
+      "bytes": 192560,
+      "elapsed_ms": 49.26833299759892,
+      "families": 113,
+      "iteration": 1,
+      "label": "current",
+      "repo": "marked",
+      "sha256": "603e1943da3c926879ab85752c9919e0c3566df81f7661e8916822d8cc9448f0"
+    },
+    {
+      "bytes": 44437,
+      "elapsed_ms": 48.39179099872126,
+      "families": 17,
+      "iteration": 1,
+      "label": "current",
+      "repo": "marshmallow",
+      "sha256": "a373c3b2346f602ffec7a463d2b2216aed7f2b8774114e2be1a759ada7fd0e48"
+    },
+    {
+      "bytes": 52737,
+      "elapsed_ms": 320.61095900280634,
+      "families": 15,
+      "iteration": 1,
+      "label": "current",
+      "repo": "meilisearch",
+      "sha256": "6202f286a92f8264e2c78c3e1d8b65f87fb8a908969758d3bbbc49a45d53309b"
+    },
+    {
+      "bytes": 84761,
+      "elapsed_ms": 384.5716249998077,
+      "families": 54,
+      "iteration": 1,
+      "label": "current",
+      "repo": "minio",
+      "sha256": "aad7d9ab3ddf8f9578491668a9ddf9d8012f8da357e79c7d49a08f693fc485dd"
+    },
+    {
+      "bytes": 148904,
+      "elapsed_ms": 172.75779199917451,
+      "families": 102,
+      "iteration": 1,
+      "label": "current",
+      "repo": "mockito",
+      "sha256": "f3c5289c886820933437ea14863418589bf7f4bbbdb011dda2bafd0c989d8d7e"
+    },
+    {
+      "bytes": 64019,
+      "elapsed_ms": 637.0137499980046,
+      "families": 27,
+      "iteration": 1,
+      "label": "current",
+      "repo": "nats-server",
+      "sha256": "942fc7317c800bb0dbd5e2e6c44158227dc31daddbd92d599a024b4db6f9805b"
+    },
+    {
+      "bytes": 1321539,
+      "elapsed_ms": 925.4779999973834,
+      "families": 879,
+      "iteration": 1,
+      "label": "current",
+      "repo": "netty",
+      "sha256": "fd5b7b330b2beaf16bddbf0b8ec9b26e1d9837f6447dcad4c7624cbc121bfc5a"
+    },
+    {
+      "bytes": 65918,
+      "elapsed_ms": 165.6277920010325,
+      "families": 44,
+      "iteration": 1,
+      "label": "current",
+      "repo": "nginx",
+      "sha256": "a45ba01b0c03496ece170c4bcded7507b511c4c77d3a4d479ce97299e073fe69"
+    },
+    {
+      "bytes": 28485,
+      "elapsed_ms": 44.19525000048452,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "nimble",
+      "sha256": "6cf2c4eabbaaa8d261752c193427f6365a567890e88e8384146692922d1845dc"
+    },
+    {
+      "bytes": 116070,
+      "elapsed_ms": 564.983416999894,
+      "families": 59,
+      "iteration": 1,
+      "label": "current",
+      "repo": "nushell",
+      "sha256": "d08ddadc541f3e03ed9c7cc1ea1b2d7433972a3af3d270b387081b49166d39de"
+    },
+    {
+      "bytes": 51585,
+      "elapsed_ms": 69.79962500190595,
+      "families": 29,
+      "iteration": 1,
+      "label": "current",
+      "repo": "packaging",
+      "sha256": "c91dede591acf751c6d7baf8bafb7ee893270a6a8a4ee66d9b49ea6603b8e98b"
+    },
+    {
+      "bytes": 83612,
+      "elapsed_ms": 428.5295000008773,
+      "families": 52,
+      "iteration": 1,
+      "label": "current",
+      "repo": "pixijs",
+      "sha256": "41f7427a4a99dceeac2118920d811f5b1f26cd43374829ec5432a5f3715b2b4c"
+    },
+    {
+      "bytes": 198324,
+      "elapsed_ms": 135.2780419983901,
+      "families": 168,
+      "iteration": 1,
+      "label": "current",
+      "repo": "poetry",
+      "sha256": "b95b2941b2b0c5d2e901e19a6827e2f277afd5c3c6b771476d7fb2fcf75130fa"
+    },
+    {
+      "bytes": 241230,
+      "elapsed_ms": 613.753124998766,
+      "families": 151,
+      "iteration": 1,
+      "label": "current",
+      "repo": "prettier",
+      "sha256": "451898ed30ef887b3f4b3e67a09469c4a85968c55b4fc6d70fe4cffd04cae854"
+    },
+    {
+      "bytes": 148149,
+      "elapsed_ms": 380.3660830017179,
+      "families": 66,
+      "iteration": 1,
+      "label": "current",
+      "repo": "prometheus",
+      "sha256": "089de1b45ace409a8f885bb3faf48a71d3395a026772afe39ab08a566d618ef9"
+    },
+    {
+      "bytes": 31685,
+      "elapsed_ms": 60.680875001708046,
+      "families": 7,
+      "iteration": 1,
+      "label": "current",
+      "repo": "pry",
+      "sha256": "ed0654e8d4f7c30ec48ba5b5852fc5ea38948a98b848274c7247a60d347b87bf"
+    },
+    {
+      "bytes": 34593,
+      "elapsed_ms": 59.46366699936334,
+      "families": 7,
+      "iteration": 1,
+      "label": "current",
+      "repo": "puma",
+      "sha256": "af2d1625965b63a70c5752a80d34f6a80c8a00349936cf7d673cbea84745c11b"
+    },
+    {
+      "bytes": 1355479,
+      "elapsed_ms": 113.87745799947879,
+      "families": 428,
+      "iteration": 1,
+      "label": "current",
+      "repo": "quick",
+      "sha256": "972c357b40472039fe88cd81766a8968389f0388bd14cfd3445488120e17eb84"
+    },
+    {
+      "bytes": 28232,
+      "elapsed_ms": 55.53887499991106,
+      "families": 3,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rack",
+      "sha256": "d381b7767e3ede755e78eca9c74a817d224ed7da9eeaf1a4875d009dc9b8e9eb"
+    },
+    {
+      "bytes": 60570,
+      "elapsed_ms": 43.66433299946948,
+      "families": 37,
+      "iteration": 1,
+      "label": "current",
+      "repo": "radash",
+      "sha256": "edd68c8da5283f6f68e0c0cb7a4d4ed834c3d986b35ee0ec143501a29742e70d"
+    },
+    {
+      "bytes": 244815,
+      "elapsed_ms": 1777.1205419994658,
+      "families": 148,
+      "iteration": 1,
+      "label": "current",
+      "repo": "raylib",
+      "sha256": "17b33cc4f516189c2cff8c136f26bf7cf657c299fc17bd7997f51a93170fe7a8"
+    },
+    {
+      "bytes": 58341,
+      "elapsed_ms": 309.95925000024727,
+      "families": 29,
+      "iteration": 1,
+      "label": "current",
+      "repo": "redis",
+      "sha256": "f9172a8eab266200c6184105ecf72369c4ced23f8540eb6629082efa2529592a"
+    },
+    {
+      "bytes": 70161,
+      "elapsed_ms": 208.95629200094845,
+      "families": 34,
+      "iteration": 1,
+      "label": "current",
+      "repo": "regex",
+      "sha256": "79917221b56cff91dd46ff906250329cc3edc8884036f4f418b819c795b5c932"
+    },
+    {
+      "bytes": 34891,
+      "elapsed_ms": 45.434958999976516,
+      "families": 9,
+      "iteration": 1,
+      "label": "current",
+      "repo": "requests",
+      "sha256": "7706b8fe585687d0ee4097fac29ba83933ca72ba1d59833a86c509afb1adbd3a"
+    },
+    {
+      "bytes": 124169,
+      "elapsed_ms": 83.44345799923758,
+      "families": 81,
+      "iteration": 1,
+      "label": "current",
+      "repo": "retrofit",
+      "sha256": "f0d35800d52e10df20cb9baf65817192099b87832f7cc8d1faa873ea5832dcb7"
+    },
+    {
+      "bytes": 50546,
+      "elapsed_ms": 80.3555829988909,
+      "families": 22,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rich",
+      "sha256": "f902537f5afa06397825f1d407ab0be5129d4e581ef20e51229f6573669af301"
+    },
+    {
+      "bytes": 33574,
+      "elapsed_ms": 366.05904099997133,
+      "families": 8,
+      "iteration": 1,
+      "label": "current",
+      "repo": "ripgrep",
+      "sha256": "9a8d38eabee777f38a9256d15cb0150a236a0106a07966c1168b9714fbd56125"
+    },
+    {
+      "bytes": 35452,
+      "elapsed_ms": 80.22074999826145,
+      "families": 8,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rspec-core",
+      "sha256": "609c719a4775257487643ee0e108bbd6bcae0953cf69c1ef9be3495934e856e5"
+    },
+    {
+      "bytes": 138810,
+      "elapsed_ms": 316.97058400095557,
+      "families": 104,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rubocop",
+      "sha256": "9cb00c79f5489ba8b824862023b24e7894f2f8725dc2ce41e0150516f7b9f7e0"
+    },
+    {
+      "bytes": 51848,
+      "elapsed_ms": 136.60758400146733,
+      "families": 20,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rustls",
+      "sha256": "2cbf1d619f1559167603e199be03463ff1afa0f4532505f9370ef9e645b63248"
+    },
+    {
+      "bytes": 1169728,
+      "elapsed_ms": 542.2115410001425,
+      "families": 618,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rxjava",
+      "sha256": "9b1e535c52fad1f86cba0ed2b80a7e4653890bff07182bd509f9e5a6e087d554"
+    },
+    {
+      "bytes": 71630,
+      "elapsed_ms": 143.08329100094852,
+      "families": 33,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rxjs",
+      "sha256": "17af812d484e3e1ccb097fa057919762033759b7a8e94ab6da815db29358ee23"
+    },
+    {
+      "bytes": 1589012,
+      "elapsed_ms": 285.08270800011815,
+      "families": 426,
+      "iteration": 1,
+      "label": "current",
+      "repo": "rxswift",
+      "sha256": "2f627e51cdd270c935f377800be395e1d250f251976930c7d55bd277b2c07fbc"
+    },
+    {
+      "bytes": 169140,
+      "elapsed_ms": 128.33462499838788,
+      "families": 134,
+      "iteration": 1,
+      "label": "current",
+      "repo": "scrapy",
+      "sha256": "6c9cc19499f1e5957dc2066e0b8ebbaae07d07bb2a819c401241c9ec86436f30"
+    },
+    {
+      "bytes": 39884,
+      "elapsed_ms": 84.59904200208257,
+      "families": 12,
+      "iteration": 1,
+      "label": "current",
+      "repo": "serde_json",
+      "sha256": "fde996484ed166e303b0755aa7c6aa5710f88f5a35d31e260a011b6f6a6569a8"
+    },
+    {
+      "bytes": 32235,
+      "elapsed_ms": 57.70279200078221,
+      "families": 6,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sidekiq",
+      "sha256": "7100bce2ce90aa8b26ac1525686039346e59e274cc3674aed13f77f9de77df4b"
+    },
+    {
+      "bytes": 27177,
+      "elapsed_ms": 59.18174999897019,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sinatra",
+      "sha256": "ad6777d621e8e5d62797bdbcbf406f262ca8a768605789f799bec872cd46b0f1"
+    },
+    {
+      "bytes": 26733,
+      "elapsed_ms": 48.71974999696249,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sled",
+      "sha256": "c08af78dd000aa53dbfc35ffc3f18c93f100d0aae405c3e45decb5a9c6ea7cde"
+    },
+    {
+      "bytes": 517222,
+      "elapsed_ms": 524.986042000819,
+      "families": 391,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sqlalchemy",
+      "sha256": "80b4298bd8a49dab6c3a4a73d8d0080d1e3aa23e1f80ea099ed1be3b6943a678"
+    },
+    {
+      "bytes": 159393,
+      "elapsed_ms": 423.9695829965058,
+      "families": 112,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sqlite",
+      "sha256": "4e81f6abea00a58e4458028f95700be8b2d2f7345467e73de4270fcd9ce1ed25"
+    },
+    {
+      "bytes": 37862,
+      "elapsed_ms": 34.987167000508634,
+      "families": 9,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-algorithms",
+      "sha256": "8243fc8e57d474e311f8c97876e046ab67a89b88d3e2630e36aa1aeea2e6ae72"
+    },
+    {
+      "bytes": 27225,
+      "elapsed_ms": 49.91804100063746,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-argument-parser",
+      "sha256": "cc1e05be6e6b7d69214f187526a029bf9cb6d5b0e11928b2fc281b67488750fd"
+    },
+    {
+      "bytes": 105222,
+      "elapsed_ms": 162.30712499964284,
+      "families": 51,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-collections",
+      "sha256": "ecfcbdb77e5e083ac87b7c909bf651bffa1007f94622aa4a9134f388a53610c6"
+    },
+    {
+      "bytes": 32913,
+      "elapsed_ms": 151.9154579982569,
+      "families": 6,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-composable-architecture",
+      "sha256": "9c4302b2c98f813ac47c4f2b7067cb67baa5bbf9d0a2a2d2f4d7b7ad5953b6df"
+    },
+    {
+      "bytes": 25972,
+      "elapsed_ms": 27.677374997438164,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-log",
+      "sha256": "f572d4667f74ed557bd40b599d43f9b6248302d8fef947fb5b0c6b3d08ef086b"
+    },
+    {
+      "bytes": 32765,
+      "elapsed_ms": 31.324792002124013,
+      "families": 5,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-metrics",
+      "sha256": "108c950f3f09ac5d59bdba0ddc5b2819e5c1e185649961f2fa0165595c1297c3"
+    },
+    {
+      "bytes": 111694,
+      "elapsed_ms": 235.41895800008206,
+      "families": 52,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-nio",
+      "sha256": "a5fc758694cbf573bcb3302ad7e8a2941666cd5b50cbfb442a0cf689817ef36e"
+    },
+    {
+      "bytes": 27152,
+      "elapsed_ms": 31.748207999044098,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swift-service-lifecycle",
+      "sha256": "7de7fb5fcbfa34ca4ef16921113d8c6d512d0bc4fa22341a6acdc26a49214329"
+    },
+    {
+      "bytes": 34093,
+      "elapsed_ms": 119.26866599969799,
+      "families": 8,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swiftlint",
+      "sha256": "3fc17a5f1a3faab638dfc6fa63e745d8bbb5b29da94fbb4ae2f1bea90e06f7a3"
+    },
+    {
+      "bytes": 119283,
+      "elapsed_ms": 61.23449999722652,
+      "families": 49,
+      "iteration": 1,
+      "label": "current",
+      "repo": "swr",
+      "sha256": "ae278d9812205cbcac44e0fe1d7d0150aab132a2b3c27ee65bc5b90c38451e80"
+    },
+    {
+      "bytes": 853198,
+      "elapsed_ms": 1054.6164999977918,
+      "families": 645,
+      "iteration": 1,
+      "label": "current",
+      "repo": "sympy",
+      "sha256": "61cca70c5d7448d8b87f30f9be6e5141b51aaf21f819ac9338ad099587b7af79"
+    },
+    {
+      "bytes": 28324,
+      "elapsed_ms": 35.78054199897451,
+      "families": 3,
+      "iteration": 1,
+      "label": "current",
+      "repo": "thor",
+      "sha256": "ea159cdd86500f23a44fdab0f317c5e7978877bd6da475dbff4c9ff1706a555d"
+    },
+    {
+      "bytes": 51015,
+      "elapsed_ms": 113.42283300109557,
+      "families": 29,
+      "iteration": 1,
+      "label": "current",
+      "repo": "tmux",
+      "sha256": "9221e7d8e0cadafba684f9777dee26b7b97965e5138892868f8669ab9cd3cedd"
+    },
+    {
+      "bytes": 25960,
+      "elapsed_ms": 24.432707999949344,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "tokei",
+      "sha256": "2f49031d8e3bcf2e2ad8b73c10d613b4e2a646bfe4fcf86a9b8a468dea54247c"
+    },
+    {
+      "bytes": 75904,
+      "elapsed_ms": 197.1490840005572,
+      "families": 37,
+      "iteration": 1,
+      "label": "current",
+      "repo": "tokio",
+      "sha256": "1a079b780e54a624c4ba35046dd110f47b4b88fcaae30a5b5863f12a39855a46"
+    },
+    {
+      "bytes": 128760,
+      "elapsed_ms": 176.150957999198,
+      "families": 64,
+      "iteration": 1,
+      "label": "current",
+      "repo": "trpc",
+      "sha256": "29eb21a6059cc102629d4d6732eb139be7f954c8c2878ad24d078dc046399b60"
+    },
+    {
+      "bytes": 25975,
+      "elapsed_ms": 41.53175000101328,
+      "families": 0,
+      "iteration": 1,
+      "label": "current",
+      "repo": "urfave-cli",
+      "sha256": "d6a76d161f5394e860634c069f69dfcf8ea01907a923b01a1ba8b91e4cc03e85"
+    },
+    {
+      "bytes": 27156,
+      "elapsed_ms": 65.97979200159898,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "vapor",
+      "sha256": "e61f49e2c7489aa541edb005791af081f4f60e8fd495ce351136bf0fcc8dab1f"
+    },
+    {
+      "bytes": 72267,
+      "elapsed_ms": 408.37275000012596,
+      "families": 39,
+      "iteration": 1,
+      "label": "current",
+      "repo": "vim",
+      "sha256": "260d7828117ef99fd87696f899a902655d764fec5e4611e6f351dcc654cea4d7"
+    },
+    {
+      "bytes": 26686,
+      "elapsed_ms": 28.76079099951312,
+      "families": 1,
+      "iteration": 1,
+      "label": "current",
+      "repo": "wrk",
+      "sha256": "2f56ee89296b793a6a5f29f1e3e644d7559a2195b28805e5131f9f2dc6db4cf9"
+    },
+    {
+      "bytes": 32782,
+      "elapsed_ms": 42.86775000218768,
+      "families": 5,
+      "iteration": 1,
+      "label": "current",
+      "repo": "zap",
+      "sha256": "2bfb0dd14b6e69cf3285bc73b1def815f2e2c4ae43eae049a2d9bd5e010fd519"
+    },
+    {
+      "bytes": 49195,
+      "elapsed_ms": 163.4712090017274,
+      "families": 21,
+      "iteration": 1,
+      "label": "current",
+      "repo": "zod",
+      "sha256": "7c145abcb67cb5ddf2c789fba3507ac8d972a49e15b194cd4a7382332e18e933"
+    },
+    {
+      "bytes": 76464,
+      "elapsed_ms": 158.3642920013517,
+      "families": 39,
+      "iteration": 1,
+      "label": "current",
+      "repo": "zstd",
+      "sha256": "8649e491edd5ccc6a272c7d2675176234f78d9bcbfeea401b5f35f00ce512515"
+    },
+    {
+      "bytes": 41646,
+      "elapsed_ms": 50.101000000722706,
+      "families": 9,
+      "iteration": 1,
+      "label": "current",
+      "repo": "zustand",
+      "sha256": "0bb1aa722b9f95062e66a4eeb38756de4cb45ff15dd611190e3f451cd9c9ae7c"
+    }
+  ],
+  "summary": {
+    "aggregate_baseline_median_ms": 68384.6586260297,
+    "aggregate_current_median_ms": 26487.814705989877,
+    "aggregate_delta_pct": -61.26643718316721,
+    "by_repo": {
+      "alacritty": {
+        "baseline": {
+          "bytes": [
+            30552
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "68545142fb610425c3fb581e61c6c587e79a3d88f6ceeb16870e33066a26b113"
+          ],
+          "median_ms": 136.38216700201156
+        },
+        "current": {
+          "bytes": [
+            30552
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "68545142fb610425c3fb581e61c6c587e79a3d88f6ceeb16870e33066a26b113"
+          ],
+          "median_ms": 133.90333400093368
+        }
+      },
+      "alamofire": {
+        "baseline": {
+          "bytes": [
+            21155006
+          ],
+          "families": [
+            3488
+          ],
+          "hashes": [
+            "8daaf0cbb27fde45cdb6b0ea35f56a43350f5e7b369a1ad8e9265b91851eacc9"
+          ],
+          "median_ms": 831.4933330002532
+        },
+        "current": {
+          "bytes": [
+            21155006
+          ],
+          "families": [
+            3488
+          ],
+          "hashes": [
+            "8daaf0cbb27fde45cdb6b0ea35f56a43350f5e7b369a1ad8e9265b91851eacc9"
+          ],
+          "median_ms": 843.596582999453
+        }
+      },
+      "antlr4": {
+        "baseline": {
+          "bytes": [
+            279174
+          ],
+          "families": [
+            197
+          ],
+          "hashes": [
+            "c6f9653abcd36080f95a008fb652216d2acb4f1898a1dc490ce5771733b8c9c1"
+          ],
+          "median_ms": 264.5955000007234
+        },
+        "current": {
+          "bytes": [
+            279174
+          ],
+          "families": [
+            197
+          ],
+          "hashes": [
+            "c6f9653abcd36080f95a008fb652216d2acb4f1898a1dc490ce5771733b8c9c1"
+          ],
+          "median_ms": 248.69337500058464
+        }
+      },
+      "arrow": {
+        "baseline": {
+          "bytes": [
+            27867
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "4e344c72f2bdf06472bb2b3c78691adc8f58111f58778d96be3c9b408cfbf6a5"
+          ],
+          "median_ms": 94.27395800230443
+        },
+        "current": {
+          "bytes": [
+            27867
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "4e344c72f2bdf06472bb2b3c78691adc8f58111f58778d96be3c9b408cfbf6a5"
+          ],
+          "median_ms": 99.07124999881489
+        }
+      },
+      "asciidoctor": {
+        "baseline": {
+          "bytes": [
+            234578
+          ],
+          "families": [
+            148
+          ],
+          "hashes": [
+            "7632181030f1620703b5d86dcd4dc6b7a6778c6bcd9233bda8db5cdc1618b3af"
+          ],
+          "median_ms": 12858.286334001605
+        },
+        "current": {
+          "bytes": [
+            234578
+          ],
+          "families": [
+            148
+          ],
+          "hashes": [
+            "7632181030f1620703b5d86dcd4dc6b7a6778c6bcd9233bda8db5cdc1618b3af"
+          ],
+          "median_ms": 94.27758299716515
+        }
+      },
+      "axios": {
+        "baseline": {
+          "bytes": [
+            44590
+          ],
+          "families": [
+            18
+          ],
+          "hashes": [
+            "4ef8e448b4d34b04c2834e17cc1d4a5dfabeb57159bc688ec36dfd3d0a235e86"
+          ],
+          "median_ms": 166.13533300187555
+        },
+        "current": {
+          "bytes": [
+            44590
+          ],
+          "families": [
+            18
+          ],
+          "hashes": [
+            "4ef8e448b4d34b04c2834e17cc1d4a5dfabeb57159bc688ec36dfd3d0a235e86"
+          ],
+          "median_ms": 168.43333299766527
+        }
+      },
+      "badger": {
+        "baseline": {
+          "bytes": [
+            32276
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "ff6cb1cf5923cd6c3c16ead99fa21e86c5a86897394fb502171f692c0136891d"
+          ],
+          "median_ms": 61.57758299741545
+        },
+        "current": {
+          "bytes": [
+            32276
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "ff6cb1cf5923cd6c3c16ead99fa21e86c5a86897394fb502171f692c0136891d"
+          ],
+          "median_ms": 59.73433299732278
+        }
+      },
+      "bat": {
+        "baseline": {
+          "bytes": [
+            31779
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "5795ccee68e8418250b56ebf396e17c62cd824f7c79db5514cb16de5a0d3d584"
+          ],
+          "median_ms": 160.3647500014631
+        },
+        "current": {
+          "bytes": [
+            31779
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "5795ccee68e8418250b56ebf396e17c62cd824f7c79db5514cb16de5a0d3d584"
+          ],
+          "median_ms": 157.52675000112504
+        }
+      },
+      "black": {
+        "baseline": {
+          "bytes": [
+            57327
+          ],
+          "families": [
+            19
+          ],
+          "hashes": [
+            "2d8b140ce3e491d94e930544b1a86b77c49ac149f34aa6d2b5c5a765f5d6dca6"
+          ],
+          "median_ms": 204.36454100126866
+        },
+        "current": {
+          "bytes": [
+            57327
+          ],
+          "families": [
+            19
+          ],
+          "hashes": [
+            "2d8b140ce3e491d94e930544b1a86b77c49ac149f34aa6d2b5c5a765f5d6dca6"
+          ],
+          "median_ms": 228.47466700113728
+        }
+      },
+      "boltons": {
+        "baseline": {
+          "bytes": [
+            70069
+          ],
+          "families": [
+            41
+          ],
+          "hashes": [
+            "8bb2183629fd85215ec9c396212b4bcebe8a6da9cb3129b6673f24e403645c4a"
+          ],
+          "median_ms": 53.2896670010814
+        },
+        "current": {
+          "bytes": [
+            70069
+          ],
+          "families": [
+            41
+          ],
+          "hashes": [
+            "8bb2183629fd85215ec9c396212b4bcebe8a6da9cb3129b6673f24e403645c4a"
+          ],
+          "median_ms": 54.71312499867054
+        }
+      },
+      "chi": {
+        "baseline": {
+          "bytes": [
+            29758
+          ],
+          "families": [
+            4
+          ],
+          "hashes": [
+            "9290250680ab242df0431e093bfa1c1a259d00a897b1a8ce3a0f195ae46a93a3"
+          ],
+          "median_ms": 36.26133299985668
+        },
+        "current": {
+          "bytes": [
+            29758
+          ],
+          "families": [
+            4
+          ],
+          "hashes": [
+            "9290250680ab242df0431e093bfa1c1a259d00a897b1a8ce3a0f195ae46a93a3"
+          ],
+          "median_ms": 33.26983299848507
+        }
+      },
+      "clap": {
+        "baseline": {
+          "bytes": [
+            42192
+          ],
+          "families": [
+            11
+          ],
+          "hashes": [
+            "536594790b57bc08c916c444e0c1f77dea90c42783ccb8384e08a36fbc8ceb12"
+          ],
+          "median_ms": 137.56341699991026
+        },
+        "current": {
+          "bytes": [
+            42192
+          ],
+          "families": [
+            11
+          ],
+          "hashes": [
+            "536594790b57bc08c916c444e0c1f77dea90c42783ccb8384e08a36fbc8ceb12"
+          ],
+          "median_ms": 128.18562499887776
+        }
+      },
+      "click": {
+        "baseline": {
+          "bytes": [
+            60344
+          ],
+          "families": [
+            34
+          ],
+          "hashes": [
+            "5aec3e28a2abf31168b91527f29a6ebf9a1fbb68463fb50c75bcda6c80437181"
+          ],
+          "median_ms": 64.86783400032436
+        },
+        "current": {
+          "bytes": [
+            60344
+          ],
+          "families": [
+            34
+          ],
+          "hashes": [
+            "5aec3e28a2abf31168b91527f29a6ebf9a1fbb68463fb50c75bcda6c80437181"
+          ],
+          "median_ms": 59.911540996836266
+        }
+      },
+      "cmark": {
+        "baseline": {
+          "bytes": [
+            37347
+          ],
+          "families": [
+            10
+          ],
+          "hashes": [
+            "f206c1825691e046f892f87c46d68008edaac27293b25fc860554e7d9bf3a9c2"
+          ],
+          "median_ms": 55.930458001967054
+        },
+        "current": {
+          "bytes": [
+            37347
+          ],
+          "families": [
+            10
+          ],
+          "hashes": [
+            "f206c1825691e046f892f87c46d68008edaac27293b25fc860554e7d9bf3a9c2"
+          ],
+          "median_ms": 55.14233299982152
+        }
+      },
+      "cobra": {
+        "baseline": {
+          "bytes": [
+            32106
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "f7da88f4625ca077b0fdd59e5325caf6f7432ba3d2b078424cecd0cbab3a8749"
+          ],
+          "median_ms": 43.839999998454005
+        },
+        "current": {
+          "bytes": [
+            32106
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "f7da88f4625ca077b0fdd59e5325caf6f7432ba3d2b078424cecd0cbab3a8749"
+          ],
+          "median_ms": 42.03925000183517
+        }
+      },
+      "commons-lang": {
+        "baseline": {
+          "bytes": [
+            255227
+          ],
+          "families": [
+            156
+          ],
+          "hashes": [
+            "c136b619746abbc1721815879470120d319b00982fc126f5adb1017484f2738b"
+          ],
+          "median_ms": 243.35795799925108
+        },
+        "current": {
+          "bytes": [
+            255227
+          ],
+          "families": [
+            156
+          ],
+          "hashes": [
+            "c136b619746abbc1721815879470120d319b00982fc126f5adb1017484f2738b"
+          ],
+          "median_ms": 275.9997920002206
+        }
+      },
+      "curl": {
+        "baseline": {
+          "bytes": [
+            173509
+          ],
+          "families": [
+            115
+          ],
+          "hashes": [
+            "2b9c68545c11b1db7d45e99219ae8a60814dc3bc9cd24249d6732c766d6b6f46"
+          ],
+          "median_ms": 224.67233299903455
+        },
+        "current": {
+          "bytes": [
+            173509
+          ],
+          "families": [
+            115
+          ],
+          "hashes": [
+            "2b9c68545c11b1db7d45e99219ae8a60814dc3bc9cd24249d6732c766d6b6f46"
+          ],
+          "median_ms": 232.04941700169002
+        }
+      },
+      "date-fns": {
+        "baseline": {
+          "bytes": [
+            64050
+          ],
+          "families": [
+            27
+          ],
+          "hashes": [
+            "023f01cc3c52c042f74502c14b7a6c6831c16307529c5bce9c1fbc812a2d8f12"
+          ],
+          "median_ms": 206.6723340030876
+        },
+        "current": {
+          "bytes": [
+            64050
+          ],
+          "families": [
+            27
+          ],
+          "hashes": [
+            "023f01cc3c52c042f74502c14b7a6c6831c16307529c5bce9c1fbc812a2d8f12"
+          ],
+          "median_ms": 199.51066700014053
+        }
+      },
+      "delve": {
+        "baseline": {
+          "bytes": [
+            65064
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "40a6b330b7576d5d7fde74c04a0de3267e9ff63e9885ea92471e3b4583f238a6"
+          ],
+          "median_ms": 200.2612920005049
+        },
+        "current": {
+          "bytes": [
+            65064
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "40a6b330b7576d5d7fde74c04a0de3267e9ff63e9885ea92471e3b4583f238a6"
+          ],
+          "median_ms": 207.93883299847948
+        }
+      },
+      "devise": {
+        "baseline": {
+          "bytes": [
+            31155
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "cd0136fb9c707238968357d8a92e4c5c5c45b0864eaba90df75a61a36aa7c1fc"
+          ],
+          "median_ms": 64.65245800063713
+        },
+        "current": {
+          "bytes": [
+            31155
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "cd0136fb9c707238968357d8a92e4c5c5c45b0864eaba90df75a61a36aa7c1fc"
+          ],
+          "median_ms": 44.65408300166018
+        }
+      },
+      "drizzle-orm": {
+        "baseline": {
+          "bytes": [
+            116840
+          ],
+          "families": [
+            63
+          ],
+          "hashes": [
+            "0d3d1770c91f13fa8b263235a3e5707f9c151fa4bd82f9dcdf46b3b351b47049"
+          ],
+          "median_ms": 379.93258299684385
+        },
+        "current": {
+          "bytes": [
+            116840
+          ],
+          "families": [
+            63
+          ],
+          "hashes": [
+            "0d3d1770c91f13fa8b263235a3e5707f9c151fa4bd82f9dcdf46b3b351b47049"
+          ],
+          "median_ms": 415.1331670000218
+        }
+      },
+      "esbuild": {
+        "baseline": {
+          "bytes": [
+            54599
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "076166419f99576486eeeec09bc8ff3da75ed4c7e6ecf7831b96b735275da58d"
+          ],
+          "median_ms": 975.0484169999254
+        },
+        "current": {
+          "bytes": [
+            54599
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "076166419f99576486eeeec09bc8ff3da75ed4c7e6ecf7831b96b735275da58d"
+          ],
+          "median_ms": 1049.1446250016452
+        }
+      },
+      "etcd": {
+        "baseline": {
+          "bytes": [
+            63385
+          ],
+          "families": [
+            32
+          ],
+          "hashes": [
+            "a5ae888d86e1945f8ac0a66f1a6a98bbe78c8dc16ffd8bd47f61c25f4ea8e88d"
+          ],
+          "median_ms": 203.32437499746447
+        },
+        "current": {
+          "bytes": [
+            63385
+          ],
+          "families": [
+            32
+          ],
+          "hashes": [
+            "a5ae888d86e1945f8ac0a66f1a6a98bbe78c8dc16ffd8bd47f61c25f4ea8e88d"
+          ],
+          "median_ms": 201.32087499951012
+        }
+      },
+      "execa": {
+        "baseline": {
+          "bytes": [
+            33322
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "b9b6ab7c069d0f243824d12729d7335854e8356393f98e1c001bcbe69f31d0d7"
+          ],
+          "median_ms": 83.3093330002157
+        },
+        "current": {
+          "bytes": [
+            33322
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "b9b6ab7c069d0f243824d12729d7335854e8356393f98e1c001bcbe69f31d0d7"
+          ],
+          "median_ms": 82.83562500218977
+        }
+      },
+      "faraday": {
+        "baseline": {
+          "bytes": [
+            27093
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "aedd1be1aa9037239deb262886cfd5f4e84f2703f0d7c6d075a13ed37d30a8c0"
+          ],
+          "median_ms": 52.076916999794776
+        },
+        "current": {
+          "bytes": [
+            27093
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "aedd1be1aa9037239deb262886cfd5f4e84f2703f0d7c6d075a13ed37d30a8c0"
+          ],
+          "median_ms": 35.197458000766346
+        }
+      },
+      "fastlane": {
+        "baseline": {
+          "bytes": [
+            72648
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "956741aec6955f3318d5dc4b78fde5dee606ee4c1bf1840fbdff07160054d3b0"
+          ],
+          "median_ms": 25596.057292001205
+        },
+        "current": {
+          "bytes": [
+            72648
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "956741aec6955f3318d5dc4b78fde5dee606ee4c1bf1840fbdff07160054d3b0"
+          ],
+          "median_ms": 378.20962499972666
+        }
+      },
+      "fd": {
+        "baseline": {
+          "bytes": [
+            25951
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "6f5fef95249defbf30b092faf4d6aa8e93ccd43e26ff3f7794df2d9ae7ed0119"
+          ],
+          "median_ms": 31.106166999961715
+        },
+        "current": {
+          "bytes": [
+            25951
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "6f5fef95249defbf30b092faf4d6aa8e93ccd43e26ff3f7794df2d9ae7ed0119"
+          ],
+          "median_ms": 28.626499999518273
+        }
+      },
+      "flask": {
+        "baseline": {
+          "bytes": [
+            48054
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "5faac354fef6f827b4ec3ea5cbd6564548a017b747967413f39b697dfd976ca3"
+          ],
+          "median_ms": 43.27899999771034
+        },
+        "current": {
+          "bytes": [
+            48054
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "5faac354fef6f827b4ec3ea5cbd6564548a017b747967413f39b697dfd976ca3"
+          ],
+          "median_ms": 50.87724999975762
+        }
+      },
+      "fzf": {
+        "baseline": {
+          "bytes": [
+            30077
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "96d6cedd8981467754d7090706ef7d608f174383642ed57a6c82828b43e57bc4"
+          ],
+          "median_ms": 228.4268749972398
+        },
+        "current": {
+          "bytes": [
+            30077
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "96d6cedd8981467754d7090706ef7d608f174383642ed57a6c82828b43e57bc4"
+          ],
+          "median_ms": 231.40649999913876
+        }
+      },
+      "gin": {
+        "baseline": {
+          "bytes": [
+            28981
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "8b523024b725809b5f9ac92bf63b4b7adc870889aa54fb707ce9b5d2cbac65f5"
+          ],
+          "median_ms": 53.204874999210006
+        },
+        "current": {
+          "bytes": [
+            28981
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "8b523024b725809b5f9ac92bf63b4b7adc870889aa54fb707ce9b5d2cbac65f5"
+          ],
+          "median_ms": 48.67012500108103
+        }
+      },
+      "git": {
+        "baseline": {
+          "bytes": [
+            147615
+          ],
+          "families": [
+            111
+          ],
+          "hashes": [
+            "7034fea3c29a6aa3d5db33aa3500805f2ae7323979d1d082a8198bcc9a6efed1"
+          ],
+          "median_ms": 350.45937500035507
+        },
+        "current": {
+          "bytes": [
+            147615
+          ],
+          "families": [
+            111
+          ],
+          "hashes": [
+            "7034fea3c29a6aa3d5db33aa3500805f2ae7323979d1d082a8198bcc9a6efed1"
+          ],
+          "median_ms": 330.846124998061
+        }
+      },
+      "gorm": {
+        "baseline": {
+          "bytes": [
+            36406
+          ],
+          "families": [
+            13
+          ],
+          "hashes": [
+            "43716ed78ae0f1ec47efb8fc9f574f4217656ae77f479a7bac3a4948d4b41505"
+          ],
+          "median_ms": 65.81800000276417
+        },
+        "current": {
+          "bytes": [
+            36406
+          ],
+          "families": [
+            13
+          ],
+          "hashes": [
+            "43716ed78ae0f1ec47efb8fc9f574f4217656ae77f479a7bac3a4948d4b41505"
+          ],
+          "median_ms": 60.83466700147255
+        }
+      },
+      "graphhopper": {
+        "baseline": {
+          "bytes": [
+            307191
+          ],
+          "families": [
+            245
+          ],
+          "hashes": [
+            "a81300aeb492994b0e5cebef53bdc63df00e6677cb97eb81ac4a597fe64b7fe5"
+          ],
+          "median_ms": 300.14579099952243
+        },
+        "current": {
+          "bytes": [
+            307191
+          ],
+          "families": [
+            245
+          ],
+          "hashes": [
+            "a81300aeb492994b0e5cebef53bdc63df00e6677cb97eb81ac4a597fe64b7fe5"
+          ],
+          "median_ms": 322.1019580014399
+        }
+      },
+      "gson": {
+        "baseline": {
+          "bytes": [
+            115379
+          ],
+          "families": [
+            79
+          ],
+          "hashes": [
+            "a442017fda42ddff59a8b756e10ab20579fb72b598e57d56041ddf2bd8c7eaf0"
+          ],
+          "median_ms": 105.09633400215534
+        },
+        "current": {
+          "bytes": [
+            115379
+          ],
+          "families": [
+            79
+          ],
+          "hashes": [
+            "a442017fda42ddff59a8b756e10ab20579fb72b598e57d56041ddf2bd8c7eaf0"
+          ],
+          "median_ms": 116.1125409998931
+        }
+      },
+      "guava": {
+        "baseline": {
+          "bytes": [
+            2574446
+          ],
+          "families": [
+            1796
+          ],
+          "hashes": [
+            "8c58f4a05931dc1fc45f8b75f045424bdcad6532dddd4ee113d007701cd642e3"
+          ],
+          "median_ms": 1087.6902909985802
+        },
+        "current": {
+          "bytes": [
+            2574446
+          ],
+          "families": [
+            1796
+          ],
+          "hashes": [
+            "8c58f4a05931dc1fc45f8b75f045424bdcad6532dddd4ee113d007701cd642e3"
+          ],
+          "median_ms": 1095.2417499975127
+        }
+      },
+      "h2database": {
+        "baseline": {
+          "bytes": [
+            650060
+          ],
+          "families": [
+            515
+          ],
+          "hashes": [
+            "58880f057b2e0f8e795d157926094d47d80ea1142fadd67ad2e567f53d98e94c"
+          ],
+          "median_ms": 593.4185000005527
+        },
+        "current": {
+          "bytes": [
+            650060
+          ],
+          "families": [
+            515
+          ],
+          "hashes": [
+            "58880f057b2e0f8e795d157926094d47d80ea1142fadd67ad2e567f53d98e94c"
+          ],
+          "median_ms": 583.1532920019527
+        }
+      },
+      "httpie": {
+        "baseline": {
+          "bytes": [
+            42215
+          ],
+          "families": [
+            17
+          ],
+          "hashes": [
+            "84e4431b36b618b941a1848925a3e992e65d2170c676f6bab1beb0a9cddf936e"
+          ],
+          "median_ms": 46.7095829990285
+        },
+        "current": {
+          "bytes": [
+            42215
+          ],
+          "families": [
+            17
+          ],
+          "hashes": [
+            "84e4431b36b618b941a1848925a3e992e65d2170c676f6bab1beb0a9cddf936e"
+          ],
+          "median_ms": 46.55954199915868
+        }
+      },
+      "httpx": {
+        "baseline": {
+          "bytes": [
+            41185
+          ],
+          "families": [
+            16
+          ],
+          "hashes": [
+            "8c8bfaae765b7acc786b59ac5a53ea306c982b516cee97286a480ff84d1cba85"
+          ],
+          "median_ms": 46.00645800019265
+        },
+        "current": {
+          "bytes": [
+            41185
+          ],
+          "families": [
+            16
+          ],
+          "hashes": [
+            "8c8bfaae765b7acc786b59ac5a53ea306c982b516cee97286a480ff84d1cba85"
+          ],
+          "median_ms": 46.09024999808753
+        }
+      },
+      "hugo": {
+        "baseline": {
+          "bytes": [
+            220447
+          ],
+          "families": [
+            51
+          ],
+          "hashes": [
+            "33af01603fa6b6a7e9cb7952b3115000bba6ca06823c99ea75147b1aacc61971"
+          ],
+          "median_ms": 271.52166700034286
+        },
+        "current": {
+          "bytes": [
+            220447
+          ],
+          "families": [
+            51
+          ],
+          "hashes": [
+            "33af01603fa6b6a7e9cb7952b3115000bba6ca06823c99ea75147b1aacc61971"
+          ],
+          "median_ms": 287.667667002097
+        }
+      },
+      "hyperfine": {
+        "baseline": {
+          "bytes": [
+            25972
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "2b0c513f4797ad5dfdd401bdb6986800a08bfa1116ad744a4f98ef3b03bbae9e"
+          ],
+          "median_ms": 27.352082997822436
+        },
+        "current": {
+          "bytes": [
+            25972
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "2b0c513f4797ad5dfdd401bdb6986800a08bfa1116ad744a4f98ef3b03bbae9e"
+          ],
+          "median_ms": 23.419917000865098
+        }
+      },
+      "image": {
+        "baseline": {
+          "bytes": [
+            33344
+          ],
+          "families": [
+            7
+          ],
+          "hashes": [
+            "70834663db496c215d79eab59210c635f1ce7b71fd9b4555777fb3d58b3a728b"
+          ],
+          "median_ms": 104.6499159965606
+        },
+        "current": {
+          "bytes": [
+            33344
+          ],
+          "families": [
+            7
+          ],
+          "hashes": [
+            "70834663db496c215d79eab59210c635f1ce7b71fd9b4555777fb3d58b3a728b"
+          ],
+          "median_ms": 112.6422499983164
+        }
+      },
+      "jackson-core": {
+        "baseline": {
+          "bytes": [
+            136865
+          ],
+          "families": [
+            84
+          ],
+          "hashes": [
+            "09e2a9cfcd378a488a2156f64134ffbec75d6b76027f508592e572ff2392d448"
+          ],
+          "median_ms": 145.42387500114273
+        },
+        "current": {
+          "bytes": [
+            136865
+          ],
+          "families": [
+            84
+          ],
+          "hashes": [
+            "09e2a9cfcd378a488a2156f64134ffbec75d6b76027f508592e572ff2392d448"
+          ],
+          "median_ms": 145.1273749989923
+        }
+      },
+      "jedis": {
+        "baseline": {
+          "bytes": [
+            329711
+          ],
+          "families": [
+            267
+          ],
+          "hashes": [
+            "69878480d025abf3bfe893e10c51f049f5d20a232643c51191f84c0a65f2eafd"
+          ],
+          "median_ms": 539.3562080025731
+        },
+        "current": {
+          "bytes": [
+            329711
+          ],
+          "families": [
+            267
+          ],
+          "hashes": [
+            "69878480d025abf3bfe893e10c51f049f5d20a232643c51191f84c0a65f2eafd"
+          ],
+          "median_ms": 541.5288750009495
+        }
+      },
+      "jekyll": {
+        "baseline": {
+          "bytes": [
+            35027
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "13a029a9f92f81d599c6d251f61eccfcb9b17659b9a27903f2e94a7b05858578"
+          ],
+          "median_ms": 113.21083399889176
+        },
+        "current": {
+          "bytes": [
+            35027
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "13a029a9f92f81d599c6d251f61eccfcb9b17659b9a27903f2e94a7b05858578"
+          ],
+          "median_ms": 57.21554100091453
+        }
+      },
+      "jest": {
+        "baseline": {
+          "bytes": [
+            74900
+          ],
+          "families": [
+            45
+          ],
+          "hashes": [
+            "69597e459ae86ba376926f047967d01600d5dbb76cb7143b15f4378fe9abf1d4"
+          ],
+          "median_ms": 239.63050000020303
+        },
+        "current": {
+          "bytes": [
+            74900
+          ],
+          "families": [
+            45
+          ],
+          "hashes": [
+            "69597e459ae86ba376926f047967d01600d5dbb76cb7143b15f4378fe9abf1d4"
+          ],
+          "median_ms": 242.04233300042688
+        }
+      },
+      "jq": {
+        "baseline": {
+          "bytes": [
+            26681
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "27ca7e83766ba304e45cdf9b5c0e4ae3c392120683689f32457953bedef2ff93"
+          ],
+          "median_ms": 51.587583002401516
+        },
+        "current": {
+          "bytes": [
+            26681
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "27ca7e83766ba304e45cdf9b5c0e4ae3c392120683689f32457953bedef2ff93"
+          ],
+          "median_ms": 53.9861249999376
+        }
+      },
+      "jsoup": {
+        "baseline": {
+          "bytes": [
+            113185
+          ],
+          "families": [
+            64
+          ],
+          "hashes": [
+            "e7a4571b2e4c74fdaa0a24fa965276fea0f424e7e0d80cbf191ee5d7867f18b6"
+          ],
+          "median_ms": 117.18679100158624
+        },
+        "current": {
+          "bytes": [
+            113185
+          ],
+          "families": [
+            64
+          ],
+          "hashes": [
+            "e7a4571b2e4c74fdaa0a24fa965276fea0f424e7e0d80cbf191ee5d7867f18b6"
+          ],
+          "median_ms": 110.92595800073468
+        }
+      },
+      "junit5": {
+        "baseline": {
+          "bytes": [
+            514636
+          ],
+          "families": [
+            327
+          ],
+          "hashes": [
+            "2154434f9a6668d0e642e3a0c02dc7d8676d89539827973fa97b5a15e3ea58e4"
+          ],
+          "median_ms": 384.84970800345764
+        },
+        "current": {
+          "bytes": [
+            514636
+          ],
+          "families": [
+            327
+          ],
+          "hashes": [
+            "2154434f9a6668d0e642e3a0c02dc7d8676d89539827973fa97b5a15e3ea58e4"
+          ],
+          "median_ms": 393.7812080002914
+        }
+      },
+      "kingfisher": {
+        "baseline": {
+          "bytes": [
+            31195
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "d57453e031f2dd9385e40d46aa9aa40b4091072a6a3c6dc1a0b1a78e6ebe29bf"
+          ],
+          "median_ms": 69.53620800049976
+        },
+        "current": {
+          "bytes": [
+            31195
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "d57453e031f2dd9385e40d46aa9aa40b4091072a6a3c6dc1a0b1a78e6ebe29bf"
+          ],
+          "median_ms": 71.17337499948917
+        }
+      },
+      "kramdown": {
+        "baseline": {
+          "bytes": [
+            114735
+          ],
+          "families": [
+            62
+          ],
+          "hashes": [
+            "5f9d171cc65e9714066a26040a80a1ccefc17376f25e08682903b7a1f3b0d22d"
+          ],
+          "median_ms": 75.98862500162795
+        },
+        "current": {
+          "bytes": [
+            114735
+          ],
+          "families": [
+            62
+          ],
+          "hashes": [
+            "5f9d171cc65e9714066a26040a80a1ccefc17376f25e08682903b7a1f3b0d22d"
+          ],
+          "median_ms": 60.22362500152667
+        }
+      },
+      "ky": {
+        "baseline": {
+          "bytes": [
+            27472
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "a927245bca3dff73a3259265232a05bfba33900b73a786093f89b2330a73afe2"
+          ],
+          "median_ms": 48.14270899805706
+        },
+        "current": {
+          "bytes": [
+            27472
+          ],
+          "families": [
+            2
+          ],
+          "hashes": [
+            "a927245bca3dff73a3259265232a05bfba33900b73a786093f89b2330a73afe2"
+          ],
+          "median_ms": 48.11404200154357
+        }
+      },
+      "libgdx": {
+        "baseline": {
+          "bytes": [
+            2126164
+          ],
+          "families": [
+            1068
+          ],
+          "hashes": [
+            "ebcd004fa569fcfd33e484a28eed982203bd5c7db9fcf044ac70732059aa1074"
+          ],
+          "median_ms": 879.9617089971434
+        },
+        "current": {
+          "bytes": [
+            2126164
+          ],
+          "families": [
+            1068
+          ],
+          "hashes": [
+            "ebcd004fa569fcfd33e484a28eed982203bd5c7db9fcf044ac70732059aa1074"
+          ],
+          "median_ms": 895.5644170018786
+        }
+      },
+      "libsodium": {
+        "baseline": {
+          "bytes": [
+            52625
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "b25683c30515696c97115f90700a39e8343957fcbb928819d4c48100f5eef223"
+          ],
+          "median_ms": 294.8988329990243
+        },
+        "current": {
+          "bytes": [
+            52625
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "b25683c30515696c97115f90700a39e8343957fcbb928819d4c48100f5eef223"
+          ],
+          "median_ms": 312.9222080024192
+        }
+      },
+      "libuv": {
+        "baseline": {
+          "bytes": [
+            55324
+          ],
+          "families": [
+            31
+          ],
+          "hashes": [
+            "bc45e3598603aab1b40e15b83493b4702cffa4820aa3b6764182c069318d712d"
+          ],
+          "median_ms": 100.65654199934215
+        },
+        "current": {
+          "bytes": [
+            55324
+          ],
+          "families": [
+            31
+          ],
+          "hashes": [
+            "bc45e3598603aab1b40e15b83493b4702cffa4820aa3b6764182c069318d712d"
+          ],
+          "median_ms": 97.39137499855133
+        }
+      },
+      "liquid": {
+        "baseline": {
+          "bytes": [
+            29342
+          ],
+          "families": [
+            4
+          ],
+          "hashes": [
+            "58efa8b9c47a69b8839ecad98bfc84e642d02daf2561386a96ba6e236ff6d134"
+          ],
+          "median_ms": 62.25658300172654
+        },
+        "current": {
+          "bytes": [
+            29342
+          ],
+          "families": [
+            4
+          ],
+          "hashes": [
+            "58efa8b9c47a69b8839ecad98bfc84e642d02daf2561386a96ba6e236ff6d134"
+          ],
+          "median_ms": 45.96862499965937
+        }
+      },
+      "lua": {
+        "baseline": {
+          "bytes": [
+            27093
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "8163ac7f281314292973848ce20f93370e7933e9948eae0b5b8288d0f8eee8d8"
+          ],
+          "median_ms": 60.293250000540866
+        },
+        "current": {
+          "bytes": [
+            27093
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "8163ac7f281314292973848ce20f93370e7933e9948eae0b5b8288d0f8eee8d8"
+          ],
+          "median_ms": 54.98049999732757
+        }
+      },
+      "marked": {
+        "baseline": {
+          "bytes": [
+            192560
+          ],
+          "families": [
+            113
+          ],
+          "hashes": [
+            "603e1943da3c926879ab85752c9919e0c3566df81f7661e8916822d8cc9448f0"
+          ],
+          "median_ms": 53.880207997281104
+        },
+        "current": {
+          "bytes": [
+            192560
+          ],
+          "families": [
+            113
+          ],
+          "hashes": [
+            "603e1943da3c926879ab85752c9919e0c3566df81f7661e8916822d8cc9448f0"
+          ],
+          "median_ms": 49.26833299759892
+        }
+      },
+      "marshmallow": {
+        "baseline": {
+          "bytes": [
+            44437
+          ],
+          "families": [
+            17
+          ],
+          "hashes": [
+            "a373c3b2346f602ffec7a463d2b2216aed7f2b8774114e2be1a759ada7fd0e48"
+          ],
+          "median_ms": 50.42141699959757
+        },
+        "current": {
+          "bytes": [
+            44437
+          ],
+          "families": [
+            17
+          ],
+          "hashes": [
+            "a373c3b2346f602ffec7a463d2b2216aed7f2b8774114e2be1a759ada7fd0e48"
+          ],
+          "median_ms": 48.39179099872126
+        }
+      },
+      "meilisearch": {
+        "baseline": {
+          "bytes": [
+            52737
+          ],
+          "families": [
+            15
+          ],
+          "hashes": [
+            "6202f286a92f8264e2c78c3e1d8b65f87fb8a908969758d3bbbc49a45d53309b"
+          ],
+          "median_ms": 315.1862919985433
+        },
+        "current": {
+          "bytes": [
+            52737
+          ],
+          "families": [
+            15
+          ],
+          "hashes": [
+            "6202f286a92f8264e2c78c3e1d8b65f87fb8a908969758d3bbbc49a45d53309b"
+          ],
+          "median_ms": 320.61095900280634
+        }
+      },
+      "minio": {
+        "baseline": {
+          "bytes": [
+            84761
+          ],
+          "families": [
+            54
+          ],
+          "hashes": [
+            "aad7d9ab3ddf8f9578491668a9ddf9d8012f8da357e79c7d49a08f693fc485dd"
+          ],
+          "median_ms": 348.9911670003494
+        },
+        "current": {
+          "bytes": [
+            84761
+          ],
+          "families": [
+            54
+          ],
+          "hashes": [
+            "aad7d9ab3ddf8f9578491668a9ddf9d8012f8da357e79c7d49a08f693fc485dd"
+          ],
+          "median_ms": 384.5716249998077
+        }
+      },
+      "mockito": {
+        "baseline": {
+          "bytes": [
+            148904
+          ],
+          "families": [
+            102
+          ],
+          "hashes": [
+            "f3c5289c886820933437ea14863418589bf7f4bbbdb011dda2bafd0c989d8d7e"
+          ],
+          "median_ms": 177.1035000019765
+        },
+        "current": {
+          "bytes": [
+            148904
+          ],
+          "families": [
+            102
+          ],
+          "hashes": [
+            "f3c5289c886820933437ea14863418589bf7f4bbbdb011dda2bafd0c989d8d7e"
+          ],
+          "median_ms": 172.75779199917451
+        }
+      },
+      "nats-server": {
+        "baseline": {
+          "bytes": [
+            64019
+          ],
+          "families": [
+            27
+          ],
+          "hashes": [
+            "942fc7317c800bb0dbd5e2e6c44158227dc31daddbd92d599a024b4db6f9805b"
+          ],
+          "median_ms": 618.9728339995781
+        },
+        "current": {
+          "bytes": [
+            64019
+          ],
+          "families": [
+            27
+          ],
+          "hashes": [
+            "942fc7317c800bb0dbd5e2e6c44158227dc31daddbd92d599a024b4db6f9805b"
+          ],
+          "median_ms": 637.0137499980046
+        }
+      },
+      "netty": {
+        "baseline": {
+          "bytes": [
+            1321539
+          ],
+          "families": [
+            879
+          ],
+          "hashes": [
+            "fd5b7b330b2beaf16bddbf0b8ec9b26e1d9837f6447dcad4c7624cbc121bfc5a"
+          ],
+          "median_ms": 914.2847090006399
+        },
+        "current": {
+          "bytes": [
+            1321539
+          ],
+          "families": [
+            879
+          ],
+          "hashes": [
+            "fd5b7b330b2beaf16bddbf0b8ec9b26e1d9837f6447dcad4c7624cbc121bfc5a"
+          ],
+          "median_ms": 925.4779999973834
+        }
+      },
+      "nginx": {
+        "baseline": {
+          "bytes": [
+            65918
+          ],
+          "families": [
+            44
+          ],
+          "hashes": [
+            "a45ba01b0c03496ece170c4bcded7507b511c4c77d3a4d479ce97299e073fe69"
+          ],
+          "median_ms": 168.4957920006127
+        },
+        "current": {
+          "bytes": [
+            65918
+          ],
+          "families": [
+            44
+          ],
+          "hashes": [
+            "a45ba01b0c03496ece170c4bcded7507b511c4c77d3a4d479ce97299e073fe69"
+          ],
+          "median_ms": 165.6277920010325
+        }
+      },
+      "nimble": {
+        "baseline": {
+          "bytes": [
+            28485
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "6cf2c4eabbaaa8d261752c193427f6365a567890e88e8384146692922d1845dc"
+          ],
+          "median_ms": 48.523208002734464
+        },
+        "current": {
+          "bytes": [
+            28485
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "6cf2c4eabbaaa8d261752c193427f6365a567890e88e8384146692922d1845dc"
+          ],
+          "median_ms": 44.19525000048452
+        }
+      },
+      "nushell": {
+        "baseline": {
+          "bytes": [
+            116070
+          ],
+          "families": [
+            59
+          ],
+          "hashes": [
+            "d08ddadc541f3e03ed9c7cc1ea1b2d7433972a3af3d270b387081b49166d39de"
+          ],
+          "median_ms": 589.7105420008302
+        },
+        "current": {
+          "bytes": [
+            116070
+          ],
+          "families": [
+            59
+          ],
+          "hashes": [
+            "d08ddadc541f3e03ed9c7cc1ea1b2d7433972a3af3d270b387081b49166d39de"
+          ],
+          "median_ms": 564.983416999894
+        }
+      },
+      "packaging": {
+        "baseline": {
+          "bytes": [
+            51585
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "c91dede591acf751c6d7baf8bafb7ee893270a6a8a4ee66d9b49ea6603b8e98b"
+          ],
+          "median_ms": 67.42045799910557
+        },
+        "current": {
+          "bytes": [
+            51585
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "c91dede591acf751c6d7baf8bafb7ee893270a6a8a4ee66d9b49ea6603b8e98b"
+          ],
+          "median_ms": 69.79962500190595
+        }
+      },
+      "pixijs": {
+        "baseline": {
+          "bytes": [
+            83612
+          ],
+          "families": [
+            52
+          ],
+          "hashes": [
+            "41f7427a4a99dceeac2118920d811f5b1f26cd43374829ec5432a5f3715b2b4c"
+          ],
+          "median_ms": 420.52174999844283
+        },
+        "current": {
+          "bytes": [
+            83612
+          ],
+          "families": [
+            52
+          ],
+          "hashes": [
+            "41f7427a4a99dceeac2118920d811f5b1f26cd43374829ec5432a5f3715b2b4c"
+          ],
+          "median_ms": 428.5295000008773
+        }
+      },
+      "poetry": {
+        "baseline": {
+          "bytes": [
+            198324
+          ],
+          "families": [
+            168
+          ],
+          "hashes": [
+            "b95b2941b2b0c5d2e901e19a6827e2f277afd5c3c6b771476d7fb2fcf75130fa"
+          ],
+          "median_ms": 132.00266599960742
+        },
+        "current": {
+          "bytes": [
+            198324
+          ],
+          "families": [
+            168
+          ],
+          "hashes": [
+            "b95b2941b2b0c5d2e901e19a6827e2f277afd5c3c6b771476d7fb2fcf75130fa"
+          ],
+          "median_ms": 135.2780419983901
+        }
+      },
+      "prettier": {
+        "baseline": {
+          "bytes": [
+            241230
+          ],
+          "families": [
+            151
+          ],
+          "hashes": [
+            "451898ed30ef887b3f4b3e67a09469c4a85968c55b4fc6d70fe4cffd04cae854"
+          ],
+          "median_ms": 583.6436660028994
+        },
+        "current": {
+          "bytes": [
+            241230
+          ],
+          "families": [
+            151
+          ],
+          "hashes": [
+            "451898ed30ef887b3f4b3e67a09469c4a85968c55b4fc6d70fe4cffd04cae854"
+          ],
+          "median_ms": 613.753124998766
+        }
+      },
+      "prometheus": {
+        "baseline": {
+          "bytes": [
+            148149
+          ],
+          "families": [
+            66
+          ],
+          "hashes": [
+            "089de1b45ace409a8f885bb3faf48a71d3395a026772afe39ab08a566d618ef9"
+          ],
+          "median_ms": 365.79100000017206
+        },
+        "current": {
+          "bytes": [
+            148149
+          ],
+          "families": [
+            66
+          ],
+          "hashes": [
+            "089de1b45ace409a8f885bb3faf48a71d3395a026772afe39ab08a566d618ef9"
+          ],
+          "median_ms": 380.3660830017179
+        }
+      },
+      "pry": {
+        "baseline": {
+          "bytes": [
+            31685
+          ],
+          "families": [
+            7
+          ],
+          "hashes": [
+            "ed0654e8d4f7c30ec48ba5b5852fc5ea38948a98b848274c7247a60d347b87bf"
+          ],
+          "median_ms": 60.305250000965316
+        },
+        "current": {
+          "bytes": [
+            31685
+          ],
+          "families": [
+            7
+          ],
+          "hashes": [
+            "ed0654e8d4f7c30ec48ba5b5852fc5ea38948a98b848274c7247a60d347b87bf"
+          ],
+          "median_ms": 60.680875001708046
+        }
+      },
+      "puma": {
+        "baseline": {
+          "bytes": [
+            34593
+          ],
+          "families": [
+            7
+          ],
+          "hashes": [
+            "af2d1625965b63a70c5752a80d34f6a80c8a00349936cf7d673cbea84745c11b"
+          ],
+          "median_ms": 458.52675000060117
+        },
+        "current": {
+          "bytes": [
+            34593
+          ],
+          "families": [
+            7
+          ],
+          "hashes": [
+            "af2d1625965b63a70c5752a80d34f6a80c8a00349936cf7d673cbea84745c11b"
+          ],
+          "median_ms": 59.46366699936334
+        }
+      },
+      "quick": {
+        "baseline": {
+          "bytes": [
+            1355479
+          ],
+          "families": [
+            428
+          ],
+          "hashes": [
+            "972c357b40472039fe88cd81766a8968389f0388bd14cfd3445488120e17eb84"
+          ],
+          "median_ms": 118.56954199902248
+        },
+        "current": {
+          "bytes": [
+            1355479
+          ],
+          "families": [
+            428
+          ],
+          "hashes": [
+            "972c357b40472039fe88cd81766a8968389f0388bd14cfd3445488120e17eb84"
+          ],
+          "median_ms": 113.87745799947879
+        }
+      },
+      "rack": {
+        "baseline": {
+          "bytes": [
+            28232
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "d381b7767e3ede755e78eca9c74a817d224ed7da9eeaf1a4875d009dc9b8e9eb"
+          ],
+          "median_ms": 1296.7068750003818
+        },
+        "current": {
+          "bytes": [
+            28232
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "d381b7767e3ede755e78eca9c74a817d224ed7da9eeaf1a4875d009dc9b8e9eb"
+          ],
+          "median_ms": 55.53887499991106
+        }
+      },
+      "radash": {
+        "baseline": {
+          "bytes": [
+            60570
+          ],
+          "families": [
+            37
+          ],
+          "hashes": [
+            "edd68c8da5283f6f68e0c0cb7a4d4ed834c3d986b35ee0ec143501a29742e70d"
+          ],
+          "median_ms": 42.06245800014585
+        },
+        "current": {
+          "bytes": [
+            60570
+          ],
+          "families": [
+            37
+          ],
+          "hashes": [
+            "edd68c8da5283f6f68e0c0cb7a4d4ed834c3d986b35ee0ec143501a29742e70d"
+          ],
+          "median_ms": 43.66433299946948
+        }
+      },
+      "raylib": {
+        "baseline": {
+          "bytes": [
+            244815
+          ],
+          "families": [
+            148
+          ],
+          "hashes": [
+            "17b33cc4f516189c2cff8c136f26bf7cf657c299fc17bd7997f51a93170fe7a8"
+          ],
+          "median_ms": 1741.8411250000645
+        },
+        "current": {
+          "bytes": [
+            244815
+          ],
+          "families": [
+            148
+          ],
+          "hashes": [
+            "17b33cc4f516189c2cff8c136f26bf7cf657c299fc17bd7997f51a93170fe7a8"
+          ],
+          "median_ms": 1777.1205419994658
+        }
+      },
+      "redis": {
+        "baseline": {
+          "bytes": [
+            58341
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "f9172a8eab266200c6184105ecf72369c4ced23f8540eb6629082efa2529592a"
+          ],
+          "median_ms": 298.19887499979814
+        },
+        "current": {
+          "bytes": [
+            58341
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "f9172a8eab266200c6184105ecf72369c4ced23f8540eb6629082efa2529592a"
+          ],
+          "median_ms": 309.95925000024727
+        }
+      },
+      "regex": {
+        "baseline": {
+          "bytes": [
+            70161
+          ],
+          "families": [
+            34
+          ],
+          "hashes": [
+            "79917221b56cff91dd46ff906250329cc3edc8884036f4f418b819c795b5c932"
+          ],
+          "median_ms": 204.5525000030466
+        },
+        "current": {
+          "bytes": [
+            70161
+          ],
+          "families": [
+            34
+          ],
+          "hashes": [
+            "79917221b56cff91dd46ff906250329cc3edc8884036f4f418b819c795b5c932"
+          ],
+          "median_ms": 208.95629200094845
+        }
+      },
+      "requests": {
+        "baseline": {
+          "bytes": [
+            34891
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "7706b8fe585687d0ee4097fac29ba83933ca72ba1d59833a86c509afb1adbd3a"
+          ],
+          "median_ms": 50.728125002933666
+        },
+        "current": {
+          "bytes": [
+            34891
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "7706b8fe585687d0ee4097fac29ba83933ca72ba1d59833a86c509afb1adbd3a"
+          ],
+          "median_ms": 45.434958999976516
+        }
+      },
+      "retrofit": {
+        "baseline": {
+          "bytes": [
+            124169
+          ],
+          "families": [
+            81
+          ],
+          "hashes": [
+            "f0d35800d52e10df20cb9baf65817192099b87832f7cc8d1faa873ea5832dcb7"
+          ],
+          "median_ms": 86.38783399874228
+        },
+        "current": {
+          "bytes": [
+            124169
+          ],
+          "families": [
+            81
+          ],
+          "hashes": [
+            "f0d35800d52e10df20cb9baf65817192099b87832f7cc8d1faa873ea5832dcb7"
+          ],
+          "median_ms": 83.44345799923758
+        }
+      },
+      "rich": {
+        "baseline": {
+          "bytes": [
+            50546
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "f902537f5afa06397825f1d407ab0be5129d4e581ef20e51229f6573669af301"
+          ],
+          "median_ms": 80.09733300059452
+        },
+        "current": {
+          "bytes": [
+            50546
+          ],
+          "families": [
+            22
+          ],
+          "hashes": [
+            "f902537f5afa06397825f1d407ab0be5129d4e581ef20e51229f6573669af301"
+          ],
+          "median_ms": 80.3555829988909
+        }
+      },
+      "ripgrep": {
+        "baseline": {
+          "bytes": [
+            33574
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "9a8d38eabee777f38a9256d15cb0150a236a0106a07966c1168b9714fbd56125"
+          ],
+          "median_ms": 364.37295799987623
+        },
+        "current": {
+          "bytes": [
+            33574
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "9a8d38eabee777f38a9256d15cb0150a236a0106a07966c1168b9714fbd56125"
+          ],
+          "median_ms": 366.05904099997133
+        }
+      },
+      "rspec-core": {
+        "baseline": {
+          "bytes": [
+            35452
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "609c719a4775257487643ee0e108bbd6bcae0953cf69c1ef9be3495934e856e5"
+          ],
+          "median_ms": 465.5874580021191
+        },
+        "current": {
+          "bytes": [
+            35452
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "609c719a4775257487643ee0e108bbd6bcae0953cf69c1ef9be3495934e856e5"
+          ],
+          "median_ms": 80.22074999826145
+        }
+      },
+      "rubocop": {
+        "baseline": {
+          "bytes": [
+            138810
+          ],
+          "families": [
+            104
+          ],
+          "hashes": [
+            "9cb00c79f5489ba8b824862023b24e7894f2f8725dc2ce41e0150516f7b9f7e0"
+          ],
+          "median_ms": 457.8596250030387
+        },
+        "current": {
+          "bytes": [
+            138810
+          ],
+          "families": [
+            104
+          ],
+          "hashes": [
+            "9cb00c79f5489ba8b824862023b24e7894f2f8725dc2ce41e0150516f7b9f7e0"
+          ],
+          "median_ms": 316.97058400095557
+        }
+      },
+      "rustls": {
+        "baseline": {
+          "bytes": [
+            51848
+          ],
+          "families": [
+            20
+          ],
+          "hashes": [
+            "2cbf1d619f1559167603e199be03463ff1afa0f4532505f9370ef9e645b63248"
+          ],
+          "median_ms": 130.61204200130305
+        },
+        "current": {
+          "bytes": [
+            51848
+          ],
+          "families": [
+            20
+          ],
+          "hashes": [
+            "2cbf1d619f1559167603e199be03463ff1afa0f4532505f9370ef9e645b63248"
+          ],
+          "median_ms": 136.60758400146733
+        }
+      },
+      "rxjava": {
+        "baseline": {
+          "bytes": [
+            1169728
+          ],
+          "families": [
+            618
+          ],
+          "hashes": [
+            "9b1e535c52fad1f86cba0ed2b80a7e4653890bff07182bd509f9e5a6e087d554"
+          ],
+          "median_ms": 559.411917001853
+        },
+        "current": {
+          "bytes": [
+            1169728
+          ],
+          "families": [
+            618
+          ],
+          "hashes": [
+            "9b1e535c52fad1f86cba0ed2b80a7e4653890bff07182bd509f9e5a6e087d554"
+          ],
+          "median_ms": 542.2115410001425
+        }
+      },
+      "rxjs": {
+        "baseline": {
+          "bytes": [
+            71630
+          ],
+          "families": [
+            33
+          ],
+          "hashes": [
+            "17af812d484e3e1ccb097fa057919762033759b7a8e94ab6da815db29358ee23"
+          ],
+          "median_ms": 131.8109590029053
+        },
+        "current": {
+          "bytes": [
+            71630
+          ],
+          "families": [
+            33
+          ],
+          "hashes": [
+            "17af812d484e3e1ccb097fa057919762033759b7a8e94ab6da815db29358ee23"
+          ],
+          "median_ms": 143.08329100094852
+        }
+      },
+      "rxswift": {
+        "baseline": {
+          "bytes": [
+            1589012
+          ],
+          "families": [
+            426
+          ],
+          "hashes": [
+            "2f627e51cdd270c935f377800be395e1d250f251976930c7d55bd277b2c07fbc"
+          ],
+          "median_ms": 260.7851249995292
+        },
+        "current": {
+          "bytes": [
+            1589012
+          ],
+          "families": [
+            426
+          ],
+          "hashes": [
+            "2f627e51cdd270c935f377800be395e1d250f251976930c7d55bd277b2c07fbc"
+          ],
+          "median_ms": 285.08270800011815
+        }
+      },
+      "scrapy": {
+        "baseline": {
+          "bytes": [
+            169140
+          ],
+          "families": [
+            134
+          ],
+          "hashes": [
+            "6c9cc19499f1e5957dc2066e0b8ebbaae07d07bb2a819c401241c9ec86436f30"
+          ],
+          "median_ms": 126.90154200026882
+        },
+        "current": {
+          "bytes": [
+            169140
+          ],
+          "families": [
+            134
+          ],
+          "hashes": [
+            "6c9cc19499f1e5957dc2066e0b8ebbaae07d07bb2a819c401241c9ec86436f30"
+          ],
+          "median_ms": 128.33462499838788
+        }
+      },
+      "serde_json": {
+        "baseline": {
+          "bytes": [
+            39884
+          ],
+          "families": [
+            12
+          ],
+          "hashes": [
+            "fde996484ed166e303b0755aa7c6aa5710f88f5a35d31e260a011b6f6a6569a8"
+          ],
+          "median_ms": 87.02825000000303
+        },
+        "current": {
+          "bytes": [
+            39884
+          ],
+          "families": [
+            12
+          ],
+          "hashes": [
+            "fde996484ed166e303b0755aa7c6aa5710f88f5a35d31e260a011b6f6a6569a8"
+          ],
+          "median_ms": 84.59904200208257
+        }
+      },
+      "sidekiq": {
+        "baseline": {
+          "bytes": [
+            32235
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "7100bce2ce90aa8b26ac1525686039346e59e274cc3674aed13f77f9de77df4b"
+          ],
+          "median_ms": 2109.5531249993655
+        },
+        "current": {
+          "bytes": [
+            32235
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "7100bce2ce90aa8b26ac1525686039346e59e274cc3674aed13f77f9de77df4b"
+          ],
+          "median_ms": 57.70279200078221
+        }
+      },
+      "sinatra": {
+        "baseline": {
+          "bytes": [
+            27177
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "ad6777d621e8e5d62797bdbcbf406f262ca8a768605789f799bec872cd46b0f1"
+          ],
+          "median_ms": 71.87762499961536
+        },
+        "current": {
+          "bytes": [
+            27177
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "ad6777d621e8e5d62797bdbcbf406f262ca8a768605789f799bec872cd46b0f1"
+          ],
+          "median_ms": 59.18174999897019
+        }
+      },
+      "sled": {
+        "baseline": {
+          "bytes": [
+            26733
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "c08af78dd000aa53dbfc35ffc3f18c93f100d0aae405c3e45decb5a9c6ea7cde"
+          ],
+          "median_ms": 54.29687500145519
+        },
+        "current": {
+          "bytes": [
+            26733
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "c08af78dd000aa53dbfc35ffc3f18c93f100d0aae405c3e45decb5a9c6ea7cde"
+          ],
+          "median_ms": 48.71974999696249
+        }
+      },
+      "sqlalchemy": {
+        "baseline": {
+          "bytes": [
+            517222
+          ],
+          "families": [
+            391
+          ],
+          "hashes": [
+            "80b4298bd8a49dab6c3a4a73d8d0080d1e3aa23e1f80ea099ed1be3b6943a678"
+          ],
+          "median_ms": 474.7581670017098
+        },
+        "current": {
+          "bytes": [
+            517222
+          ],
+          "families": [
+            391
+          ],
+          "hashes": [
+            "80b4298bd8a49dab6c3a4a73d8d0080d1e3aa23e1f80ea099ed1be3b6943a678"
+          ],
+          "median_ms": 524.986042000819
+        }
+      },
+      "sqlite": {
+        "baseline": {
+          "bytes": [
+            159393
+          ],
+          "families": [
+            112
+          ],
+          "hashes": [
+            "4e81f6abea00a58e4458028f95700be8b2d2f7345467e73de4270fcd9ce1ed25"
+          ],
+          "median_ms": 407.28737500103307
+        },
+        "current": {
+          "bytes": [
+            159393
+          ],
+          "families": [
+            112
+          ],
+          "hashes": [
+            "4e81f6abea00a58e4458028f95700be8b2d2f7345467e73de4270fcd9ce1ed25"
+          ],
+          "median_ms": 423.9695829965058
+        }
+      },
+      "swift-algorithms": {
+        "baseline": {
+          "bytes": [
+            37862
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "8243fc8e57d474e311f8c97876e046ab67a89b88d3e2630e36aa1aeea2e6ae72"
+          ],
+          "median_ms": 37.063750001834705
+        },
+        "current": {
+          "bytes": [
+            37862
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "8243fc8e57d474e311f8c97876e046ab67a89b88d3e2630e36aa1aeea2e6ae72"
+          ],
+          "median_ms": 34.987167000508634
+        }
+      },
+      "swift-argument-parser": {
+        "baseline": {
+          "bytes": [
+            27225
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "cc1e05be6e6b7d69214f187526a029bf9cb6d5b0e11928b2fc281b67488750fd"
+          ],
+          "median_ms": 51.14108299676445
+        },
+        "current": {
+          "bytes": [
+            27225
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "cc1e05be6e6b7d69214f187526a029bf9cb6d5b0e11928b2fc281b67488750fd"
+          ],
+          "median_ms": 49.91804100063746
+        }
+      },
+      "swift-collections": {
+        "baseline": {
+          "bytes": [
+            105222
+          ],
+          "families": [
+            51
+          ],
+          "hashes": [
+            "ecfcbdb77e5e083ac87b7c909bf651bffa1007f94622aa4a9134f388a53610c6"
+          ],
+          "median_ms": 165.94595899732667
+        },
+        "current": {
+          "bytes": [
+            105222
+          ],
+          "families": [
+            51
+          ],
+          "hashes": [
+            "ecfcbdb77e5e083ac87b7c909bf651bffa1007f94622aa4a9134f388a53610c6"
+          ],
+          "median_ms": 162.30712499964284
+        }
+      },
+      "swift-composable-architecture": {
+        "baseline": {
+          "bytes": [
+            32913
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "9c4302b2c98f813ac47c4f2b7067cb67baa5bbf9d0a2a2d2f4d7b7ad5953b6df"
+          ],
+          "median_ms": 134.6568330009177
+        },
+        "current": {
+          "bytes": [
+            32913
+          ],
+          "families": [
+            6
+          ],
+          "hashes": [
+            "9c4302b2c98f813ac47c4f2b7067cb67baa5bbf9d0a2a2d2f4d7b7ad5953b6df"
+          ],
+          "median_ms": 151.9154579982569
+        }
+      },
+      "swift-log": {
+        "baseline": {
+          "bytes": [
+            25972
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "f572d4667f74ed557bd40b599d43f9b6248302d8fef947fb5b0c6b3d08ef086b"
+          ],
+          "median_ms": 30.719209000380943
+        },
+        "current": {
+          "bytes": [
+            25972
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "f572d4667f74ed557bd40b599d43f9b6248302d8fef947fb5b0c6b3d08ef086b"
+          ],
+          "median_ms": 27.677374997438164
+        }
+      },
+      "swift-metrics": {
+        "baseline": {
+          "bytes": [
+            32765
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "108c950f3f09ac5d59bdba0ddc5b2819e5c1e185649961f2fa0165595c1297c3"
+          ],
+          "median_ms": 33.58266600116622
+        },
+        "current": {
+          "bytes": [
+            32765
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "108c950f3f09ac5d59bdba0ddc5b2819e5c1e185649961f2fa0165595c1297c3"
+          ],
+          "median_ms": 31.324792002124013
+        }
+      },
+      "swift-nio": {
+        "baseline": {
+          "bytes": [
+            111694
+          ],
+          "families": [
+            52
+          ],
+          "hashes": [
+            "a5fc758694cbf573bcb3302ad7e8a2941666cd5b50cbfb442a0cf689817ef36e"
+          ],
+          "median_ms": 206.79862500037416
+        },
+        "current": {
+          "bytes": [
+            111694
+          ],
+          "families": [
+            52
+          ],
+          "hashes": [
+            "a5fc758694cbf573bcb3302ad7e8a2941666cd5b50cbfb442a0cf689817ef36e"
+          ],
+          "median_ms": 235.41895800008206
+        }
+      },
+      "swift-service-lifecycle": {
+        "baseline": {
+          "bytes": [
+            27152
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "7de7fb5fcbfa34ca4ef16921113d8c6d512d0bc4fa22341a6acdc26a49214329"
+          ],
+          "median_ms": 35.14891599843395
+        },
+        "current": {
+          "bytes": [
+            27152
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "7de7fb5fcbfa34ca4ef16921113d8c6d512d0bc4fa22341a6acdc26a49214329"
+          ],
+          "median_ms": 31.748207999044098
+        }
+      },
+      "swiftlint": {
+        "baseline": {
+          "bytes": [
+            34093
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "3fc17a5f1a3faab638dfc6fa63e745d8bbb5b29da94fbb4ae2f1bea90e06f7a3"
+          ],
+          "median_ms": 114.52283300241106
+        },
+        "current": {
+          "bytes": [
+            34093
+          ],
+          "families": [
+            8
+          ],
+          "hashes": [
+            "3fc17a5f1a3faab638dfc6fa63e745d8bbb5b29da94fbb4ae2f1bea90e06f7a3"
+          ],
+          "median_ms": 119.26866599969799
+        }
+      },
+      "swr": {
+        "baseline": {
+          "bytes": [
+            119283
+          ],
+          "families": [
+            49
+          ],
+          "hashes": [
+            "ae278d9812205cbcac44e0fe1d7d0150aab132a2b3c27ee65bc5b90c38451e80"
+          ],
+          "median_ms": 66.41312500141794
+        },
+        "current": {
+          "bytes": [
+            119283
+          ],
+          "families": [
+            49
+          ],
+          "hashes": [
+            "ae278d9812205cbcac44e0fe1d7d0150aab132a2b3c27ee65bc5b90c38451e80"
+          ],
+          "median_ms": 61.23449999722652
+        }
+      },
+      "sympy": {
+        "baseline": {
+          "bytes": [
+            853198
+          ],
+          "families": [
+            645
+          ],
+          "hashes": [
+            "61cca70c5d7448d8b87f30f9be6e5141b51aaf21f819ac9338ad099587b7af79"
+          ],
+          "median_ms": 1017.2190000012051
+        },
+        "current": {
+          "bytes": [
+            853198
+          ],
+          "families": [
+            645
+          ],
+          "hashes": [
+            "61cca70c5d7448d8b87f30f9be6e5141b51aaf21f819ac9338ad099587b7af79"
+          ],
+          "median_ms": 1054.6164999977918
+        }
+      },
+      "thor": {
+        "baseline": {
+          "bytes": [
+            28324
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "ea159cdd86500f23a44fdab0f317c5e7978877bd6da475dbff4c9ff1706a555d"
+          ],
+          "median_ms": 53.144833000260405
+        },
+        "current": {
+          "bytes": [
+            28324
+          ],
+          "families": [
+            3
+          ],
+          "hashes": [
+            "ea159cdd86500f23a44fdab0f317c5e7978877bd6da475dbff4c9ff1706a555d"
+          ],
+          "median_ms": 35.78054199897451
+        }
+      },
+      "tmux": {
+        "baseline": {
+          "bytes": [
+            51015
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "9221e7d8e0cadafba684f9777dee26b7b97965e5138892868f8669ab9cd3cedd"
+          ],
+          "median_ms": 106.91600000063772
+        },
+        "current": {
+          "bytes": [
+            51015
+          ],
+          "families": [
+            29
+          ],
+          "hashes": [
+            "9221e7d8e0cadafba684f9777dee26b7b97965e5138892868f8669ab9cd3cedd"
+          ],
+          "median_ms": 113.42283300109557
+        }
+      },
+      "tokei": {
+        "baseline": {
+          "bytes": [
+            25960
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "2f49031d8e3bcf2e2ad8b73c10d613b4e2a646bfe4fcf86a9b8a468dea54247c"
+          ],
+          "median_ms": 29.13708399864845
+        },
+        "current": {
+          "bytes": [
+            25960
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "2f49031d8e3bcf2e2ad8b73c10d613b4e2a646bfe4fcf86a9b8a468dea54247c"
+          ],
+          "median_ms": 24.432707999949344
+        }
+      },
+      "tokio": {
+        "baseline": {
+          "bytes": [
+            75904
+          ],
+          "families": [
+            37
+          ],
+          "hashes": [
+            "1a079b780e54a624c4ba35046dd110f47b4b88fcaae30a5b5863f12a39855a46"
+          ],
+          "median_ms": 198.81104199885158
+        },
+        "current": {
+          "bytes": [
+            75904
+          ],
+          "families": [
+            37
+          ],
+          "hashes": [
+            "1a079b780e54a624c4ba35046dd110f47b4b88fcaae30a5b5863f12a39855a46"
+          ],
+          "median_ms": 197.1490840005572
+        }
+      },
+      "trpc": {
+        "baseline": {
+          "bytes": [
+            128760
+          ],
+          "families": [
+            64
+          ],
+          "hashes": [
+            "29eb21a6059cc102629d4d6732eb139be7f954c8c2878ad24d078dc046399b60"
+          ],
+          "median_ms": 168.96879200066905
+        },
+        "current": {
+          "bytes": [
+            128760
+          ],
+          "families": [
+            64
+          ],
+          "hashes": [
+            "29eb21a6059cc102629d4d6732eb139be7f954c8c2878ad24d078dc046399b60"
+          ],
+          "median_ms": 176.150957999198
+        }
+      },
+      "urfave-cli": {
+        "baseline": {
+          "bytes": [
+            25975
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "d6a76d161f5394e860634c069f69dfcf8ea01907a923b01a1ba8b91e4cc03e85"
+          ],
+          "median_ms": 42.34049999649869
+        },
+        "current": {
+          "bytes": [
+            25975
+          ],
+          "families": [
+            0
+          ],
+          "hashes": [
+            "d6a76d161f5394e860634c069f69dfcf8ea01907a923b01a1ba8b91e4cc03e85"
+          ],
+          "median_ms": 41.53175000101328
+        }
+      },
+      "vapor": {
+        "baseline": {
+          "bytes": [
+            27156
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "e61f49e2c7489aa541edb005791af081f4f60e8fd495ce351136bf0fcc8dab1f"
+          ],
+          "median_ms": 63.279542002419475
+        },
+        "current": {
+          "bytes": [
+            27156
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "e61f49e2c7489aa541edb005791af081f4f60e8fd495ce351136bf0fcc8dab1f"
+          ],
+          "median_ms": 65.97979200159898
+        }
+      },
+      "vim": {
+        "baseline": {
+          "bytes": [
+            72267
+          ],
+          "families": [
+            39
+          ],
+          "hashes": [
+            "260d7828117ef99fd87696f899a902655d764fec5e4611e6f351dcc654cea4d7"
+          ],
+          "median_ms": 455.1227919982921
+        },
+        "current": {
+          "bytes": [
+            72267
+          ],
+          "families": [
+            39
+          ],
+          "hashes": [
+            "260d7828117ef99fd87696f899a902655d764fec5e4611e6f351dcc654cea4d7"
+          ],
+          "median_ms": 408.37275000012596
+        }
+      },
+      "wrk": {
+        "baseline": {
+          "bytes": [
+            26686
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "2f56ee89296b793a6a5f29f1e3e644d7559a2195b28805e5131f9f2dc6db4cf9"
+          ],
+          "median_ms": 30.7719160009583
+        },
+        "current": {
+          "bytes": [
+            26686
+          ],
+          "families": [
+            1
+          ],
+          "hashes": [
+            "2f56ee89296b793a6a5f29f1e3e644d7559a2195b28805e5131f9f2dc6db4cf9"
+          ],
+          "median_ms": 28.76079099951312
+        }
+      },
+      "zap": {
+        "baseline": {
+          "bytes": [
+            32782
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "2bfb0dd14b6e69cf3285bc73b1def815f2e2c4ae43eae049a2d9bd5e010fd519"
+          ],
+          "median_ms": 42.44391700194683
+        },
+        "current": {
+          "bytes": [
+            32782
+          ],
+          "families": [
+            5
+          ],
+          "hashes": [
+            "2bfb0dd14b6e69cf3285bc73b1def815f2e2c4ae43eae049a2d9bd5e010fd519"
+          ],
+          "median_ms": 42.86775000218768
+        }
+      },
+      "zod": {
+        "baseline": {
+          "bytes": [
+            49195
+          ],
+          "families": [
+            21
+          ],
+          "hashes": [
+            "7c145abcb67cb5ddf2c789fba3507ac8d972a49e15b194cd4a7382332e18e933"
+          ],
+          "median_ms": 166.56241699820384
+        },
+        "current": {
+          "bytes": [
+            49195
+          ],
+          "families": [
+            21
+          ],
+          "hashes": [
+            "7c145abcb67cb5ddf2c789fba3507ac8d972a49e15b194cd4a7382332e18e933"
+          ],
+          "median_ms": 163.4712090017274
+        }
+      },
+      "zstd": {
+        "baseline": {
+          "bytes": [
+            76464
+          ],
+          "families": [
+            39
+          ],
+          "hashes": [
+            "8649e491edd5ccc6a272c7d2675176234f78d9bcbfeea401b5f35f00ce512515"
+          ],
+          "median_ms": 149.05699999872013
+        },
+        "current": {
+          "bytes": [
+            76464
+          ],
+          "families": [
+            39
+          ],
+          "hashes": [
+            "8649e491edd5ccc6a272c7d2675176234f78d9bcbfeea401b5f35f00ce512515"
+          ],
+          "median_ms": 158.3642920013517
+        }
+      },
+      "zustand": {
+        "baseline": {
+          "bytes": [
+            41646
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "0bb1aa722b9f95062e66a4eeb38756de4cb45ff15dd611190e3f451cd9c9ae7c"
+          ],
+          "median_ms": 53.365499999927124
+        },
+        "current": {
+          "bytes": [
+            41646
+          ],
+          "families": [
+            9
+          ],
+          "hashes": [
+            "0bb1aa722b9f95062e66a4eeb38756de4cb45ff15dd611190e3f451cd9c9ae7c"
+          ],
+          "median_ms": 50.101000000722706
+        }
+      }
+    },
+    "hashes_identical_by_repo": {
+      "alacritty": true,
+      "alamofire": true,
+      "antlr4": true,
+      "arrow": true,
+      "asciidoctor": true,
+      "axios": true,
+      "badger": true,
+      "bat": true,
+      "black": true,
+      "boltons": true,
+      "chi": true,
+      "clap": true,
+      "click": true,
+      "cmark": true,
+      "cobra": true,
+      "commons-lang": true,
+      "curl": true,
+      "date-fns": true,
+      "delve": true,
+      "devise": true,
+      "drizzle-orm": true,
+      "esbuild": true,
+      "etcd": true,
+      "execa": true,
+      "faraday": true,
+      "fastlane": true,
+      "fd": true,
+      "flask": true,
+      "fzf": true,
+      "gin": true,
+      "git": true,
+      "gorm": true,
+      "graphhopper": true,
+      "gson": true,
+      "guava": true,
+      "h2database": true,
+      "httpie": true,
+      "httpx": true,
+      "hugo": true,
+      "hyperfine": true,
+      "image": true,
+      "jackson-core": true,
+      "jedis": true,
+      "jekyll": true,
+      "jest": true,
+      "jq": true,
+      "jsoup": true,
+      "junit5": true,
+      "kingfisher": true,
+      "kramdown": true,
+      "ky": true,
+      "libgdx": true,
+      "libsodium": true,
+      "libuv": true,
+      "liquid": true,
+      "lua": true,
+      "marked": true,
+      "marshmallow": true,
+      "meilisearch": true,
+      "minio": true,
+      "mockito": true,
+      "nats-server": true,
+      "netty": true,
+      "nginx": true,
+      "nimble": true,
+      "nushell": true,
+      "packaging": true,
+      "pixijs": true,
+      "poetry": true,
+      "prettier": true,
+      "prometheus": true,
+      "pry": true,
+      "puma": true,
+      "quick": true,
+      "rack": true,
+      "radash": true,
+      "raylib": true,
+      "redis": true,
+      "regex": true,
+      "requests": true,
+      "retrofit": true,
+      "rich": true,
+      "ripgrep": true,
+      "rspec-core": true,
+      "rubocop": true,
+      "rustls": true,
+      "rxjava": true,
+      "rxjs": true,
+      "rxswift": true,
+      "scrapy": true,
+      "serde_json": true,
+      "sidekiq": true,
+      "sinatra": true,
+      "sled": true,
+      "sqlalchemy": true,
+      "sqlite": true,
+      "swift-algorithms": true,
+      "swift-argument-parser": true,
+      "swift-collections": true,
+      "swift-composable-architecture": true,
+      "swift-log": true,
+      "swift-metrics": true,
+      "swift-nio": true,
+      "swift-service-lifecycle": true,
+      "swiftlint": true,
+      "swr": true,
+      "sympy": true,
+      "thor": true,
+      "tmux": true,
+      "tokei": true,
+      "tokio": true,
+      "trpc": true,
+      "urfave-cli": true,
+      "vapor": true,
+      "vim": true,
+      "wrk": true,
+      "zap": true,
+      "zod": true,
+      "zstd": true,
+      "zustand": true
+    }
+  }
+}
