@@ -35,6 +35,7 @@ LABELSET = ROOT / "bench" / "labels" / "refactoring_families.v5.json"
 CORPUS = ROOT / "bench" / "goldens" / "corpus.json"
 PRUNE_MANIFEST = ROOT / "bench" / "labels" / "prune_manifest.json"
 RNG_SEED = 1
+COMPAT_RNG = random.Random(RNG_SEED)
 
 spec = importlib.util.spec_from_file_location("au", ROOT / "bench" / "labels" / "antiunify_probe.py")
 au = importlib.util.module_from_spec(spec)
@@ -155,7 +156,7 @@ def binary_metric(flags: list[int], *, bootstrap: int, rng: random.Random) -> di
 
 # Historical helper signature retained for extractability_vs_value.py.
 def ci(flags: list[int], b: int = 2000) -> tuple[float, float]:
-    return confidence_interval(flags, bootstrap=b, rng=random.Random(RNG_SEED))
+    return confidence_interval(flags, bootstrap=b, rng=COMPAT_RNG)
 
 
 def best_label_flags(
