@@ -27,6 +27,9 @@ Swift support adds 15 pinned Swift repositories to `bench/goldens/corpus.json` f
 lowering/oracle/corpus coverage (120 repos total). The v5 product labelset remains frozen
 at 105 repos; Swift's initial LLM-judge add-on golden is
 `bench/labels/swift_families.v1.json` and is tied to the executable Type-4 Swift probes.
+That add-on has five worthy dev examples from synthetic probes, not product labels from the
+15 real repositories; [#812](https://github.com/corca-ai/nose/issues/812) tracks real Swift
+and current top-10 label coverage.
 The checked-in prune manifest is still the v5 product-corpus artifact; reconstructing the
 expanded corpus rewrites it for that checkout until the next product-labelset refresh
 commits a new prune snapshot.
@@ -34,23 +37,36 @@ commits a new prune snapshot.
 ```sh
 bench/setup_repos.sh                      # clone the pinned corpus into bench/repos
 python3 bench/prune_corpus.py --check-manifest  # verify the recorded prune digest
-python3 bench/labels/eval_by_language.py --rank extractability  # P@10 + worthy-recall, per language, dev/held-out, 95% CIs
+cargo build --release -p nose-cli
+python3 bench/labels/query_schema.py --self-test --nose target/release/nose
+python3 bench/labels/eval_by_language.py --rank extractability --bootstrap 500 \
+  --json-out bench/labels/product_quality_evaluation_2026_07_10.v1.json
 ```
 
-`eval_by_language.py` still prints its historical `value` baseline and
-anti-unification re-rank columns. The current default `extractability` order is the native
-`nose query --format json` family order; the snapshot below uses that same label matching
-with the native order kept.
+`--rank value` reproduces the historical volume order; `--rank extractability` keeps the
+native `nose query --format json` order used by the current product. Both reports also show
+the historical anti-unification re-rank comparison. Query output passes through a strict
+schema-v7 adapter: a changed envelope, location key, surface, or scope fails with a
+path-specific error instead of silently dropping a result.
 
-**Reproducible snapshot (v0.9.0 baseline):** with the default `extractability` order — after
-the all-copies `shared_lines` (#366, §CL) and the member-span heterogeneity penalty (#365,
-§CM) — an audit run over the checked-out `bench/repos` corpus measured overall precision@10 at
-about **61% dev [56–66] / 59% held-out [54–64]**. Worthy-recall in that run was roughly
-**86% dev / 88% held-out**, and is unchanged by those two ranking edits (they only reorder).
-The per-language CIs are wide (bounded by #repos×10), which is the point —
-they tell you whether a per-language difference is real or noise. The standing finding
-(experiments §AV) is that much residual precision loss is *judgment-deep*
-(genuinely-ambiguous, parallel-by-design families), not a simple detector signal gap.
+**Reproducible snapshot (2026-07-10, nose 0.18.0):** the checked
+[machine-readable artifact](../bench/labels/product_quality_evaluation_2026_07_10.v1.json) records
+the exact command and configuration, git SHA `61fde21d3a43fe10e6611184a104da695ba2da8c`,
+release-binary SHA-256 `a0a210b9527353b65bbf253c1ee483f9a435e69e4b9587b432eefdcbdba52128`,
+label/corpus/prune hashes, the 105 pinned repository commits, per-repository counts, and
+deterministic 500-resample confidence intervals.
+
+| split | repos | labeled precision@10 | matched top-10 | worthy recall |
+|---|---:|---:|---:|---:|
+| dev | 58 | 60.53% [55.73–65.87] | 375/580 | 2,626/2,849 = 92.17% [91.30–93.16] |
+| held-out | 47 | 54.89% [49.53–60.25] | 317/470 | 1,949/2,091 = 93.21% [92.11–94.36] |
+
+Precision is conditional on a current top-10 family matching the frozen v5 pool. The
+artifact records 358 unmatched positions (205 dev, 153 held-out), so they are neither
+silently omitted from the coverage audit nor guessed worthy/not-worthy. Expanding that pool
+and the synthetic-only Swift add-on is [#812](https://github.com/corca-ai/nose/issues/812),
+separate from this evaluator repair. The anti-unification re-rank measures 60.05% dev and
+55.33% held-out, providing no generalizing reason to change current ranking policy here.
 
 ## Soundness — the behavioral oracle
 

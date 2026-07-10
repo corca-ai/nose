@@ -21,7 +21,10 @@ add-on golden over the executable Swift Type-4 probes. `swift_families.v1.json` 
 5 high-confidence, 3-persona LLM-judge families with adjacent hard negatives for
 collection emptiness, string affixes, collection membership, option presence, and
 for-in/indexed-loop reduction. It is a Swift bring-up golden; the active product metric
-above remains the frozen v5 labelset.
+above remains the frozen v5 labelset. All five are worthy dev examples under the synthetic
+`type4-swift-probes` repository, so this add-on cannot estimate real-repository Swift
+precision or held-out behavior. [#812](https://github.com/corca-ai/nose/issues/812) tracks
+that label-coverage work separately from the evaluator repair.
 
 ## The declarative set — `frontend_families.v1.json`
 
@@ -166,12 +169,21 @@ under-merge leads. Method and numbers in
 ## Scoring against it
 
 `eval_by_language.py` — per-language precision@10 + worthy-recall, dev/heldout split, with
-**bootstrap 95% CIs** and the lowering confound (mean Raw-node ratio). The CIs are
-essential: they tell you whether a per-language difference is real or noise.
+**bootstrap 95% CIs** and per-repository denominator/coverage counts. The CIs are essential:
+they tell you whether a per-language difference is real or noise.
 
 ```sh
-python3 bench/labels/eval_by_language.py
+cargo build --release -p nose-cli
+python3 bench/labels/query_schema.py --self-test --nose target/release/nose
+python3 bench/labels/eval_by_language.py --rank extractability --bootstrap 500 \
+  --json-out bench/labels/product_quality_evaluation_2026_07_10.v1.json
 ```
+
+The [2026-07-10 product-quality artifact](product_quality_evaluation_2026_07_10.v1.json)
+records the exact binary/source/input hashes, pinned corpus digest, configuration,
+per-repository counts, and current dev/held-out metrics. Its precision denominator is
+explicitly the current top-10 families that match the frozen v5 label pool; #812 tracks the
+358 unmatched top-10 positions instead of assigning them a silent label.
 
 Pass `--mode` to compare a non-default channel mix without editing the script:
 
