@@ -57,15 +57,17 @@ iterations after two warmups:
 
 | Repository | Parent median | Fix median | Delta | Classification |
 | --- | ---: | ---: | ---: | --- |
-| `asciidoctor` | 81.42 ms | 83.00 ms | +1.94% / +1.58 ms | small-or-noisy |
-| `fastlane` | 346.01 ms | 353.07 ms | +2.04% / +7.06 ms | small-or-noisy |
-| `sidekiq` | 51.94 ms | 53.05 ms | +2.15% / +1.11 ms | small-or-noisy |
-| **Aggregate** | **479.37 ms** | **489.12 ms** | **+2.03%** | **within budget** |
+| `asciidoctor` | 77.03 ms | 81.06 ms | +5.23% / +4.03 ms | small-or-noisy |
+| `fastlane` | 343.71 ms | 352.51 ms | +2.56% / +8.81 ms | small-or-noisy |
+| `sidekiq` | 51.44 ms | 52.29 ms | +1.64% / +0.84 ms | small-or-noisy |
+| **Aggregate** | **472.18 ms** | **485.86 ms** | **+2.90%** | **within budget** |
 
 The 15-iteration same-binary control moved from 495.91 ms to 486.39 ms
-(-1.92%). Subtracting that control gives an approximate adjusted delta of +3.95%,
-still below the 5% investigation threshold. Every focused repository is below 5%
-raw delta, and all no-family-growth repositories are also below 5 ms absolute delta.
+(-1.92%). Subtracting that control gives an approximate adjusted delta of +4.81%,
+still below the 5% investigation threshold. No focused repository crosses both
+investigation thresholds: `asciidoctor` is below 5 ms absolute delta, while
+`fastlane` is below 5% relative delta. Both no-family-growth repositories are below
+5 ms absolute delta.
 
 ## Product-output check
 
@@ -89,7 +91,9 @@ binary SHA-256 values, raw runs, medians, stage timings, family counts, byte cou
 and output hashes:
 
 - [original focused regression](../bench/recall_loss/ruby-redefinition-runtime-regression-2026-07-10.v1.json) records the parent-to-#804 failure boundary.
-- [15-iteration parent-versus-fix comparison](../bench/recall_loss/ruby-redefinition-runtime-focused-2026-07-10.v1.json) records the residual cost after indexing.
+- The [15-iteration parent-versus-fix comparison](../bench/recall_loss/ruby-redefinition-runtime-focused-2026-07-10.v1.json)
+  records the residual cost after indexing, the exact 5%/5 ms policy, full source
+  and binary SHAs, and structured execution-environment provenance.
 - [15-iteration same-binary control](../bench/recall_loss/ruby-redefinition-runtime-same-binary-2026-07-10.v1.json) records local timing noise.
 - [all-120 product-query comparison](../bench/recall_loss/ruby-redefinition-query-regression-all-repos-2026-07-10.v1.json) proves product-output preservation.
 
