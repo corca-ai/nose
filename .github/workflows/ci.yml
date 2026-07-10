@@ -31,6 +31,7 @@ jobs:
           python3 bench/semantic_pack/pricing.py --check-artifacts
       - name: regression checker self-tests
         run: |
+          python3 bench/labels/query_schema.py --self-test
           python3 scripts/query-regression-harness.py --self-test
           python3 scripts/recall-loss-diff.py --self-test
           python3 scripts/check-query-regression.py --self-test
@@ -75,6 +76,8 @@ jobs:
           RUSTDOCFLAGS: -D warnings
       - name: build
         run: cargo build --release
+      - name: product query JSON schema
+        run: python3 bench/labels/query_schema.py --self-test --nose target/release/nose
       - name: semantic-pack example conformance
         run: target/release/nose semantic-pack check docs/examples/semantic-packs/v0 --format json
       - name: Type-4 executable focused expectations

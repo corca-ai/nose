@@ -25,9 +25,11 @@ import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from query_schema import QUERY_SURFACES, family_surface, query_families
+
 ROOT = Path(__file__).resolve().parents[2]
 NOSE = ROOT / "target" / "release" / "nose"
-SURFACES = ("default", "divergence", "hidden", "debug")
+SURFACES = QUERY_SURFACES
 SCOPES = ("prod", "test", "mixed", "unknown")
 ARMS = (
     ("default", None),
@@ -74,7 +76,7 @@ def load_inputs() -> tuple[list[dict], dict[str, dict], dict[str, list[dict]]]:
     return labels, corpus, by_repo
 
 
-def query_repo(repo: Path, mode: str | None, cache_dir: Path | None, timeout: int) -> dict:
+def query_repo(repo: Path, mode: str | None, cache_dir: Path | None, timeout: int) -> list[dict]:
     cmd = [str(NOSE), "query", str(repo), "all", "top=0", "--format", "json"]
     if mode:
         cmd += ["--mode", mode]
@@ -82,10 +84,7 @@ def query_repo(repo: Path, mode: str | None, cache_dir: Path | None, timeout: in
         cmd += ["--cache-dir", str(cache_dir)]
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
     r.check_returncode()
-    payload = json.loads(r.stdout or "{}")
-    if isinstance(payload, list):
-        return {"ranking": {}, "families": payload}
-    return payload
+    return query_families(r.stdout, source=f"near-surface query {repo}")
 
 
 def overlap_count(family: dict, label: dict) -> int:
@@ -122,19 +121,17 @@ def recall_flags(families: list[dict], labels: list[dict]) -> list[int]:
     return out
 
 
-def surface_counter(payload: dict) -> Counter:
-    counts = Counter()
-    reported = payload.get("ranking", {}).get("surface_counts") or {}
-    for surface in SURFACES:
-        counts[surface] = int(reported.get(surface, 0) or 0)
-    return counts
+def surface_counter(families: list[dict]) -> Counter:
+    return Counter(
+        family_surface(family, source="near-surface query family") for family in families
+    )
 
 
 def surface_scope_counter(families: list[dict]) -> Counter:
     counts = Counter()
     for family in families:
-        surface = family.get("recommended_surface") or "unknown"
-        scope = family.get("scope") or "unknown"
+        surface = family_surface(family, source="near-surface query family")
+        scope = family["scope"]
         counts[(surface, scope)] += 1
     return counts
 
@@ -193,14 +190,13 @@ def evaluate(args: argparse.Namespace) -> dict:
         meta = corpus[rid]
         keys = [(meta["primary_language"], meta["split"]), ("OVERALL", meta["split"])]
         for arm, mode in ARMS:
-            payload = query_repo(repo, mode, args.cache_dir, args.timeout)
-            families = payload.get("families", [])
+            families = query_repo(repo, mode, args.cache_dir, args.timeout)
             for key in keys:
                 acc[arm][key]["p10"].extend(p10_flags(families, labs))
                 acc[arm][key]["recall"].extend(recall_flags(families, labs))
                 acc[arm][key]["worthy"] += sum(1 for label in labs if label["worthy"])
                 acc[arm][key]["labels"] += len(labs)
-            noise[arm]["surfaces"].update(surface_counter(payload))
+            noise[arm]["surfaces"].update(surface_counter(families))
             noise[arm]["surface_scope"].update(surface_scope_counter(families))
             noise[arm]["repos"] += 1
 

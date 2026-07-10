@@ -40,8 +40,10 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from query_schema import member_locations, query_families
+
 ROOT = Path(__file__).resolve().parents[2]
-NOSE = ROOT / "target" / "release" / "nose"
+DEFAULT_NOSE = ROOT / "target" / "release" / "nose"
 
 SUBDAG_FLOORS = (8, 12, 20)  # 20 == nose_normalize::ANCHOR_MIN_WEIGHT
 INLINE_FLOOR = 20  # one-step inline must reach the shipped anchor weight
@@ -62,24 +64,24 @@ def overlaps(a, b) -> bool:
 
 def member_locs(fam):
     return [
-        {"file": rel(loc["file"]), "start_line": loc["start_line"], "end_line": loc["end_line"]}
-        for loc in fam["locations"]
+        {
+            "file": rel(loc["file"]),
+            "start_line": loc["start_line"],
+            "end_line": loc["end_line"],
+        }
+        for loc in member_locations(fam, source="recall-ceiling query family")
     ]
 
 
-def query_families(stdout: str):
-    payload = json.loads(stdout or "[]")
-    if isinstance(payload, dict):
-        return payload.get("families", [])
-    return payload
-
-
-def run_query(repo_dir: Path, extra):
-    cmd = [str(NOSE), "query", str(repo_dir), "all", "top=0", "--format", "json", *extra]
+def run_query(nose: Path, repo_dir: Path, extra):
+    cmd = [str(nose), "query", str(repo_dir), "all", "top=0", "--format", "json", *extra]
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=QUERY_TIMEOUT)
     if r.returncode != 0:
         return None
-    return [member_locs(f) for f in query_families(r.stdout)]
+    return [
+        member_locs(f)
+        for f in query_families(r.stdout, source=f"recall-ceiling query {repo_dir}")
+    ]
 
 
 def label_hit(label, fam_locs) -> bool:
@@ -112,8 +114,8 @@ def inter_mass(a, b) -> int:
     return sum((Counter(a) & Counter(b)).values())
 
 
-def features_units(files):
-    cmd = [str(NOSE), "features", *files, "--min-lines", "1", "--min-tokens", "1"]
+def features_units(nose: Path, files):
+    cmd = [str(nose), "features", *files, "--min-lines", "1", "--min-tokens", "1"]
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=QUERY_TIMEOUT)
     if r.returncode != 0:
         return None
@@ -138,14 +140,14 @@ def corpus_digest(corpus) -> str:
     return h.hexdigest()
 
 
-def classify_missed(label, repo_dir):
+def classify_missed(nose: Path, label, repo_dir):
     """Estimate recoverability for one arm1-missed worthy label. Returns a record."""
     members = label["members"][:2]
     files = sorted({m["file"] for m in members})
     paths = [str(member_path(repo_dir, f)) for f in files]
     if not all(Path(p).is_file() for p in paths):
         return {"class": "member-file-missing"}
-    units = features_units(paths)
+    units = features_units(nose, paths)
     if units is None:
         return {"class": "features-failed"}
     ua, ub = best_unit(units, members[0]), best_unit(units, members[1])
@@ -186,6 +188,7 @@ def classify_missed(label, repo_dir):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repos-root", default=str(ROOT / "bench" / "repos"))
+    ap.add_argument("--nose", type=Path, default=DEFAULT_NOSE)
     ap.add_argument("--json-out", default=None)
     ap.add_argument("--limit-repos", type=int, default=None, help="debug: probe first N repos only")
     args = ap.parse_args()
@@ -215,9 +218,11 @@ def main():
         labs = by_repo[rid]
         split = labs[0]["split"]
         lang = lang_of.get(rid, "?")
-        arm0 = run_query(repo_dir, [])
+        arm0 = run_query(args.nose, repo_dir, [])
         arm1 = run_query(
-            repo_dir, ["--mode", "syntax,semantic,near", "--min-value", "0", "--min-members", "2"]
+            args.nose,
+            repo_dir,
+            ["--mode", "syntax,semantic,near", "--min-value", "0", "--min-members", "2"],
         )
         if arm0 is None or arm1 is None:
             query_failures.append(rid)
@@ -230,7 +235,7 @@ def main():
             agg[key]["hit_arm1"] += h1
             if h1:
                 continue
-            rec = classify_missed(lab, repo_dir)
+            rec = classify_missed(args.nose, lab, repo_dir)
             rec.update(
                 family_id=lab["family_id"], repo=rid, split=split, language=lang,
                 reason=lab["reason"], channel=lab["channel"],
@@ -245,7 +250,9 @@ def main():
             f"missed_arm1={sum(1 for l in labs if not label_hit(l, arm1))}\n"
         )
 
-    nose_ver = subprocess.run([str(NOSE), "--version"], capture_output=True, text=True).stdout.strip()
+    nose_ver = subprocess.run(
+        [str(args.nose), "--version"], capture_output=True, text=True
+    ).stdout.strip()
     out = {
         "schema_version": "0.1.0",
         "corpus_commit_digest": corpus_digest(corpus),
