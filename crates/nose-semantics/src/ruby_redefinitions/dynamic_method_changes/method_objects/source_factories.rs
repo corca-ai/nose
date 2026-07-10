@@ -6,6 +6,7 @@ pub(crate) fn ruby_method_object_instruction_sequence_source_factory_call(
     call: NodeId,
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     let [callee, args @ ..] = il.children(call) else {
         return false;
@@ -25,6 +26,7 @@ pub(crate) fn ruby_method_object_instruction_sequence_source_factory_call(
         node_name,
         occurrence_span,
         8,
+        index,
     ) && factory_args
         .first()
         .copied()
@@ -36,6 +38,7 @@ pub(crate) fn ruby_method_object_instruction_sequence_source_factory_index(
     interner: &Interner,
     index: NodeId,
     node_name: RubyNodeNameResolver,
+    change_index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     let [method_object, factory_args @ ..] = il.children(index) else {
         return false;
@@ -47,6 +50,7 @@ pub(crate) fn ruby_method_object_instruction_sequence_source_factory_index(
         node_name,
         il.node(index).span,
         8,
+        change_index,
     ) && factory_args
         .first()
         .copied()

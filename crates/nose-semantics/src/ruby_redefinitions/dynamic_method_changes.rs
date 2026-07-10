@@ -25,23 +25,133 @@ const RUBY_DYNAMIC_METHOD_CHANGE_TARGETS: &[&str] = &[
     "undef_method",
 ];
 
+pub(super) struct RubyDynamicMethodChangeIndex {
+    assignments: FxHashMap<u32, FxHashMap<String, Vec<NodeId>>>,
+    method_object_targets: FxHashMap<u32, Vec<NodeId>>,
+    literal_mutator_targets: FxHashMap<u32, Vec<NodeId>>,
+    instruction_sequence_eval_receivers: std::cell::RefCell<FxHashMap<(u32, u32, usize), bool>>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct RubyDynamicMethodChangeQuery<'a> {
+    expected_method: &'a str,
+    node_name: RubyNodeNameResolver,
+    occurrence_span: Span,
+    index: &'a RubyDynamicMethodChangeIndex,
+}
+
+impl RubyDynamicMethodChangeIndex {
+    pub(super) fn new(il: &Il, interner: &Interner, node_name: RubyNodeNameResolver) -> Self {
+        let mut assignments: FxHashMap<u32, FxHashMap<String, Vec<NodeId>>> = FxHashMap::default();
+        let mut method_object_targets: FxHashMap<u32, Vec<NodeId>> = FxHashMap::default();
+        let mut literal_mutator_targets: FxHashMap<u32, Vec<NodeId>> = FxHashMap::default();
+        for (idx, node) in il.nodes.iter().enumerate() {
+            let id = NodeId(idx as u32);
+            let file = node.span.file.0;
+            if node.kind == NodeKind::Assign {
+                if let [lhs, rhs, ..] = il.children(id) {
+                    if let Some(name) = node_name(il, interner, *lhs) {
+                        assignments
+                            .entry(file)
+                            .or_default()
+                            .entry(name.to_owned())
+                            .or_default()
+                            .push(*rhs);
+                    }
+                }
+            }
+            if let Some(target) =
+                method_objects::ruby_direct_method_object_target(il, interner, id, node_name)
+            {
+                method_object_targets.entry(file).or_default().push(target);
+            }
+            if RUBY_DYNAMIC_METHOD_CHANGE_TARGETS
+                .iter()
+                .any(|name| method_name_argument_is_literal(il, id, name))
+            {
+                literal_mutator_targets.entry(file).or_default().push(id);
+            }
+        }
+        Self {
+            assignments,
+            method_object_targets,
+            literal_mutator_targets,
+            instruction_sequence_eval_receivers: std::cell::RefCell::new(FxHashMap::default()),
+        }
+    }
+
+    pub(super) fn assigned_values(&self, file: u32, name: &str) -> &[NodeId] {
+        self.assignments
+            .get(&file)
+            .and_then(|by_name| by_name.get(name))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub(super) fn method_object_targets(&self, file: u32) -> &[NodeId] {
+        self.method_object_targets
+            .get(&file)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub(super) fn literal_mutator_targets(&self, file: u32) -> &[NodeId] {
+        self.literal_mutator_targets
+            .get(&file)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub(super) fn instruction_sequence_eval_receiver(
+        &self,
+        file: u32,
+        receiver: NodeId,
+        depth: usize,
+    ) -> Option<bool> {
+        self.instruction_sequence_eval_receivers
+            .borrow()
+            .get(&(file, receiver.0, depth))
+            .copied()
+    }
+
+    pub(super) fn cache_instruction_sequence_eval_receiver(
+        &self,
+        file: u32,
+        receiver: NodeId,
+        depth: usize,
+        result: bool,
+    ) {
+        self.instruction_sequence_eval_receivers
+            .borrow_mut()
+            .insert((file, receiver.0, depth), result);
+    }
+}
+
 pub(super) fn ruby_dynamic_method_change_operation(
     il: &Il,
     interner: &Interner,
     operation: NodeId,
     expected_method: &str,
     node_name: RubyNodeNameResolver,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     match il.kind(operation) {
         NodeKind::Call => {
-            ruby_dynamic_method_change_call(il, interner, operation, expected_method, node_name)
-                || ruby_instruction_sequence_source_factory_dynamic_method_change_operation(
-                    il,
-                    interner,
-                    operation,
-                    node_name,
-                    il.node(operation).span,
-                )
+            ruby_dynamic_method_change_call(
+                il,
+                interner,
+                operation,
+                expected_method,
+                node_name,
+                index,
+            ) || ruby_instruction_sequence_source_factory_dynamic_method_change_operation(
+                il,
+                interner,
+                operation,
+                node_name,
+                il.node(operation).span,
+                index,
+            )
         }
         NodeKind::Index => {
             ruby_method_object_dynamic_method_change_index(
@@ -50,12 +160,14 @@ pub(super) fn ruby_dynamic_method_change_operation(
                 operation,
                 expected_method,
                 node_name,
+                index,
             ) || ruby_instruction_sequence_source_factory_dynamic_method_change_operation(
                 il,
                 interner,
                 operation,
                 node_name,
                 il.node(operation).span,
+                index,
             )
         }
         _ => false,
@@ -68,27 +180,22 @@ fn ruby_dynamic_method_change_call(
     call: NodeId,
     expected_method: &str,
     node_name: RubyNodeNameResolver,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     let [callee, args @ ..] = il.children(call) else {
         return false;
     };
-    let method_object_change = ruby_method_object_dynamic_method_change_call(
-        il,
-        interner,
-        *callee,
-        args,
+    let query = RubyDynamicMethodChangeQuery {
         expected_method,
         node_name,
-        il.node(call).span,
-    ) || ruby_method_object_wrapper_block_dynamic_method_change_call(
-        il,
-        interner,
-        *callee,
-        args,
-        expected_method,
-        node_name,
-        il.node(call).span,
-    );
+        occurrence_span: il.node(call).span,
+        index,
+    };
+    let method_object_change =
+        ruby_method_object_dynamic_method_change_call(il, interner, *callee, args, query)
+            || ruby_method_object_wrapper_block_dynamic_method_change_call(
+                il, interner, *callee, args, query,
+            );
     let instruction_sequence_eval_change = ruby_instruction_sequence_eval_dynamic_method_change(
         il,
         interner,
@@ -96,6 +203,7 @@ fn ruby_dynamic_method_change_call(
         args,
         node_name,
         il.node(call).span,
+        index,
     );
     let instruction_sequence_block_eval_change =
         ruby_instruction_sequence_block_eval_dynamic_method_change(
@@ -105,6 +213,7 @@ fn ruby_dynamic_method_change_call(
             args,
             node_name,
             il.node(call).span,
+            index,
         );
     let Some(callee_name) =
         node_name(il, interner, *callee).or_else(|| field_name(il, interner, *callee))

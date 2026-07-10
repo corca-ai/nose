@@ -17,23 +17,13 @@ pub(super) fn ruby_method_object_dynamic_method_change_call(
     interner: &Interner,
     callee: NodeId,
     args: &[NodeId],
-    expected_method: &str,
-    node_name: RubyNodeNameResolver,
-    occurrence_span: Span,
+    query: RubyDynamicMethodChangeQuery<'_>,
 ) -> bool {
     let Some((receiver, method_args)) = ruby_method_object_invocation(il, interner, callee, args)
     else {
         return false;
     };
-    ruby_method_object_dynamic_method_change_receiver(
-        il,
-        interner,
-        receiver,
-        method_args,
-        expected_method,
-        node_name,
-        occurrence_span,
-    )
+    ruby_method_object_dynamic_method_change_receiver(il, interner, receiver, method_args, query)
 }
 
 pub(super) fn ruby_method_object_dynamic_method_change_index(
@@ -42,19 +32,18 @@ pub(super) fn ruby_method_object_dynamic_method_change_index(
     index: NodeId,
     expected_method: &str,
     node_name: RubyNodeNameResolver,
+    change_index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     let [receiver, args @ ..] = il.children(index) else {
         return false;
     };
-    ruby_method_object_dynamic_method_change_receiver(
-        il,
-        interner,
-        *receiver,
-        args,
+    let query = RubyDynamicMethodChangeQuery {
         expected_method,
         node_name,
-        il.node(index).span,
-    )
+        occurrence_span: il.node(index).span,
+        index: change_index,
+    };
+    ruby_method_object_dynamic_method_change_receiver(il, interner, *receiver, args, query)
 }
 
 pub(super) fn ruby_method_object_wrapper_block_dynamic_method_change_call(
@@ -62,9 +51,7 @@ pub(super) fn ruby_method_object_wrapper_block_dynamic_method_change_call(
     interner: &Interner,
     callee: NodeId,
     args: &[NodeId],
-    expected_method: &str,
-    node_name: RubyNodeNameResolver,
-    occurrence_span: Span,
+    query: RubyDynamicMethodChangeQuery<'_>,
 ) -> bool {
     let Some(wrapper_name) = field_name(il, interner, callee) else {
         return false;
@@ -75,15 +62,26 @@ pub(super) fn ruby_method_object_wrapper_block_dynamic_method_change_call(
     let Some(receiver) = il.children(callee).first().copied() else {
         return false;
     };
-    let Some(target) =
-        ruby_method_object_or_stored_target(il, interner, receiver, node_name, occurrence_span, 8)
-    else {
+    let Some(target) = ruby_method_object_or_stored_target(
+        il,
+        interner,
+        receiver,
+        query.node_name,
+        query.occurrence_span,
+        8,
+        query.index,
+    ) else {
         return false;
     };
     args.iter()
-        .find_map(|&arg| ruby_descendant_method_name_literal(il, arg, expected_method, 8))
+        .find_map(|&arg| ruby_descendant_method_name_literal(il, arg, query.expected_method, 8))
         .is_some_and(|method| {
-            ruby_reflective_target_dynamic_method_change(il, target, &[method], expected_method)
+            ruby_reflective_target_dynamic_method_change(
+                il,
+                target,
+                &[method],
+                query.expected_method,
+            )
         })
 }
 
@@ -92,29 +90,34 @@ fn ruby_method_object_dynamic_method_change_receiver(
     interner: &Interner,
     receiver: NodeId,
     args: &[NodeId],
-    expected_method: &str,
-    node_name: RubyNodeNameResolver,
-    occurrence_span: Span,
+    query: RubyDynamicMethodChangeQuery<'_>,
 ) -> bool {
     ruby_method_object_bound_instruction_sequence_eval(
         il,
         interner,
         receiver,
-        node_name,
-        occurrence_span,
+        query.node_name,
+        query.occurrence_span,
         8,
-    ) || ruby_method_object_or_stored_target(il, interner, receiver, node_name, occurrence_span, 8)
-        .is_some_and(|target| {
-            ruby_reflective_target_dynamic_method_change(il, target, args, expected_method)
-        })
-        || ruby_any_method_object_target_change_in_file(
-            il,
-            interner,
-            node_name,
-            occurrence_span,
-            args,
-            expected_method,
-        )
+        query.index,
+    ) || ruby_method_object_or_stored_target(
+        il,
+        interner,
+        receiver,
+        query.node_name,
+        query.occurrence_span,
+        8,
+        query.index,
+    )
+    .is_some_and(|target| {
+        ruby_reflective_target_dynamic_method_change(il, target, args, query.expected_method)
+    }) || ruby_any_method_object_target_change_in_file(
+        il,
+        query.occurrence_span,
+        args,
+        query.expected_method,
+        query.index,
+    )
 }
 
 fn ruby_method_object_bound_instruction_sequence_source_factory(
@@ -124,6 +127,7 @@ fn ruby_method_object_bound_instruction_sequence_source_factory(
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
     depth: usize,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     if depth == 0 {
         return false;
@@ -147,29 +151,26 @@ fn ruby_method_object_bound_instruction_sequence_source_factory(
             node_name,
             occurrence_span,
             depth - 1,
+            index,
         );
     }
     let Some(receiver_name) = node_name(il, interner, method_object) else {
         return false;
     };
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign || node.span.file != occurrence_span.file {
-            return false;
-        }
-        let assign = NodeId(idx as u32);
-        let [lhs, rhs, ..] = il.children(assign) else {
-            return false;
-        };
-        node_name(il, interner, *lhs) == Some(receiver_name)
-            && ruby_method_object_bound_instruction_sequence_source_factory(
+    index
+        .assigned_values(occurrence_span.file.0, receiver_name)
+        .iter()
+        .any(|&rhs| {
+            ruby_method_object_bound_instruction_sequence_source_factory(
                 il,
                 interner,
-                *rhs,
+                rhs,
                 node_name,
                 occurrence_span,
                 depth - 1,
+                index,
             )
-    })
+        })
 }
 
 fn ruby_method_object_bound_instruction_sequence_eval(
@@ -179,6 +180,7 @@ fn ruby_method_object_bound_instruction_sequence_eval(
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
     depth: usize,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     if depth == 0 {
         return false;
@@ -196,6 +198,7 @@ fn ruby_method_object_bound_instruction_sequence_eval(
                 node_name,
                 occurrence_span,
                 4,
+                index,
             )
         {
             return true;
@@ -209,29 +212,26 @@ fn ruby_method_object_bound_instruction_sequence_eval(
             node_name,
             occurrence_span,
             depth - 1,
+            index,
         );
     }
     let Some(receiver_name) = node_name(il, interner, method_object) else {
         return false;
     };
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign || node.span.file != occurrence_span.file {
-            return false;
-        }
-        let assign = NodeId(idx as u32);
-        let [lhs, rhs, ..] = il.children(assign) else {
-            return false;
-        };
-        node_name(il, interner, *lhs) == Some(receiver_name)
-            && ruby_method_object_bound_instruction_sequence_eval(
+    index
+        .assigned_values(occurrence_span.file.0, receiver_name)
+        .iter()
+        .any(|&rhs| {
+            ruby_method_object_bound_instruction_sequence_eval(
                 il,
                 interner,
-                *rhs,
+                rhs,
                 node_name,
                 occurrence_span,
                 depth - 1,
+                index,
             )
-    })
+        })
 }
 
 fn ruby_direct_bound_method_object_target(
@@ -326,6 +326,7 @@ fn ruby_method_object_or_stored_target(
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
     depth: usize,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> Option<NodeId> {
     if depth == 0 {
         return None;
@@ -341,6 +342,7 @@ fn ruby_method_object_or_stored_target(
             node_name,
             occurrence_span,
             depth - 1,
+            index,
         );
     }
     if let Some(target) = ruby_nested_method_object_target(
@@ -350,31 +352,25 @@ fn ruby_method_object_or_stored_target(
         node_name,
         occurrence_span,
         depth - 1,
+        index,
     ) {
         return Some(target);
     }
     let receiver_name = node_name(il, interner, method_object)?;
-    il.nodes.iter().enumerate().find_map(|(idx, node)| {
-        if node.kind != NodeKind::Assign || node.span.file != occurrence_span.file {
-            return None;
-        }
-        let assign = NodeId(idx as u32);
-        let [lhs, rhs, ..] = il.children(assign) else {
-            return None;
-        };
-        (node_name(il, interner, *lhs) == Some(receiver_name))
-            .then(|| {
-                ruby_method_object_or_stored_target(
-                    il,
-                    interner,
-                    *rhs,
-                    node_name,
-                    occurrence_span,
-                    depth - 1,
-                )
-            })
-            .flatten()
-    })
+    index
+        .assigned_values(occurrence_span.file.0, receiver_name)
+        .iter()
+        .find_map(|&rhs| {
+            ruby_method_object_or_stored_target(
+                il,
+                interner,
+                rhs,
+                node_name,
+                occurrence_span,
+                depth - 1,
+                index,
+            )
+        })
 }
 
 fn ruby_nested_method_object_target(
@@ -384,6 +380,7 @@ fn ruby_nested_method_object_target(
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
     depth: usize,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> Option<NodeId> {
     if depth == 0 {
         return None;
@@ -396,38 +393,26 @@ fn ruby_nested_method_object_target(
             node_name,
             occurrence_span,
             depth - 1,
+            index,
         )
     })
 }
 
 fn ruby_any_method_object_target_change_in_file(
     il: &Il,
-    interner: &Interner,
-    node_name: RubyNodeNameResolver,
     occurrence_span: Span,
     args: &[NodeId],
     expected_method: &str,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
-    let mut saw_method_object_constructor = false;
-    for (idx, node) in il.nodes.iter().enumerate() {
-        if node.span.file != occurrence_span.file {
-            continue;
-        }
-        let Some(target) =
-            ruby_direct_method_object_target(il, interner, NodeId(idx as u32), node_name)
-        else {
-            continue;
-        };
-        saw_method_object_constructor = true;
-        if ruby_reflective_target_dynamic_method_change(il, target, args, expected_method) {
-            return true;
-        }
-    }
-    saw_method_object_constructor
-        && il.nodes.iter().enumerate().any(|(idx, node)| {
-            node.span.file == occurrence_span.file
-                && ruby_literal_mutator_target_change(il, NodeId(idx as u32), args, expected_method)
-        })
+    let method_object_targets = index.method_object_targets(occurrence_span.file.0);
+    method_object_targets.iter().any(|&target| {
+        ruby_reflective_target_dynamic_method_change(il, target, args, expected_method)
+    }) || !method_object_targets.is_empty()
+        && index
+            .literal_mutator_targets(occurrence_span.file.0)
+            .iter()
+            .any(|&target| ruby_literal_mutator_target_change(il, target, args, expected_method))
 }
 
 fn ruby_literal_mutator_target_change(
@@ -459,7 +444,7 @@ fn ruby_descendant_method_name_literal(
     })
 }
 
-fn ruby_direct_method_object_target(
+pub(super) fn ruby_direct_method_object_target(
     il: &Il,
     interner: &Interner,
     method_object: NodeId,

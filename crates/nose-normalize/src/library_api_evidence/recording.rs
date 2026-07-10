@@ -98,7 +98,13 @@ pub(super) fn record_receiver_method_library_api(
         if js_ts_builtin_prototype_mutated_in_file(il, interner, contract.id, contract.callee) {
             return false;
         }
-        if ruby_sequence_hof_method_redefined_in_file(il, interner, contract.id, contract.callee) {
+        if ruby_sequence_hof_method_redefined_in_file(
+            il,
+            interner,
+            contract.id,
+            contract.callee,
+            dependency_cache,
+        ) {
             return false;
         }
         upsert_builtin_evidence_with_pack_id(

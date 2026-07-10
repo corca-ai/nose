@@ -5,6 +5,7 @@ pub(super) fn ruby_sequence_hof_method_redefined_in_file(
     interner: &Interner,
     id: LibraryApiContractId,
     callee: LibraryApiCalleeContract,
+    dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
     if il.meta.lang != Lang::Ruby {
         return false;
@@ -28,6 +29,7 @@ pub(super) fn ruby_sequence_hof_method_redefined_in_file(
         interner,
         &["Array", "::Array", "Enumerable", "::Enumerable"],
         method,
+        dependency_cache,
     )
 }
 
@@ -36,12 +38,14 @@ fn ruby_class_instance_method_redefined_in_file(
     interner: &Interner,
     class_names: &[&str],
     expected_method: &str,
+    dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
-    nose_semantics::ruby_class_instance_method_redefined_in_file(
+    nose_semantics::ruby_class_instance_method_redefined_in_file_with_cache(
         il,
         interner,
         class_names,
         expected_method,
         node_name,
+        dependency_cache.ruby_redefinitions_mut(),
     )
 }
