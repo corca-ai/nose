@@ -12,6 +12,19 @@ pub(in crate::library_api) fn library_api_dependencies_match_callee(
     }
     if matches!(
         callee,
+        LibraryApiCalleeContract::Method {
+            receiver: MethodReceiverContract::RubyCoreNilPredicate,
+            ..
+        }
+    ) {
+        // This receiver contract has no node-local dependencies. Its completed
+        // file-wide redefinition proof is what licensed the first-party
+        // occurrence record in the first place; admission has already checked
+        // that record's exact builtin provenance and callee shape.
+        return record.dependencies.is_empty();
+    }
+    if matches!(
+        callee,
         LibraryApiCalleeContract::Method { .. }
             | LibraryApiCalleeContract::IteratorAdapterMethod { .. }
             | LibraryApiCalleeContract::AsyncMethod { .. }

@@ -27,10 +27,10 @@ pub(super) fn record_post_lower_receiver_method_library_api(
         ) {
             return false;
         }
-        if ruby_string_affix_redefined_in_file(il, interner, contract) {
+        if ruby_string_affix_redefined_in_file(il, interner, contract, dependency_cache) {
             return false;
         }
-        if ruby_sequence_hof_method_redefined_in_file(il, interner, contract) {
+        if ruby_sequence_hof_method_redefined_in_file(il, interner, contract, dependency_cache) {
             return false;
         }
         record_post_lower_library_api_contract(
@@ -55,6 +55,7 @@ fn ruby_string_affix_redefined_in_file(
     il: &Il,
     interner: &Interner,
     contract: LibraryReceiverMethodApiContract,
+    dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
     if il.meta.lang != Lang::Ruby {
         return false;
@@ -68,19 +69,21 @@ fn ruby_string_affix_redefined_in_file(
     let LibraryApiCalleeContract::Method { method, .. } = contract.callee else {
         return false;
     };
-    ruby_string_instance_method_redefined_in_file(il, interner, method)
+    ruby_string_instance_method_redefined_in_file(il, interner, method, dependency_cache)
 }
 
 fn ruby_string_instance_method_redefined_in_file(
     il: &Il,
     interner: &Interner,
     expected_method: &str,
+    dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
     ruby_class_instance_method_redefined_in_file(
         il,
         interner,
         &["String", "::String"],
         expected_method,
+        dependency_cache,
     )
 }
 
@@ -88,6 +91,7 @@ fn ruby_sequence_hof_method_redefined_in_file(
     il: &Il,
     interner: &Interner,
     contract: LibraryReceiverMethodApiContract,
+    dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
     if il.meta.lang != Lang::Ruby {
         return false;
@@ -111,6 +115,7 @@ fn ruby_sequence_hof_method_redefined_in_file(
         interner,
         &["Array", "::Array", "Enumerable", "::Enumerable"],
         method,
+        dependency_cache,
     )
 }
 
@@ -119,13 +124,15 @@ fn ruby_class_instance_method_redefined_in_file(
     interner: &Interner,
     class_names: &[&str],
     expected_method: &str,
+    dependency_cache: &mut LibraryApiDependencyCache,
 ) -> bool {
-    nose_semantics::ruby_class_instance_method_redefined_in_file(
+    nose_semantics::ruby_class_instance_method_redefined_in_file_with_cache(
         il,
         interner,
         class_names,
         expected_method,
         post_lower_var_name,
+        dependency_cache.ruby_redefinitions_mut(),
     )
 }
 

@@ -98,10 +98,12 @@ pub(super) fn receiver_contract_dependency_match(
         return true;
     }
     if contract == MethodReceiverContract::RubyCoreNilPredicate {
-        let Some(interner) = interner else {
-            return false;
-        };
-        return ruby_core_nil_predicate_safe_in_file(il, interner, receiver);
+        // The builtin producer only emits this first-party contract after its
+        // completed IL arena passes the whole-file Ruby redefinition check.
+        // Canonical admission has already verified that exact provenance above;
+        // rescanning here for every unit would discard the evidence boundary and
+        // turn one file-level fact into quadratic extraction work.
+        return interner.is_some() && record.dependencies.is_empty();
     }
     if contract == MethodReceiverContract::RustMapGetOrExactOption
         && evidence_depends_on_library_api_contract(

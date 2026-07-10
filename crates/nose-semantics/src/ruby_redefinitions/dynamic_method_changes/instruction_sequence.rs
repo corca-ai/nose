@@ -16,10 +16,14 @@ pub(super) fn ruby_instruction_sequence_eval_dynamic_method_change(
     args: &[NodeId],
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     let Some(callee_name) = field_name(il, interner, callee) else {
         return false;
     };
+    if !matches!(callee_name, "eval" | "send" | "public_send" | "__send__") {
+        return false;
+    }
     let Some(receiver) = il.children(callee).first().copied() else {
         return false;
     };
@@ -30,6 +34,7 @@ pub(super) fn ruby_instruction_sequence_eval_dynamic_method_change(
         node_name,
         occurrence_span,
         4,
+        index,
     ) {
         return false;
     }
@@ -49,6 +54,7 @@ pub(super) fn ruby_instruction_sequence_block_eval_dynamic_method_change(
     args: &[NodeId],
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     let Some(callee_name) = field_name(il, interner, callee) else {
         return false;
@@ -69,6 +75,7 @@ pub(super) fn ruby_instruction_sequence_block_eval_dynamic_method_change(
         node_name,
         occurrence_span,
         4,
+        index,
     ) && args.iter().any(|&arg| {
         ruby_descendant_instruction_sequence_eval_invocation(il, interner, arg, node_name, 8)
     })
@@ -80,10 +87,11 @@ pub(super) fn ruby_instruction_sequence_source_factory_dynamic_method_change_ope
     operation: NodeId,
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     if il.kind(operation) == NodeKind::Index {
         return method_objects::ruby_method_object_instruction_sequence_source_factory_index(
-            il, interner, operation, node_name,
+            il, interner, operation, node_name, index,
         );
     }
     ruby_instruction_sequence_eval_receiver_may_redefine_method(
@@ -93,6 +101,7 @@ pub(super) fn ruby_instruction_sequence_source_factory_dynamic_method_change_ope
         node_name,
         occurrence_span,
         4,
+        index,
     )
 }
 
@@ -147,6 +156,33 @@ pub(super) fn ruby_instruction_sequence_eval_receiver_may_redefine_method(
     node_name: RubyNodeNameResolver,
     occurrence_span: Span,
     depth: usize,
+    index: &RubyDynamicMethodChangeIndex,
+) -> bool {
+    let file = occurrence_span.file.0;
+    if let Some(result) = index.instruction_sequence_eval_receiver(file, receiver, depth) {
+        return result;
+    }
+    let result = ruby_instruction_sequence_eval_receiver_may_redefine_method_uncached(
+        il,
+        interner,
+        receiver,
+        node_name,
+        occurrence_span,
+        depth,
+        index,
+    );
+    index.cache_instruction_sequence_eval_receiver(file, receiver, depth, result);
+    result
+}
+
+fn ruby_instruction_sequence_eval_receiver_may_redefine_method_uncached(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    node_name: RubyNodeNameResolver,
+    occurrence_span: Span,
+    depth: usize,
+    index: &RubyDynamicMethodChangeIndex,
 ) -> bool {
     if depth == 0 {
         return false;
@@ -160,6 +196,7 @@ pub(super) fn ruby_instruction_sequence_eval_receiver_may_redefine_method(
         receiver,
         node_name,
         occurrence_span,
+        index,
     ) {
         return true;
     }
@@ -171,6 +208,7 @@ pub(super) fn ruby_instruction_sequence_eval_receiver_may_redefine_method(
             node_name,
             occurrence_span,
             depth - 1,
+            index,
         )
     }) {
         return true;
@@ -178,24 +216,20 @@ pub(super) fn ruby_instruction_sequence_eval_receiver_may_redefine_method(
     let Some(receiver_name) = node_name(il, interner, receiver) else {
         return false;
     };
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign || node.span.file != occurrence_span.file {
-            return false;
-        }
-        let assign = NodeId(idx as u32);
-        let [lhs, rhs, ..] = il.children(assign) else {
-            return false;
-        };
-        node_name(il, interner, *lhs) == Some(receiver_name)
-            && ruby_instruction_sequence_eval_receiver_may_redefine_method(
+    index
+        .assigned_values(occurrence_span.file.0, receiver_name)
+        .iter()
+        .any(|&rhs| {
+            ruby_instruction_sequence_eval_receiver_may_redefine_method(
                 il,
                 interner,
-                *rhs,
+                rhs,
                 node_name,
                 occurrence_span,
                 depth - 1,
+                index,
             )
-    })
+        })
 }
 
 fn ruby_instruction_sequence_source_factory_call(

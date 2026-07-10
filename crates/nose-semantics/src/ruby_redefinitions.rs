@@ -7,6 +7,24 @@ use nose_il::UnitKind;
 
 pub type RubyNodeNameResolver = for<'a> fn(&'a Il, &'a Interner, NodeId) -> Option<&'a str>;
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct RubyClassInstanceMethodQuery {
+    class_names: Vec<u64>,
+    expected_method: u64,
+    node_name: usize,
+}
+
+/// Per-IL cache for Ruby same-file redefinition queries.
+///
+/// Callers build one cache for a completed IL arena and reuse it while recording
+/// library-API evidence. The arena and its units are immutable during these
+/// queries, so repeated receiver occurrences must not rescan the whole file.
+#[derive(Default)]
+pub struct RubyRedefinitionCache {
+    class_instance_methods: FxHashMap<RubyClassInstanceMethodQuery, bool>,
+    core_nil_predicate_by_file: FxHashMap<u32, bool>,
+}
+
 pub fn ruby_class_instance_method_redefined_in_file(
     il: &Il,
     interner: &Interner,
@@ -14,14 +32,49 @@ pub fn ruby_class_instance_method_redefined_in_file(
     expected_method: &str,
     node_name: RubyNodeNameResolver,
 ) -> bool {
-    ruby_class_instance_method_redefined_visible_in_file(
+    let mut cache = RubyRedefinitionCache::default();
+    ruby_class_instance_method_redefined_in_file_with_cache(
+        il,
+        interner,
+        class_names,
+        expected_method,
+        node_name,
+        &mut cache,
+    )
+}
+
+pub fn ruby_class_instance_method_redefined_in_file_with_cache(
+    il: &Il,
+    interner: &Interner,
+    class_names: &[&str],
+    expected_method: &str,
+    node_name: RubyNodeNameResolver,
+    cache: &mut RubyRedefinitionCache,
+) -> bool {
+    let mut class_name_hashes: Vec<_> = class_names
+        .iter()
+        .map(|name| stable_symbol_hash(name))
+        .collect();
+    class_name_hashes.sort_unstable();
+    class_name_hashes.dedup();
+    let query = RubyClassInstanceMethodQuery {
+        class_names: class_name_hashes,
+        expected_method: stable_symbol_hash(expected_method),
+        node_name: node_name as usize,
+    };
+    if let Some(&redefined) = cache.class_instance_methods.get(&query) {
+        return redefined;
+    }
+    let redefined = ruby_class_instance_method_redefined_visible_in_file(
         il,
         interner,
         class_names,
         expected_method,
         node_name,
         None,
-    )
+    );
+    cache.class_instance_methods.insert(query, redefined);
+    redefined
 }
 
 fn ruby_class_instance_method_redefined_visible_in_file(
@@ -64,7 +117,21 @@ pub fn ruby_core_nil_predicate_unmodified_in_file(
     interner: &Interner,
     occurrence_span: Span,
 ) -> bool {
-    il.meta.lang == Lang::Ruby
+    let mut cache = RubyRedefinitionCache::default();
+    ruby_core_nil_predicate_unmodified_in_file_with_cache(il, interner, occurrence_span, &mut cache)
+}
+
+pub fn ruby_core_nil_predicate_unmodified_in_file_with_cache(
+    il: &Il,
+    interner: &Interner,
+    occurrence_span: Span,
+    cache: &mut RubyRedefinitionCache,
+) -> bool {
+    let file = occurrence_span.file.0;
+    if let Some(&unmodified) = cache.core_nil_predicate_by_file.get(&file) {
+        return unmodified;
+    }
+    let unmodified = il.meta.lang == Lang::Ruby
         && !ruby_class_instance_method_redefined_visible_in_file(
             il,
             interner,
@@ -75,7 +142,9 @@ pub fn ruby_core_nil_predicate_unmodified_in_file(
         )
         && !ruby_method_unit_named_visible_in_file(il, interner, "nil?", occurrence_span)
         && !ruby_method_alias_or_removal_visible_in_file(il, interner, "nil?", occurrence_span)
-        && !ruby_nil_predicate_alias_or_undef_marker_visible_in_file(il, interner, occurrence_span)
+        && !ruby_nil_predicate_alias_or_undef_marker_visible_in_file(il, interner, occurrence_span);
+    cache.core_nil_predicate_by_file.insert(file, unmodified);
+    unmodified
 }
 
 pub fn ruby_method_unit_named_in_file(il: &Il, interner: &Interner, expected_method: &str) -> bool {
@@ -92,6 +161,8 @@ pub fn ruby_method_alias_or_removal_in_file(
     interner: &Interner,
     expected_method: &str,
 ) -> bool {
+    let index =
+        dynamic_method_changes::RubyDynamicMethodChangeIndex::new(il, interner, default_node_name);
     il.nodes.iter().enumerate().any(|(idx, _)| {
         dynamic_method_changes::ruby_dynamic_method_change_operation(
             il,
@@ -99,6 +170,7 @@ pub fn ruby_method_alias_or_removal_in_file(
             NodeId(idx as u32),
             expected_method,
             default_node_name,
+            &index,
         )
     })
 }
@@ -280,6 +352,8 @@ fn ruby_method_alias_or_removal_visible_in_file(
     expected_method: &str,
     occurrence_span: Span,
 ) -> bool {
+    let index =
+        dynamic_method_changes::RubyDynamicMethodChangeIndex::new(il, interner, default_node_name);
     il.nodes.iter().enumerate().any(|(idx, node)| {
         node.span.file == occurrence_span.file
             && dynamic_method_changes::ruby_dynamic_method_change_operation(
@@ -288,6 +362,7 @@ fn ruby_method_alias_or_removal_visible_in_file(
                 NodeId(idx as u32),
                 expected_method,
                 default_node_name,
+                &index,
             )
     })
 }

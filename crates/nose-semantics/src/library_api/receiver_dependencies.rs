@@ -43,6 +43,13 @@ pub struct LibraryApiDependencyCache {
     binding_lhs_by_reference: FxHashMap<NodeId, EvidenceResolution<NodeId>>,
     receiver_param_span_by_reference: FxHashMap<NodeId, Option<Span>>,
     name_assigned_in_scope: FxHashMap<(NodeId, Symbol), bool>,
+    ruby_redefinitions: RubyRedefinitionCache,
+}
+
+impl LibraryApiDependencyCache {
+    pub fn ruby_redefinitions_mut(&mut self) -> &mut RubyRedefinitionCache {
+        &mut self.ruby_redefinitions
+    }
 }
 
 pub fn library_api_receiver_dependencies_for_call_with_cache(
@@ -275,7 +282,8 @@ pub(in crate::library_api) fn receiver_dependency_ids(
             matches!(il.node(receiver).payload, Payload::LitStr(_)).then_some(Vec::new())
         }
         MethodReceiverContract::RubyCoreNilPredicate => {
-            ruby_core_nil_predicate_safe_in_file(il, interner, receiver).then_some(Vec::new())
+            ruby_core_nil_predicate_safe_in_file(il, interner, receiver, cache)
+                .then_some(Vec::new())
         }
         MethodReceiverContract::UnshadowedGlobal(global) => {
             Some(vec![symbol_dependency_id_for_node(
@@ -354,8 +362,14 @@ pub(in crate::library_api) fn ruby_core_nil_predicate_safe_in_file(
     il: &Il,
     interner: &Interner,
     receiver: NodeId,
+    cache: &mut LibraryApiDependencyCache,
 ) -> bool {
-    ruby_core_nil_predicate_unmodified_in_file(il, interner, il.node(receiver).span)
+    ruby_core_nil_predicate_unmodified_in_file_with_cache(
+        il,
+        interner,
+        il.node(receiver).span,
+        &mut cache.ruby_redefinitions,
+    )
 }
 
 pub(in crate::library_api) fn collection_receiver_dependency_ids(
