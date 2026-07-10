@@ -247,6 +247,8 @@ def validate_report_contract(
         return "v2"
     if schema is not None:
         raise CheckFailed(f"{label}.schema: unsupported query regression schema {schema!r}")
+    if require_corpus_provenance:
+        raise CheckFailed(f"{label}: corpus provenance requires schema {REPORT_SCHEMA}")
     forbidden = {"measurement", "environment", "execution", "corpus"} & report.keys()
     if forbidden:
         raise CheckFailed(f"{label}: schema-less report contains v2 fields: {sorted(forbidden)}")
@@ -930,6 +932,20 @@ def run_self_test() -> None:
         assert "missing `corpus` field" in str(error)
     else:
         raise AssertionError("v2 reports must declare whether corpus provenance is present")
+    legacy = sample_report()
+    for key in ("schema", "measurement", "environment", "execution", "corpus"):
+        del legacy[key]
+    for rows in legacy["summary"]["by_repo"].values():
+        for label in ("baseline", "current"):
+            for key in ("schema_versions", "surface_counts", "stages_median_ms"):
+                del rows[label][key]
+    assert evaluate_gate(legacy)["status"] == "pass"
+    try:
+        evaluate_gate(legacy, require_corpus_provenance=True)
+    except CheckFailed as error:
+        assert "corpus provenance requires schema" in str(error)
+    else:
+        raise AssertionError("semantic smoke mode must reject schema-less reports")
     for threshold_name, kwargs in (
         ("max_runtime_delta_pct", {"max_runtime_delta_pct": math.nan}),
         ("min_runtime_delta_ms", {"min_runtime_delta_ms": math.nan}),
