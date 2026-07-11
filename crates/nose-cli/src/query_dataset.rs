@@ -31,8 +31,7 @@ pub(super) fn build_query_dataset(
     refs: &[&std::path::Path],
 ) -> Result<QueryDataset> {
     let (settings, semantic_packs) = resolve_query_settings(args)?;
-    let mut opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
-    opts.trace_accepted_coverage = true;
+    let opts = detection_options(settings.channels, settings.min_tokens, settings.min_lines);
     let detector = detection_engine(settings.channels, &opts);
     let (mut report, scope) =
         query_detect_report(args, refs, &settings.exclude, &opts, detector.as_ref());
@@ -174,12 +173,18 @@ fn query_detect_report(
             streams,
             files,
         } = cache::build_units_cached(&corpus, opts, dir);
-        let report = nose_detect::detect_from_units(units, files, &streams, opts, detector).0;
+        let report = nose_detect::detect_from_units_with_accepted_coverage(
+            units, files, &streams, opts, detector,
+        )
+        .0;
         (report, scope)
     } else {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
         let scope = QueryScope::from_corpus(&corpus);
-        (nose_detect::detect(&corpus, opts, detector), scope)
+        (
+            nose_detect::detect_with_accepted_coverage(&corpus, opts, detector),
+            scope,
+        )
     }
 }
 

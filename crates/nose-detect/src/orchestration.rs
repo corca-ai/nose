@@ -25,6 +25,17 @@ pub fn detect(corpus: &Corpus, opts: &DetectOptions, detector: &dyn Detector) ->
     detect_with_dump(corpus, opts, detector).0
 }
 
+/// Product-query detection with compact direct accepted-edge provenance retained
+/// through ranking. Keeping this control outside [`DetectOptions`] leaves the
+/// normalize/extract hot path and its option layout identical for every caller.
+pub fn detect_with_accepted_coverage(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> Report {
+    detect_with_dump_inner(corpus, opts, detector, true).0
+}
+
 /// Per-stage wall-clock timing, printed to stderr when `NOSE_TIME` is set. A
 /// zero-cost no-op otherwise (the `Instant`s are cheap; only the env check gates
 /// printing).
@@ -85,12 +96,12 @@ fn extract_units_of_file(
     if raw_il_is_empty_module(il) || units::large_test_file(il) {
         return Vec::new();
     }
-    let n = nose_normalize::normalize(il, interner, &norm_opts);
+    let n = nose_normalize::normalize(il, interner, norm_opts);
     let block_units = block_units_for_file(&n, opts);
     units::extract(
         &n,
         interner,
-        &seeds,
+        seeds,
         opts.min_lines,
         opts.min_tokens,
         block_units,
@@ -105,6 +116,15 @@ pub fn detect_with_dump(
     corpus: &Corpus,
     opts: &DetectOptions,
     detector: &dyn Detector,
+) -> (Report, Dump) {
+    detect_with_dump_inner(corpus, opts, detector, false)
+}
+
+fn detect_with_dump_inner(
+    corpus: &Corpus,
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    trace_accepted_coverage: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -162,7 +182,14 @@ pub fn detect_with_dump(
     // `detect_from_units` runs its own `StageTimer` for the detection sub-phases
     // (candidates/score/groups/contiguous), so no lap here — a single outer lap would
     // mislabel the whole call (group scoring dwarfs contiguous) as "contiguous".
-    detect_from_units(units, corpus.files.len(), &streams, opts, detector)
+    detect_from_units_inner(
+        units,
+        corpus.files.len(),
+        &streams,
+        opts,
+        detector,
+        trace_accepted_coverage,
+    )
 }
 
 fn raw_il_is_empty_module(il: &Il) -> bool {
@@ -215,6 +242,28 @@ pub fn detect_from_units(
     streams: &[Stream],
     opts: &DetectOptions,
     detector: &dyn Detector,
+) -> (Report, Dump) {
+    detect_from_units_inner(units, files, streams, opts, detector, false)
+}
+
+/// Cached-query counterpart to [`detect_with_accepted_coverage`].
+pub fn detect_from_units_with_accepted_coverage(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+) -> (Report, Dump) {
+    detect_from_units_inner(units, files, streams, opts, detector, true)
+}
+
+fn detect_from_units_inner(
+    units: Vec<UnitFeat>,
+    files: usize,
+    streams: &[Stream],
+    opts: &DetectOptions,
+    detector: &dyn Detector,
+    trace_accepted_coverage: bool,
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
@@ -273,8 +322,15 @@ pub fn detect_from_units(
         Vec::new()
     };
 
-    let (groups, accepted_group_edges) =
-        build_groups(&units, &accepted, &mut uf, &raw_groups, &enclosing, opts);
+    let (groups, accepted_group_edges) = build_groups(
+        &units,
+        &accepted,
+        &mut uf,
+        &raw_groups,
+        &enclosing,
+        opts,
+        trace_accepted_coverage,
+    );
     clk.lap("groups");
 
     let reinvented = if opts.structural {

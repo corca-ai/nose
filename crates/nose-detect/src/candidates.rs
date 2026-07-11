@@ -100,6 +100,7 @@ pub(crate) fn build_groups(
     raw_groups: &[Vec<usize>],
     enclosing: &[Option<EnclosingUnit>],
     opts: &DetectOptions,
+    trace_accepted_coverage: bool,
 ) -> (Vec<Group>, Vec<Vec<(u32, u32)>>) {
     let mut by_root: FxHashMap<usize, (f64, u32)> = FxHashMap::default();
     for &(i, _j, s) in accepted {
@@ -142,7 +143,7 @@ pub(crate) fn build_groups(
             }
         })
         .collect();
-    let accepted_group_edges = if opts.trace_accepted_coverage {
+    let accepted_group_edges = if trace_accepted_coverage {
         accepted_edges_by_group(units.len(), raw_groups, accepted)
     } else {
         Vec::new()
