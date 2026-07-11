@@ -17,6 +17,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+try:
+    from labels.labelset import load_labelset
+except ModuleNotFoundError:  # Imported as bench.corpus_prune.core from the project root.
+    from bench.labels.labelset import load_labelset
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPOS_ROOT = PROJECT_ROOT / "bench" / "repos"
@@ -278,8 +283,11 @@ def load_protected_set(project_root: Path, labels_path: Path) -> ProtectedSet:
     active: set[str] = set()
     worthy: set[str] = set()
     if labels_path.exists():
-        labels = json.loads(labels_path.read_text())
-        for family in labels.get("families", []):
+        try:
+            families = load_labelset(labels_path).families
+        except ValueError as error:
+            raise SystemExit(f"cannot load active labels {labels_path}: {error}") from error
+        for family in families:
             members = family.get("members", [])
             for member in members:
                 file_name = normalize_label_path(member.get("file", ""))
